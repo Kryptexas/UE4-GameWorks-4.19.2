@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorLoadingSavingSettings.h: Declares the UEditorLoadingSavingSettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -106,11 +102,9 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 
 private:
 

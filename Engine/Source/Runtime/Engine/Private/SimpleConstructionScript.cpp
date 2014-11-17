@@ -288,7 +288,7 @@ void USimpleConstructionScript::FixupRootNodeParentReferences()
 	}
 }
 
-void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTransform& RootTransform)
+void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTransform& RootTransform, bool bIsDefaultTransform)
 {
 	if(RootNodes.Num() > 0)
 	{
@@ -333,22 +333,16 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 					}
 				}
 
-				RootNode->ExecuteNodeOnActor(Actor, ParentComponent != NULL ? ParentComponent : Actor->GetRootComponent(), &RootTransform);
+				RootNode->ExecuteNodeOnActor(Actor, ParentComponent != NULL ? ParentComponent : Actor->GetRootComponent(), &RootTransform, bIsDefaultTransform);
 			}
 		}
 	}
 	else if(Actor->GetRootComponent() == NULL) // Must have a root component at the end of SCS, so if we don't have one already (from base class), create a SceneComponent now
 	{
-		FTransform SpawnTransform = RootTransform;
-		if(SpawnTransform.GetScale3D().IsZero())
-		{
-			SpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
-		}
-
 		USceneComponent* SceneComp = NewObject<USceneComponent>(Actor);
 		SceneComp->SetFlags(RF_Transactional);
 		SceneComp->bCreatedByConstructionScript = true;
-		SceneComp->SetWorldTransform(SpawnTransform);
+		SceneComp->SetWorldTransform(RootTransform);
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();
 	}

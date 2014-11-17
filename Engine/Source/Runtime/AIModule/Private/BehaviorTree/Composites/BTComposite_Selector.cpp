@@ -7,7 +7,6 @@ UBTComposite_Selector::UBTComposite_Selector(const class FPostConstructInitializ
 {
 	NodeName = "Selector";
 
-	OptionalDeactivationResult = EBTNodeResult::Failed;
 	OnNextChild.BindUObject(this, &UBTComposite_Selector::GetNextChildHandler);
 }
 
@@ -21,7 +20,7 @@ int32 UBTComposite_Selector::GetNextChildHandler(struct FBehaviorTreeSearchData&
 		// newly activated: start from first
 		NextChildIdx = 0;
 	}
-	else if ((LastResult == EBTNodeResult::Failed || LastResult == EBTNodeResult::Optional) && (PrevChild + 1) < GetChildrenNum())
+	else if (LastResult == EBTNodeResult::Failed && (PrevChild + 1) < GetChildrenNum())
 	{
 		// failed = choose next child
 		NextChildIdx = PrevChild + 1;

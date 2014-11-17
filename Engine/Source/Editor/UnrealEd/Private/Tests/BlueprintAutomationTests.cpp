@@ -261,7 +261,7 @@ public:
 	{
 		if (DontSavePackagesList.Num() == 0)
 		{
-			GIsPackageOKToSaveDelegate.BindStatic(&IsPackageOKToSave);
+			FCoreUObjectDelegates::IsPackageOKToSaveDelegate.BindStatic(&IsPackageOKToSave);
 		}
 		DontSavePackagesList.AddUnique(Package->GetFName());
 	}
@@ -464,10 +464,20 @@ public:
 			return false;
 		}
 
+		UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+		// compiling the blueprint will inherently dirty the package, but if there 
+		// weren't any changes to save before, there shouldn't be after
+		bool const bStartedWithUnsavedChanges = (BlueprintPackage != nullptr) ? BlueprintPackage->IsDirty() : true;
+
 		bool bIsRegeneratingOnLoad = false;
 		bool bSkipGarbageCollection = true;
 		FBlueprintEditorUtils::RefreshAllNodes(BlueprintObj);
 		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+
+		if (BlueprintPackage != nullptr)
+		{
+			BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
+		}
 
 		return true;
 	}
@@ -815,13 +825,13 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 			AddError(FString::Printf(TEXT("You have unsaved changes made to '%s', please save them before running this test."), *BlueprintAssetPath));
 			return false;
 		}
-		else 
+		else
 		{
 			AddWarning(FString::Printf(TEXT("Test may be invalid (the blueprint is already loaded): '%s'"), *BlueprintAssetPath));
 			FBlueprintAutomationTestUtilities::UnloadBlueprint(ExistingBP);
-		}		
+		}
 	}
-	
+
 	// tracks blueprints that were already loaded (and cleans up any that were 
 	// loaded in its lifetime, once it is destroyed)
 	FScopedBlueprintUnloader NewBlueprintUnloader(/*bAutoOpenScope =*/true, /*bRunGCOnCloseIn =*/true);
@@ -845,22 +855,48 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		return false;
 	}
 
-#if WITH_EDITOR
-	TArray<UClass*> BlueprintDependencies = FScopedClassDependencyGather::GetCachedDependencies();
-#else 
-	TArray<UClass*> BlueprintDependencies;
-	for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+	// GATHER SUBOBJECTS
+	TArray<TWeakObjectPtr<UObject>> InitialBlueprintSubobjects;
 	{
-		if (*BlueprintIt == InitialBlueprint)
+		TArray<UObject*> InitialBlueprintSubobjectsPtr;
+		GetObjectsWithOuter(InitialBlueprint, InitialBlueprintSubobjectsPtr);
+		for (auto Obj : InitialBlueprintSubobjectsPtr)
 		{
-			continue;
-		}
-		else if (BlueprintIt->GeneratedClass != NULL)
-		{
-			BlueprintDependencies.Add(BlueprintIt->GeneratedClass);
+			InitialBlueprintSubobjects.Add(Obj);
 		}
 	}
-#endif 
+
+	// GATHER DEPENDENCIES
+	TSet<TWeakObjectPtr<UBlueprint>> BlueprintDependencies;
+	{
+		TArray<UBlueprint*> DependentBlueprints;
+		FBlueprintEditorUtils::GetDependentBlueprints(InitialBlueprint, DependentBlueprints);
+		for (auto BP : DependentBlueprints)
+		{
+			BlueprintDependencies.Add(BP);
+		}
+	}
+	BlueprintDependencies.Add(InitialBlueprint);
+
+	// GATHER DEPENDENCIES PERSISTENT DATA
+	struct FReplaceInnerData
+	{
+		TWeakObjectPtr<UClass> Class;
+		FStringAssetReference BlueprintAsset;
+	};
+	TArray<FReplaceInnerData> ReplaceInnerData;
+	for (auto BPToUnloadWP : BlueprintDependencies)
+	{
+		auto BPToUnload = BPToUnloadWP.Get();
+		auto OldClass = BPToUnload ? *BPToUnload->GeneratedClass : NULL;
+		if (OldClass)
+		{
+			FReplaceInnerData Data;
+			Data.Class = OldClass;
+			Data.BlueprintAsset = FStringAssetReference(BPToUnload);
+			ReplaceInnerData.Add(Data);
+		}
+	}
 
 	// store off data for the initial blueprint so we can unload it (and reconstruct 
 	// later to compare it with a second one)
@@ -871,7 +907,18 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 	FName const BlueprintName = InitialBlueprint->GetFName();
 	// unload the blueprint so we can reload it (to catch any differences, now  
 	// that all its dependencies should be loaded as well)
-	FBlueprintAutomationTestUtilities::UnloadBlueprint(InitialBlueprint);
+
+	//UNLOAD DEPENDENCIES, all circular dependencies will be loaded again 
+	// unload the blueprint so we can reload it (to catch any differences, now  
+	// that all its dependencies should be loaded as well)
+	for (auto BPToUnloadWP : BlueprintDependencies)
+	{
+		if (auto BPToUnload = BPToUnloadWP.Get())
+		{
+			FBlueprintAutomationTestUtilities::UnloadBlueprint(BPToUnload);
+		}
+	}
+
 	// this blueprint is now dead (will be destroyed next garbage-collection pass)
 	UBlueprint* UnloadedBlueprint = InitialBlueprint;
 	InitialBlueprint = NULL;
@@ -879,22 +926,35 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 	// load the blueprint a second time; if the two separately loaded blueprints 
 	// are different, then this one is most likely the choice one (it has all its 
 	// dependencies loaded)
+
 	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
 
-	// fixup any circular dependencies that may now be referencing the unloaded 
-	// blueprint (replace them with the reloaded blueprint, class, etc.)...
+	UPackage* TransientPackage = GetTransientPackage();
+	FName ReconstructedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), BlueprintName);
+	// reconstruct the initial blueprint (using the serialized data from its initial load)
+	EObjectFlags const StandardBlueprintFlags = RF_Public | RF_Standalone | RF_Transactional;
+	InitialBlueprint = ConstructObject<UBlueprint>(UBlueprint::StaticClass(), TransientPackage, ReconstructedName, StandardBlueprintFlags | RF_Transient);
+	FObjectReader(InitialBlueprint, InitialLoadData);
 	{
-		TMap<UBlueprint*, UBlueprint*> BlueprintRedirects;
-		BlueprintRedirects.Add(UnloadedBlueprint, ReloadedBlueprint);
-
-		TMap<UClass*, UClass*> ClassRedirects;
-		ClassRedirects.Add(UnloadedBlueprint->GeneratedClass, ReloadedBlueprint->GeneratedClass);
-		ClassRedirects.Add(UnloadedBlueprint->SkeletonGeneratedClass, ReloadedBlueprint->SkeletonGeneratedClass);
-
-		for (UClass* ClassDependency : BlueprintDependencies)
+		TMap<UObject*, UObject*> ClassRedirects;
+		for (auto& Data : ReplaceInnerData)
 		{
-			FArchiveReplaceObjectRef<UBlueprint>(ClassDependency, BlueprintRedirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/true, /*bIgnoreArchetypeRef=*/false);
-			FArchiveReplaceObjectRef<UClass>(ClassDependency, ClassRedirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/true, /*bIgnoreArchetypeRef=*/false);
+			UClass* OriginalClass = Data.Class.Get();
+			UBlueprint* NewBlueprint = Cast<UBlueprint>(Data.BlueprintAsset.ResolveObject());
+			UClass* NewClass = NewBlueprint ? *NewBlueprint->GeneratedClass : NULL;
+			if (OriginalClass && NewClass)
+			{
+				ClassRedirects.Add(OriginalClass, NewClass);
+			}
+		}
+		// REPLACE OLD DATA
+		FArchiveReplaceObjectRef<UObject>(InitialBlueprint, ClassRedirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/true, /*bIgnoreArchetypeRef=*/false);
+		for (auto SubobjWP : InitialBlueprintSubobjects)
+		{
+			if (auto Subobj = SubobjWP.Get())
+			{
+				FArchiveReplaceObjectRef<UObject>(Subobj, ClassRedirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/true, /*bIgnoreArchetypeRef=*/false);
+			}
 		}
 
 		UPackage* AssetPackage = ReloadedBlueprint->GetOutermost();
@@ -902,13 +962,6 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		FBlueprintEditorUtils::RefreshAllNodes(ReloadedBlueprint);
 		AssetPackage->SetDirtyFlag(bHasUnsavedChanges);
 	}
-	
-	UPackage* TransientPackage = GetTransientPackage();
-	FName ReconstructedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), BlueprintName);
-	// reconstruct the initial blueprint (using the serialized data from its initial load)
-	EObjectFlags const StandardBlueprintFlags = RF_Public | RF_Standalone | RF_Transactional;
-	InitialBlueprint = ConstructObject<UBlueprint>(UBlueprint::StaticClass(), TransientPackage, ReconstructedName, StandardBlueprintFlags | RF_Transient);
-	FObjectReader(InitialBlueprint, InitialLoadData);
 
 	// look for diffs between subsequent loads and log them as errors
 	TArray<FDiffSingleResult> BlueprintDiffs;
@@ -1026,7 +1079,7 @@ bool FDelayLatentCommand::Update()
 }
 
 /************************************************************************/
-/*
+/**
  * Uses test maps in Engine and/or game content folder which are populated with a few blueprint instances
  * See InstanceTestMaps entries in the [Automation.Blueprint] config sections
  * For all blueprint instances in the map:
@@ -1044,14 +1097,13 @@ bool FBlueprintInstancesTest::RunTest(const FString& InParameters)
 	TSet<AActor*> BlueprintInstances;
 	for ( FActorIterator It(GWorld); It; ++It )
 	{
-		if (AActor* Actor = Cast<AActor>(*It))
-		{
-			UClass* ActorClass = Actor->GetClass();
+		AActor* Actor = *It;
 
-			if (ActorClass->ClassGeneratedBy && ActorClass->ClassGeneratedBy->IsA( UBlueprint::StaticClass() ) )
-			{
-				BlueprintInstances.Add(Actor);
-			}
+		UClass* ActorClass = Actor->GetClass();
+
+		if (ActorClass->ClassGeneratedBy && ActorClass->ClassGeneratedBy->IsA( UBlueprint::StaticClass() ) )
+		{
+			BlueprintInstances.Add(Actor);
 		}
 	}
 

@@ -40,6 +40,8 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingControllerComponent : public UActor
 	/** periodic update of navmesh data */
 	void UpdateNavMeshTimer();
 
+	FOnChangeEQSQuery OnNextEQSQuery;
+	FOnChangeEQSQuery OnPreviousEQSQuery;
 protected:
 
 	UPROPERTY(Transient)
@@ -67,6 +69,7 @@ protected:
 	virtual void ToggleAIDebugView_SetView7();
 	virtual void ToggleAIDebugView_SetView8();
 	virtual void ToggleAIDebugView_SetView9();
+	virtual void NextEQSQuery();
 
 	virtual void BindAIDebugViewKeys();
 	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;

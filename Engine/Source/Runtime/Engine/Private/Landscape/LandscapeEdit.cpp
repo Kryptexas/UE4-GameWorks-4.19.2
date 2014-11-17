@@ -7,6 +7,7 @@ LandscapeEdit.cpp: Landscape editing
 #include "EnginePrivate.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Landscape/LandscapeDataAccess.h"
@@ -14,6 +15,8 @@ LandscapeEdit.cpp: Landscape editing
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeRenderMobile.h"
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeMaterialInstanceConstant.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
@@ -73,6 +76,17 @@ void ULandscapeComponent::UpdateCachedBounds()
 		HFCollisionComponent->Modify();
 		HFCollisionComponent->CachedLocalBox = CachedLocalBox;
 		HFCollisionComponent->UpdateComponentToWorld();
+	}
+}
+
+void ULandscapeComponent::UpdateNavigationRelevance()
+{
+	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	if (CollisionComponent && Proxy)
+	{
+		CollisionComponent->bCanEverAffectNavigation = Proxy->bUsedForNavigation;
+
+		UNavigationSystem::UpdateNavOctree(CollisionComponent.Get());
 	}
 }
 
@@ -697,6 +711,12 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			int32 CollisionCompY2 = FMath::CeilToInt((float)ComponentY2 * CollisionQuadRatio);
 			CollisionComp->UpdateHeightfieldRegion(CollisionCompX1, CollisionCompY1, CollisionCompX2, CollisionCompY2);
 		}
+	}
+
+	{
+		// set relevancy for navigation system
+		ALandscapeProxy* LandscapeProxy = CollisionComp->GetLandscapeProxy();
+		CollisionComp->bCanEverAffectNavigation = LandscapeProxy ? LandscapeProxy->bUsedForNavigation : false;
 	}
 
 	if (bRebuild && CollisionProxy)
@@ -1579,24 +1599,25 @@ TArray<FName> ALandscapeProxy::GetLayersFromMaterial(UMaterialInterface* Materia
 		const TArray<UMaterialExpression*>& Expressions = Material->GetMaterial()->Expressions;
 
 		// TODO: *Unconnected* layer expressions?
-		for (auto ItExpressions = Expressions.CreateConstIterator(); ItExpressions; ItExpressions++)
+		for (UMaterialExpression* Expression : Expressions)
 		{
-			UMaterialExpressionLandscapeLayerWeight* LayerWeightExpression = Cast<UMaterialExpressionLandscapeLayerWeight>(*ItExpressions);
-			UMaterialExpressionLandscapeLayerSwitch* LayerSwitchExpression = Cast<UMaterialExpressionLandscapeLayerSwitch>(*ItExpressions);
-			UMaterialExpressionLandscapeLayerBlend* LayerBlendExpression = Cast<UMaterialExpressionLandscapeLayerBlend>(*ItExpressions);
-			if (LayerWeightExpression)
+			if (auto LayerWeightExpression = Cast<UMaterialExpressionLandscapeLayerWeight>(Expression))
 			{
 				Result.AddUnique(LayerWeightExpression->ParameterName);
 			}
-			else if (LayerSwitchExpression)
+			else if (auto LayerSampleExpression = Cast<UMaterialExpressionLandscapeLayerSample>(Expression))
+			{
+				Result.AddUnique(LayerSampleExpression->ParameterName);
+			}
+			else if (auto LayerSwitchExpression = Cast<UMaterialExpressionLandscapeLayerSwitch>(Expression))
 			{
 				Result.AddUnique(LayerSwitchExpression->ParameterName);
 			}
-			else if (LayerBlendExpression)
+			else if (auto LayerBlendExpression = Cast<UMaterialExpressionLandscapeLayerBlend>(Expression))
 			{
-				for (auto ItExpressionLayers = LayerBlendExpression->Layers.CreateConstIterator(); ItExpressionLayers; ItExpressionLayers++)
+				for (const auto& ExpressionLayer : LayerBlendExpression->Layers)
 				{
-					Result.AddUnique(ItExpressionLayers->LayerName);
+					Result.AddUnique(ExpressionLayer.LayerName);
 				}
 			}
 		}
@@ -2308,14 +2329,14 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 			{
 				// Fill indices
 				{
-					int32 SubNumX, SubNumY, SubX, SubY;
-					CDI.ComponentXYToSubsectionXY(x, y, SubNumX, SubNumY, SubX, SubY);
 
 					// Whether this vertex is in hole
 					bool bInvisible = false;
 					if (VisDataMap.Num())
 					{
-						bInvisible = (VisDataMap[x + y * (ComponentSizeQuadsLOD + 1)] >= VisThreshold);
+						int32 TexelX, TexelY;
+						CDI.VertexXYToTexelXY(x, y, TexelX, TexelY);
+						bInvisible = (VisDataMap[CDI.TexelXYToIndex(TexelX, TexelY)] >= VisThreshold);
 					}
 
 					// triangulation matches FLandscapeIndexBuffer constructor
@@ -2368,7 +2389,7 @@ FIntRect ALandscapeProxy::GetBoundingRect() const
 		Rect.Include(LandscapeComponents[CompIdx]->GetSectionBase());
 	}
 
-	if (Rect.Width() > 0 && Rect.Height() > 0)
+	if (LandscapeComponents.Num() > 0)
 	{
 		Rect.Max += FIntPoint(ComponentSizeQuads, ComponentSizeQuads);
 		Rect -= LandscapeSectionOffset;
@@ -3312,10 +3333,10 @@ void ALandscapeProxy::PostEditImport()
 	Super::PostEditImport();
 	if (!bIsProxy && GetWorld()) // For Landscape
 	{
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<ALandscape> It(GetWorld()); It; ++It)
 		{
-			ALandscape* Landscape = Cast<ALandscape>(*It);
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			ALandscape* Landscape = *It;
+			if (Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
 			{
 				// Copy/Paste case, need to generate new GUID
 				LandscapeGuid = FGuid::NewGuid();
@@ -3638,8 +3659,6 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 
 void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static const FName NAME_UsedForNavigation = FName(TEXT("bUsedForNavigation"));
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -3647,6 +3666,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	bool ChangedMaterial = false;
 	bool bNeedsRecalcBoundingBox = false;
 	bool bChangedLighting = false;
+	bool bChangedNavRelevance = false;
 	bool bPropagateToProxies = false;
 
 	ULandscapeInfo* Info = GetLandscapeInfo();
@@ -3709,9 +3729,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	{
 		ExportLOD = FMath::Clamp<int32>(ExportLOD, 0, FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1);
 	}
-	else if (GIsEditor && PropertyName == NAME_UsedForNavigation)
+	else if (GIsEditor && PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bUsedForNavigation))
 	{
-		UpdateNavigationRelevancy();
+		bChangedNavRelevance = true;
 	}
 
 	bPropagateToProxies = bPropagateToProxies || bNeedsRecalcBoundingBox || bChangedLighting;
@@ -3761,6 +3781,11 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 					Comp->InvalidateLightingCache();
 				}
 
+				if (bChangedNavRelevance)
+				{
+					Comp->UpdateNavigationRelevance();
+				}
+
 				// Reattach all components
 				FComponentReregisterContext ReregisterContext(Comp);
 			}
@@ -3769,13 +3794,9 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		// Need to update Gizmo scene proxy
 		if (bNeedsRecalcBoundingBox && GetWorld())
 		{
-			for (FActorIterator It(GetWorld()); It; ++It)
+			for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
 			{
-				ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-				if (Gizmo)
-				{
-					Gizmo->ReregisterAllComponents();
-				}
+				It->ReregisterAllComponents();
 			}
 		}
 
@@ -3921,6 +3942,13 @@ void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		{
 			StaticLightingResolution = 0;
 		}
+		InvalidateLightingCache();
+	}
+	else if (GIsEditor && PropertyName == FName(TEXT("LightingLODBias")))
+	{
+		int32 MaxLOD = FMath::CeilLogTwo(SubsectionSizeQuads + 1) - 1;
+		LightingLODBias = FMath::Clamp<int32>(LightingLODBias, -1, MaxLOD);
+		InvalidateLightingCache();
 	}
 	else if (GIsEditor && (PropertyName == FName(TEXT("CollisionMipLevel"))))
 	{
@@ -4737,7 +4765,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	}
 
 	int32 WeightmapSize = (SubsectionSizeQuads + 1) * NumSubsections;
-	UTexture2D* WeightmapTexture = GetLandscapeActor()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
+	UTexture2D* WeightmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 	CreateEmptyTextureMips(WeightmapTexture);
 
 	{

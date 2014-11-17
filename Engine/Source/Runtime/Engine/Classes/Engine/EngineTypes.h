@@ -64,6 +64,17 @@ enum ESceneDepthPriorityGroup
 	SDPG_MAX,
 };
 
+UENUM()
+enum EIndirectLightingCacheQuality
+{
+	/** The indirect lighting cache will be disabled for this object, so no GI from stationary lights on movable objects. */
+	ILCQ_Off,
+	/** A single indirect lighting sample computed at the bounds origin will be interpolated which fades over time to newer results. */
+	ILCQ_Point,
+	/** The object will get a 5x5x5 stable volume of interpolated indirect lighting, which allows gradients of lighting intensity across the receiving object. */
+	ILCQ_Volume
+};
+
 /** Note: This is mirrored in Lightmass, be sure to update the blend mode structure and logic there if this changes. */
 // Note: Check UMaterialInstance::Serialize if changed!!
 UENUM(BlueprintType)
@@ -118,6 +129,7 @@ enum EMaterialShadingModel
 	MSM_Subsurface			UMETA(DisplayName="Subsurface"),
 	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
 	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
+	MSM_SubsurfaceProfile	UMETA(DisplayName="Subsurface Profile"),
 	MSM_MAX,
 };
 
@@ -188,16 +200,28 @@ enum ETriangleSortAxis
 	TSA_MAX,
 };
 
-/** Movement modes for Characters.  */
+/** Movement modes for Characters. */
 UENUM(BlueprintType)
 enum EMovementMode
 {
+	/** None (movement is disabled). */
 	MOVE_None		UMETA(DisplayName="None"),
+
+	/** Walking on a surface. */
 	MOVE_Walking	UMETA(DisplayName="Walking"),
+
+	/** Falling under the effects of gravity, such as after jumping or walking off the edge of a surface. */
 	MOVE_Falling	UMETA(DisplayName="Falling"),
+
+	/** Swimming through a fluid volume, under the effects of gravity and buoyancy. */
 	MOVE_Swimming	UMETA(DisplayName="Swimming"),
+
+	/** Flying, ignoring the effects of gravity. Affected by the current physics volume's fluid friction. */
 	MOVE_Flying		UMETA(DisplayName="Flying"),
+
+	/** User-defined custom movement mode, including many possible sub-modes. */
 	MOVE_Custom		UMETA(DisplayName="Custom"),
+
 	MOVE_MAX		UMETA(Hidden),
 };
 
@@ -1300,13 +1324,15 @@ struct FPrimitiveMaterialRef
 	}
 };
 
-/** Structure containing information about one hit of the trace */
+/**
+ * Structure containing information about one hit of a trace, such as point of impact and surface normal at that point.
+ */
 USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Indicates if this hit was requesting a block - if false, was requesting a touch instead */
+	/** Indicates if this hit was a result of blocking collision. If false, there was no hit or it was an overlap/touch instead. */
 	UPROPERTY()
 	uint32 bBlockingHit:1;
 
@@ -1319,43 +1345,67 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	uint32 bStartPenetrating:1;
 
-	/* 'Time' of hit along ray (between 0.0 and 1.0), between TraceStart and TraceEnd. */
+	/**
+	 * 'Time' of impact along trace direction (ranging from 0.0 to 1.0) if there is a hit, indicating time between TraceStart and TraceEnd.
+	 * For swept movement (but not queries) this may be pulled back slightly from the actual time of impact, to prevent precision problems with adjacent geometry.
+	 */
 	UPROPERTY()
 	float Time;
 	
-	/** Location of the hit in world space.  If this was a Swept Shape test, this is the location where we can place the shape in the world where it will not inter-penetrate. */
+	/**
+	 * The location in world space where the shape would end up against the impacted object, if there is a hit. Equal to the point of impact for line tests.
+	 * Example: for a sphere trace test, this is the point where the center of the sphere would be located when it touched the other object.
+	 * For swept movement (but not queries) this may not equal the final location of the shape since hits are pulled back slightly to prevent precision issues.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize Location;
 
-	/** Normal of the hit in world space, for the object that was swept. This is computed for capsules and spheres, otherwise it will be the same as ImpactNormal.*/
+	/**
+	 * Normal of the hit in world space, for the object that was swept. Equal to ImpactNormal for line tests.
+	 * This is computed for capsules and spheres, otherwise it will be the same as ImpactNormal.
+	 * Example: for a sphere trace test, this is a normalized vector pointing in towards the center of the sphere at the point of impact.
+	 */
 	UPROPERTY()
 	FVector_NetQuantizeNormal Normal;
 
-	/** Location of the actual contact of the trace shape (box, sphere, etc.) with the world. (e.g. A box was swept.  This is the point where a side of the box touched something.) */
+	/**
+	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
+	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize ImpactPoint;
 
-	/** Normal of the hit in world space, for the object that was hit by the sweep. */
+	/**
+	 * Normal of the hit in world space, for the object that was hit by the sweep, if any.
+	 * For example if a box hits a flat plane, this is a normalized vector pointing out from the plane.
+	 * In the case of impact with a corner or edge of a surface, usually the "most opposing" normal (opposed to the query direction) is chosen.
+	 */
 	UPROPERTY()
 	FVector_NetQuantizeNormal ImpactNormal;
 
-	/** Start location of the trace. */
+	/**
+	 * Start location of the trace.
+	 * For example if a sphere is swept against the world, this is the starting location of the center of the sphere.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize TraceStart;
 
-	/** End location of the trace. This is NOT where the impact occurred (if any), but the furthest point in the attempted sweep. */
+	/**
+	 * End location of the trace; this is NOT where the impact occurred (if any), but the furthest point in the attempted sweep.
+	 * For example if a sphere is swept against the world, this would be the center of the sphere if there was no blocking hit.
+	 */
 	UPROPERTY()
 	FVector_NetQuantize TraceEnd;
 
 	/**
-	  * If this test started in penetration (bStartPenetrating is true), and a depenetration vector can be computed,
+	  * If this test started in penetration (bStartPenetrating is true) and a depenetration vector can be computed,
 	  * this value is the distance along Normal that will result in moving out of penetration.
 	  * If the distance cannot be computed, this distance will be zero.
 	  */
 	UPROPERTY()
 	float PenetrationDepth;
 
-	/** Extra data about item that was hit (hit primitive specific) */
+	/** Extra data about item that was hit (hit primitive specific). */
 	UPROPERTY()
 	int32 Item;
 
@@ -1363,11 +1413,11 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	TWeakObjectPtr<class UPhysicalMaterial> PhysMaterial;
 
-	/** Actor that the check hit. */
+	/** Actor hit by the trace. */
 	UPROPERTY()
 	TWeakObjectPtr<class AActor> Actor;
 
-	/** PrimitiveComponent that the check hit. */
+	/** PrimitiveComponent hit by the trace. */
 	UPROPERTY(NotReplicated)
 	TWeakObjectPtr<class UPrimitiveComponent> Component;
 
@@ -1375,9 +1425,10 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	FName BoneName;
 
-	/** Face index we hit (for complex hits with triangle meshes) */
+	/** Face index we hit (for complex hits with triangle meshes). */
 	UPROPERTY()
 	int32 FaceIndex;
+
 
 	FHitResult()
 	{
@@ -1411,10 +1462,10 @@ struct ENGINE_API FHitResult
 		}
 	}
 
-	/** Utility to return the Actor that owns the Component that was hit */
+	/** Utility to return the Actor that owns the Component that was hit. */
 	AActor* GetActor() const;
 
-	/** Utility to return the Component that was hit */
+	/** Utility to return the Component that was hit. */
 	UPrimitiveComponent* GetComponent() const;
 
 	/** Return true if there was a blocking hit that was not caused by starting in penetration. */
@@ -1423,7 +1474,7 @@ struct ENGINE_API FHitResult
 		return bBlockingHit && !bStartPenetrating;
 	}
 
-	/** Returns the first 'blocking' hit in an array of results */
+	/** Static utility function that returns the first 'blocking' hit in an array of results. */
 	static FHitResult* GetFirstBlockingHit(TArray<FHitResult>& InHits)
 	{
 		for(int32 HitIdx=0; HitIdx<InHits.Num(); HitIdx++)
@@ -1436,7 +1487,7 @@ struct ENGINE_API FHitResult
 		return NULL;
 	}
 
-	/** Returns number of blocking hits in array */
+	/** Static utility function that returns the number of blocking hits in array. */
 	static int32 GetNumBlockingHits(const TArray<FHitResult>& InHits)
 	{
 		int32 NumBlocks = 0;
@@ -1450,7 +1501,7 @@ struct ENGINE_API FHitResult
 		return NumBlocks;
 	}
 
-	/** Returns number of overlapping hits in array */
+	/** Static utility function that returns the number of overlapping hits in array. */
 	static int32 GetNumOverlapHits(const TArray<FHitResult>& InHits)
 	{
 		return (InHits.Num() - GetNumBlockingHits(InHits));
@@ -1492,17 +1543,17 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
-/** Structure containing information about minimum translation directon (MTD) */
+/** Structure containing information about minimum translation direction (MTD) */
 USTRUCT()
 struct ENGINE_API FMTDResult
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Direction of the minimum translation required to fix penetration. */
+	/** Normalized direction of the minimum translation required to fix penetration. */
 	UPROPERTY()
 	FVector Direction;
 
-	/** Distance required to move along the MTD. */
+	/** Distance required to move along the MTD vector (Direction). */
 	UPROPERTY()
 	float Distance;
 
@@ -1595,7 +1646,7 @@ public:
 	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
 	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
 	 */
-	void Set(const class AActor & Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames);
+	void Set(class AActor& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames);
 
 	/* Getter for UpdateRate */
 	int32 GetUpdateRate() const
@@ -1781,14 +1832,38 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
 
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bGenerateLightmapUVs;
+
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	int32 MinLightmapResolution;
+
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Source Lightmap Index"))
+	int32 SrcLightmapIndex;
+
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Destination Lightmap Index"))
+	int32 DstLightmapIndex;
+
 	UPROPERTY()
 	float BuildScale_DEPRECATED;
 
 	/** The local scale applied when building the mesh */
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Build Scale"))
 	FVector BuildScale3D;
+
+	/** 
+	 * Scale to apply to the mesh when allocating the distance field volume texture.
+	 * The default scale is 1, which is assuming that the mesh will be placed unscaled in the world.
+	 */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	float DistanceFieldResolutionScale;
+
+	/** 
+	 * Whether to generate the distance field treating every triangle hit as a front face.  
+	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
+	 */
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bGenerateDistanceFieldAsIfTwoSided;
 
 	/** Default settings. */
 	FMeshBuildSettings()
@@ -1796,11 +1871,15 @@ struct FMeshBuildSettings
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bUseFullPrecisionUVs(false)
+		, bGenerateLightmapUVs(true)
+		, MinLightmapResolution(64)
+		, SrcLightmapIndex(0)
+		, DstLightmapIndex(1)
 		, BuildScale_DEPRECATED(1.0f)
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
-	{
-		DistanceFieldResolutionScale = 1;
-	}
+		, DistanceFieldResolutionScale(1.0f)
+		, bGenerateDistanceFieldAsIfTwoSided(false)
+	{}
 
 	/** Equality operator. */
 	bool operator==(const FMeshBuildSettings& Other) const
@@ -1809,8 +1888,13 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
+			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
+			&& MinLightmapResolution == Other.MinLightmapResolution
+			&& SrcLightmapIndex == Other.SrcLightmapIndex
+			&& DstLightmapIndex == Other.DstLightmapIndex
 			&& BuildScale3D == Other.BuildScale3D
-			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale;
+			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
+			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided;
 	}
 
 	/** Inequality. */
@@ -2069,6 +2153,20 @@ namespace EAutoReceiveInput
 	};
 }
 
+UENUM(BlueprintType)
+namespace EEndPlayReason
+{
+	enum Type
+	{
+		ActorDestroyed,		// When the Actor is explicitly destroyed
+		LevelTransition,	// When the world is being unloaded for a level transition
+		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
+		RemovedFromWorld,	// When the level it is a member of is streamed out
+		Quit,			// When the application is being exited
+	};
+
+}
+
 /** Replicated movement data of our RootComponent.
   * Struct used for efficient replication as velocity and location are generally replicated together (this saves a repindex) 
   * and velocity.Z is commonly zero (most position replications are for walking pawns). 
@@ -2210,6 +2308,9 @@ struct FRepAttachment
 	FVector_NetQuantize100 LocationOffset;
 
 	UPROPERTY()
+	FVector_NetQuantize100 RelativeScale3D;
+
+	UPROPERTY()
 	FRotator RotationOffset;
 
 	UPROPERTY()
@@ -2221,6 +2322,7 @@ struct FRepAttachment
 	FRepAttachment()
 		: AttachParent(NULL)
 		, LocationOffset(ForceInit)
+		, RelativeScale3D(ForceInit)
 		, RotationOffset(ForceInit)
 		, AttachSocket(NAME_None)
 		, AttachComponent(NULL)
@@ -2228,18 +2330,36 @@ struct FRepAttachment
 };
 
 
-/** Enum controlling behavior of FWalkableSlopeOverride */
+/**
+ * Controls behavior of WalkableSlopeOverride, determining how to affect walkability of surfaces for Characters.
+ * @see FWalkableSlopeOverride
+ * @see UCharacterMovementComponent::GetWalkableFloorAngle(), UCharacterMovementComponent::SetWalkableFloorAngle()
+ */
 UENUM(BlueprintType)
 enum EWalkableSlopeBehavior
 {
-	// Don't affect the walkable slope
-	WalkableSlope_Default	UMETA(DisplayName="Unchanged"),
+	/** Don't affect the walkable slope. */
+	WalkableSlope_Default		UMETA(DisplayName="Unchanged"),
 
-	// Increase walkable slope.
-	WalkableSlope_Increase	UMETA(DisplayName="Increase Walkable Slope"),
+	/**
+	 * Increase walkable slope.
+	 * Makes it easier to walk up a surface, by allowing traversal over higher-than-usual angles.
+	 * @see FWalkableSlopeOverride::WalkableSlopeAngle
+	 */
+	WalkableSlope_Increase		UMETA(DisplayName="Increase Walkable Slope"),
 
-	// Decrease walkable slope.
-	WalkableSlope_Decrease	UMETA(DisplayName="Decrease Walkable Slope"),
+	/**
+	 * Decrease walkable slope.
+	 * Makes it harder to walk up a surface, by restricting traversal to lower-than-usual angles.
+	 * @see FWalkableSlopeOverride::WalkableSlopeAngle
+	 */
+	WalkableSlope_Decrease		UMETA(DisplayName="Decrease Walkable Slope"),
+
+	/**
+	 * Make surface unwalkable.
+	 * Note: WalkableSlopeAngle will be ignored.
+	 */
+	WalkableSlope_Unwalkable	UMETA(DisplayName="Unwalkable"),
 	
 	WalkableSlope_Max		UMETA(Hidden),
 };
@@ -2251,12 +2371,12 @@ struct FWalkableSlopeOverride
 {
 	GENERATED_USTRUCT_BODY()
 
-	// Behavior of this surface (whether we affect the walkable normal)
+	/** Behavior of this surface (whether we affect the walkable slope). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=WalkableSlopeOverride)
 	TEnumAsByte<EWalkableSlopeBehavior> WalkableSlopeBehavior;
 
 	/**
-	 * Override slope, applying the rules of the Walkable Slope Behavior.
+	 * Override walkable slope, applying the rules of the Walkable Slope Behavior.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=WalkableSlopeOverride, meta=(ClampMin="0", ClampMax="90", UIMin="0", UIMax="90"))
 	float WalkableSlopeAngle;
@@ -2287,6 +2407,12 @@ struct FWalkableSlopeOverride
 			{
 				const float Angle = FMath::DegreesToRadians(WalkableSlopeAngle);
 				return FMath::Max(InWalkableFloorZ, FMath::Cos(Angle));
+			}
+
+			case WalkableSlope_Unwalkable:
+			{
+				// Z component of a normal will always be less than this, so this will be unwalkable.
+				return 2.0f;
 			}
 
 			default:
@@ -2439,30 +2565,36 @@ enum EPhysicalSurface
 	SurfaceType_Max UMETA(Hidden)
 };
 
-/** Enum describing how often this component is allowed to move */
+/** Describes how often this component is allowed to move. */
 UENUM()
 namespace EComponentMobility
 {
 	enum Type
 	{
-		// A static object can't be changed in game.
-		// - Allows Baked Lighting
-		// - Fastest Rendering
+		/**
+		 * Static objects cannot be moved or changed in game.
+		 * - Allows baked lighting
+		 * - Fastest rendering
+		 */
 		Static,
 
-		// A stationary light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic.
-		// - Stationary only makes sense for light components
-		// - It can change color and intensity in game.
-		// - Can't Move
-		// - Allows Partial Baked Lighting
-		// - Dynamic Shadows
+		/**
+		 * A stationary light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic.
+		 * - Stationary only makes sense for light components
+		 * - It can change color and intensity in game.
+		 * - Can't move
+		 * - Allows partial baked lighting
+		 * - Dynamic shadows
+		 */
 		Stationary,
 
-		// Movable objects can be moved and changed in game
-		// - Totally Dynamic
-		// - Allows Dynamic Shadows
-		// - Slowest Rendering
-		Movable		
+		/**
+		 * Movable objects can be moved and changed in game.
+		 * - Totally dynamic
+		 * - Can cast dynamic shadows
+		 * - Slowest rendering
+		 */
+		Movable
 	};
 }
 
@@ -2706,29 +2838,29 @@ public:
 };
 
 /** info for glow when using depth field rendering */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FDepthFieldGlowInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** whether to turn on the outline glow (depth field fonts only) */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="Glow")
 	uint32 bEnableGlow:1;
 
 	/** base color to use for the glow */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="Glow")
 	FLinearColor GlowColor;
 
 	/** if bEnableGlow, outline glow outer radius (0 to 1, 0.5 is edge of character silhouette)
 	 * glow influence will be 0 at GlowOuterRadius.X and 1 at GlowOuterRadius.Y
 	*/
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="Glow")
 	FVector2D GlowOuterRadius;
 
 	/** if bEnableGlow, outline glow inner radius (0 to 1, 0.5 is edge of character silhouette)
 	 * glow influence will be 1 at GlowInnerRadius.X and 0 at GlowInnerRadius.Y
 	 */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="Glow")
 	FVector2D GlowInnerRadius;
 
 
@@ -2765,21 +2897,21 @@ struct FDepthFieldGlowInfo
 };
 
 /** information used in font rendering */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FFontRenderInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** whether to clip text */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="FontInfo")
 	uint32 bClipText:1;
 
 	/** whether to turn on shadowing */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="FontInfo")
 	uint32 bEnableShadow:1;
 
 	/** depth field glow parameters (only usable if font was imported with a depth field) */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="FontInfo")
 	struct FDepthFieldGlowInfo GlowInfo;
 
 	FFontRenderInfo()

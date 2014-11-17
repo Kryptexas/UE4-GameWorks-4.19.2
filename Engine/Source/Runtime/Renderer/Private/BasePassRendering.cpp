@@ -47,10 +47,11 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedVolumeIndirectLightingPolicy,
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedPointIndirectLightingPolicy, FCachedPointIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSimpleDynamicLightingPolicy, FSimpleDynamicLightingPolicy );
 
-void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount)
+void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bOutSkyLightIsDynamic)
 {
 	OutSkyLightTextureResource = GBlackTextureCube;
 	OutApplySkyLightMask = 0;
+	bOutSkyLightIsDynamic = false;
 
 	if (Scene
 		&& Scene->SkyLight 
@@ -59,6 +60,7 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scen
 	{
 		OutSkyLightTextureResource = Scene->SkyLight->ProcessedTexture;
 		OutApplySkyLightMask = 1;
+		bOutSkyLightIsDynamic = !Scene->SkyLight->bHasStaticLighting && !Scene->SkyLight->bWantsStaticShadowing;
 	}
 
 	OutSkyMipCount = 1;
@@ -107,10 +109,10 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
 }
 
-void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy)
+void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
 {
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
-	FTextureRHIParamRef CubeArrayTexture = GBlackCubeArrayTexture->TextureRHI;
+	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
 	int32 ArrayIndex = 0;
 	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
 
@@ -185,6 +187,7 @@ public:
 				StaticMesh->VertexFactory,
 				StaticMesh->MaterialRenderProxy,
 				*Parameters.Material,
+				Parameters.FeatureLevel,
 				LightMapPolicy,
 				Parameters.BlendMode,
 				Parameters.TextureMode,
@@ -228,14 +231,14 @@ class FDrawBasePassDynamicMeshAction
 {
 public:
 
-	const FSceneView& View;
+	const FViewInfo& View;
 	bool bBackFace;
 	bool bPreFog;
 	FHitProxyId HitProxyId;
 
 	/** Initialization constructor. */
 	FDrawBasePassDynamicMeshAction(
-		const FSceneView& InView,
+		const FViewInfo& InView,
 		const bool bInBackFace,
 		const FHitProxyId InHitProxyId
 		)
@@ -286,6 +289,7 @@ public:
 			Parameters.Mesh.VertexFactory,
 			Parameters.Mesh.MaterialRenderProxy,
 			*Parameters.Material,
+			Parameters.FeatureLevel,
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.TextureMode,
@@ -296,7 +300,7 @@ public:
 			Parameters.bEditorCompositeDepthTest
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View);
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType());
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
@@ -307,7 +311,8 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
-				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
+				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
+				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
 			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
@@ -324,7 +329,7 @@ public:
 
 bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	FRHICommandList& RHICmdList, 
-	const FSceneView& View,
+	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
 	bool bBackFace,

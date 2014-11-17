@@ -67,7 +67,7 @@ namespace Lightmass
 		SOURCEOBJECTTYPE_Mapping
 	};
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 	#pragma pack(push, 1)
 #endif
 
@@ -435,7 +435,7 @@ namespace Lightmass
 	/** Guid used by Unreal to determine when the volume lighting sample channel with the same Guid can be opened. */
 	static const FGuid PrecomputedVolumeLightingGuid = FGuid(0xce97c5c3, 0xab614fd3, 0xb2da55c0, 0xe6c33fb4);
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 	#pragma pack(pop)
 #endif
 

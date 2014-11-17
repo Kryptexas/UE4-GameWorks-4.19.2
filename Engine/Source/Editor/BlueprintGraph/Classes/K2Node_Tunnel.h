@@ -36,7 +36,7 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	// Begin UEdGraphNode interface.
 	virtual void DestroyNode() override;
 	virtual void PostPasteNode() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool CanUserDeleteNode() const override;
 	BLUEPRINTGRAPH_API virtual bool CanDuplicateNode() const override;

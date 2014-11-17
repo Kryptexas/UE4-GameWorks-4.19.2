@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_InputTouchEvent.h"
 #include "CompilerResultsLog.h"
+#include "Engine/InputTouchDelegateBinding.h"
 
 UK2Node_InputTouchEvent::UK2Node_InputTouchEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

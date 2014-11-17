@@ -368,6 +368,8 @@ public:
 		}
 	};
 
+	SNodePanel();
+
 	// SPanel interface
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
 	virtual FVector2D ComputeDesiredSize() const override;

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -20,6 +20,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/Delegates",
 				"Runtime/Core/Public/GenericPlatform",
 				"Runtime/Core/Public/HAL",
+				"Runtime/Core/Public/Logging",
 				"Runtime/Core/Public/Math",
 				"Runtime/Core/Public/Misc",
 				"Runtime/Core/Public/Modules",
@@ -27,6 +28,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/ProfilingDebugging",
 				"Runtime/Core/Public/Serialization",
 				"Runtime/Core/Public/Serialization/Json",
+				"Runtime/Core/Public/Serialization/Csv",
 				"Runtime/Core/Public/Stats",
 				"Runtime/Core/Public/Templates",
 				"Runtime/Core/Public/UObject",
@@ -86,6 +88,7 @@ public class Core : ModuleRules
 			{
 				PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/Current/MultitouchSupport");
 			}
+			PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/CoreSymbolication.framework/Versions/Current/CoreSymbolication");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
@@ -119,6 +122,14 @@ public class Core : ModuleRules
 				"SDL2"
                 );
 
+            // We need FreeType2 and GL for the Splash, but only in the Editor
+            if (Target.Type == TargetRules.TargetType.Editor)
+            {
+                AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
+				AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+			}
+
+			/* [RCL] 2014-09-18: disabling SteamController temporarily until redist/deployment problems are cleared
             // add steam controller dependency for game and client only
             if (UEBuildConfiguration.bCompileAgainstEngine == true && 
                 (Target.Type == TargetRules.TargetType.Game || Target.Type == TargetRules.TargetType.Client) &&
@@ -126,6 +137,7 @@ public class Core : ModuleRules
             {
                 AddThirdPartyPrivateStaticDependencies(Target, "SteamController");
             }
+			*/
         }
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
@@ -133,6 +145,10 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, "SDL");
 			AddThirdPartyPrivateStaticDependencies(Target, "OpenAL");
 		}
+        else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
+        {
+            PrivateDependencyModuleNames.Add("HTML5JS");
+        }
 
 
 		if ((UEBuildConfiguration.bIncludeADO == true) || (UEBuildConfiguration.bCompileAgainstEngine == true))

@@ -131,7 +131,7 @@ Platform define
 #   elif defined(__ppc64__)
 #       define PX_PPC
 #	define PX_PPC64
-#	elif defined (HTML5)
+#	elif defined (EMSCRIPTEN)
 #       define PX_HTML5
 #   else
 #	error "Unknown platform"
@@ -315,7 +315,7 @@ General defines
 */
 
 // static assert
-#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1]
+#define PX_COMPILE_TIME_ASSERT(exp)	typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : 0]
 
 #if defined(PX_GNUC)
 #define PX_OFFSET_OF(X, Y) __builtin_offsetof(X, Y)

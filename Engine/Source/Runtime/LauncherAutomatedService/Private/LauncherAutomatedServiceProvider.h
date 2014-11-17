@@ -36,21 +36,21 @@ public:
 
 protected:
 
-	/*
+	/**
 	 * Sets up the profile manager responsible for deploying the session.
 	 *
 	 * @param Params The settings required to determine the profile/device group to use.
 	 */
 	void SetupProfileAndGroupSettings( const TCHAR* Params );
 
-	/*
+	/**
 	 * Start the automation tests
 	 */
 	void StartAutomationTests( );
 
 private:
 
-	/*
+	/**
 	 * Callback for devices being added to the proxy manager.
 	 *
 	 * @param AddedProxy The newly added device proxy to the device proxy manager.

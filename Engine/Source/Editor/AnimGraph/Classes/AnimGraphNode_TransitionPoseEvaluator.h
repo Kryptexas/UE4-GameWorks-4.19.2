@@ -15,7 +15,7 @@ class UAnimGraphNode_TransitionPoseEvaluator : public UAnimGraphNode_Base
 	
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog) override;
 	virtual bool CanDuplicateNode() const override { return false; }
@@ -26,4 +26,8 @@ class UAnimGraphNode_TransitionPoseEvaluator : public UAnimGraphNode_Base
 	virtual FString GetNodeCategory() const override;
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UAnimGraphNode_Base interface
+
+	// UK2Node interface.
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	// End of UK2Node interface
 };

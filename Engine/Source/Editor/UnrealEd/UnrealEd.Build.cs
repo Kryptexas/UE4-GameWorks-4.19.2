@@ -47,6 +47,9 @@ public class UnrealEd : ModuleRules
 				"ViewportSnapping",
 				"SourceCodeAccess",
 				"ReferenceViewer",
+                "IntroTutorials",
+                "SuperSearch",
+				"OutputLog"
 			}
 		);
 
@@ -74,6 +77,7 @@ public class UnrealEd : ModuleRules
 			new string[] 
 			{ 
 				"AnimGraph",
+                "AppFramework",
 				"BlueprintGraph",
 				"OnlineSubsystem",
 				"OnlineBlueprintSupport",
@@ -142,10 +146,10 @@ public class UnrealEd : ModuleRules
 				"PackagesDialog",
 				"Persona",
 				"PhAT",
+                "ProjectLauncher",
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",
-				"SessionLauncher",
 				"TaskBrowser",
 				"Sequencer",
 				"SoundClassEditor",
@@ -156,6 +160,7 @@ public class UnrealEd : ModuleRules
 				"ImageWrapper",
 				"Blutility",
 				"IntroTutorials",
+                "SuperSearch",
 				"DesktopPlatform",
 				"WorkspaceMenuStructure",
 				"BspMode",
@@ -176,7 +181,8 @@ public class UnrealEd : ModuleRules
 				"UndoHistory",
 				"SourceCodeAccess",
 				"ReferenceViewer",
-				"EditorLiveStreaming"
+				"EditorLiveStreaming",
+				"HotReload",
 			}
 		);
 

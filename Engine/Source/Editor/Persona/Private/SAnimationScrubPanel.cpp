@@ -24,6 +24,7 @@ void SAnimationScrubPanel::Construct( const SAnimationScrubPanel::FArguments& In
 	this->ChildSlot
 	[
 		SNew(SHorizontalBox)
+		.AddMetaData<FTagMetaData>(TEXT("AnimScrub.Scrub"))
 		+SHorizontalBox::Slot()
 		.HAlign(HAlign_Fill) 
 		.VAlign(VAlign_Center)

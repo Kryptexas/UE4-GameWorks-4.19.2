@@ -40,6 +40,14 @@ public class nvTextureTools : ModuleRules
 			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvtt.dylib");
 			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libsquish.a");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+                PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libnvcore.so");
+                PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libnvimage.so");
+                PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libnvmath.so");
+                PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libnvtt.so");
+                PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libsquish.a");
+        }
 	}
 }
 

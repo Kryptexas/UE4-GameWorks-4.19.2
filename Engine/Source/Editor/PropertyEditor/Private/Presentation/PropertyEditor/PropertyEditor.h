@@ -33,6 +33,8 @@ public:
 
 	bool IsPropertyEditingEnabled() const;
 
+	void RequestRefresh();
+
 	bool SupportsEditConditionToggle() const;
 
 	/**	@return Whether the property is editconst */
@@ -80,6 +82,7 @@ public:
 	void InsertItem();
 	void DeleteItem();
 	void DuplicateItem();
+	void MakeNewBlueprint();
 	void BrowseTo();
 	void EmptyArray();
 	void Find();
@@ -139,8 +142,6 @@ private:
 	static bool GetEditConditionPropertyAddress( UBoolProperty*& ConditionProperty, FPropertyNode& InPropertyNode, TArray<FPropertyConditionInfo>& ConditionPropertyAddresses );
 
 	static bool SupportsEditConditionToggle( UProperty* InProperty );
-
-	static UBoolProperty* GetEditConditionProperty( const UProperty* InProperty, bool& bNegate ) ;
 
 private:
 

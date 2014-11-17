@@ -19,6 +19,8 @@ public:
 	/**	Constructor */
 	FSceneOutlinerGutter(FOnSetItemVisibility InOnSetItemVisibility);
 
+	virtual ~FSceneOutlinerGutter() {}
+
 	// -----------------------------------------
 	// ISceneOutlinerColumn Implementation
 	virtual FName GetColumnID() override;

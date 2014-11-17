@@ -20,9 +20,9 @@ FLinearColor UAnimGraphNode_CustomTransitionResult::GetNodeTitleColor() const
 	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
-FString UAnimGraphNode_CustomTransitionResult::GetTooltip() const
+FText UAnimGraphNode_CustomTransitionResult::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_CustomTransitionResult_Tooltip", "Result node for a custom transition blend graph").ToString();
+	return LOCTEXT("AnimGraphNode_CustomTransitionResult_Tooltip", "Result node for a custom transition blend graph");
 }
 
 FText UAnimGraphNode_CustomTransitionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const

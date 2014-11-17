@@ -63,6 +63,10 @@ public:
 		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 
+	/**
+	* Resolves the scene color target and copies it for use as a source texture.
+	*/
+	static void CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
 
 private:
 	/**
@@ -81,10 +85,6 @@ private:
 		FHitProxyId HitProxyId
 		);
 
-	/**
-	* Resolves the scene color target and copies it for use as a source texture.
-	*/
-	static void CopySceneColor(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
 };
 
 

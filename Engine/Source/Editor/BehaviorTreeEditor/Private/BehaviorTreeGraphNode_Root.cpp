@@ -40,9 +40,9 @@ FName UBehaviorTreeGraphNode_Root::GetNameIcon() const
 	return FName("BTEditor.Graph.BTNode.Root.Icon");
 }
 
-FString UBehaviorTreeGraphNode_Root::GetTooltip() const
+FText UBehaviorTreeGraphNode_Root::GetTooltipText() const
 {
-	return UEdGraphNode::GetTooltip();
+	return UEdGraphNode::GetTooltipText();
 }
 
 void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -56,6 +56,12 @@ void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChange
 	}
 }
 
+void UBehaviorTreeGraphNode_Root::PostEditUndo()
+{
+	Super::PostEditUndo();
+	UpdateBlackboard();
+}
+
 FString	UBehaviorTreeGraphNode_Root::GetDescription() const
 {
 	return *GetNameSafe(BlackboardAsset);
@@ -65,7 +71,7 @@ void UBehaviorTreeGraphNode_Root::UpdateBlackboard()
 {
 	UBehaviorTreeGraph* MyGraph = GetBehaviorTreeGraph();
 	UBehaviorTree* BTAsset = Cast<UBehaviorTree>(MyGraph->GetOuter());
-	if (BTAsset)
+	if (BTAsset && BTAsset->BlackboardAsset != BlackboardAsset)
 	{
 		BTAsset->BlackboardAsset = BlackboardAsset;
 		MyGraph->UpdateBlackboardChange();

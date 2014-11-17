@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateStructs.h: Declares various structured types for Slate.
-=============================================================================*/
-
 #pragma once
 
 
@@ -34,7 +30,6 @@ public:
 	 * Checks whether the size is set.
 	 *
 	 * @return true if the size is set, false if it is unespecified.
-	 *
 	 * @see Get
 	 */
 	bool IsSet( ) const
@@ -71,7 +66,6 @@ private:
  * Describes a way in which a parent widget allocates available space to its child widgets.
  *
  * When SizeRule is SizeRule_Auto, the widget's DesiredSize will be used as the space required.
- * When SizeRule is SizeRule_AspectRatio, the widget will attempt to maintain the specified aspect ratio.
  * When SizeRule is SizeRule_Stretch, the available space will be distributed proportionately between
  * peer Widgets depending on the Value property. Available space is space remaining after all the
  * peers' SizeRule_Auto requirements have been satisfied.
@@ -83,8 +77,7 @@ struct FSizeParam
 	enum ESizeRule
 	{
 		SizeRule_Auto,
-		SizeRule_Stretch,
-		SizeRule_AspectRatio
+		SizeRule_Stretch
 	};
 	
 	/** The sizing rule to use. */
@@ -104,9 +97,7 @@ protected:
 	 *
 	 * Use FAspectRatio, FAuto, FStretch to instantiate size parameters.
 	 *
-	 * @see FAspectRatio
-	 * @see FAuto
-	 * @see FStretch
+	 * @see FAspectRatio, FAuto, FStretch
 	 */
 	FSizeParam( ESizeRule InTypeOfSize, const TAttribute<float>& InValue )
 		: SizeRule(InTypeOfSize)
@@ -137,28 +128,12 @@ struct FStretch
 /**
  * Structure for size parameters with SizeRule = SizeRule_Auto.
  *
- * @see FAspectRatio
- * @see FStretch
+ * @see FAspectRatio, FStretch
  */
 struct FAuto
 	: public FSizeParam
 {
 	FAuto()
 		: FSizeParam(SizeRule_Auto, 0.0f)
-	{ }
-};
-
-
-/**
- * Structure for size parameters with SizeRule == SizeRule_AspectRatio.
- *
- * @see FAuto
- * @see FStretch
- */
-struct FAspectRatio
-	: public FSizeParam
-{
-	FAspectRatio( )
-		: FSizeParam(SizeRule_AspectRatio, 1.0f)
 	{ }
 };

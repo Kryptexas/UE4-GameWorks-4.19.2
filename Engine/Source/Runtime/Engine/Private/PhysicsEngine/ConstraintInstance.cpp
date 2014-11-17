@@ -481,7 +481,7 @@ void FConstraintInstance::TermConstraint()
 bool FConstraintInstance::IsTerminated() const
 {
 #if WITH_PHYSX
-	return (ConstraintData != NULL);
+	return (ConstraintData == NULL);
 #else 
 	return true;
 #endif //WITH_PHYSX
@@ -559,14 +559,14 @@ void FConstraintInstance::SetRefFrame(EConstraintFrame::Type Frame, const FTrans
 	if(Frame == EConstraintFrame::Frame1)
 	{
 		Pos1 = RefFrame.GetTranslation();
-		PriAxis1 = RefFrame.GetScaledAxis( EAxis::X );
-		SecAxis1 = RefFrame.GetScaledAxis( EAxis::Y );
+		PriAxis1 = RefFrame.GetUnitAxis( EAxis::X );
+		SecAxis1 = RefFrame.GetUnitAxis( EAxis::Y );
 	}
 	else
 	{
 		Pos2 = RefFrame.GetTranslation();
-		PriAxis2 = RefFrame.GetScaledAxis( EAxis::X );
-		SecAxis2 = RefFrame.GetScaledAxis( EAxis::Y );
+		PriAxis2 = RefFrame.GetUnitAxis( EAxis::X );
+		SecAxis2 = RefFrame.GetUnitAxis( EAxis::Y );
 	}
 
 #if WITH_PHYSX

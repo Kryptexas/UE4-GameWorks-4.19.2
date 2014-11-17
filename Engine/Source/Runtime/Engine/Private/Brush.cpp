@@ -24,6 +24,7 @@ ABrush::ABrush(const class FPostConstructInitializeProperties& PCIP)
 	BrushComponent = PCIP.CreateDefaultSubobject<UBrushComponent>(this, TEXT("BrushComponent0"));
 	BrushComponent->Mobility = EComponentMobility::Static;
 	BrushComponent->bGenerateOverlapEvents = false;
+	BrushComponent->bCanEverAffectNavigation = false;
 
 	RootComponent = BrushComponent;
 	

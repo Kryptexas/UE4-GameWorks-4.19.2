@@ -97,9 +97,8 @@ struct RECT
 #include "IOS/IOSPlatformSurvey.h"
 #include "IOSAsyncTask.h"
 #include "IOS/IOSPlatformHttp.h"
+#include "IOS/IOSPlatformFramePacer.h"
 #import "IOSPlatformString.h"
-
-typedef FGenericPlatformAffinity FPlatformAffinity;
 
 // include platform properties and typedef it for the runtime
 

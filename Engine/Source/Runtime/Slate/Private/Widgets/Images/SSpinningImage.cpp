@@ -19,7 +19,7 @@ int32 SSpinningImage::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 {
 	const FSlateBrush* ImageBrush = Image.Get();
 
-	if ((ImageBrush != NULL) && (ImageBrush->DrawAs != ESlateBrushDrawType::NoDrawType))
+	if ((ImageBrush != nullptr) && (ImageBrush->DrawAs != ESlateBrushDrawType::NoDrawType))
 	{
 		const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 		const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;

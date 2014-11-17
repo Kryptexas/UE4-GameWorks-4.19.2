@@ -39,16 +39,22 @@ namespace AutomationTool
 		Error_FailedToCreateIPA = 31,
 		Error_FailedToCodeSign = 32,
 		Error_DeviceBackupFailed = 33,
-		Error_IPAUninstallFailed = 34,
-		Error_IPAInstallFailed = 35,
-		Error_IPANotFound = 36,
+		Error_AppUninstallFailed = 34,
+		Error_AppInstallFailed = 35,
+		Error_AppNotFound = 36,
 		Error_StubNotSignedCorrectly = 37,
 		Error_IPAMissingInfoPList = 38,
 		Error_DeleteFile = 39,
 		Error_DeleteDirectory = 40,
 		Error_CreateDirectory = 41,
 		Error_CopyFile = 42,
-		Error_LauncherFailed = 100,
+        Error_OnlyOneObbFileSupported = 50,
+        Error_FailureGettingPackageInfo = 51,
+        Error_OnlyOneTargetConfigurationSupported = 52,
+        Error_ObbNotFound = 53,
+        Error_AndroidBuildToolsPathNotFound = 54,
+        Error_NoApkSuitableForArchitecture = 55,
+        Error_LauncherFailed = 100,
 		Error_UATLaunchFailure = 101,
 	};
 
@@ -67,14 +73,14 @@ namespace AutomationTool
 		}
 	};
 
-	class Program
+	public class Program
 	{
 		// This needs to be static, otherwise SetConsoleCtrlHandler will result in a crash on exit.
 		static ProcessManager.CtrlHandlerDelegate ProgramCtrlHandler = new ProcessManager.CtrlHandlerDelegate(CtrlHandler);
 		static public int ReturnCode = 0;
 
 		[STAThread]
-		static int Main()
+		public static int Main()
 		{
 			var CommandLine = SharedUtils.ParseCommandLine();
 			HostPlatform.Initialize();

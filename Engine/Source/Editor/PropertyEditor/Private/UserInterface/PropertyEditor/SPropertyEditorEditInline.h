@@ -25,7 +25,7 @@ private:
 	/**
 	 * @return The current display value for the combo box as a string
 	 */
-	FString GetDisplayValueAsString() const;
+	FText GetDisplayValueAsString() const;
 
 	/**
 	 * @return The current display value's icon, if any. Returns nullptr if we have no valid value.
@@ -63,7 +63,4 @@ private:
 	TSharedPtr<class FPropertyEditor > PropertyEditor;
 
 	TSharedPtr<class SComboButton> ComboButton;
-
-	/** Whether to use display names or literal class names */
-	bool bUseDisplayNames;
 };

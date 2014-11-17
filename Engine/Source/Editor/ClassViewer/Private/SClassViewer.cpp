@@ -30,6 +30,7 @@
 #include "GameProjectGenerationModule.h"
 
 #include "SourceCodeNavigation.h"
+#include "HotReloadInterface.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 
@@ -381,6 +382,9 @@ private:
 	 */	
 	void AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, const TMultiMap<FName,FAssetData>& BlueprintPackageToAssetDataMap );
 
+	/** Called when hot reload has finished */
+	void OnHotReload( bool bWasTriggeredAutomatically );
+
 	/** Finds the node, recursively going deeper into the hierarchy. Does so by comparing generated class package names.
 	 *	@param InGeneratedClassPackageName			The name of the generated class package to find the node for.
 	 *
@@ -472,7 +476,7 @@ namespace ClassViewer
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is a brush.
 		 */
-		static bool IsBrush(UClass* InClass)
+		static bool IsBrush(const UClass* InClass)
 		{
 			return InClass->IsChildOf( ABrush::StaticClass() );
 		}
@@ -481,16 +485,16 @@ namespace ClassViewer
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is placeable.
 		 */
-		static bool IsPlaceable(UClass* InClass)
+		static bool IsPlaceable(const UClass* InClass)
 		{
-			return !InClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable);
+			return !InClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable) && InClass->IsChildOf<AActor>();
 		}
 
 		/** Checks if a particular class is abstract.
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is abstract.
 		 */
-		static bool IsAbstract(UClass* InClass)
+		static bool IsAbstract(const UClass* InClass)
 		{
 			return InClass->HasAnyClassFlags(CLASS_Abstract);
 		}
@@ -1274,10 +1278,10 @@ public:
 	SLATE_BEGIN_ARGS( SClassItem )
 		: _ClassName()
 		, _bIsPlaceable(false)
-		, _HighlightText(NULL)
-		, _TextColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
 		, _bIsInClassViewer( true )
 		, _bDynamicClassLoading( true )
+		, _HighlightText(NULL)
+		, _TextColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
 		{}
 
 		/** The classname this item contains. */
@@ -1584,8 +1588,11 @@ FClassHierarchy::FClassHierarchy()
 	AssetRegistryModule.Get().OnAssetAdded().AddRaw( this, &FClassHierarchy::AddAsset);
 	AssetRegistryModule.Get().OnAssetRemoved().AddRaw( this, &FClassHierarchy::RemoveAsset );
 
-	// Register to have Populate called when doing a Hot Reload or when a Blueprint is compiled.
-	GEditor->OnHotReload().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+	// Register to have Populate called when doing a Hot Reload.
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddRaw( this, &FClassHierarchy::OnHotReload );
+
+	// Register to have Populate called when a Blueprint is compiled.
 	GEditor->OnBlueprintCompiled().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	GEditor->OnClassPackageLoadedOrUnloaded().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 
@@ -1602,8 +1609,11 @@ FClassHierarchy::~FClassHierarchy()
 		AssetRegistryModule.Get().OnAssetAdded().RemoveAll( this );
 		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
 
-		// Unregister to have Populate called when doing a Hot Reload or when a Blueprint is compiled.
-		GEditor->OnHotReload().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+		// Unregister to have Populate called when doing a Hot Reload.
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.OnHotReload().RemoveAll( this );
+
+		// Unregister to have Populate called when a Blueprint is compiled.
 		GEditor->OnBlueprintCompiled().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 		GEditor->OnClassPackageLoadedOrUnloaded().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	}
@@ -1613,12 +1623,8 @@ FClassHierarchy::~FClassHierarchy()
 
 static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap)
 {
-	const bool bIsPlaceable = ClassViewer::Helpers::IsPlaceable(Class);
-	const bool bIsAbstract = ClassViewer::Helpers::IsAbstract(Class);
-	const bool bIsBrush = ClassViewer::Helpers::IsBrush(Class);
-
 	// Create the new node so it can be passed to AddChildren, fill it in with if it is placeable, abstract, and/or a brush.
-	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(Class->GetName(), Class->GetDisplayNameText().ToString(), bIsPlaceable && !bIsAbstract && !bIsBrush));
+	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(Class->GetName(), Class->GetDisplayNameText().ToString()));
 	NewNode->Blueprint = ClassViewer::Helpers::GetBlueprint(Class);
 	NewNode->Class = Class;
 
@@ -1641,11 +1647,16 @@ static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TM
 	return NewNode;
 }
 
+void FClassHierarchy::OnHotReload( bool bWasTriggeredAutomatically )
+{
+	ClassViewer::Helpers::RequestPopulateClassHierarchy();
+}
+
 void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap )
 {
 	UClass* RootClass = UObject::StaticClass();
 
-	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), RootClass->GetDisplayNameText().ToString(), false));
+	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), RootClass->GetDisplayNameText().ToString()));
 	ObjectClassRoot->Class = RootClass;
 
 	TMap< UClass*, TSharedPtr< FClassViewerNode > > Nodes;
@@ -1661,7 +1672,8 @@ void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOu
 		UClass* CurrentClass = *ClassIt;
 
 		// Ignore deprecated and temporary trash classes.
-		if (CurrentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) || FKismetEditorUtilities::IsClassABlueprintSkeleton(CurrentClass))
+		if (CurrentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) || 
+			FKismetEditorUtilities::IsClassABlueprintSkeleton(CurrentClass))
 		{
 			continue;
 		}
@@ -1898,7 +1910,7 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 	const FString AssetName = InAssetData.AssetName.ToString();
 
 	// Create the viewer node.
-	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, AssetName, true));
+	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, AssetName));
 			
 	// It is an unloaded blueprint, so we need to create the structure that will hold the data.
 	TSharedPtr<FUnloadedBlueprintData> UnloadedBlueprintData = MakeShareable( new FUnloadedBlueprintData(InOutClassViewerNode) );
@@ -2761,7 +2773,7 @@ void SClassViewer::Populate()
 			{
 				// Check if the item is actually expanded or if it's only expanded because it is root level.
 				bool* bIsExpanded = ExpansionStateMap.Find( *(RootTreeItems[ChildIdx]->GetClassName()) );
-				if(bIsExpanded && !*bIsExpanded || !bIsExpanded)
+				if((bIsExpanded && !*bIsExpanded) || !bIsExpanded)
 				{
 					ClassTree->SetItemExpansion( RootTreeItems[ChildIdx], false );
 				}
@@ -2896,7 +2908,7 @@ FReply SClassViewer::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const
 
 TSharedPtr<FClassViewerNode> SClassViewer::CreateNoneOption()
 {
-	TSharedPtr<FClassViewerNode> NoneItem = MakeShareable( new FClassViewerNode("None", "None", false) );
+	TSharedPtr<FClassViewerNode> NoneItem = MakeShareable( new FClassViewerNode("None", "None") );
 
 	// The item "passes" the filter so it does not appear grayed out.
 	NoneItem->bPassesFilter = true;

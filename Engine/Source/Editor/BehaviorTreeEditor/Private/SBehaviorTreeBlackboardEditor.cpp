@@ -48,6 +48,7 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 		.OnIsDebuggerReady(InArgs._OnIsDebuggerReady)
 		.OnIsDebuggerPaused(InArgs._OnIsDebuggerPaused)
 		.OnGetDebugTimeStamp(InArgs._OnGetDebugTimeStamp)
+		.OnBlackboardKeyChanged(InArgs._OnBlackboardKeyChanged)
 		.IsReadOnly(false),
 		CommandList,
 		InBlackboardData
@@ -95,6 +96,7 @@ void SBehaviorTreeBlackboardEditor::HandleDeleteEntry()
 		if(BlackboardEntry != nullptr)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryDeleteTransaction", "Delete Blackboard Entry"));
+			BlackboardData->SetFlags(RF_Transactional);
 			BlackboardData->Modify();
 		
 			for(int32 ItemIndex = 0; ItemIndex < BlackboardData->Keys.Num(); ItemIndex++)
@@ -107,6 +109,7 @@ void SBehaviorTreeBlackboardEditor::HandleDeleteEntry()
 			}
 
 			GraphActionMenu->RefreshAllActions(true);
+			OnBlackboardKeyChanged.ExecuteIfBound(BlackboardData, nullptr);
 
 			// signal de-selection
 			if(OnEntrySelected.IsBound())
@@ -167,12 +170,39 @@ void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
 	check(InClass->IsChildOf(UBlackboardKeyType::StaticClass()));
 
 	const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryAddTransaction", "Add Blackboard Entry"));
+	BlackboardData->SetFlags(RF_Transactional);
 	BlackboardData->Modify();
 
 	// create a name for this new key
 	FString NewKeyName = InClass->GetDisplayNameText().ToString();
 	NewKeyName = NewKeyName.Replace(TEXT(" "), TEXT(""));
 	NewKeyName += TEXT("Key");
+
+	int32 IndexSuffix = -1;
+	auto DuplicateFunction = [&](const FBlackboardEntry& Key)
+	{		
+		if(Key.EntryName.ToString() == NewKeyName)
+		{
+			IndexSuffix = FMath::Max(0, IndexSuffix);
+		}
+		if(Key.EntryName.ToString().StartsWith(NewKeyName))
+		{
+			const FString ExistingSuffix = Key.EntryName.ToString().RightChop(NewKeyName.Len());
+			if(ExistingSuffix.IsNumeric())
+			{
+				IndexSuffix = FMath::Max(FCString::Atoi(*ExistingSuffix) + 1, IndexSuffix);
+			}
+		}
+	};
+
+	// check for existing keys of the same name
+	for(const auto& Key : BlackboardData->Keys) { DuplicateFunction(Key); };
+	for(const auto& Key : BlackboardData->ParentKeys) { DuplicateFunction(Key); };
+
+	if(IndexSuffix != -1)
+	{
+		NewKeyName += FString::Printf(TEXT("%d"), IndexSuffix);
+	}
 
 	FBlackboardEntry Entry;
 	Entry.EntryName = FName(*NewKeyName);
@@ -181,6 +211,7 @@ void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
 	BlackboardData->Keys.Add(Entry);
 
 	GraphActionMenu->RefreshAllActions(true);
+	OnBlackboardKeyChanged.ExecuteIfBound(BlackboardData, &BlackboardData->Keys.Last());
 
 	GraphActionMenu->SelectItemByName(Entry.EntryName, ESelectInfo::OnMouseClick);
 	GraphActionMenu->OnRequestRenameOnActionNode();

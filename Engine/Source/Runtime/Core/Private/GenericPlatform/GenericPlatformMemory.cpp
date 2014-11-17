@@ -147,10 +147,17 @@ void FGenericPlatformMemory::DumpPlatformAndAllocatorStats( class FOutputDevice&
 
 void FGenericPlatformMemory::Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
 {
-	void* Temp = FMemory_Alloca(Size);
-	FPlatformMemory::Memcpy( Temp, Ptr1, Size );
-	FPlatformMemory::Memcpy( Ptr1, Ptr2, Size );
-	FPlatformMemory::Memcpy( Ptr2, Temp, Size );
+	if (Ptr1 != Ptr2)
+	{
+		// check that Ptr1 and Ptr2 do not overlap in undefined ways
+		checkf(reinterpret_cast<uint8 *>(Ptr1)+Size <= reinterpret_cast<uint8 *>(Ptr2) || reinterpret_cast<uint8 *>(Ptr2)+Size <= reinterpret_cast<uint8 *>(Ptr1),
+			TEXT("Pointers given to FPlatformMemory::Memswap() point to overlapping memory areas, results are undefined."));
+
+		void* Temp = FMemory_Alloca(Size);
+		FPlatformMemory::Memcpy( Temp, Ptr1, Size );
+		FPlatformMemory::Memcpy( Ptr1, Ptr2, Size );
+		FPlatformMemory::Memcpy( Ptr2, Temp, Size );
+	}
 }
 
 FGenericPlatformMemory::FSharedMemoryRegion::FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize)

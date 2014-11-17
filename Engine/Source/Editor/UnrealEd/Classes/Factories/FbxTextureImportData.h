@@ -7,11 +7,13 @@
  * Import data and options used when importing any mesh from FBX
  */
 UCLASS(AutoExpandCategories=(Texture))
-class UFbxTextureImportData : public UFbxAssetImportData
+class UNREALED_API UFbxTextureImportData : public UFbxAssetImportData
 {
 	GENERATED_UCLASS_BODY()
 
 	/** If either importing of textures (or materials) is enabled, this option will cause normal map values to be inverted */
-	UPROPERTY(EditAnywhere, config, Category=ImportSettings)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true"))
 	uint32 bInvertNormalMaps:1;
+
+	bool CanEditChange( const UProperty* InProperty ) const;
 };

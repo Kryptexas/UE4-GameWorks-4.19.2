@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "PostProcessBokehDOFRecombine.h"
 #include "PostProcessBokehDOF.h"
+#include "SceneUtils.h"
 
 
 /**
@@ -24,7 +25,7 @@ class FPostProcessBokehDOFRecombinePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -97,13 +98,13 @@ VARIATION1(1)			VARIATION1(2)			VARIATION1(3)
 template <uint32 Method>
 void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBokehDOFRecombinePS<Method> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBokehDOFRecombinePS<Method> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(Context);
 	VertexShader->SetParameters(Context);
@@ -129,7 +130,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		check(GetInput(ePId_Input2)->GetPass());
 	}
 
-	SCOPED_DRAW_EVENTF(BokehDOFRecombine, DEC_SCENE_ITEMS, TEXT("BokehDOFRecombine#%d"), Method);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, DEC_SCENE_ITEMS, TEXT("BokehDOFRecombine#%d"), Method);
 
 	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input1);
@@ -167,7 +168,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 			check(0);
 	}
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

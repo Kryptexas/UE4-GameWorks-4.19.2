@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
+#include "AI/Navigation/NavLinkDefinition.h"
 
 struct ENGINE_API FNavigationModifier
 {
@@ -192,6 +193,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 {
 	FCompositeNavModifier() : bHasPotentialLinks(false) {}
 
+	void Shrink();
 	void Reset();
 	void Empty();
 

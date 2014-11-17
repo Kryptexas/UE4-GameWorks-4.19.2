@@ -49,9 +49,10 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class,UObject* InPar
 			UEdGraphPin* DeltaTimePin = DeltaTimeNode->FindPinChecked(DeltaTimeNode->AttrName.ToString());
 
 			TArray<FName> OutputNames;
-			Source->GetUpdateOutputs(OutputNames);
+			Source->GetParticleAttributes(OutputNames);
 
 			// Simple Euler integration.
+			/*
 			for(int32 i=0; i<3; i++)
 			{
 				FGraphNodeCreator<UNiagaraNodeGetAttr> PosNodeCreator(*CreatedGraph);
@@ -118,6 +119,7 @@ UObject* UNiagaraScriptFactoryNew::FactoryCreateNew(UClass* Class,UObject* InPar
 
 				OutputNode->FindPinChecked(TEXT("RelativeTime"))->MakeLinkTo(MadNode->FindPinChecked(TEXT("Result")));
 			}
+			*/
 
 			// Set pointer in script to source
 			NewScript->Source = Source;

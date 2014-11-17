@@ -210,6 +210,7 @@ public:
 		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
 		const FLinearColor& InTint = FLinearColor::White );
 
+	// !!! DEPRECATED !!! Use a render transform om your widget instead.
 	SLATECORE_API static void MakeRotatedBox(
 		FSlateWindowElementList& ElementList,
 		uint32 InLayer, 
@@ -253,7 +254,7 @@ public:
 	 * @param InClippingRect           Parts of the element are clipped if it falls outside of this rectangle
 	 * @param InDrawEffects            Optional draw effects to apply
 	 */
-	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& InPaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, bool bGammaCorrect = true );
+	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, bool bGammaCorrect = true );
 
 	/**
 	 * Creates a spline element
@@ -314,61 +315,32 @@ public:
 
 	EElementType GetElementType() const { return ElementType; }
 	uint32 GetLayer() const { return Layer; }
+	const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
 	const FVector2D& GetPosition() const { return Position; }
-	const FVector2D& GetSize() const { return Size; }
+	const FVector2D& GetLocalSize() const { return LocalSize; }
 	float GetScale() const { return Scale; }
 	const FSlateRect& GetClippingRect() const { return ClippingRect; }
 	const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
 	uint32 GetDrawEffects() const { return DrawEffects; }
+	const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
 
 private:
+	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects);
 
-	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace )
-	{
-		FVector2D RotationPoint(0,0);
-	
-		const FVector2D& Position = PaintGeometry.DrawPosition;
-		const FVector2D& Size = PaintGeometry.DrawSize;
 
-		switch( RotationSpace )
-		{
-		case RelativeToElement:
-			{
-				if( !UserRotationPoint.IsSet() )
-				{
-					// If the user did not specify a rotation point, we rotate about the center of the element
-					RotationPoint = ( Position + ( Position + Size ) ) / 2.0f;
-				}
-				else
-				{
-					// Rotate relative to the position of the element
-					RotationPoint = Position + UserRotationPoint.GetValue();
-				}
-			}
-			break;
-		case RelativeToWorld:
-			{
-				// Passthrough, its in world space
-				RotationPoint =  UserRotationPoint.Get( FVector2D::ZeroVector );
-			}
-			break;
-		default:
-			check(0);
-			break;
-		}
-
-		return RotationPoint;
-	}
+	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace );
 
 private:
 	FSlateDataPayload DataPayload;
+	FSlateRenderTransform RenderTransform;
 	FSlateRect ClippingRect;
 	FVector2D Position;
-	FVector2D Size;
+	FVector2D LocalSize;
 	float Scale;
 	uint32 Layer;
 	uint32 DrawEffects;
 	EElementType ElementType;
+	TOptional<FShortRect> ScissorRect;
 };
 
 /**
@@ -376,34 +348,25 @@ private:
  */
 struct FShaderParams
 {
-	/** Vertex shader parameters */
-	FVector4 VertexParams;
 	/** Pixel shader parameters */
 	FVector4 PixelParams;
 
 	FShaderParams()
-		: VertexParams( 0,0,0,0 )
-		, PixelParams( 0,0,0,0 )
+		: PixelParams( 0,0,0,0 )
 	{}
 
-	FShaderParams( const FVector4& InVertexParams, const FVector4& InPixelParams )
-		: VertexParams( InVertexParams )
-		, PixelParams( InPixelParams )
+	FShaderParams( const FVector4& InPixelParams )
+		: PixelParams( InPixelParams )
 	{}
 
 	bool operator==( const FShaderParams& Other ) const
 	{
-		return VertexParams == Other.VertexParams && PixelParams == Other.PixelParams;
+		return PixelParams == Other.PixelParams;
 	}
 
 	static FShaderParams MakePixelShaderParams( const FVector4& PixelShaderParams )
 	{
-		return FShaderParams( FVector4(0,0,0,0), PixelShaderParams );
-	}
-
-	static FShaderParams MakeVertexShaderParams( const FVector4& VertexShaderParams )
-	{
-		return FShaderParams( VertexShaderParams, FVector4(0,0,0,0) );
+		return FShaderParams( PixelShaderParams );
 	}
 };
 
@@ -413,8 +376,8 @@ struct FShaderParams
 class FSlateElementBatch
 {
 public: 
-	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags )
-		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags )
+	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect )
+		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect )
 		, ShaderResource(InShaderResource)
 		, VertexOffset(0)
 		, IndexOffset(0)
@@ -425,8 +388,8 @@ public:
 		, IndexArrayIndex(INDEX_NONE)
 	{}
 
-	FSlateElementBatch( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer )
-		: BatchKey( InCustomDrawer )
+	FSlateElementBatch( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer, const TOptional<FShortRect>& ScissorRect )
+		: BatchKey( InCustomDrawer, ScissorRect )
 		, ShaderResource( nullptr )
 		, VertexOffset(0)
 		, IndexOffset(0)
@@ -454,48 +417,62 @@ public:
 	ESlateDrawPrimitive::Type GetPrimitiveType() const { return BatchKey.DrawPrimitiveType; }
 	ESlateShader::Type GetShaderType() const { return BatchKey.ShaderType; } 
 	ESlateDrawEffect::Type GetDrawEffects() const { return BatchKey.DrawEffects; }
+	const TOptional<FShortRect>& GetScissorRect() const { return BatchKey.ScissorRect; }
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> GetCustomDrawer() const { return BatchKey.CustomDrawer; }
 private:
 	struct FBatchKey
 	{
-		const FShaderParams ShaderParams;
 		const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
+		const FShaderParams ShaderParams;
 		const ESlateBatchDrawFlag::Type DrawFlags;	
 		const ESlateShader::Type ShaderType;
 		const ESlateDrawPrimitive::Type DrawPrimitiveType;
 		const ESlateDrawEffect::Type DrawEffects;
+		const TOptional<FShortRect> ScissorRect;
 
-		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags )
+		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect )
 			: ShaderParams( InShaderParams )
 			, DrawFlags( InDrawFlags )
 			, ShaderType( InShaderType )
 			, DrawPrimitiveType( InDrawPrimitiveType )
 			, DrawEffects( InDrawEffects )
+			, ScissorRect( InScissorRect )
 		{
 		}
 
-		FBatchKey( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer )
-			: ShaderParams()
-			, CustomDrawer( InCustomDrawer )
+		FBatchKey( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer, const TOptional<FShortRect>& InScissorRect )
+			: CustomDrawer( InCustomDrawer )
+			, ShaderParams()
 			, DrawFlags( ESlateBatchDrawFlag::None )
 			, ShaderType( ESlateShader::Default )
 			, DrawPrimitiveType( ESlateDrawPrimitive::TriangleList )
 			, DrawEffects( ESlateDrawEffect::None )
+			, ScissorRect( InScissorRect )
 		{}
 
-		FORCEINLINE bool operator==( const FBatchKey& Other ) const
+		bool operator==( const FBatchKey& Other ) const
 		{
 			return DrawFlags == Other.DrawFlags
 				&& ShaderType == Other.ShaderType
 				&& DrawPrimitiveType == Other.DrawPrimitiveType
 				&& DrawEffects == Other.DrawEffects
-			    && ShaderParams == Other.ShaderParams
-			   	&& CustomDrawer == Other.CustomDrawer;
+				&& ShaderParams == Other.ShaderParams
+				&& ScissorRect == Other.ScissorRect
+				&& CustomDrawer == Other.CustomDrawer
+				;
 		}
 
+		/** Compute an efficient hash for this type for use in hash containers. */
 		friend uint32 GetTypeHash( const FBatchKey& InBatchKey )
 		{
-			return FCrc::MemCrc32(&InBatchKey.ShaderParams, sizeof(FShaderParams)) ^ ((InBatchKey.ShaderType << 16) | (InBatchKey.DrawFlags+InBatchKey.ShaderType+InBatchKey.DrawPrimitiveType+InBatchKey.DrawEffects));
+			// NOTE: Assumes these enum types are 8 bits.
+			uint32 RunningHash = (uint32)InBatchKey.DrawFlags << 24 | (uint32)InBatchKey.ShaderType << 16 | (uint32)InBatchKey.DrawPrimitiveType << 8 | (uint32)InBatchKey.DrawEffects << 0;
+			RunningHash = InBatchKey.CustomDrawer.IsValid() ? PointerHash(InBatchKey.CustomDrawer.Pin().Get(), RunningHash) : RunningHash;
+			RunningHash = HashCombine(GetTypeHash(InBatchKey.ShaderParams.PixelParams), RunningHash);
+			// NOTE: Assumes this type is 64 bits, no padding.
+			RunningHash = InBatchKey.ScissorRect.IsSet() ? HashCombine(GetTypeHash(*reinterpret_cast<const uint64*>(&InBatchKey.ScissorRect.GetValue())), RunningHash) : RunningHash;
+			return RunningHash;
+			//return FCrc::MemCrc32(&InBatchKey.ShaderParams, sizeof(FShaderParams)) ^ ((InBatchKey.ShaderType << 16) | (InBatchKey.DrawFlags+InBatchKey.ShaderType+InBatchKey.DrawPrimitiveType+InBatchKey.DrawEffects));
 		}
 	};
 
@@ -532,6 +509,7 @@ public:
 		, ShaderType( InBatch.GetShaderType() )
 		, DrawPrimitiveType( InBatch.GetPrimitiveType() )
 		, DrawEffects( InBatch.GetDrawEffects() )
+		, ScissorRect( InBatch.GetScissorRect() )
 		, VertexOffset( InBatch.VertexOffset )
 		, IndexOffset( InBatch.IndexOffset )
 		, NumVertices( InBatch.NumVertices )
@@ -554,6 +532,8 @@ public:
 
 	const ESlateDrawEffect::Type DrawEffects;
 
+	const TOptional<FShortRect> ScissorRect;
+
 	/** How far into the vertex buffer is this batch*/
 	const uint32 VertexOffset;
 	/** How far into the index buffer this batch is*/	
@@ -570,6 +550,7 @@ public:
 class FSlateWindowElementList
 {
 	friend class FSlateElementBatcher;
+
 public:
 	/** 
 	 * Construct a new list of elements with which to paint a window.
@@ -614,6 +595,30 @@ public:
 		const int32 InsertIdx = DrawElements.AddUninitialized();
 		return *(new(DrawElements.GetTypedData() + InsertIdx) FSlateDrawElement());
 	}
+
+	/**
+	* Some widgets may want to paint their children after after another, loosely-related widget finished painting.
+	* Or they may want to paint "after everyone".
+	*/
+	struct FDeferredPaint
+	{
+	public:
+		SLATECORE_API FDeferredPaint( const TSharedRef<SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled );
+
+		int32 ExecutePaint( int32 LayerId, FSlateWindowElementList& OutDrawElements ) const;
+
+	private:
+		const TWeakPtr<SWidget> WidgetToPaintPtr;
+		const FPaintArgs Args;
+		const FGeometry AllottedGeometry;
+		const FSlateRect MyClippingRect;
+		const FWidgetStyle WidgetStyle;
+		const bool bParentEnabled;
+	};
+
+	SLATECORE_API void QueueDeferredPainting( const FDeferredPaint& InDeferredPaint );
+
+	int32 PaintDeferred( int32 LayerId );
 	
 	/**
 	 * Remove all the elements from this draw list.
@@ -656,4 +661,10 @@ protected:
 
 	/** All the indices for every batch. */
 	TArray<SlateIndex> BatchedIndices;
+
+	/**
+	 * Some widgets want their logical children to appear at a different "layer" in the physical hierarchy.
+	 * We accomplish this by deferring their painting.
+	 */
+	TArray< TSharedRef<FDeferredPaint> > DeferredPaintList;
 };

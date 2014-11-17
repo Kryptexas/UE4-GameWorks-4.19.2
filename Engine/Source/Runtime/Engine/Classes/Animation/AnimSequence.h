@@ -114,6 +114,45 @@ struct FRawAnimSequenceTrack
 };
 
 /**
+ * These two always should go together, but it is not right now. 
+ * I wonder in the future, we change all compressed to be inside as well, so they all stay together
+ * When remove tracks, it should be handled together
+ */
+USTRUCT()
+struct FAnimSequenceTrackContainer
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	TArray<struct FRawAnimSequenceTrack> AnimationTracks;
+
+	UPROPERTY()
+	TArray<FName>						TrackNames;
+
+	// @todo expand this struct to work better and assign data better
+	void Initialize(int32 NumNode)
+	{
+		AnimationTracks.Empty(NumNode);
+		AnimationTracks.AddZeroed(NumNode);
+		TrackNames.Empty(NumNode);
+		TrackNames.AddZeroed(NumNode);
+	}
+
+	void Initialize(TArray<FName> InTrackNames)
+	{
+		TrackNames = InTrackNames;
+		int32 NumNode = TrackNames.Num();
+		AnimationTracks.Empty(NumNode);
+		AnimationTracks.AddZeroed(NumNode);
+	}
+
+	int32 GetNum() const
+	{
+		check (TrackNames.Num() == AnimationTracks.Num());
+		return (AnimationTracks.Num());
+	}
+};
+/**
  *	@note we have plan to support skeleton hierarchy. 
  *	when that happens, we'd like to keep skeleton indexing
  */
@@ -355,7 +394,7 @@ class UAnimSequence : public UAnimSequenceBase
 	TArray<struct FScaleTrack> ScaleData;
 
 
-	/*
+	/**
 	 * Curve data - no compression yet                                                                       
 	 */
 	UPROPERTY()
@@ -366,7 +405,7 @@ class UAnimSequence : public UAnimSequenceBase
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */
-	UPROPERTY(EditInline, Category=Compression, VisibleAnywhere)
+	UPROPERTY(Instanced, Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;
 #endif // WITH_EDITORONLY_DATA
 
@@ -476,7 +515,7 @@ class UAnimSequence : public UAnimSequenceBase
 	uint32 bWasCompressedWithoutTranslations:1;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, editinline, Category=Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category=Reimport)
 	class UAssetImportData* AssetImportData;
 
 	/***  for Reimport **/
@@ -504,6 +543,7 @@ class UAnimSequence : public UAnimSequenceBase
 	ENGINE_API virtual bool IsValidAdditive() const override;
 #if WITH_EDITOR
 	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
+	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 	ENGINE_API virtual int32 GetNumberOfFrames() override { return NumFrames; }
 #endif
 	// End of UAnimationAsset interface
@@ -583,7 +623,17 @@ public:
 	 * @param	bUseRawData		If true, use raw animation data instead of compressed data.
 	 */
 	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const;
-	
+
+	/**
+	 * Extract Bone Transform of the Time given, from InRawAnimationData
+	 *
+	 * @param	InRawAnimationData	RawAnimationData it extracts bone transform from
+	 * @param	OutAtom				[out] Output bone transform.
+	 * @param	TrackIndex			Index of track to interpolate.
+	 * @param	Time				Time on track to interpolate to.
+	 */
+	ENGINE_API void ExtractBoneTransform(const TArray<struct FRawAnimSequenceTrack> & InRawAnimationData, FTransform& OutAtom, int32 TrackIndex, float Time) const;
+
 	// End Transform related functions 
 
 	// Begin Memory related functions
@@ -709,14 +759,19 @@ private:
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton );
+	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton, bool bConvertSpaces );
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	
 	void RemoveNaNTracks();
+
+	/** Retargeting functions */
+	bool ConvertAnimationDataToRiggingData(FAnimSequenceTrackContainer & RiggingAnimationData);
+	bool ConvertRiggingDataToAnimationData(FAnimSequenceTrackContainer & RiggingAnimationData);
+	int32 GetSpaceBasedAnimationData(TArray< TArray<FTransform> > & AnimationDataInComponentSpace, FAnimSequenceTrackContainer * RiggingAnimationData) const;
 #endif
 
-	/*
+	/**
 	 * Utility function that helps to remove track, you can't just remove RawAnimationData
 	 */
 	void RemoveTrack(int32 TrackIndex);

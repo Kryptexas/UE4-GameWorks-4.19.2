@@ -4,22 +4,22 @@
 
 
 FIOSPlatformTextField::FIOSPlatformTextField()
-	: TextField( NULL )
+	: TextField( nullptr )
 {
 }
 
 FIOSPlatformTextField::~FIOSPlatformTextField()
 {
-	if(TextField != NULL)
+	if(TextField != nullptr)
 	{
 		[TextField release];
-		TextField = NULL;
+		TextField = nullptr;
 	}
 }
 
-void FIOSPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget)
+void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
 {
-	if(TextField == NULL)
+	if(TextField == nullptr)
 	{
 		TextField = [SlateTextField alloc];
 	}
@@ -29,14 +29,14 @@ void FIOSPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboard
 		// these functions must be run on the main thread
 		dispatch_async(dispatch_get_main_queue(),^ {
 			[TextField show: TextEntryWidget];
-		} );
+		});
 	}
 }
 
 
 @implementation SlateTextField
 
--(void)show:(TSharedPtr<SVirtualKeyboardEntry>)InTextWidget
+-(void)show:(TSharedPtr<IVirtualKeyboardEntry>)InTextWidget
 {
 	TextWidget = InTextWidget;
 
@@ -47,7 +47,7 @@ void FIOSPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboard
 													otherButtonTitles:NSLocalizedString(@"OK", nil), nil];
 
 	// give the UIAlertView a style so a UITextField is created
-	switch(TextWidget->GetKeyboardType())
+	switch(TextWidget->GetVirtualKeyboardType())
 	{
 		case EKeyboardType::Keyboard_Password:
 			AlertView.alertViewStyle = UIAlertViewStyleSecureTextInput;
@@ -61,31 +61,31 @@ void FIOSPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboard
 			break;
 	}
 
-	UITextField* TextField = [AlertView textFieldAtIndex:0];
-	TextField.clearsOnBeginEditing = NO;
-	TextField.clearsOnInsertion = NO;
-	TextField.autocorrectionType = UITextAutocorrectionTypeNo;
-	TextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
-	TextField.text = [NSString stringWithFString:TextWidget->GetText().ToString()];
-	TextField.placeholder = [NSString stringWithFString:TextWidget->GetText().ToString()];
+	UITextField* AlertTextField = [AlertView textFieldAtIndex: 0];
+	AlertTextField.clearsOnBeginEditing = NO;
+	AlertTextField.clearsOnInsertion = NO;
+	AlertTextField.autocorrectionType = UITextAutocorrectionTypeNo;
+	AlertTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+	AlertTextField.text = [NSString stringWithFString : TextWidget->GetText().ToString()];
+	AlertTextField.placeholder = [NSString stringWithFString : TextWidget->GetHintText().ToString()];
 
 	// set up the keyboard styles not supported in the AlertViewStyle styles
-	switch(TextWidget->GetKeyboardType())
+	switch (TextWidget->GetVirtualKeyboardType())
 	{
-		case EKeyboardType::Keyboard_Email:
-			TextField.keyboardType = UIKeyboardTypeEmailAddress;
-			break;
-		case EKeyboardType::Keyboard_Number:
-			TextField.keyboardType = UIKeyboardTypeNumberPad;
-			break;
-		case EKeyboardType::Keyboard_Web:
-			TextField.keyboardType = UIKeyboardTypeURL;
-			break;
-		case EKeyboardType::Keyboard_Default:
-		case EKeyboardType::Keyboard_Password:
-		default:
-			// nothing to do, UIAlertView style handles these keyboard types
-			break;
+	case EKeyboardType::Keyboard_Email:
+		AlertTextField.keyboardType = UIKeyboardTypeEmailAddress;
+		break;
+	case EKeyboardType::Keyboard_Number:
+		AlertTextField.keyboardType = UIKeyboardTypeDecimalPad;
+		break;
+	case EKeyboardType::Keyboard_Web:
+		AlertTextField.keyboardType = UIKeyboardTypeURL;
+		break;
+	case EKeyboardType::Keyboard_Default:
+	case EKeyboardType::Keyboard_Password:
+	default:
+		// nothing to do, UIAlertView style handles these keyboard types
+		break;
 	}
 
 	[AlertView show];
@@ -98,8 +98,8 @@ void FIOSPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboard
 	// index 1 is the OK button
 	if(buttonIndex == 1)
 	{
-		UITextField* TextField = [alertView textFieldAtIndex:0];
-		TextWidget->SetText(FText::FromString(TextField.text));
+		UITextField* AlertTextField = [alertView textFieldAtIndex: 0];
+		TextWidget->SetTextFromVirtualKeyboard(FText::FromString(AlertTextField.text));
 	}
 }
 

@@ -10,40 +10,42 @@ UCLASS()
 class UMG_API UHorizontalBoxSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
 	/** The amount of padding between the slots parent and the content. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Horizontal Box Slot)")
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Horizontal Box Slot)")
 	FSlateChildSize Size;
 
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Horizontal Box Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Horizontal Box Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout(Horizontal Box Slot)")
 	void SetPadding(FMargin InPadding);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Horizontal Box Slot)")
 	void SetSize(FSlateChildSize InSize);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Horizontal Box Slot)")
 	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Horizontal Box Slot)")
 	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
 
 	void BuildSlot(TSharedRef<SHorizontalBox> HorizontalBox);
 
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 private:
 	SHorizontalBox::FSlot* Slot;

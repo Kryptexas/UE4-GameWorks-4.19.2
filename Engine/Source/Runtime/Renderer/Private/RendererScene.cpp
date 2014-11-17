@@ -11,6 +11,7 @@
 #include "ParameterCollection.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "EngineModule.h"
+#include "PrecomputedLightVolume.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -63,6 +64,12 @@ FSceneViewState::FSceneViewState()
 	{
 		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
 	}
+
+#if BUFFERED_OCCLUSION_QUERIES
+	NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
+	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
+#endif
 }
 
 /**
@@ -209,6 +216,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	bHasSkyLight(false)
 {
 	check(World);
+
+	FeatureLevel = World->FeatureLevel;
 
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
@@ -613,6 +622,9 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		!LightSceneInfo->Proxy->HasStaticLighting())
 	{
 		SimpleDirectionalLight = LightSceneInfo;
+
+		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+		bScenesPrimitivesNeedStaticMeshElementUpdate = !ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -879,7 +891,7 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 
 const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Position) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	int32 ClosestCaptureIndex = INDEX_NONE;
 	float ClosestDistanceSquared = FLT_MAX;
 
@@ -901,12 +913,22 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 
 void FScene::GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const
 {
-	const FCaptureComponentSceneState* FoundState = ReflectionSceneData.AllocatedReflectionCaptureState.Find(ReflectionProxy->Component);
+	ERHIFeatureLevel::Type LocalFeatureLevel = GetFeatureLevel();
 
-	if (FoundState)
+	if (LocalFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
-		ReflectionCubemapArray = ReflectionSceneData.CubemapArray.GetRenderTarget().ShaderResourceTexture;
-		ArrayIndex = FoundState->CaptureIndex;
+		const FCaptureComponentSceneState* FoundState = ReflectionSceneData.AllocatedReflectionCaptureState.Find(ReflectionProxy->Component);
+
+		if (FoundState)
+		{
+			ReflectionCubemapArray = ReflectionSceneData.CubemapArray.GetRenderTarget().ShaderResourceTexture;
+			ArrayIndex = FoundState->CaptureIndex;
+		}
+	}
+	else if (ReflectionProxy->SM4FullHDRCubemap)
+	{
+		ReflectionCubemapArray = ReflectionProxy->SM4FullHDRCubemap->TextureRHI;
+		ArrayIndex = 0;
 	}
 }
 
@@ -1051,6 +1073,8 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	{
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
+			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+			bScenesPrimitivesNeedStaticMeshElementUpdate = !ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 			SimpleDirectionalLight = NULL;
 		}
 
@@ -1372,7 +1396,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 		{
 			FVector4 WindInfo = Scene->GetDirectionalWindParameters();
 
-			for (TMap<UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; )
+			for (TMap<UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It )
 			{
 				UStaticMesh* StaticMesh = It.Key();
 				FSpeedTreeWindComputation* WindComputation = It.Value();
@@ -1427,7 +1451,6 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindRollingNoise, SH_ROLLING_NOISE_PERIOD);
 
 				WindComputation->UniformBuffer.SetContents(UniformParameters);
-				++It;
 			}
 		});
 	
@@ -1599,6 +1622,8 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 		BasePassForForwardShadingLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 	}
 
 	PositionOnlyDepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
@@ -1652,7 +1677,7 @@ void FScene::Release()
 					*FString::Printf(TEXT("Component Name: %s World Name: %s Component Mesh: %s"), 
 										*ActorComponent->GetFullName(), 
 										*GetWorld()->GetFullName(), 
- 										Cast<UStaticMeshComponent>(ActorComponent) ? *CastChecked<UStaticMeshComponent>(ActorComponent)->StaticMesh->GetFullName() : TEXT("Not a static mesh"))) )
+										Cast<UStaticMeshComponent>(ActorComponent) ? *CastChecked<UStaticMeshComponent>(ActorComponent)->StaticMesh->GetFullName() : TEXT("Not a static mesh"))) )
 			{
 				bTriggeredOnce = true;
 				break;	
@@ -1810,6 +1835,10 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
 	DUMP_DRAW_LIST(VelocityDrawList);
@@ -1888,6 +1917,18 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 		(*It)->ApplyWorldOffset(InOffset);
 	}
 
+	// Precomputed light volumes
+	for (const FPrecomputedLightVolume* It : PrecomputedLightVolumes)
+	{
+		const_cast<FPrecomputedLightVolume*>(It)->ApplyWorldOffset(InOffset);
+	}
+
+	// Precomputed visibility
+	if (PrecomputedVisibilityHandler)
+	{
+		const_cast<FPrecomputedVisibilityHandler*>(PrecomputedVisibilityHandler)->ApplyWorldOffset(InOffset);
+	}
+	
 	// Invalidate indirect lighting cache
 	IndirectLightingCache.SetLightingCacheDirty();
 
@@ -1939,7 +1980,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	// Reflection captures
 	for (auto It = ReflectionSceneData.RegisteredReflectionCaptures.CreateIterator(); It; ++It)
 	{
-		FMatrix NewTransform = (*It)->BoxTransform.InverseSafe().ConcatTranslation(InOffset);
+		FMatrix NewTransform = (*It)->BoxTransform.Inverse().ConcatTranslation(InOffset);
 		(*It)->SetTransform(NewTransform);
 	}
 
@@ -1963,6 +2004,8 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingNoLightMapDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingLowQualityLightMapDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightCSMDrawList, InOffset);
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);
@@ -2027,7 +2070,7 @@ public:
 	virtual void RemoveExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent){}
 	virtual void AddAtmosphericFog(class UAtmosphericFogComponent* FogComponent) {}
 	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) {}
-
+	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() override { return NULL; }
 	virtual void AddWindSource(class UWindDirectionalSourceComponent* WindComponent) {}
 	virtual void RemoveWindSource(class UWindDirectionalSourceComponent* WindComponent) {}
 	virtual const TArray<class FWindSourceSceneProxy*>& GetWindSources_RenderThread() const
@@ -2223,6 +2266,18 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLi
 	return BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType];
 }
 
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightLightingPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMLightingPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType];
+}
+
 /*-----------------------------------------------------------------------------
 	MotionBlurInfoData
 -----------------------------------------------------------------------------*/
@@ -2365,7 +2420,7 @@ FMotionBlurInfo* FMotionBlurInfoData::FindMBInfoIndex(FPrimitiveComponentId Comp
 
 bool FMotionBlurInfoData::GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMatrix& OutPreviousLocalToWorld)
 {
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	if (PrimitiveSceneInfo && PrimitiveSceneInfo->PrimitiveComponentId.IsValid())
 	{

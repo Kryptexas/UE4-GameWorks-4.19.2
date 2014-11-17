@@ -526,6 +526,12 @@ protected:
 	bool								bUpdatingLevelsSelection;
 };
 
+/** Current world origin location on XY plane  */
+FORCEINLINE FIntPoint GetWorldOriginLocationXY(UWorld* InWorld)
+{
+	return FIntPoint(InWorld->OriginLocation.X, InWorld->OriginLocation.Y);
+}
+
 //
 // Helper struct to temporally make specified UObject immune to dirtying
 //

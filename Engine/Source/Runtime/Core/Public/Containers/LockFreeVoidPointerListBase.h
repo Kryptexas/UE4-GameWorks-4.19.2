@@ -127,6 +127,20 @@ public:
 	}
 
 	/**	
+	 *	If the list is empty, replace it with the other list and null the other list.
+	 *	@return true if this call actively closed the list
+	 */
+	bool ReplaceListIfEmpty(FLockFreeVoidPointerListBase& NotThreadSafeTempListToReplaceWith)
+	{
+		if (NotThreadSafeTempListToReplaceWith.Head->ReplaceHeadIfHeadEqual(&Head,nullptr))
+		{
+			NotThreadSafeTempListToReplaceWith.Head = nullptr;
+			return true;
+		}
+		return false;
+	}
+
+	/**	
 	 *	Pop all items from the list 
 	 *	@param Output The array to hold the returned items. Must be empty.
 	 *	CAUTION: This method should not be used unless the list is known to not be closed.

@@ -28,9 +28,9 @@ FText USoundCueGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return LOCTEXT("RootTitle", "Output");
 }
 
-FString USoundCueGraphNode_Root::GetTooltip() const
+FText USoundCueGraphNode_Root::GetTooltipText() const
 {
-	return LOCTEXT("RootToolTip", "Wire the final Sound Node into this node").ToString();
+	return LOCTEXT("RootToolTip", "Wire the final Sound Node into this node");
 }
 
 void USoundCueGraphNode_Root::CreateInputPins()

@@ -48,4 +48,34 @@ public:
 
 	/** Returns true if the user represented by LocalUserNum is currently in the party */
 	virtual bool IsInParty(int32 LocalUserNum) = 0;
+
+	/**
+	 * Delegate executed when the local player operation completes.
+	 *
+	 * @param bWasSuccessful whether the operation succeeded or not
+	 */
+	DECLARE_DELEGATE_OneParam(FOnLocalUserOperationCompleteDelegate, bool);
+
+	/**
+	 * Adds local users to the party.
+	 *
+	 * @param ActingUser the id of a user who's already signed in
+	 * @param UsersToAdd the ids if the new users to add to the party
+	 * @param Delegate the delegate to execute when the async operation completes
+	 */
+	virtual void AddLocalUsers(
+		const FUniqueNetId& ActingUser,
+		const TArray<TSharedRef<FUniqueNetId>>& UsersToAdd,
+		const FOnLocalUserOperationCompleteDelegate& Delegate) = 0;
+
+	/**
+	 * Removes local users from the party.
+	 *
+	 * @param ActingUser the id of a user who's already signed in
+	 * @param UsersToAdd the ids if the new users to add to the party
+	 * @param Delegate the delegate to execute when the async operation completes
+	 */
+	virtual void RemoveLocalUsers(
+		const TArray<TSharedRef<FUniqueNetId>>& UsersToRemove,
+		const FOnLocalUserOperationCompleteDelegate& Delegate) = 0;
 };

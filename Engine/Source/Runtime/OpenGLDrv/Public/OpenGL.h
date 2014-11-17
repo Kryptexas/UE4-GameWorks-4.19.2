@@ -24,8 +24,8 @@ struct FPlatformOpenGLContext;
 #ifndef OPENGL_ES2
 #define OPENGL_ES2	0
 #endif
-#ifndef OPENGL_ES3
-#define OPENGL_ES3	0
+#ifndef OPENGL_ES31
+#define OPENGL_ES31	0
 #endif
 #ifndef OPENGL_GL3
 #define OPENGL_GL3	0
@@ -34,6 +34,12 @@ struct FPlatformOpenGLContext;
 #define OPENGL_GL4	0
 #endif
 
+/** Official OpenGL definitions */
+#ifndef GL_HALF_FLOAT
+#define GL_HALF_FLOAT 0x140B
+#endif
+
+// Base static class
 class FOpenGLBase
 {
 public:
@@ -102,7 +108,6 @@ public:
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return true; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return true; }
 	static FORCEINLINE bool SupportsVolumeTextureRendering()			{ return false; }
-	static FORCEINLINE bool SupportsGSRenderTargetLayerSwitchingToMips() { return true; }
 	static FORCEINLINE bool SupportsShaderFramebufferFetch()			{ return false; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return true; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return true; }
@@ -114,6 +119,7 @@ public:
 	static FORCEINLINE bool SupportsASTC()								{ return bSupportsASTC; }
 	static FORCEINLINE bool SupportsETC1()								{ return false; }
 	static FORCEINLINE bool SupportsETC2()								{ return false; }
+	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return true; }
 	static FORCEINLINE bool SupportsCombinedDepthStencilAttachment()	{ return true; }
 	static FORCEINLINE bool SupportsFastBufferData()					{ return true; }
 	static FORCEINLINE bool SupportsCopyImage()							{ return bSupportsCopyImage; }
@@ -133,12 +139,17 @@ public:
 	static FORCEINLINE bool SupportsVertexAttribBinding()				{ return false; }
 	static FORCEINLINE bool SupportsBufferStorage()						{ return false; }
 	static FORCEINLINE bool SupportsDepthBoundsTest()					{ return false; }
+	static FORCEINLINE bool SupportsClientStorage()						{ return false; }
+	static FORCEINLINE bool SupportsTextureRange()						{ return false; }
 	static FORCEINLINE bool SupportsTextureNPOT()						{ return true; }
+	static FORCEINLINE bool SupportsBindlessTexture()					{ return false; }
+	static FORCEINLINE bool SupportsTextureSwizzle()					{ return false; }
 	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval()			{ return false; }
 	static FORCEINLINE bool AmdWorkaround()								{ return false; }
 
 
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }
+	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT; }
 
 	static FORCEINLINE GLint GetMaxTextureImageUnits()			{ check(MaxTextureImageUnits != -1); return MaxTextureImageUnits; }
 	static FORCEINLINE GLint GetMaxVertexTextureImageUnits()	{ check(MaxVertexTextureImageUnits != -1); return MaxVertexTextureImageUnits; }
@@ -169,6 +180,8 @@ public:
 	static FORCEINLINE bool IsDebugContent()					{ return false; }
 	static FORCEINLINE void InitDebugContext()					{ }
 
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() UGL_REQUIRED(0)
+
 
 	// Silently ignored if not implemented:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID) UGL_OPTIONAL_VOID
@@ -179,7 +192,7 @@ public:
 	static FORCEINLINE void ReadBuffer(GLenum Mode) UGL_OPTIONAL_VOID
 	static FORCEINLINE void DrawBuffer(GLenum Mode) UGL_OPTIONAL_VOID
 	static FORCEINLINE void DeleteSync(UGLsync Sync) UGL_OPTIONAL_VOID
-	static FORCEINLINE UGLsync FenceSync(GLenum Condition, GLbitfield Flags) UGL_OPTIONAL(0)
+	static FORCEINLINE UGLsync FenceSync(GLenum Condition, GLbitfield Flags) UGL_OPTIONAL(UGLsync())
 	static FORCEINLINE bool IsSync(UGLsync Sync) UGL_OPTIONAL(false)
 	static FORCEINLINE EFenceResult ClientWaitSync(UGLsync Sync, GLbitfield Flags, GLuint64 Timeout) UGL_OPTIONAL(FR_WaitFailed)
 	static FORCEINLINE void GenSamplers(GLsizei Count, GLuint *Samplers) UGL_OPTIONAL_VOID
@@ -287,6 +300,13 @@ public:
 	static FORCEINLINE void VertexBindingDivisor(GLuint BindingIndex, GLuint Divisor) UGL_REQUIRED_VOID
 	static FORCEINLINE void BufferStorage(GLenum Target, GLsizeiptr Size, const void *Data, GLbitfield Flags) UGL_REQUIRED_VOID
 	static FORCEINLINE void DepthBounds(GLfloat Min, GLfloat Max) UGL_REQUIRED_VOID
+	static FORCEINLINE void TextureRange(GLenum Target, GLsizei Length, const GLvoid *Pointer) UGL_OPTIONAL_VOID
+
+	static FORCEINLINE GLuint64 GetTextureSamplerHandle(GLuint Texture, GLuint Sampler) UGL_REQUIRED(0)
+	static FORCEINLINE GLuint64 GetTextureHandle(GLuint Texture) UGL_REQUIRED(0)
+	static FORCEINLINE void MakeTextureHandleResident(GLuint64 TextureHandle) UGL_REQUIRED_VOID
+	static FORCEINLINE void MakeTextureHandleNonResident(GLuint64 TextureHandle) UGL_REQUIRED_VOID
+	static FORCEINLINE void UniformHandleui64(GLint Location, GLuint64 Value) UGL_REQUIRED_VOID
 
 	static FPlatformOpenGLDevice*	CreateDevice() UGL_REQUIRED(NULL)
 	static FPlatformOpenGLContext*	CreateContext( FPlatformOpenGLDevice* Device, void* WindowHandle ) UGL_REQUIRED(NULL)
@@ -306,6 +326,23 @@ public:
 		}
 #endif 
 	}
+
+	static FORCEINLINE void DeleteBuffers(GLsizei Number, const GLuint* Buffers)
+	{
+		glDeleteBuffers(Number, Buffers);
+	}
+
+	static FORCEINLINE void DeleteTextures(GLsizei Number, const GLuint* Textures)
+	{
+		glDeleteTextures(Number, Textures);
+	}
+
+	static FORCEINLINE void Flush()
+	{
+		glFlush();
+	}
+
+	static FORCEINLINE bool TimerQueryDisjoint()									{ return false; }
 
 protected:
 	static GLint MaxTextureImageUnits;
@@ -547,8 +584,14 @@ protected:
 #ifndef GL_RED
 #define GL_RED										0x1903
 #endif
+#ifndef GL_BLUE
+#define GL_BLUE										0x1905
+#endif
 #ifndef GL_STENCIL_INDEX
 #define GL_STENCIL_INDEX							0x1901
+#endif
+#ifndef GL_RGBA_INTEGER
+#define GL_RGBA_INTEGER								0x8D99
 #endif
 
 #if PLATFORM_HTML5
@@ -560,4 +603,18 @@ protected:
 
 #ifndef GL_GPU_DISJOINT_EXT
 #define GL_GPU_DISJOINT_EXT							0x8FBB
+#endif
+
+#ifndef GL_APPLE_client_storage
+#define GL_UNPACK_CLIENT_STORAGE_APPLE				0x85B2
+#endif
+
+#ifndef GL_APPLE_texture_range
+#define GL_TEXTURE_RANGE_LENGTH_APPLE     0x85B7
+#define GL_TEXTURE_RANGE_POINTER_APPLE    0x85B8
+#define GL_TEXTURE_STORAGE_HINT_APPLE     0x85BC
+#define GL_TEXTURE_MINIMIZE_STORAGE_APPLE 0x85B6
+#define GL_STORAGE_PRIVATE_APPLE          0x85BD
+#define GL_STORAGE_CACHED_APPLE           0x85BE
+#define GL_STORAGE_SHARED_APPLE           0x85BF
 #endif

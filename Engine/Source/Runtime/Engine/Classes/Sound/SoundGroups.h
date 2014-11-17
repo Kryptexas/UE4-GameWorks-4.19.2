@@ -51,7 +51,7 @@ struct FSoundGroup
 	UPROPERTY(config)
 	uint32 bAlwaysDecompressOnLoad:1;
 
-	/*
+	/**
 	 * Sound duration in seconds below which sounds are entirely expanded to PCM at load time
 	 * Disregarded if bAlwaysDecompressOnLoad is true
 	*/

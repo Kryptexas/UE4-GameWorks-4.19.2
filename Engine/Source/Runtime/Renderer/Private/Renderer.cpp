@@ -37,7 +37,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 	// Create an FViewInfo so we can initialize its RHI resources
 	//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 	FViewInfo View(&SceneView);
-	View.InitRHIResources();
+	View.InitRHIResources(nullptr);
 
 	const auto FeatureLevel = View.GetFeatureLevel();
 	
@@ -51,7 +51,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		// handle translucent material blend modes
 		if (IsTranslucentBlendMode(MaterialBlendMode))
 		{
-			if (FeatureLevel >= ERHIFeatureLevel::SM3)
+			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
@@ -73,7 +73,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 			}
 			else
 			{
-				if (FeatureLevel >= ERHIFeatureLevel::SM3)
+				if (FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
 					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}
@@ -113,16 +113,18 @@ void FRendererModule::DebugLogOnCrash()
 			}
 		} Test;
 
-		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
-			(
-			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&Test, &FTest::Thread)
-			, TEXT("DumpDataAfterCrash")
-			, nullptr, ENamedThreads::GameThread
-			);
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.DumpDataAfterCrash"),
+			STAT_FSimpleDelegateGraphTask_DumpDataAfterCrash,
+			STATGROUP_TaskGraphTasks);
+
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&Test, &FTest::Thread),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_DumpDataAfterCrash), nullptr, ENamedThreads::GameThread
+		);
 	}
 }
 
-void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkScale, bool bDebugOut)
+void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, float WorkScale)
 {
 	check(IsInGameThread());
 
@@ -151,14 +153,13 @@ void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkSca
 
 	FSceneView DummyView(ViewInitOptions);
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 	  RendererGPUBenchmarkCommand,
 	  FSceneView, DummyView, DummyView,
-	  uint32, WorkScale, WorkScale,
-	  bool, bDebugOut, bDebugOut,
+	  float, WorkScale, WorkScale,
 	  FSynthBenchmarkResults&, InOut, InOut,
 	{
-		RendererGPUBenchmark(RHICmdList, InOut, DummyView, WorkScale, bDebugOut);
+		RendererGPUBenchmark(RHICmdList, InOut, DummyView, WorkScale);
 	});
 	FlushRenderingCommands();
 }

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
-using System.Linq; 
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -14,6 +14,36 @@ namespace UnrealBuildTool
 		// cache the location of SDK tools
 		static string EMCCPath;
 		static string PythonPath;
+        static string EmscriptenSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "/.emscripten");
+
+        Dictionary<string, string> ReadEmscriptenSettings()
+        {
+            // Check HTML5ToolChain.cs for duplicate
+            if (!System.IO.File.Exists(EmscriptenSettingsPath))
+            {
+                return new Dictionary<string, string>();
+            }
+
+            Dictionary<string, string> Settings = new Dictionary<string, string>();
+            System.IO.StreamReader SettingFile = new System.IO.StreamReader(EmscriptenSettingsPath);
+            string EMLine = null;
+            while ((EMLine = SettingFile.ReadLine()) != null)
+            {
+                EMLine = EMLine.Split('#')[0];
+                string Pattern1 = @"(\w*)\s*=\s*['\[]?([^'\]\r\n]*)['\]]?";
+                Regex Rgx = new Regex(Pattern1, RegexOptions.IgnoreCase);
+                MatchCollection Matches = Rgx.Matches(EMLine);
+                foreach (Match Matched in Matches)
+                {
+                    if (Matched.Groups.Count == 3 && Matched.Groups[2].ToString() != "")
+                    {
+                        Settings[Matched.Groups[1].ToString()] = Matched.Groups[2].ToString();
+                    }
+                }
+            }
+
+            return Settings;
+        }
 
 		public override void RegisterToolChain()
 		{
@@ -25,9 +55,17 @@ namespace UnrealBuildTool
 				BaseSDKPath = BaseSDKPath.Replace("\"", "");
 				if (!String.IsNullOrEmpty(BaseSDKPath))
                 {
+                    var EmscriptenSettings = ReadEmscriptenSettings();
 					EMCCPath = Path.Combine(BaseSDKPath, "emcc");
 					// also figure out where python lives (if no envvar, assume it's in the path)
-					PythonPath = Environment.GetEnvironmentVariable("PYTHON");
+                    if (EmscriptenSettings.ContainsKey("PYTHON"))
+                    {
+                        PythonPath = EmscriptenSettings["PYTHON"];
+                    }
+                    else
+                    {
+                        PythonPath = Environment.GetEnvironmentVariable("PYTHON");
+                    }
 
                     string PythonExeName = Utils.IsRunningOnMono ? "python" : "python.exe";
 
@@ -94,8 +132,6 @@ namespace UnrealBuildTool
             Result += " -s WARN_ON_UNDEFINED_SYMBOLS=1";
             // we want full ES2
             Result += " -s FULL_ES2=1 ";
-            // don't need UTF8 string support, and it slows string ops down
-            Result += " -s UTF_STRING_SUPPORT=0";
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
             Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game']\" ";
 
@@ -215,7 +251,6 @@ namespace UnrealBuildTool
 
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
 
-				Result += " --js-library Runtime/Core/Public/HTML5/HTML5DebugLogging.js ";
 
 				string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 				Result += " --js-library \"" + BaseSDKPath + "/Src/library_openal.js\" ";
@@ -305,52 +340,44 @@ namespace UnrealBuildTool
 			Log.TraceInformation(Output);				// To preserve readable output log
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			if (CompileEnvironment.Config.Target.Architecture == "-win32")
 			{
-				return base.CompileCPPFiles(CompileEnvironment, SourceFiles, ModuleName);
+				return base.CompileCPPFiles(Target, CompileEnvironment, SourceFiles, ModuleName);
 			}
 
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
-			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 
 			CPPOutput Result = new CPPOutput();
 
 			// Add include paths to the argument list.
-			foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
 			{
 				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
-			foreach (string IncludePath in CompileEnvironment.Config.SystemIncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 			{
 				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
 
-            if ( ModuleName == "Launch" ) 
-                Arguments += string.Format(" -I\"{0}\"", BaseSDKPath + "/system/lib/libcxxabi/include" );
-        
+      
 			// Add preprocessor definitions to the argument list.
 			foreach (string Definition in CompileEnvironment.Config.Definitions)
 			{
 				Arguments += string.Format(" -D{0}", Definition);
 			}
 
-			// Create a compile action for each source file.
-            if (ModuleName == "Launch")
-                SourceFiles.Add(FileItem.GetItemByPath(BaseSDKPath + "/system/lib/libcxxabi/src/cxa_demangle.cpp")); 
         
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+
 			foreach (FileItem SourceFile in SourceFiles)
 			{
 				Action CompileAction = new Action(ActionType.Compile);
 				bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
                 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				CompileAction.PrerequisiteItems.Add(SourceFile);
-				foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
-				{
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
-				}
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
 				// Add the source file path to the command-line.
                 string FileArguments = string.Format(" \"{0}\"", SourceFile.AbsolutePath);
@@ -382,7 +409,6 @@ namespace UnrealBuildTool
 
                 System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
-				CompileAction.StatusDetailedDescription = SourceFile.Description;
 				CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
 
 				// Don't farm out creation of precomputed headers as it is the critical path task.
@@ -403,13 +429,13 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles)
+		public override CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
 			CPPOutput Result = new CPPOutput();
 
 			if (Environment.Config.Target.Architecture == "-win32")
 			{
-				return base.CompileRCFiles(Environment, RCFiles);
+				return base.CompileRCFiles(Target, Environment, RCFiles);
 			}
 
 			return Result;

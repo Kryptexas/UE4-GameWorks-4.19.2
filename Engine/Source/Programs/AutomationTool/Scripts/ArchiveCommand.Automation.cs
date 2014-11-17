@@ -49,6 +49,9 @@ public partial class Project : CommandUtils
 		{
 			return;
 		}
+
+		Log("********** ARCHIVE COMMAND STARTED **********");
+
 		if (!Params.NoClient)
 		{
 			var DeployContextList = CreateDeploymentContext(Params, false, false);
@@ -70,6 +73,7 @@ public partial class Project : CommandUtils
 				ApplyArchiveManifest(Params, SC);
 				SC.StageTargetPlatform.ProcessArchivedProject(Params, SC);
 			}
+			Log("********** ARCHIVE COMMAND COMPLETED **********");
 		}
 	}
 

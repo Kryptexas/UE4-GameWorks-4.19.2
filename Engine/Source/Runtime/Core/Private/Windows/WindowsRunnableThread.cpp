@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #include "Core.h"
 #include "WindowsRunnableThread.h"
 #include "ExceptionHandling.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogThreadingWindows, Log, All);
+
 
 uint32 FRunnableThreadWin::GuardedRun()
 {
@@ -14,7 +17,6 @@ uint32 FRunnableThreadWin::GuardedRun()
 #if PLATFORM_XBOXONE
 	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
 #endif
-
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	if( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
@@ -30,8 +32,8 @@ uint32 FRunnableThreadWin::GuardedRun()
 			GWarn->Flush();
 
 			// Append the thread name at the end of the error report.
-			FCString::Strncat(GErrorHist, TEXT("\r\nCrash in runnable thread "), ARRAY_COUNT(GErrorHist) - 1);
-			FCString::Strncat(GErrorHist, *ThreadName, ARRAY_COUNT(GErrorHist) - 1);
+			FCString::Strncat( GErrorHist, LINE_TERMINATOR TEXT( "Crash in runnable thread " ), ARRAY_COUNT( GErrorHist ) );
+			FCString::Strncat( GErrorHist, *ThreadName, ARRAY_COUNT( GErrorHist ) );
 
 			ExitCode = 1;
 			// Generate status report.				
@@ -46,8 +48,13 @@ uint32 FRunnableThreadWin::GuardedRun()
 		ExitCode = Run();
 	}
 
+#if STATS
+	FThreadStats::Shutdown();
+#endif
+
 	return ExitCode;
 }
+
 
 uint32 FRunnableThreadWin::Run()
 {

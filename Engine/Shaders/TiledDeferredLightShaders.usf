@@ -14,6 +14,17 @@
 uint4 ViewDimensions;
 uint NumLights;
 
+// Workaround performance issue with shared memory bank collisions in GLSL
+#if GL4_PROFILE
+#define ATOMIC_REDUCTION 0
+#else
+#define ATOMIC_REDUCTION 1
+#endif
+
+#if !ATOMIC_REDUCTION
+groupshared float TileZ[THREADGROUP_TOTALSIZE];
+#endif
+
 /** Min and Max depth for this tile. */
 groupshared uint IntegerTileMinZ;
 groupshared uint IntegerTileMaxZ;
@@ -47,6 +58,7 @@ void TiledDeferredLightingMain(
 	float2 ScreenPosition = float2(2.0f, -2.0f) * ScreenUV + float2(-1.0f, 1.0f);
 	float SceneDepth = CalcSceneDepth(PixelPos);
 
+#if ATOMIC_REDUCTION
 	// Initialize per-tile variables
     if (ThreadIndex == 0) 
 	{
@@ -65,6 +77,68 @@ void TiledDeferredLightingMain(
     InterlockedMax(IntegerTileMaxZ, asuint(SceneDepth));
 
     GroupMemoryBarrierWithGroupSync();
+#else
+
+	TileZ[ThreadIndex] = SceneDepth;
+
+	GroupMemoryBarrierWithGroupSync();
+
+	THREADGROUP_TOTALSIZE;
+
+	if (ThreadIndex < 32)
+	{
+		float Min = SceneDepth;
+		float Max = SceneDepth;
+		for (int i = ThreadIndex + 32; i< THREADGROUP_TOTALSIZE; i += 32)
+		{
+			Min = min(Min, TileZ[i]);
+			Max = max(Max, TileZ[i]);
+		}
+		TileZ[ThreadIndex] = Min;
+		TileZ[ThreadIndex + 32] = Max;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (ThreadIndex < 8)
+	{
+		float Min = TileZ[ThreadIndex];
+		float Max = TileZ[ThreadIndex + 32];
+
+		Min = min(Min, TileZ[ThreadIndex + 8]);
+		Max = max(Max, TileZ[ThreadIndex + 40]);
+
+		Min = min(Min, TileZ[ThreadIndex + 16]);
+		Max = max(Max, TileZ[ThreadIndex + 48]);
+
+		Min = min(Min, TileZ[ThreadIndex + 24]);
+		Max = max(Max, TileZ[ThreadIndex + 56]);
+
+		TileZ[ThreadIndex + 64] = Min;
+		TileZ[ThreadIndex + 96] = Max;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (ThreadIndex == 0)
+	{
+		float Min = TileZ[64];
+		float Max = TileZ[96];
+
+		for (int i = 1; i< 8; i++)
+		{
+			Min = min(Min, TileZ[i + 64]);
+			Max = max(Max, TileZ[i + 96]);
+		}
+
+		IntegerTileMinZ = asuint(Min);
+		IntegerTileMaxZ = asuint(Max);
+		TileNumLights = 0;
+		TileNumSimpleLights = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+#endif
 
     float MinTileZ = asfloat(IntegerTileMinZ);
     float MaxTileZ = asfloat(IntegerTileMaxZ);

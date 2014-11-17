@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
+
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintBoundNodeSpawner.h"
 #include "KismetCompiler.h"
 #include "Runtime/Engine/Public/MatineeDelegates.h"
 #include "Matinee/MatineeActor.h"
@@ -122,6 +125,51 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 			}
 		}
 	}
+}
+
+void UK2Node_MatineeController::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto CanBindObjectLambda = [](UObject const* BindingObject)
+	{
+		if (AMatineeActor const* Actor = Cast<AMatineeActor>(BindingObject))
+		{
+			// Make sure the Actor has a world
+			if (Actor->GetWorld())
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	auto MenuCategoryDescription = []( const IBlueprintNodeBinder::FBindingSet& BindingContext ) -> FText
+	{
+		if( BindingContext.Num() == 1 )
+		{
+			return FText::Format(NSLOCTEXT("K2Node", "MatineeeControllerTitle", "Create a Matinee Controller for {0}"), FText::FromString( (*(BindingContext.CreateConstIterator()))->GetName()) );
+		}
+		else if( BindingContext.Num() > 1 )
+		{
+			return FText::Format(NSLOCTEXT("K2Node", "MultipleMatineeeControllerTitle", "Create Matinee Controllers for {0} selected MatineeActors"), FText::AsNumber(BindingContext.Num()) );
+		}
+		else
+		{
+			return NSLOCTEXT("K2Node", "FallbackMatineeeControllerTitle", "Error: No MatineeActors in Context");
+		}
+	};
+
+	auto PostBindSetupLambda = [](UEdGraphNode* NewNode, UObject* BindObject)
+	{
+		UK2Node_MatineeController* MatineeNode = CastChecked<UK2Node_MatineeController>(NewNode);
+		MatineeNode->MatineeActor = CastChecked<AMatineeActor>(BindObject);
+		return true;
+	};
+
+	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
+	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
+	NodeSpawner->OnBindObjectDelegate = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
+	NodeSpawner->OnGenerateMenuDescriptionDelegate = UBlueprintBoundNodeSpawner::FOnGenerateMenuDescriptionDelegate::CreateStatic(MenuCategoryDescription);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 void UK2Node_MatineeController::OnEventKeyframeAdded(const AMatineeActor* InMatineeActor, const FName& InPinName, int32 InIndex)

@@ -1,14 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericWindowsTargetPlatform.h: Declares the TGenericWindowsTargetPlatform class template.
-=============================================================================*/
-
 #pragma once
 
+
 #if WITH_ENGINE
-#include "StaticMeshResources.h"
+	#include "StaticMeshResources.h"
 #endif // WITH_ENGINE
+
+#define LOCTEXT_NAMESPACE "TGenericWindowsTargetPlatform"
 
 /**
  * Template for Windows target platforms
@@ -18,8 +17,8 @@ class TGenericWindowsTargetPlatform
 	: public TTargetPlatformBase<FWindowsPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> >
 {
 public:
-
-	typedef public TTargetPlatformBase<FWindowsPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
+	typedef FWindowsPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> TProperties;
+	typedef TTargetPlatformBase<TProperties> TSuper;
 
 	/**
 	 * Default constructor.
@@ -85,7 +84,7 @@ public:
 			return LocalDevice;
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual bool IsRunningPlatform( ) const override
@@ -165,7 +164,43 @@ public:
 
 		return NAME_OGG;
 	}
+
 #endif //WITH_ENGINE
+
+	virtual bool SupportsVariants() const override
+	{
+		return true;
+	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		if (IS_DEDICATED_SERVER)
+		{
+			return LOCTEXT("WindowsServerVariantTitle", "Dedicated Server");
+		}
+
+		if (HAS_EDITOR_DATA)
+		{
+			return LOCTEXT("WindowsClientEditorDataVariantTitle", "Client with Editor Data");
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return LOCTEXT("WindowsClientOnlyVariantTitle", "Client only");
+		}
+
+		return LOCTEXT("WindowsClientVariantTitle", "Client");
+	}
+
+	virtual FText GetVariantTitle() const override
+	{
+		return LOCTEXT("WindowsVariantTitle", "Build Type");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return TProperties::GetVariantPriority();
+	}
 
 	DECLARE_DERIVED_EVENT(TGenericWindowsTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
@@ -224,3 +259,5 @@ private:
 	// Holds an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	FOnTargetDeviceLost DeviceLostEvent;
 };
+
+#undef LOCTEXT_NAMESPACE

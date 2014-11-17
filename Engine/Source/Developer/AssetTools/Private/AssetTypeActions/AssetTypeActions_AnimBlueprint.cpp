@@ -147,17 +147,26 @@ void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<
 	}
 }
 
-void FAssetTypeActions_AnimBlueprint::RetargetAssets(const TArray<UObject*> InAnimBlueprints, bool bDuplicateAssets)
+void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, bool bDuplicateAssets, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
+{
+	EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, AnimBlueprints, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
+}
+
+void FAssetTypeActions_AnimBlueprint::RetargetAssets(TArray<UObject*> InAnimBlueprints, bool bDuplicateAssets)
 {
 	bool bRemapReferencedAssets = false;
-	USkeleton * NewSkeleton = NULL;
+	USkeleton * OldSkeleton = NULL;
+
+	if ( InAnimBlueprints.Num() > 0 )
+	{
+		UAnimBlueprint * AnimBP = CastChecked<UAnimBlueprint>(InAnimBlueprints[0]);
+		OldSkeleton = AnimBP->TargetSkeleton;
+	}
 
 	const FText Message = LOCTEXT("RemapSkeleton_Warning", "Select the skeleton to remap this asset to.");
+	auto AnimBlueprints = GetTypedWeakObjectPtrs<UObject>(InAnimBlueprints);
 
-	if (SAnimationRemapSkeleton::ShowModal(NULL, NewSkeleton, Message, &bRemapReferencedAssets))
-	{
-		EditorAnimUtils::RetargetAnimations(NewSkeleton, InAnimBlueprints, bRemapReferencedAssets, bDuplicateAssets);
-	}
+	SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, FOnRetargetAnimation::CreateSP(this, &FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler, bDuplicateAssets, AnimBlueprints));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -2,10 +2,13 @@
 
 
 #include "MainFramePrivatePCH.h"
+#include "MessageLog.h"
+
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
 
 DEFINE_LOG_CATEGORY_STATIC(MainFrameActions, Log, All);
+
 
 TSharedRef< FUICommandList > FMainFrameCommands::ActionList( new FUICommandList() );
 
@@ -21,14 +24,16 @@ FMainFrameCommands::FMainFrameCommands()
 		TEXT( "MainFrame.ToggleFullscreen" ),
 		TEXT( "Toggles the editor between \"full screen\" mode and \"normal\" mode.  In full screen mode, the task bar and window title area are hidden." ),
 		FConsoleCommandDelegate::CreateStatic( &FMainFrameActionCallbacks::ToggleFullscreen_Execute ) )
-{
-}
+{ }
 
 
 void FMainFrameCommands::RegisterCommands()
 {
-	// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
-	FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyboardEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
+	if ( !IsRunningCommandlet() )
+	{
+		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
+		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyboardEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
+	}
 
 	// Make a default can execute action that disables input when in debug mode
 	FCanExecuteAction DefaultExecuteAction = FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::DefaultCanExecuteAction );
@@ -333,7 +338,8 @@ void FMainFrameActionCallbacks::ChoosePackagesToCheckIn()
 		else
 		{
 			FMessageLog EditorErrors("EditorErrors");
-			EditorErrors.Warning(LOCTEXT( "NoSCCConnection", "No connection to source control available!"));
+			EditorErrors.Warning(LOCTEXT( "NoSCCConnection", "No connection to source control available!"))
+				->AddToken(FDocumentationToken::Create(TEXT("Engine/UI/SourceControl")));
 			EditorErrors.Notify();
 		}
 	}
@@ -375,11 +381,25 @@ void FMainFrameActionCallbacks::NewProject( bool bAllowProjectOpening, bool bAll
 		return;
 	}
 
+	FText Title;
+	if (bAllowProjectOpening && bAllowProjectCreate)
+	{
+		Title = LOCTEXT( "SelectProjectWindowHeader", "Select Project");
+	}
+	else if (bAllowProjectOpening)
+	{
+		Title = LOCTEXT( "OpenProjectWindowHeader", "Open Project");
+	}
+	else
+	{
+		Title = LOCTEXT( "NewProjectWindowHeader", "New Project");
+	}
+
 	TSharedRef<SWindow> NewProjectWindow =
 		SNew(SWindow)
-		.Title(LOCTEXT( "SelectProjectWindowHeader", "Select Project"))
-		.ClientSize( FVector2D(1280, 720) )
-		.SizingRule( ESizingRule::FixedSize )
+		.Title(Title)
+		.ClientSize( FMainFrameModule::GetProjectBrowserWindowSize() )
+		.SizingRule( ESizingRule::UserSized )
 		.SupportsMinimize(false) .SupportsMaximize(false);
 
 	NewProjectWindow->SetContent( FGameProjectGenerationModule::Get().CreateGameProjectDialog(bAllowProjectOpening, bAllowProjectCreate) );
@@ -466,6 +486,16 @@ void FMainFrameActionCallbacks::PackageBuildConfiguration( EProjectPackagingBuil
 	PackagingSettings->BuildConfiguration = BuildConfiguration;
 }
 
+bool FMainFrameActionCallbacks::CanPackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration )
+{
+	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping)
+	{
+		return false;
+	}
+	return true;
+}
+
 bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPackagingBuildConfigurations BuildConfiguration )
 {
 	return (GetDefault<UProjectPackagingSettings>()->BuildConfiguration == BuildConfiguration);
@@ -494,23 +524,54 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformInfo->TargetPlatformName.ToString());
 		if (Platform)
 		{
-			FString NotInstalledDocLink;
+			FString NotInstalledTutorialLink;
 			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-			int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bProjectHasCode, NotInstalledDocLink);
+			int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
+
+			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
+
+			// report to message log
+			FText MessageLogText;
+			FText MessageLogTextDetail;
+
 			switch (Result)
 			{
-				// broadcast this, and assume someone will pick it up
-			case ETargetPlatformReadyStatus::SDKNotFound:
-			case ETargetPlatformReadyStatus::ProvisionNotFound:
-			case ETargetPlatformReadyStatus::SigningKeyNotFound:
-			case (ETargetPlatformReadyStatus::ProvisionNotFound | ETargetPlatformReadyStatus::SigningKeyNotFound):
-				{
-					IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-					MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), NotInstalledDocLink);
-				}
-				return;
+				case ETargetPlatformReadyStatus::SDKNotFound:
+					MessageLogText = LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not be found");
+					MessageLogTextDetail = FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName());
+					break;
 
+				case ETargetPlatformReadyStatus::ProvisionNotFound:
+					MessageLogText = LOCTEXT("ProvisionNotFoundMessage", "Provision not found");
+					MessageLogTextDetail = LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device.");
+					break;
+
+				case ETargetPlatformReadyStatus::SigningKeyNotFound:
+					MessageLogText = LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found");
+					MessageLogTextDetail = LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured.");
+					break;
+
+				default:
+					break;
+			}
+
+			if (!MessageLogText.IsEmpty())
+			{
+				TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
+				Message->AddToken(FTextToken::Create(MessageLogText));
+				Message->AddToken(FTextToken::Create(MessageLogTextDetail));
+				Message->AddToken(FTutorialToken::Create(NotInstalledTutorialLink));
+				Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+
+				FMessageLog MessageLog("PackagingResults");
+				MessageLog.AddMessage(Message);
+				MessageLog.Open();
+			}
+
+			// report to main frame
+			switch (Result)
+			{
 #if PLATFORM_WINDOWS
 			case ETargetPlatformReadyStatus::CodeUnsupported:
 				// show the message
@@ -631,7 +692,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s -utf8output"),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -CrashReporter -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s -utf8output"),
 		FRocketSupport::IsRocket() ? TEXT( "-rocket -nocompile" ) : TEXT( "-nocompileeditor" ),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
@@ -679,7 +740,7 @@ void FMainFrameActionCallbacks::RefreshCodeProject()
 	FText FailReason;
 	if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason))
 	{
-		FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FailReason));
+		FMessageDialog::Open(EAppMsgType::Ok, FailReason);
 	}
 }
 
@@ -694,16 +755,24 @@ void FMainFrameActionCallbacks::OpenIDE()
 	{
 		if ( !FSourceCodeNavigation::OpenModuleSolution() )
 		{
-			const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FModuleManager::Get().GetSolutionFilepath() );
-			const FText Message = FText::Format( LOCTEXT( "OpenIDEFailed_MissingFile", "Could not open {0} for project {1}" ), FSourceCodeNavigation::GetSuggestedSourceCodeIDE(), FText::FromString( FullPath ) );
-			FMessageDialog::Open( EAppMsgType::Ok, Message );
+			FString SolutionPath;
+			if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
+			{
+				const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
+				const FText Message = FText::Format( LOCTEXT( "OpenIDEFailed_MissingFile", "Could not open {0} for project {1}" ), FSourceCodeNavigation::GetSuggestedSourceCodeIDE(), FText::FromString( FullPath ) );
+				FMessageDialog::Open( EAppMsgType::Ok, Message );
+			}
+			else
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("OpenIDEFailed_MissingSolution", "Couldn't find solution"));
+			}
 		}
 	}
 }
 
 void FMainFrameActionCallbacks::PackagingSettings()
 {
-	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Project", "Game", "Packaging");
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Project", "Project", "Packaging");
 }
 
 void FMainFrameActionCallbacks::SwitchProjectByIndex( int32 ProjectIndex )
@@ -804,10 +873,10 @@ void FMainFrameActionCallbacks::ToggleFullscreen_Execute()
 
 bool FMainFrameActionCallbacks::FullScreen_IsChecked()
 {
-	const TWeakPtr<SDockTab> LevelEditorTabPtr = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>( "LevelEditor" ).GetLevelEditorTab();
+	const TSharedPtr<SDockTab> LevelEditorTabPtr = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>( "LevelEditor" ).GetLevelEditorTab();
 
 	const TSharedPtr<SWindow> LevelEditorWindow = LevelEditorTabPtr.IsValid()
-		? LevelEditorTabPtr.Pin()->GetParentWindow()
+		? LevelEditorTabPtr->GetParentWindow()
 		: TSharedPtr<SWindow>();
 
 	return (LevelEditorWindow.IsValid())

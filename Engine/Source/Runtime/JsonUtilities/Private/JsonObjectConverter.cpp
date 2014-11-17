@@ -12,7 +12,10 @@ FString FJsonObjectConverter::StandardizeCase(const FString &StringIn)
 	return FixedString;
 }
 
-TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags)
+namespace
+{
+/** Convert property to JSON, assuming either the property is not an array or the value is an individual array element */
+TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags)
 {
 	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
@@ -52,7 +55,7 @@ TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Pro
 		FScriptArrayHelper Helper(ArrayProperty, Value);
 		for (int32 i=0, n=Helper.Num(); i<n; ++i)
 		{
-			TSharedPtr<FJsonValue> Elem = UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags, SkipFlags);
+			TSharedPtr<FJsonValue> Elem = FJsonObjectConverter::UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags);
 			if (Elem.IsValid())
 			{
 				// add to the array
@@ -64,7 +67,7 @@ TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Pro
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
 		TSharedRef<FJsonObject> Out = MakeShareable(new FJsonObject());
-		if (FJsonObjectConverter::UStructToJsonObject(StructProperty->Struct, Value, Out, CheckFlags, SkipFlags))
+		if (FJsonObjectConverter::UStructToJsonObject(StructProperty->Struct, Value, Out, CheckFlags & (~CPF_ParmFlags), SkipFlags))
 		{
 			return MakeShareable(new FJsonValueObject(Out));
 		}
@@ -80,6 +83,22 @@ TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Pro
 
 	// invalid
 	return TSharedPtr<FJsonValue>();
+}
+}
+
+TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags)
+{
+	if (Property->ArrayDim == 1)
+	{
+		return ConvertScalarUPropertyToJsonValue(Property, Value, CheckFlags, SkipFlags);
+	}
+
+	TArray< TSharedPtr<FJsonValue> > Array;
+	for (int Index = 0; Index != Property->ArrayDim; ++Index)
+	{
+		Array.Add(ConvertScalarUPropertyToJsonValue(Property, (char*)Value + Index * Property->ElementSize, CheckFlags, SkipFlags));
+	}
+	return MakeShareable(new FJsonValueArray(Array));
 }
 
 bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, const void* Struct, TSharedRef<FJsonObject> OutJsonObject, int64 CheckFlags, int64 SkipFlags)
@@ -117,12 +136,12 @@ bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, 
 	return true;
 }
 
-bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags)
+bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent)
 {
 	TSharedRef<FJsonObject> JsonObject = MakeShareable( new FJsonObject() );
 	if (UStructToJsonObject(StructDefinition, Struct, JsonObject, CheckFlags, SkipFlags))
 	{
-		TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&OutJsonString);
+		TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&OutJsonString, Indent);
 
 		if (FJsonSerializer::Serialize( JsonObject, JsonWriter ))
 		{
@@ -139,18 +158,28 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 	return false;
 }
 
-bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
+namespace
 {
-	if (!JsonValue.IsValid())
-	{
-		UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Invalid value JSON key"));
-		return false;
-	}
-
+/** Convert JSON to property, assuming either the property is not an array or the value is an individual array element */
+bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
+{
 	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
-		// We want to export numbers as numbers
-		if (NumericProperty->IsFloatingPoint())
+		if (NumericProperty->IsEnum() && JsonValue->Type == EJson::String)
+		{
+			// see if we were passed a string for the enum
+			const UEnum* EnumProperty = NumericProperty->GetIntPropertyEnum();
+			check(EnumProperty); // should be assured by IsEnum()
+			FString StrValue = JsonValue->AsString();
+			int32 IntValue = EnumProperty->FindEnumIndex(FName(*StrValue));
+			if (IntValue == INDEX_NONE)
+			{
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s"), *EnumProperty->CppType, *StrValue);
+				return false;
+			}
+			NumericProperty->SetIntPropertyValue(OutValue, (int64)IntValue);
+		}
+		else if(NumericProperty->IsFloatingPoint())
 		{
 			// AsNumber will log an error for completely inappropriate types (then give us a default)
 			NumericProperty->SetFloatingPointPropertyValue(OutValue, JsonValue->AsNumber());
@@ -168,7 +197,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 				NumericProperty->SetIntPropertyValue(OutValue, (int64)JsonValue->AsNumber());
 			}
 		}
-		else
+		else 
 		{
 			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to set numeric property type %s"), *Property->GetClass()->GetName());
 			return false;
@@ -198,7 +227,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 			// set the property values
 			for (int32 i=0;i<ArrLen;++i)
 			{
-				if (!JsonValueToUProperty(ArrayValue[i], ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags, SkipFlags))
+				if (!FJsonObjectConverter::JsonValueToUProperty(ArrayValue[i], ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags))
 				{
 					UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize array element [%d]"), i);
 					return false;
@@ -218,7 +247,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
 			if (Obj.IsValid()) // should normally always be true
 			{
-				if (!FJsonObjectConverter::JsonObjectToUStruct(Obj.ToSharedRef(), StructProperty->Struct, OutValue, CheckFlags, SkipFlags))
+				if (!FJsonObjectConverter::JsonObjectToUStruct(Obj.ToSharedRef(), StructProperty->Struct, OutValue, CheckFlags & (~CPF_ParmFlags), SkipFlags))
 				{
 					// error message should have already been logged
 					return false;
@@ -246,6 +275,61 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 		}
 	}
 
+	return true;
+}
+}
+
+bool FJsonObjectConverter::JsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
+{
+	if (!JsonValue.IsValid())
+	{
+		UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Invalid value JSON key"));
+		return false;
+	}
+
+	bool bArrayProperty = Property->IsA<UArrayProperty>();
+	bool bJsonArray = JsonValue->Type == EJson::Array;
+
+	if (!bJsonArray)
+	{
+		if (bArrayProperty)
+		{
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TArray from non-array JSON key"));
+			return false;			
+		}
+
+		if (Property->ArrayDim != 1)
+		{
+			UE_LOG(LogJson, Warning, TEXT("Ignoring excess properties when deserializing %s"), *Property->GetName());
+		}
+
+		return ConvertScalarJsonValueToUProperty(JsonValue, Property, OutValue, CheckFlags, SkipFlags);
+	}
+
+	// We're deserializing a JSON array
+	const auto& ArrayValue = JsonValue->AsArray();
+
+	if (Property->ArrayDim < ArrayValue.Num())
+	{
+		UE_LOG(LogJson, Warning, TEXT("Ignoring excess properties when deserializing %s"), *Property->GetName());
+	}
+
+	// In practice, the ArrayDim == 1 check ought to be redundant, since nested arrays of UPropertys are not supported
+	if (bArrayProperty && Property->ArrayDim == 1)
+	{
+		// Read into TArray
+		return ConvertScalarJsonValueToUProperty(JsonValue, Property, OutValue, CheckFlags, SkipFlags);
+	}
+
+	// Read into native array
+	int ItemsToRead = FMath::Clamp(ArrayValue.Num(), 0, Property->ArrayDim);
+	for (int Index = 0; Index != ItemsToRead; ++Index)
+	{
+		if (!ConvertScalarJsonValueToUProperty(ArrayValue[Index], Property, (char*)OutValue + Index * Property->ElementSize, CheckFlags, SkipFlags))
+		{
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -299,3 +383,4 @@ bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedP
 	
 	return true;
 }
+

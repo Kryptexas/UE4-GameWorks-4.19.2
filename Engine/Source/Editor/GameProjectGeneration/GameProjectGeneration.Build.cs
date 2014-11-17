@@ -17,6 +17,7 @@ public class GameProjectGeneration : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Analytics",
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"Engine",
@@ -30,7 +31,8 @@ public class GameProjectGeneration : ModuleRules
                 "SourceControl",
  				"TargetPlatform",
 				"UnrealEd",
-				"DesktopPlatform"
+				"DesktopPlatform",
+                "HardwareTargeting"
 			}
 		);
 

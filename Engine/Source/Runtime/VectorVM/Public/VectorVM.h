@@ -7,19 +7,23 @@
 #pragma once
 #include "Core.h"
 
+
+
 namespace VectorVM
 {
 	/** Constants. */
 	enum
 	{
-		NumTempRegisters = 8,
-		MaxInputRegisters = 32,
+		NumTempRegisters = 100,
+		MaxInputRegisters = 100,
 		MaxOutputRegisters = MaxInputRegisters,
+		MaxConstants = 256,
 		FirstInputRegister = NumTempRegisters,
 		FirstOutputRegister = FirstInputRegister + MaxInputRegisters,
-		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters,
-		MaxConstants = 256,
+		FirstConstantRegister = FirstOutputRegister + MaxOutputRegisters,
+		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters + MaxConstants
 	};
+
 
 	/** List of opcodes supported by the VM. */
 	namespace EOp
@@ -27,58 +31,45 @@ namespace VectorVM
 		enum Type
 		{
 			done = 0,
-			add,
-			addi,
-			sub,
-			subi,
-			mul,
-			muli,
-			mad,
-			madrri,
-			madrir,
-			madrii,
-			madiir, // Remove me when a constant expressions can be evaluated at a coarser granularity.
-			madiii, // Remove me when a constant expressions can be evaluated at a coarser granularity.
-			lerp,
-			lerpirr, 
-			lerprir, 
-			lerprri,
-			lerprii,
-			rcp,
-			rsq,
-			sqrt,
-			neg,
-			abs,
-			exp,
-			exp2,
-			log,
-			log2,
-			sin,
-			cos,
-			tan,
-			asin,
-			acos,
-			atan,
-			atan2,
-			ceil,
-			floor,
-			fmod,
-			frac,
-			trunc,
-			clamp,
-			clampir,
-			clampri,
-			clampii,
-			min,
-			mini,
-			max,
-			maxi,
-			pow,
-			powi,
-			sign,
-			step,
-			stepi,
-			tex1d,
+			add = 1,
+			sub = 3,
+			mul = 5,
+			mad = 7,
+			lerp = 13,
+			rcp = 18,
+			rsq = 19,
+			sqrt = 20,
+			neg = 21,
+			abs = 22,
+			exp = 23,
+			exp2 = 24,
+			log = 25,
+			log2 = 26,
+			sin = 27,
+			cos = 29,
+			tan = 30,
+			asin = 31,
+			acos = 32,
+			atan = 33,
+			atan2 = 34,
+			ceil = 35,
+			floor = 36,
+			fmod = 37,
+			frac = 38,
+			trunc = 39,
+			clamp = 40,
+			min = 44,
+			max = 46,
+			pow = 48,
+			sign = 50,
+			step = 51,
+			dot = 54,
+			cross = 55,
+			normalize = 57,
+			random = 58,
+			length = 59,
+			sin4 = 61, 
+			noise = 66,
 			NumOpcodes
 		};
 	} // namespace EOp
@@ -118,12 +109,12 @@ namespace VectorVM
 
 		/** Constructor */
 		FVectorVMOpInfo(
-			EOp::Type InBaseOpcode,
-			uint8 InFlags,
-			EOpSrc::Type Src0,
-			EOpSrc::Type Src1,
-			EOpSrc::Type Src2,
-			const FString& InFriendlyName
+			EOp::Type InBaseOpcode = EOp::done,
+			uint8 InFlags = EOpFlags::None,
+			EOpSrc::Type Src0 = EOpSrc::Type::Invalid,
+			EOpSrc::Type Src1 = EOpSrc::Type::Invalid,
+			EOpSrc::Type Src2 = EOpSrc::Type::Invalid,
+			const FString& InFriendlyName = TEXT("Undefined Opcode")
 			)
 			: BaseOpcode(InBaseOpcode)
 			, Flags(InFlags)
@@ -152,8 +143,11 @@ namespace VectorVM
 		int32 NumInputRegisters,
 		VectorRegister** OutputRegisters,
 		int32 NumOutputRegisters,
-		float const* ConstantTable,
+		FVector4 const* ConstantTable,
 		int32 NumVectors
 		);
+
+	VECTORVM_API void Init();
+
 
 } // namespace VectorVM

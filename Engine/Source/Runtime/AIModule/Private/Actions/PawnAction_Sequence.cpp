@@ -8,7 +8,7 @@ UPawnAction_Sequence::UPawnAction_Sequence(const class FPostConstructInitializeP
 {
 }
 
-UPawnAction_Sequence* UPawnAction_Sequence::CreateAction(UWorld* World, TArray<UPawnAction*>& ActionSequence)
+UPawnAction_Sequence* UPawnAction_Sequence::CreateAction(UWorld& World, TArray<UPawnAction*>& ActionSequence)
 {
 	ActionSequence.Remove(NULL);
 	if (ActionSequence.Num() <= 0)

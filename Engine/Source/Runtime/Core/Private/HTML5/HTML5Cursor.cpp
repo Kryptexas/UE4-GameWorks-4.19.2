@@ -7,7 +7,11 @@ FHTML5Cursor::FHTML5Cursor()
 {
 	// Set the default cursor
 	SetType( EMouseCursor::Default );
+
+	CursorStatus = true; 
+	LockStatus = false; 
 }
+
 
 FHTML5Cursor::~FHTML5Cursor()
 {
@@ -25,6 +29,12 @@ void FHTML5Cursor::SetPosition( const int32 X, const int32 Y )
 
 void FHTML5Cursor::SetType( const EMouseCursor::Type InNewCursor )
 {
+	// TODO: use .css to correctly change cursor types in javascript. 
+	if ( InNewCursor == EMouseCursor::None)
+		CursorStatus = false; 
+	else 
+		CursorStatus  = true; 
+
 }
 
 void FHTML5Cursor::GetSize( int32& Width, int32& Height ) const
@@ -35,8 +45,17 @@ void FHTML5Cursor::GetSize( int32& Width, int32& Height ) const
 
 void FHTML5Cursor::Show( bool bShow )
 {
+	CursorStatus = bShow;
 }
 
 void FHTML5Cursor::Lock( const RECT* const Bounds )
 {
+	if(Bounds == NULL)
+	{
+		LockStatus = false;
+	}
+	else
+	{
+		LockStatus = true; 
+	}
 }

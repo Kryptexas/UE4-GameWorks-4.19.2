@@ -92,7 +92,7 @@ public:
 	 *
 	 * @warning: Objects created from within PreSave will NOT have PreSave called on them!!!
 	 */
-	virtual void PreSave() {}
+	virtual void PreSave();
 
 	/**
 	 * Note that the object will be modified.  If we are currently recording into the 
@@ -612,7 +612,7 @@ public:
 	 * @param bForceCheck Force checks even if not enabled globally.
 	 * @return true if the assumptions are met, false otherwise.
 	 */
-	virtual bool CheckDefaultSubobjects(bool bForceCheck = false);
+	bool CheckDefaultSubobjects(bool bForceCheck = false);
 
 	/**
 	 * Save configuration.
@@ -625,6 +625,11 @@ public:
 	 * Saves just the section(s) for this class into the default ini file for the class (with just the changes from base)
 	 */
 	void UpdateDefaultConfigFile();
+
+	/**
+	 * Get the default config filename for the specified UObject
+	 */
+	FString GetDefaultConfigFilename() const;
 
 	/**
 	 * Imports property values from an .ini file.
@@ -980,6 +985,13 @@ protected:
 
 	/** Checks it's ok to perform subobjects check at this time. */
 	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult);
+
+	/**
+	* Checks default sub-object assumptions.
+	*
+	* @return true if the assumptions are met, false otherwise.
+	*/
+	virtual bool CheckDefaultSubobjectsInternal();
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);

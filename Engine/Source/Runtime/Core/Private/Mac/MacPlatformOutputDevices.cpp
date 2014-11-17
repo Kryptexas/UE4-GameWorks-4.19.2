@@ -10,8 +10,7 @@
 #include "MacApplication.h"
 #include "MacPlatformOutputDevicesPrivate.h"
 #include "MacPlatformFeedbackContextPrivate.h"
-
-static uint64 GOutstandingTasks = 0;
+#include "CocoaThread.h"
 
 //////////////////////////////////
 // FMacPlatformOutputDevices
@@ -114,40 +113,35 @@ void FOutputDeviceMacError::HandleError()
 	// Trigger the OnSystemFailure hook if it exists
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
-	try
-	{
-		GIsGuarded				= 0;
-		GIsRunning				= 0;
-		GIsCriticalError		= 1;
-		GLogConsole				= NULL;
-		GErrorHist[ARRAY_COUNT(GErrorHist)-1]=0;
+	GIsGuarded				= 0;
+	GIsRunning				= 0;
+	GIsCriticalError		= 1;
+	GLogConsole				= NULL;
+	GErrorHist[ARRAY_COUNT(GErrorHist)-1]=0;
 
-		// Dump the error and flush the log.
-		UE_LOG(LogMac, Log, TEXT("=== Critical error: ===") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR, GErrorExceptionDescription);
-		UE_LOG(LogMac, Log, GErrorHist);
+	// Dump the error and flush the log.
+	UE_LOG(LogMac, Log, TEXT("=== Critical error: ===") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR, GErrorExceptionDescription);
+	UE_LOG(LogMac, Log, GErrorHist);
 
-		GLog->Flush();
+	GLog->Flush();
 
-		// Unhide the mouse.
-		// @TODO: Remove usage of deprecated CGCursorIsVisible function
+	// Unhide the mouse.
+	// @TODO: Remove usage of deprecated CGCursorIsVisible function
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		while (!CGCursorIsVisible())
-		{
-			CGDisplayShowCursor(kCGDirectMainDisplay);
-		}
-#pragma clang diagnostic pop
-		// Release capture and allow mouse to freely roam around.
-		CGAssociateMouseAndMouseCursorPosition(true);
-
-		FPlatformMisc::ClipboardCopy(GErrorHist);
-
-		FPlatformMisc::SubmitErrorReport( GErrorHist, EErrorReportMode::Interactive );
-
-		FCoreDelegates::OnShutdownAfterError.Broadcast();
+	while (!CGCursorIsVisible())
+	{
+		CGDisplayShowCursor(kCGDirectMainDisplay);
 	}
-	catch( ... )
-	{}
+#pragma clang diagnostic pop
+	// Release capture and allow mouse to freely roam around.
+	CGAssociateMouseAndMouseCursorPosition(true);
+
+	FPlatformMisc::ClipboardCopy(GErrorHist);
+
+	FPlatformMisc::SubmitErrorReport( GErrorHist, EErrorReportMode::Interactive );
+
+	FCoreDelegates::OnShutdownAfterError.Broadcast();
 }
 
 ////////////////////////////////////////
@@ -159,6 +153,7 @@ FOutputDeviceConsoleMac::FOutputDeviceConsoleMac()
 	, TextView(NULL)
 	, ScrollView(NULL)
 	, TextViewTextColor(NULL)
+	, OutstandingTasks(0)
 {
 }
 
@@ -204,71 +199,74 @@ void FOutputDeviceConsoleMac::CreateConsole()
 		bHasY = GConfig->GetInt(TEXT("DebugMac"), TEXT("ConsoleY"), ConsolePosY, GGameIni);
 	}
 
-	ConsoleHandle = [[NSWindow alloc] initWithContentRect: NSMakeRect(ConsolePosX, ConsolePosY, ConsoleWidth, ConsoleHeight)
-									styleMask: (NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask)
-									  backing: NSBackingStoreBuffered
-										defer: NO];
+	MainThreadCall(^{
+		ConsoleHandle = [[NSWindow alloc] initWithContentRect: NSMakeRect(ConsolePosX, ConsolePosY, ConsoleWidth, ConsoleHeight)
+										styleMask: (NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask)
+										  backing: NSBackingStoreBuffered
+											defer: NO];
 
-	ScrollView = [[NSScrollView alloc] initWithFrame:[[ConsoleHandle contentView] frame]];
-	NSSize ContentSize = [ScrollView contentSize];
-	
-	[ScrollView setBorderType:NSNoBorder];
-	[ScrollView setHasVerticalScroller:YES];
-	[ScrollView setHasHorizontalScroller:NO];
-	[ScrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-	
-	TextView = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, ContentSize.width, ContentSize.height )];
-	[TextView setMinSize:NSMakeSize( 0.0, ContentSize.height ) ];
-	[TextView setMaxSize:NSMakeSize( FLT_MAX, FLT_MAX )];
-	[TextView setVerticallyResizable:YES];
-	[TextView setHorizontallyResizable:NO];
-	[TextView setAutoresizingMask:NSViewWidthSizable];
-	[TextView setBackgroundColor: [NSColor blackColor]];
-	
-	[[TextView textContainer] setContainerSize:NSMakeSize( ContentSize.width, FLT_MAX )];
-	[[TextView textContainer] setWidthTracksTextView:YES];
-	
-	[ScrollView setDocumentView:TextView];
-	[ConsoleHandle setContentView:ScrollView];
+		ScrollView = [[NSScrollView alloc] initWithFrame:[[ConsoleHandle contentView] frame]];
+		NSSize ContentSize = [ScrollView contentSize];
+		
+		[ScrollView setBorderType:NSNoBorder];
+		[ScrollView setHasVerticalScroller:YES];
+		[ScrollView setHasHorizontalScroller:NO];
+		[ScrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+		
+		TextView = [[NSTextView alloc] initWithFrame:NSMakeRect( 0, 0, ContentSize.width, ContentSize.height )];
+		[TextView setMinSize:NSMakeSize( 0.0, ContentSize.height ) ];
+		[TextView setMaxSize:NSMakeSize( FLT_MAX, FLT_MAX )];
+		[TextView setVerticallyResizable:YES];
+		[TextView setHorizontallyResizable:NO];
+		[TextView setAutoresizingMask:NSViewWidthSizable];
+		[TextView setBackgroundColor: [NSColor blackColor]];
+		
+		[[TextView textContainer] setContainerSize:NSMakeSize( ContentSize.width, FLT_MAX )];
+		[[TextView textContainer] setWidthTracksTextView:YES];
+		
+		[ScrollView setDocumentView:TextView];
+		[ConsoleHandle setContentView:ScrollView];
 
-	if (!bHasX || !bHasY)
-	{
-		[ConsoleHandle center];
-	}
-
-	[ConsoleHandle setOpaque: YES];
-	[ConsoleHandle makeKeyAndOrderFront:nil];
-	
-	if(!MacApplication)
-	{
-		do
+		if (!bHasX || !bHasY)
 		{
-			FPlatformMisc::PumpMessages( true );
-		} while(ConsoleHandle && ![ConsoleHandle isVisible]);
-	}
-	
-	SetDefaultTextColor();
+			[ConsoleHandle center];
+		}
+
+		[ConsoleHandle setOpaque: YES];
+		[ConsoleHandle makeKeyAndOrderFront:nil];
+		
+		if(!MacApplication)
+		{
+			do
+			{
+				FPlatformMisc::PumpMessages( true );
+			} while(ConsoleHandle && ![ConsoleHandle isVisible]);
+		}
+		
+		SetDefaultTextColor();
+	}, UE4NilEventMode, true);
 }
 
 void FOutputDeviceConsoleMac::DestroyConsole()
 {
 	if (ConsoleHandle)
 	{
-		SCOPED_AUTORELEASE_POOL;
-		
 		do
 		{
 			FPlatformMisc::PumpMessages( true );
-		} while(GOutstandingTasks);
+		} while(OutstandingTasks);
 
 		SaveToINI();
 		
-		if( TextViewTextColor )
-			[TextViewTextColor release];
-		
-		[ConsoleHandle close];
-		ConsoleHandle = NULL;
-		TextViewTextColor = NULL;
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+			if( TextViewTextColor )
+				[TextViewTextColor release];
+			
+			[ConsoleHandle close];
+			ConsoleHandle = NULL;
+			TextViewTextColor = NULL;
+		}, UE4NilEventMode, true);
 	}
 }
 
@@ -337,7 +335,8 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 					[AttributeKeys addObject:NSForegroundColorAttributeName];
 					[AttributeKeys addObject:NSBackgroundColorAttributeName];
 					
-					dispatch_block_t Block = ^{
+					OutstandingTasks++;
+					MainThreadCall(^{
 						if( TextViewTextColor )
 							[TextViewTextColor release];
 						
@@ -345,18 +344,8 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 						
 						[Colors release];
 						[AttributeKeys release];
-						GOutstandingTasks--;
-					};
-					
-					GOutstandingTasks++;
-					if([NSThread isMainThread])
-					{
-						Block();
-					}
-					else
-					{
-						dispatch_async(dispatch_get_main_queue(), Block);
-					}
+						OutstandingTasks--;
+					}, NSDefaultRunLoopMode, false);
 				}
 			}
 			else
@@ -368,24 +357,15 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 
 				CFStringRef CocoaText = FPlatformString::TCHARToCFString(OutputString);
 				
-				dispatch_block_t Block = ^{
+				OutstandingTasks++;
+				MainThreadCall(^{
 					NSAttributedString *AttributedString = [[NSAttributedString alloc] initWithString:(NSString*)CocoaText attributes:TextViewTextColor];
 					[[TextView textStorage] appendAttributedString:AttributedString];
 					[TextView scrollRangeToVisible:NSMakeRange([[TextView string] length], 0)];
 					[AttributedString release];
 					CFRelease(CocoaText);
-					GOutstandingTasks--;
-				};
-				
-				GOutstandingTasks++;
-				if([NSThread isMainThread])
-				{
-					Block();
-				}
-				else
-				{
-					dispatch_async(dispatch_get_main_queue(), Block);
-				}
+					OutstandingTasks--;
+				}, NSDefaultRunLoopMode, false);
 				
 				if(!MacApplication)
 				{
@@ -422,7 +402,8 @@ void FOutputDeviceConsoleMac::SetDefaultTextColor()
 	[AttributeKeys addObject:NSForegroundColorAttributeName];
 	[AttributeKeys addObject:NSBackgroundColorAttributeName];
 
-	dispatch_block_t Block = ^{
+	OutstandingTasks++;
+	MainThreadCall(^{
 		if( TextViewTextColor )
 			[TextViewTextColor release];
 		
@@ -430,16 +411,6 @@ void FOutputDeviceConsoleMac::SetDefaultTextColor()
 		
 		[Colors release];
 		[AttributeKeys release];
-		GOutstandingTasks--;
-	};
-	
-	GOutstandingTasks++;
-	if([NSThread isMainThread])
-	{
-		Block();
-	}
-	else
-	{
-		dispatch_async(dispatch_get_main_queue(), Block);
-	}
+		OutstandingTasks--;
+	}, NSDefaultRunLoopMode, false);
 }

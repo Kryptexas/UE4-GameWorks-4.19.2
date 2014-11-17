@@ -39,6 +39,9 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 
+#include "SColorPicker.h"
+
+
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
 
 #define LOCTEXT_NAMESPACE "Matinee"

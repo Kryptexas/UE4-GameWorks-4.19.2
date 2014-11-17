@@ -48,8 +48,6 @@ bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 				bHandled = true;
 			}
 		}
-
-		// void UAISystem::RunEQS(const FString& QueryName)
 	}
 
 	return bHandled;

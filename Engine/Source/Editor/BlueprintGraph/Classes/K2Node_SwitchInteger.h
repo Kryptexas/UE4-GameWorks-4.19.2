@@ -21,19 +21,19 @@ class UK2Node_SwitchInteger : public UK2Node_Switch
 
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface
 	virtual FString GetUniquePinName() override;
 	virtual FString GetPinNameGivenIndex(int32 Index) override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const override { return Schema->PC_Int; }
+	virtual FEdGraphPinType GetPinType() const override;
 	// End of UK2Node_Switch Interface
 
 protected:

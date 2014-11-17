@@ -22,7 +22,7 @@ static float TotalDraggedDistance = 0;
 
 FReply SDockTab::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (!this->HasMouseCapture())
+	if ( !HasMouseCapture() )
 	{
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
@@ -73,7 +73,7 @@ FReply SDockTab::OnDragDetected( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SDockTab::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (this->HasMouseCapture())
+	if ( HasMouseCapture() )
 	{
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
@@ -290,7 +290,7 @@ TSharedPtr<SWindow> SDockTab::GetParentWindow() const
 }
 
 SDockTab::SDockTab()
-	: Content(SNullWidget::NullWidget)
+	: Content(SNew(SSpacer))
 	, TabWellContentLeft(SNullWidget::NullWidget)
 	, TabWellContentRight(SNullWidget::NullWidget)
 	, LayoutIdentifier(NAME_None)
@@ -517,6 +517,7 @@ void SDockTab::Construct( const FArguments& InArgs )
 					.ButtonStyle( CloseButtonStyle )
 					.OnClicked( this, &SDockTab::OnCloseButtonClicked )
 					.ContentPadding( 0 )
+					.Visibility(this, &SDockTab::HandleIsCloseButtonVisible)
 					[
 						SNew(SSpacer)
 						.Size( CloseButtonStyle->Normal.ImageSize )
@@ -630,7 +631,7 @@ FSlateColor SDockTab::GetFlashColor() const
 }
 
 
-float SDockTab::GetOverlapWidth()
+float SDockTab::GetOverlapWidth() const
 {
 	return GetCurrentStyle().OverlapWidth;
 }
@@ -661,38 +662,6 @@ void SDockTab::SetTabIcon( const TAttribute<const FSlateBrush*> InTabIcon )
 	TabIcon = InTabIcon;
 }
 
-bool SDockTab::CanDockInNode(const TSharedRef<SDockingNode>& DockNode, EViaTabwell IsDockingViaTabwell ) const
-{
-	const TSharedRef<FTabManager> TargetTabManager = DockNode->GetDockArea()->GetTabManager();
-	if (this->TabRole == ETabRole::NomadTab)
-	{
-		if ( IsDockingViaTabwell == SDockTab::DockingViaTabWell )
-		{
-			// Nomad tabs can be docked in in any tab well.
-			return true;
-		}
-		else
-		{
-			return TargetTabManager != FGlobalTabmanager::Get();
-		}
-	}
-	else if (this->TabRole == ETabRole::MajorTab)
-	{
-		// Major tabs can only be stacked; they should not 
-		// be allowed to split areas. They are also confined to their
-		// tab manager of origin.
-		// The only exception is an empty area, where docking the tab should be really easy.
-		const bool bTabManagerMatches = TargetTabManager == this->GetTabManager();
-		const bool bCanDockInEmptyArea = DockNode->GetNodeType() == SDockingNode::DockArea && StaticCastSharedRef<SDockingArea>(DockNode)->GetChildNodes().Num() == 0;
-		return bTabManagerMatches && (IsDockingViaTabwell == SDockTab::DockingViaTabWell || bCanDockInEmptyArea);
-	}
-	else
-	{
-		// Most commonly, tabs are confined to their tab manager of origin.
-		return (TargetTabManager == this->GetTabManager());
-	}	
-}
-
 
 bool SDockTab::ShouldAutosize() const
 {
@@ -706,13 +675,18 @@ FReply SDockTab::OnCloseButtonClicked()
 	return FReply::Handled();
 }
 
+EVisibility SDockTab::HandleIsCloseButtonVisible() const
+{
+	return MyTabManager.Pin()->IsTabCloseable(SharedThis(this)) ? EVisibility::Visible : EVisibility::Hidden;
+}
+
 bool SDockTab::CanCloseTab() const
 {
-	const bool bCanCloseTabNow = !OnCanCloseTab.IsBound() || OnCanCloseTab.Execute(); 
+	const bool bCanCloseTabNow = MyTabManager.Pin()->IsTabCloseable(SharedThis(this)) && (!OnCanCloseTab.IsBound() || OnCanCloseTab.Execute());
 	return bCanCloseTabNow;
 }
 
-void SDockTab::RequestCloseTab()
+bool SDockTab::RequestCloseTab()
 {	
 	this->PersistVisualState();
 	// The tab can be closed if the delegate is not bound or if the delegate call indicates we cannot close it
@@ -721,6 +695,7 @@ void SDockTab::RequestCloseTab()
 	{
 		RemoveTabFromParent();
 	}
+	return bCanCloseTabNow;
 }
 
 void SDockTab::PersistVisualState()

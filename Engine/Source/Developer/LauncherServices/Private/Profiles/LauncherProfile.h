@@ -2,6 +2,112 @@
 
 #pragma once
 
+/**
+* Implements a simple profile which controls the desired output of the Launcher for simple
+*/
+class FLauncherSimpleProfile
+	: public ILauncherSimpleProfile
+{
+public:
+
+	FLauncherSimpleProfile(const FString& InDeviceName)
+		: DeviceName(InDeviceName)
+	{
+		SetDefaults();
+	}
+
+	// Begin ILauncherSimpleProfile interface
+
+	virtual const FString& GetDeviceName() const override
+	{
+		return DeviceName;
+	}
+
+	virtual FName GetDeviceVariant() const  override
+	{
+		return Variant;
+	}
+
+	virtual EBuildConfigurations::Type GetBuildConfiguration() const override
+	{
+		return BuildConfiguration;
+	}
+
+	virtual ELauncherProfileCookModes::Type GetCookMode() const override
+	{
+		return CookMode;
+	}
+
+	virtual void SetDeviceName(const FString& InDeviceName) override
+	{
+		if (DeviceName != InDeviceName)
+		{
+			DeviceName = InDeviceName;
+		}
+	}
+
+	virtual void SetDeviceVariant(FName InVariant) override
+	{
+		Variant = InVariant;
+	}
+
+	virtual void SetBuildConfiguration(EBuildConfigurations::Type InConfiguration) override
+	{
+		BuildConfiguration = InConfiguration;
+	}
+
+	virtual void SetCookMode(ELauncherProfileCookModes::Type InMode) override
+	{
+		CookMode = InMode;
+	}
+
+	virtual bool Serialize(FArchive& Archive) override
+	{
+		int32 Version = LAUNCHERSERVICES_SIMPLEPROFILEVERSION;
+
+		Archive << Version;
+
+		if (Version != LAUNCHERSERVICES_SIMPLEPROFILEVERSION)
+		{
+			return false;
+		}
+
+		// IMPORTANT: make sure to bump LAUNCHERSERVICES_SIMPLEPROFILEVERSION when modifying this!
+		Archive << DeviceName
+			<< Variant
+			<< BuildConfiguration
+			<< CookMode;
+
+		return true;
+	}
+
+	virtual void SetDefaults() override
+	{
+		// None will mean the preferred Variant for the device is used.
+		Variant = NAME_None;
+		
+		// I don't use FApp::GetBuildConfiguration() because i don't want the act of running in debug the first time to cause the simple
+		// profiles created for your persistent devices to be in debug. The use might not see this if they don't expand the Advanced options.
+		BuildConfiguration = EBuildConfigurations::Development;
+		
+		CookMode = ELauncherProfileCookModes::OnTheFly;
+	}
+
+private:
+
+	// Holds the name of the device this simple profile is for
+	FString DeviceName;
+
+	// Holds the name of the device variant.
+	FName Variant;
+
+	// Holds the desired build configuration (only used if creating new builds).
+	TEnumAsByte<EBuildConfigurations::Type> BuildConfiguration;
+
+	// Holds the cooking mode.
+	TEnumAsByte<ELauncherProfileCookModes::Type> CookMode;
+};
+
 
 /**
  * Implements a profile which controls the desired output of the Launcher
@@ -14,8 +120,9 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FLauncherProfile( )
-		: DefaultLaunchRole(MakeShareable(new FLauncherProfileLaunchRole()))
+	FLauncherProfile(ILauncherProfileManagerRef ProfileManager)
+		: LauncherProfileManager(ProfileManager)
+		, DefaultLaunchRole(MakeShareable(new FLauncherProfileLaunchRole()))
 	{ }
 
 	/**
@@ -23,9 +130,10 @@ public:
 	 *
 	 * @param InProfileName - The name of the profile.
 	 */
-	FLauncherProfile( const FString& InProfileName )
-		: DefaultLaunchRole(MakeShareable(new FLauncherProfileLaunchRole()))
-		, Id(FGuid::NewGuid())
+	FLauncherProfile(ILauncherProfileManagerRef ProfileManager, FGuid InId, const FString& InProfileName)
+		: LauncherProfileManager(ProfileManager)
+		, DefaultLaunchRole(MakeShareable(new FLauncherProfileLaunchRole()))
+		, Id(InId)
 		, Name(InProfileName)
 	{
 		SetDefaults();
@@ -217,6 +325,11 @@ public:
 		return Name;
 	}
 
+	virtual FString GetDescription() const override
+	{
+		return Description;
+	}
+
 	virtual ELauncherProfilePackagingModes::Type GetPackagingMode( ) const override
 	{
 		return PackagingMode;
@@ -227,37 +340,48 @@ public:
 		return PackageDir;
 	}
 
-	virtual FString GetProjectName( ) const override
+	virtual bool HasProjectSpecified() const override
 	{
-		if (!ProjectPath.IsEmpty())
-		{
-			return FPaths::GetBaseFilename(ProjectPath);
-		}
+		return ProjectSpecified;
+	}
 
-		return FString();
+	virtual FString GetProjectName() const override
+	{
+		if (ProjectSpecified)
+		{
+			FString Path = FLauncherProjectPath::GetProjectName(ProjectPath);
+			return Path;
+		}
+		return LauncherProfileManager->GetProjectName();
 	}
 
 	virtual FString GetProjectBasePath() const override
 	{
-		if (!ProjectPath.IsEmpty())
+		if (ProjectSpecified)
 		{
-			FString OutPath = ProjectPath;
-			FPaths::MakePathRelativeTo(OutPath, *FPaths::RootDir());
-			return FPaths::GetPath(OutPath);
+			return FLauncherProjectPath::GetProjectBasePath(ProjectPath);
 		}
-
-		return FString();
+		return LauncherProfileManager->GetProjectBasePath();
 	}
 
-	virtual const FString& GetProjectPath( ) const override
+	virtual FString GetProjectPath() const override
 	{
-		return ProjectPath;
+		if (ProjectSpecified)
+		{
+			return ProjectPath;
+		}
+		return LauncherProfileManager->GetProjectPath();
 	}
 
     virtual uint32 GetTimeout() const override
     {
         return Timeout;
     }
+
+	virtual bool HasValidationError() const override
+	{
+		return ValidationErrors.Num() > 0;
+	}
     
 	virtual bool HasValidationError( ELauncherProfileValidationErrors::Type Error ) const override
 	{
@@ -286,7 +410,7 @@ public:
 
 	virtual bool IsDeployablePlatform( const FString& PlatformName ) override
 	{
-		if (CookMode == ELauncherProfileCookModes::ByTheBook)
+		if (CookMode == ELauncherProfileCookModes::ByTheBook || CookMode == ELauncherProfileCookModes::ByTheBookInEditor)
 		{
 			return CookedPlatforms.Contains(PlatformName);
 		}
@@ -368,7 +492,9 @@ public:
 		// IMPORTANT: make sure to bump LAUNCHERSERVICES_PROFILEVERSION when modifying this!
 		Archive << Id
 				<< Name
+				<< Description
 				<< BuildConfiguration
+				<< ProjectSpecified
 				<< ProjectPath
 				<< CookConfiguration
 				<< CookIncremental
@@ -422,6 +548,8 @@ public:
 
 	virtual void SetDefaults( ) override
 	{
+		ProjectSpecified = false;
+
 		// default project settings
 		if (FPaths::IsProjectFilePathSet())
 		{
@@ -435,6 +563,9 @@ public:
 		{
 			ProjectPath = FString();
 		}
+
+		// Use the locally specified project path is resolving through the root isn't working
+		ProjectSpecified = GetProjectPath().IsEmpty();
 		
 		BuildConfiguration = FApp::GetBuildConfiguration();
 		FInternationalization& I18N = FInternationalization::Get();
@@ -444,7 +575,7 @@ public:
 
 		// default cook settings
 		CookConfiguration = FApp::GetBuildConfiguration();
-		CookMode = ELauncherProfileCookModes::DoNotCook;
+		CookMode = ELauncherProfileCookModes::OnTheFly;
 		CookOptions = FString();
 		CookIncremental = false;
 		CookUnversioned = false;
@@ -452,8 +583,8 @@ public:
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
 		CookedPlatforms.Reset();
-        ForceClose = false;
-        Timeout = 180;
+        ForceClose = true;
+        Timeout = 60;
 
 /*		if (GetTargetPlatformManager()->GetRunningTargetPlatform() != NULL)
 		{
@@ -462,14 +593,14 @@ public:
 
 		// default deploy settings
 		DeployedDeviceGroup.Reset();
-		DeploymentMode = ELauncherProfileDeploymentModes::DoNotDeploy;
+		DeploymentMode = ELauncherProfileDeploymentModes::CopyToDevice;
 		DeployStreamingServer = false;
 		DeployWithUnrealPak = false;
 		DeployedDeviceGroupId = FGuid();
 		HideFileServerWindow = false;
 
 		// default launch settings
-		LaunchMode = ELauncherProfileLaunchModes::DoNotLaunch;
+		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
 		DefaultLaunchRole->SetCommandLine(FString());
 		DefaultLaunchRole->SetInitialCulture(I18N.GetCurrentCulture()->GetName());
 		DefaultLaunchRole->SetInitialMap(FString());
@@ -527,6 +658,16 @@ public:
 		}
 	}
 
+	virtual void SetCookOptions(const FString& Options) override
+	{
+		if (CookOptions != Options)
+		{
+			CookOptions = Options;
+
+			Validate();
+		}
+	}
+
 	virtual void SetDeployWithUnrealPak( bool UseUnrealPak ) override
 	{
 		if (DeployWithUnrealPak != UseUnrealPak)
@@ -557,6 +698,11 @@ public:
 		}
 
 		Validate();
+	}
+
+	virtual FIsCookFinishedDelegate& OnIsCookFinished() override
+	{
+		return IsCookFinishedDelegate;
 	}
 
 	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) override
@@ -613,6 +759,16 @@ public:
 		}
 	}
 
+	virtual void SetDescription(const FString& NewDescription) override
+	{
+		if (Description != NewDescription)
+		{
+			Description = NewDescription;
+
+			Validate();
+		}
+	}
+
 	virtual void SetPackagingMode( ELauncherProfilePackagingModes::Type Mode ) override
 	{
 		if (PackagingMode != Mode)
@@ -633,11 +789,40 @@ public:
 		}
 	}
 
+	virtual void SetProjectSpecified(bool Specified) override
+	{
+		if (ProjectSpecified != Specified)
+		{
+			ProjectSpecified = Specified;
+
+			Validate();
+
+			ProjectChangedDelegate.Broadcast();
+		}
+	}
+
+	virtual void FallbackProjectUpdated() override
+	{
+		if (!HasProjectSpecified())
+		{
+			Validate();
+
+			ProjectChangedDelegate.Broadcast();
+		}
+	}
+
 	virtual void SetProjectPath( const FString& Path ) override
 	{
 		if (ProjectPath != Path)
 		{
-			ProjectPath = FPaths::ConvertRelativePathToFull(Path);
+			if(Path.IsEmpty())
+			{
+				ProjectPath = Path;
+			}
+			else
+			{
+				ProjectPath = FPaths::ConvertRelativePathToFull(Path);
+			}
 			CookedMaps.Reset();
 
 			Validate();
@@ -718,7 +903,7 @@ protected:
 		}
 
 		// Build: a project must be selected
-		if (ProjectPath.IsEmpty())
+		if (GetProjectPath().IsEmpty())
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::NoProjectSelected);
 		}
@@ -742,7 +927,7 @@ protected:
 		}
 
 		// Deploy: deployment by copying to devices requires cooking by the book
-		if ((DeploymentMode == ELauncherProfileDeploymentModes::CopyToDevice) && (CookMode != ELauncherProfileCookModes::ByTheBook))
+		if ((DeploymentMode == ELauncherProfileDeploymentModes::CopyToDevice) && ((CookMode != ELauncherProfileCookModes::ByTheBook)&&(CookMode!=ELauncherProfileCookModes::ByTheBookInEditor)))
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::CopyToDeviceRequiresCookByTheBook);
 		}
@@ -815,7 +1000,7 @@ protected:
 		// Deploy: ensure that all the target device SDKs are installed
 		if ((DeploymentMode != ELauncherProfileDeploymentModes::DoNotDeploy) && DeployedDeviceGroup.IsValid())
 		{
-			const TArray<FString>& Devices = DeployedDeviceGroup->GetDevices();
+			const TArray<FString>& Devices = DeployedDeviceGroup->GetDeviceIDs();
 			for(auto DeviceId : Devices)
 			{
 				TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
@@ -826,7 +1011,7 @@ protected:
 					
 					if(DeviceProxy.IsValid())
 					{
-						FString const& PlatformName = DeviceProxy->GetPlatformName();
+						FString const& PlatformName = DeviceProxy->GetTargetPlatformName(DeviceProxy->GetTargetDeviceVariant(DeviceId));
 						bool bProjectHasCode = false; // @todo: Does the project have any code?
 						FString NotInstalledDocLink;
 						const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
@@ -861,6 +1046,9 @@ protected:
 	}
 
 private:
+
+	//  Holds a reference to the launcher profile manager.
+	ILauncherProfileManagerRef LauncherProfileManager;
 
 	// Holds the desired build configuration (only used if creating new builds).
 	TEnumAsByte<EBuildConfigurations::Type> BuildConfiguration;
@@ -926,11 +1114,17 @@ private:
 	// Holds the profile's name.
 	FString Name;
 
+	// Holds the profile's description.
+	FString Description;
+
 	// Holds the packaging mode.
 	TEnumAsByte<ELauncherProfilePackagingModes::Type> PackagingMode;
 
-	// Holda the package directory
+	// Holds the package directory
 	FString PackageDir;
+
+	// Holds a flag indicating whether the project is specified by this profile.
+	bool ProjectSpecified;
 
 	// Holds the path to the Unreal project used by this profile.
 	FString ProjectPath;
@@ -947,8 +1141,10 @@ private:
 
 	// Path to the editor executable to pass to UAT, for cooking, etc... May be empty.
 	FString EditorExe;
-        
+
 private:
+
+	FIsCookFinishedDelegate IsCookFinishedDelegate;
 
 	// Holds a delegate to be invoked when changing the device group to deploy to.
 	FOnLauncherProfileDeployedDeviceGroupChanged DeployedDeviceGroupChangedDelegate;

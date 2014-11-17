@@ -95,7 +95,15 @@ void UChildActorComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInsta
 	ChildActorName = ChildActorInstanceData->ChildActorName;
 	if (ChildActor)
 	{
-		ChildActor->Rename(*ChildActorName.ToString(), NULL, REN_DoNotDirty);
+		// Only rename if it is safe to
+		if(ChildActorName != NAME_None)
+		{
+			const FString ChildActorNameString = ChildActorName.ToString();
+			if (ChildActor->Rename(*ChildActorNameString, NULL, REN_Test))
+			{
+				ChildActor->Rename(*ChildActorNameString, NULL, REN_DoNotDirty);
+			}
+		}
 
 		USceneComponent* ChildActorRoot = ChildActor->GetRootComponent();
 		if (ChildActorRoot)
@@ -170,8 +178,7 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->ParentComponentActor = GetOwner();
 
 					// Parts that we deferred from SpawnActor
-					ChildActor->ExecuteConstruction(ComponentToWorld, NULL);
-					ChildActor->PostActorConstruction();
+					ChildActor->FinishSpawning(ComponentToWorld);
 
 					// attach new actor to this component
 					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
@@ -196,6 +203,11 @@ void UChildActorComponent::DestroyChildActor()
 			if(World != NULL)
 			{
 				UClass* ChildClass = ChildActor->GetClass();
+
+				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
+				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
+				ChildClass->ClassUnique = FMath::Max(ChildClass->ClassUnique, ChildActor->GetFName().GetNumber());
+
 				const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
 				ChildActor->Rename(*MakeUniqueObjectName(GetOuter(), ChildClass, *ObjectBaseName).ToString(), NULL, REN_DoNotDirty);
 				World->DestroyActor(ChildActor);

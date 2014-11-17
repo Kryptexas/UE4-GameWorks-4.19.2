@@ -2,7 +2,7 @@
 
 #include "UnrealHeaderTool.h"
 #include "Classes.h"
-#include "Class.h"
+#include "ParserClass.h"
 #include "StringUtils.h"
 
 namespace

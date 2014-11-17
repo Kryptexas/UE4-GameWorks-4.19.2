@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "resource.h"
-
-#define XSTR(s) #s
-#define STRINGIFY(s) XSTR(s)
+#include "CoreMiscDefines.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -135,7 +133,7 @@ BEGIN
 			VALUE "ProductVersion", ENGINE_VERSION_STRING
 			VALUE "FileDescription", EPIC_PRODUCT_NAME
 			VALUE "InternalName", EPIC_PRODUCT_IDENTIFIER
-			VALUE "OriginalFilename", STRINGIFY(ORIGINAL_FILE_NAME)
+			VALUE "OriginalFilename", PREPROCESSOR_TO_STRING(ORIGINAL_FILE_NAME)
 		END
 	END
 	BLOCK "VarFileInfo"

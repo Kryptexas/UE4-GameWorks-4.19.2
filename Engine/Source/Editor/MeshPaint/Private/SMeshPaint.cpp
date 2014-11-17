@@ -9,8 +9,11 @@
 #include "AssetToolsModule.h"
 #include "DesktopPlatformModule.h"
 #include "ISourceControlModule.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
+
 
 /** Panel to display options associated with importing vertex colors from a TGA  */
 class SImportVertexColorsFromTGA : public SCompoundWidget

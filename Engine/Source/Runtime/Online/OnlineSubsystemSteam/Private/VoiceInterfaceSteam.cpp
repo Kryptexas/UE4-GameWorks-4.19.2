@@ -127,7 +127,7 @@ void FOnlineVoiceSteam::StartNetworkedVoice(uint8 LocalUserNum)
 void FOnlineVoiceSteam::StopNetworkedVoice(uint8 LocalUserNum)
 {
 	// Validate the range of the entry
-	if (LocalUserNum >= 0 && LocalUserNum < MAX_LOCAL_PLAYERS)
+	if (LocalTalkers.Num() > LocalUserNum && LocalUserNum >= 0 && LocalUserNum < MAX_LOCAL_PLAYERS)
 	{
 		LocalTalkers[LocalUserNum].bHasNetworkedVoice = false;
 		UE_LOG(LogVoice, Log, TEXT("Stopping networked voice for user: %d"), LocalUserNum);

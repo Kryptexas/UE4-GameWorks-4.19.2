@@ -45,7 +45,7 @@ void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPl
 		PluginCategoryTreeView->SetSelection( RootPluginCategories[ 0 ] );
 	}
 
-	ChildSlot.Widget = PluginCategoryTreeView.ToSharedRef();
+	ChildSlot.AttachWidget( PluginCategoryTreeView.ToSharedRef() );
 }
 
 

@@ -1,5 +1,5 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
-//
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// ..
 
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
@@ -25,9 +25,19 @@
 	#include <GL/wglext.h>
 #include "HideWindowsPlatformTypes.h"
 #elif PLATFORM_LINUX
-	#define GL_GLEXT_PROTOTYPES
+	#define GL_GLEXT_PROTOTYPES 1
 	#include <GL/glcorearb.h>
 	#include <GL/glext.h>
+	#include "SDL.h"
+	GLAPI GLuint APIENTRY glCreateShader (GLenum type);
+	GLAPI void APIENTRY glShaderSource (GLuint shader, GLsizei count, const GLchar* const *string, const GLint *length);
+	typedef SDL_Window*		SDL_HWindow;
+	typedef SDL_GLContext	SDL_HGLContext;
+	struct FPlatformOpenGLContext
+	{
+		SDL_HWindow		hWnd;
+		SDL_HGLContext	hGLContext;		//	this is a (void*) pointer
+	};
 #elif PLATFORM_MAC
 	#include <OpenGL/OpenGL.h>
 	#include <OpenGL/gl3.h>
@@ -48,12 +58,9 @@
 DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All); 
 
 
-
+#define VALIDATE_GLSL_WITH_DRIVER		0
 #define ENABLE_IMAGINATION_COMPILER		1
-
-#define MAX_SAMPLERS_PER_SHADER_GLSL_150 16
-#define MAX_SAMPLERS_PER_SHADER_GLSL_430 32
-
+ 
   
 static FORCEINLINE bool IsES2Platform(GLSLVersion Version)
 {
@@ -261,13 +268,107 @@ static void PlatformReleaseOpenGL(void* ContextPtr, void* PrevContextPtr)
 	wglMakeCurrent((HDC)ContextPtr, (HGLRC)PrevContextPtr);
 }
 #elif PLATFORM_LINUX
+static void _PlatformCreateDummyGLWindow(FPlatformOpenGLContext *OutContext)
+{
+	static bool bInitializedWindowClass = false;
+
+	// Create a dummy window.
+	OutContext->hWnd = SDL_CreateWindow(NULL,
+		0, 0, 1, 1,
+		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN);
+}
+
+static void _PlatformCreateOpenGLContextCore(FPlatformOpenGLContext* OutContext)
+{
+	check(OutContext);
+	SDL_HWindow PrevWindow = SDL_GL_GetCurrentWindow();
+	SDL_HGLContext PrevContext = SDL_GL_GetCurrentContext();
+
+	OutContext->hGLContext = SDL_GL_CreateContext(OutContext->hWnd);
+	SDL_GL_MakeCurrent(PrevWindow, PrevContext);
+}
+
+static void _ContextMakeCurrent(SDL_HWindow hWnd, SDL_HGLContext hGLDC)
+{
+	GLint Result = SDL_GL_MakeCurrent( hWnd, hGLDC );
+	check(!Result);
+}
+
 static void PlatformInitOpenGL(void*& ContextPtr, void*& PrevContextPtr, int InMajorVersion, int InMinorVersion)
 {
-  unimplemented();
+	static bool bInitialized = (SDL_GL_GetCurrentWindow() != NULL) && (SDL_GL_GetCurrentContext() != NULL);
+
+	if (!bInitialized)
+	{
+		check(InMajorVersion > 3 || (InMajorVersion == 3 && InMinorVersion >= 2));
+		if (SDL_WasInit(0) == 0)
+		{
+			SDL_Init(SDL_INIT_VIDEO);
+		}
+		else
+		{
+			Uint32 InitializedSubsystemsMask = SDL_WasInit(SDL_INIT_EVERYTHING);
+			if ((InitializedSubsystemsMask & SDL_INIT_VIDEO) == 0)
+			{
+				SDL_InitSubSystem(SDL_INIT_VIDEO);
+			}
+		}
+
+		if (SDL_GL_LoadLibrary(NULL))
+		{
+			UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("Unable to dynamically load libGL: %s"), ANSI_TO_TCHAR(SDL_GetError()));
+		}
+
+		if	(SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, InMajorVersion))
+		{
+			UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("Failed to set GL major version: %s"), ANSI_TO_TCHAR(SDL_GetError()));
+		}
+
+		if	(SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, InMinorVersion))
+		{
+			UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("Failed to set GL minor version: %s"), ANSI_TO_TCHAR(SDL_GetError()));
+		}
+
+		if	(SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG))
+		{
+			UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("Failed to set GL flags: %s"), ANSI_TO_TCHAR(SDL_GetError()));
+		}
+
+		if	(SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE))
+		{
+			UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("Failed to set GL mask/profile: %s"), ANSI_TO_TCHAR(SDL_GetError()));
+		}
+
+		// Create a dummy context to verify opengl support.
+		FPlatformOpenGLContext DummyContext;
+		_PlatformCreateDummyGLWindow(&DummyContext);
+		_PlatformCreateOpenGLContextCore(&DummyContext);
+
+		if (DummyContext.hGLContext)
+		{
+			_ContextMakeCurrent(DummyContext.hWnd, DummyContext.hGLContext);
+		}
+		else
+		{
+			UE_LOG(LogOpenGLShaderCompiler, Fatal, TEXT("OpenGL %d.%d not supported by driver"), InMajorVersion, InMinorVersion);
+			return;
+		}
+
+		PrevContextPtr = NULL;
+		ContextPtr = DummyContext.hGLContext;
+		bInitialized = true;
+	}
+
+	PrevContextPtr = reinterpret_cast<void*>(SDL_GL_GetCurrentContext());
+	SDL_HGLContext NewContext = SDL_GL_CreateContext(SDL_GL_GetCurrentWindow());
+	SDL_GL_MakeCurrent(SDL_GL_GetCurrentWindow(), NewContext);
+	ContextPtr = reinterpret_cast<void*>(NewContext);
 }
+
 static void PlatformReleaseOpenGL(void* ContextPtr, void* PrevContextPtr)
 {
-  unimplemented();
+	SDL_GL_MakeCurrent(SDL_GL_GetCurrentWindow(), reinterpret_cast<SDL_HGLContext>(PrevContextPtr));
+	SDL_GL_DeleteContext(reinterpret_cast<SDL_HGLContext>(ContextPtr));
 }
 #elif PLATFORM_MAC
 static void PlatformInitOpenGL(void*& ContextPtr, void*& PrevContextPtr, int InMajorVersion, int InMinorVersion)
@@ -1028,6 +1129,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 			OutMajorVersion = 3;
 			OutMinorVersion = 2;
 			break;
+		case GLSL_310_ES_EXT:
 		case GLSL_430:
 			OutMajorVersion = 4;
 			OutMinorVersion = 3;
@@ -1344,6 +1446,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 		case HSF_DomainShader:
 			FrequencySwitch = TEXT(" -ds");
 			break;
+
 		case HSF_ComputeShader:
 			FrequencySwitch = TEXT(" -cs");
 			break;
@@ -1369,6 +1472,10 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 
 		case GLSL_150_ES2:
 			VersionSwitch = TEXT(" -gl3 -flattenub -flattenubstruct");
+			break;
+
+		case GLSL_310_ES_EXT:
+			VersionSwitch = TEXT(" -es31ext");
 			break;
 
 		case GLSL_430:
@@ -1404,6 +1511,13 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	EHlslCompileTarget HlslCompilerTarget = HCT_InvalidTarget;
 	switch (Version)
 	{
+		case GLSL_310_ES_EXT:
+			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
+			AdditionalDefines.SetDefine(TEXT("ES31_AEP_PROFILE"), 1);
+			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
+			HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
+			break;
+
 		case GLSL_430:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
@@ -1465,14 +1579,16 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		char* GlslShaderSource = NULL;
 		char* ErrorLog = NULL;
 
+		const bool bIsSM5 = Version == GLSL_430 || Version == GLSL_310_ES_EXT;
+
 		const EHlslShaderFrequency FrequencyTable[] =
 		{
 			HSF_VertexShader,
-			Version == GLSL_430 ? HSF_HullShader : HSF_InvalidFrequency,
-			Version == GLSL_430 ? HSF_DomainShader : HSF_InvalidFrequency,
+			bIsSM5 ? HSF_HullShader : HSF_InvalidFrequency,
+			bIsSM5 ? HSF_DomainShader : HSF_InvalidFrequency,
 			HSF_PixelShader,
 			IsES2Platform(Version) ? HSF_InvalidFrequency : HSF_GeometryShader,
-			Version == GLSL_430 ? HSF_ComputeShader : HSF_InvalidFrequency
+			bIsSM5 ? HSF_ComputeShader : HSF_InvalidFrequency
 		};
 
 		const EHlslShaderFrequency Frequency = FrequencyTable[Input.Target.Frequency];
@@ -1487,14 +1603,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			return;
 		}
 
-/*
-		//@todo-rco: Remove me!
+		// This requires removing the HLSLCC_NoPreprocess flag later on!
 		if (!RemoveUniformBuffersFromSource(PreprocessedShader))
 		{
-			check(0);
+			return;
 		}
 
-*/
 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 		if (bDumpDebugInfo)
 		{
@@ -1509,14 +1623,11 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		}
 
 		uint32 CCFlags = HLSLCC_NoPreprocess | HLSLCC_PackUniforms | HLSLCC_DX11ClipSpace;
-		if (IsES2Platform(Version))
+		if (IsES2Platform(Version) && !IsPCES2Platform(Version))
 		{
 			CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
 			// Currently only enabled for ES2, as there are still features to implement for SM4+ (atomics, global store, UAVs, etc)
-			if (!IsPCES2Platform(Version))
-			{
-				CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
-			}
+			CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
 		}
 
 		if (bDumpDebugInfo)
@@ -1530,10 +1641,9 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			}
 		}
 
-/*
-//@todo-rco: Remove me!
-CCFlags &= ~HLSLCC_NoPreprocess;
-*/
+		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
+		CCFlags &= ~HLSLCC_NoPreprocess;
+
 		FGlslCodeBackend GlslBackEnd(CCFlags);
 		FGlslLanguageSpec GlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
 		int32 Result = HlslCrossCompile(
@@ -1583,14 +1693,6 @@ CCFlags &= ~HLSLCC_NoPreprocess;
 			PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
 			if (Output.bSucceeded == false)
 			{
-#if DUMP_HLSCLCC_SHADERS
-				DumpFile.SetFilename( *DumpGLSL);
-				for(int i = 0; i < Output.Errors.Num(); ++i)
-				{
-					DumpFile.Logf(TEXT("%s"), *Output.Errors[i].GetErrorString());
-				}
-				DumpFile.Flush();
-#endif
 			}
 #else // VALIDATE_GLSL_WITH_DRIVER
 			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);

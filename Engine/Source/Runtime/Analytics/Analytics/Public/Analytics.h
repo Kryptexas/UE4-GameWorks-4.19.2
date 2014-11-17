@@ -135,10 +135,10 @@ public:
 		/** 
 		 * Create a config using the default values:
 		 * IniName - GEngineIni
-		 * SectionName (Development) = AnalyicsDevelopment
-		 * SectionName (Debug) = AnalyicsDebug
-		 * SectionName (Test) = AnalyicsTest
-		 * SectionName (Release) = Analyics
+		 * SectionName (Development) = AnalyticsDevelopment
+		 * SectionName (Debug) = AnalyticsDebug
+		 * SectionName (Test) = AnalyticsTest
+		 * SectionName (Release) = Analytics
 		 */
 		ConfigFromIni()
 			:IniName(GEngineIni)

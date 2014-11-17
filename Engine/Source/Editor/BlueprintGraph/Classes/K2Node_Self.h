@@ -10,13 +10,9 @@ class UK2Node_Self : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Class that this variable is defined in.  */
-	UPROPERTY(transient)
-	TSubclassOf<class UObject>  SelfClass;
-
 	// Begin UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FString GetKeywords() const override;
 	virtual void AllocateDefaultPins() override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
@@ -26,7 +22,7 @@ class UK2Node_Self : public UK2Node
 	virtual bool IsNodePure() const override { return true; }
 	virtual bool DrawNodeAsVariable() const override { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	// End K2Node interface
 };

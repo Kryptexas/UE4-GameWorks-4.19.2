@@ -11,6 +11,7 @@
 #include "AnimationCompression.h"
 #include "AnimEncoding.h"
 
+struct FAnimSetMeshLinkup;
 
 struct FPerTrackCachedInfo
 {

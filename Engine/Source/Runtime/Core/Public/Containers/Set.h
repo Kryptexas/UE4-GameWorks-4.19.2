@@ -240,8 +240,6 @@ public:
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 private:
 	template <typename SetType>
 	static FORCEINLINE typename TEnableIf<TContainerTraits<SetType>::MoveWillEmptyContainer>::Type MoveOrCopy(SetType& ToSet, SetType& FromSet)
@@ -278,8 +276,6 @@ public:
 
 		return *this;
 	}
-
-#endif
 
 	/**
 	 * Removes all elements from the set, potentially leaving space allocated for an expected number of elements about to be added.
@@ -780,6 +776,17 @@ public:
 		return Result;
 	}
 
+	/**
+	 * Checks that the specified address is not part of an element within the container.  Used for implementations
+	 * to check that reference arguments aren't going to be invalidated by possible reallocation.
+	 *
+	 * @param Addr The address to check.
+	 */
+	FORCEINLINE void CheckAddress(const ElementType* Addr) const
+	{
+		Elements.CheckAddress(Addr);
+	}
+
 private:
 	/** Extracts the element value from the set's element structure and passes it to the user provided comparison class. */
 	template <typename PREDICATE_CLASS>
@@ -1126,7 +1133,6 @@ template<typename ElementType, typename KeyFuncs, typename Allocator>
 struct TContainerTraits<TSet<ElementType, KeyFuncs, Allocator> > : public TContainerTraitsBase<TSet<ElementType, KeyFuncs, Allocator> >
 {
 	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
 		TContainerTraits<typename TSet<ElementType, KeyFuncs, Allocator>::ElementArrayType>::MoveWillEmptyContainer &&
 		TAllocatorTraits<typename Allocator::HashAllocator>::SupportsMove };
 };

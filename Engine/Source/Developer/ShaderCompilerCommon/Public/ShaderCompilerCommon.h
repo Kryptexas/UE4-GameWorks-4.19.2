@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ShaderCompilerCommon.cpp: Common functionality for platform Shader Compilers.
+	ShaderCompilerCommon.h: Common functionality for platform Shader Compilers.
 =============================================================================*/
 
 #pragma once
@@ -35,6 +35,10 @@ extern SHADERCOMPILERCOMMON_API void BuildResourceTableTokenStream(
 	TArray<uint32>& OutTokenStream
 	);
 
+// Finds the number of used uniform buffers in a resource map
+extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT);
+
+
 // This function goes through the shader source and converts
 //		static struct
 //		{
@@ -60,6 +64,8 @@ extern SHADERCOMPILERCOMMON_API void BuildResourceTableTokenStream(
 //		[...]UniformBuffer_Member[...]
 //		}
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
+
+// Cross compiler support/common functionality
 
 extern SHADERCOMPILERCOMMON_API FString CreateCrossCompilerBatchFileContents(
 											const FString& ShaderFile,

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateWidgetStyle.h: Declares the FSlateWidgetStyle structure.
-=============================================================================*/
-
 #pragma once
 
 #include "SlateWidgetStyle.generated.h"
@@ -19,14 +15,10 @@ struct SLATECORE_API FSlateWidgetStyle
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FSlateWidgetStyle( );
 
-	/**
-	 * Virtual Destructor.
-	 */
+	/** Virtual Destructor. */
 	virtual ~FSlateWidgetStyle() { }
 
 public:

@@ -68,16 +68,3 @@ void USoundNodeMixer::SetChildNodes(TArray<USoundNode*>& InChildNodes)
 	}
 }
 #endif //WITH_EDITOR
-
-FString USoundNodeMixer::GetUniqueString() const
-{
-	FString Unique = TEXT( "Mixer" );
-
-	for( int32 Index = 0; Index < InputVolume.Num(); Index++ )
-	{
-		Unique += FString::Printf( TEXT( " %g" ), InputVolume[ Index ] );
-	}
-
-	Unique += TEXT( "/" );
-	return( Unique );
-}

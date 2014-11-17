@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "RenderUtils.h"
 #include "TextureRenderTarget2D.generated.h"
 
 /**
@@ -72,7 +73,11 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	 */
 	ENGINE_API UTexture2D* ConstructTexture2D(UObject* Outer, const FString& NewTexName, EObjectFlags ObjectFlags, uint32 Flags=CTF_Default, TArray<uint8>* AlphaOverride=NULL);
 
-	ENGINE_API void UpdateResourceImmediate();
+	/**
+	 * Updates (resolves) the render target texture immediately.
+	 * Optionally clears the contents of the render target to green.
+	 */
+	ENGINE_API void UpdateResourceImmediate(bool bClearRenderTarget=true);
 
 	// Begin UTexture interface.
 	virtual float GetSurfaceWidth() const override { return SizeX; }

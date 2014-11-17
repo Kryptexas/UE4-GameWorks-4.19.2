@@ -58,6 +58,8 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void Initialize()
 		{
+			var TelemetryInitStartTime = DateTime.UtcNow;
+
 			// reflect over the assembly and find the first eligible provider class.
 			Provider = 
 				(from reflectionAssembly in AppDomain.CurrentDomain.GetReferencingAssemblies(Assembly.GetExecutingAssembly())
@@ -66,6 +68,12 @@ namespace UnrealBuildTool
 				where T.IsDefined(typeof(ProviderAttribute), true) && T.GetInterfaces().Contains(typeof(IProvider)) && T.IsClass && !T.IsAbstract && T.GetConstructor(Type.EmptyTypes) != null
 				// create the instance
 				select (IProvider)Activator.CreateInstance(T)).FirstOrDefault();
+			
+			if( BuildConfiguration.bPrintPerformanceInfo )
+			{ 
+				var TelemetryInitTime = (DateTime.UtcNow - TelemetryInitStartTime).TotalSeconds;
+				Log.TraceInformation( "Telemetry initialization took " + TelemetryInitTime + "s" );
+			}
 		}
 
 		/// <summary>

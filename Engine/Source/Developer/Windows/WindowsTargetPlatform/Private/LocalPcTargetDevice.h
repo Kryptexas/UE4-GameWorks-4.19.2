@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LocalPcTargetDevice.h: Declares the TLocalPcTargetDevice class template.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,6 +24,8 @@ public:
 	{ }
 
 public:
+
+	// ITargetDevice interface
 
 	virtual bool Connect( ) override
 	{
@@ -258,7 +256,7 @@ public:
 		ExecutablePath += TEXT(".exe");
 
 		// launch the game
-		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *Params, true, false, false, OutProcessId, 0, NULL, NULL);
+		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *Params, true, false, false, OutProcessId, 0, nullptr, nullptr);
 		return ProcessHandle.Close();
 	}
 
@@ -289,7 +287,7 @@ public:
 
 	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId )
 	{
-		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *Params, true, false, false, OutProcessId, 0, NULL, NULL);
+		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*ExecutablePath, *Params, true, false, false, OutProcessId, 0, nullptr, nullptr);
 		return ProcessHandle.Close();
 	}
 

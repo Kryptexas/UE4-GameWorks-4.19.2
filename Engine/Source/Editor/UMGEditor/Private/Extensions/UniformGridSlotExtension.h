@@ -9,6 +9,8 @@ class FUniformGridSlotExtension : public FDesignerExtension
 public:
 	FUniformGridSlotExtension();
 
+	virtual ~FUniformGridSlotExtension() {}
+
 	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const override;
 	
 	virtual void ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements) override;

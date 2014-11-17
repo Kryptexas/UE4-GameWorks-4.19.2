@@ -86,6 +86,7 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
+	static void PlatformTearDown();
 	static void SetGracefulTerminationHandler();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
 	static class GenericApplication* CreateApplication();
@@ -103,7 +104,11 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void PumpMessages(bool bFromMainLoop);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );
 	static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
+	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static bool ControlScreensaver(EScreenSaverAction Action);
+
+	static void ClipboardCopy(const TCHAR* Str);
+	static void ClipboardPaste(class FString& Dest);
 
 	static const TCHAR* RootDir();
 	static void NormalizePath(FString& InPath);
@@ -112,6 +117,8 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	{
 		return TEXT(":");
 	}
+
+	static EAppReturnType::Type MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption);
 
 	FORCEINLINE static void MemoryBarrier()
 	{
@@ -159,6 +166,11 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	{
 		return TEXT("../../../Engine/");
 	}
+
+	/**
+	 * Linux-specific function initializing video (and not only) subsystem.
+	 */
+	static bool PlatformInitMultimedia();
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;

@@ -58,6 +58,8 @@ struct RECT
 #include "HTML5/HTML5PlatformSurvey.h"
 #include "HTML5/HTML5PlatformHttp.h"
 
+typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
+
 typedef FGenericPlatformAffinity FPlatformAffinity;
 
 // include platform properties and typedef it for the runtime

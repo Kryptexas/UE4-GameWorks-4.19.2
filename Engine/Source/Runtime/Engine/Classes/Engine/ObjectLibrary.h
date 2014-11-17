@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AssetData.h"
 #include "ObjectLibrary.generated.h"
 
 /** Class that holds a library of Objects */
@@ -36,7 +37,7 @@ protected:
 	bool bIsFullyLoaded;
 
 	/** Asset data of objects that will belong in library, possibly not loaded yet */
-	TArray<class FAssetData>	AssetDataList;
+	TArray<FAssetData>	AssetDataList;
 
 public:
 	// Begin UObject Interface

@@ -96,10 +96,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenPercentage, SFG_PostProcess, LOCTEXT("ScreenPer
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeMotionBlur, SFG_Visualize, LOCTEXT("VisualizeMotionBlurSF", "Motion Blur"))
 /** Whether to display the Reflection Environment feature, which has local reflections from Reflection Capture actors. */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ReflectionEnvironment, SFG_LightingFeatures, LOCTEXT("ReflectionEnvironmentSF", "Reflection Environment"))
-/** Reflection environment mixes with lightmap shading. */
-SHOWFLAG_ALWAYS_ACCESSIBLE(ReflectionEnvironmentLightmapMixing, SFG_LightingFeatures, LOCTEXT("ReflectionEnvironmentLightmapMixingSF", "Reflection Environment Lightmap Mixing"))
 /** Visualize pixels that are outside of their object's bounding box (content error). */
-SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeOutOfBoundsPixels, SFG_Visualize, LOCTEXT("VisualizeOutOfBoundsPixelsSF", "Visualize Out of Bounds Pixels"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeOutOfBoundsPixels, SFG_Visualize, LOCTEXT("VisualizeOutOfBoundsPixelsSF", "Out of Bounds Pixels"))
 /** Whether to display the scene's diffuse. */
 SHOWFLAG_ALWAYS_ACCESSIBLE(Diffuse, SFG_LightingComponents, LOCTEXT("DiffuseSF", "Diffuse"))
 /** Whether to display the scene's specular, including reflections. */
@@ -108,6 +106,10 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(Specular, SFG_LightingComponents, LOCTEXT("SpecularSF
 SHOWFLAG_ALWAYS_ACCESSIBLE(SelectionOutline, SFG_Hidden, LOCTEXT("SelectionOutlineSF", "Selection Outline"))
 /** If screen space reflections are enabled */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenSpaceReflections, SFG_LightingFeatures, LOCTEXT("ScreenSpaceReflectionsSF", "Screen Space Reflections"))
+/** If Screen Space Subsurface Scattering enabled */
+SHOWFLAG_FIXED_IN_SHIPPING(SubsurfaceScattering, 1, SFG_LightingFeatures, LOCTEXT("SubsurfaceScatteringSF", "Subsurface Scattering (Screen Space)"))
+/** If Screen Space Subsurface Scattering visualization is enabled */
+SHOWFLAG_FIXED_IN_SHIPPING(VisualizeSSS, 0, SFG_Visualize, LOCTEXT("VisualizeSSSSF", "Subsurface Scattering (Screen Space)"))
 /** If the indirect lighting cache is enabled */
 SHOWFLAG_ALWAYS_ACCESSIBLE(IndirectLightingCache, SFG_LightingFeatures, LOCTEXT("IndirectLightingCacheSF", "Indirect Lighting Cache"))
 /** calls debug drawing for AIs */
@@ -251,7 +253,7 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(PrecomputedVisibility, SFG_Advanced, LOCTEXT("Precomp
 /** Contribution from sky light */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SkyLighting, SFG_LightingComponents, LOCTEXT("SkyLightingSF", "Sky Lighting"))
 /** Visualize Light Propagation Volume, for developer (by default off): */
-SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("VisualizeLPVSF", "Visualize Light Propagation Volume"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("VisualizeLPVSF", "Light Propagation Volume"))
 /** Visualize preview shadow indicator */
 SHOWFLAG_ALWAYS_ACCESSIBLE(PreviewShadowsIndicator, SFG_Visualize, LOCTEXT("PreviewShadowIndicatorSF", "Preview Shadows Indicator"))
 /** Visualize precomputed visibilty cells */
@@ -263,11 +265,17 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(LpvLightingOnly, SFG_Hidden, LOCTEXT("VisualizeLPVSF_
 /** Render Paper2D sprites */
 SHOWFLAG_ALWAYS_ACCESSIBLE(Paper2DSprites, SFG_Advanced, LOCTEXT("Paper2DSpritesSF", "Paper 2D Sprites"))
 /** Visualization of distance field AO */
-SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeDistanceFieldAO, SFG_Visualize, LOCTEXT("VisualizeDistanceFieldAOSF", "Visualize Distance Field AO"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeDistanceFieldAO, SFG_Visualize, LOCTEXT("VisualizeDistanceFieldAOSF", "DistanceField AO"))
+/** Mesh Distance fields */
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeMeshDistanceFields, SFG_Visualize, LOCTEXT("MeshDistanceFieldsSF", "Mesh DistanceFields"))
 /** Distance field AO */
-SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("DistanceFieldAOSF", "Distance Field AO"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("DistanceFieldAOSF", "DistanceField AO"))
 /** Visualize screen space reflections, for developer (by default off): */
-SHOWFLAG_FIXED_IN_SHIPPING(VisualizeSSR, 0, SFG_Visualize, LOCTEXT("VisualizeSSR", "Visualize ScreenSpaceReflections"))
+SHOWFLAG_FIXED_IN_SHIPPING(VisualizeSSR, 0, SFG_Visualize, LOCTEXT("VisualizeSSR", "Screen Space Reflections"))
+/** Force the use of the GBuffer. */
+SHOWFLAG_ALWAYS_ACCESSIBLE(ForceGBuffer, SFG_Hidden, LOCTEXT("ForceGBuffer", "Force usage of GBuffer"))
+/** Visualize the senses of the Senses component */
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeSenses, SFG_Advanced, LOCTEXT("VisualizeSenses", "Senses"))
 
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

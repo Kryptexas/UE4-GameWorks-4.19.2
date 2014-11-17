@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_DynamicCast.generated.h"
 
 UCLASS(MinimalAPI)
@@ -26,6 +27,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End of UK2Node interface
 
 	/** Get the 'valid cast' exec pin */
@@ -39,5 +41,9 @@ class UK2Node_DynamicCast : public UK2Node
 
 	/** Get the input object to be casted pin */
 	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetCastSourcePin() const;
+
+protected:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

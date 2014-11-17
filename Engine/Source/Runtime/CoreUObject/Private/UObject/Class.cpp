@@ -5,8 +5,8 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
-
 #include "PropertyTag.h"
+#include "HotReloadInterface.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
@@ -95,7 +95,7 @@ FString FPropertySpecifier::ConvertToString() const
 
 //////////////////////////////////////////////////////////////////////////
 
-/*
+/**
  * Shared function called from the various InitializePrivateStaticClass functions generated my the IMPLEMENT_CLASS macro.
  */
 COREUOBJECT_API void InitializePrivateStaticClass(
@@ -180,6 +180,21 @@ void UField::AddCppProperty( UProperty* Property )
 }
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
+
+struct FDisplayNameHelper
+{
+	static FString Get(const UObject& Object)
+	{
+		FString Name = Object.GetName();
+		const UClass* Class = Cast<UClass>(&Object);
+		if (Class && !Class->HasAnyClassFlags(CLASS_Native))
+		{
+			Name.RemoveFromEnd(TEXT("_C"));
+		}
+		return Name;
+	}
+};
+
 /**
  * Finds the localized display name or native display name as a fallback.
  *
@@ -199,7 +214,7 @@ FText UField::GetDisplayNameText() const
 	}
 	else
 	{
-		NativeDisplayName = FName::NameToDisplayString(GetName(), IsA<UBoolProperty>());
+		NativeDisplayName = FName::NameToDisplayString(FDisplayNameHelper::Get(*this), IsA<UBoolProperty>());
 	}
 
 	if ( !( FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName, &NativeDisplayName ) ) )
@@ -226,7 +241,15 @@ FText UField::GetToolTipText() const
 	{
 		if (NativeToolTip.IsEmpty())
 		{
-			NativeToolTip = GetName();
+			NativeToolTip = FDisplayNameHelper::Get(*this);
+		}
+		else
+		{
+			static const FString DoxygenSee(TEXT("@see"));
+			if (NativeToolTip.Split(DoxygenSee, &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))
+			{
+				NativeToolTip.TrimTrailing();
+			}
 		}
 		LocalizedToolTip = FText::FromString(NativeToolTip);
 	}
@@ -691,7 +714,7 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 	}
 }
 
-void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults) const
+void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
 	FName PropertyName(NAME_None);
 
@@ -712,7 +735,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 		int32		RemainingArrayDim	= Property ? Property->ArrayDim : 0;
 
 		// Load all stored properties, potentially skipping unknown ones.
-		while( 1 )
+		while (1)
 		{
 			FPropertyTag Tag;
 			Ar << Tag;
@@ -827,17 +850,20 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				}
 			}
 
-			bool bSkipSkipWarning = false;
-
+			const int64 StartOfProperty = Ar.Tell();
 			if( !Property )
 			{
 				//UE_LOG(LogClass, Warning, TEXT("Property %s of %s not found for package:  %s"), *Tag.Name.ToString(), *GetFullName(), *Ar.GetArchiveName() );
 			}
+#if WITH_EDITOR
+			else if (BreakRecursionIfFullyLoad && BreakRecursionIfFullyLoad->HasAllFlags(RF_LoadCompleted))
+			{
+			}
+#endif // WITH_EDITOR
 			// editoronly properties should be skipped if we are NOT the editor, or we are 
 			// the editor but are cooking for console (editoronly implies notforconsole)
 			else if ((Property->PropertyFlags & CPF_EditorOnly) && !FPlatformProperties::HasEditorOnlyData() && !GForceLoadEditorOnly)
 			{
-				bSkipSkipWarning = true;
 			}
 			// check for valid array index
 			else if( Tag.ArrayIndex >= Property->ArrayDim || Tag.ArrayIndex < 0 )
@@ -928,7 +954,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue;
 			}
-			else if ((Tag.Type == NAME_AssetObjectProperty) && (Property->GetID() == NAME_ObjectProperty))
+			else if ((Tag.Type == NAME_AssetObjectProperty || Tag.Type == NAME_AssetSubclassOfProperty) && (Property->GetID() == NAME_ObjectProperty || Property->GetID() == NAME_ClassProperty))
 			{
 				// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
 				FAssetPtr PreviousValue;
@@ -941,7 +967,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue;
 			}
-			else if ((Tag.Type == NAME_ObjectProperty) && (Property->GetID() == NAME_AssetObjectProperty))
+			else if ((Tag.Type == NAME_ObjectProperty || Tag.Type == NAME_ClassProperty) && (Property->GetID() == NAME_AssetObjectProperty || Property->GetID() == NAME_AssetSubclassOfProperty))
 			{
 				// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
 				UObject* PreviousValue = NULL;
@@ -978,7 +1004,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( Tag.Type!=Property->GetID() && Cast<UStructProperty>(Property) && Cast<UStructProperty>(Property)->Struct && (Cast<UStructProperty>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
+			else if( Cast<UStructProperty>(Property) && Cast<UStructProperty>(Property)->Struct && (Tag.Type != Property->GetID() || (Tag.Type == NAME_StructProperty && Tag.StructName != Cast<UStructProperty>(Property)->Struct->GetFName())) && (Cast<UStructProperty>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
 			{
 				UScriptStruct::ICppStructOps* CppStructOps = Cast<UStructProperty>(Property)->Struct->GetCppStructOps();
 				check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag
@@ -1033,10 +1059,42 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					}
 					continue; 
 				}
+				else if ((Tag.InnerType == NAME_AssetObjectProperty || Tag.InnerType == NAME_AssetSubclassOfProperty) && (ArrayProperty->Inner->GetID() == NAME_ObjectProperty || ArrayProperty->Inner->GetID() == NAME_ClassProperty))
+				{
+					for (int32 i = 0; i < ElementCount; ++i)
+					{
+						// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
+						FAssetPtr PreviousValue;
+						Ar << PreviousValue;
+
+						// now copy the value into the object's address space
+						UObject* PreviousValueObj = PreviousValue.Get();
+						CastChecked<UObjectProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), PreviousValueObj);
+
+						AdvanceProperty = true;
+					}
+					continue;
+				}
+				else if ((Tag.InnerType == NAME_ObjectProperty || Tag.InnerType == NAME_ClassProperty) && (ArrayProperty->Inner->GetID() == NAME_AssetObjectProperty || ArrayProperty->Inner->GetID() == NAME_AssetSubclassOfProperty))
+				{
+					for (int32 i = 0; i < ElementCount; ++i)
+					{
+						// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
+						UObject* PreviousValue = NULL;
+						Ar << PreviousValue;
+
+						// now copy the value into the object's address space
+						FAssetPtr PreviousValueAssetPtr(PreviousValue);
+						CastChecked<UAssetObjectProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), PreviousValueAssetPtr);
+
+						AdvanceProperty = true;
+					}
+					continue;
+				}
 				else
 				{
-				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
-			}
+					UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
+				}
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
@@ -1092,20 +1150,21 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			else
 			{
-					uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
+				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
 
-					// This property is ok.			
-					Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
+				// This property is ok.			
+				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
 
-					AdvanceProperty = true;
-					continue;
-				}
+				AdvanceProperty = true;
+				continue;
+			}
 
 			AdvanceProperty = false;
 
 			// Skip unknown or bad property.
+			const int64 RemainingSize = Tag.Size - (Ar.Tell() - StartOfProperty);
 			uint8 B;
-			for( int32 i=0; i<Tag.Size; i++ )
+			for( int64 i=0; i<RemainingSize; i++ )
 			{
 				Ar << B;
 			}
@@ -1366,7 +1425,7 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		int32 iCode = 0;
 		while( iCode < This->Script.Num() )
 		{	
-			const_cast<UStruct*>(This)->SerializeExpr( iCode, ObjectReferenceCollector );
+			This->SerializeExpr( iCode, ObjectReferenceCollector );
 		}
 		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
 		{
@@ -1774,7 +1833,7 @@ void UScriptStruct::DeferCppStructOps(FName Target, ICppStructOps* InCppStructOp
 {
 	if (GetDeferredCppStructOps().Contains(Target))
 	{
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 		if (!GIsHotReload) // in hot reload, we will just leak these...they may be in use.
 #endif
 		{
@@ -1808,7 +1867,7 @@ void UScriptStruct::PrepareCppStructOps()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// test that the constructor is initializing everything
 		if (CppStructOps && !CppStructOps->HasZeroConstructor()
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 			&& !GIsHotReload // in hot reload, these produce bogus warnings
 #endif
 			)
@@ -2972,7 +3031,21 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		check(GetStructureSize() >= sizeof(UObject));
 		check(!GetSuperClass() || !GetSuperClass()->HasAnyFlags(RF_NeedLoad));
-		Ar << ClassDefaultObject;
+		UObject* const OldCDO = ClassDefaultObject;
+		UObject* TempClassDefaultObject = NULL;
+		Ar << TempClassDefaultObject;
+		// we need to avoid a case, when while class regeneration a different CDO is set, and now we set it to an stale one (ttp#343166)
+		if (ClassDefaultObject == OldCDO)
+		{
+			ClassDefaultObject = TempClassDefaultObject;
+		}
+		else if (TempClassDefaultObject != ClassDefaultObject)
+		{
+			UE_LOG(LogClass, Log, TEXT("CDO was changed while class serialization.\n\tOld: '%s'\n\tSerialized: '%s'\n\tActual: '%s'")
+				, OldCDO ? *OldCDO->GetFullName() : TEXT("NULL")
+				, TempClassDefaultObject ? *TempClassDefaultObject->GetFullName() : TEXT("NULL")
+				, ClassDefaultObject ? *ClassDefaultObject->GetFullName() : TEXT("NULL"));
+		}
 		ClassUnique = 0;
 	}
 	else
@@ -3165,6 +3238,17 @@ bool UClass::IsFunctionImplementedInBlueprint(FName InFunctionName) const
 	return false;
 }
 
+bool UClass::HasProperty(UProperty* InProperty) const
+{
+	if ( UClass* PropertiesClass = Cast<UClass>(InProperty->GetOuter()) )
+	{
+		return PropertiesClass->FindNearestCommonBaseClass(this) != nullptr;
+	}
+
+	return false;
+}
+
+
 /*-----------------------------------------------------------------------------
 	UClass constructors.
 -----------------------------------------------------------------------------*/
@@ -3226,6 +3310,7 @@ UClass::UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InB
 UClass::UClass
 (
 	EStaticConstructor,
+	FName			InName,
 	uint32			InSize,
 	uint32			InClassFlags,
 	EClassCastFlags	InClassCastFlags,
@@ -3248,11 +3333,10 @@ UClass::UClass
 ,	bCooked( false )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
-
 	*(const TCHAR**)&ClassConfigName = InConfigName;
 }
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 
 bool UClass::HotReloadPrivateStaticClass(
 	uint32			InSize,
@@ -3346,16 +3430,18 @@ bool UClass::HotReloadPrivateStaticClass(
 void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 {
 	FName InFName(InName);
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+
 		// Find the function in the class's native function lookup table.
 		for(int32 FunctionIndex = 0;FunctionIndex < NativeFunctionLookupTable.Num();++FunctionIndex)
 		{
 			FNativeFunctionLookup& NativeFunctionLookup = NativeFunctionLookupTable[FunctionIndex];
 			if(NativeFunctionLookup.Name == InFName)
 			{
-				AddHotReloadFunctionRemap(InPointer, NativeFunctionLookup.Pointer);
+				HotReloadSupport.AddHotReloadFunctionRemap(InPointer, NativeFunctionLookup.Pointer);
 				NativeFunctionLookup.Pointer = InPointer;
 				return;
 			}

@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UOverlay
 
@@ -14,11 +16,16 @@ UOverlay::UOverlay(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UOverlay::ReleaseNativeWidget()
+void UOverlay::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyOverlay.Reset();
+}
+
+UOverlaySlot* UOverlay::AddChildToOverlay(UWidget* Content)
+{
+	return Cast<UOverlaySlot>(Super::AddChild(Content));
 }
 
 UClass* UOverlay::GetSlotClass() const
@@ -63,3 +70,21 @@ TSharedRef<SWidget> UOverlay::RebuildWidget()
 
 	return BuildDesignTimeWidget( MyOverlay.ToSharedRef() );
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UOverlay::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Overlay");
+}
+
+const FText UOverlay::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
+#endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

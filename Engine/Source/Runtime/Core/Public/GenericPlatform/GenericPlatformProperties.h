@@ -260,6 +260,11 @@ struct FGenericPlatformProperties
 		return false;
 	}
 
+	static FORCEINLINE bool SupportsMinimize()
+	{
+		return false;
+	}
+
 	// Whether the platform allows an application to quit to the OS
 	static FORCEINLINE bool SupportsQuit()
 	{

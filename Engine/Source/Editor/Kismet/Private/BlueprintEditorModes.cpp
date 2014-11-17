@@ -117,18 +117,8 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 					->Split
 					(
 						FTabManager::NewStack()
-						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::OpenedTab )
+						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::ClosedTab )
 					)
-				)
-			)
-			->Split
-			(
-				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
-				->SetSizeCoefficient(0.35f)
-				->Split
-				(
-					FTabManager::NewStack()
-					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
 				)
 			)
 		);
@@ -202,16 +192,6 @@ FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<
 				FTabManager::NewStack()
 				->SetHideTabWell(true)
 				->AddTab( FBlueprintEditorTabs::DefaultEditorID, ETabState::OpenedTab )
-			)
-			->Split
-			(
-				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
-				->SetSizeCoefficient(0.35f)
-				->Split
-				(
-					FTabManager::NewStack()
-					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
-				)
 			)
 		);
 
@@ -293,16 +273,6 @@ FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TShared
 					->SetSizeCoefficient( 0.85f )
 					->SetHideTabWell(true)
 					->AddTab( FBlueprintEditorTabs::SCSViewportID, ETabState::OpenedTab )
-				)
-			)
-			->Split
-			(
-				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
-				->SetSizeCoefficient(0.35f)
-				->Split
-				(
-					FTabManager::NewStack()
-					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
 				)
 			)
 		);
@@ -503,7 +473,7 @@ FBlueprintMacroApplicationMode::FBlueprintMacroApplicationMode(TSharedPtr<class 
 					->Split
 					(
 						FTabManager::NewStack()
-						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::OpenedTab )
+						->AddTab( FBlueprintEditorTabs::PaletteID, ETabState::ClosedTab )
 					)
 				)
 			)

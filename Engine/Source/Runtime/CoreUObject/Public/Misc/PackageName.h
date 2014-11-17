@@ -162,6 +162,14 @@ public:
 	static void RegisterMountPoint(const FString& RootPath, const FString& ContentPath);
 
 	/**
+	 * This will remove a previously inserted mount point.
+	 *
+	 * @param RootPath Root Path.
+	 * @param ContentPath Content Path.
+	 */
+	static void UnRegisterMountPoint(const FString& RootPath, const FString& ContentPath);
+
+	/**
 	 * Get the mount point for a given package path
 	 * 
 	 * @param InPackagePath The package path to get the mount point for
@@ -246,10 +254,17 @@ public:
 	static bool FindPackagesInDirectory(TArray<FString>& OutPackages, const FString& RootDir);
 
 	/** Event that is triggered when a new content path is mounted */
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnContentPathMountedEvent, const FString& /* Asset path */ );
+	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnContentPathMountedEvent, const FString& /* Asset path */, const FString& /* ContentPath */ );
 	static FOnContentPathMountedEvent& OnContentPathMounted()
 	{
 		return OnContentPathMountedEvent;
+	}
+
+	/** Event that is triggered when a new content path is removed */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnContentPathDismountedEvent, const FString& /* Asset path */, const FString& /* ContentPath */ );
+	static FOnContentPathDismountedEvent& OnContentPathDismounted()
+	{
+		return OnContentPathDismountedEvent;
 	}
 
 	/**
@@ -279,6 +294,11 @@ public:
 	 * @return The path to the object referred to by the supplied export path.
 	 */
 	static FString ExportTextPathToObjectPath(const FString& InExportTextPath);
+
+	/** 
+	 * Returns the name of the package referred to by the specified object path
+	 */
+	static FString ObjectPathToPackageName(const FString& InObjectPath);
 
 	/** 
 	 * Returns the name of the object referred to by the specified object path
@@ -319,6 +339,9 @@ private:
 
 	/** Event that is triggered when a new content path is mounted */
 	static FOnContentPathMountedEvent OnContentPathMountedEvent;
+
+	/** Event that is triggered when a new content path is removed */
+	static FOnContentPathDismountedEvent OnContentPathDismountedEvent;
 };
 
 #endif	// __PACKAGENAME_H__

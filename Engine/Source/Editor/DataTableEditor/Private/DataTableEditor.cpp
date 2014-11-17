@@ -24,9 +24,14 @@ void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>
 	TabManager->UnregisterTabSpawner( DataTableTabId );
 }
 
+FDataTableEditor::FDataTableEditor()
+{
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FDataTableEditor::OnPostReimport);
+}
+
 FDataTableEditor::~FDataTableEditor()
 {
-
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 }
 
 
@@ -81,6 +86,16 @@ FString FDataTableEditor::GetWorldCentricTabPrefix() const
 FLinearColor FDataTableEditor::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor( 0.0f, 0.0f, 0.2f, 0.5f );
+}
+
+void FDataTableEditor::OnPostReimport(UObject* InObject, bool bSuccess)
+{
+	// Ignore if this is regarding a different object
+	if ( InObject == DataTable && bSuccess)
+	{
+		CachedDataTable.Empty();
+		ReloadVisibleData();
+	}
 }
 
 TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
@@ -211,6 +226,8 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 
 void FDataTableEditor::OnDataTableReloaded() 
 {
+	CachedDataTable.Reset();
+
 	TSharedRef<SVerticalBox> ContentBox = CreateContentBox();
 	
 	GridPanelOwner->SetContent(ContentBox);

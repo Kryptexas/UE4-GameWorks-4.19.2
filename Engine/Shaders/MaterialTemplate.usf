@@ -43,9 +43,9 @@ struct FMaterialParticleParameters
 
 #if USE_PARTICLE_SUBUVS
 	/** SubUV texture coordinates*/
-	half2 SubUVCoords[2];
+	MaterialFloat2 SubUVCoords[2];
 	/** SubUV interpolation value*/
-	half SubUVLerp;
+	MaterialFloat SubUVLerp;
 #endif
 
 	/** The size of the particle. */
@@ -138,7 +138,7 @@ struct FMaterialPixelParameters
 	/** Per-particle properties. Only valid for particle vertex factories. */
 	FMaterialParticleParameters Particle;
 
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	float4 LayerWeights;
 #endif
 };
@@ -146,7 +146,7 @@ struct FMaterialPixelParameters
 // @todo compat hack
 FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 {
-#if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || ES2_PROFILE
+#if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || (ES2_PROFILE || ES3_1_PROFILE)
 	return (FMaterialPixelParameters)0;
 #else
 	// @todo compat hack - put back to the 0 typecast (2 lines up)
@@ -238,7 +238,7 @@ struct FMaterialVertexParameters
 	half4 VertexColor;
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 	float2 TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX];
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	float2 TexCoordOffset; // Offset for UV localization for large UV values
 #endif
 #endif
@@ -289,7 +289,7 @@ MaterialFloat3 TransformLocalVectorToTangent(FMaterialPixelParameters Parameters
 MaterialFloat3 TransformLocalVectorToWorld(FMaterialVertexParameters Parameters,MaterialFloat3 InLocalVector)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return mul(InLocalVector, (half3x3)Parameters.InstanceLocalToWorld);
+		return mul(InLocalVector, (MaterialFloat3x3)Parameters.InstanceLocalToWorld);
 	#else
 		return mul(InLocalVector, GetLocalToWorld3x3());
 	#endif
@@ -541,11 +541,11 @@ MaterialFloat2 GetParticleMacroUV(FMaterialPixelParameters Parameters)
 	return (Parameters.ScreenPosition.xy / Parameters.ScreenPosition.w - Parameters.Particle.MacroUV.xy) * Parameters.Particle.MacroUV.zw + MaterialFloat2(.5, .5);
 }
 
-#define ES2_EMULATION (!COMPILER_GLSL_ES2 && COMPILE_SHADERS_FOR_DEVELOPMENT)
+#define ES2_EMULATION (!COMPILER_GLSL_ES2 && COMPILE_SHADERS_FOR_DEVELOPMENT && !METAL_PROFILE)
 
 MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 {
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	#if ES2_EMULATION
 	if( View.ES2PreviewMode > 0.5f)
 	{
@@ -567,7 +567,7 @@ MaterialFloat4 ProcessMaterialLinearColorTextureLookup(MaterialFloat4 TextureVal
 
 MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 {
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	#if ES2_EMULATION
 	if( View.ES2PreviewMode > 0.5f )
 	{
@@ -855,6 +855,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_DEFAULT_LIT) return float3(0.1f, 1.0f, 0.1f); // Green
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE) return float3(1.0f, 0.1f, 0.1f); // Red
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN) return float3(0.6f, 0.4f, 0.1f); // Brown
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) return float3(0.2f, 0.6f, 0.5f); // Cyan
 	else return float3(1.0f, 1.0f, 1.0f); // White
 #else
 	switch(GBuffer.ShadingModelID)
@@ -863,6 +864,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 		case SHADINGMODELID_DEFAULT_LIT: return float3(0.1f, 1.0f, 0.1f); // Green
 		case SHADINGMODELID_SUBSURFACE: return float3(1.0f, 0.1f, 0.1f); // Red
 		case SHADINGMODELID_PREINTEGRATED_SKIN: return float3(0.6f, 0.4f, 0.1f); // Brown
+		case SHADINGMODELID_SUBSURFACE_PROFILE: return float3(0.2f, 0.6f, 0.5f); // Cyan
 		default: return float3(1.0f, 1.0f, 1.0f); // White
 	}
 #endif
@@ -981,7 +983,7 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters)
 	RetNormal = GetMaterialNormalRaw(Parameters);
 	
 	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES2_PROFILE
+	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !(ES2_PROFILE || ES3_1_PROFILE || ES31_AEP_PROFILE)
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		half3 OverrideNormal = View.NormalOverrideParameter.xyz;
@@ -1039,7 +1041,7 @@ half GetMaterialRoughnessRaw(FMaterialPixelParameters Parameters)
 
 half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 {
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	// The smallest normalized value that can be represented in IEEE 754 (FP16) is 2^-14 = 6.1e-5.
 	// The code will make the following computation involving roughness: 1.0 / Roughness^4.
 	// Therefore to prevent division by zero on devices that do not support denormals, Roughness^4
@@ -1054,7 +1056,7 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	half Roughness = GetMaterialRoughnessRaw(Parameters);
 
 	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE 
+	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;
@@ -1153,7 +1155,8 @@ half GetMaterialTessellationMultiplier(FMaterialTessellationParameters Parameter
 %s;
 }
 
-half3 GetMaterialSubsurfaceColor(FMaterialPixelParameters Parameters)
+// .rgb:SubsurfaceColor, .a:SSProfileId in 0..1 range
+half4 GetMaterialSubsurfaceData(FMaterialPixelParameters Parameters)
 {
 %s;
 }
@@ -1303,7 +1306,7 @@ void CalcMaterialParameters(
 	// flip the normal for backfaces being rendered with a two-sided material
 	Parameters.TangentNormal *= Parameters.TwoSidedSign;
 
-#if FEATURE_LEVEL != FEATURE_LEVEL_ES2
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	// ES2 will rely on only the final normalize for performance
 	Parameters.TangentNormal = normalize(Parameters.TangentNormal);
 #endif

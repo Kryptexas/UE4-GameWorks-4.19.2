@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateBrush.cpp: Implements the FSlateBrush structure.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 
-/* FSlateBrush structors
+/* FSlateBrush constructors
  *****************************************************************************/
 
 FSlateBrush::FSlateBrush( ESlateBrushDrawType::Type InDrawType, const FName InResourceName, const FMargin& InMargin, ESlateBrushTileType::Type InTiling, ESlateBrushImageType::Type InImageType, const FVector2D& InImageSize, const FLinearColor& InTint, UObject* InObjectResource, bool bInDynamicallyLoaded )

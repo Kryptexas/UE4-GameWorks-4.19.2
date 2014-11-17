@@ -45,7 +45,11 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 
+#include "SColorPicker.h"
+
+
 #define LOCTEXT_NAMESPACE "MatineeMenus"
+
 
 namespace
 {

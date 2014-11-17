@@ -371,6 +371,19 @@ public:
 
 } GCC_ALIGN(16);
 
+/**
+ * Creates a hash value from a FVector4.
+ *
+ * @param Vector the vector to create a hash value for
+ *
+ * @return The hash value from the components
+ */
+FORCEINLINE uint32 GetTypeHash(const FVector4& Vector)
+{
+	// Note: this assumes there's no padding in FVector that could contain uncompared data.
+	return FCrc::MemCrc_DEPRECATED(&Vector,sizeof(Vector));
+}
+
 
 /* FVector4 inline functions
  *****************************************************************************/

@@ -3,7 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_SelectEnum.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 UDEPRECATED_K2Node_SelectEnum::UDEPRECATED_K2Node_SelectEnum(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -40,9 +41,9 @@ void UDEPRECATED_K2Node_SelectEnum::AllocateDefaultPins()
 	UK2Node::AllocateDefaultPins();
 }
 
-FString UDEPRECATED_K2Node_SelectEnum::GetTooltip() const
+FText UDEPRECATED_K2Node_SelectEnum::GetTooltipText() const
 {
-	return TEXT("Return literal value set for each enum value");
+	return NSLOCTEXT("K2Node", "SelectEnumTooltip", "Return literal value set for each enum value");
 }
 
 FText  UDEPRECATED_K2Node_SelectEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -62,26 +63,40 @@ void UDEPRECATED_K2Node_SelectEnum::NotifyPinConnectionListChanged(UEdGraphPin* 
 	// don't do anything
 }
 
-void UDEPRECATED_K2Node_SelectEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UDEPRECATED_K2Node_SelectEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	auto SetNodeEnumLambda = [](UEdGraphNode* NewNode, UField const* /*EnumField*/, TWeakObjectPtr<UEnum> NonConstEnumPtr)
+	{
+		UDEPRECATED_K2Node_SelectEnum* EnumNode = CastChecked<UDEPRECATED_K2Node_SelectEnum>(NewNode);
+		EnumNode->Enum = NonConstEnumPtr.Get();
+	};
+
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
 		UEnum const* Enum = (*EnumIt);
-		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
 		{
-			UDEPRECATED_K2Node_SelectEnum* EnumNode = CastChecked<UDEPRECATED_K2Node_SelectEnum>(NewNode);
-			if (EnumPtr.IsValid())
-			{
-				EnumNode->Enum = EnumPtr.Get();
-			}
-		};
+			continue;
+		}
+
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Enum))
+		{
+			continue;
+		}
 		
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Enum);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
-		
-		TWeakObjectPtr<UEnum> EnumPtr = Enum;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = Enum;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeEnumLambda, NonConstEnumPtr);
+
+		// this enum could belong to a class, or is a user defined enum (asset), 
+		// that's why we want to make sure to register it along with the action 
+		// (so the action can be refreshed when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Enum, NodeSpawner);
 	}
 }
 
@@ -99,7 +114,7 @@ void UDEPRECATED_K2Node_SelectEnum::GetOptionPins(TArray<UEdGraphPin*>& OptionPi
 	}
 }
 
-void UDEPRECATED_K2Node_SelectEnum::SetEnum(UEnum* InEnum)
+void UDEPRECATED_K2Node_SelectEnum::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 {
 	Enum = InEnum;
 

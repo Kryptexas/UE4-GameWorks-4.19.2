@@ -11,27 +11,31 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SButton::FArguments ButtonDefaults;
-
-	Style = NULL;
-
-	DesiredSizeScale = ButtonDefaults._DesiredSizeScale.Get();
-	ContentScale = ButtonDefaults._ContentScale.Get();
+	WidgetStyle = *ButtonDefaults._ButtonStyle;
 
 	ColorAndOpacity = FLinearColor::White;
 	BackgroundColor = FLinearColor::White;
-	ForegroundColor = FLinearColor::Black;
+
+	ClickMethod = EButtonClickMethod::DownAndUp;
+	TouchMethod = EButtonTouchMethod::DownAndUp;
+
+	IsFocusable = true;
 }
 
-void UButton::ReleaseNativeWidget()
+void UButton::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyButton.Reset();
 }
 
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
-	MyButton = SNew(SButton);
+	MyButton = SNew(SButton)
+		.ButtonStyle(&WidgetStyle)
+		.ClickMethod(ClickMethod)
+		.TouchMethod(TouchMethod)
+		.IsFocusable(IsFocusable);
 
 	if ( GetChildrenCount() > 0 )
 	{
@@ -41,42 +45,14 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 	return MyButton.ToSharedRef();
 }
 
-void UButton::SyncronizeProperties()
+void UButton::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
-	SButton::FArguments ButtonDefaults;
-
-	const FButtonStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FButtonStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		StylePtr = ButtonDefaults._ButtonStyle;
-	}
-
-	TOptional<FSlateSound> OptionalPressedSound;
-	if ( PressedSound.GetResourceObject() )
-	{
-		OptionalPressedSound = PressedSound;
-	}
-
-	TOptional<FSlateSound> OptionalHoveredSound;
-	if ( HoveredSound.GetResourceObject() )
-	{
-		OptionalHoveredSound = HoveredSound;
-	}
-
-	MyButton->SetButtonStyle( StylePtr );
-
-	MyButton->SetForegroundColor( ForegroundColor );
 	MyButton->SetColorAndOpacity( ColorAndOpacity );
 	MyButton->SetBorderBackgroundColor( BackgroundColor );
 	
-	MyButton->SetDesiredSizeScale( DesiredSizeScale );
-	MyButton->SetContentScale( ContentScale );
-	MyButton->SetPressedSound( OptionalPressedSound );
-	MyButton->SetHoveredSound( OptionalHoveredSound );
-
-	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
+	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked));
 }
 
 UClass* UButton::GetSlotClass() const
@@ -120,25 +96,6 @@ void UButton::SetBackgroundColor(FLinearColor Color)
 	}
 }
 
-void UButton::SetForegroundColor(FLinearColor InForegroundColor)
-{
-	ForegroundColor = InForegroundColor;
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetForegroundColor(InForegroundColor);
-	}
-}
-
-FReply UButton::HandleOnClicked()
-{
-	if ( OnClickedEvent.IsBound() && MyButton.IsValid() )
-	{
-		return OnClickedEvent.Execute().ToReply( MyButton.ToSharedRef() );
-	}
-	
-	return FReply::Unhandled();
-}
-
 bool UButton::IsPressed() const
 {
 	return MyButton->IsPressed();
@@ -163,6 +120,24 @@ void UButton::PostLoad()
 			}
 		}
 	}
+
+	if( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS && Style_DEPRECATED != nullptr )
+	{
+		const FButtonStyle* StylePtr = Style_DEPRECATED->GetStyle<FButtonStyle>();
+		if(StylePtr != nullptr)
+		{
+			WidgetStyle = *StylePtr;
+		}
+
+		Style_DEPRECATED = nullptr;
+	}
+}
+
+FReply UButton::SlateHandleClicked()
+{
+	OnClicked.Broadcast();
+
+	return FReply::Handled();
 }
 
 #if WITH_EDITOR
@@ -170,6 +145,11 @@ void UButton::PostLoad()
 const FSlateBrush* UButton::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.Button");
+}
+
+const FText UButton::GetPaletteCategory()
+{
+	return LOCTEXT("Common", "Common");
 }
 
 #endif

@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ExceptionHandling.h: Exception handling for functions that want to create crash dumps.
-=============================================================================*/
-
 #pragma once
 
 #include "Core.h"
+
 
 /** Whether we should generate crash reports even if the debugger is attached. */
 extern CORE_API bool GAlwaysReportCrash;

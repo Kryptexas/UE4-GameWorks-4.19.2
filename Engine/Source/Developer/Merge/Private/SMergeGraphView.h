@@ -1,0 +1,62 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+#pragma once
+
+#include "BlueprintMergeData.h"
+#include "IDiffControl.h"
+#include "SBlueprintDiff.h"
+
+class SMergeGraphView : public SCompoundWidget
+						, public IDiffControl
+{
+public:
+	SLATE_BEGIN_ARGS(SMergeGraphView)
+	{}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
+
+private:
+	/** Implementation of IDiffControl: */
+	void NextDiff() override;
+	void PrevDiff() override;
+	bool HasNextDifference() const override;
+	bool HasPrevDifference() const override;
+
+	/** Helper functions and event handlers: */
+	bool HasNoDifferences() const;
+	void OnGraphListSelectionChanged(TSharedPtr<struct FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType);
+	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
+
+	FDiffPanel& GetRemotePanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_REMOTE]; }
+	FDiffPanel& GetBasePanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_BASE]; }
+	FDiffPanel& GetLocalPanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]; }
+
+	FReply OnToggleLockView();
+	const FSlateBrush*  GetLockViewImage() const;
+
+	TArray< FDiffPanel > DiffPanels;
+	FBlueprintMergeData Data;
+
+	TArray< TSharedPtr< struct FMergeGraphRowEntry> > DifferencesFromBase;
+	TSharedPtr<class SBorder> DiffResultsWidget;
+
+	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > DiffResultList;
+
+	/** 
+	 * Unfortunately this innocuous member requires some explanation:
+	 * 	This list is owned by the FMergeGraphRowEntry and displayed by DiffResultList, but we have
+	 * 	to keep track of it because SListView doesn't expose the list it's displaying, and we
+	 * 	don't have any need to interact with the ListView that displays the DifferencesFromBase
+	 * 	so we can't access the current FMergeGraphRowEntry. Basically we have three options:
+	 * 	
+	 * 	1. Cache the list view when a new FMergeGraphRowEntry is selected
+	 * 	2. Cache a reference to the ListView that displays DifferencesFromBase, solely so we can
+	 * 		access the currently selected item and dig out the diffs associated with that graph
+	 * 	3. Expose the list being displayed by the listview (requires changing slate)
+	 * 
+	 * 	I have chosen option 1.
+	 */
+	TArray< TSharedPtr< struct FDiffSingleResult> > const* DiffResultsListData;
+
+	bool bViewsAreLocked;
+};

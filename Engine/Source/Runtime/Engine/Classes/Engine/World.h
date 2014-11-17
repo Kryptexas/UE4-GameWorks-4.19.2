@@ -483,7 +483,7 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	TArray<class AActor*> ActiveGroupActors;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 #endif // WITH_EDITORONLY_DATA
 
@@ -608,7 +608,7 @@ public:
 
 	/** The current renderer feature level of this world */
 	ERHIFeatureLevel::Type						FeatureLevel;
-
+	
 	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType above.							*/
 	FLevelViewportInfo							EditorViews[4];
 
@@ -635,11 +635,8 @@ public:
 
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
-	static void ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
-	/** Change the feature level that this world is current rendering with */
-	void ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** List of all the controllers in the world. */
 	TArray<TAutoWeakObjectPtr<class AController> >	ControllerList;
@@ -866,11 +863,11 @@ public:
 	/** time at which to start pause **/
 	float PauseDelay;
 
-	/** Offset for all levels from world origin */
-	FIntPoint GlobalOriginOffset;
+	/** Current location of this world origin */
+	FIntVector OriginLocation;
 
-	/** Requested new world origin offset */
-	FIntPoint RequestedGlobalOriginOffset;
+	/** Requested new world origin location */
+	FIntVector RequestedOriginLocation;
 
 	/** Whether world origin was rebased this frame */
 	bool bOriginOffsetThisFrame;
@@ -1447,7 +1444,7 @@ public:
 
 	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
 	ABrush* GetBrush() const;
-	/* 
+	/** 
 	 * Returns the default brush for the persistent level.
 	 * This is usually the 'builder brush' for editor builds, undefined for non editor instances and may be NULL.
 	 */
@@ -2412,13 +2409,13 @@ public:
 	bool IsNavigationRebuilt() const;
 
 	/** Request to translate world origin to specified position on next tick */
-	void RequestNewWorldOrigin(const FIntPoint& InNewOrigin);
+	void RequestNewWorldOrigin(FIntVector InNewOriginLocation);
 	
 	/** Translate world origin to specified position  */
-	bool SetNewWorldOrigin(const FIntPoint& InNewOrigin);
+	bool SetNewWorldOrigin(FIntVector InNewOriginLocation);
 
 	/** Sets world origin at specified position and stream-in all relevant levels */
-	void NavigateTo(FIntPoint InPosition);
+	void NavigateTo(FIntVector InLocation);
 
 	/** Gets all matinee actors for the current level */
 	void GetMatineeActors( TArray<AMatineeActor*>& OutMatineeActors );
@@ -2434,6 +2431,7 @@ public:
 
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
+	static FString StripPIEPrefixFromPackageName(const FString& PackageName, const FString& Prefix);
 	static FString BuildPIEPackagePrefix(int32 PIEInstanceID);
 	static UWorld* DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld);
 	static FString RemovePIEPrefix(const FString &Source);

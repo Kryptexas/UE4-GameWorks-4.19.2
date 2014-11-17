@@ -29,6 +29,7 @@ namespace Lightmass
 		int32 NumVertices;
 		int32 NumQuads;
 		float UVFactor;
+		bool bReverseWinding;
 	};
 
 	/** Represents a landscape primitive with texture mapped static lighting. */

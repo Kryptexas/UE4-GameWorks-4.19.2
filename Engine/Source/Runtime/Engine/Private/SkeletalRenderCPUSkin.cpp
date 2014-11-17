@@ -403,7 +403,7 @@ void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI
 {
 	uint32 NumIndices = CachedFinalVertices.Num();
 
-	FMatrix LocalToWorldInverseTranspose = ToWorldSpace.ToMatrixWithScale().Inverse().GetTransposed();
+	FMatrix LocalToWorldInverseTranspose = ToWorldSpace.ToMatrixWithScale().InverseFast().GetTransposed();
 
 	for (uint32 i = 0; i < NumIndices; i++)
 	{

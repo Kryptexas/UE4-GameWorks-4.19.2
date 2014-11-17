@@ -1214,6 +1214,30 @@ void FPhAT::BindCommands()
 		FIsActionChecked::CreateSP(this, &FPhAT::IsShowSkeleton));
 
 	ToolkitCommands->MapAction(
+		Commands.PerspectiveView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_Perspective),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.TopView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoXY),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.SideView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoYZ),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.FrontView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoXZ),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
 		Commands.MakeBodyKinematic,
 		FExecuteAction::CreateSP(this, &FPhAT::OnSetBodyPhysicsType, EPhysicsType::PhysType_Kinematic ),
 		FCanExecuteAction(),
@@ -1233,15 +1257,15 @@ void FPhAT::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.KinematicAllBodiesBelow,
-		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Kinematic) );
+		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Kinematic, true) );
 
 	ToolkitCommands->MapAction(
 		Commands.SimulatedAllBodiesBelow,
-		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Simulated) );
+		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Simulated, true) );
 
 	ToolkitCommands->MapAction(
 		Commands.MakeAllBodiesBelowDefault,
-		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Default) );
+		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Default, true) );
 
 	ToolkitCommands->MapAction(
 		Commands.DeleteBody,
@@ -1319,6 +1343,17 @@ void FPhAT::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.HierarchyFilterBodies,
 		FExecuteAction::CreateSP(this, &FPhAT::SetHierarchyFilter, PHFM_Bodies));
+
+	ToolkitCommands->MapAction(
+		Commands.Mirror,
+		FExecuteAction::CreateSP(this, &FPhAT::Mirror),
+		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation)
+		);
+}
+
+void FPhAT::Mirror()
+{
+	SharedData->Mirror();
 }
 
 TSharedRef<ITableRow> FPhAT::OnGenerateRowForTree(FTreeElemPtr Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -1951,7 +1986,7 @@ void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopy
 	RefreshPreviewViewport();
 }
 
-void FPhAT::SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType)
+void FPhAT::SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType, bool bMarkAsDirty)
 {
 	TArray<int32> Indices;
 	for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
@@ -1959,10 +1994,10 @@ void FPhAT::SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType)
 		Indices.Add(SharedData->SelectedBodies[i].Index);
 	}
 
-	SetBodiesBelowPhysicsType(InPhysicsType, Indices);
+	SetBodiesBelowPhysicsType(InPhysicsType, Indices, bMarkAsDirty);
 }
 
-void FPhAT::SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<int32> & Indices)
+void FPhAT::SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<int32> & Indices, bool bMarkAsDirty)
 {
 	TArray<int32> BelowBodies;
 	
@@ -1977,7 +2012,10 @@ void FPhAT::SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<
 	{
 		int32 BodyIndex = BelowBodies[i];
 		UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
-		BodySetup->Modify();
+		if (bMarkAsDirty)
+		{
+			BodySetup->Modify();
+		}
 
 		BodySetup->PhysicsType = InPhysicsType;
 	}
@@ -2298,7 +2336,6 @@ void FPhAT::FixPhysicsState()
 	{
 		for(int32 i=0; i<PhysicsTypeState.Num(); ++i)
 		{
-			BodySetup[i]->Modify();
 			BodySetup[i]->PhysicsType = PhysicsTypeState[i];
 		}
 	}
@@ -2330,6 +2367,9 @@ bool FPhAT::IsSimulationMode(EPhATSimulationMode Mode) const
 
 void FPhAT::OnToggleSimulation()
 {
+	// this stores current physics types before simulate
+	// and recovers to the previous physics types
+	// so after this one, we can modify physics types fine
 	FixPhysicsState();
 	if (IsSelectedSimulation())
 	{
@@ -2362,7 +2402,6 @@ void FPhAT::OnSelectedSimulation()
 		//first we fix all the bodies
 		for(int32 i=0; i<SharedData->PhysicsAsset->BodySetup.Num(); ++i)
 		{
-			BodySetup[i]->Modify();
 			BodySetup[i]->PhysicsType = PhysType_Kinematic;
 		}
 
@@ -2370,7 +2409,7 @@ void FPhAT::OnSelectedSimulation()
 		if(SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 		{
 			//Bodies already have a function that does this
-			SetBodiesBelowSelectedPhysicsType(PhysType_Simulated);
+			SetBodiesBelowSelectedPhysicsType(PhysType_Simulated, false);
 		}else
 		{
 			//constraints need some more work
@@ -2390,7 +2429,7 @@ void FPhAT::OnSelectedSimulation()
 				}
 			}
 
-			SetBodiesBelowPhysicsType(PhysType_Simulated, BodyIndices);
+			SetBodiesBelowPhysicsType(PhysType_Simulated, BodyIndices, false);
 		}
 	}
 
@@ -2691,6 +2730,14 @@ void FPhAT::OnPlayAnimation()
 bool FPhAT::IsPlayAnimation() const
 {
 	return SharedData->EditorSkelComp->IsPlaying();
+}
+
+void FPhAT::OnViewType(ELevelViewportType ViewType)
+{
+	if (PreviewViewport.IsValid())
+	{
+		PreviewViewport->SetViewportType(ViewType);
+	}
 }
 
 void FPhAT::OnShowSkeleton()

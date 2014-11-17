@@ -8,11 +8,15 @@
 #include "Commandlets/Commandlet.h"
 #include "CookCommandlet.generated.h"
 
-UCLASS()
+UCLASS(config=Editor)
 class UCookCommandlet
 	: public UCommandlet
 {
 	GENERATED_UCLASS_BODY()
+
+	/** List of asset types that will force GC after loading them during cook */
+	UPROPERTY(config)
+	TArray<FString> FullGCAssetClassNames;
 
 	/** If true, iterative cooking is being done */
 	bool bIterativeCooking;
@@ -133,5 +137,19 @@ private:
 	/** Cooks all files */
 	bool Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
 
+	/** Cooks all files newly (in a new way) */
+	bool NewCook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
 
+
+	/**	Process deferred commands */
+	void ProcessDeferredCommands();
+
+	/** Adds a unique package filename to cook. Rejects script packages. */
+	FORCEINLINE void AddFileToCook(TArray<FString>& InOutFilesToCook, const FString& InFilename) const
+	{
+		if (!FPackageName::IsScriptPackage(InFilename))
+		{
+			InOutFilesToCook.AddUnique(InFilename);
+		}
+	}
 };

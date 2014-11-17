@@ -20,10 +20,13 @@ void SGraphNodeK2Sequence::CreateOutputSideAddButton(TSharedPtr<SVerticalBox> Ou
 		NSLOCTEXT("SequencerNode", "SequencerNodeAddPinButton", "Add pin"),
 		NSLOCTEXT("SequencerNode", "SequencerNodeAddPinButton_ToolTip", "Add new pin"));
 
+	FMargin AddPinPadding = Settings->GetOutputPinPadding();
+	AddPinPadding.Top += 6.0f;
+
 	OutputBox->AddSlot()
 	.AutoHeight()
 	.VAlign(VAlign_Center)
-	.Padding(10,10,10,4)
+	.Padding(AddPinPadding)
 	[
 		AddPinButton
 	];

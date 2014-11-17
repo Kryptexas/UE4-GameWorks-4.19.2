@@ -13,9 +13,6 @@ static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
 
 static const FName WorldClassName = FName("World");
 
-// Delegates used by SavePackage()
-FIsPackageOKToSaveDelegate GIsPackageOKToSaveDelegate;
-FAutoPackageBackupDelegate GAutoPackageBackupDelegate;
 
 static bool HasDeprecatedOrPendingKillOuter(UObject* InObj, UPackage* InSavingPackage)
 {
@@ -215,25 +212,29 @@ public:
 	 * Mark a FName as referenced.
 	 * @param Name name to mark as referenced
 	 */
-	void MarkNameAsReferenced(FName Name)
+	void MarkNameAsReferenced(const FName& Name)
 	{
-		ReferencedNames.Add(Name);
+		// We need to store the FName without the number, as the number is stored separately by ULinkerSave 
+		// and we don't want duplicate entries in the name table just because of the number
+		const FName NameNoNumber(Name, 0);
+		ReferencedNames.Add(NameNoNumber);
 	}
+
 	/** 
 	 * Add the marked names to a linker
 	 * @param Linker linker to save the marked names to
 	 */
 	void UpdateLinkerWithMarkedNames(ULinkerSave* Linker)
 	{
-		for (TSet<FName>::TIterator It(ReferencedNames); It; ++It)
+		Linker->NameMap.Reserve(Linker->NameMap.Num() + ReferencedNames.Num());
+		for (const FName& Name : ReferencedNames)
 		{
-			Linker->NameMap.Add(*It);
+			Linker->NameMap.Add(Name);
 		}
 	}
 
-
 private:
-	TSet<FName> ReferencedNames;
+	TSet<FName, FLinkerNamePairKeyFuncs> ReferencedNames;
 };
 
 static FSavePackageState* SavePackageState = NULL;
@@ -538,7 +539,10 @@ public:
 	FArchive& operator<<(FAssetPtr& AssetPtr) override;
 	FArchive& operator<<(FStringAssetReference& Value) override
 	{
-		StringAssetReferencesMap.Add(Value.ToString());
+		if ( Value.IsValid() )
+		{
+			StringAssetReferencesMap.Add(Value.ToString());
+		}
 		return *this;
 	}
 	FArchive& operator<<(FName& Name) override
@@ -2348,13 +2352,27 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			ensureMsgf(false, TEXT("Recursive SavePackage() is not supported"));
 			return false;
 		}
+		UE_LOG_COOK_TIME(TEXT("First"));
 
+
+		
+		bool bIsCooking = TargetPlatform != NULL;
+
+		// if we are cooking we should be doing it in the editor
+		// otherwise some other assumptions are bad
+		check( !bIsCooking || WITH_EDITOR );
 	#if WITH_EDITOR
-		// Attempt to create a backup of this package before it is saved, if applicable
-		if (GAutoPackageBackupDelegate.IsBound())
+		if ( !bIsCooking )
 		{
-			GAutoPackageBackupDelegate.Execute(*InOuter);
+			// Attempt to create a backup of this package before it is saved, if applicable
+			if (FCoreUObjectDelegates::AutoPackageBackupDelegate.IsBound())
+			{
+				FCoreUObjectDelegates::AutoPackageBackupDelegate.Execute(*InOuter);
+			}
+
+			UE_LOG_COOK_TIME(TEXT("AutoPackageBackupDelegate"));
 		}
+		
 	#endif	// #if WITH_EDITOR
 
 		// do any path replacements on the source DestFile
@@ -2367,11 +2385,15 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		// The latter implies flushing all file handles which is a pre-requisite of saving a package. The code basically needs 
 		// to be sure that we are not reading from a file that is about to be overwritten and that there is no way we might 
 		// start reading from the file till we are done overwriting it.
+
 		FlushAsyncLoading();
-		(*GFlushStreamingFunc)();
-		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 
 		UE_LOG_COOK_TIME(TEXT("Flush Async loading"));
+		(*GFlushStreamingFunc)();
+		UE_LOG_COOK_TIME(TEXT("Flush streaming func"));
+		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
+
+		UE_LOG_COOK_TIME(TEXT("Block till all requests finished and flush handles"));
 
 		check(InOuter);
 		check(Filename);
@@ -2402,9 +2424,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		}
 
 		// Make sure package is allowed to be saved.
-		if( !TargetPlatform && GIsPackageOKToSaveDelegate.IsBound() )
+		if( !TargetPlatform && FCoreUObjectDelegates::IsPackageOKToSaveDelegate.IsBound() )
 		{
-			bool bIsOKToSave = GIsPackageOKToSaveDelegate.Execute( InOuter, Filename, Error );
+			bool bIsOKToSave = FCoreUObjectDelegates::IsPackageOKToSaveDelegate.Execute(InOuter, Filename, Error);
 			if (!bIsOKToSave)
 			{
 				if (!(SaveFlags & SAVE_NoError))
@@ -2510,12 +2532,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			FArchiveSaveTagExports ExportTaggerArchive( InOuter );
 			ExportTaggerArchive.SetPortFlags( ComparisonFlags );
 			ExportTaggerArchive.SetCookingTarget(TargetPlatform);
-	
+			
+			check( ExportTaggerArchive.IsCooking() == !!TargetPlatform );
+			check( ExportTaggerArchive.IsCooking() == bIsCooking );
+
 			// Tag exports and route presave.
 			FPackageExportTagger PackageExportTagger( Base, TopLevelFlags, InOuter );
 			PackageExportTagger.TagPackageExports( ExportTaggerArchive, true );
 			ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
-
 
 			UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
 		
@@ -2544,7 +2568,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				// only need to do this if we are cooking a different platform then the one which is currently running
 				// TODO: if save package is cancelled then call ClearCache on each object
 				TArray<UObject*> CachedObjects;
-				if ( !!TargetPlatform )
+
+#if WITH_EDITOR
+				if ( bIsCooking )
 				{
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
@@ -2558,7 +2584,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						}
 					}
 				}
-
+#endif
 
 
 
@@ -2884,7 +2910,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Args.Empty();
 					Args.Add( TEXT("FileName"), FText::FromString( Filename ) );
 					Args.Add( TEXT("ObjectNames"), FText::FromString( ObjectNames ) );
-					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToObjectsInOtherMap_FindCulpritQ", "Can't save {FileName}: Graph is linked to object(s) in external map.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
+					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToPrivateObjectsInOtherPackage_FindCulpritQ", "Can't save {FileName}: Graph is linked to private object(s) in an external package.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
 					FMessageDialog::Open(EAppMsgType::Ok, Message);
@@ -2960,8 +2986,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->Summary.NameCount = Linker->NameMap.Num();
 				for( int32 i=0; i<Linker->NameMap.Num(); i++ )
 				{
-					*Linker << *const_cast<FNameEntry*>(FName::GetEntry( Linker->NameMap[i].GetIndex() ));
-					Linker->NameIndices.Add(Linker->NameMap[i].GetIndex(), i);
+					*Linker << *const_cast<FNameEntry*>(Linker->NameMap[i].GetDisplayNameEntry());
+					Linker->NameIndices.Add(Linker->NameMap[i], i);
 				}
 
 				

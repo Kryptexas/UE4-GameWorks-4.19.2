@@ -2,6 +2,7 @@
 
 #include "XCodeSourceCodeAccessPrivatePCH.h"
 #include "XCodeSourceCodeAccessor.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "XCodeSourceCodeAccessor"
 
@@ -37,6 +38,14 @@ static const char* OpenXCodeAtFileAndLineAppleScript =
 	"	end OpenXcodeAtFileAndLine\n"
 ;
 
+static const char* SaveAllXcodeDocuments =
+	"	on SaveAllXcodeDocuments()\n"
+	"		tell application \"Xcode\"\n"
+	"			save documents\n"
+	"		end tell\n"
+	"	end SaveAllXcodeDocuments\n"
+;
+
 bool FXCodeSourceCodeAccessor::CanAccessSourceCode() const
 {
 	return IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app"));
@@ -49,7 +58,7 @@ FName FXCodeSourceCodeAccessor::GetFName() const
 
 FText FXCodeSourceCodeAccessor::GetNameText() const
 {
-	return LOCTEXT("XCodeDisplayName", "Visual Studio");
+	return LOCTEXT("XCodeDisplayName", "Xcode");
 }
 
 FText FXCodeSourceCodeAccessor::GetDescriptionText() const
@@ -59,11 +68,15 @@ FText FXCodeSourceCodeAccessor::GetDescriptionText() const
 
 bool FXCodeSourceCodeAccessor::OpenSolution()
 {
-	const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FModuleManager::Get().GetSolutionFilepath() );
-	if ( FPaths::FileExists( FullPath ) )
+	FString SolutionPath;
+	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
-		FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
-		return true;
+		const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SolutionPath );
+		if ( FPaths::FileExists( FullPath ) )
+		{
+			FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
+			return true;
+		}
 	}
 	return false;
 }
@@ -82,9 +95,10 @@ bool FXCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 Lin
 		ColumnNumber++;
 	}
 		 
-	if ( FModuleManager::Get().IsSolutionFilePresent() )
+	FString SolutionPath;
+	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
-		FString ProjPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
+		FString ProjPath = FPaths::ConvertRelativePathToFull(*SolutionPath);
 		CFStringRef ProjPathString = FPlatformString::TCHARToCFString(*ProjPath);
 		NSString* ProjectPath = [(NSString*)ProjPathString stringByDeletingLastPathComponent];
 		[[NSWorkspace sharedWorkspace] openFile:ProjectPath withApplication:@"Xcode" andDeactivate:YES];
@@ -172,7 +186,29 @@ bool FXCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& AbsoluteSo
 
 bool FXCodeSourceCodeAccessor::SaveAllOpenDocuments() const
 {
-	return false;
+	bool ExecutionSucceeded = false;
+	
+	NSAppleScript* AppleScript = nil;
+	
+	NSString* AppleScriptString = [NSString stringWithCString:SaveAllXcodeDocuments encoding:NSUTF8StringEncoding];
+	AppleScript = [[NSAppleScript alloc] initWithSource:AppleScriptString];
+	
+	int PID = [[NSProcessInfo processInfo] processIdentifier];
+	NSAppleEventDescriptor* ThisApplication = [NSAppleEventDescriptor descriptorWithDescriptorType:typeKernelProcessID bytes:&PID length:sizeof(PID)];
+	
+	NSAppleEventDescriptor* ContainerEvent = [NSAppleEventDescriptor appleEventWithEventClass:'ascr' eventID:'psbr' targetDescriptor:ThisApplication returnID:kAutoGenerateReturnID transactionID:kAnyTransactionID];
+	
+	[ContainerEvent setParamDescriptor:[NSAppleEventDescriptor descriptorWithString:@"SaveAllXcodeDocuments"] forKeyword:'snam'];
+	
+	NSDictionary* ExecutionError = nil;
+	[AppleScript executeAppleEvent:ContainerEvent error:&ExecutionError];
+	if(ExecutionError == nil)
+	{
+		ExecutionSucceeded = true;
+	}
+	
+	[AppleScript release];
+	return ExecutionSucceeded;
 }
 
 void FXCodeSourceCodeAccessor::Tick(const float DeltaTime)

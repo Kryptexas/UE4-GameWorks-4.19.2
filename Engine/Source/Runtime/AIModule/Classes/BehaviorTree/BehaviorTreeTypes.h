@@ -49,7 +49,6 @@ namespace EBTNodeResult
 	{
 		Succeeded,		// finished as success
 		Failed,			// finished as failure
-		Optional,		// finished, parent should continue
 		Aborted,		// finished aborting = failure
 		InProgress,		// not finished yet
 	};
@@ -61,6 +60,24 @@ namespace EBTExecutionMode
 	{
 		SingleRun,
 		Looped,
+	};
+}
+
+namespace EBTMemoryInit
+{
+	enum Type
+	{
+		Initialize,		// first time initialization
+		RestoreSubtree,	// loading saved data on reentering subtree
+	};
+}
+
+namespace EBTMemoryClear
+{
+	enum Type
+	{
+		Destroy,		// final clear
+		StoreSubtree,	// saving data on leaving subtree
 	};
 }
 
@@ -152,11 +169,10 @@ struct FBehaviorTreeDebuggerInstance
 	{
 		uint16 ExecutionIndex;
 		uint16 bPassed : 1;
-		uint16 bOptional : 1;
 		uint16 bTrigger : 1;
 		uint16 bDiscardedTrigger : 1;
 
-		FNodeFlowData() : ExecutionIndex(INDEX_NONE), bPassed(0), bOptional(0), bTrigger(0), bDiscardedTrigger(0) {}
+		FNodeFlowData() : ExecutionIndex(INDEX_NONE), bPassed(0), bTrigger(0), bDiscardedTrigger(0) {}
 	};
 
 	FBehaviorTreeDebuggerInstance() : TreeAsset(NULL), RootNode(NULL) {}
@@ -206,13 +222,19 @@ struct FBehaviorTreeInstanceId
 	/** behavior tree asset */
 	class UBehaviorTree* TreeAsset;
 
+	/** root node in template for cleanup purposes */
+	class UBTCompositeNode* RootNode;
+
 	/** execution index path from root */
 	TArray<uint16> Path;
+
+	/** persistent instance memory */
+	TArray<uint8> InstanceMemory;
 
 	/** index of first node instance (BehaviorTreeComponent.NodeInstances) */
 	int32 FirstNodeInstance;
 
-	FBehaviorTreeInstanceId() :	TreeAsset(0), FirstNodeInstance(-1) {}
+	FBehaviorTreeInstanceId() : TreeAsset(0), RootNode(0), FirstNodeInstance(-1) {}
 
 	bool operator==(const FBehaviorTreeInstanceId& Other) const
 	{
@@ -263,13 +285,18 @@ struct FBehaviorTreeInstance
 #endif // STATS
 
 	/** initialize memory and create node instances */
-	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
+	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
 
 	/** update injected nodes */
 	void InjectNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
 
 	/** cleanup node instances */
-	void Cleanup(class UBehaviorTreeComponent* OwnerComp);
+	void Cleanup(class UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType);
+
+protected:
+
+	/** worker for updating all nodes */
+	void CleanupNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType);
 };
 
 struct FBTNodeIndex
@@ -327,8 +354,18 @@ struct FBehaviorTreeSearchData
 	/** first node allowed in search */
 	struct FBTNodeIndex SearchStart;
 
+	/** search unique number */
+	int32 SearchId;
+
 	/** adds update info to PendingUpdates array, removing all previous updates for this node */
 	void AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo);
+
+	/** assign unique Id number */
+	void AssignSearchId();
+
+private:
+
+	static int32 NextSearchId;
 };
 
 /** property block in blueprint defined nodes */
@@ -353,22 +390,22 @@ struct AIMODULE_API FBlackboardKeySelector
 	FBlackboardKeySelector() : SelectedKeyID(FBlackboard::InvalidKey)
 	{}
 
-	/** array of allowed types with additional properties (e.g. ubject's base class) 
+	/** array of allowed types with additional properties (e.g. uobject's base class) 
 	  * EditDefaults is required for FBlackboardSelectorDetails::CacheBlackboardData() */
-	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
+	UPROPERTY(transient, EditDefaultsOnly, BlueprintReadWrite, Category = Blackboard)
 	TArray<class UBlackboardKeyType*> AllowedTypes;
 
 	/** name of selected key */
-	UPROPERTY(EditInstanceOnly, Category=Blackboard)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
 	FName SelectedKeyName;
 
 	/** class of selected key  */
-	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
+	UPROPERTY(transient, EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
 	TSubclassOf<class UBlackboardKeyType> SelectedKeyType;
 
 protected:
 	/** ID of selected key */
-	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
+	UPROPERTY(transient, EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
 	uint8 SelectedKeyID;
 	// SelectedKeyId type should be FBlackboard::FKey, but typedefs are not supported by UHT
 	static_assert(sizeof(uint8) == sizeof(FBlackboard::FKey), "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey-compatible type.");

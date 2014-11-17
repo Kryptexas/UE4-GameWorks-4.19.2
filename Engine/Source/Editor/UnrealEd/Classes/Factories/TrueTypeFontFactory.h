@@ -13,7 +13,7 @@ class UTrueTypeFontFactory : public UFontFactory, public FReimportHandler
 	GENERATED_UCLASS_BODY()
 
 	/** Import options for this font */
-	UPROPERTY(EditAnywhere, editinline, Category=TrueTypeFontFactory, meta=(ToolTip="Import options for the font"))
+	UPROPERTY(EditAnywhere, Instanced, Category = TrueTypeFontFactory, meta = (ToolTip = "Import options for the font"))
 	class UFontImportOptions* ImportOptions;
 
 	/** True when the font dialog was shown for this factory during the non-legacy creation process */

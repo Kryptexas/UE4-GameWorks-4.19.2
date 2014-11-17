@@ -15,6 +15,8 @@ LandscapeCollision.cpp: Landscape collision
 #include "../PhysicsEngine/PhysDerivedData.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
+#include "Landscape/LandscapeInfo.h"
 
 TMap<FGuid, ULandscapeHeightfieldCollisionComponent::FPhysXHeightfieldRef* > GSharedHeightfieldRefs;
 
@@ -142,10 +144,11 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 
 				// Setup filtering
 				PxFilterData PQueryFilterData, PSimFilterData;
-				CreateShapeFilterData(GetCollisionObjectType(), GetUniqueID(), GetCollisionResponseToChannels(), 0, 0, PQueryFilterData, PSimFilterData, true, false, true);
+				CreateShapeFilterData(GetCollisionObjectType(), GetOwner()->GetUniqueID(), GetCollisionResponseToChannels(), 0, 0, PQueryFilterData, PSimFilterData, true, false, true);
 
 				// Heightfield is used for simple and complex collision
 				PQueryFilterData.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
+				PSimFilterData.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
 				HeightFieldShapeSync->setQueryFilterData(PQueryFilterData);
 				HeightFieldShapeSync->setSimulationFilterData(PSimFilterData);
 				HeightFieldShapeSync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
@@ -167,7 +170,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 						CollisionResponse.SetAllChannels(ECollisionResponse::ECR_Ignore);
 						CollisionResponse.SetResponse(ECollisionChannel::ECC_Visibility, ECR_Block);
 						PxFilterData PQueryFilterDataEd, PSimFilterDataEd;
-						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
+						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, GetOwner()->GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
 
 						PQueryFilterDataEd.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
 						HeightFieldEdShapeSync->setQueryFilterData(PQueryFilterDataEd);
@@ -194,6 +197,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 				}
 
 				// Set body instance data
+				BodyInstance.PhysxUserData = FPhysxUserData(&BodyInstance);
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
 				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
@@ -679,8 +683,10 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 
 				// Heightfield is used for simple and complex collision
 				PQueryFilterData.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
+				PSimFilterData.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
 				MeshShapeSync->setQueryFilterData(PQueryFilterData);
-
+				MeshShapeSync->setSimulationFilterData(PSimFilterData);
+				MeshShapeSync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 				MeshShapeSync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
 				MeshShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
@@ -694,7 +700,10 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 					PxShape* MeshShapeAsync = MeshActorAsync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetTypedData(), MeshRef->UsedPhysicalMaterialArray.Num());
 					check(MeshShapeAsync);
 
-					// No need for query filter data.  That will all be take care of by the sync actor
+					MeshShapeAsync->setQueryFilterData(PQueryFilterData);
+					MeshShapeAsync->setSimulationFilterData(PSimFilterData);
+					// Only perform scene queries in the synchronous scene for static shapes
+					MeshShapeAsync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
 					MeshShapeAsync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
 					MeshShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);	// Setting visualization flag, in case we visualize only the async scene
 				}
@@ -718,7 +727,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 						CollisionResponse.SetAllChannels(ECollisionResponse::ECR_Ignore);
 						CollisionResponse.SetResponse(ECollisionChannel::ECC_Visibility, ECR_Block);
 						PxFilterData PQueryFilterDataEd, PSimFilterDataEd;
-						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
+						CreateShapeFilterData(ECollisionChannel::ECC_Visibility, GetOwner()->GetUniqueID(), CollisionResponse, 0, 0, PQueryFilterDataEd, PSimFilterDataEd, true, false, true);
 
 						PQueryFilterDataEd.word3 |= (EPDF_SimpleCollision | EPDF_ComplexCollision);
 						MeshShapeEdSync->setQueryFilterData(PQueryFilterDataEd);
@@ -728,6 +737,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 #endif// WITH_EDITOR
 
 				// Set body instance data
+				BodyInstance.PhysxUserData = FPhysxUserData(&BodyInstance);
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
 				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
@@ -1018,11 +1028,14 @@ void ULandscapeHeightfieldCollisionComponent::PostEditImport()
 void ULandscapeHeightfieldCollisionComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
+
 	// Reinitialize physics after undo
 	if (CollisionSizeQuads > 0)
 	{
 		RecreateCollision(false);
 	}
+
+	UNavigationSystem::UpdateNavOctree(this);
 }
 #endif
 

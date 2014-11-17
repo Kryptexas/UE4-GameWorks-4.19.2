@@ -7,5 +7,6 @@
 #include "Slate.h"
 #include "Attribute.h"
 #include "EditorStyle.h"
+#include "MessageLogModule.h"
 
 #endif // __MessageLogPrivatePCH_h__

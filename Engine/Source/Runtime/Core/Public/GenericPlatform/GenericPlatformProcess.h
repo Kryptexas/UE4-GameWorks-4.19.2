@@ -34,7 +34,12 @@ namespace ELaunchVerb
 }
 
 /** Generic implementation for the process handle. */
+#if PLATFORM_WINDOWS && defined(__clang__)	// @todo clang: Clang on Windows has a bug with non-type template arguments
+static void* InvalidHandleValue = nullptr;
+template< typename T >
+#else
 template< typename T, T InvalidHandleValue >
+#endif
 struct TProcHandle
 {
 	typedef T HandleType;
@@ -297,22 +302,31 @@ struct CORE_API FGenericPlatformProcess
 	 * @return	The process handle for use in other process functions
 	 */
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
+
 	/** Returns true if the specified process is running 
-	*
-	* @param ProcessHandle handle returned from FPlatformProcess::CreateProc
-	* @return true if the process is still running
-	*/
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc
+	 * @return true if the process is still running
+	 */
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
+	
 	/** Waits for a process to stop
-	*
-	* @param ProcessHandle handle returned from FPlatformProcess::CreateProc
-	*/
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc
+	 */
 	static void WaitForProc( FProcHandle & ProcessHandle );
+
+	/** Cleans up FProcHandle after we're done with it.
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc.
+	 */
+	static void CloseProc( FProcHandle & ProcessHandle );
+
 	/** Terminates a process
-	*
-	* @param ProcessHandle handle returned from FPlatformProcess::CreateProc
-	* @param KillTree Whether the entire process tree should be terminated.
-	*/
+	 *
+	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc
+	 * @param KillTree Whether the entire process tree should be terminated.
+	 */
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	/** Retrieves the termination status of the specified process. **/
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
@@ -322,6 +336,8 @@ struct CORE_API FGenericPlatformProcess
 	static bool IsApplicationRunning( const TCHAR* ProcName );
 	/** Returns the Name of process given by the PID.  Returns Empty string "" if PID not found. */
 	static FString GetApplicationName( uint32 ProcessId );
+	/** Outputs the virtual memory usage, of the process with the specified PID */
+	static bool GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage);
 	/** Returns true if the specified application has a visible window, and that window is active/has focus/is selected */
 	static bool IsThisApplicationForeground();	
 

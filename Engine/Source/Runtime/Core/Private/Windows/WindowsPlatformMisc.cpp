@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformMisc.cpp: Windows implementations of misc functions
-=============================================================================*/
-
 #include "Core.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
@@ -1760,16 +1756,13 @@ void FWindowsPlatformMisc::LoadPreInitModules()
 void FWindowsPlatformMisc::LoadStartupModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("XAudio2"));
+#if !UE_SERVER
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
+#endif // !UE_SERVER
 
 #if WITH_EDITOR
 	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 #endif	//WITH_EDITOR
-}
-
-const TCHAR* FWindowsPlatformMisc::GetNullRHIShaderFormat()
-{
-	return TEXT("PCD3D_SM5");
 }
 
 bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command)
@@ -1875,7 +1868,7 @@ void FWindowsPlatformMisc::CoUninitialize()
 }
 
 #if !UE_BUILD_SHIPPING
-static TCHAR GErrorRemoteDebugPromptMessage[4096];
+static TCHAR GErrorRemoteDebugPromptMessage[MAX_SPRINTF];
 
 void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 {

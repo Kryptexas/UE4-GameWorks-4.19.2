@@ -99,7 +99,7 @@ public:
 	virtual bool IsGroupEndBlock()		const	{ return false; };
 
 	/** Set the tutorial highlight name for this menu entry */
-	void SetTutorialHightlightName(FName InTutorialName)
+	void SetTutorialHighlightName(FName InTutorialName)
 	{
 		TutorialHighlightName = InTutorialName;
 	}

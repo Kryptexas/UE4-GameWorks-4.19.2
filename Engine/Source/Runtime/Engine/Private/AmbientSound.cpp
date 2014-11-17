@@ -52,20 +52,16 @@ void AAmbientSound::CheckForErrors( void )
 
 	if( !AudioComponent.IsValid() )
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_AudioComponentNull", "{ActorName} : Ambient sound actor has NULL AudioComponent property - please delete" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_AudioComponentNull", "Ambient sound actor has NULL AudioComponent property - please delete")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::AudioComponentNull));
 	}
 	else if( AudioComponent->Sound == NULL )
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SoundCueNull", "{ActorName} : Ambient sound actor has NULL Sound Cue property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_SoundCueNull", "Ambient sound actor has NULL Sound Cue property")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::SoundCueNull));
 	}
 }
@@ -96,7 +92,7 @@ void AAmbientSound::PostRegisterAllComponents()
 FString AAmbientSound::GetInternalSoundCueName()
 {
 	FString CueName;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	CueName = GetActorLabel();
 #endif
 	if (CueName.Len() == 0)
@@ -242,7 +238,7 @@ void AAmbientSound::MigrateSoundNodeInstance()
 #endif //WITH_EDITOR
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	SoundCue->LinkGraphNodesFromSoundNodes();
 #endif //WITH_EDITORONLY_DATA
 }

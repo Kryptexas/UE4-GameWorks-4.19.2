@@ -1,9 +1,5 @@
 //// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SLeafWidget.cpp: Implements the SLeafWidget class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 
@@ -15,6 +11,11 @@ FNoChildren SLeafWidget::NoChildrenInstance;
 
 /* SLeafWidget interface
  *****************************************************************************/
+
+void SLeafWidget::SetVisibility( TAttribute<EVisibility> InVisibility )
+{
+	SWidget::SetVisibility( InVisibility );
+}
 
 FChildren* SLeafWidget::GetChildren( )
 {

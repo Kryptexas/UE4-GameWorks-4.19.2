@@ -186,7 +186,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	}
 	
 	// Create new UBlueprint object
-	UBlueprint* NewBP = ConstructObject<UBlueprint>(*BlueprintClassType, Outer, NewBPName, RF_Public|RF_Standalone|RF_Transactional);
+	UBlueprint* NewBP = ConstructObject<UBlueprint>(*BlueprintClassType, Outer, NewBPName, RF_Public|RF_Standalone|RF_Transactional|RF_LoadCompleted);
 	NewBP->Status = BS_BeingCreated;
 	NewBP->BlueprintType = BlueprintType;
 	NewBP->ParentClass = ParentClass;
@@ -287,6 +287,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 			EventNode->CreateNewGuid();
 			EventNode->PostPlacedNewNode();
 			EventNode->AllocateDefaultPins();
+			UEdGraphSchema_K2::SetNodeMetaData(EventNode, FNodeMetadata::DefaultGraphNode);
 
 			Graph->AddNode(EventNode);
 
@@ -299,6 +300,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 			GetOwnerNode->AllocateDefaultPins();
 			GetOwnerNode->NodePosX = EventNode->NodePosX;
 			GetOwnerNode->NodePosY = EventNode->NodePosY + EventNode->NodeHeight + 100;
+			UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
 
 			Graph->AddNode(GetOwnerNode);
 		}
@@ -429,19 +431,25 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	// for interface changes, auto-refresh nodes on any dependent blueprints
-	if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
-	{
-		TArray<UBlueprint*> DependentBPs;
-		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+	TArray<UBlueprint*> DependentBPs;
+	FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
 
-		// refresh each dependent blueprint
-		for (UBlueprint* Dependent : DependentBPs)
+	// refresh each dependent blueprint
+	for (UBlueprint* Dependent : DependentBPs)
+	{
+		// for interface changes, auto-refresh nodes on any dependent blueprints
+		// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
+		if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
 		{
 			bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
 			Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
 			FBlueprintEditorUtils::RefreshAllNodes(Dependent);
 			Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
+		}
+		else if(!BlueprintObj->bIsRegeneratingOnLoad)
+		{
+			// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
+			Dependent->BroadcastChanged();
 		}
 	}
 
@@ -487,7 +495,7 @@ void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded)
 {
 	check(BlueprintObj);
-	check(BlueprintObj->GeneratedClass);
+	checkf(BlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *BlueprintObj->GetName());
 
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 
@@ -1251,7 +1259,7 @@ void FKismetEditorUtilities::CreateNewBoundEventForComponent(UActorComponent* Co
 	}
 }
 
-const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AActor* Actor, FName EventName)
+const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AActor const* Actor, FName EventName)
 {
 	const UK2Node_ActorBoundEvent* Node = NULL;
 	if(Actor != NULL && EventName != NAME_None)

@@ -58,19 +58,43 @@ bool FReferenceChainSearch::FReferenceChain::Contains( const FReferenceChain& Ot
 	return true;
 }
 
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+int32 FReferenceChainSearch::FFindReferencerCollector::FindReferencedObjectIndex(const UObject& ReferencedBy, const UObject& ReferencedObject)
+{
+	int32 Result = INDEX_NONE;
+	auto & TokenMap = ReferencedBy.GetClass()->DebugTokenMap;
 
+	for (int32 Index = 0, End = TokenMap.GetTokenMapSize(); Index < End; ++Index)
+	{
+		auto TokenName = TokenMap.GetTokenInfo(Index).Name;
+		if (ReferencedObject.GetFName() == TokenName)
+		{
+			Result = Index;
+			break;
+		}
+	}
+
+	return Result;
+}
+#endif // !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 void FReferenceChainSearch::FFindReferencerCollector::HandleObjectReference( UObject*& InObject, const UObject* RefObject, const UObject* ReferencingProperty )
 {
 	UObject* RefSrc = RefObject != NULL ? const_cast<UObject*>(RefObject) : ReferencingObject;
-
+	int32 ReferencedObjectIndex = INDEX_NONE;
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+	if (RefSrc != nullptr && InObject != nullptr)
+	{
+		ReferencedObjectIndex = FindReferencedObjectIndex(*RefSrc, *InObject);
+	}
+#endif // !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 	if (ReferencingProperty != NULL)
 	{
-		FReferenceChainLink RefInfo(EReferenceType::Property, RefSrc, (void*)ReferencingProperty, InObject);
+		FReferenceChainLink RefInfo(ReferencedObjectIndex, EReferenceType::Property, RefSrc, (void*)ReferencingProperty, InObject);
 		References.Push(RefInfo);
 	}
 	else
 	{
-		FReferenceChainLink RefInfo(RefType, RefSrc, AROFuncPtr, InObject);
+		FReferenceChainLink RefInfo(ReferencedObjectIndex, RefType, RefSrc, AROFuncPtr, InObject);
 		References.Push(RefInfo);
 	}
 }
@@ -95,6 +119,7 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 
 		FString ReferencedThrough = Internal::RefereceTypeToString(RefInfo.ReferenceType);
 
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 		if (RefInfo.ReferencedThrough != NULL)
 		{
 			if ( RefInfo.IsProperty() )
@@ -110,7 +135,11 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 				ReferencedThrough = ANSI_TO_TCHAR(Str);
 			}
 		}
-
+		else if (RefInfo.ReferencedObjectIndex != INDEX_NONE)
+		{
+			ReferencedThrough = RefInfo.GetReferencedByName();
+		}
+#endif
 		FString ObjectReachability;
 		if( RefInfo.ReferencedBy->IsRooted() )
 		{
@@ -496,7 +525,7 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 			UObject*&	Object		= *ObjectPtr;
 			TokenReturnCount		= REFERENCE_INFO.ReturnCount;
 
-			FReferenceChainLink TopRef(InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
+			FReferenceChainLink TopRef(ReferenceTokenStreamIndex, InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
 			AddToReferenceList(ReferenceList, TopRef);
 		}
 		else if( REFERENCE_INFO.Type == GCRT_ArrayObject )
@@ -509,7 +538,7 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 			{
 				UObject*& Object = ObjectArray[ObjectIndex];
 				
-				FReferenceChainLink TopRef(EReferenceType::ArrayProperty, CurrentObject, Prop, Object, ObjectIndex);
+				FReferenceChainLink TopRef(ReferenceTokenStreamIndex, EReferenceType::ArrayProperty, CurrentObject, Prop, Object, ObjectIndex);
 				AddToReferenceList(ReferenceList, TopRef);
 			}
 		}
@@ -548,7 +577,7 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 			UObject*&	Object		= *ObjectPtr;
 			TokenReturnCount		= REFERENCE_INFO.ReturnCount;
 
-			FReferenceChainLink TopRef(InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
+			FReferenceChainLink TopRef(ReferenceTokenStreamIndex, InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
 			AddToReferenceList(ReferenceList, TopRef);
 		}
 		else if( REFERENCE_INFO.Type == GCRT_FixedArray )

@@ -18,25 +18,36 @@ FText UAnimGraphNode_TwoBoneIK::GetControllerDescription() const
 	return LOCTEXT("TwoBoneIK", "Two Bone IK");
 }
 
-FString UAnimGraphNode_TwoBoneIK::GetTooltip() const
+FText UAnimGraphNode_TwoBoneIK::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_TwoBoneIK_Tooltip", "The Two Bone IK control applies an inverse kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.").ToString();
+	return LOCTEXT("AnimGraphNode_TwoBoneIK_Tooltip", "The Two Bone IK control applies an inverse kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.");
 }
 
 FText UAnimGraphNode_TwoBoneIK::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	Args.Add(TEXT("BoneName"), FText::FromName(Node.IKBone.BoneName));
+	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.IKBone.BoneName == NAME_None))
+	{
+		return GetControllerDescription();
+	}
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+		Args.Add(TEXT("BoneName"), FText::FromName(Node.IKBone.BoneName));
 
-	if(TitleType == ENodeTitleType::ListView)
-	{
-		return FText::Format(LOCTEXT("AnimGraphNode_IKBone_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_IKBone_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_IKBone_Title", "{ControllerDescription}\nBone: {BoneName}"), Args));
+		}
 	}
-	else
-	{
-		return FText::Format(LOCTEXT("AnimGraphNode_IKBone_Title", "{ControllerDescription}\nBone: {BoneName}"), Args);
-	}
+	return CachedNodeTitles[TitleType];
 }
 
 void UAnimGraphNode_TwoBoneIK::Draw( FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp ) const

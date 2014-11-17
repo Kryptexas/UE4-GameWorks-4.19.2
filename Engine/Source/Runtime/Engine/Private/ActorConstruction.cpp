@@ -5,6 +5,7 @@
 #include "LatentActions.h"
 #include "DeferRegisterComponents.h"
 #include "ComponentInstanceDataCache.h"
+#include "Engine/LevelScriptActor.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -107,6 +108,7 @@ void AActor::DestroyConstructedComponents()
 
 void AActor::RerunConstructionScripts()
 {
+	FEditorScriptExecutionGuard ScriptGuard;
 	// don't allow (re)running construction scripts on dying actors
 	bool bAllowReconstruction = !IsPendingKill() && !HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed);
 #if WITH_EDITOR
@@ -148,6 +150,8 @@ void AActor::RerunConstructionScripts()
 		FName  SocketName;
 		AActor* Parent = NULL;
 		USceneComponent* ParentComponent = NULL;
+
+		bool bUseRootComponentProperties = true;
 
 		// Struct to store info about attached actors
 		struct FAttachedActorInfo
@@ -191,6 +195,8 @@ void AActor::RerunConstructionScripts()
 						AttachedActor->DetachRootComponentFromParent();
 					}
 				}
+
+				bUseRootComponentProperties = false;
 			}
 		}
 		else
@@ -220,28 +226,28 @@ void AActor::RerunConstructionScripts()
 					EachRoot->DetachFromParent(true);
 				}
 			}
+		}
 
-			if (RootComponent != NULL)
+		if (bUseRootComponentProperties && RootComponent != nullptr)
+		{
+			// Do not need to detach if root component is not going away
+			if (RootComponent->AttachParent != NULL && RootComponent->bCreatedByConstructionScript)
 			{
-				// Do not need to detach if root component is not going away
-				if (RootComponent->AttachParent != NULL && RootComponent->bCreatedByConstructionScript)
+				Parent = RootComponent->AttachParent->GetOwner();
+				// Root component should never be attached to another component in the same actor!
+				if (Parent == this)
 				{
-					Parent = RootComponent->AttachParent->GetOwner();
-					// Root component should never be attached to another component in the same actor!
-					if (Parent == this)
-					{
-						UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
-						Parent = NULL;
-					}
-					ParentComponent = RootComponent->AttachParent;
-					SocketName = RootComponent->AttachSocketName;
-					//detach it to remove any scaling 
-					RootComponent->DetachFromParent(true);
+					UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
+					Parent = NULL;
 				}
-
-				OldTransform = RootComponent->ComponentToWorld;
-				OldTransform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
+				ParentComponent = RootComponent->AttachParent;
+				SocketName = RootComponent->AttachSocketName;
+				//detach it to remove any scaling 
+				RootComponent->DetachFromParent(true);
 			}
+
+			OldTransform = RootComponent->ComponentToWorld;
+			OldTransform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
 		}
 
 		// Destroy existing components
@@ -309,15 +315,16 @@ void AActor::RerunConstructionScripts()
 	}
 }
 
-void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache)
+void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
 
 	// ensure that any existing native root component gets this new transform
-	if (GetRootComponent())
+	// we can skip this in the default case as the given transform will be the root component's transform
+	if (RootComponent && !bIsDefaultTransform)
 	{
-		GetRootComponent()->SetWorldTransform(Transform);
+		RootComponent->SetWorldTransform(Transform);
 	}
 
 	// Generate the parent blueprint hierarchy for this actor, so we can run all the construction scripts sequentially
@@ -329,7 +336,6 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	{
 		if( bErrorFree )
 		{
-			FEditorScriptExecutionGuard ScriptGuard;
 			// Prevent user from spawning actors in User Construction Script
 			TGuardValue<bool> AutoRestoreISCS(GetWorld()->bIsRunningConstructionScript, true);
 			for( int32 i = ParentBPClassStack.Num() - 1; i >= 0; i-- )
@@ -338,7 +344,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 				check(CurrentBPGClass);
 				if(CurrentBPGClass->SimpleConstructionScript)
 				{
-					CurrentBPGClass->SimpleConstructionScript->ExecuteScriptOnActor(this, Transform);
+					CurrentBPGClass->SimpleConstructionScript->ExecuteScriptOnActor(this, Transform, bIsDefaultTransform);
 				}
 				// Now that the construction scripts have been run, we can create timelines and hook them up
 				CurrentBPGClass->CreateComponentsForActor(this);
@@ -382,13 +388,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 #if WITH_EDITOR
 				BillboardComponent->Sprite = (UTexture2D*)(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorResources/BadBlueprintSprite.BadBlueprintSprite"), NULL, LOAD_None, NULL));
 #endif
-				FTransform RelativeTransform = Transform;
-				if(RelativeTransform.GetScale3D().IsZero())
-				{
-					RelativeTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
-				}
-
-				BillboardComponent->SetRelativeTransform(RelativeTransform);
+				BillboardComponent->SetRelativeTransform(Transform);
 
 				SetRootComponent(BillboardComponent);
 				FinishAndRegisterComponent(BillboardComponent);

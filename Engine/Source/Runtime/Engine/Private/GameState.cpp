@@ -57,14 +57,9 @@ void AGameState::PostInitializeComponents()
 	UWorld* World = GetWorld();
 	World->GameState = this;
 
-	for (FActorIterator It(World); It; ++It)
+	for (TActorIterator<APlayerState> It(World); It; ++It)
 	{
-		AActor* TestActor = *It;
-		if (TestActor && !TestActor->IsPendingKill() && TestActor->IsA<APlayerState>())
-		{
-			APlayerState* PlayerState = Cast<APlayerState>(TestActor);
-			AddPlayerState(PlayerState);
-		}
+		AddPlayerState(*It);
 	}
 }
 

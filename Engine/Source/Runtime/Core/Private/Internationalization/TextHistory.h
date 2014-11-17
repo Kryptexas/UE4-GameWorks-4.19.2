@@ -21,6 +21,10 @@ enum class ETextHistoryType
 class CORE_API FTextHistory
 {
 public:
+	friend class FTextSnapshot;
+
+	FTextHistory();
+
 	virtual ~FTextHistory() {};
 
 	/** Rebuilds the FText from the hierarchical history, the result should be in the current locale */
@@ -33,10 +37,17 @@ public:
 	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString);
 
 	/** Returns TRUE if the Revision is out of date */
-	virtual bool IsOutOfDate(int32 InRevision);
+	virtual bool IsOutOfDate();
 
 	/** Returns the source string managed by the history (if any). */
 	virtual TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const;
+
+	/** Will rebuild the display string if out of date. */
+	void Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString);
+
+protected:
+	/** Revision index of this history, rebuilds when it is out of sync with the FTextLocalizationManager */
+	int32 Revision;
 };
 
 /** No complexity to it, just holds the source string. */
@@ -52,7 +63,7 @@ public:
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString) override;
-	virtual bool IsOutOfDate(int32 InRevision) override { return false; }
+	virtual bool IsOutOfDate() override { return false; }
 	virtual TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const override;
 	// End FTextHistory interface
 
@@ -123,7 +134,7 @@ class CORE_API FTextHistory_FormatNumber : public FTextHistory
 {
 public:
 	FTextHistory_FormatNumber();
-	FTextHistory_FormatNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_FormatNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
 	~FTextHistory_FormatNumber();
 
@@ -136,7 +147,7 @@ protected:
 	/** All the formatting options available to format using. This can be NULL */
 	FNumberFormattingOptions* FormatOptions;
 	/** The culture to format using */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> TargetCulture;
+	FCulturePtr TargetCulture;
 };
 
 /**  Handles history for formatting using AsNumber */
@@ -144,7 +155,7 @@ class CORE_API FTextHistory_AsNumber : public FTextHistory_FormatNumber
 {
 public:
 	FTextHistory_AsNumber() {};
-	FTextHistory_AsNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_AsNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
@@ -157,7 +168,7 @@ class CORE_API FTextHistory_AsPercent : public FTextHistory_FormatNumber
 {
 public:
 	FTextHistory_AsPercent() {};
-	FTextHistory_AsPercent(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_AsPercent(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
@@ -170,12 +181,16 @@ class CORE_API FTextHistory_AsCurrency : public FTextHistory_FormatNumber
 {
 public:
 	FTextHistory_AsCurrency() {};
-	FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FString& CurrencyCode, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
+
+private:
+	/** The currency used to format the number. */
+	FString CurrencyCode;
 };
 
 /**  Handles history for formatting using AsDate */
@@ -183,7 +198,7 @@ class CORE_API FTextHistory_AsDate : public FTextHistory
 {
 public:
 	FTextHistory_AsDate() {};
-	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
@@ -196,7 +211,7 @@ private:
 	/** Style to format the date using */
 	EDateTimeStyle::Type DateStyle;
 	/** Culture to format the date in */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> TargetCulture;
+	FCulturePtr TargetCulture;
 };
 
 /**  Handles history for formatting using AsTime */
@@ -204,7 +219,7 @@ class CORE_API FTextHistory_AsTime : public FTextHistory
 {
 public:
 	FTextHistory_AsTime() {};
-	FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
@@ -219,7 +234,7 @@ private:
 	/** Timezone to put the time in */
 	FString TimeZone;
 	/** Culture to format the time in */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> TargetCulture;
+	FCulturePtr TargetCulture;
 };
 
 /**  Handles history for formatting using AsDateTime */
@@ -227,7 +242,7 @@ class CORE_API FTextHistory_AsDateTime : public FTextHistory
 {
 public:
 	FTextHistory_AsDateTime() {};
-	FTextHistory_AsDateTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture);
+	FTextHistory_AsDateTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
@@ -244,5 +259,5 @@ private:
 	/** Timezone to put the time in */
 	FString TimeZone;
 	/** Culture to format the time in */
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> TargetCulture;
+	FCulturePtr TargetCulture;
 };

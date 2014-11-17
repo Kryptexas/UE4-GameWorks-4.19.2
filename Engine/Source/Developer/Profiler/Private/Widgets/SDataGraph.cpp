@@ -4,14 +4,6 @@
 
 #define LOCTEXT_NAMESPACE "SDataGraph"
 
-/**
- * @return hash value for the specified linear color
- */
-FORCEINLINE uint32 GetTypeHash( const FLinearColor& LinearColor )
-{
-	return LinearColor.ToFColor(true).DWColor();
-}
-
 /*-----------------------------------------------------------------------------
 	STrackedStatSummary/SDataGraphSummary
 -----------------------------------------------------------------------------*/

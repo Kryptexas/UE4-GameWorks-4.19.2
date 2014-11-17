@@ -113,15 +113,30 @@ void UBodySetup::CreatePhysicsMeshes()
 			return;
 		}
 
-		ClearPhysicsMeshes(); // Make sure all are cleared before we start
-
-		// Create physics objects
-		FPhysXFormatDataReader CookedDataReader( *FormatData );
-		check( !bGenerateNonMirroredCollision || CookedDataReader.ConvexMeshes.Num() == 0 || CookedDataReader.ConvexMeshes.Num() == AggGeom.ConvexElems.Num() );
-		check( !bGenerateMirroredCollision || CookedDataReader.ConvexMeshesNegX.Num() == 0 || CookedDataReader.ConvexMeshesNegX.Num() == AggGeom.ConvexElems.Num() );
+		FPhysXFormatDataReader CookedDataReader(*FormatData);
 
 		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
 		{
+			bool bNeedsCooking = bGenerateNonMirroredCollision && CookedDataReader.ConvexMeshes.Num() != AggGeom.ConvexElems.Num();
+			bNeedsCooking = bNeedsCooking || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() != AggGeom.ConvexElems.Num());
+			if (bNeedsCooking)	//Because of bugs it's possible to save with out of sync cooked data. In editor we want to fixup this data
+			{
+#if WITH_EDITOR
+				InvalidatePhysicsData();
+				CreatePhysicsMeshes();
+				return;
+#endif
+			}
+		}
+		
+		ClearPhysicsMeshes();
+
+		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
+		{
+
+			ensure(!bGenerateNonMirroredCollision || CookedDataReader.ConvexMeshes.Num() == 0 || CookedDataReader.ConvexMeshes.Num() == AggGeom.ConvexElems.Num());
+			ensure(!bGenerateMirroredCollision || CookedDataReader.ConvexMeshesNegX.Num() == 0 || CookedDataReader.ConvexMeshesNegX.Num() == AggGeom.ConvexElems.Num());
+
 			//If the cooked data no longer has convex meshes, make sure to empty AggGeom.ConvexElems - otherwise we leave NULLS which cause issues, and we also read past the end of CookedDataReader.ConvexMeshes
 			if ((bGenerateNonMirroredCollision && CookedDataReader.ConvexMeshes.Num() == 0) || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() == 0))
 			{
@@ -275,20 +290,11 @@ void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScale
 	}
 }
 
-#if WITH_BODY_WELDING
-void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM /* = NULL */)
-#else
-void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D)
-#endif
+void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM /* = NULL */, TArray<physx::PxShape*> * NewShapes /* = NULL */ )
 {
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes
 	CreatePhysicsMeshes();
-#endif
-
-#if WITH_BODY_WELDING
-#else
-	FTransform * RelativeTM = NULL;	//code below already handles NULL case, just using ifdef to make it clear that the non NULL case isn't really supported yet
 #endif
 
 	float MinScale;
@@ -340,6 +346,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 				ensure(PLocalPose.isValid());
 				PxShape* NewShape = PDestActor->createShape(PSphereGeom, *PDefaultMat, PLocalPose);
+				
+				if (NewShapes)
+				{
+					NewShapes->Add(NewShape);
+				}
 
 				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
 				NewShape->setContactOffset(ContactOffset);
@@ -370,6 +381,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 				ensure(PLocalPose.isValid());
 				PxShape* NewShape = PDestActor->createShape(PBoxGeom, *PDefaultMat, PLocalPose);
+	
+				if (NewShapes)
+				{
+					NewShapes->Add(NewShape);
+				}
 
 				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
 				NewShape->setContactOffset(ContactOffset);
@@ -412,6 +428,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 					ensure(PLocalPose.isValid());
 					PxShape* NewShape = PDestActor->createShape(PCapsuleGeom, *PDefaultMat, PLocalPose);
+	
+					if (NewShapes)
+					{
+						NewShapes->Add(NewShape);
+					}
 
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
 					NewShape->setContactOffset(ContactOffset);
@@ -453,6 +474,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 						ensure(PLocalPose.isValid());
 						PxShape* NewShape = PDestActor->createShape(PConvexGeom, *PDefaultMat, PLocalPose);
+	
+						if (NewShapes)
+						{
+							NewShapes->Add(NewShape);
+						}
 
 						const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
 						NewShape->setContactOffset(ContactOffset);
@@ -530,7 +556,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 #endif // WITH_PHYSX
 
 
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 void UBodySetup::RemoveSimpleCollision()
 {
@@ -802,12 +828,16 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format)
 			return NULL;
 		}
 
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 		TArray<uint8> OutData;
 		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, this);
 		if (DerivedPhysXData->CanBuild())
 		{
+		#if WITH_EDITOR
 			GetDerivedDataCacheRef().GetSynchronous(DerivedPhysXData, OutData);
+		#elif WITH_RUNTIME_PHYSICS_COOKING
+			DerivedPhysXData->Build(OutData);
+		#endif
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);

@@ -30,9 +30,12 @@ class UCameraComponent : public USceneComponent
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bConstrainAspectRatio:1;
 
-	/** If this camera component is placed on a pawn, should it use the view rotation of the pawn where possible? */
+	/**
+	 * If this camera component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
+	 * @see APawn::GetViewRotation()
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
-	uint32 bUseControllerViewRotation:1;
+	uint32 bUsePawnControlRotation:1;
 
 	// The type of camera
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
@@ -49,6 +52,7 @@ class UCameraComponent : public USceneComponent
 	// UActorComponent interface
 	ENGINE_API virtual void OnRegister() override;
 	ENGINE_API virtual void OnUnregister() override;
+	ENGINE_API virtual void PostLoad() override;
 #if WITH_EDITOR
 	ENGINE_API virtual void CheckForErrors() override;
 	// End of UActorComponent interface
@@ -77,8 +81,9 @@ protected:
 	// The camera mesh to show visually where the camera is placed
 	UPROPERTY(transient)
 	class UStaticMeshComponent* ProxyMeshComponent;
-
+#endif
 public:
+#if WITH_EDITOR
 	// Refreshes the visual components to match the component state
 	ENGINE_API virtual void RefreshVisualRepresentation();
 
@@ -86,4 +91,27 @@ public:
 	ENGINE_API void OverrideFrustumColor(FColor OverrideColor);
 	ENGINE_API void RestoreFrustumColor();
 #endif
+
+public:
+	/** DEPRECATED: use bUsePawnControlRotation instead */
+	UPROPERTY()
+	uint32 bUseControllerViewRotation_DEPRECATED:1;
+
+	/**
+	 * DEPRECATED variable: use "bUsePawnControlRotation" instead. Existing code using this value may not behave correctly.
+	 *
+	 * The correct way to be backwards-compatible for existing saved content using CameraComponents is:
+	 *  - add "_DEPRECATED" to any constructor initialization of bUseControllerViewRotation (which becomes bUseControllerViewRotation_DEPRECATED).
+	 *	- add initialization of the new "bUsePawnControlRotation" to your desired default value.
+	 *	- if there was no previous initialization of bUseControllerViewRotation in code, then you MUST add initialization of bUsePawnControlRotation
+	 *    to "true" if you wish to maintain the same behavior as before (since the default has changed).
+	 *
+	 * This is not a UPROPERTY, with good reason: we don't want to serialize in old values (bUseControllerViewRotation_DEPRECATED handles that).
+	 */
+	DEPRECATED(4.5, "This variable is deprecated; please see the upgrade notes. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
+	bool bUseControllerViewRotation;
+
+private:
+	// Workaround for compiler-generated function using deprecated variable. Nobody should copy-construct this class anyway.
+	UCameraComponent(const UCameraComponent&);
 };

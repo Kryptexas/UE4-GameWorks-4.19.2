@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CurveHandle.h: Declares the FCurveHandle structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -57,7 +53,6 @@ public:
 	 * Gets the linearly interpolated value between 0 and 1 for this curve.
 	 *
 	 * @return Lerp value.
-	 *
 	 * @see GetLerpLooping
 	 */
 	float GetLerp( ) const;
@@ -66,7 +61,6 @@ public:
 	 * Just like GetLerp, but loops forever.
 	 *
 	 * @return Looped lerp value.
-	 *
 	 * @see GetLerp
 	 */
 	float GetLerpLooping( ) const;
@@ -75,7 +69,6 @@ public:
 	 * Checks whether this handle is initialized.
 	 *
 	 * A curve handle is considered initialized if it has an owner sequence.
-	 *
 	 * @return true if initialized, false otherwise.
 	 */
 	bool IsInitialized( ) const

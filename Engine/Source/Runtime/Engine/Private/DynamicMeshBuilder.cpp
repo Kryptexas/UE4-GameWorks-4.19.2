@@ -412,6 +412,69 @@ void FDynamicMeshBuilder::AddTriangles(const TArray<int32> &InIndices)
 	IndexBuffer->Indices.Append(InIndices);
 }
 
+void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup,bool bDisableBackfaceCulling, bool bReceivesDecals, int32 ViewIndex, FMeshElementCollector& Collector) 
+{
+	// Only draw non-empty meshes.
+	if(VertexBuffer->Vertices.Num() > 0 && IndexBuffer->Indices.Num() > 0)
+	{
+		FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+		// Register the dynamic resources with the PDI.
+		PDI->RegisterDynamicResource(VertexBuffer);
+		PDI->RegisterDynamicResource(IndexBuffer);
+
+		// Create the vertex factory.
+		FDynamicMeshVertexFactory* VertexFactory = new FDynamicMeshVertexFactory(VertexBuffer);
+		PDI->RegisterDynamicResource(VertexFactory);
+
+		// Create the primitive uniform buffer.
+		FDynamicMeshPrimitiveUniformBuffer* PrimitiveUniformBuffer = new FDynamicMeshPrimitiveUniformBuffer();
+		FPrimitiveUniformShaderParameters PrimitiveParams = GetPrimitiveUniformShaderParameters(
+			LocalToWorld,
+			LocalToWorld.GetOrigin(),
+			FBoxSphereBounds(EForceInit::ForceInit),
+			FBoxSphereBounds(EForceInit::ForceInit),
+			bReceivesDecals,
+			false,
+			false,
+			1.0f		// LPV bias
+			);
+
+
+		if (IsInGameThread())
+		{
+			BeginSetUniformBufferContents(*PrimitiveUniformBuffer, PrimitiveParams);
+		}
+		else
+		{
+			PrimitiveUniformBuffer->SetContents(PrimitiveParams);
+		}
+		PDI->RegisterDynamicResource(PrimitiveUniformBuffer);
+
+		// Draw the mesh.
+		FMeshBatch& Mesh = Collector.AllocateMesh();
+		FMeshBatchElement& BatchElement = Mesh.Elements[0];
+		BatchElement.IndexBuffer = IndexBuffer;
+		Mesh.VertexFactory = VertexFactory;
+		Mesh.MaterialRenderProxy = MaterialRenderProxy;
+		BatchElement.PrimitiveUniformBufferResource = PrimitiveUniformBuffer;
+		// previous l2w not used so treat as static
+		BatchElement.FirstIndex = 0;
+		BatchElement.NumPrimitives = IndexBuffer->Indices.Num() / 3;
+		BatchElement.MinVertexIndex = 0;
+		BatchElement.MaxVertexIndex = VertexBuffer->Vertices.Num() - 1;
+		Mesh.ReverseCulling = LocalToWorld.Determinant() < 0.0f ? true : false;
+		Mesh.bDisableBackfaceCulling = bDisableBackfaceCulling;
+		Mesh.Type = PT_TriangleList;
+		Mesh.DepthPriorityGroup = DepthPriorityGroup;
+		Collector.AddMesh(ViewIndex, Mesh);
+
+		// Clear the resource pointers so they cannot be overwritten accidentally.
+		// These resources will be released by the PDI.
+		VertexBuffer = NULL;
+		IndexBuffer = NULL;
+	}
+}
+
 void FDynamicMeshBuilder::Draw(FPrimitiveDrawInterface* PDI,const FMatrix& LocalToWorld,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup,bool bDisableBackfaceCulling, bool bReceivesDecals)
 {
 	// Only draw non-empty meshes.
@@ -433,6 +496,7 @@ void FDynamicMeshBuilder::Draw(FPrimitiveDrawInterface* PDI,const FMatrix& Local
 			FBoxSphereBounds(EForceInit::ForceInit),
 			FBoxSphereBounds(EForceInit::ForceInit),
 			bReceivesDecals,
+			false,
 			false,
 			1.0f		// LPV bias
 			);

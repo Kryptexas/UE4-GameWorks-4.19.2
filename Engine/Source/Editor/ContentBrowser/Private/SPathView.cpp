@@ -14,6 +14,7 @@ SPathView::~SPathView()
 {
 	// Unsubscribe from content path events
 	FPackageName::OnContentPathMounted().RemoveAll( this );
+	FPackageName::OnContentPathDismounted().RemoveAll( this );
 
 	// Load the asset registry module to stop listening for updates
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -36,12 +37,16 @@ void SPathView::Construct( const FArguments& InArgs )
 	bAllowClassesFolder = InArgs._AllowClassesFolder;
 	PreventTreeItemChangedDelegateCount = 0;
 
+	// Listen for when view settings are changed
+	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SPathView::HandleSettingChanged);
+
 	//Setup the SearchBox filter
 	SearchBoxFolderFilter = MakeShareable( new FolderTextFilter( FolderTextFilter::FItemToStringArray::CreateSP( this, &SPathView::PopulateFolderSearchStrings ) ) );
 	SearchBoxFolderFilter->OnChanged().AddSP( this, &SPathView::FilterUpdated );
 
-	// Listen to find out when new game content paths are mounted, so that we can refresh our root set of paths
-	FPackageName::OnContentPathMounted().AddSP( this, &SPathView::OnContentPathMounted );
+	// Listen to find out when new game content paths are mounted or dismounted, so that we can refresh our root set of paths
+	FPackageName::OnContentPathMounted().AddSP( this, &SPathView::OnContentPathMountedOrDismounted );
+	FPackageName::OnContentPathDismounted().AddSP( this, &SPathView::OnContentPathMountedOrDismounted );
 
 	ClassesRootName = TEXT("Classes");
 	GameRootName = TEXT("Game");
@@ -333,7 +338,7 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 			}
 			else
 			{
-				CurrentItem->bNewFolder = false;
+				CurrentItem->bNamingFolder = false;
 			}
 		}
 
@@ -383,6 +388,26 @@ bool SPathView::RemovePath(const FString& Path)
 	{
 		// Did not find the folder to remove
 		return false;
+	}
+}
+
+void SPathView::RenameFolder(const FString& FolderToRename)
+{
+	TArray<TSharedPtr<FTreeItem>> Items = TreeViewPtr->GetSelectedItems();
+	for (int32 ItemIdx = 0; ItemIdx < Items.Num(); ++ItemIdx)
+	{
+		TSharedPtr<FTreeItem>& Item = Items[ItemIdx];
+		if (Item.IsValid())
+		{
+			if (Item->FolderPath == FolderToRename)
+			{
+				Item->bNamingFolder = true;
+
+				TreeViewPtr->SetSelection(Item);
+				TreeViewPtr->RequestScrollIntoView(Item);
+				break;
+			}
+		}
 	}
 }
 
@@ -457,7 +482,7 @@ void SPathView::SyncToAssets( const TArray<FAssetData>& AssetDataList, const boo
 		else
 		{
 			// Explicit sync so just clear the selection
-		TreeViewPtr->ClearSelection();
+			TreeViewPtr->ClearSelection();
 		}
 
 		// SyncTreeItems should now only contain items which aren't already shown explicitly or implicitly (as a child)
@@ -471,9 +496,9 @@ void SPathView::SyncToAssets( const TArray<FAssetData>& AssetDataList, const boo
 		if (SyncTreeItems.Num() > 0)
 		{
 			// Scroll the first item into view if applicable
-		TreeViewPtr->RequestScrollIntoView(SyncTreeItems[0]);
+			TreeViewPtr->RequestScrollIntoView(SyncTreeItems[0]);
+		}
 	}
-}
 }
 
 TSharedPtr<FTreeItem> SPathView::FindItemRecursive(const FString& Path) const
@@ -747,7 +772,7 @@ TSharedRef<ITableRow> SPathView::GenerateTreeRow( TSharedPtr<FTreeItem> TreeItem
 
 void SPathView::TreeItemScrolledIntoView( TSharedPtr<FTreeItem> TreeItem, const TSharedPtr<ITableRow>& Widget )
 {
-	if ( TreeItem->bNewFolder && Widget.IsValid() && Widget->GetContent().IsValid() )
+	if ( TreeItem->bNamingFolder && Widget.IsValid() && Widget->GetContent().IsValid() )
 	{
 		TreeItem->OnRenamedRequestEvent.Broadcast();
 	}
@@ -791,16 +816,23 @@ void SPathView::TreeSelectionChanged( TSharedPtr< FTreeItem > TreeItem, ESelectI
 
 		if ( OnPathSelected.IsBound() )
 		{
-		if ( TreeItem.IsValid() )
-		{
-			OnPathSelected.Execute(TreeItem->FolderPath);
-		}
-		else
-		{
-			OnPathSelected.Execute(TEXT(""));
+			if ( TreeItem.IsValid() )
+			{
+				OnPathSelected.Execute(TreeItem->FolderPath);
+			}
+			else
+			{
+				OnPathSelected.Execute(TEXT(""));
+			}
 		}
 	}
-}
+
+	if (TreeItem.IsValid())
+	{
+		// Prioritize the asset registry scan for the selected path
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().PrioritizeSearchPath(TreeItem->FolderPath);
+	}
 }
 
 void SPathView::TreeExpansionChanged( TSharedPtr< FTreeItem > TreeItem, bool bIsExpanded )
@@ -976,7 +1008,9 @@ bool SPathView::VerifyFolderNameChanged(const FText& InName, FText& OutErrorMess
 	{
 		return false;
 	}
-	else if( ContentBrowserUtils::DoesFolderExist(InFolderPath) )
+
+	const FString NewPath = FPaths::GetPath(InFolderPath) / InName.ToString();
+	if (ContentBrowserUtils::DoesFolderExist(NewPath))
 	{
 		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
 		return false;
@@ -985,7 +1019,7 @@ bool SPathView::VerifyFolderNameChanged(const FText& InName, FText& OutErrorMess
 	return true;
 }
 
-void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FVector2D& MessageLocation )
+void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation )
 {
 	// Verify the name of the folder
 	FText Reason;
@@ -1026,7 +1060,25 @@ void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, cons
 
 		// Update the asset registry so this folder will persist
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetRegistryModule.Get().AddPath(TreeItem->FolderPath);
+		if (AssetRegistryModule.Get().AddPath(TreeItem->FolderPath) && TreeItem->FolderPath != OldPath)
+		{
+			// move any assets in our folder
+			TArray<FAssetData> AssetsInFolder;
+			AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInFolder, true);
+			TArray<UObject*> ObjectsInFolder;
+			ContentBrowserUtils::GetObjectsInAssetData(AssetsInFolder, ObjectsInFolder);
+			ContentBrowserUtils::MoveAssets(ObjectsInFolder, TreeItem->FolderPath, OldPath);
+
+			// Now check to see if the original folder is empty, if so we can delete it
+			TArray<FAssetData> AssetsInOriginalFolder;
+			AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInOriginalFolder, true);
+			if (AssetsInOriginalFolder.Num() == 0)
+			{
+				TArray<FString> FoldersToDelete;
+				FoldersToDelete.Add(OldPath);
+				ContentBrowserUtils::DeleteFolders(FoldersToDelete);
+			}
+		}
 	}
 	else
 	{
@@ -1281,11 +1333,55 @@ void SPathView::OnAssetRegistrySearchCompleted()
 	PendingInitialPaths.Empty();
 }
 
-
-void SPathView::OnContentPathMounted( const FString& ContentPath )
+void SPathView::OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FilesystemPath )
 {
 	// A new content path has appeared, so we should refresh out root set of paths
 	bNeedsRepopulate = true;
+}
+
+void SPathView::HandleSettingChanged(FName PropertyName)
+{
+	if ((PropertyName == "DisplayDevelopersFolder") ||
+		(PropertyName == "DisplayEngineFolder") ||
+		(PropertyName == "DisplayPluginFolders") ||
+		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
+	{
+		// If the dev or engine folder is no longer visible but we're inside it...
+		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
+		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+		if (!bDisplayDev || !bDisplayEngine || !bDisplayPlugins)
+		{
+			const FString OldSelectedPath = GetSelectedPath();
+			if ((!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(OldSelectedPath)) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder(OldSelectedPath)) || (!bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(OldSelectedPath)))
+			{
+				// Set the folder back to the root, and refresh the contents
+				TSharedPtr<FTreeItem> GameRoot = FindItemRecursive(TEXT("/Game"));
+				if ( GameRoot.IsValid() )
+				{
+					TreeViewPtr->SetSelection(GameRoot);
+				}
+				else
+				{
+					TreeViewPtr->ClearSelection();
+				}
+			}
+		}
+
+		// Update our path view so that it can include/exclude the dev folder
+		Populate();
+
+		// If the dev or engine folder has become visible and we're inside it...
+		if (bDisplayDev || bDisplayEngine || bDisplayPlugins)
+		{
+			const FString NewSelectedPath = GetSelectedPath();
+			if ((bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(NewSelectedPath)) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder(NewSelectedPath)) || (bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(NewSelectedPath)))
+			{
+				// Refresh the contents
+				OnPathSelected.ExecuteIfBound(NewSelectedPath);
+			}
+		}
+	}
 }
 
 

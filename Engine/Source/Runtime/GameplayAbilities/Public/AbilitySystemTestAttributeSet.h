@@ -4,7 +4,7 @@
 #include "AttributeSet.h"
 #include "AbilitySystemTestAttributeSet.generated.h"
 
-UCLASS(Blueprintable, BlueprintType)
+UCLASS(Blueprintable, BlueprintType, meta=(HideInDetailsView))
 class GAMEPLAYABILITIES_API UAbilitySystemTestAttributeSet : public UAttributeSet
 {
 	GENERATED_UCLASS_BODY()

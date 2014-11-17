@@ -8,6 +8,8 @@
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
 
+#include "VerticalAlignmentCustomization.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 void FVerticalAlignmentCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)

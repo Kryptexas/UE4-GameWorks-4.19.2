@@ -12,6 +12,7 @@
 
 #include "IHeadMountedDisplay.h"
 #include "Debug/ReporterGraph.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCanvas, Log, All);
 
@@ -24,7 +25,7 @@ DEFINE_STAT(STAT_Canvas_GetBatchElementsTime);
 DEFINE_STAT(STAT_Canvas_AddTileRenderTime);
 DEFINE_STAT(STAT_Canvas_NumBatchesCreated);
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
@@ -33,6 +34,8 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentRealTime(0)
 ,	CurrentWorldTime(0)
 ,	CurrentDeltaWorldTime(0)
+,	FeatureLevel(InFeatureLevel)
+,	ShaderPlatform(GRHIShaderPlatform)
 {
 	Construct();
 
@@ -44,7 +47,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 	}
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
@@ -53,6 +56,8 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentRealTime(InRealTime)
 ,	CurrentWorldTime(InWorldTime)
 ,	CurrentDeltaWorldTime(InWorldDeltaTime)
+,	FeatureLevel(InFeatureLevel)
+,	ShaderPlatform(GRHIShaderPlatform)
 {
 	Construct();
 }
@@ -62,6 +67,7 @@ void FCanvas::Construct()
 	check(RenderTarget);
 
 	bScaledToRenderTarget = false;
+	bAllowsToSwitchVerticalAxis = true;
 
 	// Push the viewport transform onto the stack.  Default to using a 2D projection. 
 	new(TransformStack) FTransformEntry( 
@@ -170,12 +176,12 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 			Gamma = 1.0f;
 		}
 
-		const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-
+		bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
 
 		// draw batched items
 		Data->BatchedElements.Draw(
 			RHICmdList,
+			Canvas->GetFeatureLevel(),
 			bNeedsToSwitchVerticalAxis,
 			Data->Transform.GetMatrix(),
 			CanvasRenderTarget->GetSizeXY().X,
@@ -197,10 +203,10 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 	return bDirty;
 }
 
-bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
+bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 {	
 	checkSlow(Data);
-	bool bDirty=false;		
+	bool bDirty=false;
 	if( Data->BatchedElements.HasPrimsToDraw() )
 	{
 		bDirty = true;
@@ -213,36 +219,45 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
 			Gamma = 1.0f;
 		}
 
+		bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
+
 		// Render the batched elements.
 		struct FBatchedDrawParameters
 		{
 			FRenderData* RenderData;
 			uint32 bHitTesting : 1;
+			uint32 bNeedsToSwitchVerticalAxis : 1;
 			uint32 ViewportSizeX;
 			uint32 ViewportSizeY;
 			float DisplayGamma;
 			uint32 AllowedCanvasModes;
+			ERHIFeatureLevel::Type FeatureLevel;
+			EShaderPlatform ShaderPlatform;
 		};
 		// all the parameters needed for rendering
 		FBatchedDrawParameters DrawParameters =
 		{
 			Data,
 			Canvas->IsHitTesting(),
+			bNeedsToSwitchVerticalAxis,
 			(uint32)CanvasRenderTarget->GetSizeXY().X,
 			(uint32)CanvasRenderTarget->GetSizeXY().Y,
 			Gamma,
-			Canvas->GetAllowedModes()
+			Canvas->GetAllowedModes(),
+			Canvas->GetFeatureLevel(),
+			Canvas->GetShaderPlatform()
 		};
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			BatchedDrawCommand,
 			FBatchedDrawParameters,Parameters,DrawParameters,
 		{
-			const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-				
+			SCOPED_DRAW_EVENT(RHICmdList, CanvasBatchedElements, DEC_CANVAS);
+
 			// draw batched items
 			Parameters.RenderData->BatchedElements.Draw(
 				RHICmdList,
-				bNeedsToSwitchVerticalAxis,
+				Parameters.FeatureLevel,
+				Parameters.bNeedsToSwitchVerticalAxis,
 				Parameters.RenderData->Transform.GetMatrix(),
 				Parameters.ViewportSizeX,
 				Parameters.ViewportSizeY,
@@ -297,6 +312,8 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
+
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
 	for( int32 TileIdx=0; TileIdx < Data->Tiles.Num(); TileIdx++ )
@@ -306,6 +323,7 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 			RHICmdList,
 			*View, 
 			Data->MaterialRenderProxy, 
+			bNeedsToSwitchVerticalAxis,
 			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
 			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
 			Canvas->IsHitTesting(), Tile.HitProxyId
@@ -361,24 +379,28 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
 	struct FDrawTileParameters
 	{
 		FSceneView* View;
 		FRenderData* RenderData;
 		uint32 bIsHitTesting : 1;
+		uint32 bNeedsToSwitchVerticalAxis : 1;
 		uint32 AllowedCanvasModes;
 	};
 	FDrawTileParameters DrawTileParameters =
 	{
 		View,
 		Data,
+		bNeedsToSwitchVerticalAxis,
 		Canvas->IsHitTesting(),
 		Canvas->GetAllowedModes()
 	};
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		DrawTileCommand,
 		FDrawTileParameters, Parameters, DrawTileParameters,
-		{
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTile, DEC_CANVAS);
 		for (int32 TileIdx = 0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++)
 		{
 			const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
@@ -386,6 +408,7 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 				RHICmdList,
 				*Parameters.View,
 				Parameters.RenderData->MaterialRenderProxy,
+				Parameters.bNeedsToSwitchVerticalAxis,
 				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
 				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
 				Parameters.bIsHitTesting, Tile.HitProxyId
@@ -543,7 +566,7 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 	// sort the array of FCanvasSortElement entries so that higher sort keys render first (back-to-front)
 	SortedElements.Sort(FCompareFCanvasSortElement());
 
-	SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush, DEC_CANVAS);
 	const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
 
 	check(IsValidRef(RenderTargetTexture));
@@ -635,11 +658,13 @@ void FCanvas::Flush_GameThread(bool bForce)
 		ViewRect,
 		RenderTarget
 	};
+	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		CanvasFlushSetupCommand,
 		FCanvasFlushParameters,Parameters,FlushParameters,
 	{
-		SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush, DEC_CANVAS);
 
 		// Set the RHI render target.
 		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
@@ -785,14 +810,15 @@ void FCanvas::Clear(const FLinearColor& Color)
 		ClearCommand,
 		FColor,Color,GammaCorrectedColor,
 		FRenderTarget*,CanvasRenderTarget,GetRenderTarget(),
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear, DEC_CANVAS);
+		if( CanvasRenderTarget )
 		{
-			if( CanvasRenderTarget )
-			{
-				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
-				RHICmdList.SetViewport(0,0,0.0f,CanvasRenderTarget->GetSizeXY().X,CanvasRenderTarget->GetSizeXY().Y,1.0f);
-			}
-			RHICmdList.Clear(true,Color,false,0.0f,false,0, FIntRect());
-		});
+			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
+			RHICmdList.SetViewport(0,0,0.0f,CanvasRenderTarget->GetSizeXY().X,CanvasRenderTarget->GetSizeXY().Y,1.0f);
+		}
+		RHICmdList.Clear(true,Color,false,0.0f,false,0, FIntRect());
+	});
 }
 
 void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, float V, float SizeU, float SizeV, const FLinearColor& Color,	const FTexture* Texture, bool AlphaBlend )
@@ -1042,11 +1068,9 @@ namespace
 		FTextSizingParameters MeasureParameters(Parameters);
 		FString Substring(EndIndex - StartIndex, String + StartIndex);
 		FWrappedStringElement Element(*Substring, 0.0f, 0.0f);
-		int32 X;
-		int32 Y;
-		StringSize(MeasureParameters.DrawFont, X, Y, *Element.Value);
-		Element.LineExtent.X = X;
-		Element.LineExtent.Y = Y;
+		UCanvas::CanvasStringSize(MeasureParameters, *Element.Value);
+		Element.LineExtent.X = MeasureParameters.DrawXL;
+		Element.LineExtent.Y = MeasureParameters.DrawYL;
 		Results.Add(Element);
 	}
 
@@ -1400,45 +1424,48 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 
 	float DrawX = OrgX + X;
 	float DrawY = OrgY + Y;
+	if (bCenterTextY)
+	{
+		// Center text about DrawY
+		float MeasuredHeight = 0.f;
+		for (const FWrappedStringElement& WrappedString : WrappedStrings)
+		{
+			MeasuredHeight += WrappedString.LineExtent.Y;
+		}
+		DrawY -= (MeasuredHeight * 0.5f);
+	}
+
 	float XL = 0.f;
 	float YL = 0.f;
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), Font, DrawColor );
 	TextItem.Scale = FVector2D( ScaleX, ScaleY );
 	TextItem.BlendMode = SE_BLEND_Translucent;
 	TextItem.FontRenderInfo = RenderInfo;
-	for (int32 Idx = 0; Idx < WrappedStrings.Num(); Idx++)
+	for (const FWrappedStringElement& WrappedString : WrappedStrings)
 	{
-		if (bCenterTextX || bCenterTextY)
+		float LineDrawX = DrawX;
+		float LineDrawY = DrawY;
+
+		if (bCenterTextX)
 		{
 			// Center text about DrawX
-			int32 StringSizeX, StringSizeY;
-			StringSize(Font, StringSizeX, StringSizeY, *WrappedStrings[Idx].Value);
-
-			if (bCenterTextX)
-			{
-				DrawX = OrgX + X - (StringSizeX / 2);
-			}
-			if (bCenterTextY)
-			{
-				DrawY = OrgY + Y - (StringSizeY / 2);
-			}
+			LineDrawX -= (WrappedString.LineExtent.X * 0.5f);
 		}
 
 		float LineXL = 0.0f;
 		if( Draw )
 		{
-			TextItem.Text = FText::FromString(WrappedStrings[Idx].Value);
-			Canvas->DrawItem( TextItem, DrawX, DrawY );
+			TextItem.Text = FText::FromString(WrappedString.Value);
+			Canvas->DrawItem( TextItem, LineDrawX, LineDrawY );
 			LineXL = TextItem.DrawnSize.X;
 		}
 		else
 		{
 			int32 TempX;
 			int32 TempY;
-			ClippedStrLen(Font, ScaleX, ScaleY, TempX, TempY, *WrappedStrings[Idx].Value);
+			ClippedStrLen(Font, ScaleX, ScaleY, TempX, TempY, *WrappedString.Value);
 			LineXL = TempX;
 		}
-		//float const LineXL = Canvas->DrawString( DrawX, DrawY, *WrappedStrings[Idx].Value, Font, DrawColor, ScaleX, ScaleY, 0.0f, NULL, SE_BLEND_Translucent, Draw, 0.f, 1.f, RenderInfo );
 		XL = FMath::Max<float>(XL, LineXL);
 		DrawY += Font->GetMaxCharHeight() * ScaleY;
 		YL += Font->GetMaxCharHeight() * ScaleY;
@@ -1457,12 +1484,11 @@ void UCanvas::StrLen( UFont* InFont, const FString& InText, float& XL, float& YL
 	}
 	else
 	{
-		int32 XLi = 0, YLi = 0;
+		FTextSizingParameters Parameters(InFont,1.0f,1.0f);
+		UCanvas::CanvasStringSize(Parameters, *InText);
 
-		StringSize(InFont, XLi, YLi, *InText);
-
-		XL = XLi;
-		YL = YLi;
+		XL = Parameters.DrawXL;
+		YL = Parameters.DrawYL;
 	}
 }
 
@@ -1482,7 +1508,7 @@ void UCanvas::TextSize(UFont* InFont, const FString& InText, float& XL, float& Y
 	YL = YLi;
 }
 
-FVector UCanvas::Project( FVector Location )
+FVector UCanvas::Project(FVector Location) const
 {
 	FPlane V(0,0,0,0);
 
@@ -1505,7 +1531,7 @@ FVector UCanvas::Project( FVector Location )
 	return resultVec;
 }
 
-void UCanvas::Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection)
+void UCanvas::Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection) const
 {
 	if (SceneView != NULL)
 	{

@@ -299,7 +299,7 @@ public:
 	 */
 	void SerializeBinEx( FArchive& Ar, void* Data, void const* DefaultData, UStruct* DefaultStruct ) const;
 
-	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
+	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad=NULL) const;
 
 #if WITH_EDITOR
 private:
@@ -471,6 +471,10 @@ struct TStructOpsTypeTraitsBase
 template<class CPPSTRUCT>
 struct TStructOpsTypeTraits : public TStructOpsTypeTraitsBase
 {
+	enum
+	{
+		WithCopy = !TIsPODType<CPPSTRUCT>::Value
+	};
 };
 
 
@@ -1284,26 +1288,37 @@ class UEnum : public UField
 	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UEnum,UField,0,CoreUObject,CASTCLASS_UEnum,COREUOBJECT_API)
 
 public:
-	// This will be the true name of the enum inside a namespace, if the enum wasn't in the global scope
-	FString ActualEnumNameInsideNamespace;
+	enum class ECppForm
+	{
+		Regular,
+		Namespaced,
+		EnumClass
+	};
+
+	// This will be the true type of the enum as a string, e.g. "ENamespacedEnum::InnerType" or "ERegularEnum" or "EEnumClass"
+	FString CppType;
 
 protected:
 	// Variables.
 	/** List of all enum names. */
 	TArray<FName> Names;
-	/** True if this enum is namespace enum, false if global. */
-	bool bIsNamespace;
+
+	/** How the enum was originally defined. */
+	ECppForm CppForm;
 
 	/** global list of all value names used by all enums in memory, used for property text import */
 	COREUOBJECT_API static TMap<FName, UEnum*> AllEnumNames;
 
 protected: 
+	
 	/** adds the Names in this enum to the master AllEnumNames list */
 	void AddNamesToMasterList();
+
+public:
+
 	/** removes the Names in this enum from the master AllEnumNames list */
 	void RemoveNamesFromMasterList();
 
-public:
 	// UObject interface.
 	COREUOBJECT_API virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface.
@@ -1316,13 +1331,13 @@ public:
 	COREUOBJECT_API virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) const;
 
 	/**
-	 * Checks if this enum is a nemespace declared enum.
+	 * Returns the type of enum: whether it's a regular enum, namespaced enum or C++11 enum class.
 	 *
-	 * @return true if this enum is a nemespace declared enum, false otherwise.
+	 * @return The enum type.
 	 */
-	bool IsNamespaceEnum() const
+	ECppForm GetCppForm() const
 	{
-		return bIsNamespace;
+		return CppForm;
 	}
 
 	/**
@@ -1345,7 +1360,12 @@ public:
 	 */
 	COREUOBJECT_API static FString GenerateFullEnumName(const UEnum * InEnum, const TCHAR* InEnumName)
 	{
-		return (InEnum->bIsNamespace && IsFullEnumName(InEnumName) == false) ? FString::Printf(TEXT("%s::%s"), *InEnum->GetName(), InEnumName) : InEnumName;
+		if (InEnum->GetCppForm() == ECppForm::Regular || IsFullEnumName(InEnumName))
+		{
+			return InEnumName;
+		}
+
+		return FString::Printf(TEXT("%s::%s"), *InEnum->GetName(), InEnumName);
 	}
 
 	/**
@@ -1405,10 +1425,10 @@ public:
 	 * Sets the array of enums.
 	 *
 	 * @param InNames List of enum names.
-	 * @param bNamespace True if this enum is namespace enum, false if global.
+	 * @param InCppForm The form of enum.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	COREUOBJECT_API bool SetEnums(TArray<FName>& InNames, bool bNamespace);
+	COREUOBJECT_API bool SetEnums(TArray<FName>& InNames, ECppForm InCppForm);
 
 	/**
 	 * @return	The enum name at the specified Index.
@@ -1429,19 +1449,17 @@ public:
 	{
 		if (Names.IsValidIndex(InIndex))
 		{
-			if (bIsNamespace)
-			{
-				// Strip the namespace from the name.
-				FString EnumName(Names[InIndex].ToString());
-				int32 ScopeIndex = EnumName.Find(TEXT("::"));
-				if (ScopeIndex != INDEX_NONE)
-				{
-					return EnumName.Mid(ScopeIndex + 2);
-				}
-			}
-			else
+			if (CppForm == ECppForm::Regular)
 			{
 				return Names[InIndex].ToString();
+			}
+
+			// Strip the namespace from the name.
+			FString EnumName(Names[InIndex].ToString());
+			int32 ScopeIndex = EnumName.Find(TEXT("::"));
+			if (ScopeIndex != INDEX_NONE)
+			{
+				return EnumName.Mid(ScopeIndex + 2);
 			}
 		}
 		return FName(NAME_None).ToString();
@@ -1801,11 +1819,11 @@ public:
 	// Constructors
 	UClass(const class FPostConstructInitializeProperties& PCIP);
 	explicit UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InSuperClass);
-	UClass( EStaticConstructor, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
+	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const class FPostConstructInitializeProperties&),
 		void(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&));
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	/**
 	 * Called when a class is reloading from a DLL...updates various information in-place.
 	 * @param	InSize							sizeof the class
@@ -2114,6 +2132,12 @@ public:
 	 */
 	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const;
 
+	/**
+	 * Checks if the property exists on this class or a parent class.
+	 * @param InProperty	The property to check if it is contained in this or a parent class.
+	 * @return				True if the property exists on this or a parent class.
+	 */
+	virtual bool HasProperty(UProperty* InProperty) const;
 
 private:
 	// This signature intentionally hides the method declared in UObjectBaseUtility to make it private.
@@ -2172,7 +2196,7 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 template<class TClass>
 void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UClass*& ReturnClass, void (*RegisterNativeFunc)() )
 { 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
 		UPackage* Package = FindPackage(NULL, PackageName);
@@ -2181,7 +2205,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload."),PackageName);
 			return;
 		}
-		ReturnClass = FindObjectChecked<UClass>((UObject *)Package, Name);
+		ReturnClass = FindObject<UClass>((UObject *)Package, Name);
 		if (ReturnClass)
 		{
 			if (ReturnClass->HotReloadPrivateStaticClass(
@@ -2211,6 +2235,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		UClass
 		(
 		EC_StaticConstructor,
+		Name,
 		sizeof(TClass),
 		TClass::StaticClassFlags,
 		TClass::StaticClassCastFlags(),

@@ -53,6 +53,8 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 {
 	static class GenericApplication* CreateApplication();
 
+	static void RequestMinimize();
+	static void RequestExit( bool Force );
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void LocalPrint(const TCHAR *Message);
 	static void PlatformPreInit();
@@ -64,6 +66,8 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
+	static bool ControlScreensaver(EScreenSaverAction Action);
+	static bool AllowRenderThread();
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
 	static void BeforeRenderThreadStarts();
@@ -72,17 +76,24 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	// NOTE: THIS FUNCTION IS DEFINED IN ANDROIDOPENGL.CPP
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool GetUseVirtualJoysticks();
+	static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );
 	static const TCHAR* GetDefaultDeviceProfileName() { return TEXT("Android"); }
 
+	/** @return Memory representing a true type or open type font provided by the platform as a default font for unreal to consume; empty array if the default font failed to load. */
+	static TArray<uint8> GetSystemFontBytes();
+
 	// ANDROID ONLY:
-	static void SetVersionInfo( FString AndroidVersion, FString DeviceMake, FString DeviceModel );
+	static void SetVersionInfo( FString AndroidVersion, FString DeviceMake, FString DeviceModel, FString OSLanguage );
 	static const FString GetAndroidVersion();
 	static const FString GetDeviceMake();
 	static const FString GetDeviceModel();
+	static const FString GetOSLanguage();
+	static FString GetDefaultLocale();
 	static FString GetGPUFamily();
 	static FString GetGLVersion();
 	static bool SupportsFloatingPointRenderTargets();
+
 
 #if !UE_BUILD_SHIPPING
 	FORCEINLINE static bool IsDebuggerPresent()
@@ -117,6 +128,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static FString AndroidVersion; // version of android we are running eg "4.0.4"
 	static FString DeviceMake; // make of the device we are running on eg. "samsung"
 	static FString DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
+	static FString OSLanguage; // language code the device is set to
 
 };
 

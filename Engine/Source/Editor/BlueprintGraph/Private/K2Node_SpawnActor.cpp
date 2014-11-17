@@ -14,7 +14,7 @@ static FString NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));
 UK2Node_SpawnActor::UK2Node_SpawnActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform");
 }
 
 void UK2Node_SpawnActor::AllocateDefaultPins()
@@ -26,27 +26,27 @@ void UK2Node_SpawnActor::AllocateDefaultPins()
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
 	// If required add the world context pin
-	if (GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins))
+	if (GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
 	{
 		CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, WorldContextPinName);
 	}
 
 	// Add blueprint pin
 	UEdGraphPin* BlueprintPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UBlueprint::StaticClass(), false, false, BlueprintPinName);
-	K2Schema->ConstructBasicPinTooltip(*BlueprintPin, LOCTEXT("BlueprintPinDescription", "The blueprint Actor you want to spawn").ToString(), BlueprintPin->PinToolTip);
+	K2Schema->ConstructBasicPinTooltip(*BlueprintPin, LOCTEXT("BlueprintPinDescription", "The blueprint Actor you want to spawn"), BlueprintPin->PinToolTip);
 
 	// Transform pin
 	UScriptStruct* TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
 	UEdGraphPin* TransformPin = CreatePin(EGPD_Input, K2Schema->PC_Struct, TEXT(""), TransformStruct, false, false, SpawnTransformPinName);
-	K2Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with").ToString(), TransformPin->PinToolTip);
+	K2Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with"), TransformPin->PinToolTip);
 
 	// bNoCollisionFail pin
 	UEdGraphPin* NoCollisionFailPin = CreatePin(EGPD_Input, K2Schema->PC_Boolean, TEXT(""), NULL, false, false, NoCollisionFailPinName);
-	K2Schema->ConstructBasicPinTooltip(*NoCollisionFailPin, LOCTEXT("NoCollisionFailPinDescription", "Determines if the Actor should be spawned when the location is blocked by a collision").ToString(), NoCollisionFailPin->PinToolTip);
+	K2Schema->ConstructBasicPinTooltip(*NoCollisionFailPin, LOCTEXT("NoCollisionFailPinDescription", "Determines if the Actor should be spawned when the location is blocked by a collision"), NoCollisionFailPin->PinToolTip);
 
 	// Result pin
 	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), AActor::StaticClass(), false, false, K2Schema->PN_ReturnValue);
-	K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor").ToString(), ResultPin->PinToolTip);
+	K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"), ResultPin->PinToolTip);
 
 	Super::AllocateDefaultPins();
 }
@@ -142,6 +142,8 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 			}
 		}
 
+		CachedNodeTitle.MarkDirty();
+
 		UClass* UseSpawnClass = GetClassToSpawn();
 		if(UseSpawnClass != NULL)
 		{
@@ -157,7 +159,7 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 	}
 }
 
-FString UK2Node_SpawnActor::GetTooltip() const
+FText UK2Node_SpawnActor::GetTooltipText() const
 {
 	return NodeTooltip;
 }
@@ -228,30 +230,29 @@ FLinearColor UK2Node_SpawnActor::GetNodeTitleColor() const
 FText UK2Node_SpawnActor::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BlueprintPin = GetBlueprintPin();
-
-	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(BlueprintPin != NULL)
+	if (BlueprintPin == NULL)
 	{
-		if(BlueprintPin->LinkedTo.Num() > 0)
-		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			SpawnString = FText::GetEmpty();
-		}
-		else if(BlueprintPin->DefaultObject != NULL)
-		{
-			SpawnString = FText::FromString(BlueprintPin->DefaultObject->GetName());
-		}
+		return NSLOCTEXT("K2Node", "SpawnActorNone_Title", "SpawnActor NONE");
 	}
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ActorName"), SpawnString);
-	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ActorName}"), Args);
+	else if (BlueprintPin->LinkedTo.Num() > 0)
+	{
+		// Blueprint will be determined dynamically, so we don't have the name in this case
+		return NSLOCTEXT("K2Node", "SpawnActorUnknown_Title", "SpawnActor");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ActorName"), FText::FromString(BlueprintPin->DefaultObject->GetName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ActorName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
-bool UK2Node_SpawnActor::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 
+bool UK2Node_SpawnActor::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const 
 {
-	UBlueprint* Blueprint = Cast<UBlueprint>(TargetGraph->GetOuter());
-	return CanCreateUnderSpecifiedSchema(Schema) && (!Blueprint || FBlueprintEditorUtils::FindUserConstructionScript(Blueprint) != TargetGraph);
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+	return Super::IsCompatibleWithGraph(TargetGraph) && (!Blueprint || FBlueprintEditorUtils::FindUserConstructionScript(Blueprint) != TargetGraph);
 }
 
 FNodeHandlingFunctor* UK2Node_SpawnActor::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

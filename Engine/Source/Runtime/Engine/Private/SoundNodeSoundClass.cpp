@@ -24,16 +24,3 @@ void USoundNodeSoundClass::ParseNodes( class FAudioDevice* AudioDevice, const UP
 
 	Super::ParseNodes( AudioDevice, NodeWaveInstanceHash, ActiveSound, UpdatedParseParams, WaveInstances );
 }
-
-FString USoundNodeSoundClass::GetUniqueString() const
-{
-	FString Unique = TEXT( "SoundClass" );
-
-	if (SoundClassOverride)
-	{
-		Unique += SoundClassOverride->GetFName().ToString();
-	}
-
-	Unique += TEXT( "/" );
-	return( Unique );
-}

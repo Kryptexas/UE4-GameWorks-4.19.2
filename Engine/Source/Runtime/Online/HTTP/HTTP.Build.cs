@@ -26,7 +26,8 @@ public class HTTP : ModuleRules
             }
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.Linux)
+		if (Target.Platform == UnrealTargetPlatform.Linux ||
+            Target.Platform == UnrealTargetPlatform.Android)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "libcurl");
 		}

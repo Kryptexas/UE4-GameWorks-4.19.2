@@ -9,6 +9,8 @@
 class FQuadricSimplifierMeshReductionModule : public IMeshReductionModule
 {
 public:
+	virtual ~FQuadricSimplifierMeshReductionModule() {}
+
 	// IModuleInterface interface.
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
@@ -354,6 +356,8 @@ public:
 	{
 		return true;
 	}
+
+	virtual ~FQuadricSimplifierMeshReduction() {}
 
 	static FQuadricSimplifierMeshReduction* Create()
 	{

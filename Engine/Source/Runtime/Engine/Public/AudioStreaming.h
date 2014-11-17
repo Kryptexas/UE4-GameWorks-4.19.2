@@ -203,6 +203,7 @@ struct FAudioStreamingManager : public IAudioStreamingManager
 	virtual void RemoveStreamingSoundWave(USoundWave* SoundWave) override;
 	virtual bool IsManagedStreamingSoundWave(const USoundWave* SoundWave) const override;
 	virtual bool IsStreamingInProgress(const USoundWave* SoundWave) override;
+	virtual bool CanCreateSoundSource(const FWaveInstance* WaveInstance) const override;
 	virtual void AddStreamingSoundSource(FSoundSource* SoundSource) override;
 	virtual void RemoveStreamingSoundSource(FSoundSource* SoundSource) override;
 	virtual bool IsManagedStreamingSoundSource(const FSoundSource* SoundSource) const override;

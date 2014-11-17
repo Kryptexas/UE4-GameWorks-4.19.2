@@ -33,6 +33,12 @@ namespace UnrealBuildTool.Rules
 					"UnrealEd",
 				}
 			);
+
+            PrivateIncludePathModuleNames.AddRange(
+                new string[] {
+				    "Settings"
+			    }
+            );
 		}
 	}
 }

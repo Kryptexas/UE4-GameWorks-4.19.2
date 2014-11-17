@@ -11,7 +11,7 @@ class FSurveyBranch : public TSharedFromThis< FSurveyBranch >
 public:
 	struct BranchPointsType 
 	{
-		BranchPointsType(const TSharedRef<FSurveyBranch>& InBranchBlock) : Points(0), BranchBlock(InBranchBlock) {}
+		BranchPointsType(const TSharedRef<FSurveyBranch>& InBranchBlock) : BranchBlock(InBranchBlock), Points(0) {}
 		TSharedRef<FSurveyBranch> BranchBlock;
 		int32 Points;
 	};

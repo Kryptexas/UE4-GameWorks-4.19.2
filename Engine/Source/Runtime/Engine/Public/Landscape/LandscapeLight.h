@@ -82,6 +82,7 @@ protected:
 	int32 NumVertices;
 	int32 NumQuads;
 	float UVFactor;
+	bool bReverseWinding;
 
 	friend class FLightmassExporter;
 

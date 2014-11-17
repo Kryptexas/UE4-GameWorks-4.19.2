@@ -363,8 +363,8 @@ void RunUI()
 	// initialize user interface
 	FModuleManager::Get().LoadModule("DeviceManager");
 	FModuleManager::Get().LoadModule("SessionFrontend");
-	FModuleManager::Get().LoadModule("SessionLauncher");
 	FModuleManager::Get().LoadModule("SettingsEditor");
+	FModuleManager::Get().LoadModule("ProjectLauncher");
 
 	// Create developer tools menu with widget reflector.
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(WorkspaceMenu::DeveloperTools);
@@ -385,8 +385,8 @@ void RunUI()
 					FTabManager::NewStack()
 						->AddTab(FName("DeviceManager"), ETabState::OpenedTab)
 						->AddTab(FName("MessagingDebugger"), ETabState::ClosedTab)
-						->AddTab(FName("SessionLauncher"), ETabState::OpenedTab)
 						->AddTab(FName("SessionFrontend"), ETabState::OpenedTab)
+						->AddTab(FName("ProjectLauncher"), ETabState::OpenedTab)
 				)
 		)
 		->AddArea

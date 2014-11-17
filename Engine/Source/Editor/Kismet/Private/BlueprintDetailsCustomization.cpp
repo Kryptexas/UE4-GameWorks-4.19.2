@@ -9,7 +9,7 @@
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
-
+#include "SColorPicker.h"
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
 #include "SMyBlueprint.h"
@@ -2042,58 +2042,62 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 			];
 
-			FBlueprintVarActionDetails::PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
-			TSharedPtr<SComboButton> NewComboButton;
-			TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
+			// Composite graphs are auto-categorized into their parent graph
+			if(!GetGraph()->GetOuter()->GetClass()->IsChildOf(UK2Node_Composite::StaticClass()))
+			{
+				FBlueprintVarActionDetails::PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
+				TSharedPtr<SComboButton> NewComboButton;
+				TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
-			const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
-			TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
+				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
+				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
-			Category.AddCustomRow( TEXT("Category") )
-				.NameContent()
-				[
-					SNew(STextBlock)
-					.Text( LOCTEXT("CategoryLabel", "Category") )
-					.ToolTip(CategoryTooltip)
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-				]
-			.ValueContent()
-				[
-					SAssignNew(NewComboButton, SComboButton)
-					.ContentPadding(FMargin(0,0,5,0))
-					.ToolTip(CategoryTooltip)
-					.ButtonContent()
+				Category.AddCustomRow( TEXT("Category") )
+					.NameContent()
 					[
-						SNew(SBorder)
-						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-						.Padding(FMargin(0, 0, 5, 0))
-						[
-							SNew(SEditableTextBox)
-							.Text(this, &FBlueprintGraphActionDetails::OnGetCategoryText)
-							.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnCategoryTextCommitted )
-							.ToolTip(CategoryTooltip)
-							.SelectAllTextWhenFocused(true)
-							.RevertTextOnEscape(true)
-							.Font( IDetailLayoutBuilder::GetDetailFont() )
-						]
+						SNew(STextBlock)
+						.Text( LOCTEXT("CategoryLabel", "Category") )
+						.ToolTip(CategoryTooltip)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
 					]
-					.MenuContent()
+				.ValueContent()
+					[
+						SAssignNew(NewComboButton, SComboButton)
+						.ContentPadding(FMargin(0,0,5,0))
+						.ToolTip(CategoryTooltip)
+						.ButtonContent()
 						[
-							SNew(SVerticalBox)
-							+SVerticalBox::Slot()
-							.AutoHeight()
-							.MaxHeight(400.0f)
+							SNew(SBorder)
+							.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+							.Padding(FMargin(0, 0, 5, 0))
 							[
-								SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
-								.ListItemsSource(&CategorySource)
-								.OnGenerateRow(this, &FBlueprintGraphActionDetails::MakeCategoryViewWidget)
-								.OnSelectionChanged(this, &FBlueprintGraphActionDetails::OnCategorySelectionChanged)
+								SNew(SEditableTextBox)
+								.Text(this, &FBlueprintGraphActionDetails::OnGetCategoryText)
+								.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnCategoryTextCommitted )
+								.ToolTip(CategoryTooltip)
+								.SelectAllTextWhenFocused(true)
+								.RevertTextOnEscape(true)
+								.Font( IDetailLayoutBuilder::GetDetailFont() )
 							]
 						]
-				];
+						.MenuContent()
+							[
+								SNew(SVerticalBox)
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								.MaxHeight(400.0f)
+								[
+									SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
+									.ListItemsSource(&CategorySource)
+									.OnGenerateRow(this, &FBlueprintGraphActionDetails::MakeCategoryViewWidget)
+									.OnSelectionChanged(this, &FBlueprintGraphActionDetails::OnCategorySelectionChanged)
+								]
+							]
+					];
 
-			CategoryComboButton = NewComboButton;
-			CategoryListView = NewListView;
+				CategoryComboButton = NewComboButton;
+				CategoryListView = NewListView;
+			}
 
 			if (IsAccessSpecifierVisible())
 			{
@@ -2458,7 +2462,7 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 		const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(FunctionResult->GetSchema());
 		FunctionResult->NodePosX = FunctionEntryNode->NodePosX + FunctionEntryNode->NodeWidth + 256;
 		FunctionResult->NodePosY = FunctionEntryNode->NodePosY;
-			
+		UEdGraphSchema_K2::SetNodeMetaData(FunctionResult, FNodeMetadata::DefaultGraphNode);
 		ResultNodeCreator.Finalize();
 		
 		// Connect the function entry to the result node, if applicable
@@ -3751,14 +3755,18 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
 	check(Blueprint);
 
-	TArray<FString> Interfaces;
+	TArray<FInterfaceName> Interfaces;
 
 	if (!bShowsInheritedInterfaces)
 	{
 		// Generate a list of interfaces already implemented
 		for (TArray<FBPInterfaceDescription>::TConstIterator It(Blueprint->ImplementedInterfaces); It; ++It)
 		{
-			Interfaces.AddUnique( (*It).Interface->GetName() );
+			auto Interface = (*It).Interface;
+			if (Interface)
+			{
+				Interfaces.AddUnique(FInterfaceName(Interface->GetFName(), Interface->GetDisplayNameText()));
+			}
 		}
 	}
 	else
@@ -3772,7 +3780,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 				FImplementedInterface& CurrentInterface = *It;
 				if( CurrentInterface.Class )
 				{
-					Interfaces.Add( CurrentInterface.Class->GetName() );
+					Interfaces.Add(FInterfaceName(CurrentInterface.Class->GetFName(), CurrentInterface.Class->GetDisplayNameText()));
 				}
 			}
 			BlueprintParent = BlueprintParent->GetSuperClass();
@@ -3788,7 +3796,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 			+SHorizontalBox::Slot()
 			[
 				SNew(STextBlock)
-					.Text(Interfaces[i])
+					.Text(Interfaces[i].DisplayText)
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 		];
@@ -3862,12 +3870,12 @@ void FBlueprintInterfaceLayout::OnBrowseToInterface(TWeakObjectPtr<UObject> Asse
 	}
 }
 
-void FBlueprintInterfaceLayout::OnRemoveInterface(FString InterfaceName)
+void FBlueprintInterfaceLayout::OnRemoveInterface(FInterfaceName InterfaceName)
 {
 	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
 	check(Blueprint);
 
-	const FName InterfaceFName = *InterfaceName;
+	const FName InterfaceFName = InterfaceName.Name;
 
 	// Close all graphs that are about to be removed
 	TArray<UEdGraph*> Graphs;
@@ -3888,13 +3896,13 @@ void FBlueprintInterfaceLayout::OnRemoveInterface(FString InterfaceName)
 /** Helper function for the interface menu */
 bool IsInterfaceImplemented(const UBlueprint* Blueprint, const UClass* TestInterface)
 {
-	const FString InterfaceName = TestInterface->GetName();
+	const auto InterfaceName = TestInterface->GetFName();
 
 	// First look in the blueprint's ImplementedInterfaces list
 	for(TArray<FBPInterfaceDescription>::TConstIterator it(Blueprint->ImplementedInterfaces); it; ++it)
 	{
 		const FBPInterfaceDescription& CurrentInterface = *it;
-		if( CurrentInterface.Interface && CurrentInterface.Interface->GetName() == InterfaceName )
+		if( CurrentInterface.Interface && CurrentInterface.Interface->GetFName() == InterfaceName )
 		{
 			return true;
 		}
@@ -3907,7 +3915,7 @@ bool IsInterfaceImplemented(const UBlueprint* Blueprint, const UClass* TestInter
 		for (TArray<FImplementedInterface>::TIterator It(BlueprintParent->Interfaces); It; ++It)
 		{
 			const FImplementedInterface& CurrentInterface = *It;
-			if (CurrentInterface.Class && (CurrentInterface.Class->GetName() == InterfaceName))
+			if (CurrentInterface.Class && (CurrentInterface.Class->GetFName() == InterfaceName))
 			{
 				return true;
 			}
@@ -3931,13 +3939,13 @@ TSharedRef<SWidget> FBlueprintInterfaceLayout::OnGetAddInterfaceMenuContent()
 			!IsInterfaceImplemented(Blueprint, CurrentInterface) &&
 			!FKismetEditorUtilities::IsClassABlueprintSkeleton(CurrentInterface))
 		{
-			UnimplementedInterfaces.Add( MakeShareable( new FString(CurrentInterface->GetName()) ));
+			UnimplementedInterfaces.Add(MakeShareable(new FInterfaceName(CurrentInterface->GetFName(), CurrentInterface->GetDisplayNameText())));
 		}
 	}
 
 	if (UnimplementedInterfaces.Num() > 0)
 	{
-		return SNew(SListView<TSharedPtr<FString>>)
+		return SNew(SListView<TSharedPtr<FInterfaceName>>)
 			.ListItemsSource(&UnimplementedInterfaces)
 			.OnGenerateRow(this, &FBlueprintInterfaceLayout::GenerateInterfaceListRow)
 			.OnSelectionChanged(this, &FBlueprintInterfaceLayout::OnInterfaceListSelectionChanged);
@@ -3949,23 +3957,23 @@ TSharedRef<SWidget> FBlueprintInterfaceLayout::OnGetAddInterfaceMenuContent()
 	}
 }
 
-TSharedRef<ITableRow> FBlueprintInterfaceLayout::GenerateInterfaceListRow( TSharedPtr<FString> InterfaceName, const TSharedRef<STableViewBase>& OwningList )
+TSharedRef<ITableRow> FBlueprintInterfaceLayout::GenerateInterfaceListRow(TSharedPtr<FInterfaceName> InterfaceName, const TSharedRef<STableViewBase>& OwningList)
 {
-	return SNew(STableRow< TSharedPtr<FString> >, OwningList)
+	return SNew(STableRow< TSharedPtr<FInterfaceName> >, OwningList)
 		[
 			SNew(STextBlock)
-			.Text(*InterfaceName)
+			.Text(InterfaceName.IsValid() ? InterfaceName->DisplayText : FText())
 		];
 }
 
-void FBlueprintInterfaceLayout::OnInterfaceListSelectionChanged(TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo)
+void FBlueprintInterfaceLayout::OnInterfaceListSelectionChanged(TSharedPtr<FInterfaceName> Selection, ESelectInfo::Type SelectInfo)
 {
 	if (Selection.IsValid())
 	{
 		UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
 		check(Blueprint);
 
-		FName SelectedInterface = FName(*(*Selection.Get()));
+		FName SelectedInterface = Selection->Name;
 		if (!FBlueprintEditorUtils::ImplementNewInterface( Blueprint, SelectedInterface ) )
 		{
 			GlobalOptionsDetailsPtr.Pin()->GetBlueprintEditorPtr().Pin()->LogSimpleMessage( LOCTEXT("ImplementInterface_Error", "Unable to implement interface. Check log for details") );
@@ -3992,16 +4000,11 @@ UBlueprint* FBlueprintGlobalOptionsDetails::GetBlueprintObj() const
 	return NULL;
 }
 
-FString FBlueprintGlobalOptionsDetails::GetParentClassName() const
+FText FBlueprintGlobalOptionsDetails::GetParentClassName() const
 {
-	FName ParentClassName = NAME_None;
 	const UBlueprint* Blueprint = GetBlueprintObj();
-	if(Blueprint != NULL && Blueprint->ParentClass != NULL)
-	{
-		ParentClassName = Blueprint->ParentClass->GetFName();
-	}
-
-	return ParentClassName.ToString();
+	const UClass* ParentClass = Blueprint ? Blueprint->ParentClass : NULL;
+	return ParentClass ? ParentClass->GetDisplayNameText() : FText::FromName(NAME_None);
 }
 
 bool FBlueprintGlobalOptionsDetails::CanReparent() const
@@ -4775,21 +4778,26 @@ FText FBlueprintGraphNodeDetails::OnGetName() const
 	return Name;
 }
 
-void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
+struct FGraphNodeNameValidatorHelper
 {
-	bIsNodeNameInvalid = true;
-
-	if( GraphNodePtr.IsValid() && BlueprintEditorPtr.IsValid() )
+	static EValidatorResult Validate(TWeakObjectPtr<UEdGraphNode> GraphNodePtr, TWeakPtr<FBlueprintEditor> BlueprintEditorPtr, const FString& NewName)
 	{
-		FName NodeName( *GraphNodePtr->GetNodeTitle(ENodeTitleType::EditableTitle).ToString() );
+		check(GraphNodePtr.IsValid() && BlueprintEditorPtr.IsValid());
 		TSharedPtr<INameValidatorInterface> NameValidator = GraphNodePtr->MakeNameValidator();
-
-		if( !NameValidator.IsValid() )
+		if (!NameValidator.IsValid())
 		{
+			const FName NodeName(*GraphNodePtr->GetNodeTitle(ENodeTitleType::EditableTitle).ToString());
 			NameValidator = MakeShareable(new FKismetNameValidator(BlueprintEditorPtr.Pin()->GetBlueprintObj(), NodeName));
 		}
+		return NameValidator->IsValid(NewName);
+	}
+};
 
-		EValidatorResult ValidatorResult = NameValidator->IsValid(InNewText.ToString());
+void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
+{
+	if( GraphNodePtr.IsValid() && BlueprintEditorPtr.IsValid() )
+	{
+		const EValidatorResult ValidatorResult = FGraphNodeNameValidatorHelper::Validate(GraphNodePtr, BlueprintEditorPtr, InNewText.ToString());
 		if(ValidatorResult == EValidatorResult::AlreadyInUse)
 		{
 			NameEditableTextBox->SetError(FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText));
@@ -4804,7 +4812,6 @@ void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
 		}
 		else
 		{
-			bIsNodeNameInvalid = false;
 			NameEditableTextBox->SetError(FText::GetEmpty());
 		}
 	}
@@ -4812,9 +4819,12 @@ void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
 
 void FBlueprintGraphNodeDetails::OnNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit)
 {
-	if( BlueprintEditorPtr.IsValid() && GraphNodePtr.IsValid() )
+	if (BlueprintEditorPtr.IsValid() && GraphNodePtr.IsValid())
 	{
-		BlueprintEditorPtr.Pin()->OnNodeTitleCommitted( InNewText, InTextCommit, GraphNodePtr.Get() );
+		if (FGraphNodeNameValidatorHelper::Validate(GraphNodePtr, BlueprintEditorPtr, InNewText.ToString()) == EValidatorResult::Ok)
+		{
+			BlueprintEditorPtr.Pin()->OnNodeTitleCommitted(InNewText, InTextCommit, GraphNodePtr.Get());
+		}
 	}
 }
 
@@ -4867,6 +4877,176 @@ void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 			}
 		}
 	}
+}
+
+namespace BlueprintDocumentationDetailDefs
+{
+	/** Minimum size of the details title panel */
+	static const float DetailsTitleMinWidth = 125.f;
+	/** Maximum size of the details title panel */
+	static const float DetailsTitleMaxWidth = 300.f;
+};
+
+void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
+{
+	check( BlueprintEditorPtr.IsValid() );
+	// find currently selected edgraph documentation node
+	DocumentationNodePtr = EdGraphSelectionAsDocumentNode();
+
+	if( DocumentationNodePtr.IsValid() )
+	{
+		// Cache Link
+		DocumentationLink = DocumentationNodePtr->GetDocumentationLink();
+		DocumentationExcerpt = DocumentationNodePtr->GetDocumentationExcerptName();
+
+		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation").ToString(), ECategoryPriority::Default);
+
+		DocumentationCategory.AddCustomRow( TEXT( "Documentation Link" ))
+		.NameContent()
+		.HAlign( HAlign_Fill )
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Link", "Link" ).ToString() )
+			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_LinkPathTooltip", "The documentation content path" ))
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		]
+		.ValueContent()
+		.HAlign( HAlign_Left )
+		.MinDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMinWidth )
+		.MaxDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMaxWidth )
+		[
+			SNew( SEditableTextBox )
+			.Padding( FMargin( 4.f, 2.f ))
+			.Text( this, &FBlueprintDocumentationDetails::OnGetDocumentationLink )
+			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_LinkTooltip", "The path of the documentation content relative to /Engine/Documentation/Source" ))
+			.OnTextCommitted( this, &FBlueprintDocumentationDetails::OnDocumentationLinkCommitted )
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		];
+
+		DocumentationCategory.AddCustomRow( TEXT( "Documentation Excerpts" ))
+		.NameContent()
+		.HAlign( HAlign_Left )
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Excerpt", "Excerpt" ).ToString() )
+			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_ExcerptTooltip", "The current documentation excerpt" ))
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		]
+		.ValueContent()
+		.HAlign( HAlign_Left )
+		.MinDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMinWidth )
+		.MaxDesiredWidth( BlueprintDocumentationDetailDefs::DetailsTitleMaxWidth )
+		[
+			SAssignNew( ExcerptComboButton, SComboButton )
+			.ContentPadding( 2.f )
+			.IsEnabled( this, &FBlueprintDocumentationDetails::OnExcerptChangeEnabled )
+			.ButtonContent()
+			[
+				SNew(SBorder)
+				.BorderImage( FEditorStyle::GetBrush( "NoBorder" ))
+				.Padding( FMargin( 0, 0, 5, 0 ))
+				[
+					SNew( STextBlock )
+					.Text( this, &FBlueprintDocumentationDetails::OnGetDocumentationExcerpt )
+					.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_ExcerptComboTooltip", "Select Excerpt" ))
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+				]
+			]
+			.OnGetMenuContent( this, &FBlueprintDocumentationDetails::GenerateExcerptList )
+		];
+	}
+}
+
+TWeakObjectPtr<UEdGraphNode_Documentation> FBlueprintDocumentationDetails::EdGraphSelectionAsDocumentNode()
+{
+	DocumentationNodePtr.Reset();
+
+	if( BlueprintEditorPtr.IsValid() )
+	{
+		/** Get the currently selected set of nodes */
+		if( BlueprintEditorPtr.Pin()->GetNumberOfSelectedNodes() == 1 )
+		{
+			TSet<UObject*> Objects = BlueprintEditorPtr.Pin()->GetSelectedNodes();
+			TSet<UObject*>::TIterator Iter( Objects );
+			UObject* Object = *Iter;
+
+			if( Object && Object->IsA<UEdGraphNode_Documentation>() )
+			{
+				DocumentationNodePtr = Cast<UEdGraphNode_Documentation>( Object );
+			}
+		}
+	}
+	return DocumentationNodePtr;
+}
+
+FText FBlueprintDocumentationDetails::OnGetDocumentationLink() const
+{
+	return FText::FromString( DocumentationLink );
+}
+
+FText FBlueprintDocumentationDetails::OnGetDocumentationExcerpt() const
+{
+	return FText::FromString( DocumentationExcerpt );
+}
+
+bool FBlueprintDocumentationDetails::OnExcerptChangeEnabled() const
+{
+	return IDocumentation::Get()->PageExists( DocumentationLink );
+}
+
+void FBlueprintDocumentationDetails::OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit )
+{
+	DocumentationLink = InNewName.ToString();
+	DocumentationExcerpt = NSLOCTEXT( "FBlueprintDocumentationDetails", "ExcerptCombo_DefaultText", "Select Excerpt" ).ToString();
+}
+
+TSharedRef< ITableRow > FBlueprintDocumentationDetails::MakeExcerptViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable )
+{
+	return 
+		SNew( STableRow<TSharedPtr<FString>>, OwnerTable )
+		[
+			SNew( STextBlock )
+			.Text( *Item.Get() )
+		];
+}
+
+void FBlueprintDocumentationDetails::OnExcerptSelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ )
+{
+	if( ProposedSelection.IsValid() && DocumentationNodePtr.IsValid() )
+	{
+		DocumentationNodePtr->Link = DocumentationLink;
+		DocumentationExcerpt = *ProposedSelection.Get();
+		DocumentationNodePtr->Excerpt = DocumentationExcerpt;
+		ExcerptComboButton->SetIsOpen( false );
+	}
+}
+
+TSharedRef<SWidget> FBlueprintDocumentationDetails::GenerateExcerptList()
+{
+	ExcerptList.Empty();
+
+	if( IDocumentation::Get()->PageExists( DocumentationLink ))
+	{
+		TSharedPtr<IDocumentationPage> DocumentationPage = IDocumentation::Get()->GetPage( DocumentationLink, NULL );
+		TArray<FExcerpt> Excerpts;
+		DocumentationPage->GetExcerpts( Excerpts );
+
+		for( auto ExcerptIter = Excerpts.CreateConstIterator(); ExcerptIter; ++ExcerptIter )
+		{
+			ExcerptList.Add( MakeShareable( new FString( ExcerptIter->Name )));
+		}
+	}
+
+	return
+		SNew( SHorizontalBox )
+		+SHorizontalBox::Slot()
+		.Padding( 2.f )
+		[
+			SNew( SListView< TSharedPtr<FString>> )
+			.ListItemsSource( &ExcerptList )
+			.OnGenerateRow( this, &FBlueprintDocumentationDetails::MakeExcerptViewWidget )
+			.OnSelectionChanged( this, &FBlueprintDocumentationDetails::OnExcerptSelectionChanged )
+		];
 }
 
 #undef LOCTEXT_NAMESPACE

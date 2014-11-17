@@ -33,6 +33,7 @@ void SCascadePreviewViewportToolBar::Construct(const FArguments& InArgs)
 				.Cursor(EMouseCursor::Default)
 				.Label(NSLOCTEXT("Cascade", "ViewMenuTitle_Default", "View"))
 				.OnGetMenuContent(this, &SCascadePreviewViewportToolBar::GenerateViewMenu) 
+				.AddMetaData<FTagMetaData>(TEXT("CascadeViewButton.View"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -43,6 +44,7 @@ void SCascadePreviewViewportToolBar::Construct(const FArguments& InArgs)
 				.Cursor(EMouseCursor::Default)
 				.Label(NSLOCTEXT("Cascade", "TimeMenuTitle_Default", "Time"))
 				.OnGetMenuContent(this, &SCascadePreviewViewportToolBar::GenerateTimeMenu) 
+				.AddMetaData<FTagMetaData>(TEXT("CascadeViewButton.Time"))
 			]
 		]
 	];

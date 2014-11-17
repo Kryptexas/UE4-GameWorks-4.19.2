@@ -358,7 +358,8 @@ namespace iPhonePackager
 			}
 
 			// Save the Zip
-			Program.Log("Compressing files into IPA.{0}", Config.bVerbose ? "" : "  Only large files will be listed next, but other files are also being packaged.");
+
+			Program.Log("Compressing files into IPA (-compress={1}).{0}", Config.bVerbose ? "" : "  Only large files will be listed next, but other files are also being packaged.", Config.RecompressionSetting);
 			FileSystem.Close();
 
 			TimeSpan ZipLength = DateTime.Now - StartTime;
@@ -366,7 +367,7 @@ namespace iPhonePackager
 			FileInfo FinalZipInfo = new FileInfo(Zip.Name);
 
 
-			Program.Log(String.Format("Finished repackaging into {2:0.00} MB IPA, written to '{0}' (took {1:0.00} s)",
+			Program.Log(String.Format("Finished repackaging into {2:0.00} MB IPA, written to '{0}' (took {1:0.00} s for all steps)",
 				Zip.Name,
 				ZipLength.TotalSeconds,
 				FinalZipInfo.Length / (1024.0f * 1024.0f)));

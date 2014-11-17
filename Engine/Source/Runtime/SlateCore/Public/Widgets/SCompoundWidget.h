@@ -1,20 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SCompoundWidget.h: Declares the SCompoundWidget class.
-=============================================================================*/
-
 #pragma once
 
 
 /**
- * Implements a compound widget.
- *
  * A CompoundWidget is the base from which most non-primitive widgets should be built.
  * CompoundWidgets have a protected member named ChildSlot.
  */
-class SLATECORE_API SCompoundWidget
-	: public SWidget
+class SLATECORE_API SCompoundWidget : public SWidget
 {
 public:
 
@@ -68,32 +61,21 @@ public:
 
 public:
 
-	// Begin SWidgetOverrides
+	// SWidgetOverrides
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	
 	virtual FChildren* GetChildren() override;
-
 	virtual FVector2D ComputeDesiredSize() const override;
-
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-
 	virtual FSlateColor GetForegroundColor() const override;
 
-	// Begin SWidgetOverrides
+public:
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final;
 
 protected:
 
-	/**
-	 * Hidden constructor.
-	 */
-	FORCENOINLINE SCompoundWidget()
-		: ContentScale(FVector2D(1.0f, 1.0f))
-		, ColorAndOpacity(FLinearColor::White)
-		, ForegroundColor(FSlateColor::UseForeground())
-	{ }
-
-protected:
+	/** Disallow public construction */
+	SCompoundWidget();
 
 	/** The slot that contains this widget's descendants.*/
 	FSimpleSlot ChildSlot;

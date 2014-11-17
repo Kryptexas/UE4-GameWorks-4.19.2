@@ -7,6 +7,7 @@
 #include "KismetCompiler.h"
 #include "K2ActionMenuBuilder.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
@@ -19,10 +20,10 @@ UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const class FPostConstructInitializ
 {
 }
 
-FString UK2Node_BaseAsyncTask::GetTooltip() const
+FText UK2Node_BaseAsyncTask::GetTooltipText() const
 {
 	const FString FunctionToolTipText = UK2Node_CallFunction::GetDefaultTooltipForFunction(GetFactoryFunction());
-	return FunctionToolTipText;
+	return FText::FromString(FunctionToolTipText);
 }
 
 FText UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -31,10 +32,22 @@ FText UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(FunctionToolTipText);
 }
 
+bool UK2Node_BaseAsyncTask::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	bool bIsCompatible = true;
+	// Can only place events in ubergraphs, and basicasync task creates an event node:
+	if (TargetGraph->GetSchema()->GetGraphType(TargetGraph) != EGraphType::GT_Ubergraph)
+	{
+		bIsCompatible = false;
+	}
+	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
+}
+
 void UK2Node_BaseAsyncTask::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	const bool bAllowLatentFuncs = (K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph) == GT_Ubergraph);
+	EGraphType GraphType = K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph);
+	const bool bAllowLatentFuncs = (GraphType == GT_Ubergraph || GraphType == GT_Macro);
 
 	if (bAllowLatentFuncs)
 {
@@ -45,7 +58,7 @@ void UK2Node_BaseAsyncTask::GetMenuEntries(FGraphContextMenuBuilder& ContextMenu
 
 TSharedPtr<FEdGraphSchemaAction_K2NewNode> UK2Node_BaseAsyncTask::CreateDefaultMenuEntry(UK2Node_BaseAsyncTask* NodeTemplate, FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, NodeTemplate->GetMenuCategory().ToString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, NodeTemplate->GetMenuCategory().ToString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 	
 	NodeAction->NodeTemplate = NodeTemplate;
 
@@ -360,20 +373,37 @@ FName UK2Node_BaseAsyncTask::GetCornerIcon() const
 FText UK2Node_BaseAsyncTask::GetMenuCategory() const
 {	
 	UFunction* TargetFunction = GetFactoryFunction();
-	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, TEXT("Call Function")));
+	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
 }
 
-void UK2Node_BaseAsyncTask::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_BaseAsyncTask::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
-	
-	ActionListOut.Add(NodeSpawner);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 UFunction* UK2Node_BaseAsyncTask::GetFactoryFunction() const
 {
-	check(ProxyFactoryClass);
+	if (ProxyFactoryClass == nullptr)
+	{
+		UE_LOG(LogBlueprint, Fatal, TEXT("ProxyFactoryClass null in %s. Was a class deleted or saved on a non promoted build?"), *GetFullName());
+		return nullptr;
+	}
+	
 	UFunction* FactoryFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
 	check(FactoryFunction);
 	return FactoryFunction;

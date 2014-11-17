@@ -37,6 +37,7 @@ FName FUMGStyle::GetStyleSetName()
 
 const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
+const FVector2D Icon40x40(40.0f, 40.0f);
 
 TSharedRef< FSlateStyleSet > FUMGStyle::Create()
 {
@@ -67,8 +68,30 @@ TSharedRef< FSlateStyleSet > FUMGStyle::Create()
 	Style->Set("Widget.MultiLineEditableText", new IMAGE_BRUSH(TEXT("MultiLineEditableText"), Icon16x16));
 	Style->Set("Widget.MultiLineEditableTextBox", new IMAGE_BRUSH(TEXT("MultiLineEditableTextBox"), Icon16x16));
 	Style->Set("Widget.Viewport", new IMAGE_BRUSH(TEXT("Viewport"), Icon16x16));
+	Style->Set("Widget.ComboBox", new IMAGE_BRUSH(TEXT("icon_umg_ComboBox_16x"), Icon16x16));
+	Style->Set("Widget.ListView", new IMAGE_BRUSH(TEXT("icon_umg_ListView_16x"), Icon16x16));
+	Style->Set("Widget.TileView", new IMAGE_BRUSH(TEXT("icon_umg_TileView_16x"), Icon16x16));
+	Style->Set("Widget.Overlay", new IMAGE_BRUSH(TEXT("icon_umg_Overlay_16x"), Icon16x16));
+	Style->Set("Widget.Throbber", new IMAGE_BRUSH(TEXT("icon_umg_ThrobberHorizontal_16x"), Icon16x16));
+	Style->Set("Widget.CircularThrobber", new IMAGE_BRUSH(TEXT("icon_umg_ThrobberA_16x"), Icon16x16));
+	Style->Set("Widget.NativeWidgetHost", new IMAGE_BRUSH(TEXT("NativeWidgetHost"), Icon16x16));
+	Style->Set("Widget.ScaleBox", new IMAGE_BRUSH(TEXT("ScaleBox"), Icon16x16));
+	Style->Set("Widget.SizeBox", new IMAGE_BRUSH(TEXT("SizeBox"), Icon16x16));
+	Style->Set("Widget.SpinBox", new IMAGE_BRUSH(TEXT("SpinBox"), Icon16x16));
+	Style->Set("Widget.Grid", new IMAGE_BRUSH(TEXT("Grid"), Icon16x16));
 
 	Style->Set("Widget.UserWidget", new IMAGE_BRUSH(TEXT("UserWidget"), Icon16x16));
+
+	Style->Set("UMGEditor.Tabs.Animations", new IMAGE_BRUSH(TEXT("Animations_16x"), Icon16x16));
+	Style->Set("UMGEditor.Tabs.Designer", new IMAGE_BRUSH(TEXT("Designer_16x"), Icon16x16));
+	Style->Set("UMGEditor.Tabs.Palette", new IMAGE_BRUSH(TEXT("Palette_16x"), Icon16x16));
+	Style->Set("UMGEditor.Tabs.Timeline", new IMAGE_BRUSH(TEXT("Timeline_16x"), Icon16x16));
+
+	Style->Set("UMGEditor.Icons.Animations", new IMAGE_BRUSH(TEXT("Animations_40x"), Icon40x40));
+	Style->Set("UMGEditor.Icons.Designer", new IMAGE_BRUSH(TEXT("Designer_40x"), Icon40x40));
+	Style->Set("UMGEditor.Icons.Palette", new IMAGE_BRUSH(TEXT("Palette_40x"), Icon40x40));
+	Style->Set("UMGEditor.Icons.Timeline", new IMAGE_BRUSH(TEXT("Timeline_40x"), Icon40x40));
+
 
 	return Style;
 }

@@ -246,7 +246,9 @@ void UTexture::LegacySerialize(FArchive& Ar, FStripDataFlags& StripFlags)
 		Source.bPNGCompressed = true;
 		break;
 	case TSAT_DDSFile:
+#if WITH_EDITOR
 		Source.ConvertFromLegacyDDS();
+#endif
 		break;
 	}
 
@@ -310,10 +312,10 @@ void UTexture::PostLoad()
 
 	if( !IsTemplate() )
 	{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		// Update cached LOD bias.
 		UpdateCachedLODBias();
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 		// The texture will be cached by the cubemap it is contained within on consoles.
 		UTextureCube* CubeMap = Cast<UTextureCube>(GetOuter());
@@ -401,7 +403,7 @@ void UTexture::PreSave()
 
 	Super::PreSave();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (DeferCompression)
 	{
 		GWarn->StatusUpdate( 0, 0, FText::Format( NSLOCTEXT("UnrealEd", "SavingPackage_CompressingTexture", "Compressing texture:  {0}"), FText::FromString(GetName()) ) );
@@ -412,7 +414,7 @@ void UTexture::PreSave()
 	GWarn->StatusUpdate( 0, 0, FText::Format( NSLOCTEXT("UnrealEd", "SavingPackage_CompressingSourceArt", "Compressing source art for texture:  {0}"), FText::FromString(GetName()) ) );
 	Source.Compress();
 
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 
@@ -482,7 +484,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 		const bool bOldOnlyStreamInTextures = CVarOnlyStreamInTextures->GetInt() != 0;
 		CVarOnlyStreamInTextures->Set(false);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		for( TObjectIterator<UTexture2D> It; It; ++It )
 		{
 			UTexture* Texture = *It;
@@ -490,7 +492,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 			// Update cached LOD bias.
 			Texture->UpdateCachedLODBias();
 		}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 		// Make sure we iterate over all textures by setting it to high value.
 		IStreamingManager::Get().SetNumIterationsForNextFrame( 100 );
@@ -527,7 +529,7 @@ FTextureSource::FTextureSource()
 {
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 void FTextureSource::Init(
 		int32 NewSizeX,
@@ -932,4 +934,4 @@ uint32 UTexture::GetMaximumDimension() const
 {
 	return GetMax2DTextureDimension();
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR

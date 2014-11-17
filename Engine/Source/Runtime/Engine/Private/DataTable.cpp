@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Json.h"
+#include "CsvParser.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 
@@ -93,58 +94,68 @@ TArray<FName> UDataTable::GetStructPropertyNames(UStruct* InStruct)
 
 //////////////////////////////////////////////////////////////////////////
 
+void UDataTable::LoadStructData(FArchive& Ar)
+{
+	UScriptStruct* LoadUsingStruct = RowStruct;
+	if (LoadUsingStruct == NULL)
+	{
+		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while loading DataTable '%s'!"), *GetPathName());
+		LoadUsingStruct = FTableRowBase::StaticStruct();
+	}
+
+	int32 NumRows;
+	Ar << NumRows;
+
+	for (int32 RowIdx = 0; RowIdx < NumRows; RowIdx++)
+	{
+		// Load row name
+		FName RowName;
+		Ar << RowName;
+
+		// Load row data
+		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
+		LoadUsingStruct->InitializeScriptStruct(RowData);
+		// And be sure to call DestroyScriptStruct later
+		LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
+
+		// Add to map
+		RowMap.Add(RowName, RowData);
+	}
+}
+
+void UDataTable::SaveStructData(FArchive& Ar)
+{
+	// Don't even try to save rows if no RowStruct
+	if (RowStruct != NULL)
+	{
+		int32 NumRows = RowMap.Num();
+		Ar << NumRows;
+
+		// Now iterate over rows in the map
+		for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
+		{
+			// Save out name
+			FName RowName = RowIt.Key();
+			Ar << RowName;
+
+			// Save out data
+			uint8* RowData = RowIt.Value();
+			RowStruct->SerializeTaggedProperties(Ar, RowData, RowStruct, NULL);
+		}
+	}
+}
+
 void UDataTable::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar); // When loading, this should load our RowStruct!	
 
 	if(Ar.IsLoading())
 	{
-		UScriptStruct* LoadUsingStruct = RowStruct;
-		if(LoadUsingStruct == NULL)
-		{
-			UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while loading DataTable '%s'!"), *GetPathName());
-			LoadUsingStruct = FTableRowBase::StaticStruct();
-		}
-
-		int32 NumRows;
-		Ar << NumRows;
-
-		for(int32 RowIdx=0; RowIdx<NumRows; RowIdx++)
-		{
-			// Load row name
-			FName RowName;
-			Ar << RowName;
-
-			// Load row data
-			uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
-			LoadUsingStruct->InitializeScriptStruct(RowData);
-			// And be sure to call DestroyScriptStruct later
-			LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
-
-			// Add to map
-			RowMap.Add(RowName, RowData);
-		}
+		LoadStructData(Ar);
 	}
 	else if(Ar.IsSaving())
 	{
-		// Don't even try to save rows if no RowStruct
-		if(RowStruct != NULL)
-		{
-			int32 NumRows = RowMap.Num();
-			Ar << NumRows;
-
-			// Now iterate over rows in the map
-			for ( auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt )
-			{
-				// Save out name
-				FName RowName = RowIt.Key();
-				Ar << RowName;
-
-				// Save out data
-				uint8* RowData = RowIt.Value();
-				RowStruct->SerializeTaggedProperties(Ar, RowData, RowStruct, NULL);
-			}
-		}
+		SaveStructData(Ar);
 	}
 }
 
@@ -179,6 +190,80 @@ void UDataTable::FinishDestroy()
 	{
 		EmptyTable(); // Free memory when UObject goes away
 	}
+}
+
+void UDataTable::EmptyTable()
+{
+	UScriptStruct* LoadUsingStruct = RowStruct;
+	if (LoadUsingStruct == NULL)
+	{
+		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while emptying DataTable '%s'!"), *GetPathName());
+		LoadUsingStruct = FTableRowBase::StaticStruct();
+	}
+
+	// Iterate over all rows in table and free mem
+	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
+	{
+		uint8* RowData = RowIt.Value();
+		LoadUsingStruct->DestroyScriptStruct(RowData);
+		FMemory::Free(RowData);
+	}
+
+	// Finally empty the map
+	RowMap.Empty();
+}
+
+/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
+UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
+{
+	UProperty* Property = NULL;
+	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	{
+		Property = *It;
+		check(Property != NULL);
+		if (PropertyName == Property->GetFName())
+		{
+			break;
+		}
+	}
+	if (!IsSupportedTableProperty(Property))
+	{
+		Property = NULL;
+	}
+
+	return Property;
+}
+
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
+
+struct FPropertyDisplayNameHelper
+{
+	static inline FString Get(const UProperty* Prop, const FString& DefaultName)
+	{
+		static const FName DisplayNameKey(TEXT("DisplayName"));
+		return (Prop && Prop->HasMetaData(DisplayNameKey)) ? Prop->GetMetaData(DisplayNameKey) : DefaultName;
+	}
+};
+
+void UDataTable::CleanBeforeStructChange()
+{
+	RowsSerializedWithTags.Reset();
+	{
+		FMemoryWriter MemoryWriter(RowsSerializedWithTags);
+		SaveStructData(MemoryWriter);
+	}
+	EmptyTable();
+	Modify();
+}
+
+void UDataTable::RestoreAfterStructChange()
+{
+	EmptyTable();
+	{
+		FMemoryReader MemoryReader(RowsSerializedWithTags);
+		LoadStructData(MemoryReader);
+	}
+	RowsSerializedWithTags.Empty();
 }
 
 FString UDataTable::GetTableAsString()
@@ -302,70 +387,26 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 	return true;
 }
 
-void UDataTable::EmptyTable()
-{
-	UScriptStruct* LoadUsingStruct = RowStruct;
-	if(LoadUsingStruct == NULL)
-	{
-		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while emptying DataTable '%s'!"), *GetPathName());
-		LoadUsingStruct = FTableRowBase::StaticStruct();
-	}
-
-	// Iterate over all rows in table and free mem
-	for ( auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt )
-	{
-		uint8* RowData = RowIt.Value();
-		LoadUsingStruct->DestroyScriptStruct(RowData);
-		FMemory::Free(RowData);
-	}
-
-	// Finally empty the map
-	RowMap.Empty();
-}
-
-/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
-UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
-{
-	UProperty* Property = NULL;
-	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
-	{
-		Property = *It;
-		check(Property != NULL);
-		if (PropertyName == Property->GetFName())
-		{
-			break;
-		}
-	}
-	if (!IsSupportedTableProperty(Property))
-	{
-		Property = NULL;
-	}
-
-	return Property;
-}
-
 /** Get array of UProperties that corresponds to columns in the table */
-TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
+TArray<UProperty*> UDataTable::GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
 	TArray<UProperty*> ColumnProps;
 
 	// Get list of all expected properties from the struct
 	TArray<FName> ExpectedPropNames = GetStructPropertyNames(InRowStruct);
 
-	// Find the column names from first row
-	TArray<FString> ColumnNameStrings;
-	FirstRowString.ParseIntoArray(&ColumnNameStrings, TEXT(","), false);
-
 	// Need at least 2 columns, first column is skipped, will contain row names
-	if(ColumnNameStrings.Num() > 0)
+	if(Cells.Num() > 1)
 	{
-		ColumnProps.AddZeroed( ColumnNameStrings.Num() );
+		ColumnProps.AddZeroed( Cells.Num() );
 
 		// first element always NULL - as first column is row names
 
-		for(int32 ColIdx=1; ColIdx<ColumnNameStrings.Num(); ColIdx++)
+		for (int32 ColIdx = 1; ColIdx < Cells.Num(); ++ColIdx)
 		{
-			FName PropName = MakeValidName(ColumnNameStrings[ColIdx]);
+			const TCHAR* ColumnValue = Cells[ColIdx];
+
+			FName PropName = MakeValidName(ColumnValue);
 			if(PropName == NAME_None)
 			{
 				OutProblems.Add(FString(TEXT("Missing name for column %d."), ColIdx));
@@ -373,6 +414,13 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 			else
 			{
 				UProperty* ColumnProp = FindField<UProperty>(InRowStruct, PropName);
+
+				for (TFieldIterator<UProperty> It(InRowStruct); It && !ColumnProp; ++It)
+				{
+					const auto DisplayName = FPropertyDisplayNameHelper::Get(*It, FString());
+					ColumnProp = (!DisplayName.IsEmpty() && DisplayName == ColumnValue) ? *It : NULL;
+				}
+
 				// Didn't find a property with this name, problem..
 				if(ColumnProp == NULL)
 				{
@@ -398,7 +446,7 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 					}
 
 					// Track that we found this one
-					ExpectedPropNames.Remove(PropName);
+					ExpectedPropNames.Remove(ColumnProp->GetFName());
 				}
 			}
 		}
@@ -407,7 +455,9 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 	// Generate warning for any properties in struct we are not filling in
 	for(int32 PropIdx=0; PropIdx < ExpectedPropNames.Num(); PropIdx++)
 	{
-		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *ExpectedPropNames[PropIdx].ToString()));
+		const UProperty* const ColumnProp = FindField<UProperty>(InRowStruct, ExpectedPropNames[PropIdx]);
+		const FString DisplayName = FPropertyDisplayNameHelper::Get(ColumnProp, ExpectedPropNames[PropIdx].ToString());
+		OutProblems.Add(FString::Printf(TEXT("Expected column '%s' not found in input."), *DisplayName));
 	}
 
 	return ColumnProps;
@@ -424,46 +474,49 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 		OutProblems.Add(FString(TEXT("No RowStruct specified.")));
 		return OutProblems;
 	}
+	if (InString.IsEmpty())
+	{
+		OutProblems.Add(FString(TEXT("Input data is empty.")));
+		return OutProblems;
+	}
 
-	// Split one giant string into one string per row
-	TArray<FString> RowStrings;
-	InString.ParseIntoArray(&RowStrings, TEXT("\r\n"), true);
+	const FCsvParser Parser(InString);
+	const auto& Rows = Parser.GetRows();
 
 	// Must have at least 2 rows (column names + data)
-	if(RowStrings.Num() <= 1)
+	if(Rows.Num() <= 1)
 	{
 		OutProblems.Add(FString(TEXT("Too few rows.")));
 		return OutProblems;
 	}
 
 	// Find property for each column
-	TArray<UProperty*> ColumnProps = GetTablePropertyArray(RowStrings[0], RowStruct, OutProblems);
+	TArray<UProperty*> ColumnProps = GetTablePropertyArray(Rows[0], RowStruct, OutProblems);
 
 	// Empty existing data
 	EmptyTable();
 
 	// Iterate over rows
-	for(int32 RowIdx=1; RowIdx<RowStrings.Num(); RowIdx++)
+	for(int32 RowIdx=1; RowIdx<Rows.Num(); RowIdx++)
 	{
-		TArray<FString> CellStrings;
-		RowStrings[RowIdx].ParseIntoArray(&CellStrings, TEXT(","), false);
+		const TArray<const TCHAR*>& Cells = Rows[RowIdx];
 
 		// Need at least 1 cells (row name)
-		if(CellStrings.Num() < 1)
+		if(Cells.Num() < 1)
 		{
 			OutProblems.Add(FString::Printf(TEXT("Row '%d' has too few cells."), RowIdx));
 			continue;
 		}
 
 		// Need enough columns in the properties!
-		if( ColumnProps.Num() < CellStrings.Num() )
+		if( ColumnProps.Num() < Cells.Num() )
 		{
 			OutProblems.Add(FString::Printf(TEXT("Row '%d' has more cells than properties, is there a malformed string?"), RowIdx));
 			continue;
 		}
 
 		// Get row name
-		FName RowName = MakeValidName(CellStrings[0]);
+		FName RowName = MakeValidName(Cells[0]);
 
 		// Check its not 'none'
 		if(RowName == NAME_None)
@@ -484,26 +537,36 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 		RowStruct->InitializeScriptStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 
+#if WITH_EDITOR
+		if (auto UDStruct = Cast<const UUserDefinedStruct>(RowStruct))
+		{
+			UDStruct->InitializeDefaultValue(RowData);
+		}
+#endif // WITH_EDITOR
+
 		// Add to row map
 		RowMap.Add(RowName, RowData);
 
 		// Now iterate over cells (skipping first cell, that was row name)
-		for(int32 CellIdx=1; CellIdx<CellStrings.Num(); CellIdx++)
+		for(int32 CellIdx=1; CellIdx<Cells.Num(); CellIdx++)
 		{
 			// Try and assign string to data using the column property
 			UProperty* ColumnProp = ColumnProps[CellIdx];
-			FString Error = AssignStringToProperty(CellStrings[CellIdx], ColumnProp, RowData);
+			const FString CellValue = Cells[CellIdx];
+			FString Error = AssignStringToProperty(CellValue, ColumnProp, RowData);
 
 			// If we failed, output a problem string
 			if(Error.Len() > 0)
 			{
-				FString ColumnName = (ColumnProp != NULL) ? ColumnProp->GetName() : FString(TEXT("NONE"));
-				OutProblems.Add(FString::Printf(TEXT("Problem assigning string '%s' to property '%s' on row '%s' : %s"), *CellStrings[CellIdx], *ColumnName, *RowName.ToString(), *Error));
+				FString ColumnName = (ColumnProp != NULL) 
+					? FPropertyDisplayNameHelper::Get(ColumnProp, ColumnProp->GetName())
+					: FString(TEXT("NONE"));
+				OutProblems.Add(FString::Printf(TEXT("Problem assigning string '%s' to property '%s' on row '%s' : %s"), *CellValue, *ColumnName, *RowName.ToString(), *Error));
 			}
 		}
 
 		// Problem if we didn't have enough cells on this row
-		if(CellStrings.Num() < ColumnProps.Num())
+		if(Cells.Num() < ColumnProps.Num())
 		{
 			OutProblems.Add(FString::Printf(TEXT("Too few cells on row '%s'."), *RowName.ToString()));			
 		}
@@ -532,7 +595,8 @@ TArray<FString> UDataTable::GetColumnTitles() const
 	{
 		UProperty* Prop = *It;
 		check(Prop != NULL);
-		Result.Add(Prop->GetName());
+		const FString DisplayName = FPropertyDisplayNameHelper::Get(Prop, Prop->GetName());
+		Result.Add(DisplayName);
 	}
 	return Result;
 }
@@ -570,3 +634,4 @@ TArray< TArray<FString> > UDataTable::GetTableData() const
 
 }
 
+#endif //WITH_EDITOR || HACK_HEADER_GENERATOR

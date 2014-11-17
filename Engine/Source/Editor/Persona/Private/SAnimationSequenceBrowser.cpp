@@ -15,6 +15,7 @@
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SceneViewport.h"
 #include "AnimPreviewInstance.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -143,6 +144,16 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 				FSlateIcon(),
 				FUIAction(
 				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnAddLoopingInterpolation, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ReimportAnimation", "Reimport Animation"),
+				LOCTEXT("ReimportAnimation_ToolTip", "Reimport current animaion."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnReimportAnimation, SelectedAssets),
 				FCanExecuteAction()
 				)
 				);
@@ -283,6 +294,35 @@ void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> Sel
 	}
 }
 
+void SAnimationSequenceBrowser::OnReimportAnimation(TArray<FAssetData> SelectedAssets)
+{
+	if (SelectedAssets.Num() > 0)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		for (auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		{
+			if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			{
+				FReimportManager::Instance()->Reimport(AnimSequence, true);
+			}
+		}
+	}
+}
+
+void SAnimationSequenceBrowser::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, TArray<TWeakObjectPtr<UObject>> InAnimAssets)
+{
+	UObject* AssetToOpen = EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, InAnimAssets, bRemapReferencedAssets, true, bConvertSpaces);
+
+	if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
+	{
+		FAssetRegistryModule::AssetCreated(AssetToOpen);
+		// once all success, attempt to open new persona module with new skeleton
+		EToolkitMode::Type Mode = EToolkitMode::Standalone;
+		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+		PersonaModule.CreatePersona(Mode, TSharedPtr<IToolkitHost>(), NewSkeleton, NULL, AnimAsset, NULL);
+	}
+}
+
 void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 {
 	if ( Selected.Num() > 0 )
@@ -290,24 +330,25 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 		// ask which skeleton users would like to choose
 		USkeleton * OldSkeleton = PersonaPtr.Pin()->GetSkeleton();
 		USkeleton * NewSkeleton = NULL;
-		bool		bRemapReferencedAssets = true;
 		bool		bDuplicateAssets = true;
 
 		const FText Message = LOCTEXT("RemapSkeleton_Warning", "This will duplicate the asset and convert to new skeleton.");
 
-		// ask user what they'd like to change to 
-		if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message, &bRemapReferencedAssets))
+		TArray<UObject *> AnimAssets;
+		for ( auto SelectedAsset : Selected )
 		{
-			UObject* AssetToOpen = EditorAnimUtils::RetargetAnimations(NewSkeleton, Selected, bRemapReferencedAssets, bDuplicateAssets);
-
-			if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
+			UAnimationAsset* Asset = Cast<UAnimationAsset>(SelectedAsset.GetAsset());
+			if (Asset)
 			{
-				FAssetRegistryModule::AssetCreated(AssetToOpen);
-				// once all success, attempt to open new persona module with new skeleton
-				EToolkitMode::Type Mode = EToolkitMode::Standalone;
-				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-				PersonaModule.CreatePersona( Mode, TSharedPtr<IToolkitHost>(), NewSkeleton, NULL, AnimAsset, NULL );
+				AnimAssets.Add(Asset);
 			}
+		}
+
+		if (AnimAssets.Num() > 0)
+		{
+			auto AnimAssetsToConvert = FObjectEditorUtils::GetTypedWeakObjectPtrs<UObject>(AnimAssets);
+			// ask user what they'd like to change to 
+			SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, FOnRetargetAnimation::CreateSP(this, &SAnimationSequenceBrowser::RetargetAnimationHandler, AnimAssetsToConvert));
 		}
 	}
 }

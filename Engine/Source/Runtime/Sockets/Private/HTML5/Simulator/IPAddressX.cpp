@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "SocketsPrivatePCH.h"
 #include "IPAddressX.h"
 #include "Sockets/IPAddressRaw.h" 
 

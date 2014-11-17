@@ -21,9 +21,6 @@ class UNREALED_API UEditorExperimentalSettings
 
 public:
 
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Unreal Motion Graphics (UMG)" ))
-	bool bUnrealMotionGraphics;
-
 	/** Allows usage of the Translation Editor */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))
 	bool bEnableTranslationEditor;
@@ -56,11 +53,24 @@ public:
 	bool bBreakOnExceptions;
 
 	/** Should arrows indicating data/execution flow be drawn halfway along wires? */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints"))
+	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints")*/)
 	bool bDrawMidpointArrowsInBlueprints;
 
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Allow splitting of struct pins"))
-	bool bAllowSplitStructPins;
+	/** Determines if the Blueprint editor should use the new (experimental) menu system, or the old (legacy) system */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use New Blueprint Menuing System"))
+	bool bUseRefactoredBlueprintMenuingSystem;
+
+	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
+	UPROPERTY(EditAnywhere, config, Category=Audio)
+	bool bShowAudioStreamingOptions;
+
+	/** Allows ChunkIDs to be assigned to assets to via the content browser context menu. */
+	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
+	bool bContextMenuChunkAssignments;
+
+	/** Enables the dynamic feature level switching functionality */
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Feature Level Preview"))
+	bool bFeatureLevelPreview;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
@@ -72,11 +82,9 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 
 private:
 

@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessBusyWait.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarSetGPUBusyWait(
@@ -27,7 +28,7 @@ class FPostProcessBusyWaitPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -82,7 +83,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBusyWaitPS,TEXT("PostProcessBusyWait"),TEXT("
 
 void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(BusyWait, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, BusyWait, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
 	
@@ -102,12 +103,12 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBusyWaitPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBusyWaitPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetPS(Context);
 

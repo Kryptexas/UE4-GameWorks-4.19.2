@@ -279,10 +279,11 @@ void SAssetTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit::Typ
 	{
 		TSharedPtr<FTreeItem> TreeItemPtr = TreeItem.Pin();
 
-		if ( TreeItemPtr->bNewFolder )
+		if ( TreeItemPtr->bNamingFolder )
 		{
-			TreeItemPtr->bNewFolder = false;
+			TreeItemPtr->bNamingFolder = false;
 
+			const FString OldPath = TreeItemPtr->FolderPath;
 			FString Path;
 			TreeItemPtr->FolderPath.Split(TEXT("/"), &Path, NULL, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 			TreeItemPtr->FolderName = NewText.ToString();
@@ -292,7 +293,7 @@ void SAssetTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit::Typ
 			MessageLoc.X = LastGeometry.AbsolutePosition.X;
 			MessageLoc.Y = LastGeometry.AbsolutePosition.Y + LastGeometry.Size.Y * LastGeometry.Scale;
 
-			OnNameChanged.ExecuteIfBound(TreeItemPtr, MessageLoc);
+			OnNameChanged.ExecuteIfBound(TreeItemPtr, OldPath, MessageLoc);
 		}
 	}
 }
@@ -301,7 +302,7 @@ bool SAssetTreeItem::IsReadOnly() const
 {
 	if ( TreeItem.IsValid() )
 	{
-		return !TreeItem.Pin()->bNewFolder;
+		return !TreeItem.Pin()->bNamingFolder;
 	}
 	else
 	{

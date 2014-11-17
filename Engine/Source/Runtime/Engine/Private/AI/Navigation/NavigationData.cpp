@@ -183,6 +183,8 @@ void ANavigationData::PostLoad()
 
 void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
+	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
+
 	PurgeUnusedPaths();
 	if (NextObservedPathsTickInSeconds >= 0.f)
 	{
@@ -239,8 +241,10 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			// @todo consider supplying NavAgentPropertied from path's querier
 			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(RecalcRequest.Path));
 
-			if (Result.IsSuccessful())
+			// partial paths are still valid and can change to full path when moving goal gets back on navmesh
+			if (Result.IsSuccessful() || Result.IsPartial())
 			{
+				RecalcRequest.Path->UpdateLastRepathGoalLocation();
 				RecalcRequest.Path->DoneUpdating(RecalcRequest.Reason);
 				if (RecalcRequest.Reason == ENavPathUpdateType::NavigationChanged)
 				{
@@ -269,6 +273,11 @@ void ANavigationData::OnRegistered()
 	InstantiateAndRegisterRenderingComponent();
 
 	bRegistered = true; 
+}
+
+void ANavigationData::OnUnregistered()
+{
+	bRegistered = false;
 }
 
 void ANavigationData::InstantiateAndRegisterRenderingComponent()
@@ -328,7 +337,14 @@ void ANavigationData::PostEditUndo()
 	UWorld* WorldOuter = GetWorld();
 	if (WorldOuter != NULL && WorldOuter->GetNavigationSystem() != NULL)
 	{
-		WorldOuter->GetNavigationSystem()->RequestRegistration(this);
+		if (IsPendingKillPending())
+		{
+			WorldOuter->GetNavigationSystem()->UnregisterNavData(this);
+		}
+		else
+		{
+			WorldOuter->GetNavigationSystem()->RequestRegistration(this);
+		}
 	}
 }
 #endif // WITH_EDITOR
@@ -404,6 +420,16 @@ FNavDataGenerator* ANavigationData::GetGenerator(FNavigationSystem::ECreateIfEmp
 
 	return NavDataGenerator.IsValid() && NavDataGenerator.GetSharedReferenceCount() > 0 ? NavDataGenerator.Get() : NULL;
 }
+
+void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
+{
+	FNavDataGenerator* Generator = GetGenerator(FNavigationSystem::DontCreate);
+	if (Generator)
+	{
+		Generator->RebuildDirtyAreas(DirtyAreas);
+	}
+}
+
 #endif // WITH_NAVIGATION_GENERATOR
 
 void ANavigationData::DrawDebugPath(FNavigationPath* Path, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
@@ -457,12 +483,19 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 	UE_LOG(LogNavigation, Verbose, TEXT("%s registered area %s with ID %d"), *GetName(), *AreaClassName, NewAgentData.AreaID);
 }
 
-void ANavigationData::OnNavAreaAddedNotify(const UClass* NavAreaClass)
+void ANavigationData::OnNavAreaEvent(const UClass* NavAreaClass, ENavAreaEvent::Type Event)
 {
-	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-	const int32 AgentIndex = NavSys->GetSupportedAgentIndex(this);
+	if (Event == ENavAreaEvent::Registered)
+	{
+		const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+		const int32 AgentIndex = NavSys->GetSupportedAgentIndex(this);
 
-	OnNavAreaAdded(NavAreaClass, AgentIndex);
+		OnNavAreaAdded(NavAreaClass, AgentIndex);
+	}
+	else // Unregistered
+	{
+		OnNavAreaRemoved(NavAreaClass);
+	}
 }
 
 void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
@@ -476,11 +509,6 @@ void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
 			break;
 		}
 	}
-}
-
-void ANavigationData::OnNavAreaRemovedNotify(const UClass* NavAreaClass)
-{
-	OnNavAreaRemoved(NavAreaClass);
 }
 
 void ANavigationData::ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex)

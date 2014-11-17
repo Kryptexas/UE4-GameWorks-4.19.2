@@ -238,76 +238,12 @@ bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, U
 
 const TCHAR* UObjectPropertyBase::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
-	UObject* TemplateOwner = NULL;
-	if (PropertyFlags & CPF_InstancedReference)
-	{
-		for ( UObject* CheckOuter = Parent; CheckOuter; CheckOuter = CheckOuter->GetOuter() )
-		{
-			if ( CheckOuter->HasAnyFlags(RF_ClassDefaultObject) )
-			{
-				TemplateOwner = CheckOuter;
-				break;
-			}
-		}
-	}
 	const TCHAR* Buffer = InBuffer;
-	// if TemplateOwner != NULL, Data is pointing to a class default object and this is a component
-	if(TemplateOwner)
-	{
-		// For default property assignment, only allow references to components declared in the default properties of the class.
-		FString Temp;
-		Buffer = UPropertyHelpers::ReadToken( Buffer, Temp, 1 );
-		if( !Buffer )
-		{
-			return NULL;
-		}
-		if( Temp==TEXT("None") )
-		{
-			SetObjectPropertyValue(Data, NULL);
-		}
-		else
-		{
-			UObject* Result = NULL;
+	UObject* Result = NULL;
 
-			// Try to find the component through the parent class.
-			UClass*	OuterClass = TemplateOwner->GetClass();
-			while(OuterClass)
-			{
-				UObject* ComponentDefaultObject = OuterClass->GetDefaultSubobjectByName(FName(*Temp, FNAME_Find, true));
+	bool bOk = ParseObjectPropertyValue(this, Parent, PropertyClass, PortFlags, Buffer, Result);
 
-				if(ComponentDefaultObject && ComponentDefaultObject->IsA(PropertyClass))
-				{
-					Result = ComponentDefaultObject;
-					break;
-				}
-				OuterClass = NULL;
-			}
-
-			check(!Result || Result->IsA(PropertyClass));
-
-			SetObjectPropertyValue(Data, Result);
-
-			// If we couldn't find it or load it, we'll have to do without it.
-			if( !Result )
-			{
-				if (PortFlags & PPF_CheckReferences)
-				{
-					ErrorText->Logf(ELogVerbosity::Warning, TEXT("%s: unresolved reference to '%s'"), *GetFullName(), InBuffer);
-				}
-				return NULL;
-			}
-
-		}
-	}
-	else
-	{
-		// non-component path
-		UObject* Result = NULL;
-
-		bool bOk = ParseObjectPropertyValue(this, Parent, PropertyClass, PortFlags, Buffer, Result);
-
-		SetObjectPropertyValue(Data, Result);
-	}
+	SetObjectPropertyValue(Data, Result);
 	return Buffer;
 }
 

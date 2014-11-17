@@ -56,7 +56,7 @@ FName FStreamingLevelModel::GetLongPackageName() const
 {
 	if (LevelStreaming.IsValid())
 	{
-		return LevelStreaming->PackageName;
+		return LevelStreaming->GetWorldAssetPackageFName();
 	}
 	else
 	{
@@ -69,23 +69,23 @@ bool FStreamingLevelModel::SupportsLevelColor() const
 	return LevelStreaming.IsValid();
 }
 
-FColor FStreamingLevelModel::GetLevelColor() const
+FLinearColor FStreamingLevelModel::GetLevelColor() const
 {
 	if (LevelStreaming.IsValid())
 	{
-		return LevelStreaming.Get()->DrawColor;
+		return LevelStreaming.Get()->LevelColor;
 	}
 	return FLevelModel::GetLevelColor();
 }
 
-void FStreamingLevelModel::SetLevelColor(FColor InColor)
+void FStreamingLevelModel::SetLevelColor(FLinearColor InColor)
 {
 	if (LevelStreaming.IsValid())
 	{
-		UProperty* DrawColorProperty = FindField<UProperty>(LevelStreaming->GetClass(), "DrawColor");
+		UProperty* DrawColorProperty = FindField<UProperty>(LevelStreaming->GetClass(), "LevelColor");
 		LevelStreaming->PreEditChange(DrawColorProperty);
 
-		LevelStreaming.Get()->DrawColor = InColor;
+		LevelStreaming.Get()->LevelColor = InColor;
 
 		FPropertyChangedEvent PropertyChangedEvent(DrawColorProperty, false, EPropertyChangeType::ValueSet);
 		LevelStreaming->PostEditChangeProperty(PropertyChangedEvent);
@@ -203,7 +203,7 @@ void FStreamingLevelModel::UpdatePackageFileAvailability()
 		if (LevelStreaming.IsValid())
 		{
 			FString PackageName = LevelStreaming->PackageNameToLoad == NAME_None ? 
-										LevelStreaming->PackageName.ToString() : 
+										LevelStreaming->GetWorldAssetPackageName() : 
 										LevelStreaming->PackageNameToLoad.ToString();
 			
 			bHasValidPackageName = FPackageName::DoesPackageExist(PackageName);

@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 UK2Node_SwitchName::UK2Node_SwitchName(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -33,23 +34,43 @@ FText UK2Node_SwitchName::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return NSLOCTEXT("K2Node", "Switch_Name", "Switch on Name");
 }
 
-FString UK2Node_SwitchName::GetTooltip() const
+FText UK2Node_SwitchName::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "SwitchName_ToolTip", "Selects an output that matches the input value").ToString();
+	return NSLOCTEXT("K2Node", "SwitchName_ToolTip", "Selects an output that matches the input value");
 }
 
-void UK2Node_SwitchName::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_SwitchName::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 void UK2Node_SwitchName::CreateSelectionPin()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Name, TEXT(""), NULL, false, false, TEXT("Selection"));
+	UEdGraphPin* Pin = CreatePin(EGPD_Input, K2Schema->PC_Name, TEXT(""), NULL, false, false, TEXT("Selection"));
+	K2Schema->SetPinDefaultValueBasedOnType(Pin);
+}
+
+FEdGraphPinType UK2Node_SwitchName::GetPinType() const 
+{ 
+	FEdGraphPinType PinType;
+	PinType.PinCategory = UEdGraphSchema_K2::PC_Name;
+	return PinType;
 }
 
 FString UK2Node_SwitchName::GetPinNameGivenIndex(int32 Index)

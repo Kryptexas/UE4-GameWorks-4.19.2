@@ -76,11 +76,11 @@ ITargetDevicePtr FIOSTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId 
 }
 
 
-bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
+bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const
 {
 	bool biOSSDKInstalled = true; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
 #if PLATFORM_MAC
-	OutDocumentationPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
+	OutTutorialPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
 	biOSSDKInstalled = IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform"));
 #else
 	{
@@ -90,7 +90,7 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocume
 		unsigned long pathSize = 256;
 		if (lRes != ERROR_SUCCESS || RegQueryValueEx(hKey, TEXT("iTunesMobileDeviceDLL"), 0, NULL, (BYTE*)dllPath, &pathSize) != ERROR_SUCCESS || IFileManager::Get().FileSize(*FString(dllPath)) == INDEX_NONE)
 		{
-			OutDocumentationPath = FString("Shared/Tutorials/InstallingiTunesTutorial");
+			OutTutorialPath = FString("/Engine/Tutorial/Mobile/InstallingiTunesTutorial.InstallingiTunesTutorial");
 			biOSSDKInstalled = false;
 		}
 	}
@@ -103,33 +103,42 @@ static FString OutputMessage;
 static void OnOutput(FString Message)
 {
 	OutputMessage += Message;
-	UE_LOG(LogTemp, Display, TEXT("%s"), *Message);
+	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
 }
 
-int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const
+int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const
 {
 	int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
-	if (!IsSdkInstalled(bProjectHasCode, OutDocumentationPath))
+	if (!IsSdkInstalled(bProjectHasCode, OutTutorialPath))
 	{
 		bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
 	}
 #if PLATFORM_MAC
-	OutDocumentationPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
+	OutTutorialPath = FString("/Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial");
+    // shell to certtool
 #else
 	if (bProjectHasCode && FRocketSupport::IsRocket())
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/iOSonPCRestrictions");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCRestrictions.iOSonPCRestrictions");
 		bReadyToBuild |= ETargetPlatformReadyStatus::CodeUnsupported;
 	}
 	if (FRocketSupport::IsRocket() && IProjectManager::Get().IsNonDefaultPluginEnabled())
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/iOSonPCValidPlugins");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/iOSonPCValidPlugins.iOSonPCValidPlugins");
 		bReadyToBuild |= ETargetPlatformReadyStatus::PluginsUnsupported;
 	}
+#endif
 
 	// shell to IPP and get the status of the provision and cert
+#if PLATFORM_MAC
+    FString CmdExe = TEXT("/bin/sh");
+    FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
+    FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+    FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\""), *ScriptPath, *IPPPath, *ProjectPath);
+#else
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
 	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\""), *ProjectPath);
+#endif
 	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 	OutputMessage = TEXT("");
 	IPPProcess->OnOutput().BindStatic(&OnOutput);
@@ -139,28 +148,29 @@ int FIOSTargetPlatform::DoesntHaveRequirements(const FString& ProjectPath, bool 
 		FPlatformProcess::Sleep(0.01f);
 	}
 	int RetCode = IPPProcess->GetReturnCode();
+    UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
 	if (RetCode == 14)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingInfoPlist");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingInfoPlist.CreatingInfoPlist");
 		bReadyToBuild |= ETargetPlatformReadyStatus::ManifestNotFound;
 	}
 	else if (RetCode == 13)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::SigningKeyNotFound;
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
 	}
 	else if (RetCode == 12)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::SigningKeyNotFound;
 	}
 	else if (RetCode == 11)
 	{
-		OutDocumentationPath = FString("Shared/Tutorials/CreatingSigningCertAndProvision");
+		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
 	}
-#endif
+
 	return bReadyToBuild;
 }
 
@@ -286,17 +296,17 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 
 	// default to supporting ES2
-	bool bSupportOpenGLES2 = true;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportOpenGLES2"), bSupportOpenGLES2, GEngineIni);
-	if (bSupportOpenGLES2)
+	bool bSupportsOpenGLES2 = true;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsOpenGLES2"), bSupportsOpenGLES2, GEngineIni);
+	if (bSupportsOpenGLES2)
 	{
 		OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
 	}
 
 	// default to NOT supporting metal
-	bool bSupportMetal = false;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bSupportMetal"), bSupportMetal, GEngineIni);
-	if (bSupportMetal)
+	bool bSupportsMetal = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
+	if (bSupportsMetal)
 	{
 		OutFormats.AddUnique(NAME_SF_METAL);
 	}

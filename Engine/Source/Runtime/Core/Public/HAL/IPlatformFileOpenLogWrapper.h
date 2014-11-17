@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 #if !UE_BUILD_SHIPPING
 
 class CORE_API FPlatformFileOpenLog : public IPlatformFile

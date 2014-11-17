@@ -25,7 +25,7 @@ class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
 	TSubclassOf<class UEnvQueryContext> GenerateAround;
 
-	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

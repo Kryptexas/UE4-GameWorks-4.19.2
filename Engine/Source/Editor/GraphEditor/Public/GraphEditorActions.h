@@ -70,6 +70,9 @@ public:
 	TSharedPtr< FUICommandInfo > GotoNativeFunctionDefinition;
 	TSharedPtr< FUICommandInfo > GotoNativeVariableDefinition;
 
+	// Jumps to a call function node's graph
+	TSharedPtr< FUICommandInfo > GoToDefinition;
+
 	// Pin-specific actions
 	TSharedPtr< FUICommandInfo > BreakPinLinks;
 	TSharedPtr< FUICommandInfo > PromoteToVariable;

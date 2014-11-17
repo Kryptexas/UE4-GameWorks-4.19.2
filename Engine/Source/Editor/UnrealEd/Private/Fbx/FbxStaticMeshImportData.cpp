@@ -7,7 +7,9 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const class FPostConstructIni
 {
 	StaticMeshLODGroup = NAME_None;
 	bRemoveDegenerates = true;
+	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
+	bAutoGenerateCollision = true;
 }
 
 UFbxStaticMeshImportData* UFbxStaticMeshImportData::GetImportDataForStaticMesh(UStaticMesh* StaticMesh, UFbxStaticMeshImportData* TemplateForCreation)
@@ -30,4 +32,16 @@ UFbxStaticMeshImportData* UFbxStaticMeshImportData::GetImportDataForStaticMesh(U
 	}
 
 	return ImportData;
+}
+
+bool UFbxStaticMeshImportData::CanEditChange(const UProperty* InProperty) const
+{
+	bool bMutable = Super::CanEditChange(InProperty);
+	UObject* Outer = GetOuter();
+	if(Outer && bMutable)
+	{
+		// Let the FbxImportUi object handle the editability of our properties
+		bMutable = Outer->CanEditChange(InProperty);
+	}
+	return bMutable;
 }

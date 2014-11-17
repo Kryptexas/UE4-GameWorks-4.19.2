@@ -57,35 +57,17 @@ public class Vorbis : ModuleRules
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			switch (Target.Architecture)
-			{
-			case "-armv7":
-				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARMv7");
-				break;
-			case "-arm64":
-				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARM64");
-				break;
-			case "-x86":
-				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x86");
-				break;
-			case "-x64":
-				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x64");
-				break;
-			}
+			// toolchain will filter
+			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARMv7");
+			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARM64");
+			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x86");
+			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x64");
 
 			PublicAdditionalLibraries.Add("vorbis");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            if (Target.IsMonolithic)
-            {
-                PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbis.a");
-            }
-            else
-            {
-                PublicLibraryPaths.Add(VorbisPath + "lib/Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("vorbis");
-            }
+            PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbis.a");
 		}
 	}
 }

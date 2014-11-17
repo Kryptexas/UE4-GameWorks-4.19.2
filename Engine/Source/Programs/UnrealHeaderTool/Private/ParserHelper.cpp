@@ -218,22 +218,6 @@ const TCHAR* FPropertyBase::GetPropertyTypeText( EPropertyType Type )
 	return TEXT("");
 }
 
-const TCHAR* FPropertyBase::GetPropertyRefText( EPropertyReferenceType Type )
-{
-#if UE_BUILD_DEBUG
-	switch ( Type )
-	{
-		CASE_TEXT(CPRT_None);
-		CASE_TEXT(CPRT_AssignValue);
-		CASE_TEXT(CPRT_SimpleReference);
-		CASE_TEXT(CPRT_AssignmentReference);
-		CASE_TEXT(CPRT_DualReference);
-	}
-#endif
-
-	return TEXT("");
-}
-
 /////////////////////////////////////////////////////
 // FToken
 

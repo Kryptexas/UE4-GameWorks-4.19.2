@@ -37,7 +37,11 @@
 #include "AITypes.h"
 #include "AISystem.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
+#include "Actions/PawnAction.h"
+#include "Actions/PawnActionsComponent.h"
 #include "AIController.h"
 #include "AI/Navigation/NavigationSystem.h"
 
@@ -46,7 +50,14 @@
 #include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
 #include "BehaviorTree/Services/BTService_BlackboardBase.h"
 
-#include "Actions/PawnAction.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Rotator.h"
+
+#include "GenericTeamAgentInterface.h"
+
+#include "Perception/AISense.h"
+#include "Perception/AIPerceptionComponent.h"
 
 #include "VisualLog.h"
 

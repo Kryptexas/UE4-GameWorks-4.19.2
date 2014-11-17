@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "OnlineReplStructs.h"
+#include "GameFramework/Info.h"
 #include "PlayerState.generated.h"
 
 /**

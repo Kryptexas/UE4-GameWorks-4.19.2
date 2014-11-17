@@ -240,7 +240,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 
 			bool bClothFactory = (DynamicData->ClothSimulUpdateData.Num() > 0) && Chunk.HasApexClothData();
 
-			if (GRHIFeatureLevel < ERHIFeatureLevel::SM3)
+			if (GRHIFeatureLevel < ERHIFeatureLevel::SM4)
 			{
 				bClothFactory = false;
 			}
@@ -265,7 +265,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 			//  sizeof(FMatrix) == 64
 			// CACHE_LINE_SIZE (128) / 64 = 2
 			const int32 PreFetchStride = 2; // FPlatformMisc::Prefetch stride
-    
+	
 			TArray<FMatrix>& ReferenceToLocalMatrices = DynamicData->ReferenceToLocal;
 			const int32 NumReferenceToLocal = ReferenceToLocalMatrices.Num();
 			for( int32 BoneIdx=0; BoneIdx < NumBones; BoneIdx++ )
@@ -274,7 +274,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 				FPlatformMisc::Prefetch( ChunkMatrices.GetTypedData() + BoneIdx + PreFetchStride, CACHE_LINE_SIZE ); 
 				FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetTypedData() + BoneIdx + PreFetchStride );
 				FPlatformMisc::Prefetch( ReferenceToLocalMatrices.GetTypedData() + BoneIdx + PreFetchStride, CACHE_LINE_SIZE );
-    
+	
 				FBoneSkinning& BoneMat = ChunkMatrices[BoneIdx];
 				const FBoneIndexType RefToLocalIdx = Chunk.BoneMap[BoneIdx];
 				const FMatrix& RefToLocal = ReferenceToLocalMatrices[RefToLocalIdx];
@@ -397,8 +397,8 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				FMorphGPUSkinVertex& DestVertex = Buffer[iVertex];
 				float AccumulatedWeight = AccumulatedWeightArray[iVertex];
 
- 				if (AccumulatedWeight > MinVertexAnimBlendWeight)
- 				{
+				if (AccumulatedWeight > MinVertexAnimBlendWeight)
+				{
 					// when copy back, make sure to normalize by accumulated weight
 					// since delta diff of normal is (-2, 2), we divide by 2 to packed into packed normal
 					// when we unpack, we'll apply *2. 
@@ -655,7 +655,7 @@ static void CreateVertexFactoryMorph(TIndirectArray<VertexFactoryTypeBase>& Vert
 {
 	auto* VertexFactory = new VertexFactoryType(InBoneMatrices);
 	VertexFactories.Add(VertexFactory);
-					 	
+						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
@@ -693,7 +693,7 @@ static void CreateVertexFactoryCloth(TArray<VertexFactoryTypeBase*>& VertexFacto
 {
 	VertexFactoryType* VertexFactory = new VertexFactoryType(InBoneMatrices);
 	VertexFactories.Add(VertexFactory);
-					 	
+						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
@@ -762,12 +762,12 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitVertexFactories(
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{
 				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<true> >(VertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
-				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinPassthroughVertexFactory<true> >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
+				CreateVertexFactory< FGPUBaseSkinVertexFactory, FGPUSkinPassthroughVertexFactory >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
 			}
 			else
 			{
 				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<false> >(VertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
-				CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinPassthroughVertexFactory<false> >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
+				CreateVertexFactory< FGPUBaseSkinVertexFactory, FGPUSkinPassthroughVertexFactory >(PassthroughVertexFactories,VertexBuffers,PerChunkBoneMatricesArray[FactoryIdx]);
 			}
 		}
 	}
@@ -836,7 +836,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 	ClothVertexFactories.Empty(Chunks.Num());
 	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
 	{
-		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{
@@ -1053,7 +1053,7 @@ FPreviousPerBoneMotionBlur
 -----------------------------------------------------------------------------*/
 
 FPreviousPerBoneMotionBlur::FPreviousPerBoneMotionBlur()
-	:BufferIndex(0), LockedData(0), LockedTexelPosition(0), LockedTexelCount(0), bWarningBufferSizeExceeded(false)
+	:BufferIndex(0), LockedData(0), LockedTexelCount(0), bWarningBufferSizeExceeded(false)
 {
 }
 
@@ -1110,8 +1110,8 @@ void FPreviousPerBoneMotionBlur::InitIfNeeded()
 }
 void FPreviousPerBoneMotionBlur::LockData()
 {
-	checkSlow(!LockedData);
-	checkSlow(IsInRenderingThread());
+	check(!LockedData);
+	check(IsInRenderingThread());
 
 	InitIfNeeded();
 
@@ -1120,24 +1120,23 @@ void FPreviousPerBoneMotionBlur::LockData()
 	if(WriteTexture.IsValid())
 	{
 		LockedData = WriteTexture.LockData();
-		LockedTexelPosition = 0;
+		check(LockedTexelPosition.GetValue() == 0); //otherwise it wasn't unlocked or it was unlocked before it was done being filled by async stuff
+		LockedTexelPosition.Set(0);
 		LockedTexelCount = WriteTexture.GetSizeX();
 	}
 }
 
 uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning *DataStart, uint32 BoneCount)
 {
-	checkSlow(LockedData);
+	check(LockedData);
 	checkSlow(DataStart);
 	checkSlow(BoneCount);
 
 	uint32 TexelCount = BoneCount * sizeof(FBoneSkinning) / sizeof(float) / 4;
 
-	uint32 OldLockedTexelPosition = LockedTexelPosition;
+	uint32 OldLockedTexelPosition = (uint32)LockedTexelPosition.Add(TexelCount);
 	
-	LockedTexelPosition += TexelCount;
-
-	if(LockedTexelPosition <= LockedTexelCount)
+	if(OldLockedTexelPosition + TexelCount <= LockedTexelCount)
 	{
 		FMemory::Memcpy(&LockedData[OldLockedTexelPosition * 4], DataStart, BoneCount * sizeof(FBoneSkinning));
 
@@ -1153,20 +1152,18 @@ uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning *DataStart, uint32 B
 	}
 }
 
-void FPreviousPerBoneMotionBlur::UnlockData(bool bAdvance)
+void FPreviousPerBoneMotionBlur::UnlockData()
 {
 	if(IsLocked())
 	{
-		LockedTexelPosition = 0;
+		check(IsInRenderingThread());
+		LockedTexelPosition.Set(0);
 		LockedTexelCount = 0;
 		LockedData = 0;
 
 		PerChunkBoneMatricesTexture[GetWriteBufferIndex()].UnlockData();
 
-		if(bAdvance) 
-		{
-			AdvanceBufferIndex();
-		}
+		AdvanceBufferIndex();
 	}
 	
 	{
@@ -1178,7 +1175,7 @@ void FPreviousPerBoneMotionBlur::UnlockData(bool bAdvance)
 
 			if((LogSpawmPrevent % 16) == 0)
 			{
-				UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh veclocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
+				UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh velocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
 			}
 			++LogSpawmPrevent;
 		}

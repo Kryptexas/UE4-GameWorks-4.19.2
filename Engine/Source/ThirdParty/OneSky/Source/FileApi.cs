@@ -10,6 +10,27 @@ using System.Threading.Tasks;
 
 namespace OneSky
 {
+    public class LocaleCodeHelper
+    {
+        public static string ConvertFromLocaleCode(string LocaleCode)
+        {
+            if (LocaleCode == "zh-Hans-CN")
+            {
+                LocaleCode = "zh-CN";
+            }
+            return LocaleCode;
+        }
+
+        public static string ConvertToLocaleCode(string CultureCode)
+        {
+            if (CultureCode == "zh-CN")
+            {
+                CultureCode = "zh-Hans-CN";
+            }
+            return CultureCode;
+        }
+    }
+
     [DataContract]
     public class ListUploadedFilesResponse
     {
@@ -206,11 +227,11 @@ namespace OneSky
         }
 
 
-        public static Task<UploadFileResponse> Upload(OneSkyService service, int projectId, string filename, Stream stream, CultureInfo locale)
+        public static Task<UploadFileResponse> Upload(OneSkyService service, int projectId, string filename, Stream stream, CultureInfo culture)
         {
             //https://github.com/onesky/api-documentation-platform/blob/master/resources/file.md#upload---upload-a-file
             Debug.Assert(stream != null);
-            Debug.Assert(locale != null);
+            Debug.Assert(culture != null);
 
             string url = service.AddAuthenticationParameters(String.Format("https://platform.api.onesky.io/1/projects/{0}/files", projectId));
 
@@ -220,7 +241,7 @@ namespace OneSky
                 return null;
             }
 
-            url += "&file_format=" + fileFormat + "&locale=" + locale.Name;
+            url += "&file_format=" + fileFormat + "&locale=" + LocaleCodeHelper.ConvertToLocaleCode(culture.Name);
 
             return Task.Factory.StartNew(() => {
 

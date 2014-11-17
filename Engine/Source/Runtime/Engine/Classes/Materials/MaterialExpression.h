@@ -4,6 +4,8 @@
 #pragma once
 #include "MaterialExpression.generated.h"
 
+class FMaterialExpressionKey;
+
 //@warning: FExpressionInput is mirrored in MaterialShared.h and manually "subclassed" in Material.h (FMaterialInput)
 #if !CPP      //noexport struct
 USTRUCT(noexport)
@@ -94,6 +96,10 @@ class ENGINE_API UMaterialExpression : public UObject
 
 	/** Text of last error for this expression */
 	FString LastErrorText;
+
+	/** GUID to uniquely identify this node, to help the tutorials out */
+	UPROPERTY()
+	FGuid MaterialExpressionGuid;
 
 #endif // WITH_EDITORONLY_DATA
 	/** Set to true by RecursiveUpdateRealtimePreview() if the expression's preview needs to be updated in realtime in the material editor. */
@@ -278,9 +284,9 @@ class ENGINE_API UMaterialExpression : public UObject
 	 * Connects the specified input expression to the specified output of this expression.
 	 */
 	void ConnectExpression(FExpressionInput* Input, int32 OutputIndex);
-
+	
 	/** 
-	* Generates a GUID for this expression if one doesn't already exist. 
+	* Generates a GUID for the parameter expression if one doesn't already exist and we are one.
 	*
 	* @param bForceGeneration	Whether we should generate a GUID even if it is already valid.
 	*/
@@ -292,6 +298,24 @@ class ENGINE_API UMaterialExpression : public UObject
 		checkf(!bIsParameterExpression, TEXT("Expressions with bIsParameterExpression==true must implement their own GetParameterExpressionId!"));
 		static FGuid Dummy;
 		return Dummy;
+	}
+
+	/**
+	* Generates a GUID for this expression if one doesn't already exist.
+	*
+	* @param bForceGeneration	Whether we should generate a GUID even if it is already valid.
+	*/
+	void UpdateMaterialExpressionGuid(bool bForceGeneration, bool bAllowMarkingPackageDirty);
+	
+	/** Return the material expression guid. */
+	virtual FGuid& GetMaterialExpressionId()
+	{		
+#if WITH_EDITORONLY_DATA
+		return MaterialExpressionGuid;
+#else
+		static FGuid Dummy;
+		return Dummy;
+#endif
 	}
 
 	/** Asserts if the expression is not contained by its Material or Function's expressions array. */

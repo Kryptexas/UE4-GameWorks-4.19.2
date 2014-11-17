@@ -37,3 +37,14 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEngineWaitLatentCommand, float, 
  * Enqueue performance capture commands after a map has been loaded
  */
 DEFINE_LATENT_AUTOMATION_COMMAND(FEnqueuePerformanceCaptureCommands);
+
+
+/**
+* Run FPS chart command using for the actual duration of the matinee.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FMatineePerformanceCaptureCommand, FString, MatineeName);
+
+/**
+* Latent command to run an exec command that also requires a UWorld.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecWorldStringLatentCommand, FString, ExecCommand);

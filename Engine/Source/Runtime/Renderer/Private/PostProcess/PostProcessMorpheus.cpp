@@ -12,6 +12,7 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
 #include "IHeadMountedDisplay.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorpheusHMDPostProcess, All, All);
 
@@ -176,7 +177,7 @@ IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusPS,TEXT("MorpheusInclude"),TEXT("Mai
 
 void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessMorpheus, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessMorpheus, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -204,13 +205,13 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
     FMatrix QuadTexTransform;
     FMatrix QuadPosTransform = FMatrix::Identity;

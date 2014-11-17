@@ -10,11 +10,13 @@ class FObjectNameTableCellPresenter : public TSharedFromThis< FObjectNameTableCe
 public:
 
 	FObjectNameTableCellPresenter( const TSharedRef< IPropertyTableCell >& InCell )
-		: Cell( InCell )
-		, FocusWidget( SNullWidget::NullWidget )
+		: FocusWidget( SNullWidget::NullWidget )
+		, Cell( InCell )
 	{
 
 	}
+
+	virtual ~FObjectNameTableCellPresenter() {}
 
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override
 	{

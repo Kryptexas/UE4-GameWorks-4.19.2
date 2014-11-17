@@ -154,6 +154,11 @@ class ITextInputMethodSystem
 {
 public:
 	/**
+	 * Called when a window is first created to allow the text input system to apply any default settings
+	 */
+	virtual void ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow) = 0;
+
+	/**
 	 * Registers an implemented context interface object with the system to receive callbacks and provides an implemented
 	 * notifier interface object. Editable text should call this method after constructing an implemented context 
 	 * interface object.
@@ -185,4 +190,13 @@ public:
 	 * @param	Context	The context to be activated.
 	 */
 	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) = 0;
+
+	/**
+	 * Test to see whether the provided context is the currently active context
+	 *
+	 * @param	Context	The context to be checked.
+	 *
+	 * @return	True if the context is active, false otherwise
+	 */
+	virtual bool IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const = 0;
 };

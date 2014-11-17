@@ -28,6 +28,7 @@
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeProxy.h"
 #include "Landscape/LandscapeGizmoActiveActor.h"
 #include "Landscape/LandscapeComponent.h"
@@ -501,10 +502,10 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 				
 		// for removing 
 		TMap<ULandscapeInfo*, ALandscapeGizmoActiveActor*> GizmoMap;
-		for (FActorIterator It(InWorld); It; ++It)
+		for (TActorIterator<ALandscapeGizmoActiveActor> It(InWorld); It; ++It)
 		{
-			ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-			if (Gizmo && Gizmo->TargetLandscapeInfo)
+			ALandscapeGizmoActiveActor* Gizmo = *It;
+			if (Gizmo->TargetLandscapeInfo)
 			{
 				if (!GizmoMap.FindRef(Gizmo->TargetLandscapeInfo))
 				{
@@ -1649,6 +1650,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 		if( Count > 0 )
 		{
 			ClickLocation = Center / Count;
+			ClickPlane = FPlane(0.f,0.f,0.f,0.f);
 
 			SetPivot( ClickLocation, false, false );
 			FinishAllSnaps();
@@ -2092,7 +2094,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 			{
 				// Move the plane into the same coordinate space as the builder brush
 
-				*SplittingPlane = SplittingPlane->TransformBy(InWorld->GetDefaultBrush()->ActorToWorld().ToMatrixWithScale().Inverse());
+				*SplittingPlane = SplittingPlane->TransformBy(InWorld->GetDefaultBrush()->ActorToWorld().ToMatrixWithScale().InverseFast());
 
 				// Before keeping this plane, make sure there aren't any existing planes that have a normal within the rejection tolerance.
 

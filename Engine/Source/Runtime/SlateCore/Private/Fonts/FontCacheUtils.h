@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FontCacheUtils.h: Declares the FLRUStringCache class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -163,7 +159,7 @@ private:
 
 		FORCEINLINE static uint32 GetKeyHash(const KeyType& Identifier)
 		{
-			return FCrc::StrCrc_DEPRECATED( *Identifier );
+			return FCrc::StrCrc32( *Identifier );
 		}
 	};
 

@@ -325,6 +325,12 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 				}
 			}
 
+			if (bStripEditorOnlyContent)
+			{
+				UE_LOG(LogContentCommandlet, Log, TEXT("Removing editor only data"));
+				Package->PackageFlags |= PKG_FilterEditorOnly;
+			}
+
 			// Now based on the computation above we will see if we should actually attempt
 			// to save this package
 			if (bSavePackage == true)
@@ -425,6 +431,8 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	// Ensure source control is initialized and shut down properly
 	FScopedSourceControl SourceControl;
 
+	// strip editor only content
+	bStripEditorOnlyContent = Switches.Contains(TEXT("STRIPEDITORONLY"));
 	// skip the assert when a package can not be opened
 	bCanIgnoreFails = Switches.Contains(TEXT("SKIPFAILS"));
 	/** load all packages, and display warnings for those packages which would have been resaved but were read-only */
@@ -964,7 +972,6 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 
 		// get a list of packages to load
 		const FConfigSection* PackagesToFullyLoadSection = GConfig->GetSectionPrivate( *SectionToUse, 0, 1, *WrangleContentIniName );
-		const FConfigSection* PackagesToAlwaysCook = GConfig->GetSectionPrivate( TEXT("/Script/Engine.PackagesToAlwaysCook"), 0, 1, GEngineIni );
 		const FConfigSection* StartupPackages = GConfig->GetSectionPrivate( TEXT("/Script/Engine.StartupPackages"), 0, 1, GEngineIni );
 
 		// we expect either the .ini to exist, or -allmaps to be specified
@@ -985,18 +992,6 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 		if (PackagesToFullyLoadSection)
 		{
 			PackagesToFullyLoad = *PackagesToFullyLoadSection;
-		}
-
-		// move any always cook packages to list of packages to load
-		if (PackagesToAlwaysCook)
-		{
-			for (FConfigSectionMap::TConstIterator It(*PackagesToAlwaysCook); It; ++It)
-			{
-				if (It.Key() == TEXT("Package") || It.Key() == TEXT("SeekFreePackage"))
-				{
-					PackagesToFullyLoad.Add(*It.Key().ToString(), *It.Value());
-				}
-			}
 		}
 
 		// make sure all possible script/startup packages are loaded
@@ -1144,7 +1139,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 							ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 							if( StreamingLevel )
 							{
-								FString SubLevelName = StreamingLevel->PackageName.ToString();
+								FString SubLevelName = StreamingLevel->GetWorldAssetPackageName();
 								// add this sublevel's package to the list of packages to load if it's not already in the master list of packages
 								if (PackagesToFullyLoad.FindKey(SubLevelName) == NULL)
 								{

@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
+#include "Engine/InputAxisKeyDelegateBinding.h"
 
 
 UInputAxisKeyDelegateBinding::UInputAxisKeyDelegateBinding(const class FPostConstructInitializeProperties& PCIP)

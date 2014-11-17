@@ -5,31 +5,38 @@
 
 void SHeader::Construct( const FArguments& InArgs )
 {
-	SHorizontalBox::FSlot* FirstSlot = NULL;
-	SHorizontalBox::FSlot* LastSlot = NULL;
+	SHorizontalBox::FSlot* FirstSlot = nullptr;
+	SHorizontalBox::FSlot* LastSlot = nullptr;
 
 	SHorizontalBox::Construct( SHorizontalBox::FArguments()
-		+SHorizontalBox::Slot()
+
+	+ SHorizontalBox::Slot()
 		.Expose( FirstSlot )
 		.FillWidth(1)
 		.VAlign(VAlign_Center)
 		[
-			SNew(SSeparator) .SeparatorImage(FCoreStyle::Get().GetBrush("Header.Pre")) .Orientation(Orient_Horizontal)
+			SNew(SSeparator)
+				.SeparatorImage(FCoreStyle::Get().GetBrush("Header.Pre"))
+				.Orientation(Orient_Horizontal)
 		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.VAlign(VAlign_Center)
-		.Padding(5, 0)
-		[
-			InArgs._Content.Widget
-		]
-		+SHorizontalBox::Slot()
-		.Expose( LastSlot )
-		.FillWidth(1)
-		.VAlign(VAlign_Center)
-		[
-			SNew(SSeparator) .SeparatorImage(FCoreStyle::Get().GetBrush("Header.Post")) .Orientation(Orient_Horizontal)
-		]	
+
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5, 0)
+			[
+				InArgs._Content.Widget
+			]
+
+		+ SHorizontalBox::Slot()
+			.Expose( LastSlot )
+			.FillWidth(1)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SSeparator)
+					.SeparatorImage(FCoreStyle::Get().GetBrush("Header.Post"))
+					.Orientation(Orient_Horizontal)
+			]	
 	);
 
 	// Either the left or right side of the header needs to be auto-sized based on the alignment of the content.
@@ -39,15 +46,14 @@ void SHeader::Construct( const FArguments& InArgs )
 		default:
 		case HAlign_Center:
 		case HAlign_Fill:
-		break;
+			break;
 
 		case HAlign_Left:
 			FirstSlot->AutoWidth();
-		break;
+			break;
 
 		case HAlign_Right:
 			LastSlot->AutoWidth();
-		break;
-
+			break;
 	};
 }

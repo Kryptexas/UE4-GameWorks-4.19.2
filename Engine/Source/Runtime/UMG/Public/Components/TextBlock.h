@@ -5,7 +5,7 @@
 #include "TextBlock.generated.h"
 
 /** A simple static text widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface )
+UCLASS(ClassGroup=UserInterface )
 class UMG_API UTextBlock : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -17,7 +17,7 @@ public:
 	 * @param InColorAndOpacity		The new text color and opacity
 	 */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
+	void SetColorAndOpacity(FSlateColor InColorAndOpacity);
 
 	/**  
 	 * Sets the color and opacity of the text drop shadow
@@ -36,11 +36,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetShadowOffset(FVector2D InShadowOffset);
 
-
 public:
-	/** The style to use to render the text */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	/** The text block style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FTextBlockStyle WidgetStyle;
+
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The text to display */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
@@ -52,7 +54,7 @@ public:
 
 	/** The color of the text */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FLinearColor ColorAndOpacity;
+	FSlateColor ColorAndOpacity;
 
 	/** A bindable delegate for the ColorAndOpacity. */
 	UPROPERTY()
@@ -67,42 +69,78 @@ public:
 	FVector2D ShadowOffset;
 
 	/** The color of the shadow */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayName="Shadow Color" ))
 	FLinearColor ShadowColorAndOpacity;
 
 	/** A bindable delegate for the ShadowColorAndOpacity. */
 	UPROPERTY()
 	FGetLinearColor ShadowColorAndOpacityDelegate;
 
+	/** How the text should be aligned with the margin. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	TEnumAsByte<ETextJustify::Type> Justification;
+
+	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	bool AutoWrapText;
+
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	float WrapTextAt;
 
-	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
+	/** The minimum desired size for the text */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	bool AutoWrapText;
+	float MinDesiredWidth;
+
+	/** The amount of blank space left around the edges of text area. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	FMargin Margin;
+
+	/** The amount to scale each lines height by. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	float LineHeightPercentage;
 
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 
-	/**  */
+	/** 
+	Gets the widget text
+	@return The widget text
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	FText GetText() const;
+
+	/**
+	Directly sets the widget text.
+	Warning: This will wipe any binding created for the Text property!
+	@param InText The text to assign to the widget
+	*/
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetText(FText InText);
 
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
+
+	static const FTextBlockStyle* GetDefaultStyle();
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 
 	virtual FString GetLabelMetadata() const override;
 
 	void HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType);
-
-	virtual void OnBeginEdit() override;
 #endif
 
 protected:
@@ -113,8 +151,4 @@ protected:
 protected:
 
 	TSharedPtr<STextBlock> MyTextBlock;
-
-#if WITH_EDITOR
-	TSharedPtr<SInlineEditableTextBlock> MyEditorTextBlock;
-#endif
 };

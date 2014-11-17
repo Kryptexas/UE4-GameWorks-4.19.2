@@ -12,21 +12,12 @@ class SScrollBarTrack : public SPanel
 public:
 
 	/** A ListPanel slot is very simple - it just stores a widget. */
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
-	public:		
+	public:
 		FSlot()
-			: Widget( SNullWidget::NullWidget )
-		{
-		}
-
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
-		{
-			Widget = InWidget;
-			return *this;
-		}
-
-		TSharedRef<SWidget> Widget;
+		: TSlotBase<FSlot>()
+		{}
 	};
 
 	SLATE_BEGIN_ARGS( SScrollBarTrack )
@@ -44,6 +35,11 @@ public:
 		SLATE_ARGUMENT( EOrientation, Orientation )
 
 	SLATE_END_ARGS()
+
+	SScrollBarTrack()
+	: Children()
+	{
+	}
 
 	/**
 	 * Construct the widget from a Declaration
@@ -115,35 +111,36 @@ public:
 	{
 		const float Width = AllottedGeometry.Size.X;
 		const float Height = AllottedGeometry.Size.Y;
-
-		FTrackSizeInfo TrackSizeInfo = this->GetTrackSizeInfo(AllottedGeometry);
-
-		// Arrange top half of the track
-		FVector2D ChildSize = (Orientation == Orient_Horizontal)
-			? FVector2D(TrackSizeInfo.ThumbStart, Height)
-			: FVector2D(Width, TrackSizeInfo.ThumbStart);
-
-		FVector2D ChildPos(0, 0);
-		ArrangedChildren.AddWidget(			
-			AllottedGeometry.MakeChild( Children[TOP_SLOT_INDEX].Widget, ChildPos, ChildSize )
-		);
-
-		// Arrange bottom half of the track
-		ChildPos = (Orientation == Orient_Horizontal)
-			? FVector2D(TrackSizeInfo.GetThumbEnd(), 0)
-			: FVector2D(0, TrackSizeInfo.GetThumbEnd());
-
-		ChildSize = (Orientation == Orient_Horizontal)
-			? FVector2D(AllottedGeometry.Size.X - TrackSizeInfo.GetThumbEnd(), Height)
-			: FVector2D(Width, AllottedGeometry.Size.Y - TrackSizeInfo.GetThumbEnd());
-
-		ArrangedChildren.AddWidget( 
-			AllottedGeometry.MakeChild( Children[BOTTOM_SLOT_INDEX].Widget, ChildPos, ChildSize )
-		);
 		
-		// Arrange the thumb; only show it in enabled scrollbars
+		// We only need to show all three children when the thumb is visible, otherwise we only need to show the track
 		if ( IsNeeded() )
 		{
+			FTrackSizeInfo TrackSizeInfo = this->GetTrackSizeInfo(AllottedGeometry);
+
+			// Arrange top half of the track
+			FVector2D ChildSize = (Orientation == Orient_Horizontal)
+				? FVector2D(TrackSizeInfo.ThumbStart, Height)
+				: FVector2D(Width, TrackSizeInfo.ThumbStart);
+
+			FVector2D ChildPos(0, 0);
+			ArrangedChildren.AddWidget(			
+				AllottedGeometry.MakeChild( Children[TOP_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
+			);
+
+			// Arrange bottom half of the track
+			ChildPos = (Orientation == Orient_Horizontal)
+				? FVector2D(TrackSizeInfo.GetThumbEnd(), 0)
+				: FVector2D(0, TrackSizeInfo.GetThumbEnd());
+
+			ChildSize = (Orientation == Orient_Horizontal)
+				? FVector2D(AllottedGeometry.Size.X - TrackSizeInfo.GetThumbEnd(), Height)
+				: FVector2D(Width, AllottedGeometry.Size.Y - TrackSizeInfo.GetThumbEnd());
+
+			ArrangedChildren.AddWidget( 
+				AllottedGeometry.MakeChild( Children[BOTTOM_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
+			);
+
+			// Arrange the thumb
 			ChildPos = (Orientation == Orient_Horizontal)
 				? FVector2D(TrackSizeInfo.ThumbStart, 0)
 				: FVector2D(0, TrackSizeInfo.ThumbStart);
@@ -153,7 +150,14 @@ public:
 				: FVector2D(Width, TrackSizeInfo.ThumbSize);
 
 			ArrangedChildren.AddWidget(
-				AllottedGeometry.MakeChild( Children[THUMB_SLOT_INDEX].Widget, ChildPos, ChildSize )
+				AllottedGeometry.MakeChild( Children[THUMB_SLOT_INDEX].GetWidget(), ChildPos, ChildSize )
+			);
+		}
+		else
+		{
+			// No thumb is visible, so just show the top half of the track at the current width/height
+			ArrangedChildren.AddWidget(			
+				AllottedGeometry.MakeChild( Children[TOP_SLOT_INDEX].GetWidget(), FVector2D(0, 0), FVector2D(Width, Height) )
 			);
 		}
 
@@ -169,12 +173,12 @@ public:
 	{
 		if ( Orientation == Orient_Horizontal )
 		{
-			const float DesiredHeight = FMath::Max3( Children[0].Widget->GetDesiredSize().Y, Children[1].Widget->GetDesiredSize().Y, Children[2].Widget->GetDesiredSize().Y );
+			const float DesiredHeight = FMath::Max3( Children[0].GetWidget()->GetDesiredSize().Y, Children[1].GetWidget()->GetDesiredSize().Y, Children[2].GetWidget()->GetDesiredSize().Y );
 			return FVector2D( MinThumbSize, DesiredHeight );
 		}
 		else
 		{
-			const float DesiredWidth = FMath::Max3( Children[0].Widget->GetDesiredSize().X, Children[1].Widget->GetDesiredSize().X, Children[2].Widget->GetDesiredSize().X );
+			const float DesiredWidth = FMath::Max3( Children[0].GetWidget()->GetDesiredSize().X, Children[1].GetWidget()->GetDesiredSize().X, Children[2].GetWidget()->GetDesiredSize().X );
 			return FVector2D( DesiredWidth, MinThumbSize );
 		}
 	}

@@ -313,13 +313,19 @@ ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(int32 LocalUserNum) c
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);
-		if (UserAccount.IsValid() &&
-			UserAccount->GetUserId()->IsValid() &&
-			!UserAccount->GetAccessToken().IsEmpty())
-		{
-			return ELoginStatus::LoggedIn;
-		}
+		return GetLoginStatus(*UserId);
+	}
+	return ELoginStatus::NotLoggedIn;
+}
+
+ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(const FUniqueNetId& UserId) const
+{
+	TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId);
+	if (UserAccount.IsValid() &&
+		UserAccount->GetUserId()->IsValid() &&
+		!UserAccount->GetAccessToken().IsEmpty())
+	{
+		return ELoginStatus::LoggedIn;
 	}
 	return ELoginStatus::NotLoggedIn;
 }
@@ -329,12 +335,18 @@ FString FOnlineIdentityFacebook::GetPlayerNickname(int32 LocalUserNum) const
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		const TSharedRef<FUserOnlineAccountFacebook>* FoundUserAccount = UserAccounts.Find(UserId->ToString());
-		if (FoundUserAccount != NULL)
-		{
-			const TSharedRef<FUserOnlineAccountFacebook>& UserAccount = *FoundUserAccount;
-			return UserAccount->RealName;
-		}
+		return  GetPlayerNickname(*UserId);
+	}
+	return TEXT("");
+}
+
+FString FOnlineIdentityFacebook::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	const TSharedRef<FUserOnlineAccountFacebook>* FoundUserAccount = UserAccounts.Find(UserId.ToString());
+	if (FoundUserAccount != NULL)
+	{
+		const TSharedRef<FUserOnlineAccountFacebook>& UserAccount = *FoundUserAccount;
+		return UserAccount->RealName;
 	}
 	return TEXT("");
 }
@@ -417,3 +429,23 @@ void FOnlineIdentityFacebook::MeUser_HttpRequestComplete(FHttpRequestPtr HttpReq
 
 	TriggerOnLoginCompleteDelegates(PendingRegisterUser.LocalUserNum, bResult, FUniqueNetIdString(User.UserId), ErrorStr);
 }
+
+void FOnlineIdentityFacebook::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+}	
+
+FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+{
+	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
+	{
+		auto CurrentUniqueId = GetUniquePlayerId(i);
+		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
+		{
+			return i;
+		}
+	}
+
+	return PLATFORMUSERID_NONE;
+}
+

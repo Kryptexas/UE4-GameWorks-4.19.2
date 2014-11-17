@@ -4,6 +4,7 @@
 #include "../../../Renderer/Private/ScenePrivate.h"
 #include "Atmosphere.h"
 #include "ComponentInstanceDataCache.h"
+#include "Atmosphere/AtmosphericFog.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
@@ -110,7 +111,7 @@ void UAtmosphericFogComponent::PostLoad()
 
 	if ( !IsTemplate() )
 	{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		if (TransmittanceTexture_DEPRECATED)
 		{
 			// Copy data from Previous data
@@ -172,7 +173,7 @@ void UAtmosphericFogComponent::PostLoad()
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "UnrealEd.h"
 
 class FAtmospherePrecomputeDataHandler : public FTickableEditorObject
@@ -205,16 +206,24 @@ public:
 };
 #endif
 
+
+static TAutoConsoleVariable<int32> CVarAtmosphereRender(
+	TEXT("r.Atmosphere"),
+	1,
+	TEXT("Defines atmosphere will render or not. Only changed by r.Atmosphere console command.\n")
+	TEXT("Enable/Disable Atmosphere, Load/Unload related data.\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on (default)"));
+
 // On CPU
 void UAtmosphericFogComponent::InitResource()
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AtmosphereRender"));
-	if (ICVar && ICVar->GetValueOnGameThread() == 0)
+	bool bNewAtmosphere = CVarAtmosphereRender.GetValueOnGameThread() != 0;
+
+	if(!bNewAtmosphere)
 	{
-		return; // Don't do intialize resource when r.AtmosphereRender is off
+		return; // Don't do initialize resource when Atmosphere Render is off
 	}
-#endif
 
 	if (PrecomputeCounter.GetValue() >= EValid)
 	{
@@ -237,7 +246,7 @@ void UAtmosphericFogComponent::InitResource()
 			BeginInitResource( InscatterResource );
 		}
 	}
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	else if (!PrecomputeDataHandler)
 	{
 		PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
@@ -292,7 +301,7 @@ void UAtmosphericFogComponent::ReleaseResource()
 		InscatterResource = NULL;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (PrecomputeDataHandler)
 	{
 		delete PrecomputeDataHandler;
@@ -526,7 +535,7 @@ void UAtmosphericFogComponent::PostInterpChange(UProperty* PropertyThatChanged)
 
 void UAtmosphericFogComponent::StartPrecompute()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		PrecomputeCounter.Reset();
@@ -538,19 +547,24 @@ void UAtmosphericFogComponent::StartPrecompute()
 		}
 		PrecomputeDataHandler = new FAtmospherePrecomputeDataHandler(this);
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FStartPrecompute,
-			FScene*,Scene,(FScene*)GetScene(),
-			UAtmosphericFogComponent*,Component,this,
+		if (GetScene())
 		{
-			if (Scene && Scene->AtmosphericFog)
+			FAtmosphericFogSceneInfo* AtmosphericFogSceneInfo = GetScene()->GetAtmosphericFogSceneInfo();
+
+			if (AtmosphericFogSceneInfo)
 			{
-				if (Scene->AtmosphericFog->Component == Component)
+				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+					FStartPrecompute,
+					FAtmosphericFogSceneInfo*, AtmosphericFogSceneInfo, AtmosphericFogSceneInfo, 
+					UAtmosphericFogComponent*, Component, this,
 				{
-					Scene->AtmosphericFog->bNeedRecompute = true;
-				}
+					if (AtmosphericFogSceneInfo->Component == Component)
+					{
+						AtmosphericFogSceneInfo->bNeedRecompute = true;
+					}
+				});
 			}
-		});
+		}
 	}
 #endif
 }
@@ -787,3 +801,37 @@ void UAtmosphericFogComponent::ApplyComponentInstanceData(TSharedPtr<FComponentI
 	PrecomputeCounter.Set(EValid);
 	InitResource();
 }
+
+/**
+ * Gets called any time cvars change (on the main thread), we check if r.Atmosphere has changed and update the components.
+ */
+static void AtmosphereRenderSinkFunction()
+{
+	bool bNewAtmosphere = CVarAtmosphereRender.GetValueOnGameThread() != 0;
+
+	// by default we assume the state is true
+	static bool GAtmosphere = true;
+
+	if (GAtmosphere != bNewAtmosphere)
+	{
+		GAtmosphere = bNewAtmosphere;
+
+		for(TObjectIterator<UAtmosphericFogComponent> It; It; ++It)
+		{
+			UAtmosphericFogComponent* Comp = *It;
+			if (!Comp->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				if (bNewAtmosphere && Comp->IsRegistered())
+				{
+					Comp->InitResource();
+				}
+				else
+				{
+					Comp->ReleaseResource();
+				}
+			}
+		}
+	}
+}
+
+FAutoConsoleVariableSink CVarAtmosphereRenderSink(FConsoleCommandDelegate::CreateStatic(&AtmosphereRenderSinkFunction));

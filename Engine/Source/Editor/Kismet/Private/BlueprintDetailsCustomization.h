@@ -2,14 +2,33 @@
 
 #pragma once
 
-/** Variable replication states */
+#include "EdGraph/EdGraphNode_Documentation.h"
+
+/**
+ * Variable network replication options.
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
+ */
 namespace EVariableReplication
 {
 	enum Type
 	{
+		/**
+		 * Not replicated.
+		 */
 		None,
+
+		/**
+		 * Replicated from server to client.
+		 * As values change on the server, client automatically receives new values, if Actor is set to replicate.
+		 */
 		Replicated,
+
+		/**
+		 * Replicated from server to client, with a notification function called on clients when a new value arrives.
+		 * An event with the name "On Rep <VariableName>" is created.
+		 */
 		RepNotify,
+
 		MAX
 	};
 }
@@ -275,8 +294,8 @@ class FBlueprintGraphArgumentGroupLayout : public IDetailCustomNodeBuilder, publ
 {
 public:
 	FBlueprintGraphArgumentGroupLayout(TWeakPtr<class FBaseBlueprintGraphActionDetails> InGraphActionDetails, UK2Node_EditablePinBase* InTargetNode)
-		: TargetNode(InTargetNode)
-		, GraphActionDetailsPtr(InGraphActionDetails) {}
+		: GraphActionDetailsPtr(InGraphActionDetails)
+		, TargetNode(InTargetNode) {}
 
 private:
 	/** IDetailCustomNodeBuilder Interface*/
@@ -301,12 +320,12 @@ class FBlueprintGraphArgumentLayout : public IDetailCustomNodeBuilder, public TS
 {
 public:
 	FBlueprintGraphArgumentLayout(TWeakPtr<FUserPinInfo> PinInfo, UK2Node_EditablePinBase* InTargetNode, TWeakPtr<class FBaseBlueprintGraphActionDetails> InGraphActionDetails, FName InArgName, bool bInHasDefaultValue)
-		: ParamItemPtr(PinInfo)
+		: GraphActionDetailsPtr(InGraphActionDetails)
+		, ParamItemPtr(PinInfo)
 		, TargetNode(InTargetNode)
-		, GraphActionDetailsPtr(InGraphActionDetails)
-		, ArgumentName(InArgName)
-		, bHasDefaultValue(bInHasDefaultValue) {}
-	
+		, bHasDefaultValue(bInHasDefaultValue)
+		, ArgumentName(InArgName) {}
+
 private:
 	/** IDetailCustomNodeBuilder Interface*/
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override {}
@@ -434,7 +453,7 @@ private:
 		uint32 SpecifierFlag;
 
 		FReplicationSpecifierLabel( FText InLocalizedName, uint32 InSpecifierFlag, FText InLocalizedToolTip ) :
-			LocalizedName( InLocalizedName ), SpecifierFlag( InSpecifierFlag ), LocalizedToolTip( InLocalizedToolTip )
+			LocalizedName( InLocalizedName ), LocalizedToolTip( InLocalizedToolTip ), SpecifierFlag( InSpecifierFlag )
 		{}
 	};
 
@@ -491,6 +510,21 @@ public:
 		: GlobalOptionsDetailsPtr(InGlobalOptionsDetails)
 		, bShowsInheritedInterfaces(bInShowsInheritedInterfaces) {}
 
+	struct FInterfaceName
+	{
+		FName Name;
+		FText DisplayText;
+
+		FInterfaceName() {}
+		FInterfaceName(FName InName, const FText& InDisplayText) 
+			: Name(InName), DisplayText(InDisplayText) {}
+
+		bool operator==(const FInterfaceName& Other) const
+		{
+			return Name == Other.Name;
+		}
+	};
+
 private:
 	/** IDetailCustomNodeBuilder Interface*/
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override {RegenerateChildrenDelegate = InOnRegenerateChildren;}
@@ -504,11 +538,11 @@ private:
 private:
 	/** Callbacks for details UI */
 	void OnBrowseToInterface(TWeakObjectPtr<UObject> Asset);
-	void OnRemoveInterface(FString InterfaceName);
+	void OnRemoveInterface(FInterfaceName InterfaceName);
 
 	TSharedRef<SWidget> OnGetAddInterfaceMenuContent();
-	TSharedRef<ITableRow> GenerateInterfaceListRow( TSharedPtr<FString> InterfaceName, const TSharedRef<STableViewBase>& OwningList );
-	void OnInterfaceListSelectionChanged(TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo);
+	TSharedRef<ITableRow> GenerateInterfaceListRow(TSharedPtr<FInterfaceName> InterfaceName, const TSharedRef<STableViewBase>& OwningList);
+	void OnInterfaceListSelectionChanged(TSharedPtr<FInterfaceName> Selection, ESelectInfo::Type SelectInfo);
 
 private:
 	/** The parent graph action details customization */
@@ -518,7 +552,7 @@ private:
 	bool bShowsInheritedInterfaces;
 
 	/** List of unimplemented interfaces, for source for a list view */
-	TArray<TSharedPtr<FString>> UnimplementedInterfaces;
+	TArray<TSharedPtr<FInterfaceName>> UnimplementedInterfaces;
 
 	/** The add interface combo button */
 	TSharedPtr<SComboButton> AddInterfaceComboButton;
@@ -555,7 +589,7 @@ public:
 
 protected:
 	/** Gets the Blueprint parent class name text */
-	FString GetParentClassName() const;
+	FText GetParentClassName() const;
 
 	// Determine whether or not we should be allowed to reparent (but still display the parent class regardless)
 	bool CanReparent() const;
@@ -669,8 +703,8 @@ class FBlueprintGraphNodeDetails : public IDetailCustomization
 public:
 	/** Constructor */
 	FBlueprintGraphNodeDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
-		: BlueprintEditorPtr(InBlueprintEditorPtr)
-		, GraphNodePtr(NULL)
+		: GraphNodePtr(NULL)
+		, BlueprintEditorPtr(InBlueprintEditorPtr)
 	{
 
 	}
@@ -699,8 +733,6 @@ private:
 
 	/** The widget used when editing the name */ 
 	TSharedPtr<SEditableTextBox> NameEditableTextBox;
-	/** Flag to indicate whether or not the variable name is invalid */
-	bool bIsNodeNameInvalid;
 	/** The target GraphNode */
 	TWeakObjectPtr<UEdGraphNode> GraphNodePtr;
 	/** Weak reference to the Blueprint editor */
@@ -723,4 +755,70 @@ public:
 private:
 	/** Weak reference to the Blueprint editor */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
+};
+
+/** Details customization for Blueprint Documentation */
+class FBlueprintDocumentationDetails : public IDetailCustomization
+{
+public:
+	/** Constructor */
+	FBlueprintDocumentationDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+		: BlueprintEditorPtr(InBlueprintEditorPtr)
+	{
+	}
+
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<class IDetailCustomization> MakeInstance(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+	{
+		return MakeShareable(new FBlueprintDocumentationDetails(InBlueprintEditorPtr));
+	}
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
+
+protected:
+
+	/** Accessors passed to parent */
+	UBlueprint* GetBlueprintObj() const { return BlueprintEditorPtr.Pin()->GetBlueprintObj(); }
+
+	/** Get the currently selected node from the edgraph */
+	TWeakObjectPtr<UEdGraphNode_Documentation> EdGraphSelectionAsDocumentNode();
+
+	/** Accessor for the current nodes documentation link */
+	FText OnGetDocumentationLink() const;
+
+	/** Accessor for the nodes current documentation excerpt  */
+	FText OnGetDocumentationExcerpt() const;
+	
+	/** Accessor to evaluate if the current excerpt can be modified */
+	bool OnExcerptChangeEnabled() const;
+
+	/** Handler for the documentation link being committed */
+	void OnDocumentationLinkCommitted( const FText& InNewName, ETextCommit::Type InTextCommit );
+	
+	/** Generate table row for excerpt combo */
+	TSharedRef< ITableRow > MakeExcerptViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
+	
+	/** Apply selection changes from the excerpt combo */
+	void OnExcerptSelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type SelectInfo );
+
+	/** Generate excerpt list widget from documentation page */
+	TSharedRef<SWidget> GenerateExcerptList();
+
+
+private:
+
+	/** Documentation Link */
+	FString DocumentationLink;
+	/** Current Excerpt */
+	FString DocumentationExcerpt;
+	/** Weak reference to the Blueprint editor */
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
+	/** The editor node we're editing */
+	TWeakObjectPtr<UEdGraphNode_Documentation> DocumentationNodePtr;
+	/** Excerpt combo widget */
+	TSharedPtr<SComboButton> ExcerptComboButton;
+	/** Excerpt List */
+	TArray<TSharedPtr<FString>> ExcerptList;
+
 };

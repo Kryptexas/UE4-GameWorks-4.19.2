@@ -64,9 +64,6 @@
 #include "AnimationEditorUtils.h"
 #include "SAnimationSequenceBrowser.h"
 
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "EngineAnalytics.h"
-
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -473,6 +470,7 @@ void FPersona::ExtendMenu()
 			{
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ChangeSkeletonPreviewMesh);
 				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().RemoveUnusedBones);
+				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().UpdateSkeletonRefPose);
 			}
 			MenuBuilder.EndSection();
 
@@ -610,6 +608,8 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	ObjectsBeingEdited.Add(TargetSkeleton);
 	check(TargetSkeleton);
+
+	TargetSkeleton->CollectAnimationNotifies();
 
 	TargetSkeleton->RegisterOnSkeletonHierarchyChanged( USkeleton::FOnSkeletonHierarchyChanged::CreateSP( this, &FPersona::OnSkeletonHierarchyChanged ) );
 
@@ -751,7 +751,7 @@ void FPersona::ExtendDefaultPersonaToolbar()
 			{
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ChangeSkeletonPreviewMesh, NAME_None, LOCTEXT("Toolbar_ChangePreviewMesh", "Set Preview"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().AnimNotifyWindow);
-				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RetargetSourceMgr, NAME_None, LOCTEXT("Toolbar_RetargetSourceMgr", "Retarget Source"));
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RetargetManager, NAME_None, LOCTEXT("Toolbar_RetargetManager", "Retarget Manager"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportMesh);
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ReimportMesh);
 
@@ -906,10 +906,6 @@ void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 {
 	if (bSuccess)
 	{
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Persona.ReimportedViaEditor"));
-		}
 		ConditionalRefreshEditor(InObject);
 	}
 }
@@ -1000,6 +996,9 @@ void FPersona::CreateDefaultCommands()
 		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanRemoveBones )
 		);
+	ToolkitCommands->MapAction(FPersonaCommands::Get().UpdateSkeletonRefPose,
+		FExecuteAction::CreateSP(this, &FPersona::UpdateSkeletonRefPose)
+		);
 
 	ToolkitCommands->MapAction(FPersonaCommands::Get().AnimNotifyWindow,
 		FExecuteAction::CreateSP(this, &FPersona::OnAnimNotifyWindow),
@@ -1008,8 +1007,8 @@ void FPersona::CreateDefaultCommands()
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::SkeletonDisplayMode)
 		);
 
-	ToolkitCommands->MapAction(FPersonaCommands::Get().RetargetSourceMgr,
-		FExecuteAction::CreateSP(this, &FPersona::OnRetargetSourceMgr),
+	ToolkitCommands->MapAction(FPersonaCommands::Get().RetargetManager,
+		FExecuteAction::CreateSP(this, &FPersona::OnRetargetManager),
 		FCanExecuteAction(),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::SkeletonDisplayMode)
@@ -1462,6 +1461,11 @@ void FPersona::Compile()
 FString FPersona::GetDefaultEditorTitle()
 {
 	return NSLOCTEXT("Kismet", "PreviewParamatersTabTitle", "Preview Parameters").ToString();
+}
+
+FName FPersona::GetToolkitContextFName() const
+{
+	return GetToolkitFName();
 }
 
 FName FPersona::GetToolkitFName() const
@@ -1942,17 +1946,16 @@ FName FPersona::GenerateUniqueSocketName( FName InName )
 {
 	USkeletalMesh* Mesh = GetMesh();
 
-	EName OriginalNameIndex = (EName)InName.GetIndex();
 	int32 NewNumber = InName.GetNumber();
 
 	// Increment NewNumber until we have a unique name (potential infinite loop if *all* int32 values are used!)
-	while ( DoesSocketAlreadyExist( NULL, FText::FromName( FName( OriginalNameIndex, NewNumber ) ), TargetSkeleton->Sockets ) ||
-		( Mesh ? DoesSocketAlreadyExist( NULL, FText::FromName( FName( OriginalNameIndex, NewNumber ) ), Mesh->GetMeshOnlySocketList() ) : false ) )
+	while ( DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), TargetSkeleton->Sockets ) ||
+		( Mesh ? DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), Mesh->GetMeshOnlySocketList() ) : false ) )
 	{
 		++NewNumber;
 	}
 
-	return FName( OriginalNameIndex, NewNumber );
+	return FName( InName, NewNumber );
 }
 
 bool FPersona::DoesSocketAlreadyExist( const USkeletalMeshSocket* InSocket, const FText& InSocketName, const TArray< USkeletalMeshSocket* >& InSocketArray ) const
@@ -2570,6 +2573,15 @@ void FPersona::ChangeSkeletonPreviewMesh()
 	}
 }
 
+void FPersona::UpdateSkeletonRefPose()
+{
+	// update ref pose with current preview mesh
+	if (TargetSkeleton)
+	{
+		TargetSkeleton->UpdateReferencePoseFromMesh(GetPreviewMeshComponent()->SkeletalMesh);
+	}
+}
+
 void FPersona::RemoveUnusedBones()
 {
 	// Menu option cannot be called unless this is valid
@@ -2770,196 +2782,14 @@ void FPersona::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)
 	}
 }
 
-/////////////////////////////////////////////////////
-
-FAnimationRecorder::FAnimationRecorder()
-	: SampleRate(30)
-	, AnimationObject(NULL)
-{
-
-}
-
-FAnimationRecorder::~FAnimationRecorder()
-{
-	StopRecord();
-}
-
-void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSequence * InAnimationObject, float InDuration)
-{
-	Duration = InDuration;
-	check (Duration > 0.f);
-	TimePassed = 0.f;
-	AnimationObject = InAnimationObject;
-
-	AnimationObject->RawAnimationData.Empty();
-	AnimationObject->TrackToSkeletonMapTable.Empty();
-	AnimationObject->AnimationTrackNames.Empty();
-
-	PreviousSpacesBases = Component->SpaceBases;
-
-	check (SampleRate!=0.f);
-	const float IntervalTime = 1.f/SampleRate;
-	// prepare to record
-	// how many frames we need?
-	int32 MaxFrame = Duration/IntervalTime+1;
-	int32 NumBones = PreviousSpacesBases.Num();
-	check (MaxFrame > 0);
-	check (Component->SkeletalMesh);
-
-	LastFrame = 0;
-	AnimationObject->SequenceLength = Duration;
-	AnimationObject->NumFrames = MaxFrame;
-
-	USkeleton * AnimSkeleton = AnimationObject->GetSkeleton();
-	// add all frames
-	for (int32 BoneIndex=0; BoneIndex <PreviousSpacesBases.Num(); ++BoneIndex)
-	{
-		// verify if this bone exists in skeleton
-		int32 BoneTreeIndex = AnimSkeleton->GetSkeletonBoneIndexFromMeshBoneIndex(Component->SkeletalMesh, BoneIndex);
-		if (BoneTreeIndex != INDEX_NONE)
-		{
-			FName BoneTreeName = AnimSkeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
-			int32 NewTrack = AnimationObject->RawAnimationData.AddZeroed(1);
-			AnimationObject->AnimationTrackNames.Add(BoneTreeName);
-
-			FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[NewTrack];
-			// add mapping to skeleton bone track
-			AnimationObject->TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(BoneTreeIndex));
-			RawTrack.PosKeys.AddZeroed(MaxFrame);
-			RawTrack.RotKeys.AddZeroed(MaxFrame);
-			RawTrack.ScaleKeys.AddZeroed(MaxFrame);
-		}
-	}
-
-	// record the first frame;
-	Record(Component, PreviousSpacesBases, 0);
-}
-
-void FAnimationRecorder::StopRecord()
-{
-	if (AnimationObject)
-	{
-		// if LastFrame doesn't match with NumFrames, we need to adjust data
-		if ( LastFrame + 1 < AnimationObject->NumFrames )
-		{
-			int32 NewMaxFrame = LastFrame + 1;
-			int32 OldMaxFrame = AnimationObject->NumFrames;
-			// Set New Frames/Time
-			AnimationObject->NumFrames = NewMaxFrame;
-			AnimationObject->SequenceLength = (float)(NewMaxFrame)/SampleRate;
-
-			for (int32 TrackId=0; TrackId <AnimationObject->RawAnimationData.Num(); ++TrackId)
-			{
-				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackId];
-				// add mapping to skeleton bone track
-				RawTrack.PosKeys.RemoveAt(NewMaxFrame, OldMaxFrame-NewMaxFrame);
-				RawTrack.RotKeys.RemoveAt(NewMaxFrame, OldMaxFrame-NewMaxFrame);
-				RawTrack.ScaleKeys.RemoveAt(NewMaxFrame, OldMaxFrame-NewMaxFrame);
-			}
-		}
-
-		AnimationObject->PostProcessSequence();
-		AnimationObject->MarkPackageDirty();
-		AnimationObject = NULL;
-
-		PreviousSpacesBases.Empty();
-	}
-}
-
-// return false if nothing to update
-// return true if it has properly updated
-bool FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime)
-{
-	const float MaxDelta = 1.f/10.f;
-	float UseDelta = FMath::Min<float>(DeltaTime, MaxDelta);
-
-	float PreviousTimePassed = TimePassed;
-	TimePassed += UseDelta;
-
-	check (SampleRate!=0.f);
-	const float IntervalTime = 1.f/SampleRate;
-
-	// time passed has been updated
-	// now find what frames we need to update
-	int32 MaxFrame = Duration/IntervalTime;
-	int32 FramesRecorded = (PreviousTimePassed / IntervalTime);
-	int32 FramesToRecord = FMath::Min<int32>(TimePassed / IntervalTime, MaxFrame);
-
-	TArray<FTransform> & SpaceBases = Component->SpaceBases;
-
-	check (SpaceBases.Num() == PreviousSpacesBases.Num());
-
-	TArray<FTransform> BlendedSpaceBases;
-	BlendedSpaceBases.AddZeroed(SpaceBases.Num());
-
-	// if we need to record frame
-	while (FramesToRecord > FramesRecorded)
-	{
-		// find what frames we need to record
-		// convert to time
-		float NewTime = (FramesRecorded + 1) * IntervalTime;
-
-		float PercentageOfNew = (NewTime - PreviousTimePassed)/UseDelta;
-		//float PercentageOfOld = (TimePassed-NewTime)/UseDelta;
-
-		// make sure this is almost 1 = PercentageOfNew
-		//ensure ( FMath::IsNearlyEqual(PercentageOfNew + PercentageOfOld, 1.f, KINDA_SMALL_NUMBER));
-
-		// for now we just concern component space, not skeleton space
-		for (int32 BoneIndex=0; BoneIndex<SpaceBases.Num(); ++BoneIndex)
-		{
-			BlendedSpaceBases[BoneIndex].Blend(PreviousSpacesBases[BoneIndex], SpaceBases[BoneIndex], PercentageOfNew);
-		}
-
-		Record(Component, BlendedSpaceBases, FramesRecorded + 1);
-		++FramesRecorded;
-	}
-
-	//save to current transform
-	PreviousSpacesBases = Component->SpaceBases;
-
-	// if we reached MaxFrame, return false;
-	return (MaxFrame > FramesRecorded);
-}
-
-void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTransform> SpacesBases, int32 FrameToAdd )
-{
-	if (ensure (AnimationObject))
-	{
-		USkeleton * AnimSkeleton = AnimationObject->GetSkeleton();
-		for (int32 TrackIndex=0; TrackIndex <AnimationObject->RawAnimationData.Num(); ++TrackIndex)
-		{
-			// verify if this bone exists in skeleton
-			int32 BoneTreeIndex = AnimationObject->GetSkeletonIndexFromTrackIndex(TrackIndex);
-			if (BoneTreeIndex != INDEX_NONE)
-			{
-				int32 BoneIndex = AnimSkeleton->GetMeshBoneIndexFromSkeletonBoneIndex(Component->SkeletalMesh, BoneTreeIndex);
-				int32 ParentIndex = Component->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-				FTransform LocalTransform = SpacesBases[BoneIndex];
-				if ( ParentIndex != INDEX_NONE )
-				{
-					LocalTransform.SetToRelativeTransform(SpacesBases[ParentIndex]);
-				}
-
-				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackIndex];
-				RawTrack.PosKeys[FrameToAdd] = LocalTransform.GetTranslation();
-				RawTrack.RotKeys[FrameToAdd] = LocalTransform.GetRotation();
-				RawTrack.ScaleKeys[FrameToAdd] = LocalTransform.GetScale3D();
-			}
-		}
-
-		LastFrame = FrameToAdd;
-	}
-}
-
 void FPersona::OnAnimNotifyWindow()
 {
 	TabManager->InvokeTab(FPersonaTabs::SkeletonAnimNotifiesID);
 }
 
-void FPersona::OnRetargetSourceMgr()
+void FPersona::OnRetargetManager()
 {
-	TabManager->InvokeTab(FPersonaTabs::RetargetSourceManagerID);
+	TabManager->InvokeTab(FPersonaTabs::RetargetManagerID);
 }
 
 void FPersona::OnImportAsset(enum EFBXImportType DefaultImportType)

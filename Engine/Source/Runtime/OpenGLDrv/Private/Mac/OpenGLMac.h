@@ -5,35 +5,8 @@
 #include <OpenGL/gl3.h>
 #include <OpenGL/gl3ext.h>
 
-#ifndef GL_VERSION_3_3
-#define glVertexAttribDivisor		glVertexAttribDivisorARB
-#endif
 #ifndef GL_COMPUTE_SHADER
 #define GL_COMPUTE_SHADER 0x91B9
-#endif
-#ifndef GL_VERSION_4_0
-#define GL_TEXTURE_CUBE_MAP_ARRAY         0x9009
-/** GL_ARB_draw_buffers_blend */
-typedef void (APIENTRYP PFNGLBLENDEQUATIONIARBPROC) (GLuint buf, GLenum mode);
-typedef void (APIENTRYP PFNGLBLENDEQUATIONSEPARATEIARBPROC) (GLuint buf, GLenum modeRGB, GLenum modeAlpha);
-typedef void (APIENTRYP PFNGLBLENDFUNCIARBPROC) (GLuint buf, GLenum src, GLenum dst);
-typedef void (APIENTRYP PFNGLBLENDFUNCSEPARATEIARBPROC) (GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
-/** GL_EXT_debug_label */
-typedef void (APIENTRYP PFNGLLABELOBJECTEXTPROC) (GLenum type, GLuint object, GLsizei length, const GLchar *label);
-typedef void (APIENTRYP PFNGLGETOBJECTLABELEXTPROC) (GLenum type, GLuint object, GLsizei bufSize, GLsizei *length, GLchar *label);
-/** GL_EXT_debug_marker */
-typedef void (APIENTRYP PFNGLINSERTEVENTMARKEREXTPROC) (GLsizei length, const char *marker);
-typedef void (APIENTRYP PFNGLPUSHGROUPMARKEREXTPROC) (GLsizei length, const char *marker);
-typedef void (APIENTRYP PFNGLPOPGROUPMARKEREXTPROC) (void);
-/** GL_ARB_tessellation_shader */
-#define GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS 0x8E7F
-#define GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS 0x8E80
-typedef void (APIENTRYP PFNGLPATCHPARAMETERIPROC) (GLenum pname, GLint value);
-typedef void (APIENTRYP PFNGLPATCHPARAMETERFVPROC) (GLenum pname, const GLfloat *values);
-#endif
-#ifndef GL_VERSION_4_1
-typedef void (APIENTRYP PFNGLTEXSTORAGE2DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
-typedef void (APIENTRYP PFNGLTEXSTORAGE3DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
 #endif
 
 #include "OpenGL3.h"
@@ -71,9 +44,6 @@ struct FMacOpenGL : public FOpenGL3
 		MacGetQueryObject(QueryId, QueryMode, OutResult);
 	}
 	
-	// A driver bug with Nvidia cards on mac causes rendering with GL_LayerIndex to target different cubemap faces when rendering to mip > 0 to always go to the +X cube face
-	static FORCEINLINE bool SupportsGSRenderTargetLayerSwitchingToMips() { return false; }
-
 	static FORCEINLINE void InitDebugContext() UGL_OPTIONAL_VOID
 
 	static FORCEINLINE void LabelObject(GLenum Type, GLuint Object, const ANSICHAR* Name)
@@ -148,6 +118,8 @@ struct FMacOpenGL : public FOpenGL3
 			return false;
 		}
 	}
+	
+	static void DeleteTextures(GLsizei Number, const GLuint* Textures);
 
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
 	
@@ -196,8 +168,6 @@ struct FMacOpenGL : public FOpenGL3
 		}
 	}
 	
-	static FORCEINLINE bool SupportsTessellation()						{ return bSupportsTessellationShader; }
-	
 	static FORCEINLINE void PatchParameteri(GLenum Pname, GLint Value)
 	{
 		if(glPatchParameteri)
@@ -210,7 +180,39 @@ struct FMacOpenGL : public FOpenGL3
 		}
 	}
 	
+	static FORCEINLINE void TextureRange(GLenum Target, GLsizei Length, const GLvoid *Pointer)
+	{
+		glTextureRangeAPPLE(Target, Length, Pointer);
+	}
+	
+	static FORCEINLINE void Flush()
+	{
+		glFlushRenderAPPLE();
+	}
+	
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
+	static FORCEINLINE bool SupportsClientStorage()						{ return true; }
+	static FORCEINLINE bool SupportsTextureRange()						{ return true; }
+	
+	static FORCEINLINE EShaderPlatform GetShaderPlatform()
+	{
+		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		if (bForceFeatureLevelES2)
+		{
+			return SP_OPENGL_PCES2;
+		}
+		
+		// Shader platform
+		switch(GetMajorVersion())
+		{
+			case 3:
+				return SP_OPENGL_SM4_MAC;
+			case 4:
+				return GetMinorVersion() > 2 ? SP_OPENGL_SM5 : SP_OPENGL_SM4_MAC;
+			default:
+				return SP_OPENGL_SM4_MAC;
+		}
+	}
 	
 	static uint64 GetVideoMemorySize();
 	
@@ -235,7 +237,6 @@ private:
 	static PFNGLPUSHGROUPMARKEREXTPROC glPushGroupMarkerEXT;
 	static PFNGLPOPGROUPMARKEREXTPROC glPopGroupMarkerEXT;
 	/** GL_ARB_tessellation_shader */
-	static bool bSupportsTessellationShader;
 	static PFNGLPATCHPARAMETERIPROC glPatchParameteri;
 };
 

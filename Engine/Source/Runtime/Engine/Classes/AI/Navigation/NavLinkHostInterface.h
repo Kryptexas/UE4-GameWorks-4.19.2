@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Interface.h"
 #include "NavLinkHostInterface.generated.h"
 
 struct FNavigationLink;
@@ -12,7 +13,6 @@ class UNavLinkHostInterface : public UInterface
 	GENERATED_UINTERFACE_BODY()
 };
 
-/** classes implementing INavLinkHostInterface should also implement INavRelevantActorInterface */
 class ENGINE_API INavLinkHostInterface
 {
 	GENERATED_IINTERFACE_BODY()

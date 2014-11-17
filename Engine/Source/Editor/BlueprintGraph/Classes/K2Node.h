@@ -2,9 +2,11 @@
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
+#include "BlueprintNodeSignature.h"
 #include "K2Node.generated.h"
 
 class UBlueprintNodeSpawner;
+class FBlueprintActionDatabaseRegistrar;
 
 /** Helper struct to allow us to redirect properties and functions through renames and additionally between classes if necessary */
 struct FFieldRemapInfo
@@ -185,11 +187,19 @@ class UK2Node : public UEdGraphNode
 	/** Return tooltip text that explains the result of an active breakpoint on this node */
 	BLUEPRINTGRAPH_API virtual FText GetActiveBreakpointToolTipText() const;
 
+	/**
+	 * Determine if the node of this type should be filtered in the actions menu
+	 */
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) { return false; }
+
 	/** Should draw as a bead with no location of it's own */
 	virtual bool ShouldDrawAsBead() const { return false; }
 
 	/** Return whether the node's properties display in the blueprint details panel */
 	virtual bool ShouldShowNodeProperties() const { return false; }
+
+	/** Return whether the node's execution pins should support the remove execution pin action */
+	virtual bool CanEverRemoveExecutionPin() const { return false; }
 
 	/** Called when the connection list of one of the pins of this node is changed in the editor, after the pin has had it's literal cleared */
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) {}
@@ -297,7 +307,7 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @param  ActionListOut	The list to be populated with new spawners.
 	 */
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const {}
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const {}
 
 	/**
 	 * Override to provide a default category for specific node types to be 
@@ -309,6 +319,19 @@ class UK2Node : public UEdGraphNode
 	 */
 	virtual FText GetMenuCategory() const { return FText::GetEmpty(); }
 
+	/**
+	 * Retrieves a unique identifier for this node type. Built from the node's 
+	 * class, as well as other signature items (like functions for CallFunction
+	 * nodes).
+	 *
+	 * NOTE: This is not the same as a node identification GUID, two node 
+	 *       instances can have the same signature (if both call the same 
+	 *       function, etc.).
+	 * 
+	 * @return A signature struct, discerning this node from others.
+	 */
+	virtual FBlueprintNodeSignature GetSignature() const { return FBlueprintNodeSignature(GetClass()); }
+
 	BLUEPRINTGRAPH_API enum EBaseNodeRefreshPriority
 	{
 		Low_UsesDependentWildcard = 100,
@@ -317,6 +340,7 @@ class UK2Node : public UEdGraphNode
 
 	BLUEPRINTGRAPH_API virtual int32 GetNodeRefreshPriority() const { return EBaseNodeRefreshPriority::Normal; }
 
+	BLUEPRINTGRAPH_API virtual bool DoesInputWildcardPinAcceptArray(const UEdGraphPin* Pin) const { return true; }
 protected:
 	/** 
 	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up

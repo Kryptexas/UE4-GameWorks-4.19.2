@@ -28,6 +28,13 @@ public:
 	*/
 	static FString EngineUserDir();
 
+	/**
+	* Returns the root directory for user-specific engine files which can be shared between versions. Always writable.
+	*
+	* @return root user directory
+	*/
+	static FString EngineVersionAgnosticUserDir();
+
 	/** 
 	 * Returns the content directory of the "core" engine that can be shared across
 	 * several games or across games & mods. 

@@ -33,7 +33,6 @@ const FName FStaticMeshEditor::ViewportTabId( TEXT( "StaticMeshEditor_Viewport" 
 const FName FStaticMeshEditor::PropertiesTabId( TEXT( "StaticMeshEditor_Properties" ) );
 const FName FStaticMeshEditor::SocketManagerTabId( TEXT( "StaticMeshEditor_SocketManager" ) );
 const FName FStaticMeshEditor::CollisionTabId( TEXT( "StaticMeshEditor_Collision" ) );
-const FName FStaticMeshEditor::GenerateUniqueUVsTabId( TEXT( "StaticMeshEditor_GenerateUniqueUVs" ) );
 
 
 void FStaticMeshEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -57,10 +56,6 @@ void FStaticMeshEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>&
 	TabManager->RegisterTabSpawner( CollisionTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_Collision) )
 		.SetDisplayName( LOCTEXT("CollisionTab", "Convex Decomposition") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	
-	TabManager->RegisterTabSpawner( GenerateUniqueUVsTabId, FOnSpawnTab::CreateSP(this, &FStaticMeshEditor::SpawnTab_GenerateUniqueUVs) )
-		.SetDisplayName( LOCTEXT("GenerateUniqueUVsTab", "Generate Unique UVs") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 }
 
 void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -71,7 +66,6 @@ void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager
 	TabManager->UnregisterTabSpawner( PropertiesTabId );
 	TabManager->UnregisterTabSpawner( SocketManagerTabId );
 	TabManager->UnregisterTabSpawner( CollisionTabId );
-	TabManager->UnregisterTabSpawner( GenerateUniqueUVsTabId );
 }
 
 
@@ -158,7 +152,6 @@ void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, con
 					->SetSizeCoefficient(0.5f)
 					->AddTab(SocketManagerTabId, ETabState::ClosedTab)
 					->AddTab(CollisionTabId, ETabState::ClosedTab)
-					->AddTab(GenerateUniqueUVsTabId, ETabState::ClosedTab)
 				)
 			)
 		)
@@ -338,27 +331,6 @@ TSharedRef<SDockTab> FStaticMeshEditor::SpawnTab_Collision( const FSpawnTabArgs&
 		];
 }
 
-TSharedRef<SDockTab> FStaticMeshEditor::SpawnTab_GenerateUniqueUVs( const FSpawnTabArgs& Args )
-{
-	check( Args.GetTabId() == GenerateUniqueUVsTabId );
-	
-#if !PLATFORM_WINDOWS
-	FText ErrorMessage = FText::Format( LOCTEXT("StaticMeshGenerateUniqueUVs_Unsupported", "Generate Unique UVs not yet implemented for {0}."), FText::FromString( FPlatformProperties::IniPlatformName() ) );
-	OpenMsgDlgInt( EAppMsgType::Ok, ErrorMessage, LOCTEXT("StaticMeshGenerateUniqueUVs_UnsupportedErrorCaption", "Error") );
-#endif
-	
-	return SNew(SDockTab)
-		.Label( LOCTEXT("StaticMeshGenerateUniqueUVs_TabTitle", "Generate Unique UVs") )
-		[
-#if PLATFORM_WINDOWS
-			GenerateUniqueUVs.ToSharedRef()
-#else
-			SNew(STextBlock)
-			.Text( ErrorMessage )
-#endif
-		];
-}
-
 void FStaticMeshEditor::BindCommands()
 {
 	const FStaticMeshEditorCommands& Commands = FStaticMeshEditorCommands::Get();
@@ -518,9 +490,6 @@ void FStaticMeshEditor::BuildSubTools()
 	SAssignNew( ConvexDecomposition, SConvexDecomposition )
 		.StaticMeshEditorPtr(SharedThis(this));
 
-	SAssignNew(GenerateUniqueUVs, SGenerateUniqueUVs)
-		.StaticMeshEditorPtr(SharedThis(this));
-
 	// Build toolbar widgets
 	UVChannelCombo = SNew(STextComboBox)
 		.OptionsSource(&UVChannels)
@@ -619,6 +588,13 @@ bool FStaticMeshEditor::HasSelectedPrims() const
 void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData)
 {
 	check(IsPrimValid(InPrimData));
+
+	// Enable collision, if not already
+	if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+	{
+		Viewport->GetViewportClient().SetShowWireframeCollision();
+	}
+
 	SelectedPrims.Add(InPrimData);	
 }
 
@@ -718,15 +694,13 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 
 		// Update views/property windows
 		Viewport->RefreshViewport();
+
+		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
 }
 
 void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 {
-	check(StaticMesh->BodySetup);
-
-	FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
-
 	for (int32 PrimIdx = 0; PrimIdx < SelectedPrims.Num(); PrimIdx++)
 	{
 		const FPrimData& PrimData = SelectedPrims[PrimIdx];
@@ -743,10 +717,6 @@ void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 
 void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
 {
-	check(StaticMesh->BodySetup);
-
-	FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
-
 	const FQuat DeltaQ = InRot.Quaternion();
 
 	for (int32 PrimIdx = 0; PrimIdx < SelectedPrims.Num(); PrimIdx++)
@@ -799,6 +769,8 @@ void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 			AggGeom->ConvexElems[PrimData.PrimIndex].ScaleElem(ModifiedScale, MinPrimSize);
 			break;
 		}
+
+		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
 }
 
@@ -905,6 +877,103 @@ void FStaticMeshEditor::SetPrimTransform(const FPrimData& InPrimData, const FTra
 		AggGeom->ConvexElems[InPrimData.PrimIndex].SetTransform(InPrimTransform);
 		break;
 	}
+
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
+}
+
+bool FStaticMeshEditor::OverlapsExistingPrim(const FPrimData& InPrimData) const
+{
+	check(StaticMesh->BodySetup);
+
+	const FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
+
+	// Assume that if the transform of the prim is the same, then it overlaps (FKConvexElem doesn't have an operator==, and no shape takes tolerances into account)
+	check(IsPrimValid(InPrimData));
+	switch (InPrimData.PrimType)
+	{
+	case KPT_Sphere:
+		{
+			const FKSphereElem InSphereElem = AggGeom->SphereElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InSphereElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->SphereElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKSphereElem& SphereElem = AggGeom->SphereElems[i];
+				const FTransform ElemTM = SphereElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	case KPT_Box:
+		{
+			const FKBoxElem InBoxElem = AggGeom->BoxElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InBoxElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->BoxElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKBoxElem& BoxElem = AggGeom->BoxElems[i];
+				const FTransform ElemTM = BoxElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	case KPT_Sphyl:
+		{
+			const FKSphylElem InSphylElem = AggGeom->SphylElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InSphylElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->SphylElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKSphylElem& SphylElem = AggGeom->SphylElems[i];
+				const FTransform ElemTM = SphylElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	case KPT_Convex:
+		{
+			const FKConvexElem InConvexElem = AggGeom->ConvexElems[InPrimData.PrimIndex];
+			const FTransform InElemTM = InConvexElem.GetTransform();
+			for (int32 i = 0; i < AggGeom->ConvexElems.Num(); ++i)
+			{
+				if( i == InPrimData.PrimIndex )
+				{
+					continue;
+				}
+
+				const FKConvexElem& ConvexElem = AggGeom->ConvexElems[i];
+				const FTransform ElemTM = ConvexElem.GetTransform();
+				if( InElemTM.Equals(ElemTM) )
+				{
+					return true;
+				}
+			}
+		}
+		break;
+	}
+
+	return false;
 }
 
 void FStaticMeshEditor::RefreshTool()
@@ -1069,8 +1138,13 @@ void FStaticMeshEditor::GenerateKDop(const FVector* Directions, uint32 NumDirect
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("KDop Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Convex, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Convex, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1087,8 +1161,13 @@ void FStaticMeshEditor::OnCollisionBox()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Box Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Box, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Box, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1105,8 +1184,13 @@ void FStaticMeshEditor::OnCollisionSphere()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Sphere Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Sphere, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Sphere, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1123,8 +1207,13 @@ void FStaticMeshEditor::OnCollisionSphyl()
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Collision"), TEXT("Type"), TEXT("Capsule Collision"));
 		}
+		const FPrimData PrimData = FPrimData(KPT_Sphyl, PrimIndex);
 		ClearSelectedPrims();
-		AddSelectedPrim(FPrimData(KPT_Sphyl, PrimIndex));
+		AddSelectedPrim(PrimData);
+		while( OverlapsExistingPrim(PrimData) )
+		{
+			TranslateSelectedPrims(OverlapNudge);
+		}
 	}
 
 	Viewport->RefreshViewport();
@@ -1154,6 +1243,8 @@ void FStaticMeshEditor::OnRemoveCollision(void)
 
 			// Update views/property windows
 			Viewport->RefreshViewport();
+
+			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 		}
 	}
 }
@@ -1266,11 +1357,20 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 
 				BodySetup->CreatePhysicsMeshes();
 
+				// Select the new prims
+				FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
+				for (int32 i = 0; i < NumBoxElems; ++i)
+				{
+					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))));
+				}
+
 				// Mark static mesh as dirty, to help make sure it gets saved.
 				StaticMesh->MarkPackageDirty();
 
 				// Update views/property windows
 				Viewport->RefreshViewport();
+
+				StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 			}
 		}
 	}
@@ -1311,8 +1411,14 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 			// Make sure rendering is done - so we are not changing data being used by collision drawing.
 			FlushRenderingCommands();
 
-			// copy body properties from
+			// Copy body properties from
 			BodySetup->CopyBodyPropertiesFrom(SelectedMesh->BodySetup);
+
+			// Enable collision, if not already
+			if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+			{
+				Viewport->GetViewportClient().SetShowWireframeCollision();
+			}
 
 			//Invalidate physics data
 			BodySetup->InvalidatePhysicsData();
@@ -1326,6 +1432,8 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 
 			// Update views/property windows
 			Viewport->RefreshViewport();
+
+			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 		}
 	}
 	else
@@ -1409,12 +1517,6 @@ void FStaticMeshEditor::OnChangeMesh()
 
 		SetEditorMesh(SelectedMesh);
 
-		// Refresh the tool so it will update it's LOD list.
-		if(GenerateUniqueUVs.IsValid())
-		{
-			GenerateUniqueUVs->RefreshTool();
-		}
-
 		if(SocketManager.IsValid())
 		{
 			SocketManager->UpdateStaticMesh();
@@ -1466,6 +1568,12 @@ void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)
 		// Run actual util to do the work
 		DecomposeMeshToHulls(bs, Verts, Indices, InMaxHullCount, InMaxHullVerts);		
 
+		// Enable collision, if not already
+		if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+		{
+			Viewport->GetViewportClient().SetShowWireframeCollision();
+		}
+
 		// refresh collision change back to staticmesh components
 		RefreshCollisionChange(StaticMesh);
 
@@ -1474,6 +1582,8 @@ void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)
 
 		// Update screen.
 		Viewport->RefreshViewport();
+
+		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
 }
 
@@ -1616,6 +1726,9 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 			// Make sure rendering is done - so we are not changing data being used by collision drawing.
 			FlushRenderingCommands();
 
+			// Make sure to invalidate cooked data
+			StaticMesh->BodySetup->InvalidatePhysicsData();
+
 			// refresh collision change back to staticmesh components
 			RefreshCollisionChange(StaticMesh);
 
@@ -1624,6 +1737,8 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 
 			// Update views/property windows
 			Viewport->RefreshViewport();
+
+			StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 		}
 	}
 }
@@ -1777,10 +1892,6 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 
 	if (bSuccess)
 	{
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.ReimportedViaEditor"));
-		}
 		RefreshTool();
 	}
 }

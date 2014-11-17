@@ -15,5 +15,6 @@ public:
 private:
 	
 	TSharedPtr<IPropertyHandle> MyNameProperty;
+	TSharedPtr<IPropertyHandle> MyDescriptionProperty;
 	TSharedPtr<IPropertyHandle> MyValueProperty;
 };

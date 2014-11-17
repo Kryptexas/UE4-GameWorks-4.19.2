@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "ShaderParameterUtils.h"
+#include "ParticleBeamTrailVertexFactory.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleBeamTrailUniformParameters,TEXT("BeamTrailVF"));
 

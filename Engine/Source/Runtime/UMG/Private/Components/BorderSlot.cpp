@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
+#include "ObjectEditorUtils.h"
 
 /////////////////////////////////////////////////////
 // UBorderSlot
@@ -12,15 +13,11 @@ UBorderSlot::UBorderSlot(const FPostConstructInitializeProperties& PCIP)
 
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
-
-	SBorder::FArguments BorderDefaults;
-
-	Padding = BorderDefaults._Padding.Get();
 }
 
-void UBorderSlot::ReleaseNativeWidget()
+void UBorderSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Border.Reset();
 }
@@ -38,34 +35,64 @@ void UBorderSlot::BuildSlot(TSharedRef<SBorder> InBorder)
 
 void UBorderSlot::SetPadding(FMargin InPadding)
 {
-	Padding = InPadding;
-	if ( Border.IsValid() )
-	{
-		Border->SetPadding(InPadding);
-	}
+	CastChecked<UBorder>(Parent)->SetPadding(InPadding);
 }
 
 void UBorderSlot::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment)
 {
-	HorizontalAlignment = InHorizontalAlignment;
-	if ( Border.IsValid() )
-	{
-		Border->SetHAlign(InHorizontalAlignment);
-	}
+	CastChecked<UBorder>(Parent)->SetHorizontalAlignment(InHorizontalAlignment);
 }
 
 void UBorderSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
 {
-	VerticalAlignment = InVerticalAlignment;
+	CastChecked<UBorder>(Parent)->SetVerticalAlignment(InVerticalAlignment);
+}
+
+void UBorderSlot::SynchronizeProperties()
+{
 	if ( Border.IsValid() )
 	{
-		Border->SetVAlign(InVerticalAlignment);
+		SetPadding(Padding);
+		SetHorizontalAlignment(HorizontalAlignment);
+		SetVerticalAlignment(VerticalAlignment);
 	}
 }
 
-void UBorderSlot::SyncronizeProperties()
+#if WITH_EDITOR
+
+void UBorderSlot::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	SetPadding(Padding);
-	SetHorizontalAlignment(HorizontalAlignment);
-	SetVerticalAlignment(VerticalAlignment);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	static bool IsReentrant = false;
+
+	if ( !IsReentrant )
+	{
+		IsReentrant = true;
+
+		if ( PropertyChangedEvent.Property )
+		{
+			FName PropertyName = PropertyChangedEvent.Property->GetFName();
+
+			if ( UBorder* Border = CastChecked<UBorder>(Parent) )
+			{
+				if ( PropertyName == "Padding" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "Padding", Border, "Padding");
+				}
+				else if ( PropertyName == "HorizontalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", Border, "HorizontalAlignment");
+				}
+				else if ( PropertyName == "VerticalAlignment" )
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", Border, "VerticalAlignment");
+				}
+			}
+		}
+
+		IsReentrant = false;
+	}
 }
+
+#endif

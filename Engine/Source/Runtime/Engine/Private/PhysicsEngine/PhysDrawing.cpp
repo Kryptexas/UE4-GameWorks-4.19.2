@@ -46,6 +46,11 @@ void FKSphereElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTran
 	DrawSphere(PDI, ElemTM.GetLocation(), FVector( this->Radius * Scale ), DrawCollisionSides, DrawCollisionSides/2, MaterialRenderProxy, SDPG_World );
 }
 
+void FKSphereElem::GetElemSolid(const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy, int32 ViewIndex, FMeshElementCollector& Collector) const
+{
+	GetSphereMesh(ElemTM.GetLocation(), FVector( this->Radius * Scale ), DrawCollisionSides, DrawCollisionSides/2, MaterialRenderProxy, SDPG_World, false, ViewIndex, Collector );
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 // FKBoxElem
@@ -89,6 +94,11 @@ void FKBoxElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& Ele
 void FKBoxElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const
 {
 	DrawBox(PDI, ElemTM.ToMatrixWithScale(), 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World );
+}
+
+void FKBoxElem::GetElemSolid(const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy, int32 ViewIndex, FMeshElementCollector& Collector) const
+{
+	GetBoxMesh(ElemTM.ToMatrixWithScale(), 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World, ViewIndex, Collector);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -137,6 +147,106 @@ void FKSphylElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& E
 	PDI->DrawLine(TopEnd - Scale*Radius*XAxis, BottomEnd - Scale*Radius*XAxis, Color, SDPG_World);
 	PDI->DrawLine(TopEnd + Scale*Radius*YAxis, BottomEnd + Scale*Radius*YAxis, Color, SDPG_World);
 	PDI->DrawLine(TopEnd - Scale*Radius*YAxis, BottomEnd - Scale*Radius*YAxis, Color, SDPG_World);
+}
+
+
+void FKSphylElem::GetElemSolid(const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy, int32 ViewIndex, FMeshElementCollector& Collector) const
+{
+	const int32 NumSides = DrawCollisionSides;
+	const int32 NumRings = (DrawCollisionSides/2) + 1;
+
+	// The first/last arc are on top of each other.
+	const int32 NumVerts = (NumSides+1) * (NumRings+1);
+	FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc( NumVerts * sizeof(FDynamicMeshVertex) );
+
+	// Calculate verts for one arc
+	FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc( (NumRings+1) * sizeof(FDynamicMeshVertex) );
+
+	for(int32 RingIdx=0; RingIdx<NumRings+1; RingIdx++)
+	{
+		FDynamicMeshVertex* ArcVert = &ArcVerts[RingIdx];
+
+		float Angle;
+		float ZOffset;
+		if( RingIdx <= DrawCollisionSides/4 )
+		{
+			Angle = ((float)RingIdx/(NumRings-1)) * PI;
+			ZOffset = 0.5 * Scale * Length;
+		}
+		else
+		{
+			Angle = ((float)(RingIdx-1)/(NumRings-1)) * PI;
+			ZOffset = -0.5 * Scale * Length;
+		}
+
+		// Note- unit sphere, so position always has mag of one. We can just use it for normal!		
+		FVector SpherePos;
+		SpherePos.X = 0.0f;
+		SpherePos.Y = Scale * Radius * FMath::Sin(Angle);
+		SpherePos.Z = Scale * Radius * FMath::Cos(Angle);
+
+		ArcVert->Position = SpherePos + FVector(0,0,ZOffset);
+
+		ArcVert->SetTangents(
+			FVector(1,0,0),
+			FVector(0.0f, -SpherePos.Z, SpherePos.Y),
+			SpherePos
+			);
+
+		ArcVert->TextureCoordinate.X = 0.0f;
+		ArcVert->TextureCoordinate.Y = ((float)RingIdx/NumRings);
+	}
+
+	// Then rotate this arc NumSides+1 times.
+	for(int32 SideIdx=0; SideIdx<NumSides+1; SideIdx++)
+	{
+		const FRotator ArcRotator(0, 360.f * ((float)SideIdx/NumSides), 0);
+		const FRotationMatrix ArcRot( ArcRotator );
+		const float XTexCoord = ((float)SideIdx/NumSides);
+
+		for(int32 VertIdx=0; VertIdx<NumRings+1; VertIdx++)
+		{
+			int32 VIx = (NumRings+1)*SideIdx + VertIdx;
+
+			Verts[VIx].Position = ArcRot.TransformPosition( ArcVerts[VertIdx].Position );
+
+			Verts[VIx].SetTangents(
+				ArcRot.TransformVector( ArcVerts[VertIdx].TangentX ),
+				ArcRot.TransformVector( ArcVerts[VertIdx].GetTangentY() ),
+				ArcRot.TransformVector( ArcVerts[VertIdx].TangentZ )
+				);
+
+			Verts[VIx].TextureCoordinate.X = XTexCoord;
+			Verts[VIx].TextureCoordinate.Y = ArcVerts[VertIdx].TextureCoordinate.Y;
+		}
+	}
+
+	FDynamicMeshBuilder MeshBuilder;
+	{
+		// Add all of the vertices to the mesh.
+		for(int32 VertIdx=0; VertIdx<NumVerts; VertIdx++)
+		{
+			MeshBuilder.AddVertex(Verts[VertIdx]);
+		}
+
+		// Add all of the triangles to the mesh.
+		for(int32 SideIdx=0; SideIdx<NumSides; SideIdx++)
+		{
+			const int32 a0start = (SideIdx+0) * (NumRings+1);
+			const int32 a1start = (SideIdx+1) * (NumRings+1);
+
+			for(int32 RingIdx=0; RingIdx<NumRings; RingIdx++)
+			{
+				MeshBuilder.AddTriangle(a0start + RingIdx + 0, a1start + RingIdx + 0, a0start + RingIdx + 1);
+				MeshBuilder.AddTriangle(a1start + RingIdx + 0, a1start + RingIdx + 1, a0start + RingIdx + 1);
+			}
+		}
+
+	}
+	MeshBuilder.GetMesh(ElemTM.ToMatrixWithScale(), MaterialRenderProxy, SDPG_World, false, false, ViewIndex, Collector);
+
+	FMemory::Free(Verts);
+	FMemory::Free(ArcVerts);
 }
 
 void FKSphylElem::DrawElemSolid(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const
@@ -296,12 +406,11 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 #endif // WITH_PHYSX
 }
 
-void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor)
+void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor) const
 {
 #if WITH_PHYSX
 	if(ConvexMesh)
 	{
-
 		int32 StartVertOffset = VertexBuffer.Num();
 
 		// get PhysX data
@@ -418,7 +527,7 @@ void FConvexCollisionVertexFactory::InitConvexVertexFactory(const FConvexCollisi
 	}
 }
 
-void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid)
+void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest)
 {
 	const FVector Scale3D = Transform.GetScale3D();
 	FTransform ParentTM = Transform;
@@ -507,7 +616,7 @@ void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform
 				FBoxSphereBounds WorldBounds, LocalBounds;
 				CalcBoxSphereBounds(WorldBounds, LocalToWorld);
 				CalcBoxSphereBounds(LocalBounds, FTransform::Identity);
-				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(LocalToWorld.ToMatrixWithScale(), WorldBounds, LocalBounds, true);
+				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(LocalToWorld.ToMatrixWithScale(), WorldBounds, LocalBounds, true, bUseEditorDepthTest);
 				// previous l2w not used so treat as static
 				BatchElement.FirstIndex = 0;
 				BatchElement.NumPrimitives = RenderInfo->IndexBuffer->Indices.Num() / 3;
@@ -527,6 +636,124 @@ void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform
 				FTransform ElemTM = ConvexElems[i].GetTransform();
 				ElemTM *= Transform;
 				ConvexElems[i].DrawElemWire(PDI, ElemTM, ConvexColor);
+			}
+		}
+	}
+}
+
+
+void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest, int32 ViewIndex, FMeshElementCollector& Collector) const
+{
+	const FVector Scale3D = Transform.GetScale3D();
+	FTransform ParentTM = Transform;
+	ParentTM.RemoveScaling();
+
+	if( Scale3D.GetAbs().IsUniform() )
+	{
+		for(int32 i=0; i<SphereElems.Num(); i++)
+		{
+			FTransform ElemTM = SphereElems[i].GetTransform();
+			ElemTM.ScaleTranslation(Scale3D);
+			ElemTM *= ParentTM;
+
+			if(bDrawSolid)
+				SphereElems[i].GetElemSolid(ElemTM, Scale3D.X, MatInst, ViewIndex, Collector);
+			else
+				SphereElems[i].DrawElemWire(Collector.GetPDI(ViewIndex), ElemTM, Scale3D.X, Color);
+		}
+
+		for(int32 i=0; i<BoxElems.Num(); i++)
+		{
+			FTransform ElemTM = BoxElems[i].GetTransform();
+			ElemTM.ScaleTranslation(Scale3D);
+			ElemTM *= ParentTM;
+
+			if(bDrawSolid)
+				BoxElems[i].GetElemSolid(ElemTM, Scale3D.X, MatInst, ViewIndex, Collector);
+			else
+				BoxElems[i].DrawElemWire(Collector.GetPDI(ViewIndex), ElemTM, Scale3D.X, Color);
+		}
+
+		for(int32 i=0; i<SphylElems.Num(); i++)
+		{
+			FTransform ElemTM = SphylElems[i].GetTransform();
+			ElemTM.ScaleTranslation(Scale3D);
+			ElemTM *= ParentTM;
+
+			if(bDrawSolid)
+				SphylElems[i].GetElemSolid(ElemTM, Scale3D.X, MatInst, ViewIndex, Collector);
+			else
+				SphylElems[i].DrawElemWire(Collector.GetPDI(ViewIndex), ElemTM, Scale3D.X, Color);
+		}
+	}
+
+	if(ConvexElems.Num() > 0)
+	{
+		if(bDrawSolid)
+		{
+			// Cache collision vertex/index buffer
+			if(!RenderInfo)
+			{
+				//@todo - parallelrendering, remove const cast
+				FKAggregateGeom& ThisGeom = const_cast<FKAggregateGeom&>(*this);
+				ThisGeom.RenderInfo = new FKConvexGeomRenderInfo();
+				ThisGeom.RenderInfo->VertexBuffer = new FConvexCollisionVertexBuffer();
+				ThisGeom.RenderInfo->IndexBuffer = new FConvexCollisionIndexBuffer();
+
+				for(int32 i=0; i<ConvexElems.Num(); i++)
+				{
+					// Get vertices/triangles from this hull.
+					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, FColor(255,255,255));
+				}
+
+				// Only continue if we actually got some valid geometry
+				// Will crash if we try to init buffers with no data
+				if(ThisGeom.RenderInfo->HasValidGeometry())
+				{
+					ThisGeom.RenderInfo->VertexBuffer->InitResource();
+					ThisGeom.RenderInfo->IndexBuffer->InitResource();
+
+					ThisGeom.RenderInfo->CollisionVertexFactory = new FConvexCollisionVertexFactory(RenderInfo->VertexBuffer);
+					ThisGeom.RenderInfo->CollisionVertexFactory->InitResource();
+				}
+			}
+
+			// If we have geometry to draw, do so
+			if(RenderInfo->HasValidGeometry())
+			{
+				// Calculate transform
+				FTransform LocalToWorld = FTransform( FQuat::Identity, FVector::ZeroVector, Scale3D ) * ParentTM;
+
+				// Draw the mesh.
+				FMeshBatch& Mesh = Collector.AllocateMesh();
+				FMeshBatchElement& BatchElement = Mesh.Elements[0];
+				BatchElement.IndexBuffer = RenderInfo->IndexBuffer;
+				Mesh.VertexFactory = RenderInfo->CollisionVertexFactory;
+				Mesh.MaterialRenderProxy = MatInst;
+				FBoxSphereBounds WorldBounds, LocalBounds;
+				CalcBoxSphereBounds(WorldBounds, LocalToWorld);
+				CalcBoxSphereBounds(LocalBounds, FTransform::Identity);
+				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(LocalToWorld.ToMatrixWithScale(), WorldBounds, LocalBounds, true, bUseEditorDepthTest);
+				// previous l2w not used so treat as static
+				BatchElement.FirstIndex = 0;
+				BatchElement.NumPrimitives = RenderInfo->IndexBuffer->Indices.Num() / 3;
+				BatchElement.MinVertexIndex = 0;
+				BatchElement.MaxVertexIndex = RenderInfo->VertexBuffer->Vertices.Num() - 1;
+				Mesh.ReverseCulling = LocalToWorld.GetDeterminant() < 0.0f ? true : false;
+				Mesh.Type = PT_TriangleList;
+				Mesh.DepthPriorityGroup = SDPG_World;
+				Mesh.bCanApplyViewModeOverrides = false;
+				Collector.AddMesh(ViewIndex, Mesh);
+			}
+		}
+		else
+		{
+			for(int32 i=0; i<ConvexElems.Num(); i++)
+			{
+				FColor ConvexColor = bPerHullColor ? DebugUtilColor[i%NUM_DEBUG_UTIL_COLORS] : Color;
+				FTransform ElemTM = ConvexElems[i].GetTransform();
+				ElemTM *= Transform;
+				ConvexElems[i].DrawElemWire(Collector.GetPDI(ViewIndex), ElemTM, ConvexColor);
 			}
 		}
 	}
@@ -598,7 +825,7 @@ void UPhysicsAsset::DrawCollision(FPrimitiveDrawInterface* PDI, const USkeletalM
 		FTransform BoneTransform = GetSkelBoneTransform(BoneIndex, SpaceBases, LocalToWorld);
 		BoneTransform.SetScale3D(FVector(Scale));
 		BodySetup[i]->CreatePhysicsMeshes();
-		BodySetup[i]->AggGeom.DrawAggGeom( PDI, BoneTransform, *BoneColor, NULL, false, false );
+		BodySetup[i]->AggGeom.DrawAggGeom( PDI, BoneTransform, *BoneColor, NULL, false, false, false );
 	}
 }
 

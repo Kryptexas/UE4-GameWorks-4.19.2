@@ -151,21 +151,23 @@ void FReloadObjectArc::Reset()
  */
 FArchive& FReloadObjectArc::operator<<( class FName& Name )
 {
-	NAME_INDEX NameIndex;
+	NAME_INDEX NameComparisonIndex;
+	NAME_INDEX NameDisplayIndex;
 	int32 NameInstance;
 	if ( IsLoading() )
 	{
-		Reader << NameIndex << NameInstance;
+		Reader << NameComparisonIndex << NameDisplayIndex << NameInstance;
 
 		// recreate the FName using the serialized index and instance number
-		Name = FName((EName)NameIndex, NameInstance);
+		Name = FName(NameComparisonIndex, NameDisplayIndex, NameInstance);
 	}
 	else if ( IsSaving() )
 	{
-		NameIndex = Name.GetIndex();
+		NameComparisonIndex = Name.GetComparisonIndex();
+		NameDisplayIndex = Name.GetDisplayIndex();
 		NameInstance = Name.GetNumber();
 
-		Writer << NameIndex << NameInstance;
+		Writer << NameComparisonIndex << NameDisplayIndex << NameInstance;
 	}
 	return *this;
 }

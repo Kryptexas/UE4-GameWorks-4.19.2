@@ -6,13 +6,15 @@
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
-#include "DebugRenderSceneProxy.h"
-#include "GameplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingTypes.h"
+#include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
+#include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "GameplayDebuggingComponent.generated.h"
 
-#define WITH_EQS 0
+#define WITH_EQS 1
 
 struct FDebugContext;
+//struct FEnvQueryInstance;
 
 UENUM()
 namespace EDebugComponentMessage
@@ -29,38 +31,10 @@ namespace EDebugComponentMessage
 	};
 }
 
-namespace EQSDebug
-{
-	struct FItemData
-	{
-		FString Desc;
-		int32 ItemIdx;
-		float TotalScore;
-
-		TArray<float> TestValues;
-		TArray<float> TestScores;
-	};
-
-	struct FTestData
-	{
-		FString ShortName;
-		FString Detailed;
-	};
-
-	struct FQueryData
-	{
-		TArray<FItemData> Items;
-		TArray<FTestData> Tests;
-		TArray<FDebugRenderSceneProxy::FSphere> SolidSpheres;
-		TArray<FDebugRenderSceneProxy::FText3d> Texts;
-		int32 NumValidItems;
-	};
-}
-
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
 UCLASS(config=Engine)
-class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent//, public IEQSQueryResultSourceInterface
+class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -68,12 +42,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	UPROPERTY(globalconfig)
 	FString DebugComponentClassName;
-
-	UPROPERTY(Replicated)
-	bool bIsSelectedForDebugging;
-
-	UPROPERTY(Replicated)
-	int32 ActivationCounter;
 
 	UPROPERTY(Replicated)
 	int32 ShowExtendedInformatiomCounter;
@@ -96,6 +64,14 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(Replicated)
 	FString BrainComponentName;
 
+	UPROPERTY(Replicated)
+	FString BrainComponentString;
+
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateBlackboard)
+	TArray<uint8> BlackboardRepData;
+
+	FString BlackboardString;
+
 	/** Begin path replication data */
 	UPROPERTY(Replicated)
 	TArray<FVector> PathPoints;
@@ -107,32 +83,31 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateNavmesh)
 	TArray<uint8> NavmeshRepData;
 	
-#if WITH_EQS
 	/** Begin EQS replication data */
+
 	UPROPERTY(Replicated)
-	float EQSTimestamp;
-	
-	UPROPERTY(Replicated)
-	FString EQSName;
-	
-	UPROPERTY(Replicated)
-	int32 EQSId;
+	TArray<FString> AllEQSName;
 
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
 	TArray<uint8> EQSRepData;
 	
 	/** local EQS debug data, decoded from EQSRepData blob */
-	EQSDebug::FQueryData EQSLocalData;	
+#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	TArray<EQSDebug::FQueryData> EQSLocalData;	
+#endif
 	/** End EQS replication data */
 
-
-	TSharedPtr<FEnvQueryInstance> CachedQueryInstance;
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
 
 	UFUNCTION()
+	void OnChangeEQSQuery();
+
+	UFUNCTION()
 	virtual void OnRep_UpdateEQS();
-#endif // WITH_EQS
+
+	UFUNCTION()
+	virtual void OnRep_UpdateBlackboard();
 
 	virtual bool GetComponentClassCanReplicate() const override{ return true; }
 
@@ -157,11 +132,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	virtual void EnableDebugDraw(bool bEnable, bool InFocusedComponent = false);
 
-	FORCEINLINE bool IsSelected() const { return bIsSelectedForDebugging; }
-	/** Will broadcast information that this component is (no longer) being "observed" */
-	void SelectForDebugging(bool bNewStatus);
-
-	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return true; }
+	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return ReplicateViewDataCounters[InView] > 0 /*true*/; }
 	virtual void CollectDataToReplicate(bool bCollectExtendedData);
 
 	//=============================================================================
@@ -179,7 +150,8 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 		return TargetActor;
 	}
 
-#if WITH_EQS
+	void SetEQSIndex(int32 Index) { CurrentEQSIndex = Index; }
+	int32 GetEQSIndex() { return CurrentEQSIndex; }
 	//=============================================================================
 	// EQS debugging
 	//=============================================================================
@@ -198,7 +170,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 protected:
 	virtual void CollectEQSData();
 public:
-#endif //WITH_EQS
 
 	//=============================================================================
 	// Rendering
@@ -230,6 +201,9 @@ protected:
 	FBox NavMeshBounds;
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
+
+	int32 CurrentEQSIndex;
+	TSharedPtr<FEnvQueryInstance> CachedQueryInstance;
 
 public:
 	static FName DefaultComponentName;

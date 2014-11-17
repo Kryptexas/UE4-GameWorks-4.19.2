@@ -42,6 +42,18 @@ FText GetLocalizedText(const TArray<FLocalizedTemplateString>& LocalizedStrings)
 
 }
 
+FTemplateConfigValue::FTemplateConfigValue(const FString& InFile, const FString& InSection, const FString& InKey, const FString& InValue, bool InShouldReplaceExistingValue)
+	: ConfigFile(InFile)
+	, ConfigSection(InSection)
+	, ConfigKey(InKey)
+	, ConfigValue(InValue)
+	, bShouldReplaceExistingValue(InShouldReplaceExistingValue)
+{
+}
+
+
+
+
 UTemplateProjectDefs::UTemplateProjectDefs(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

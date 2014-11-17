@@ -10,13 +10,23 @@
 
 typedef TCHAR* PTCHAR;
 
-#pragma warning(disable : 4263) // 'function' : member function does not override any base class virtual member function
-#pragma warning(disable : 4264) // 'virtual_function' : no override available for virtual member function from base 
+#ifdef __clang__
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"	// warning : field 'x' will be initialized after field 'y' [-Wreorder]
+	#pragma clang diagnostic ignored "-Woverloaded-virtual"	 // note: hidden overloaded virtual function 'x' declared here: different number of parameters
+#else
+	#pragma warning(push)
+	#pragma warning(disable : 4263) // 'function' : member function does not override any base class virtual member function
+	#pragma warning(disable : 4264) // 'virtual_function' : no override available for virtual member function from base 
+#endif
 #include "AllowWindowsPlatformTypes.h"
 #include <streams.h>
 #include "HideWindowsPlatformTypes.h"
-#pragma warning(default : 4263) // 'function' : member function does not override any base class virtual member function
-#pragma warning(default : 4264) // 'virtual_function' : no override available for virtual member function from base
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#else
+	#pragma warning(pop)
+#endif
 
 
 class FCapturePin : public CSourceStream

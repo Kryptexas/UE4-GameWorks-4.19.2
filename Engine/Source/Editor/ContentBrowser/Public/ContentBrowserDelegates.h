@@ -31,6 +31,9 @@ DECLARE_DELEGATE_OneParam(FSyncToAssetsDelegate, const TArray< FAssetData >& /*A
 /** Called to set a new filter for an existing asset picker */
 DECLARE_DELEGATE_OneParam(FSetARFilterDelegate, const FARFilter& /*NewFilter*/);
 
+/** A pointer to an existing delegate that, when executed, will set the filter an the asset picker after it is created. */
+DECLARE_DELEGATE_OneParam(FSetPathPickerPathsDelegate, const TArray<FString>& /*NewPaths*/);
+
 /** Called to adjust the selection from the current assetdata, should be +1 to increment or -1 to decrement */
 DECLARE_DELEGATE_OneParam( FAdjustSelectionDelegate, const int32 /*direction*/ );
 
@@ -77,3 +80,9 @@ DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip
 
 /** Called when an asset item visualizes its tooltip */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnVisualizeAssetToolTip, const TSharedPtr<SWidget>& /*ToolTipContent*/, class FAssetData& /*AssetData*/);
+
+/** Called from the Asset Dialog when assets are chosen in non-modal Open dialogs */
+DECLARE_DELEGATE_OneParam(FOnAssetsChosenForOpen, const TArray<FAssetData>& /*SelectedAssets*/);
+
+/** Called from the Asset Dialog when an asset name is chosen in non-modal Save dialogs */
+DECLARE_DELEGATE_OneParam(FOnObjectPathChosenForSave, const FString& /*ObjectPath*/);

@@ -11,6 +11,7 @@
 #include "ScreenSpaceReflections.h"
 #include "PostProcessTemporalAA.h"
 #include "PostProcessAmbientOcclusion.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<int32> CVarSSRQuality(
 	TEXT("r.SSR.Quality"),
@@ -177,10 +178,10 @@ static int32 ComputeSSRQuality(float Quality)
 
 void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(ScreenSpaceReflections, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, ScreenSpaceReflections, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
-
+	const auto FeatureLevel = Context.GetFeatureLevel();
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
@@ -206,14 +207,14 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		SSRQuality = 0;
 	}
 
-	TShaderMapRef< FPostProcessVS > VertexShader(GetGlobalShaderMap());
+	TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 
 	#define CASE(A, B) \
 		case (A + 2 * (B + 3 * 0 )): \
 		{ \
-			TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(Context.GetShaderMap()); \
 			static FGlobalBoundShaderState BoundShaderState; \
-			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+			SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			VertexShader->SetParameters(Context); \
 			PixelShader->SetParameters(Context); \
 		}; \
@@ -257,7 +258,7 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 }
 void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
-void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
+void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
 {
 	BuildHZB(RHICmdList, View);
 

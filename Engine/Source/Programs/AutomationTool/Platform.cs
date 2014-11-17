@@ -352,14 +352,6 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// True if this platform requires UFE for packaging
-		/// </summary>
-		public virtual bool PackageViaUFE
-		{
-			get { return false; }
-		}
-
-		/// <summary>
 		/// True if this platform requires UFE for deploying
 		/// </summary>
 		public virtual bool DeployViaUFE
@@ -384,11 +376,14 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// determines if the platform needs to be pak'd when packaged
+		/// Tri-state - The intent is to override command line parameters for pak if needed per platform.
 		/// </summary>
-		public virtual bool RequiresPak(ProjectParams Params)
+        /// 
+        public enum PakType { Always, Never, DontCare };
+
+        public virtual PakType RequiresPak(ProjectParams Params)
 		{
-			return false;
+            return PakType.DontCare;
 		}
 
         /// <summary>
@@ -398,6 +393,14 @@ namespace AutomationTool
         {
             return "";
         }
+
+		/// <summary>
+		///  Returns whether the platform requires a package to deploy to a device
+		/// </summary>
+		public virtual bool RequiresPackageToDeploy
+		{
+			get { return false; }
+		}
 
 		#region Hooks
 

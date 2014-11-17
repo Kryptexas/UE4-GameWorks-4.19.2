@@ -121,7 +121,7 @@ SSCSEditorViewport::~SSCSEditorViewport()
 bool SSCSEditorViewport::IsVisible() const
 {
 	// We consider the viewport to be visible if the reference is valid
-	return ViewportWidget.IsValid();
+	return ViewportWidget.IsValid() && SEditorViewport::IsVisible();
 }
 
 EVisibility SSCSEditorViewport::GetWidgetVisibility() const
@@ -239,7 +239,7 @@ bool SSCSEditorViewport::GetIsSimulateEnabled()
 
 void SSCSEditorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	// If the preview scene is no longer valid (i.e. all actors have destroyed themselves), then attempt to recreate the scene. This way we can "loop" certain "finite" Blueprints that might destroy themselves.
 	if(ViewportClient.IsValid() && (bPreviewNeedsUpdating || !ViewportClient->IsPreviewSceneValid()))

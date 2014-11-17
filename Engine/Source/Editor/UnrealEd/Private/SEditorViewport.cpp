@@ -6,10 +6,12 @@
 #include "SceneViewport.h"
 #include "EditorViewportCommands.h"
 #include "IDocumentation.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 
 SEditorViewport::SEditorViewport()
+	: LastTickTime(0)
 {
 }
 
@@ -33,22 +35,20 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("EditorViewports") )
+		SAssignNew( ViewportWidget, SViewport )
+		.ShowEffectWhenDisabled( false )
+		.EnableGammaCorrection( false ) // Scene rendering handles this
+		.AddMetaData(InArgs.MetaData.Num() > 0 ? InArgs.MetaData[0] : MakeShareable(new FTagMetaData(TEXT("EditorViewports"))))
 		[
-			SAssignNew( ViewportWidget, SViewport )
-			.ShowEffectWhenDisabled( false )
-			.EnableGammaCorrection( false ) // Scene rendering handles this
+			SAssignNew( ViewportOverlay, SOverlay )
+			+SOverlay::Slot()
 			[
-				SAssignNew( ViewportOverlay, SOverlay )
-				+SOverlay::Slot()
-				[
-					SNew( SBorder )
-					.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
-					.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
-					.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
-					.Padding(0.0f)
-					.ShowEffectWhenDisabled( false )
-				]
+				SNew( SBorder )
+				.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
+				.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
+				.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
+				.Padding(0.0f)
+				.ShowEffectWhenDisabled( false )
 			]
 		]
 	];
@@ -98,6 +98,11 @@ FReply SEditorViewport::OnKeyboardFocusReceived( const FGeometry& MyGeometry, co
 {
 	// forward focus to the viewport
 	return FReply::Handled().SetKeyboardFocus( ViewportWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+}
+
+void SEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	LastTickTime = FPlatformTime::Seconds();
 }
 
 void SEditorViewport::BindCommands()
@@ -311,7 +316,7 @@ void SEditorViewport::BindCommands()
 
 EVisibility SEditorViewport::OnGetViewportContentVisibility() const
 {
-	return GLevelEditorModeTools().IsViewportUIHidden() ? EVisibility::Collapsed : EVisibility::Visible;
+	return GLevelEditorModeTools().IsViewportUIHidden() ? EVisibility::Collapsed : EVisibility::SelfHitTestInvisible;
 }
 
 void SEditorViewport::OnToggleRealtime()
@@ -368,6 +373,13 @@ bool SEditorViewport::IsExposureSettingSelected( int32 ID ) const
 bool SEditorViewport::IsRealtime() const
 {
 	return Client->IsRealtime();
+}
+
+bool SEditorViewport::IsVisible() const
+{
+	const float VisibilityTimeThreshold = .25f;
+	// The viewport is visible if we don't have a parent layout (likely a floating window) or this viewport is visible in the parent layout
+	return FPlatformTime::Seconds() - LastTickTime <= VisibilityTimeThreshold;
 }
 
 void SEditorViewport::OnScreenCapture()

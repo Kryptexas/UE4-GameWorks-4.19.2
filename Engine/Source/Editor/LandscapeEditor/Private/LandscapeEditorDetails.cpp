@@ -190,7 +190,7 @@ FText FLandscapeEditorDetails::GetLocalizedName(FString Name)
 	}
 
 	FText Result;
-	ensure(FText::FindText(LOCTEXT_NAMESPACE, Name, Result));
+	ensure(FText::FindText(TEXT("LandscapeEditor"), Name, Result));
 	return Result;
 }
 

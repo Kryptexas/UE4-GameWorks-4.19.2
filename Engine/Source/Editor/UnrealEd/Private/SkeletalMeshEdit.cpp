@@ -44,7 +44,7 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton * Skeleton, UObject
 
 		if (!SkeletonRoot)
 		{
-			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_CouldNotFindFbxTrack", "Could not find needed track ({0}).\nImport failed."), FText::FromName(Skeleton->GetReferenceSkeleton().GetBoneName(0)))), FFbxErrors::Animation_CouldNotFindRootTrack);
+			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_CouldNotFindFbxTrack", "Mesh contains {0} bone as root but animation doesn't contain the root track.\nImport failed."), FText::FromName(Skeleton->GetReferenceSkeleton().GetBoneName(0)))), FFbxErrors::Animation_CouldNotFindRootTrack);
 
 			FFbxImporter->ReleaseScene();
 			GWarn->EndSlowTask();
@@ -141,7 +141,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton * Skeleton, UAnimSequence * 
 
 		if (!SkeletonRoot)
 		{
-			FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_CouldNotFindFbxTrack", "Could not find needed track ({0}).\nImport failed."), FText::FromName(Skeleton->GetReferenceSkeleton().GetBoneName(0)))), FFbxErrors::Animation_CouldNotFindTrack);
+			FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_CouldNotFindFbxTrack", "Mesh contains {0} bone as root but animation doesn't contain the root track.\nImport failed."), FText::FromName(Skeleton->GetReferenceSkeleton().GetBoneName(0)))), FFbxErrors::Animation_CouldNotFindTrack);
 
 			FbxImporter->ReleaseScene();
 			GWarn->EndSlowTask();
@@ -609,7 +609,7 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 						if(KeyAnimLength != 0.0)
 						{
 							// 30 fps animation has 31 keys because it includes index 0 key for 0.0 second
-							int32 NewRate = static_cast<int32>((KeyCount-1) / KeyAnimLength);
+							int32 NewRate = FPlatformMath::RoundToInt((KeyCount-1) / KeyAnimLength);
 							MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
 						}
 					}
@@ -692,7 +692,7 @@ bool UnFbx::FFbxImporter::ValidateAnimStack(TArray<FbxNode*>& SortedLinks, TArra
 	return bValidAnimStack;
 }
 
-bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan) const
+bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale/*=1.f*/) const
 {
 	static float DefaultCurveWeight = FbxAnimCurveDef::sDEFAULT_WEIGHT;
 
@@ -702,7 +702,7 @@ bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve 
 		{
 			FbxAnimCurveKey Key = FbxCurve->KeyGet(KeyIndex);
 			FbxTime KeyTime = Key.GetTime() - AnimTimeSpan.GetStart();
-			float Value = Key.GetValue()/100.f;
+			float Value = Key.GetValue() * ValueScale;
 			FKeyHandle NewKeyHandle = Curve->FloatCurve.AddKey(KeyTime.GetSecondDouble(), Value, true);
 
 			FbxAnimCurveDef::ETangentMode KeyTangentMode = Key.GetTangentMode();
@@ -912,6 +912,67 @@ namespace AnimationTransformDebug
 		}
 	}
 }
+
+/**
+ * We only support float values, so these are the numbers we can take
+ */
+bool IsSupportedCurveDataType(EFbxType DatatType)
+{
+
+	switch (DatatType)
+	{
+	case eFbxShort:		//!< 16 bit signed integer.
+	case eFbxUShort:		//!< 16 bit unsigned integer.
+	case eFbxUInt:		//!< 32 bit unsigned integer.
+	case eFbxHalfFloat:	//!< 16 bit floating point.
+	case eFbxInt:		//!< 32 bit signed integer.
+	case eFbxFloat:		//!< Floating point value.
+	case eFbxDouble:		//!< Double width floating point value.
+	case eFbxDouble2:	//!< Vector of two double values.
+	case eFbxDouble3:	//!< Vector of three double values.
+	case eFbxDouble4:	//!< Vector of four double values.
+	case eFbxDouble4x4:	//!< Four vectors of four double values.
+		return true;
+	}
+
+	return false;
+}
+
+bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * TargetSequence, const FString & CurveName, const FbxAnimCurve * FbxCurve, int32 CurveFlags,const FbxTimeSpan AnimTimeSpan, const float ValueScale/*=1.f*/) const
+{
+	if (TargetSequence && FbxCurve)
+	{
+		FName Name = *CurveName;
+		FSmartNameMapping* NameMapping = TargetSequence->GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
+
+		// Add or retrieve curve
+		USkeleton::AnimCurveUID Uid;
+		NameMapping->AddName(Name, Uid);
+
+		FFloatCurve * CurveToImport = TargetSequence->RawCurveData.GetCurveData(Uid);
+		if(CurveToImport==NULL)
+		{
+			if(TargetSequence->RawCurveData.AddCurveData(Uid, CurveFlags))
+			{
+				CurveToImport = TargetSequence->RawCurveData.GetCurveData(Uid);
+			}
+			else
+			{
+				// this should not happen, we already checked before adding
+				ensureMsg(0, TEXT("FBX Import: Critical error: no memory?"));
+			}
+		}
+		else
+		{
+			CurveToImport->FloatCurve.Reset();
+		}
+
+		return ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale);
+	}
+
+	return false;
+}
+
 bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * DestSeq, const FString & FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
 	FbxTime SequenceLength = AnimTimeSpan.GetDuration();
@@ -968,26 +1029,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * 
 							if (Curve && Curve->KeyGetCount() > 0)
 							{
 								// now see if we have one already exists. If so, just overwrite that. if not, add new one. 
-								FName Name = *ChannelName;
-								FFloatCurve * CurveToImport = DestSeq->RawCurveData.GetCurveData(Name);
-								if (CurveToImport==NULL)
-								{
-									if ( DestSeq->RawCurveData.AddCurveData(Name, ACF_DrivesMorphTarget | ACF_TriggerEvent) )
-									{
-										CurveToImport = DestSeq->RawCurveData.GetCurveData(Name);
-									}
-									else
-									{
-										// this should not happen, we already checked before adding
-										ensureMsg (0, TEXT("FBX Import: Critical error: no memory?"));
-									}
-								}
-								else
-								{
-									CurveToImport->FloatCurve.Reset();
-								}
-	
-								ImportCurve(Curve, CurveToImport, AnimTimeSpan);
+								ImportCurveToAnimSequence(DestSeq, *ChannelName, Curve,  ACF_DrivesMorphTarget | ACF_TriggerEvent, AnimTimeSpan, 0.01f /** for some reason blend shape values are coming as 100 scaled **/);
 							}
 						}
 					}
@@ -999,6 +1041,52 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * 
 	//
 	//shape animation END
 	//
+
+	// 
+	// importing custom attribute START
+	//
+	if (ImportOptions->bImportCustomAttribute)
+	{
+		for(auto Node: SortedLinks)
+		{
+			FbxProperty Property = Node->GetFirstProperty();
+			while (Property.IsValid())
+			{
+				FbxAnimCurveNode* CurveNode = Property.GetCurveNode();
+				// do this if user defined and animated and leaf node
+				if( CurveNode && Property.GetFlag(FbxPropertyAttr::eUserDefined) && 
+					CurveNode->IsAnimated() && IsSupportedCurveDataType(Property.GetPropertyDataType().GetType()) )
+				{
+					FString CurveName = CurveNode->GetName();
+					UE_LOG(LogFbx, Log, TEXT("CurveName : %s"), *CurveName );
+
+					int32 TotalCount = CurveNode->GetChannelsCount();
+					for (int32 ChannelIndex=0; ChannelIndex<TotalCount; ++ChannelIndex)
+					{
+						FbxAnimCurve * AnimCurve = CurveNode->GetCurve(ChannelIndex);
+						FString ChannelName = CurveNode->GetChannelName(ChannelIndex).Buffer();
+
+						if (AnimCurve)
+						{
+							if (TotalCount == 1)
+							{
+								ImportCurveToAnimSequence(DestSeq, CurveName, AnimCurve,  ACF_DefaultCurve, AnimTimeSpan);
+							}
+							else
+							{
+								ImportCurveToAnimSequence(DestSeq, CurveName + "_" + ChannelName, AnimCurve,  ACF_DefaultCurve, AnimTimeSpan);
+							}
+						}
+											
+					}
+				}
+
+				Property = Node->GetNextProperty(Property); 
+			}
+		}
+	}
+
+	// importing custom attribute END
 
 	DestSeq->TrackToSkeletonMapTable.Empty();
 	DestSeq->RawAnimationData.Empty();

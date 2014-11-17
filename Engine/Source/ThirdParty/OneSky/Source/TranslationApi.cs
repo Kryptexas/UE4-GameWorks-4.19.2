@@ -81,14 +81,14 @@ namespace OneSky
 
     public class TranslationApi
     {
-        public static TranslationExport Export(OneSkyService service, int projectId, string sourceFilename, CultureInfo locale, Stream destinationStream)
+        public static TranslationExport Export(OneSkyService service, int projectId, string sourceFilename, CultureInfo culture, Stream destinationStream)
         {
             //https://github.com/onesky/api-documentation-platform/blob/master/resources/translation.md
             Debug.Assert(!String.IsNullOrWhiteSpace(sourceFilename));
-            Debug.Assert(locale != null);
+            Debug.Assert(culture != null);
 
             string url = service.AddAuthenticationParameters(String.Format("https://platform.api.onesky.io/1/projects/{0}/translations", projectId));
-            url += "&locale=" + locale.Name + "&source_file_name=" + sourceFilename;
+            url += "&locale=" + LocaleCodeHelper.ConvertToLocaleCode(culture.Name) + "&source_file_name=" + sourceFilename;
 
             var req = (HttpWebRequest)WebRequest.Create(url);
             req.Method = "GET";
@@ -116,16 +116,16 @@ namespace OneSky
             public string Progress { get; set; }
         }
 
-        public static Task Status(OneSkyService service, int projectId, string filename, CultureInfo locale)
+        public static Task Status(OneSkyService service, int projectId, string filename, CultureInfo culture)
         {
             return Task.Factory.StartNew((obj) =>
             {
                 //https://github.com/onesky/api-documentation-platform/blob/master/resources/translation.md
                 Debug.Assert(!String.IsNullOrWhiteSpace(filename));
-                Debug.Assert(locale != null);
+                Debug.Assert(culture != null);
 
                 string url = service.AddAuthenticationParameters(String.Format("https://platform.api.onesky.io/1/projects/{0}/translations/status", projectId));
-                url += "&locale=" + locale.Name + "&file_name=" + filename;
+                url += "&locale=" + LocaleCodeHelper.ConvertToLocaleCode(culture.Name) + "&file_name=" + filename;
 
                 var state = (TranslationExportStatus)obj;
                 TranslationStatusResponse response;

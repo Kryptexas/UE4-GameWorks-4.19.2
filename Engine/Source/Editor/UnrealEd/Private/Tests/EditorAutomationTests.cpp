@@ -21,67 +21,12 @@
 #include "SlateWordWrapper.h"
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
+#include "AutomationTest.h"
+
+#include "PackageTools.h"
 
 
 //DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
-
-/**
- * Start PIE session
- */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStartPIECommand, bool, bSimulateInEditor);
-
-bool FStartPIECommand::Update()
-{
-	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-	TSharedPtr<class ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
-
-	GUnrealEd->RequestPlaySession( false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false );
-	return true;
-}
-
-/**
- * End PlayMap session
- */
-DEFINE_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
-
-bool FEndPlayMapCommand::Update()
-{
-	GUnrealEd->RequestEndPlayMap();
-	return true;
-}
-
-/**
- * Open editor for a particular asset
- */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FOpenEditorForAssetCommand, FString, AssetName);
-
-bool FOpenEditorForAssetCommand::Update()
-{
-	UObject* Object = StaticLoadObject(UObject::StaticClass(), NULL, *AssetName);
-	if (Object)
-	{
-		FAssetEditorManager::Get().OpenEditorForAsset(Object);
-		UE_LOG(LogEditorAutomationTests, Log, TEXT("Verified asset editor for: %s."), *AssetName);
-	}
-	else
-	{
-		UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to find object: %s."), *AssetName);
-	}
-
-	return true;
-}
-
-/**
- * Close all asset editors
- */
-DEFINE_LATENT_AUTOMATION_COMMAND(FCloseAllAssetEditorsCommand);
-
-bool FCloseAllAssetEditorsCommand::Update()
-{
-	FAssetEditorManager::Get().CloseAllAssetEditors();
-
-	return true;
-}
 
 /**
 * Change the attributes for a point light in the level.
@@ -155,68 +100,6 @@ void TakeLatentAutomationScreenshot(struct WindowScreenshotParameters Screenshot
 		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(ScreenshotParameters));
 	}
 }
-
-//////////////////////////////////////////////////////////////////////////
-// FEditorAutomationTestUtilities
-
-class FEditorAutomationTestUtilities
-{
-public:
-	/**
-	 * Loads the map specified by an automation test
-	 * 
-	 * @param MapName - Map to load
-	 */
-	static void LoadMap(const FString& MapName)
-	{
-		bool bLoadAsTemplate = false;
-		bool bShowProgress = false;
-		FEditorFileUtils::LoadMap(MapName, bLoadAsTemplate, bShowProgress);
-	}
-
-	/**
-	 * Run PIE
-	 */
-	static void RunPIE()
-	{
-		bool bInSimulateInEditor = true;
-		//once in the editor
-		ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(true));
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.0f));
-		ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
-
-		//wait between tests
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
-
-		//once not in the editor
-		ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.0f));
-		ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
-	}
-
-	static void CollectTestsByClass(UClass * Class, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) 
-	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		TArray<FAssetData> ObjectList;
-		AssetRegistryModule.Get().GetAssetsByClass(Class->GetFName(), ObjectList);
-
-		for (auto ObjIter=ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
-		{
-			const FAssetData & Asset = *ObjIter;
-			FString Filename = Asset.ObjectPath.ToString();
-			//convert to full paths
-			Filename = FPackageName::LongPackageNameToFilename(Filename);
-			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
-			{
-				FString BeautifiedFilename = Asset.AssetName.ToString();
-				OutBeautifiedNames.Add(BeautifiedFilename);
-				OutTestCommands.Add(Asset.ObjectPath.ToString());
-			}
-		}
-	}
-
-	
-};
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -514,13 +397,13 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		check( FJsonSerializer::Deserialize( Reader, Object ) );
 		check( Object.IsValid() );
 
-		float TestValues[] = {2.544e+15f, -0.544e-2f, 251e3, -0.0, 843};
+		double TestValues[] = {2.544e+15, -0.544e-2, 251e3, -0.0, 843};
 		for (int32 i = 0; i < 5; ++i)
 		{
 			const TSharedPtr<FJsonValue>* Value = Object->Values.Find(FString::Printf(TEXT("Value%i"), i + 1));
 			check(Value && (*Value)->Type == EJson::Number);
-			const float Float = (*Value)->AsNumber();
-			check(FMath::Abs(Float - TestValues[i]) < KINDA_SMALL_NUMBER);
+			const double Number = (*Value)->AsNumber();
+			check(Number == TestValues[i]);
 		}
 
 		FString OutputString;
@@ -530,11 +413,11 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		// %g isn't standardized, so we use the same %g format that is used inside PrintJson instead of hardcoding the values here
 		const FString TestOutput = FString::Printf(
 			TEXT("{")
-			TEXT(	"\"Value1\":%g,")
-			TEXT(	"\"Value2\":%g,")
-			TEXT(	"\"Value3\":%g,")
-			TEXT(	"\"Value4\":%g,")
-			TEXT(	"\"Value5\":%g")
+			TEXT(	"\"Value1\":%.17g,")
+			TEXT(	"\"Value2\":%.17g,")
+			TEXT(	"\"Value3\":%.17g,")
+			TEXT(	"\"Value4\":%.17g,")
+			TEXT(	"\"Value5\":%.17g")
 			TEXT("}"),
 			TestValues[0], TestValues[1], TestValues[2], TestValues[3], TestValues[4]);
 		check(OutputString == TestOutput);
@@ -950,6 +833,7 @@ void FLoadAllMapsInEditorTest::GetTests(TArray<FString>& OutBeautifiedNames, TAr
 bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
+	double MapLoadStartTime = 0;
 
 	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().IsScreenshotAllowed();
 	if( bTakeScreenshots )
@@ -973,8 +857,13 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 		const FString TestName = FString::Printf(TEXT("LoadAllMaps_Editor/%s"), *FPaths::GetBaseFilename(MapName));
 		AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, true);
 
+		//Get the current number of seconds.  This will be used to track how long it took to load the map.
+		MapLoadStartTime = FPlatformTime::Seconds();
 		//Load the map
 		FEditorAutomationTestUtilities::LoadMap(MapName);
+		//Log how long it took to launch the map.
+		UE_LOG(LogEditorAutomationTests, Display, TEXT("Map '%s' took %.3f to load"), *MapName, FPlatformTime::Seconds() - MapLoadStartTime);
+
 
 		//If we don't have NoTextureStreaming enabled, give the textures some time to load.
 		if( !FParse::Param( FCommandLine::Get(), TEXT( "NoTextureStreaming" ) ) )
@@ -987,8 +876,12 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 	}
 	else
 	{
-		//Load the map
+		//Get the current number of seconds.  This will be used to track how long it took to load the map.
+		MapLoadStartTime = FPlatformTime::Seconds();
+				//Load the map
 		FEditorAutomationTestUtilities::LoadMap(MapName);
+		//Log how long it took to launch the map.
+		UE_LOG(LogEditorAutomationTests, Display, TEXT("Map '%s' took %.3f to load"), *MapName, FPlatformTime::Seconds() - MapLoadStartTime);
 	}
 
 	return true;
@@ -1016,7 +909,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPValidation, "QA.BSP Validation", EAutomatio
 
 bool FBSPValidation::RunTest(const FString& Parameters)
 {
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 	GEditor->Exec( World, TEXT("BRUSH Scale 1 1 1"));
 
 	for( int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++ )
@@ -1165,7 +1058,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshValidation, "QA.Mesh Factory Validat
 
 bool FStaticMeshValidation::RunTest(const FString& Parameters)
 {
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 
 	//Adjust camera in viewports
 	for( int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++ )
@@ -1205,7 +1098,7 @@ bool FStaticMeshValidation::RunTest(const FString& Parameters)
 	AActor* PhysicsActor = FActorFactoryAssetProxy::AddActorForAsset( EditorCubeMesh );
 	PhysicsActor->SetActorRelativeScale3D(FVector(2.0f, 2.0f, .5f));
 	PhysicsActor->GetRootComponent()->SetMobility(EComponentMobility::Movable);
-	PhysicsActor->GetRootPrimitiveComponent()->SetSimulatePhysics(true);
+	CastChecked<UPrimitiveComponent>(PhysicsActor->GetRootComponent())->SetSimulatePhysics(true);
 	PhysicsActor->TeleportTo(FVector(-96.0f, 128.0f, 256.0f), FRotator(0, 0, 0));
 
 	//Skeletal Mesh
@@ -1266,9 +1159,20 @@ ABrush* ConvertTestFindNewBrush (const TArray<ABrush*> &PreviousBrushes)
 	return NewBrush;
 }
 
+/**
+ * Parameters to the Latent Automation command FCleanupConvertToValidation
+ */
+struct FCleanupConvertToValidationParameters
+{
+	TWeakObjectPtr<UWorld> TestWorld;
+	FString AssetPackageName;
+};
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCleanupConvertToValidation, FCleanupConvertToValidationParameters, Parameters);
+
 bool FConvertToValidation::RunTest(const FString& Parameters)
 {
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 
 	//Set the Test Name which is used later for getting the directory to store the screenshots.
 	const FString BaseFileName = TEXT("ConvertMeshTest");
@@ -1327,6 +1231,7 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 	}
 
 	//convert to static mesh
+	FString AssetPackageName;
 	{
 		TArray<ABrush*> PreviousBrushes;
 		ConvertTestFindAllBrushes(PreviousBrushes);
@@ -1346,13 +1251,14 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 		TArray<AActor*> ToStaticMeshActors;
 		ToStaticMeshActors.Add(NewBrush);
 
-		//generate static mesh package name
-		FString PackageName = FPackageName::FilenameToLongPackageName(FPaths::AutomationTransientDir() + TEXT("ConvertToBSPToStaticMesh"));
+		//generate static mesh package name. Temporarily mount /Automation.
+		FPackageName::RegisterMountPoint(TEXT("/Automation/"), FPaths::AutomationTransientDir());
+		AssetPackageName = TEXT("/Automation/ConvertToBSPToStaticMesh");
 		//Convert brush to specific package name
-		GEditor->DoConvertActors(ToStaticMeshActors, AStaticMeshActor::StaticClass(), TSet<FString>(), true, PackageName);
+		GEditor->DoConvertActors(ToStaticMeshActors, AStaticMeshActor::StaticClass(), TSet<FString>(), true, AssetPackageName);
 
 		//find the package
-		UPackage* NewPackage = FindPackage(NULL, *PackageName);
+		UPackage* NewPackage = FindPackage(NULL, *AssetPackageName);
 		if (NewPackage)
 		{
 			TArray<UPackage*> PackagesToSave;
@@ -1384,82 +1290,55 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 
 	GLevelEditorModeTools().MapChangeNotify();
 
+	// Add a latent action to clean up the static mesh actor we created and unload the temporary asset AFTER we take the screenshot
+	FCleanupConvertToValidationParameters CleanupParameters;
+	CleanupParameters.AssetPackageName = AssetPackageName;
+	CleanupParameters.TestWorld = World;
+	ADD_LATENT_AUTOMATION_COMMAND(FCleanupConvertToValidation(CleanupParameters));
+
 	return true;
 }
 
-
-
-//////////////////////////////////////////////////////////////////////////
-/**
- * QA Test to open editor windows
- */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenAssetEditors, "QA.Open Asset Editors", EAutomationTestFlags::ATF_Editor);
-
-void FOpenAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+bool FCleanupConvertToValidation::Update()
 {
-	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
-	check(AutomationTestSettings);
+	const FString& AssetPackageName = Parameters.AssetPackageName;
+	UWorld* TestWorld = Parameters.TestWorld.Get();
 
-	bool bUnAttended = FApp::IsUnattended();
-
-	TArray<FString> AssetNames;
-	for (auto Iter = AutomationTestSettings->TestAssetsToOpen.CreateConstIterator(); Iter; ++Iter)
+	// Attempt to unload the asset we created temporarily.
+	UPackage* NewPackage = FindPackage(NULL, *AssetPackageName);
+	if (NewPackage)
 	{
-		if (Iter->bSkipTestWhenUnAttended && bUnAttended)
+		if (TestWorld)
 		{
-			continue;
+			// First find the static mesh we made in this package
+			UStaticMesh* GeneratedMesh = FindObject<UStaticMesh>(NewPackage, *FPackageName::GetLongPackageAssetName(AssetPackageName));
+
+			// If we found the mesh, find and delete the static mesh actor we added to the level to clear the reference to it.
+			if (GeneratedMesh)
+			{
+				for (TActorIterator<AStaticMeshActor> ActorIt(TestWorld); ActorIt; ++ActorIt)
+				{
+					AStaticMeshActor* StaticMeshActor = *ActorIt;
+
+					if ( StaticMeshActor->StaticMeshComponent->StaticMesh == GeneratedMesh )
+					{
+						TestWorld->DestroyActor(StaticMeshActor);
+					}
+				}
+			}
 		}
 
-		if ( Iter->AssetToOpen.FilePath.Len() > 0 )
-		{
-			AssetNames.AddUnique(Iter->AssetToOpen.FilePath);
-		}
+		// Clear the transaction buffer to remove the last reference
+		GEditor->Trans->Reset( NSLOCTEXT( "UnrealEd.Test", "ConvertToValidationClear", "ConvertToValidation Clear" ) );
+
+		// Now unload the package
+		TArray<UPackage*> PackagesToUnload;
+		PackagesToUnload.Add(NewPackage);
+		PackageTools::UnloadPackages(PackagesToUnload);
 	}
 
-
-	for (int32 i = 0; i < AssetNames.Num(); ++i)
-	{
-		FString Filename = FPaths::ConvertRelativePathToFull(AssetNames[i]);
-
-		if (FPaths::MakePathRelativeTo( Filename, *FPaths::EngineContentDir() ))
-		{
-			FString ShortName = FPaths::GetBaseFilename(Filename);
-			FString PathName =  FPaths::GetPath(Filename);
-			OutBeautifiedNames.Add(ShortName);
-			FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-			OutTestCommands.Add(AssetName);
-		}
-		else if (FPaths::MakePathRelativeTo( Filename, *FPaths::GameContentDir() ))
-		{
-			FString ShortName = FPaths::GetBaseFilename(Filename);
-			FString PathName =  FPaths::GetPath(Filename);
-			OutBeautifiedNames.Add(ShortName);
-			FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-			OutTestCommands.Add(AssetName);
-		}
-		else
-		{
-			UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
-		}
-	}
-}
-
-bool FOpenAssetEditors::RunTest(const FString& Parameters)
-{
-	//start with all editors closed
-	FAssetEditorManager::Get().CloseAllAssetEditors();
-
-	// below is all latent action, so before sending there, verify the asset exists
-	UObject* Object = StaticLoadObject(UObject::StaticClass(), NULL, *Parameters);
-	if (!Object)
-	{
-		UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to find object: %s."), *Parameters);
-		return false;
-	}
-
-	ADD_LATENT_AUTOMATION_COMMAND(FOpenEditorForAssetCommand(*Parameters));
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
-	ADD_LATENT_AUTOMATION_COMMAND(FCloseAllAssetEditorsCommand());
+	// Unmount /Automation.
+	FPackageName::UnRegisterMountPoint(TEXT("/Automation/"), FPaths::AutomationTransientDir());
 
 	return true;
 }
@@ -1543,7 +1422,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	const FString BaseFileName = TEXT("PointLightPlacementTest");
 
 	//Open a new blank map.
-	UWorld* World = GEditor->NewMap();
+	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 
 	//Move the perspective viewport view to show the test.
 	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++)
@@ -2169,7 +2048,7 @@ bool FPerformUVTestCommand::Update()
 /**
  * StaticMeshUVsTest
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Editor.Content.Static Mesh UVs", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Tools.Static Mesh.Static Mesh UVs Check", EAutomationTestFlags::ATF_Editor )
 
 /**
  * Find all static meshes and check the lightmap UVs

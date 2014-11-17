@@ -99,11 +99,11 @@ extern RHI_API bool GSupportsQuads;
 /** True if and only if the GPU support rendering to volume textures (2D Array, 3D). Some OpenGL 3.3 cards support SM4, but can't render to volume textures. */
 extern RHI_API bool GSupportsVolumeTextureRendering;
 
-/** Used to work around a bug with Nvidia cards on Mac: using GL_LayerIndex to specify render target layer doesn't work when rendering to mips. */
-extern RHI_API bool GSupportsGSRenderTargetLayerSwitchingToMips;
-
 /** True if the RHI supports separate blend states per render target. */
 extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
+
+/** True if the RHI can render to a depth-only render target with no additional color render target. */
+extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
 
 /** True if the RHI supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
@@ -202,6 +202,9 @@ extern RHI_API int32 GNumPrimitivesDrawnRHI;
 /** Whether or not the RHI can handle a non-zero BaseVertexIndex - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsBaseVertexIndex;
 
+/** Whether or not the engine should set the BackBuffer as a render target early in the frame. */
+extern RHI_API bool GRHIRequiresEarlyBackBufferRenderTarget;
+
 
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();
@@ -223,7 +226,7 @@ inline FMatrix AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 }
 
 /** Current shader platform. */
-extern RHI_API EShaderPlatform GRHIShaderPlatform;
+
 
 /** Finds a corresponding ERHIFeatureLevel::Type given an FName, or returns false if one could not be found. */
 extern RHI_API bool GetFeatureLevelFromName(FName Name, ERHIFeatureLevel::Type& OutFeatureLevel);
@@ -234,24 +237,35 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 /** Creates an FName for the given feature level. */
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
-extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
-extern RHI_API ERHIFeatureLevel::Type GCurrentRHIFeatureLevel;
+extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue;
+extern RHI_API EShaderPlatform GMaxRHIShaderPlatformValue;
 
 /** Function for retrieving the current feature level. Only exists to provide a convient way of tracking access to this global during mobile preview work */
-extern RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel();
+extern RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel();
+extern RHI_API EShaderPlatform GetMaxRHIShaderPlatform();
 
 /** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
 #define RHI_FEATURE_LEVEL_AS_FUNCTION 0
 
 #if RHI_FEATURE_LEVEL_AS_FUNCTION
-	#define GRHIFeatureLevel GetCurrentRHIFeatureLevel()
+	#define GMaxRHIFeatureLevel GetMaxRHIFeatureLevel()
+	#define GMaxRHIShaderPlatform GetMaxRHIShaderPlatform()
 #else
-	#define GRHIFeatureLevel GCurrentRHIFeatureLevel
+	#define GMaxRHIFeatureLevel GMaxRHIFeatureLevelValue
+	#define GMaxRHIShaderPlatform GMaxRHIShaderPlatformValue
 #endif
+
+#define GRHIShaderPlatform GMaxRHIShaderPlatform
+#define GRHIFeatureLevel GMaxRHIFeatureLevel
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];
 
+/** Get the shader platform associated with the supplied feature level on this machine */
+inline EShaderPlatform GetFeatureLevelShaderPlatform(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	return GShaderPlatformForFeatureLevel[InFeatureLevel];
+}
 
 inline FArchive& operator <<(FArchive& Ar, EResourceLockMode& LockMode)
 {
@@ -953,11 +967,11 @@ struct FTextureMemoryStats
 	// Hardware state (never change after device creation):
 
 	// -1 if unknown, in bytes
-    int64 DedicatedVideoMemory;
+	int64 DedicatedVideoMemory;
 	// -1 if unknown, in bytes
-    int64 DedicatedSystemMemory;
+	int64 DedicatedSystemMemory;
 	// -1 if unknown, in bytes
-    int64 SharedSystemMemory;
+	int64 SharedSystemMemory;
 	// Total amount of "graphics memory" that we think we can use for all our graphics resources, in bytes. -1 if unknown.
 	int64 TotalGraphicsMemory;
 
@@ -1054,6 +1068,8 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Pixel buffer memory"),STAT_PixelBufferMemo
 #define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern Type Name##_Internal ParameterTypesAndNames
 #define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern Type Name##_Internal ParameterTypesAndNames
+#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern Type RHI##Name ParameterTypesAndNames
 #define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern Type Name##_Internal ParameterTypesAndNames
@@ -1065,6 +1081,8 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Pixel buffer memory"),STAT_PixelBufferMemo
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+
 
 #endif
 

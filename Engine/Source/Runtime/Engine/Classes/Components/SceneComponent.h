@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "ActorComponent.h"
+#include "Components/ActorComponent.h"
+#include "Engine/EngineTypes.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -67,11 +67,15 @@ FORCEINLINE EMoveComponentFlags operator&(EMoveComponentFlags Arg1,EMoveComponen
 FORCEINLINE void operator&=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest & Arg); }
 FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest | Arg); }
 
-DECLARE_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*, NewVolume);
 
 
-/** A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities. Useful as a 'dummy' component in the hierarchy to offset others. */
-UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger), meta=(BlueprintSpawnableComponent))
+/**
+ * A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities.
+ * Useful as a 'dummy' component in the hierarchy to offset others.
+ * @see [Scene Components](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/Components/index.html#scenecomponents)
+ */
+UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USceneComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -113,8 +117,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Rendering)
 	uint32 bHiddenInGame:1;
 
-	/** Whether or not it should update PhysicsVolume. **/
-	UPROPERTY()
+	/** Whether or not PhysicsVolume should be updated when the component is moved. For PrimitiveComponents, bGenerateOverlapEvents must be true as well. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PhysicsVolume)
 	uint32 bShouldUpdatePhysicsVolume:1;
 
 	/** If true, a change in the bounds of this component will call trigger a streaming data rebuild */
@@ -196,7 +200,8 @@ public:
 	FVector RelativeScale3D;
 
 	/**
-	 * Component Velocity that has 
+	 * Velocity of this component.
+	 * @see GetComponentVelocity()
 	 */
 	UPROPERTY()
 	FVector ComponentVelocity;
@@ -249,7 +254,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalRotation(FRotator DeltaRotation, bool bSweep=false);
 
-	/** Adds a delta to the rotation of this component in its local reference frame */
+	/** Adds a delta to the transform of this component in its local reference frame. Scale is unchanged. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalTransform(const FTransform& DeltaTransform, bool bSweep=false);
 
@@ -261,12 +266,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldRotation(FRotator NewRotation, bool bSweep=false);
 
+	/** Set the relative scale of this component to put it at the supplied scale in world space. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldScale3D(FVector NewScale);
 
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	/** Set the transform of this component in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldTransform(const FTransform& NewTransform, bool bSweep=false);
+
+	/** Adds a delta to the location of this component in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddWorldOffset(FVector DeltaLocation, bool bSweep=false);
+
+	/** Adds a delta to the rotation of this component in world space. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddWorldRotation(FRotator DeltaRotation, bool bSweep=false);
+
+	/** Adds a delta to the transform of this component in world space. Scale is unchanged. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	void AddWorldTransform(const FTransform& DeltaTransform, bool bSweep=false);
 
 	/** Return location of the component, in world space */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldLocation"), Category="Utilities|Transformation")
@@ -328,19 +346,26 @@ public:
 	 *   Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(AttachType="KeepRelativeOffset"))
-	void AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset);
+	void AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
+
+	/**
+	*   Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
+	*   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation", meta = (FriendlyName = "AttachTo", AttachType = "KeepRelativeOffset"))
+	void K2_AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
 	/** Zeroes out the relative transform of this component, and calls AttachTo(). Useful for attaching directly to a scene component or socket location  */
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachTo with EAttachLocation::SnapToTarget option instead"), Category="Utilities|Transformation")
 	void SnapTo(class USceneComponent* InParent, FName InSocketName = NAME_None);
 
 	/** 
-	 *	Detach this component from whatever it is attached to 
+	 *	Detach this component from whatever it is attached to. Automatically unwelds components that are welded together (See WeldTo)
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same *	
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual void DetachFromParent(bool bMaintainWorldPosition = false);
+
 
 	/** 
 	 * Gets the names of all the sockets on the component.
@@ -400,8 +425,8 @@ public:
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
 
 	/** 
-	 * Get Component Velocity vector
-	 * @return Socket transform in world space if socket is found. Otherwise it will return component's transform in world space.
+	 * Get velocity of this component: either ComponentVelocity, or the velocity of the physics body if simulating physics.
+	 * @return Velocity of this component
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual FVector GetComponentVelocity() const;
@@ -433,7 +458,8 @@ public:
 	virtual void SetHiddenInGame(bool NewHidden, bool bPropagateToChildren=false);
 
 public:
-	/** Will be called when PhysicsVolume has been changed **/
+	/** Delegate that will be called when PhysicsVolume has been changed **/
+	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume)
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
@@ -470,13 +496,9 @@ public:
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL);
 
 	/**
-	 * Tries to move the component by a movement vector.
-	 * 
-	 * Assumes that the component's current Location is valid and that the component does fit in its current Location. 
-	 * Assumes that the level's Dynamics member is locked, which will always be the case during
-	 * a call to UWorld::Tick; if not locked, no actor-actor collision checking is performed.
-	 *
-	 * Updates actor's PhysicsVolume and touching interactions.
+	 * Tries to move the component by a movement vector (Delta) and sets rotation to NewRotation.
+	 * Assumes that the component's current location is valid and that the component does fit in its current Location.
+	 * Dispatches blocking hit notifications (if bSweep is true), and calls UpdateOverlaps() after movement to update overlap state.
 	 * 
 	 * @param Delta			The desired location change in world space.
 	 * @param NewRotation	The new desired rotation in world space.
@@ -581,7 +603,7 @@ public:
 	}
 
 	/** 
-	 * Updates the PhysicsVolume of this SceneComponent
+	 * Updates the PhysicsVolume of this SceneComponent, if bShouldUpdatePhysicsVolume is true.
 	 * 
 	 * @param bTriggerNotifiers		if true, send zone/volume change events
 	 */
@@ -598,6 +620,7 @@ public:
 	/** 
 	 * Get the PhysicsVolume overlapping this component.
 	 */
+	UFUNCTION(BlueprintCallable, Category=PhysicsVolume)
 	APhysicsVolume* GetPhysicsVolume() const;
 
 
@@ -705,9 +728,6 @@ public:
 	/** Get the extent used when placing this component in the editor, used for 'pulling back' hit. */
 	virtual FBoxSphereBounds GetPlacementExtent() const;
 
-	/** Is component (not including attachments) relevant for navigation updates? */
-	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
-
 protected:
 	/**
 	 * Called after a child scene component is attached to this component.
@@ -723,9 +743,6 @@ protected:
 
 	/** Called after changing transform, tries to update navigation octree */
 	void UpdateNavigationData();
-
-	/** Check if given component or any of its attachments are relevant for navigation updates */
-	static bool CheckNavigationRelevancy(USceneComponent* TestComponent);
 };
 
 

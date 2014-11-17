@@ -33,10 +33,10 @@ struct FFormatTextArgument
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
 	FText ArgumentName;
 
-	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
 	FText TextValue;
 };
 
@@ -105,10 +105,18 @@ class UKismetTextLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual, Case Insensitive (text)", CompactNodeTitle = "!="), Category="Utilities|Text")
 	static bool NotEqual_IgnoreCase_TextText(const FText& A, const FText& B);
 
+	/** Converts a boolean value to text, either 'true' or 'false' */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToText (boolean)", CompactNodeTitle = "->"), Category="Utilities|Text")
+	static FText Conv_BoolToText(bool InBool);
+
+	/** Converts a byte value to text */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToText (byte)", CompactNodeTitle = "->"), Category="Utilities|Text")
+	static FText Conv_ByteToText(uint8 Value);
+
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in integer to a text based on formatting options */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToText (int)", AdvancedDisplay = "1"), Category="Utilities|Text")
-	static FText Conv_IntToText(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
+	static FText Conv_IntToText(int32 Value, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324);
 
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in float to a text based on formatting options */
@@ -118,17 +126,33 @@ class UKismetTextLibrary : public UBlueprintFunctionLibrary
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in integer to a text formatted as a currency */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsCurrency (int)", AdvancedDisplay = "1"), Category="Utilities|Text")
-	static FText AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
+	static FText AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3, const FString& CurrencyCode = TEXT(""));
 
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in float to a text formatted as a currency */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsCurrency (float)", AdvancedDisplay = "1"), Category="Utilities|Text")
-	static FText AsCurrency_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
+	static FText AsCurrency_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3, const FString& CurrencyCode = TEXT(""));
 
 	// Default values are duplicated from FNumberFormattingOptions and should be replicated in all functions and in the struct when changed!
 	/* Converts a passed in float to a text, formatted as a percent */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsPercent", AdvancedDisplay = "1"), Category="Utilities|Text")
 	static FText AsPercent_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
+
+	/* Converts a passed in date & time to a text, formatted as a date */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsDate", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsDate_DateTime(const FDateTime& InDateTime);
+
+	/* Converts a passed in date & time to a text, formatted as a date & time */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsDateTime", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsDateTime_DateTime(const FDateTime& In);
+
+	/* Converts a passed in date & time to a text, formatted as a time */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsTime", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsTime_DateTime(const FDateTime& In);
+
+	/* Converts a passed in time span to a text, formatted as a time span */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsTimespan", AdvancedDisplay = "1"), Category="Utilities|Text")
+	static FText AsTimespan_Timespan(const FTimespan& InTimespan);
 
 	/* Used for formatting text using the FText::Format function and utilized by the UK2Node_FormatText */
 	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "true"))

@@ -17,10 +17,6 @@ public:
 
 	SLATE_BEGIN_ARGS(SProjectBrowser) { }
 
-		SLATE_ARGUMENT(bool, AllowProjectCreate)
-
-		SLATE_EVENT(FNewProjectScreenRequested, OnNewProjectScreenRequested)
-
 	SLATE_END_ARGS()
 
 public:
@@ -109,6 +105,9 @@ private:
 	/** Handler for when the selection changes in the project view */
 	void HandleProjectViewSelectionChanged( TSharedPtr<FProjectItem> ProjectItem, ESelectInfo::Type SelectInfo, FText CategoryName );
 
+	/** Callback for clicking the 'Marketplace' button. */
+	FReply HandleMarketplaceTabButtonClicked( );
+
 	/** Called when the text in the filter box is changed */
 	void OnFilterTextChanged(const FText& InText);
 
@@ -149,9 +148,6 @@ private:
 	TSharedPtr<SVerticalBox> CategoriesBox;
 
 	bool bHasProjectFiles;
-
-	/** True if this UI will enable the creation of new projects, false otherwise */
-	bool bAllowProjectCreate;
 private:
 
 	// Holds a delegate that is executed when the new project screen is being requested.

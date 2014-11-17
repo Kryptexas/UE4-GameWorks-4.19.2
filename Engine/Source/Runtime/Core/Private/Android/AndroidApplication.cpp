@@ -34,7 +34,13 @@ FPlatformRect FAndroidApplication::GetWorkArea( const FPlatformRect& CurrentWind
 	return FAndroidWindow::GetScreenRect();
 }
 
-void FAndroidApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+IForceFeedbackSystem *FAndroidApplication::GetForceFeedbackSystem()
+{
+	// NOTE: This does not increase the reference count, so don't cache the result
+	return InputInterface.Get();
+}
+
+void FDisplayMetrics::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics )
 {
 	// Get screen rect
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FAndroidWindow::GetScreenRect();

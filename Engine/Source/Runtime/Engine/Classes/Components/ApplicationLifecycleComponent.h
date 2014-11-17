@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// ApplicationLifecycleComponent.: Component to handle receiving notifications from the OS about application state (activated, suspended, termination, etc).  See FCoreDelegates for details
+// ApplicationLifecycleComponent.:  See FCoreDelegates for details
 
 #pragma once
 
 #include "ApplicationLifecycleComponent.generated.h"
 
+/** Component to handle receiving notifications from the OS about application state (activated, suspended, termination, etc). */
 UCLASS(ClassGroup=Utility, HideCategories=(Activation, "Components|Activation", Collision), meta=(BlueprintSpawnableComponent))
 class ENGINE_API UApplicationLifecycleComponent : public UActorComponent
 {

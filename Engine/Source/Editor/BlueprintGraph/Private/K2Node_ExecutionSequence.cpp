@@ -6,6 +6,7 @@
 #include "KismetCompilerMisc.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MultiGate"
 
@@ -23,8 +24,11 @@ public:
 	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		// Make sure that the input pin is connected and valid for this block
-		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Execute, EGPD_Input);
-		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, CompilerContext.GetSchema()->PC_Exec))
+		FEdGraphPinType ExpectedPinType;
+		ExpectedPinType.PinCategory = UEdGraphSchema_K2::PC_Exec;
+
+		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
+		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedPinType))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForExecSeq_Error", "@@ must have a valid execution pin @@").ToString()), Node, ExecTriggeringPin);
 			return;
@@ -149,9 +153,9 @@ FLinearColor UK2Node_ExecutionSequence::GetNodeTitleColor() const
 	return FLinearColor::White;
 }
 
-FString UK2Node_ExecutionSequence::GetTooltip() const
+FText UK2Node_ExecutionSequence::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "ExecutePinInOrder_Tooltip", "Executes a series of pins in order").ToString();
+	return NSLOCTEXT("K2Node", "ExecutePinInOrder_Tooltip", "Executes a series of pins in order");
 }
 
 FString UK2Node_ExecutionSequence::GetUniquePinName()
@@ -263,12 +267,24 @@ FNodeHandlingFunctor* UK2Node_ExecutionSequence::CreateNodeHandler(FKismetCompil
 	return new FKCHandler_ExecutionSequence(CompilerContext);
 }
 
-void UK2Node_ExecutionSequence::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_ExecutionSequence::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_ExecutionSequence::GetMenuCategory() const

@@ -205,12 +205,18 @@ ELoginStatus::Type FOnlineIdentityNull::GetLoginStatus(int32 LocalUserNum) const
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);
-		if (UserAccount.IsValid() &&
-			UserAccount->GetUserId()->IsValid())
-		{
-			return ELoginStatus::LoggedIn;
-		}
+		return GetLoginStatus(*UserId);
+	}
+	return ELoginStatus::NotLoggedIn;
+}
+
+ELoginStatus::Type FOnlineIdentityNull::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId);
+	if (UserAccount.IsValid() &&
+		UserAccount->GetUserId()->IsValid())
+	{
+		return ELoginStatus::LoggedIn;
 	}
 	return ELoginStatus::NotLoggedIn;
 }
@@ -224,6 +230,11 @@ FString FOnlineIdentityNull::GetPlayerNickname(int32 LocalUserNum) const
 	}
 
 	return TEXT("NullUser");
+}
+
+FString FOnlineIdentityNull::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	return UserId.ToString();
 }
 
 FString FOnlineIdentityNull::GetAuthToken(int32 LocalUserNum) const
@@ -252,5 +263,24 @@ FOnlineIdentityNull::FOnlineIdentityNull()
 
 FOnlineIdentityNull::~FOnlineIdentityNull()
 {
+}
+
+void FOnlineIdentityNull::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+}
+
+FPlatformUserId FOnlineIdentityNull::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+{
+	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
+	{
+		auto CurrentUniqueId = GetUniquePlayerId(i);
+		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
+		{
+			return i;
+		}
+	}
+
+	return PLATFORMUSERID_NONE;
 }
 

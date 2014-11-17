@@ -182,6 +182,117 @@ namespace EAppReturnType
 	};
 }
 
+/**
+ *	Contains crash's description that is common for all platform and can be obtained in run-time.
+ *	Since we can't used dynamic memory allocation everything is defined as simple as possible.
+ *	This may change in the future.
+ */
+struct CORE_API FGenericCrashDescription
+{
+	/**
+	 * The name of the game that crashed. (AppID)
+	 */
+	TCHAR GameName[64];
+
+	/**
+	 * The mode the game was in e.g. editor.
+	 */
+	TCHAR EngineMode[64];
+
+	/**
+	 * The platform that crashed e.g. Win64.
+	 * Main platform name [detailed information like OS version]
+	 */
+	TCHAR Platform[64];
+
+	/**
+	* Encoded engine version. (AppVersion)
+	* E.g. 4.3.0.0-2215663+UE4-Releases+4.3
+	* BuildVersion-BuiltFromCL-BranchName
+	* @EngineVersion	varchar(64)
+	*/
+	//FEngineVersion EngineVersion;
+
+	//Architecture;
+
+	//NumberOfCores;
+
+	//CrashedModuleName;
+
+	//LoadedModules ? ;
+
+	//static const FPlatformMemoryConstants& GetConstants();
+	//static FPlatformMemoryStats GetStats();
+
+	/**
+	 * The three component version of the app e.g. 4.4.1
+	 */
+	TCHAR BuildVersion[32];
+
+	/**
+	 * Built from changelist.
+	 */
+	uint32 BuiltFromCL;
+
+	/**
+	 * The name of the branch this game was built out of.
+	 */
+	TCHAR BranchName[32];
+
+	/**
+	 * The command line of the application that crashed.
+	 */
+	TCHAR CommandLine[512];
+
+	/**
+	 * The base directory where the app was running.
+	 */
+	TCHAR BaseDir[512];
+
+	/**
+	 * The language ID the application that crashed.
+	 */
+	TCHAR LanguageLCID[64];
+
+	/**
+	 * The name of the user that caused this crash.
+	 */
+	TCHAR UserName[64];
+
+	/**
+	 * The unique ID used to identify the machine the crash occurred on.
+	 */
+	TCHAR MachineId[64];
+
+	/**
+	 * The Epic account ID for the user who last used the Launcher.
+	 */
+	TCHAR EpicAccountId[64];
+
+	/**
+	 * A string representing the callstack of the crash.
+	 */
+	TCHAR CallStack[16384];
+
+	/**
+	 * A string representing the user description of the crash.
+	 */
+	TCHAR UserDescription[512];
+
+	/**
+	 * The error message, can be assertion message, ensure message or message from the fatal error.
+	 */
+	TCHAR ErrorMessage[512];
+
+	/**
+	 * The UTC time the crash occurred.
+	 */
+	//	FDateTime TimeOfCrash;
+
+	/** Lenght of the crash's description, in bytes. */
+	int32 Lenght;
+};
+
 struct CORE_API FGenericCrashContext
 {
 };
@@ -197,15 +308,22 @@ struct CORE_API FGenericMemoryWarningContext
 struct CORE_API FGenericPlatformMisc
 {
 	/**
-	* Called during appInit() after cmd line setup
-	*/
+	 * Called during appInit() after cmd line setup
+	 */
 	static void PlatformPreInit()
 	{
 	}
 	static void PlatformInit()
 	{
 	}
-	static void PlatformPostInit(bool IsMoviePlaying = false)
+	static void PlatformPostInit(bool ShowSplashScreen = false)
+	{
+	}
+
+	/**
+	* Called during AppExit(). Log, Config still exist at this point, but not much else does.
+	*/
+	static void PlatformTearDown()
 	{
 	}
 
@@ -391,7 +509,7 @@ struct CORE_API FGenericPlatformMisc
 
 	FORCEINLINE static void RaiseException( uint32 ExceptionCode )
 	{
-#if HACK_HEADER_GENERATOR
+#if HACK_HEADER_GENERATOR && !PLATFORM_EXCEPTIONS_DISABLED
 		// We want Unreal Header Tool to throw an exception but in normal runtime code 
 		// we don't support exception handling
 		throw( ExceptionCode );
@@ -478,6 +596,13 @@ public:
 
 	/** Prints string to the default output */
 	static void LocalPrint( const TCHAR* Str );
+
+
+	/**
+	 * Request application to minimize (goto background)
+	 *
+	 **/
+	static void RequestMinimize();
 
 	/**
 	 * Requests application exit.
@@ -578,6 +703,16 @@ public:
 	* @return platform specific path separator.
 	*/
 	static const TCHAR* GetDefaultPathSeparator();
+
+	/**
+	 * Checks if platform wants to allow a rendering thread on current device (note: does not imply it will, only if okay given other criteria met)
+	 * @return true if allowed, false if shouldn't use a separate rendering thread
+	 */
+	static bool AllowRenderThread()
+	{
+		// allow if not overridden
+		return true;
+	}
 
 	/**
 	 * return the number of hardware CPU cores
@@ -771,6 +906,16 @@ public:
 		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
 	}
 
+	/** @return Memory representing a true type or open type font provided by the platform as a default font for unreal to consume; empty array if the default font failed to load. */
+	static TArray<uint8> GetSystemFontBytes();
+	/**
+	* Returns whether the platform wants to use a touch screen for a virtual keyboard.
+	*/
+	static bool GetRequiresVirtualKeyboard()
+	{
+		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
+	}
+
 	/**
 	 * Returns whether the given platform feature is currently available (for instance, Metal is only available in IOS8 and with A7 devices)
 	 */
@@ -783,6 +928,26 @@ public:
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+
+	/**
+	 * Get (or create) the unique ID used to identify this computer
+	 */
+	static FGuid GetMachineId();
+
+	/**
+	 * Get the Epic account ID for the user who last used the Launcher
+	 */
+	static FString GetEpicAccountId();
+
+	/**
+	 * Set the Epic account ID for the user who last used the Launcher
+	 */
+	static void SetEpicAccountId( const FString& AccountId );
+
+	/** 
+	 * Get a string description of the mode the engine was running in.
+	 */
+	static const TCHAR* GetEngineMode();
 
 #if !UE_BUILD_SHIPPING
 protected:

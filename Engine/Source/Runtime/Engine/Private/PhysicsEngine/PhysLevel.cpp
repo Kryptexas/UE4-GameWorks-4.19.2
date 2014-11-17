@@ -74,9 +74,16 @@ static TAutoConsoleVariable<int32> CVarAPEXSortDynamicChunksByBenefit(
 
 void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 {
+	StartPhysicsTickFunction.bCanEverTick = true;
 	StartPhysicsTickFunction.Target = this;
+	
+	EndPhysicsTickFunction.bCanEverTick = true;
 	EndPhysicsTickFunction.Target = this;
+	
+	StartClothTickFunction.bCanEverTick = true;
 	StartClothTickFunction.Target = this;
+	
+	EndClothTickFunction.bCanEverTick = true;
 	EndClothTickFunction.Target = this;
 	
 	
@@ -211,7 +218,16 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 	if (PhysicsComplete.GetReference() && !PhysicsComplete->IsComplete())
 	{
 		// don't release the next tick group until the physics has completed and we have run FinishPhysicsSim
-		MyCompletionGraphEvent->DontCompleteUntil(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FSimpleDelegateGraphTask::FDelegate::CreateUObject(Target, &UWorld::FinishPhysicsSim), TEXT("FinishPhysicsSim"), PhysicsComplete, ENamedThreads::GameThread));
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.FinishPhysicsSim"),
+			STAT_FSimpleDelegateGraphTask_FinishPhysicsSim,
+			STATGROUP_TaskGraphTasks);
+
+		MyCompletionGraphEvent->DontCompleteUntil(
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateUObject(Target, &UWorld::FinishPhysicsSim),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_FinishPhysicsSim), PhysicsComplete, ENamedThreads::GameThread
+			)
+		);
 	}
 	else
 	{
@@ -311,7 +327,7 @@ void InitGamePhys()
 	PxRegisterUnifiedHeightFields(*GPhysXSDK);
 
 
-#if WITH_PHYSICS_COOKING
+#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 	// Create Cooking
 	PxCookingParams PCookingParams(PScale);
 	PCookingParams.meshWeldTolerance = 0.1f; // Weld to 1mm precision
@@ -440,7 +456,7 @@ void TermGamePhys()
 	}
 #endif	// #if WITH_APEX
 
-#if WITH_PHYSICS_COOKING
+#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 	if(GPhysXCooking != NULL)
 	{
 		GPhysXCooking->release(); 

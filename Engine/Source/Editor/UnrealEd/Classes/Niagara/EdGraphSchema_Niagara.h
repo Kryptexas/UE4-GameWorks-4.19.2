@@ -49,6 +49,8 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	// Allowable PinType.PinCategory values
 	UPROPERTY()
 	FString PC_Float;
+	UPROPERTY()
+	FString PC_Struct;
 
 	// Begin EdGraphSchema interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;

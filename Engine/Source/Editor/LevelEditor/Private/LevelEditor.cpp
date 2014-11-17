@@ -19,6 +19,7 @@
 #include "SDockTab.h"
 #include "ToolkitManager.h"
 #include "TargetPlatform.h"
+#include "IIntroTutorials.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -64,6 +65,9 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 	IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));
 	TSharedRef<SWidget> UserFeedbackWidget = UserFeedback.CreateFeedbackWidget(NSLOCTEXT("UserFeedback", "LevelEditing", "Level Editing"));
 
+	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
+	TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(TEXT("LevelEditor"), OwnerWindow);
+
 	TSharedPtr< SWidget > RightContent;
 	{
 		FString OptionalBranchPrefix;
@@ -105,7 +109,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 #if PLATFORM_MAC
 				+SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 				.VAlign(VAlign_Center)
 				[
 					LevelEditorTab->GetRightContent()
@@ -114,10 +118,17 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 		
 				+SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 				.VAlign(VAlign_Center)
 				[
 					UserFeedbackWidget
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(8.0f, 0.0f, 8.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					TutorialWidget
 				]
 		;
 	}
@@ -142,6 +153,10 @@ void FLevelEditorModule::StartupModule()
 
 	NotificationBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
+	// Figure out if we recompile the level editor.
+	FString SourcePath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Source/Editor/LevelEditor/Private"));
+	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath) && !GEngineVersion.IsPromotedBuild();
+
 	// Note this must come before any tab spawning because that can create the SLevelEditor and attempt to map commands
 	FLevelEditorCommands::Register();
 	FLevelEditorModesCommands::Register();
@@ -160,10 +175,6 @@ void FLevelEditorModule::StartupModule()
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing("BuildAndSubmitErrors", LOCTEXT("BuildAndSubmitErrors", "Build and Submit Errors"));
-
-	// Figure out if we recompile the level editor.
-	FString SourcePath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Source/Editor/LevelEditor/Private"));
-	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath) && !GEngineVersion.IsPromotedBuild();
 }
 
 /**
@@ -191,7 +202,7 @@ void FLevelEditorModule::ShutdownModule()
 		TSharedPtr<SDockTab> LevelEditorTab = LevelEditorInstanceTabPtr.Pin();
 		if (LevelEditorTab.IsValid())
 		{
-			LevelEditorTab->RequestCloseTab();
+			LevelEditorTab->RemoveTabFromParent();
 		}
 		LevelEditorInstanceTabPtr.Reset();
 	}
@@ -487,7 +498,7 @@ TSharedPtr<ILevelEditor> FLevelEditorModule::GetFirstLevelEditor()
 
 TSharedPtr<SDockTab> FLevelEditorModule::GetLevelEditorTab() const
 {
-	return LevelEditorInstanceTabPtr.Pin().ToSharedRef();
+	return LevelEditorInstanceTabPtr.Pin();
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()
@@ -1410,6 +1421,13 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnToggleStrictBoxSelect ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::OnIsStrictBoxSelectEnabled ) 
+		);
+
+	ActionList.MapAction(
+		Commands.TransparentBoxSelect,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnToggleTransparentBoxSelect ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::OnIsTransparentBoxSelectEnabled ) 
 		);
 
 	ActionList.MapAction(

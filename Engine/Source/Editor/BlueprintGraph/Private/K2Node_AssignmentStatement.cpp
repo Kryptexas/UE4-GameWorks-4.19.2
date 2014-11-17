@@ -6,6 +6,7 @@
 #include "VariableSetHandler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AssignmentStatement"
 
@@ -74,9 +75,9 @@ void UK2Node_AssignmentStatement::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_AssignmentStatement::GetTooltip() const
+FText UK2Node_AssignmentStatement::GetTooltipText() const
 {
-	return TEXT("Assigns Value to Variable");
+	return LOCTEXT("AssignmentStatementTooltip", "Assigns Value to Variable");
 }
 
 FText UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -84,17 +85,16 @@ FText UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	return LOCTEXT("Assign", "Assign");
 }
 
-bool UK2Node_AssignmentStatement::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
+bool UK2Node_AssignmentStatement::IsCompatibleWithGraph(UEdGraph const* TargetGraph) const
 {
-	bool bIsPastable = Super::CanPasteHere(TargetGraph, Schema);
-	if (bIsPastable)
+	bool bIsCompatible = Super::IsCompatibleWithGraph(TargetGraph);
+	if (bIsCompatible)
 	{
-		EGraphType const GraphType = Schema->GetGraphType(TargetGraph);
-
-		bIsPastable = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
+		EGraphType const GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+		bIsCompatible = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
 	}
 
-	return bIsPastable;
+	return bIsCompatible;
 }
 
 void UK2Node_AssignmentStatement::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
@@ -175,12 +175,24 @@ FNodeHandlingFunctor* UK2Node_AssignmentStatement::CreateNodeHandler(FKismetComp
 	return new FKCHandler_AssignmentStatement(CompilerContext);
 }
 
-void UK2Node_AssignmentStatement::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_AssignmentStatement::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_AssignmentStatement::GetMenuCategory() const

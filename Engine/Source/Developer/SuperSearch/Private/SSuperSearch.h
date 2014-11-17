@@ -11,6 +11,7 @@ struct FSearchEntry
 	FString Title;
 	FString URL;
 	bool bCategory;
+	FAssetData AssetData;
 
 	static FSearchEntry * MakeCategoryEntry(const FString & InTitle);
 };
@@ -47,9 +48,6 @@ public:
 		return InputText.ToSharedRef();
 	}
 
-	/** SWidget interface */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
 protected:
 
 	virtual bool SupportsKeyboardFocus() const { return true; }
@@ -69,7 +67,7 @@ protected:
 
 	void Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 
-	void SuggestionSelectionChanged(TSharedPtr<FSearchEntry> NewValue, ESelectInfo::Type SelectInfo);
+	void SuggestionSelectionChanged(TSharedPtr<FSearchEntry> NewValue);
 	
 	void OnMenuOpenChanged(bool bIsOpen);
 
@@ -105,14 +103,20 @@ private:
 	struct FSearchResults
 	{
 		 FCategoryResults OnlineResults;
+		 TArray<FSearchEntry> TutorialResults;
 	};
 
 	//TODO: properly clean map up as time goes by requests are processed and can be discarded
 	/** A cache of results based on search */
 	TMap<FString, FSearchResults> SearchResultsCache;
 
+	TMap<FString, FName> CategoryToIconMap;
+
 	/** -1 if not set, otherwise index into Suggestions */
 	int32 SelectedSuggestion;
+
+	/** Entry that was actually clicked or pressed enter on. NULLs out when menu closes */
+	TSharedPtr<FSearchEntry> EntryClicked;
 
 	/** to prevent recursive calls in UI callback */
 	bool bIgnoreUIUpdate; 

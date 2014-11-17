@@ -125,12 +125,18 @@ Once you are approved by Apple, generate a certificate request and upload it to 
   <data name="label10.Text" xml:space="preserve">
     <value>Next, create a mobile provision in the iOS Provisioning Portal using your signing certificate, and download both the signing certificate (.cer) and mobile provision (.mobileprovision).
 
-Import the mobile provision first.</value>
+Import the mobile provision first.  A yellow check means a valid provision was found, but the Bundle Identifier does not match your project.  Please modify the identifier in the Unreal Editor IOS Project Settings.
+A green check means the provision is ready for signing.</value>
   </data>
   <data name="label13.Text" xml:space="preserve">
     <value>Your signing certificate must be exported from Keychain, including the private key (export from My Certificates, not from All Items, and use Personal Information Exchange (.p12) as the format).
 
 Downloading the certificate again from the provisioning portal is not sufficient, as that will not include the private key used to generate the original signing request.</value>
+  </data>
+  <data name="label3.Text" xml:space="preserve">
+    <value>You can download your mobile provision again from the iOS Provisioning Portal, or transfer it from another computer.
+A yellow check means a valid provision was found, but the Bundle Identifier does not match your project.  Please modify the identifier in the Unreal Editor IOS Project Settings.
+A green check means your provision is ready for signing.</value>
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">

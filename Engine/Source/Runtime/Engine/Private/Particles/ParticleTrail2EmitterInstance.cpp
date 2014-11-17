@@ -2264,7 +2264,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					FBaseParticle* SourceParticle = (SourceIndices[InTrailIdx] != -1) ? SourceEmitter->GetParticleDirect(SourceIndices[InTrailIdx]) : NULL;
 					if (SourceParticle != NULL)
 					{
-						OutPosition = SourceParticle->Location;
+						OutPosition = SourceParticle->Location + SourceEmitter->SimulationToWorld.GetOrigin();
 						OutTangent = SourceParticle->Location - SourceParticle->OldLocation;
 						SourceTimes[InTrailIdx] = SourceParticle->RelativeTime;
 					}
@@ -2797,6 +2797,7 @@ bool FParticleRibbonEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBas
 	NewReplayData->MaxActiveParticleCount = MaxActiveParticles;
 	NewReplayData->MaxTessellationBetweenParticles = TrailTypeData->MaxTessellationBetweenParticles ? TrailTypeData->MaxTessellationBetweenParticles : 1;
 	NewReplayData->Sheets = TrailTypeData->SheetsPerTrail ? TrailTypeData->SheetsPerTrail : 1;
+	NewReplayData->Sheets = FMath::Max(NewReplayData->Sheets, 1);
 
 	NewReplayData->VertexCount = VertexCount;
 	NewReplayData->IndexCount = TriangleCount + 2;
@@ -3692,7 +3693,6 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 	HeadOnlyParticles = 0;
 
 	int32 CheckParticleCount = 0;
-
 	int32 TempVertexCount;
 
 	bool bApplyDistanceTessellation = !FMath::IsNearlyZero(TrailTypeData->DistanceTessellationStepSize);

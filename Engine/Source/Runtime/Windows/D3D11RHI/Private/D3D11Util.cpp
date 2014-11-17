@@ -6,6 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 #define D3DERR(x) case x: ErrorCodeText = TEXT(#x); break;
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"
@@ -383,12 +384,5 @@ DEFINE_STAT(STAT_D3D11TexturePoolMemory);
 DEFINE_STAT(STAT_D3D11FreeUniformBufferMemory);
 DEFINE_STAT(STAT_D3D11NumFreeUniformBuffers);
 DEFINE_STAT(STAT_D3D11NumBoundShaderState);
-
-DEFINE_STAT(STAT_D3D11CommitResourceTables);
-DEFINE_STAT(STAT_D3D11CacheResourceTables);
-DEFINE_STAT(STAT_D3D11CacheResourceTableCalls);
-DEFINE_STAT(STAT_D3D11SetShaderTextureTime);
-DEFINE_STAT(STAT_D3D11SetShaderTextureCalls);
-DEFINE_STAT(STAT_D3D11SetTextureInTableCalls);
 
 #undef LOCTEXT_NAMESPACE

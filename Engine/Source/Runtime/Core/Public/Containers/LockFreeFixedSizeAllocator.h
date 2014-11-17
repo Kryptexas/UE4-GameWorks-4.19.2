@@ -27,7 +27,7 @@ public:
 		void *Memory = FreeList.Pop();
 		if (Memory)
 		{
-			verify(NumFree.Decrement() >= 0);
+			NumFree.Decrement();
 		}
 		else
 		{

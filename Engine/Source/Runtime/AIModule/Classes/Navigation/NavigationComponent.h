@@ -7,6 +7,9 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "NavigationComponent.generated.h"
 
+class AActor;
+class AController;
+
 UCLASS(config=Engine)
 class AIMODULE_API UNavigationComponent : public UActorComponent, public INavigationPathGenerator
 {
@@ -17,8 +20,13 @@ class AIMODULE_API UNavigationComponent : public UActorComponent, public INaviga
 
 	/** Actor this instance is observing. Can be NULL */
 	UPROPERTY()
-	const class AActor* GoalActor;
+	const AActor* GoalActor;
 
+protected:
+	UPROPERTY()
+	AController* ControllerOwner;
+
+public:
 	// Begin UActorComponent Interface
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
@@ -116,7 +124,7 @@ class AIMODULE_API UNavigationComponent : public UActorComponent, public INaviga
 	FORCEINLINE bool WantsSmartLinkUpdates() const { return bUpdateForSmartLinks; }
 
 	/** Returns current move goal for actor, using data from GetMoveGoalOffset() */
-	FORCEINLINE FVector GetCurrentMoveGoal(const class AActor* InGoalActor, class AActor* MovingActor) const
+	FORCEINLINE FVector GetCurrentMoveGoal(const AActor* InGoalActor, AActor* MovingActor) const
 	{
 		const INavAgentInterface* NavAgent = InterfaceCast<const INavAgentInterface>(InGoalActor);
 		if (NavAgent)

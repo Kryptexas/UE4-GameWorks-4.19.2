@@ -33,9 +33,8 @@ ULevelStreaming* FLevelUtils::FindStreamingLevel(const ULevel* Level)
 {
 	ULevelStreaming* MatchingLevel = NULL;
 
-	if (Level)
+	if (Level && Level->OwningWorld)
 	{
-		check(Level->OwningWorld);
 		for( int32 LevelIndex = 0 ; LevelIndex < Level->OwningWorld->StreamingLevels.Num() ; ++LevelIndex )
 		{
 			ULevelStreaming* CurStreamingLevel = Level->OwningWorld->StreamingLevels[ LevelIndex ];
@@ -65,7 +64,7 @@ ULevelStreaming* FLevelUtils::FindStreamingLevel(UWorld* InWorld, const TCHAR* I
 		for( int32 LevelIndex = 0 ; LevelIndex< InWorld->StreamingLevels.Num() ; ++LevelIndex )
 		{
 			ULevelStreaming* CurStreamingLevel = InWorld->StreamingLevels[ LevelIndex ];
-			if( CurStreamingLevel && CurStreamingLevel->PackageName == PackageName )
+			if( CurStreamingLevel && CurStreamingLevel->GetWorldAssetPackageFName() == PackageName )
 			{
 				MatchingLevel = CurStreamingLevel;
 				break;
@@ -312,7 +311,7 @@ void FLevelUtils::RemoveEditorTransform(const ULevelStreaming* StreamingLevel, b
 	ULevel* LoadedLevel = StreamingLevel->GetLoadedLevel();
 	if( LoadedLevel != NULL )
 	{
-		ApplyLevelTransform( LoadedLevel, StreamingLevel->LevelTransform.InverseSafe(), bDoPostEditMove );
+		ApplyLevelTransform( LoadedLevel, StreamingLevel->LevelTransform.Inverse(), bDoPostEditMove );
 	}
 }
 

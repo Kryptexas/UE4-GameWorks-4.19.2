@@ -10,8 +10,8 @@
 #include "CustomChildBuilder.h"
 
 FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode )
-	: PropertyNode( InPropertyNode )
-	, CustomIsEnabledAttrib( true )
+	: CustomIsEnabledAttrib( true )
+	, PropertyNode( InPropertyNode )
 	, ParentCategory( InParentCategory )
 	, ExternalRootNode( InExternalRootNode )
 	, bShowPropertyButtons( true )
@@ -35,7 +35,12 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		{
 			static FName PropertyEditor("PropertyEditor");
 			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-			FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property,*PropertyHandle);
+			
+			IDetailsViewPrivate& DetailsView = InParentCategory->GetDetailsView();
+			
+			TSharedRef<IDetailsView> DetailsViewPtr = StaticCastSharedRef<IDetailsView>( DetailsView.AsShared() );
+			
+			FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property,*PropertyHandle, DetailsViewPtr );
 			if (LayoutCallback.IsValid())
 			{
 				if (PropertyHandle->IsValidHandle())

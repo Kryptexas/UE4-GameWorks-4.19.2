@@ -124,7 +124,7 @@ FSelectedActorInfo FLevelEditorContextMenuImpl::SelectionInfo;
 
 struct FLevelScriptEventMenuHelper
 {
-	/*
+	/**
 	* Fills in menu options for events that can be associated with that actors's blueprint in the level script blueprint
 	*
 	* @param MenuBuilder	The menu to add items to
@@ -263,8 +263,9 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 			{
 				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().GoToDocsForActor,
 					NAME_None, 
-					LOCTEXT("GoToDocsForActor", "Full documentation"),
-					LOCTEXT("GoToDocsForActor_ToolTip", "Click to open documentation for this actor"));
+					LOCTEXT("GoToDocsForActor", "View Documentation"),
+					LOCTEXT("GoToDocsForActor_ToolTip", "Click to open documentation for this actor"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ));
 			}
 			MenuBuilder.EndSection();
 		}

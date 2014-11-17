@@ -43,6 +43,7 @@ void UNavigationComponent::UpdateCachedComponents()
 	if (MyOwner)
 	{
 		PathFollowComp = MyOwner->FindComponentByClass<UPathFollowingComponent>();
+		ControllerOwner = Cast<AController>(MyOwner);
 	}
 }
 
@@ -74,7 +75,7 @@ void UNavigationComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 			}
 			else
 			{
-				FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+				FAIMessage::Send(ControllerOwner, FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 			}
 		}
 		else
@@ -111,12 +112,14 @@ void UNavigationComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPat
 
 				Path->EnableRecalculationOnInvalidation(true);
 
-				/*FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredRepathToGoal)
-					, TEXT("Deferred restore path")
-					, NULL
-					, ENamedThreads::GameThread
-					);*/
+				/*
+				const static TStatId StatId = TStatId::CreateAndRegisterFromName(TEXT("FSimpleDelegateGraphTask.Deferred restore path"));
+
+				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+					FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredRepathToGoal),
+					StatId, NULL, ENamedThreads::GameThread
+				);
+				*/
 			}
 
 			// reset state
@@ -133,7 +136,7 @@ void UNavigationComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPat
 			break;
 		}
 		case ENavPathEvent::RePathFailed:
-			FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+			FAIMessage::Send(ControllerOwner, FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 			break;
 		case ENavPathEvent::UpdatedDueToGoalMoved:
 		case ENavPathEvent::UpdatedDueToNavigationChanged:
@@ -555,12 +558,14 @@ bool UNavigationComponent::FindPathToActor(const AActor* NewGoalActor, TSharedPt
 
 		if (bDoAsyncPathfinding == true)
 		{
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Deferred resume path"),
+				STAT_FSimpleDelegateGraphTask_DeferredResumePath,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath)
-				, TEXT("Deferred resume path")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_DeferredResumePath), NULL, ENamedThreads::GameThread
+			);
 			bPathGenerationSucceeded = true;
 		}
 		else
@@ -651,12 +656,14 @@ bool UNavigationComponent::FindPathToLocation(const FVector& DestLocation, TShar
 
 		if (bDoAsyncPathfinding == true)
 		{
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Deferred resume path"),
+				STAT_FSimpleDelegateGraphTask_DeferredResumePath,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath)
-				, TEXT("Deferred resume path")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredResumePath),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_DeferredResumePath), NULL, ENamedThreads::GameThread
+			);
 			bPathGenerationSucceeded = true;
 		}
 		else
@@ -759,8 +766,10 @@ void UNavigationComponent::NotifyPathUpdate()
 
 void UNavigationComponent::DeferredRepathToGoal()
 {
+	check(ControllerOwner);
+
 	// check if repath is allowed right now
-	const bool bShouldPostponeRepath = MyNavAgent && MyNavAgent->ShouldPostponePathUpdates();
+	const bool bShouldPostponeRepath = ControllerOwner->ShouldPostponePathUpdates();
 	if (bShouldPostponeRepath)
 	{
 		GetWorld()->GetTimerManager().SetTimer(this, &UNavigationComponent::DeferredRepathToGoal, 0.1f, false);
@@ -780,7 +789,7 @@ void UNavigationComponent::DeferredRepathToGoal()
 	}
 	else
 	{
-		FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+		FAIMessage::Send(ControllerOwner, FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 	}
 
 	bIsWaitingForRepath = false;
@@ -854,10 +863,13 @@ void UNavigationComponent::CacheNavQueryExtent() const
 	if (MyNavAgent)
 	{
 		const FNavAgentProperties* AgentProperties = MyNavAgent->GetNavAgentProperties();
-		check(AgentProperties);
-		NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
-			, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
-			, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
+		// it's possible to have NULL AgentProperties if controlled pawn doesn't have a movement component
+		if (AgentProperties)
+		{
+			NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
+				, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
+				, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
+		}
 	}
 }
 

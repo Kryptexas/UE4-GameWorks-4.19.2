@@ -8,6 +8,7 @@
 #include "LandscapeEditorObject.h"
 #include "IDetailsView.h"
 #include "PropertyEditorModule.h"
+#include "Editor/IntroTutorials/Public/IIntroTutorials.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor"
 
@@ -139,6 +140,8 @@ void SLandscapeEditor::Construct(const FArguments& InArgs, TSharedRef<FLandscape
 		DetailsPanel->SetObject(LandscapeEdMode->UISettings);
 	}
 
+	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -156,13 +159,27 @@ void SLandscapeEditor::Construct(const FArguments& InArgs, TSharedRef<FLandscape
 
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(0, 0, 0, 5)
+			.Padding(4, 0, 4, 5)
 			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				.HAlign(HAlign_Center)
+				SNew(SOverlay)
+				+ SOverlay::Slot()
 				[
-					ModeSwitchButtons.MakeWidget()
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.HAlign(HAlign_Center)
+					[
+
+						ModeSwitchButtons.MakeWidget()
+					]
+				]
+
+				// Tutorial link
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Bottom)
+				.Padding(4)
+				[
+					IntroTutorials.CreateTutorialsWidget(TEXT("LandscapeMode"))
 				]
 			]
 			+ SVerticalBox::Slot()

@@ -12,6 +12,7 @@
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
@@ -23,6 +24,7 @@
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Engine/SubsurfaceProfile.h"
 #include "EditorSupportDelegates.h"
 #include "MaterialShaderType.h"
 #include "MaterialInstanceSupport.h"
@@ -30,10 +32,14 @@
 #include "MaterialCompiler.h"
 #include "TargetPlatform.h"
 #include "ComponentReregisterContext.h"
+#include "ShaderCompiler.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
+#include "Slate.h"  // For AddNotification
 #endif
+
+#define LOCTEXT_NAMESPACE "Material"
 
 #if WITH_EDITOR
 const FMaterialsWithDirtyUsageFlags FMaterialsWithDirtyUsageFlags::DefaultAnnotation;
@@ -205,6 +211,25 @@ public:
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(Context.Material.GetFeatureLevel());
 		if(MaterialResource && MaterialResource->GetRenderingThreadShaderMap())
 		{
+			static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
+			if (ParameterName == NameSubsurfaceProfile)
+			{
+				const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+
+				if(SubsurfaceProfileRT)
+				{
+					// can be optimized (cached)
+					*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT) / 255.0f;
+				}
+				else
+				{
+					// no profile specified means we use the default one stored at [0] which is human skin
+					*OutValue = 0.0f;
+				}
+
+				return true;
+			}
+
 			return false;
 		}
 		else
@@ -258,6 +283,8 @@ private:
 	}
 
 	UMaterial* Material;
+
+	// maintained by the render thread
 	float DistanceFieldPenumbraScale;
 };
 
@@ -499,6 +526,7 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 	bEnableResponsiveAA = false;
 	bTangentSpaceNormal = true;
 	bUseLightmapDirectionality = true;
+	bAutomaticallySetUsageInEditor = true;
 
 	bUseMaterialAttributes = false;
 	bUseTranslucencyVertexFog = true;
@@ -549,7 +577,7 @@ FMaterialResource* UMaterial::AllocateResource()
 	return new FMaterialResource();
 }
 
-void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const
+void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const
 {
 	OutTextures.Empty();
 
@@ -562,27 +590,33 @@ void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQuality
 	{
 		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 		{
-			const FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][GRHIFeatureLevel];
+			if (QualityLevelIndex != QualityLevel && !bAllQualityLevels)
+				continue;
 
-			if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+			for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 			{
+				const FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][FeatureLevelIndex];
+				if (CurrentResource == nullptr || (FeatureLevelIndex != FeatureLevel && !bAllFeatureLevels))
+					continue;
+
 				const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2] =
 				{
 					&CurrentResource->GetUniform2DTextureExpressions(),
 					&CurrentResource->GetUniformCubeTextureExpressions()
 				};
-				for(int32 TypeIndex = 0;TypeIndex < ARRAY_COUNT(ExpressionsByType);TypeIndex++)
+				for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(ExpressionsByType); TypeIndex++)
 				{
 					// Iterate over each of the material's texture expressions.
 					for (FMaterialUniformExpressionTexture* Expression : *ExpressionsByType[TypeIndex])
 					{
 						const bool bAllowOverride = false;
 						UTexture* Texture = NULL;
-						Expression->GetGameThreadTextureValue(this,*CurrentResource,Texture,bAllowOverride);
+						Expression->GetGameThreadTextureValue(this, *CurrentResource, Texture, bAllowOverride);
 
 						if (Texture)
 						{
 							OutTextures.Add(Texture);
+							//OutTextures.AddUnique(Texture); //AJB - maybe this?
 						}
 					}
 				}
@@ -591,13 +625,15 @@ void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQuality
 	}
 }
 
-void UMaterial::OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture )
+void UMaterial::OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel)
 {
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = {GRHIFeatureLevel,ERHIFeatureLevel::ES2};
-	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
+	//ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { InFeatureLevel, ERHIFeatureLevel::ES2 };
+	//int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[1] = { InFeatureLevel };
+	int32 NumFeatureLevelsToUpdate = 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
 	{
@@ -665,6 +701,7 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
 		case MATUSAGE_InstancedStaticMeshes: UsageValue = bUsedWithInstancedStaticMeshes; break;
 		case MATUSAGE_Clothing: UsageValue = bUsedWithClothing; break;
+		case MATUSAGE_UI: UsageValue = bUsedWithUI; break;
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 	return UsageValue;
@@ -678,9 +715,9 @@ bool UMaterial::IsUsageFlagDirty(EMaterialUsage Usage)
 	return false;
 }
 
-bool UMaterial::IsCompilingOrHadCompileError()
+bool UMaterial::IsCompilingOrHadCompileError(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FMaterialResource* Res = GetMaterialResource(GRHIFeatureLevel);
+	FMaterialResource* Res = GetMaterialResource(InFeatureLevel);
 
 	// should never be the case
 	check(Res);
@@ -747,6 +784,10 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithClothing = NewValue; break;
 		}
+		case MATUSAGE_UI:
+		{
+			bUsedWithUI = NewValue; break;
+		}
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 #if WITH_EDITOR
@@ -770,6 +811,7 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_SplineMesh: UsageName = TEXT("bUsedWithSplineMeshes"); break;
 		case MATUSAGE_InstancedStaticMeshes: UsageName = TEXT("bUsedWithInstancedStaticMeshes"); break;
 		case MATUSAGE_Clothing: UsageName = TEXT("bUsedWithClothing"); break;
+		case MATUSAGE_UI: UsageName = TEXT("bUsedWithUI"); break;
 		default: UE_LOG(LogMaterial, Fatal,TEXT("Unknown material usage: %u"), (int32)Usage);
 	};
 	return UsageName;
@@ -821,12 +863,15 @@ bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool b
 
 			FScopedEvent Event;
 			FCallSMU CallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim, bUsageSetSuccessfully, Event);
+
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
+				STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&CallSMU, &FCallSMU::Task)
-				, TEXT("CheckMaterialUsage")
-				, NULL
-				, ENamedThreads::GameThread_Local
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&CallSMU, &FCallSMU::Task),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_CheckMaterialUsage), NULL, ENamedThreads::GameThread_Local
+			);
 		}
 	}
 	return bUsageSetSuccessfully;
@@ -880,7 +925,7 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	{
 		// For materials which do not have their bUsedWith____ correctly set the DefaultMaterial<type> should be used in game
 		// Leaving this GIsEditor ensures that in game on PC will not look different than on the Consoles as we will not be compiling shaders on the fly
-		if( GIsEditor && !FApp::IsGame() )
+		if( GIsEditor && !FApp::IsGame() && bAutomaticallySetUsageInEditor )
 		{
 			check(IsInGameThread());
 			UE_LOG(LogMaterial, Warning, TEXT("Material %s needed to have new flag set %s !"), *GetPathName(), *GetUsageName(Usage));
@@ -901,14 +946,34 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 			CacheResourceShadersForRendering(true);
 
 			// Mark the package dirty so that hopefully it will be saved with the new usage flag.
+			// This is important because the only way an artist can fix an infinite 'compile on load' scenario is by saving with the new usage flag
 			MarkPackageDirty();
 		}
 		else
 		{
 			uint32 UsageFlagBit = (1 << (uint32)Usage);
-			if ((UsageFlagWarnings  & UsageFlagBit) == 0)
+			if ((UsageFlagWarnings & UsageFlagBit) == 0)
 			{
 				UE_LOG(LogMaterial, Warning, TEXT("Material %s missing %s=True! Default Material will be used in game."), *GetPathName(), *GetUsageName(Usage));
+				
+				if (bAutomaticallySetUsageInEditor)
+				{
+					UE_LOG(LogMaterial, Warning, TEXT("     The material will recompile every editor launch until resaved."));
+				}
+				else
+				{
+#if WITH_EDITOR
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("UsageName"), FText::FromString(GetUsageName(Usage)));
+					FNotificationInfo Info(FText::Format(LOCTEXT("CouldntSetMaterialUsage","Material didn't allow automatic setting of usage flag {UsageName} needed to render on this component, using Default Material instead."), Args));
+					Info.ExpireDuration = 5.0f;
+					Info.bUseSuccessFailIcons = true;
+
+					// Give the user feedback as to why they are seeing the default material
+					FSlateNotificationManager::Get().AddNotification(Info);
+#endif
+				}
+
 				UsageFlagWarnings |= UsageFlagBit;
 			}
 
@@ -987,6 +1052,7 @@ void UMaterial::GetAllTerrainLayerWeightParameterNames(TArray<FName> &OutParamet
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionLandscapeLayerWeight>(OutParameterNames, OutParameterIds);
+	GetAllParameterNames<UMaterialExpressionLandscapeLayerSample>(OutParameterNames, OutParameterIds);
 	GetAllParameterNames<UMaterialExpressionLandscapeLayerSwitch>(OutParameterNames, OutParameterIds);
 	GetAllParameterNames<UMaterialExpressionLandscapeLayerBlend>(OutParameterNames, OutParameterIds);
 	GetAllParameterNames<UMaterialExpressionLandscapeVisibilityMask>(OutParameterNames, OutParameterIds);
@@ -1650,25 +1716,22 @@ void UMaterial::Serialize(FArchive& Ar)
 	}
 #endif // #if WITH_EDITOR
 
-	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
-	{
-		DoMaterialAttributeReorder(&DiffuseColor);
-		DoMaterialAttributeReorder(&SpecularColor);
-		DoMaterialAttributeReorder(&BaseColor);
-		DoMaterialAttributeReorder(&Metallic);
-		DoMaterialAttributeReorder(&Specular);
-		DoMaterialAttributeReorder(&Roughness);
-		DoMaterialAttributeReorder(&Normal);
-		DoMaterialAttributeReorder(&EmissiveColor);
-		DoMaterialAttributeReorder(&Opacity);
-		DoMaterialAttributeReorder(&OpacityMask);
-		DoMaterialAttributeReorder(&WorldPositionOffset);
-		DoMaterialAttributeReorder(&WorldDisplacement);
-		DoMaterialAttributeReorder(&TessellationMultiplier);
-		DoMaterialAttributeReorder(&SubsurfaceColor);
-		DoMaterialAttributeReorder(&AmbientOcclusion);
-		DoMaterialAttributeReorder(&Refraction);
-	}
+	DoMaterialAttributeReorder(&DiffuseColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&SpecularColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&BaseColor,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Metallic,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Specular,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Roughness,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Normal,					Ar.UE4Ver());
+	DoMaterialAttributeReorder(&EmissiveColor,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Opacity,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&OpacityMask,			Ar.UE4Ver());
+	DoMaterialAttributeReorder(&WorldPositionOffset,	Ar.UE4Ver());
+	DoMaterialAttributeReorder(&WorldDisplacement,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&TessellationMultiplier,	Ar.UE4Ver());
+	DoMaterialAttributeReorder(&SubsurfaceColor,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&AmbientOcclusion,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&Refraction,				Ar.UE4Ver());
 }
 
 void UMaterial::PostDuplicate(bool bDuplicateForPIE)
@@ -1983,6 +2046,8 @@ void UMaterial::PostLoad()
 	}
 #endif // #if WITH_EDITOR
 
+	PropagateDataToMaterialProxy();
+
 	STAT(double MaterialLoadTime = 0);
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
@@ -2025,13 +2090,6 @@ void UMaterial::PostLoad()
 		UpdateLightmassTextureTracking();
 	}
 
-	for (int32 i = 0; i < ARRAY_COUNT(DefaultMaterialInstances); i++)
-	{
-		if (DefaultMaterialInstances[i])
-		{
-			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
 
 #if WITH_EDITOR
 	if (GMaterialsThatNeedExpressionsFlipped.Get(this))
@@ -2054,6 +2112,19 @@ void UMaterial::PostLoad()
 		FixCommentPositions(EditorComments);
 	}
 #endif // #if WITH_EDITOR
+}
+
+void UMaterial::PropagateDataToMaterialProxy()
+{
+	for (int32 i = 0; i < ARRAY_COUNT(DefaultMaterialInstances); i++)
+	{
+		if (DefaultMaterialInstances[i])
+		{
+			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
+
+			UpdateMaterialRenderProxy(*DefaultMaterialInstances[i]);
+		}
+	}
 }
 
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
@@ -2129,8 +2200,24 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		{
 			static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DBuffer"));
 
-			return CVar->GetValueOnGameThread() > 0;
+			return MaterialDomain == MD_Surface && CVar->GetValueOnGameThread() > 0;
 		}		
+
+		if(MaterialDomain == MD_PostProcess)
+		{
+			// some settings don't make sense for postprocess materials
+
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bTangentSpaceNormal) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TwoSided) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseMaterialAttributes) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bFullyRough) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseLightmapDirectionality)
+				)
+			{
+				return false;
+			}
+		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendableLocation) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendablePriority)
@@ -2184,6 +2271,11 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowStartOffset))
 		{
 			return IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, SubsurfaceProfile))
+		{
+			return MaterialDomain == MD_Surface && ShadingModel == MSM_SubsurfaceProfile && (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked);
 		}
 	}
 
@@ -2263,14 +2355,8 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 			FGlobalComponentReregisterContext RecreateComponents;
 		}
 	}
-	
-	for (int32 i = 0; i < ARRAY_COUNT(DefaultMaterialInstances); i++)
-	{
-		if (DefaultMaterialInstances[i])
-		{
-			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
+
+	PropagateDataToMaterialProxy();
 
 	// many property changes can require rebuild of graph so always mark as changed
 	// not interested in PostEditChange calls though as the graph may have instigated it
@@ -2452,9 +2538,9 @@ void UMaterial::UpdateExpressionDynamicParameterNames(const UMaterialExpression*
 			UMaterialExpressionDynamicParameter* CheckParam = Cast<UMaterialExpressionDynamicParameter>(Expressions[ExpIndex]);
 			if (CheckParam && CheckParam->CopyDynamicParameterNames(DynParam))
 			{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 				CheckParam->GraphNode->ReconstructNode();
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 			}
 		}
 	}
@@ -2934,7 +3020,7 @@ bool UMaterial::UpdateLightmassTextureTracking()
 #if WITH_EDITORONLY_DATA
 	TArray<UTexture*> UsedTextures;
 	
-	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true);
+	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
 	if (UsedTextures.Num() != ReferencedTextureGuids.Num())
 	{
 		bTexturesHaveChanged = true;
@@ -3361,7 +3447,7 @@ static void ListSceneColorMaterials()
 	{
 		UMaterialInterface* Mat = *It;
 		const FMaterial* MatRes = Mat->GetRenderProxy(false)->GetMaterial(GRHIFeatureLevel);
-		if (MatRes && MatRes->RequiresSceneColorCopy())
+		if (MatRes && MatRes->RequiresSceneColorCopy_GameThread())
 		{
 			UMaterial* BaseMat = Mat->GetMaterial();
 			UE_LOG(LogConsoleResponse,Display,TEXT("[SepTrans=%d] %s"),
@@ -3417,6 +3503,12 @@ bool UMaterial::IsTwoSided_Internal() const
 bool UMaterial::IsMasked_Internal() const
 {
 	return bIsMasked != 0;
+}
+
+USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const
+{
+	checkSlow(IsInGameThread());
+	return SubsurfaceProfile; 
 }
 
 bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const 
@@ -3518,7 +3610,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 		break;
 	case MP_Opacity:
 		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
-		if(ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin)
+		if (ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile)
 		{
 			Active = true;
 		}
@@ -3556,6 +3648,8 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 		Active = true;
 		break;
 	case MP_WorldPositionOffset:
+		Active = !bUsedWithUI;
+		break;
 	case MP_MaterialAttributes:
 	default:
 		Active = true;
@@ -3577,16 +3671,22 @@ void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expr
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
 	{
 		UMaterialExpression* Expression = Expressions[ExpressionIndex];
-		Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX * PosScaling;
-		Expression->MaterialExpressionEditorY *= PosScaling;
+		if (Expression)
+		{
+			Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX * PosScaling;
+			Expression->MaterialExpressionEditorY *= PosScaling;
+		}
 	}
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
 	{
 		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
-		Comment->MaterialExpressionEditorX = (-Comment->MaterialExpressionEditorX - Comment->SizeX) * PosScaling;
-		Comment->MaterialExpressionEditorY *= PosScaling;
-		Comment->SizeX *= PosScaling;
-		Comment->SizeY *= PosScaling;
+		if (Comment)
+		{
+			Comment->MaterialExpressionEditorX = (-Comment->MaterialExpressionEditorX - Comment->SizeX) * PosScaling;
+			Comment->MaterialExpressionEditorY *= PosScaling;
+			Comment->SizeX *= PosScaling;
+			Comment->SizeY *= PosScaling;
+		}
 	}
 }
 
@@ -3628,3 +3728,5 @@ bool UMaterial::HasFlippedCoordinates()
 	return ReversedInputCount > StandardInputCount;
 }
 #endif //WITH_EDITORONLY_DATA
+
+#undef LOCTEXT_NAMESPACE

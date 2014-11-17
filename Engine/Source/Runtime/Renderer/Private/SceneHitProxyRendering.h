@@ -30,7 +30,7 @@ public:
 			VertexShader == Other.VertexShader &&
 			PixelShader == Other.PixelShader;
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
@@ -46,7 +46,8 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const FHitProxyId HitProxyId
+		const FHitProxyId HitProxyId,
+		const ContextDataType PolicyContext
 		) const;
 
 private:

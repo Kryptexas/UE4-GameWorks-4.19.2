@@ -103,7 +103,6 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
  */
 FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioDevice, USoundWave* InWave )
 {
-#if WITH_OGGVORBIS
 	// Check to see if thread has finished decompressing on the other thread
 	if( InWave->AudioDecompressor != NULL )
 	{
@@ -113,7 +112,6 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 		delete InWave->AudioDecompressor;
 		InWave->AudioDecompressor = NULL;
 	}
-#endif	//WITH_OGGVORBIS
 
 	FSLESSoundBuffer* Buffer = NULL;
 
@@ -138,6 +136,33 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 	return Buffer;
 }
 
+/**
+* Static function used to create an Audio buffer and dynamically upload procedural data to.
+*
+* @param InWave		USoundWave to use as template and wave source
+* @param AudioDevice	audio device to attach created buffer to
+* @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+*/
+FSLESSoundBuffer* FSLESSoundBuffer::CreateProceduralBuffer(FSLESAudioDevice* AudioDevice, USoundWave* InWave)
+{
+	FSLESSoundBuffer* Buffer = new FSLESSoundBuffer(AudioDevice);
+
+	// Setup any default information
+	Buffer->DecompressionState = NULL;
+	Buffer->AudioData = NULL;
+	Buffer->BufferSize = 0;
+	Buffer->Format = SoundFormat_PCMRT;
+	Buffer->NumChannels = InWave->NumChannels;
+	Buffer->SampleRate = InWave->SampleRate;
+	
+	InWave->RawPCMData = NULL;
+
+	// No tracking of this resource as it's temporary
+	Buffer->ResourceID = 0;
+	InWave->ResourceID = 0;
+
+	return Buffer;
+}
 
 /**
  * Static function used to create a buffer.
@@ -193,10 +218,14 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 		// Always create a new buffer for streaming ogg vorbis data
 		Buffer = CreateQueuedBuffer( AudioDevice, InWave );
 		break;
-		
+	
+	case DTYPE_Procedural:
+		// New buffer for procedural data
+		Buffer = CreateProceduralBuffer(AudioDevice, InWave);
+		break;
+
 	case DTYPE_Invalid:
 	case DTYPE_Preview:
-	case DTYPE_Procedural:
 	default:
 		UE_LOG( LogAndroidAudio, Warning, TEXT("Init Buffer on unsupported sound type name = %s type = %d"), *InWave->GetName(), int32(DecompressionType));
 		break;
@@ -216,5 +245,15 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 bool FSLESSoundBuffer::ReadCompressedData( uint8* Destination, bool bLooping )
 {
 	ensure( DecompressionState);
-	return( DecompressionState->ReadCompressedData( Destination, bLooping, MONO_PCM_BUFFER_SIZE * NumChannels ) );
+	return(DecompressionState->ReadCompressedData(Destination, bLooping, DecompressionState->GetStreamBufferSize() * NumChannels));
+}
+
+/**
+* Returns the size for a real time/streaming buffer based on decompressor
+*
+* @return Size of buffer in bytes for a single channel or 0 if no decompression state
+*/
+int FSLESSoundBuffer::GetRTBufferSize(void)
+{
+	return DecompressionState ? DecompressionState->GetStreamBufferSize() : MONO_PCM_BUFFER_SIZE;
 }

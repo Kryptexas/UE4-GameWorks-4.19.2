@@ -250,13 +250,13 @@ struct FBaseTraceDatum
 struct FTraceDatum;
 struct FOverlapDatum;
 
-/*
+/**
  * Delegate for Trace 
  * @param	FTraceHandle	TraceHandle that is returned when requested
  * @param	FTraceDatum		TraceDatum that includes input/output
  */
 DECLARE_DELEGATE_TwoParams( FTraceDelegate, const FTraceHandle&, FTraceDatum &);
-/*
+/**
  * Delegate for Overlap
  * @param	FTHandle		TraceHandle that is returned when requestsed
  * @param	FOverlapDatum	OverlapDatum that includes input/output

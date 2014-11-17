@@ -4,6 +4,7 @@
 
 #include "DesignerTabSummoner.h"
 #include "SDesignerView.h"
+#include "SScissorRectBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -14,7 +15,7 @@ FDesignerTabSummoner::FDesignerTabSummoner(TSharedPtr<class FWidgetBlueprintEdit
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("DesignerTabLabel", "Designer");
-	TabIcon = FEditorStyle::GetBrush("UMGEditor.Tabs.Designer");
+	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Designer");
 
 	bIsSingleton = true;
 
@@ -24,13 +25,15 @@ FDesignerTabSummoner::FDesignerTabSummoner(TSharedPtr<class FWidgetBlueprintEdit
 
 TSharedRef<SWidget> FDesignerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1)
+	return 
+		SNew(SScissorRectBox)
 		[
-			SNew(STutorialWrapper, TEXT("Designer"))
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1)
 			[
 				SNew(SDesignerView, BlueprintEditor.Pin())
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Designer")))
 			]
 		];
 }

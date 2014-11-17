@@ -26,12 +26,12 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateNode : public FEdGraphSchemaAc
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	template <typename NodeType>
-	static NodeType* SpawnNodeFromTemplate(class UEdGraph* ParentGraph, NodeType* InTemplateNode, const FVector2D Location = FVector2D(0.0f, 0.0f))
+	static NodeType* SpawnNodeFromTemplate(class UEdGraph* ParentGraph, NodeType* InTemplateNode, const FVector2D Location = FVector2D(0.0f, 0.0f), bool bSelectNewNode = true)
 	{
 		FEdGraphSchemaAction_NewStateNode Action;
 		Action.NodeTemplate = InTemplateNode;
 
-		return Cast<NodeType>(Action.PerformAction(ParentGraph, NULL, Location));
+		return Cast<NodeType>(Action.PerformAction(ParentGraph, NULL, Location, bSelectNewNode));
 	}
 };
 

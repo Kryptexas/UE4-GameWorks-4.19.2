@@ -92,7 +92,7 @@ public:
 	{
 		if (MessageEndpoint.IsValid() && EngineAddress.IsValid())
 		{
-			MessageEndpoint->Send(new FEngineServiceExecuteCommand(CommandString, FPlatformProcess::UserName(false)), EngineAddress);
+			MessageEndpoint->Send(new FEngineServiceExecuteCommand(CommandString, FPlatformProcess::UserName(true)), EngineAddress);
 		}
 	}
 
@@ -175,7 +175,7 @@ public:
 	{
 		if (MessageEndpoint.IsValid() && EngineAddress.IsValid())
 		{
-			MessageEndpoint->Send(new FEngineServiceTerminate(FPlatformProcess::UserName(false)), EngineAddress);
+			MessageEndpoint->Send(new FEngineServiceTerminate(FPlatformProcess::UserName(true)), EngineAddress);
 		}
 	}
 

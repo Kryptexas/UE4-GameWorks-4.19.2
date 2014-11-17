@@ -147,26 +147,35 @@ void UK2Node_DelegateSet::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_DelegateSet::GetTooltip() const
+FText UK2Node_DelegateSet::GetTooltipText() const
 {
-	FString Tooltip = FString::Printf(*NSLOCTEXT("K2Node", "CreateEventForDelegate", "Create an event tied to the delegate %s").ToString(), *DelegatePropertyName.ToString());
-	if (UFunction* Function = GetDelegateSignature())
+	if (CachedTooltip.IsOutOfDate())
 	{
-		const FString SignatureTooltip = Function->GetToolTipText().ToString();
-
-		if (!SignatureTooltip.IsEmpty())
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "CreateEventForDelegate", "Create an event tied to the delegate {0}"), FText::FromName(DelegatePropertyName));
+		if (UFunction* Function = GetDelegateSignature())
 		{
-			Tooltip += FString(TEXT("\n")) + SignatureTooltip;
+			const FText SignatureTooltip = Function->GetToolTipText();
+
+			if (!SignatureTooltip.IsEmpty())
+			{
+				CachedTooltip = FText::Format(LOCTEXT("DelegateSet_SubtitledTooltip", "{0}\n{1}"), (FText&)CachedTooltip, SignatureTooltip);
+			}
 		}
 	}
-	return Tooltip;
+	return CachedTooltip;
 }
 
 FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
-	return FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 UEdGraphPin* UK2Node_DelegateSet::GetDelegateOwner() const

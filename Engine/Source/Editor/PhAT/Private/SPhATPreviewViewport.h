@@ -41,6 +41,8 @@ public:
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockTab> ParentTab;
 
+	void SetViewportType(ELevelViewportType ViewType);
+
 private:
 	/** Pointer back to the PhysicsAsset editor tool that owns us */
 	TWeakPtr<FPhAT> PhATPtr;

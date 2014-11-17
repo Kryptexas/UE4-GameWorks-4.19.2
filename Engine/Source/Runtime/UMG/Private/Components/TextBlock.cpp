@@ -12,18 +12,26 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
+	WidgetStyle = *UTextBlock::GetDefaultStyle();
+
 	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
-
-	Style = NULL;
+	LineHeightPercentage = 1.0f;
 
 	// @TODO UMG HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
 }
 
-void UTextBlock::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+void UTextBlock::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyTextBlock.Reset();
+}
+
+void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
 {
 	ColorAndOpacity = InColorAndOpacity;
 	if( MyTextBlock.IsValid() )
@@ -35,7 +43,7 @@ void UTextBlock::SetColorAndOpacity(FLinearColor InColorAndOpacity)
 void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;
-	if(MyTextBlock.IsValid())
+	if( MyTextBlock.IsValid() )
 	{
 		MyTextBlock->SetShadowColorAndOpacity(InShadowColorAndOpacity);
 	}
@@ -44,7 +52,7 @@ void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
 void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 {
 	ShadowOffset = InShadowOffset;
-	if(MyTextBlock.IsValid())
+	if( MyTextBlock.IsValid() )
 	{
 		MyTextBlock->SetShadowOffset(ShadowOffset);
 	}
@@ -52,39 +60,21 @@ void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
-	MyTextBlock = SNew(STextBlock);
-
-#if WITH_EDITOR
-	MyEditorTextBlock = SNew(SInlineEditableTextBlock)
-		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleTextCommitted))
-		//.IsSelected(InArgs._IsSelected)
-		;
-
-	//if ( IsDesignTime() )
-	//{
-	//	return MyEditorTextBlock.ToSharedRef();
-	//}
-#endif
+	MyTextBlock = SNew(STextBlock)
+		.TextStyle(&WidgetStyle);
 
 	return MyTextBlock.ToSharedRef();
 }
 
-void UTextBlock::SyncronizeProperties()
+void UTextBlock::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
 
-	if ( !FPaths::FileExists(FontPath) )
+	if( !FPaths::FileExists(FontPath) )
 	{
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-
-	const FTextBlockStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FTextBlockStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		STextBlock::FArguments Defaults;
-		StylePtr = Defaults._TextStyle;
 	}
 
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
@@ -94,20 +84,24 @@ void UTextBlock::SyncronizeProperties()
 	MyTextBlock->SetText(TextBinding);
 	MyTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
 	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
-	MyTextBlock->SetTextStyle(StylePtr);
 	MyTextBlock->SetShadowOffset(ShadowOffset);
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
 	MyTextBlock->SetAutoWrapText(AutoWrapText);
 	MyTextBlock->SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
+	MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
+	MyTextBlock->SetLineHeightPercentage(LineHeightPercentage);
+	MyTextBlock->SetMargin(Margin);
+	MyTextBlock->SetJustification(Justification);
+}
 
-#if WITH_EDITOR
-	MyEditorTextBlock->SetText(TextBinding);
-	//MyEditorTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
-	//MyEditorTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
-	//MyEditorTextBlock->SetTextStyle(StylePtr);
-	//MyEditorTextBlock->SetShadowOffset(ShadowOffset);
-	//MyEditorTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
-#endif
+FText UTextBlock::GetText() const
+{
+	if (MyTextBlock.IsValid())
+	{
+		return MyTextBlock->GetText();
+	}
+
+	return Text;
 }
 
 void UTextBlock::SetText(FText InText)
@@ -117,6 +111,31 @@ void UTextBlock::SetText(FText InText)
 	{
 		MyTextBlock->SetText(Text);
 	}
+}
+
+void UTextBlock::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FTextBlockStyle* StylePtr = Style_DEPRECATED->GetStyle<FTextBlockStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+	}
+}
+
+const FTextBlockStyle* UTextBlock::GetDefaultStyle()
+{
+	static const STextBlock::FArguments Defaults;
+	return Defaults._TextStyle;
 }
 
 #if WITH_EDITOR
@@ -137,14 +156,14 @@ void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type Comm
 	//     Need a way to recognize one particular widget and forward things to them!
 }
 
-void UTextBlock::OnBeginEdit()
-{
-	MyEditorTextBlock->EnterEditingMode();
-}
-
 const FSlateBrush* UTextBlock::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.TextBlock");
+}
+
+const FText UTextBlock::GetPaletteCategory()
+{
+	return LOCTEXT("Common", "Common");
 }
 
 #endif

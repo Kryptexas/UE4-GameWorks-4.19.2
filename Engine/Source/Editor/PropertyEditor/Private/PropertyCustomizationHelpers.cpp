@@ -152,6 +152,18 @@ namespace PropertyCustomizationHelpers
 			.IsFocusable( false );
 	}
 
+	TSharedRef<SWidget> MakeNewBlueprintButton( FSimpleDelegate OnFindClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled )
+	{
+		return
+			SNew( SPropertyEditorButton )
+			.Text( LOCTEXT( "NewBlueprintButtonLabel", "New Blueprint") )
+			.ToolTipText( OptionalToolTipText.Get().IsEmpty() ? LOCTEXT( "NewBlueprintButtonToolTipText", "Create New Blueprint") : OptionalToolTipText )
+			.Image( FEditorStyle::GetBrush("PropertyWindow.Button_CreateNewBlueprint") )
+			.OnClickAction( OnFindClicked )
+			.IsEnabled(IsEnabled)
+			.IsFocusable( false );
+	}
+
 	TSharedRef<SWidget> MakeInsertDeleteDuplicateButton( FExecuteAction OnInsertClicked, FExecuteAction OnDeleteClicked, FExecuteAction OnDuplicateClicked )
 	{	
 		FMenuBuilder MenuContentBuilder( true, NULL );
@@ -232,6 +244,35 @@ namespace PropertyCustomizationHelpers
 			.OnShouldFilterActor( OnShouldFilterActor )
 			.OnActorSelected( OnActorSelectedFromPicker );
 	}
+
+	UBoolProperty* GetEditConditionProperty(const UProperty* InProperty, bool& bNegate)
+	{
+		UBoolProperty* EditConditionProperty = NULL;
+		bNegate = false;
+
+		if ( InProperty != NULL )
+		{
+			// find the name of the property that should be used to determine whether this property should be editable
+			FString ConditionPropertyName = InProperty->GetMetaData(TEXT("EditCondition"));
+
+			// Support negated edit conditions whose syntax is !BoolProperty
+			if ( ConditionPropertyName.StartsWith(FString(TEXT("!"))) )
+			{
+				bNegate = true;
+				// Chop off the negation from the property name
+				ConditionPropertyName = ConditionPropertyName.Right(ConditionPropertyName.Len() - 1);
+			}
+
+			// for now, only support boolean conditions, and only allow use of another property within the same struct as the conditional property
+			if ( ConditionPropertyName.Len() > 0 && !ConditionPropertyName.Contains(TEXT(".")) )
+			{
+				UStruct* Scope = InProperty->GetOwnerStruct();
+				EditConditionProperty = FindField<UBoolProperty>(Scope, *ConditionPropertyName);
+			}
+		}
+
+		return EditConditionProperty;
+	}
 }
 
 void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
@@ -240,6 +281,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 	OnObjectChanged = InArgs._OnObjectChanged;
 
 	bool bDisplayThumbnail = false;
+	FIntPoint ThumbnailSize(64, 64);
 
 	if( InArgs._PropertyHandle.IsValid() && InArgs._PropertyHandle->IsValidHandle() )
 	{
@@ -250,6 +292,18 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 		if(DisplayThumbnailString.Len() > 0)
 		{
 			bDisplayThumbnail = DisplayThumbnailString == TEXT("true");
+		}
+
+		// check if the property metadata has an override to the thumbnail size
+		FString ThumbnailSizeString = PropertyHandle->GetProperty()->GetMetaData(TEXT("ThumbnailSize"));
+		if ( ThumbnailSizeString.Len() > 0 )
+		{
+			FVector2D ParsedVector;
+			if ( ParsedVector.InitFromString(ThumbnailSizeString) )
+			{
+				ThumbnailSize.X = (int32)ParsedVector.X;
+				ThumbnailSize.Y = (int32)ParsedVector.Y;
+			}
 		}
 
 		// if being used with an object property, check the allowed class is valid for the property
@@ -276,6 +330,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 				.OnShouldFilterAsset(InArgs._OnShouldFilterAsset)
 				.AllowClear(InArgs._AllowClear)
 				.PropertyHandle(PropertyHandle)
+				.ThumbnailSize(ThumbnailSize)
 		]
 	];
 }
@@ -689,7 +744,7 @@ private:
 			UMaterialInterface* Material = MaterialItem.Material.Get();
 
 			TArray< UTexture* > Textures;
-			Material->GetUsedTextures( Textures, EMaterialQualityLevel::Num, false );
+			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 
 			// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
 			for( int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex )

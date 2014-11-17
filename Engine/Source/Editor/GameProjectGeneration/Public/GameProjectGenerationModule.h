@@ -5,6 +5,8 @@
 
 #include "ModuleInterface.h"
 
+struct FTemplateCategory;
+
 /**
  * Game Project Generation module
  */
@@ -12,6 +14,7 @@ class FGameProjectGenerationModule : public IModuleInterface
 {
 
 public:
+	typedef TMap<FName, TSharedPtr<FTemplateCategory>> FTemplateCategoryMap;
 
 	/**
 	 * Called right after the plugin DLL has been loaded and the plugin object has been created
@@ -62,6 +65,9 @@ public:
 	/** Gets the current projects source file count */
 	virtual int32 GetProjectCodeFileCount();
 
+	/** Gets file and size info about the source directory */
+	virtual void GetProjectSourceDirectoryInfo(int32& OutNumFiles, int64& OutDirectorySize);
+
 	/** Update code resource files */
 	virtual bool UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
@@ -80,7 +86,18 @@ public:
 	/** Clear the list of supported target platforms */
 	virtual void ClearSupportedTargetPlatforms();
 
+public:
+
+	/** (Un)register a new type of template category to be shown on the new project page */
+	virtual bool RegisterTemplateCategory(FName Type, FText Name, FText Description, const FSlateBrush* Icon, const FSlateBrush* Image);
+	virtual void UnRegisterTemplateCategory(FName Type);
+
+	// Non DLL-exposed access to template categories
+	TSharedPtr<const FTemplateCategory> GetCategory(FName Type) const { return TemplateCategories.FindRef(Type); }
+
 private:
 	FAddCodeToProjectDialogOpenedEvent AddCodeToProjectDialogOpenedEvent;
 
+	/** Map of template categories from type to ptr */
+	FTemplateCategoryMap TemplateCategories;
 };

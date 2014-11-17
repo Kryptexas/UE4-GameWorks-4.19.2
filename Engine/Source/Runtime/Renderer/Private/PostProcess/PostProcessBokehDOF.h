@@ -8,15 +8,35 @@
 
 #include "RenderingCompositionGraph.h"
 
+struct FDepthOfFieldStats
+{
+	FDepthOfFieldStats()
+		: bNear(false)
+		, bFar(false)
+	{
+	}
+
+	bool bNear;
+	bool bFar;
+};
+
+
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 // ePId_Input0: Color input
 class FRCPassPostProcessVisualizeDOF : public TRenderingCompositePassBase<1, 1>
 {
 public:
+	// constructor
+	FRCPassPostProcessVisualizeDOF(const FDepthOfFieldStats& InDepthOfFieldStats)
+		: DepthOfFieldStats(InDepthOfFieldStats)
+	{}
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+
+	FDepthOfFieldStats DepthOfFieldStats;
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 

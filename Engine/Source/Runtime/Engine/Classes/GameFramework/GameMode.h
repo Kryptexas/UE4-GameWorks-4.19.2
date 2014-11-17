@@ -48,7 +48,7 @@ struct FGameClassShortName
 // C++ UGameEngine::LoadMap().  The class of this GameMode actor is determined by
 // (in order) either the URL ?game=xxx, or the
 // DefaultGameMode entry in the game's .ini file (in the /Script/Engine.Engine section).
-// The GameMode used can be overridden in the GameMode function SetGameMode(), called
+// The GameMode used can be overridden in the GameMode function GetGameModeClass(), called
 // on the game class picked by the above process.
 //
 //=============================================================================
@@ -243,6 +243,10 @@ protected:
 	UPROPERTY(config)
 	TArray<struct FGameClassShortName> GameModeClassAliases;
 
+	/** Time a playerstate will stick around in an inactive state after a player logout */
+	UPROPERTY(config)
+	float InactivePlayerStateLifeSpan;
+
 public:
 
 	/** Alters the synthetic bandwidth limit for a running game. */
@@ -350,15 +354,19 @@ public:
 	/** 
 	 * @return the full path to the optimal GameMode class to use for the specified map and options
 	 * this is used for preloading cooked packages, etc. and therefore doesn't need to include any fallbacks
-	 * as SetGameMode() will be called later to actually find/load the desired class
+	 * as GetGameModeClass() will be called later to actually find/load the desired class
 	 */
-	FString GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal);
+	virtual FString GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal) const;
 
 	/** 
 	 * @return the class of GameMode to spawn for the game on the specified map and the specified options
 	 * this function should include any fallbacks in case the desired class can't be found
 	 */
+	virtual TSubclassOf<AGameMode> GetGameModeClass(const FString& MapName, const FString& Options, const FString& Portal) const;
+
+	DEPRECATED(4.5, "AGameMode::SetGameMode renamed AGameMode::GetGameModeClass")
 	TSubclassOf<AGameMode> SetGameMode(const FString& MapName, const FString& Options, const FString& Portal);
+
 
 	/** @return GameSession class to use for this game  */
 	virtual TSubclassOf<class AGameSession> GetGameSessionClass() const;
@@ -393,7 +401,15 @@ public:
 	 */
 	virtual void PreLogin(const FString& Options, const FString& Address, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
-	/** If login is successful, returns a new PlayerController to associate with this player. Login fails if ErrorMessage string is set. */
+	/** 
+	 * Called to login new players by creating a player controller, overridable by the game
+	 *
+	 * Sets up basic properties of the player (name, unique id, registers with backend, etc) and should not be used to do
+	 * more complicated game logic.  The player controller is not fully initialized within this function as far as networking is conecerned.
+	 * Save "game logic" for PostLogin which is called shortly afterward.
+	 *
+	 * If login is successful, returns a new PlayerController to associate with this player. Login fails if ErrorMessage string is set. 
+	 */
 	virtual APlayerController* Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerAController. */
@@ -406,8 +422,8 @@ public:
 	/** Spawns a PlayerController at the specified location; split out from Login()/HandleSeamlessTravelPlayer() for easier overriding */
 	virtual APlayerController* SpawnPlayerController(FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
-	/** @Returns true if NewPlayer may only join the server as a spectator. */
-	virtual bool MustSpectate(APlayerController* NewPlayer) const;
+	/** @Returns true if NewPlayerController may only join the server as a spectator. */
+	virtual bool MustSpectate(APlayerController* NewPlayerController) const;
 
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController(AController* InController);
@@ -571,15 +587,16 @@ public:
 	virtual void DefaultTimer();	
 
 protected:
-	/** 
+	/**
 	 * Customize incoming player based on URL options
 	 *
-	 * @param NewPlayer player logging in
+	 * @param NewPlayerController player logging in
 	 * @param UniqueId unique id for this player
 	 * @param Options URL options that came at login
 	 *
 	 */
-	virtual void InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options);
+	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
+
 
 private:
 	// Hidden functions that don't make sense to use on this class.

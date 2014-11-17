@@ -65,11 +65,10 @@ public:
 	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-#if WITH_EDITORONLY_DATA
+
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 	// End UObject Interface
 
 	//
@@ -162,7 +161,6 @@ public:
 	/** 
 	 * Used to create a unique string to identify unique nodes
 	 */
-	virtual FString GetUniqueString() const;
 	static UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const USoundNode* ChildNode, const uint32 ChildIndex);
 	static UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const UPTRINT ChildNodeHash, const uint32 ChildIndex);
 };

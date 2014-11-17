@@ -19,10 +19,10 @@
 #include "PropertyCustomizationHelpers.h"
 #include "IDocumentation.h"
 #include "SLevelOfDetailBranchNode.h"
-#include "STutorialWrapper.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Merge.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -79,7 +79,8 @@ void FKismet2Menu::FillFileMenuBlueprintSection( FMenuBuilder& MenuBuilder, FBlu
 	MenuBuilder.EndSection();
 
 	// Only show the developer menu on machines with the solution (assuming they can build it)
-	if (FModuleManager::Get().IsSolutionFilePresent())
+	FString SolutionPath;
+	if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 	{
 		MenuBuilder.BeginSection("FileDeveloper");
 		{
@@ -629,81 +630,19 @@ void FBlueprintEditorToolbar::AddComponentsToolbar(TSharedPtr<FExtender> Extende
 		FToolBarExtensionDelegate::CreateSP( this, &FBlueprintEditorToolbar::FillComponentsToolbar ) );
 }
 
-
 void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& ToolbarBuilder)
 {
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = BlueprintEditor.Pin();
 	UBlueprint* BlueprintObj = BlueprintEditorPtr->GetBlueprintObj();
 
-	if( !BlueprintObj ||
-		(!FBlueprintEditorUtils::IsLevelScriptBlueprint(BlueprintObj) 
-		&& !FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj)
-		&& !BlueprintObj->bIsNewlyCreated)
-		)
+	TAttribute<FName> GetActiveMode(BlueprintEditorPtr.ToSharedRef(), &FBlueprintEditor::GetCurrentMode);
+	FOnModeChangeRequested SetActiveMode = FOnModeChangeRequested::CreateSP(BlueprintEditorPtr.ToSharedRef(), &FBlueprintEditor::SetCurrentMode);
+
+	TArray< TSharedPtr< SWidget > > ToolbarWidgets = GenerateToolbarWidgets( BlueprintObj, GetActiveMode, SetActiveMode );
+	
+	for( const auto& Widget : ToolbarWidgets )
 	{
-		TAttribute<FName> GetActiveMode(BlueprintEditorPtr.ToSharedRef(), &FBlueprintEditor::GetCurrentMode);
-		FOnModeChangeRequested SetActiveMode = FOnModeChangeRequested::CreateSP(BlueprintEditorPtr.ToSharedRef(), &FBlueprintEditor::SetCurrentMode);
-
-		// Left side padding
-		BlueprintEditorPtr->AddToolbarWidget(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
-
-		BlueprintEditorPtr->AddToolbarWidget(
-			SNew( STutorialWrapper, TEXT("DefaultsMode") )
-			[
-				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::BlueprintDefaultsMode ), FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
-				.OnGetActiveMode(GetActiveMode)
-				.OnSetActiveMode(SetActiveMode)
-				.ToolTip(IDocumentation::Get()->CreateToolTip(
-					LOCTEXT("BlueprintDefaultsModeButtonTooltip", "Switch to Blueprint Defaults Mode"),
-					NULL,
-					TEXT("Shared/Editors/BlueprintEditor"),
-					TEXT("DefaultsMode")))
-				.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode"))
-				.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode.Small"))
-			]
-		);
-
-		BlueprintEditorPtr->AddToolbarWidget(SNew(SBlueprintModeSeparator));
-
-		BlueprintEditorPtr->AddToolbarWidget(
-			SNew( STutorialWrapper, TEXT("ComponentsMode") )
-			[
-				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::BlueprintComponentsMode ), FBlueprintEditorApplicationModes::BlueprintComponentsMode)
-				.OnGetActiveMode(GetActiveMode)
-				.OnSetActiveMode(SetActiveMode)
-				.CanBeSelected(BlueprintEditorPtr.Get(), &FBlueprintEditor::CanAccessComponentsMode)
-				.ToolTip(IDocumentation::Get()->CreateToolTip(
-					LOCTEXT("ComponentsModeButtonTooltip", "Switch to Components Mode"),
-					NULL,
-					TEXT("Shared/Editors/BlueprintEditor"),
-					TEXT("ComponentsMode")))
-				.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToComponentsMode"))
-				.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToComponentsMode.Small"))
-			]
-		);
-
-		BlueprintEditorPtr->AddToolbarWidget(SNew(SBlueprintModeSeparator));
-
-		BlueprintEditorPtr->AddToolbarWidget(
-			SNew( STutorialWrapper, TEXT("GraphMode") )
-			[
-				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
-				.OnGetActiveMode(GetActiveMode)
-				.OnSetActiveMode(SetActiveMode)
-				.CanBeSelected(BlueprintEditorPtr.Get(), &FBlueprintEditor::IsEditingSingleBlueprint)
-				.ToolTip(IDocumentation::Get()->CreateToolTip(
-					LOCTEXT("GraphModeButtonTooltip", "Switch to Graph Editing Mode"),
-					NULL,
-					TEXT("Shared/Editors/BlueprintEditor"),
-					TEXT("GraphMode")))
-				.ToolTipText(LOCTEXT("GraphModeButtonTooltip", "Switch to Graph Editing Mode"))
-				.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode"))
-				.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode.Small"))
-			]
-		);
-		
-		// Right side padding
-		BlueprintEditorPtr->AddToolbarWidget(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
+		BlueprintEditorPtr->AddToolbarWidget( Widget.ToSharedRef() );
 	}
 }
 
@@ -864,5 +803,72 @@ FText FBlueprintEditorToolbar::GetStatusTooltip() const
 	}
 }
 
+TArray< TSharedPtr< SWidget> > FBlueprintEditorToolbar::GenerateToolbarWidgets(const UBlueprint* BlueprintObj, TAttribute<FName> ActiveModeGetter, FOnModeChangeRequested ActiveModeSetter)
+{
+	TArray< TSharedPtr< SWidget> > Ret;
+	if (!BlueprintObj ||
+		(!FBlueprintEditorUtils::IsLevelScriptBlueprint(BlueprintObj)
+		&& !FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj)
+		&& !BlueprintObj->bIsNewlyCreated)
+		)
+	{
+		// Left side padding
+		Ret.Add(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
+
+		Ret.Add(
+			SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode), FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
+			.OnGetActiveMode(ActiveModeGetter)
+			.OnSetActiveMode(ActiveModeSetter)
+			.CanBeSelected(BlueprintObj ? FBlueprintEditorUtils::DoesSupportDefaults(BlueprintObj) : false)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(
+				LOCTEXT("BlueprintDefaultsModeButtonTooltip", "Switch to Blueprint Defaults Mode"),
+				NULL,
+				TEXT("Shared/Editors/BlueprintEditor"),
+				TEXT("DefaultsMode")))
+			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode"))
+			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToBlueprintDefaultsMode.Small"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("DefaultsMode")))
+		);
+
+		Ret.Add(SNew(SBlueprintModeSeparator));
+
+		Ret.Add(
+			SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode), FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+			.OnGetActiveMode(ActiveModeGetter)
+			.OnSetActiveMode(ActiveModeSetter)
+			.CanBeSelected(BlueprintObj ? FBlueprintEditorUtils::DoesSupportComponents(BlueprintObj) : false)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(
+				LOCTEXT("ComponentsModeButtonTooltip", "Switch to Components Mode"),
+				NULL,
+				TEXT("Shared/Editors/BlueprintEditor"),
+				TEXT("ComponentsMode")))
+			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToComponentsMode"))
+			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToComponentsMode.Small"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsMode")))
+		);
+
+		Ret.Add(SNew(SBlueprintModeSeparator));
+
+		Ret.Add(
+			SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
+			.OnGetActiveMode(ActiveModeGetter)
+			.OnSetActiveMode(ActiveModeSetter)
+			.CanBeSelected(BlueprintObj != NULL)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(
+				LOCTEXT("GraphModeButtonTooltip", "Switch to Graph Editing Mode"),
+				NULL,
+				TEXT("Shared/Editors/BlueprintEditor"),
+				TEXT("GraphMode")))
+			.ToolTipText(LOCTEXT("GraphModeButtonTooltip", "Switch to Graph Editing Mode"))
+			.IconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode"))
+			.SmallIconImage(FEditorStyle::GetBrush("FullBlueprintEditor.SwitchToScriptingMode.Small"))
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("GraphMode")))
+		);
+
+		// Right side padding
+		Ret.Add(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
+	}
+	return Ret;
+}
 
 #undef LOCTEXT_NAMESPACE

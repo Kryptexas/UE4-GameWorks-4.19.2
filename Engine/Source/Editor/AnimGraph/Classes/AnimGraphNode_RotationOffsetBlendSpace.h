@@ -3,6 +3,7 @@
 #pragma once
 #include "AnimGraphNode_BlendSpaceBase.h"
 #include "Animation/AnimNode_RotationOffsetBlendSpace.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_RotationOffsetBlendSpace.generated.h"
 
 UCLASS(MinimalAPI)
@@ -14,7 +15,7 @@ class UAnimGraphNode_RotationOffsetBlendSpace: public UAnimGraphNode_BlendSpaceB
 	FAnimNode_RotationOffsetBlendSpace Node;
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
@@ -26,5 +27,11 @@ class UAnimGraphNode_RotationOffsetBlendSpace: public UAnimGraphNode_BlendSpaceB
 
 	// UK2Node interface
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End of UK2Node interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTitleTextTable CachedNodeTitles;
 };

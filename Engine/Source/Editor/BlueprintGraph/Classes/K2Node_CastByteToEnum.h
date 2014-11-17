@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_CastByteToEnum.generated.h"
 
 UCLASS(MinimalAPI)
@@ -20,7 +21,7 @@ class UK2Node_CastByteToEnum : public UK2Node
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Enum_16x"); }
 	// End UEdGraphNode interface
@@ -31,10 +32,15 @@ class UK2Node_CastByteToEnum : public UK2Node
 	virtual bool IsNodePure() const override { return true; }
 	FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	// End UK2Node interface
 
 	virtual FName GetFunctionName() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 };
 

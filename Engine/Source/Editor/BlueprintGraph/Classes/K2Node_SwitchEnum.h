@@ -4,6 +4,7 @@
 #pragma once
 #include "K2Node_Switch.h"
 #include "NodeDependingOnEnumInterface.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_SwitchEnum.generated.h"
 
 UCLASS(MinimalAPI)
@@ -29,18 +30,19 @@ class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInt
 	// End of INodeDependingOnEnumInterface
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual bool ShouldShowNodeProperties() const override { return true; }	
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual bool CanEverRemoveExecutionPin() const override { return false; }
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface
 	virtual FString GetUniquePinName() override;
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const override { return Schema->PC_Byte; }
+	virtual FEdGraphPinType GetPinType() const override;
 	virtual void AddPinToSwitchNode() override;
 	virtual void RemovePinFromSwitchNode(UEdGraphPin* TargetPin) override;
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
@@ -57,4 +59,8 @@ protected:
 	
 	/** Don't support removing pins from an enum */
 	virtual void RemovePin(UEdGraphPin* TargetPin) override {}
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

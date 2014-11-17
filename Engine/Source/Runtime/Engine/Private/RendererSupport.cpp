@@ -11,6 +11,8 @@
 #include "GlobalShader.h"
 #include "Slate.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
+#include "HotReloadInterface.h"
 
 /** Clears and optionally backs up all references to renderer module classes in other modules, particularly engine. */
 void ClearReferencesToRendererModuleClasses(
@@ -82,27 +84,31 @@ void ClearReferencesToRendererModuleClasses(
 /** Recompiles the renderer module, retrying until successful. */
 void RecompileRendererModule()
 {
-	const FName RendererModuleName = TEXT("Renderer");
-	// Unload first so that RecompileModule will not using a rolling module name
-	verify(FModuleManager::Get().UnloadModule(RendererModuleName));
-
-	bool bCompiledSuccessfully = false;
-	do 
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
 	{
-		bCompiledSuccessfully = FModuleManager::Get().RecompileModule(RendererModuleName, false, *GLog);
+		const FName RendererModuleName = TEXT("Renderer");
+		// Unload first so that RecompileModule will not using a rolling module name
+		verify(FModuleManager::Get().UnloadModule(RendererModuleName));
 
-		if (!bCompiledSuccessfully)
+		bool bCompiledSuccessfully = false;
+		do 
 		{
-			// Pop up a blocking dialog if there were compilation errors
-			// Compiler output will be in the log
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FText::Format(
-				NSLOCTEXT("UnrealEd", "Error_RetryCompilation", "C++ compilation of module {0} failed!  Details in the log.  \r\nFix the error then click Ok to retry."),
-				FText::FromName(RendererModuleName)).ToString(), TEXT("Error"));
-		}
-	} 
-	while (!bCompiledSuccessfully);
+			bCompiledSuccessfully = HotReload->RecompileModule(RendererModuleName, false, *GLog);
 
-	verify(FModuleManager::Get().LoadModule(RendererModuleName, true).IsValid());
+			if (!bCompiledSuccessfully)
+			{
+				// Pop up a blocking dialog if there were compilation errors
+				// Compiler output will be in the log
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FText::Format(
+					NSLOCTEXT("UnrealEd", "Error_RetryCompilation", "C++ compilation of module {0} failed!  Details in the log.  \r\nFix the error then click Ok to retry."),
+					FText::FromName(RendererModuleName)).ToString(), TEXT("Error"));
+			}
+		} 
+		while (!bCompiledSuccessfully);
+
+		verify(FModuleManager::Get().LoadModule(RendererModuleName, true).IsValid());
+	}
 }
 
 /** Restores systems that need references to classes in the renderer module. */
@@ -154,7 +160,7 @@ void RestoreReferencesToRendererModuleClasses(
 
 	// Recompile any missing shaders
 	BeginRecompileGlobalShaders(OutdatedShaderTypes);
-	UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes);
+	UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
 
 	// Block on global shader jobs
 	FinishRecompileGlobalShaders();

@@ -43,6 +43,20 @@ FString FCulture::FLegacyCultureImplementation::GetName() const
 	return Name;
 }
 
+FString FCulture::FLegacyCultureImplementation::GetParentName(const FString& CultureName)
+{
+	FString Result;
+
+	int32 UnderscoreIndex = INDEX_NONE;
+	if(CultureName.FindLastChar(TEXT('_'), UnderscoreIndex))
+	{
+		Result = CultureName;
+		Result.RemoveAt(UnderscoreIndex);
+	}
+
+	return Result;
+}
+
 FString FCulture::FLegacyCultureImplementation::GetNativeName() const
 {
 	return NativeName;

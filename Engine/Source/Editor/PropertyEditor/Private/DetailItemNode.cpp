@@ -9,16 +9,17 @@
 #include "DetailPropertyRow.h"
 #include "DetailCustomBuilderRow.h"
 #include "SDetailSingleItemRow.h"
+#include "TutorialMetaData.h"
 
 
 
 FDetailItemNode::FDetailItemNode(const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled )
 	: Customization( InCustomization )
 	, ParentCategory( InParentCategory )
+	, IsParentEnabled( InIsParentEnabled )
+	, CachedItemVisibility( EVisibility::Visible )
 	, bShouldBeVisibleDueToFiltering( false )
 	, bShouldBeVisibleDueToChildFiltering( false )
-	, CachedItemVisibility( EVisibility::Visible )
-	, IsParentEnabled( InIsParentEnabled )
 	, bTickable( false )
 	, bIsExpanded( InCustomization.HasCustomBuilder() ? !InCustomization.CustomBuilderRow->IsInitiallyCollapsed() : false )
 {
@@ -78,6 +79,8 @@ FDetailItemNode::~FDetailItemNode()
 
 void FDetailItemNode::InitPropertyEditor()
 {
+	Customization.GetPropertyNode()->SetTreeNode( this->AsShared() );
+
 	if( Customization.GetPropertyNode()->GetProperty() && Customization.GetPropertyNode()->GetProperty()->IsA<UArrayProperty>() )
 	{
 		const bool bUpdateFilteredNodes = false;
@@ -135,12 +138,24 @@ void FDetailItemNode::ToggleExpansion()
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
+	FGraphNodeMetaData TagMeta(TEXT("DetailRowItem"));
+	if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid() )
+	{
+		TagMeta.FriendlyName = Customization.GetPropertyNode()->GetDisplayName();
+	}
+	if (ParentCategory.IsValid())
+	{
+		FString Tag = FString::Printf(TEXT("%s_%s"), *TagMeta.FriendlyName, *ParentCategory.Pin()->GetCategoryPathName());
+		TagMeta.Tag = *Tag;
+		TagMeta.TabTypeToOpen = TEXT("LevelEditorSelectionDetails");
+	}
 	if( Customization.HasPropertyNode() && Customization.GetPropertyNode()->AsCategoryNode() )
 	{
-		return 
-			SNew( SDetailCategoryTableRow, AsShared(), OwnerTable )
-			.IsEnabled( IsParentEnabled )
-			.DisplayName( Customization.GetPropertyNode()->GetDisplayName() )
+		return
+			SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
+			.IsEnabled(IsParentEnabled)
+			.DisplayName(Customization.GetPropertyNode()->GetDisplayName())
+			.AddMetaData<FTutorialMetaData>(TagMeta)
 			.InnerCategory( true );
 	}
 	else
@@ -148,7 +163,8 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 		return
 			SNew(SDetailSingleItemRow, &Customization, HasMultiColumnWidget(), AsShared(), OwnerTable )
 			.IsEnabled( IsParentEnabled )
-			.ColumnSizeData( ColumnSizeData ) ;
+			.AddMetaData<FTutorialMetaData>(TagMeta)
+			.ColumnSizeData(ColumnSizeData);
 	}
 }
 
@@ -259,7 +275,7 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 {
 	bool bPassesAllFilters = true;
 	
-	if( InFilter.FilterStrings.Num() > 0 || InFilter.bShowOnlyModifiedProperties == true )
+	if( InFilter.FilterStrings.Num() > 0 || InFilter.bShowOnlyModifiedProperties == true || InFilter.bShowOnlyDiffering == true )
 	{
 		TSharedPtr<FPropertyNode> PropertyNodePin = InCustomization.GetPropertyNode();
 
@@ -273,9 +289,10 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 
 			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
+			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering == false || InFilter.DifferingProperties.Find(PropertyNodePin->GetProperty()->GetFName()) != NULL;
 
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
-			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter;
+			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter;
 		}
 		else if( InCustomization.HasCustomWidget() )
 		{

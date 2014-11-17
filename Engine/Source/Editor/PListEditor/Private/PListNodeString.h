@@ -12,7 +12,7 @@ class FPListNodeString : public IPListNode
 {
 public:
 	FPListNodeString(SPListEditorPanel* InEditorWidget)
-		: IPListNode(InEditorWidget), bFiltered(false), bArrayMember(false), ArrayIndex(-1), bKeyValid(false), bValueValid(false)
+		: IPListNode(InEditorWidget), ArrayIndex(-1), bFiltered(false), bArrayMember(false), bKeyValid(false), bValueValid(false)
 	{}
 
 public:

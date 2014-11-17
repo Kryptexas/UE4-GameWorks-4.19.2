@@ -10,6 +10,7 @@
 #include "Lightmass.h"
 #include "LightmassRender.h"
 #include "MaterialCompiler.h"
+#include "LightMap.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightmassRender, Error, All);
 
@@ -841,7 +842,8 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
  	if ((ShadingModel != MSM_DefaultLit) &&
 		(ShadingModel != MSM_Unlit) &&
 		(ShadingModel != MSM_Subsurface) &&
-		(ShadingModel != MSM_PreintegratedSkin))
+		(ShadingModel != MSM_PreintegratedSkin) &&
+		(ShadingModel != MSM_SubsurfaceProfile))
 	{
 		UE_LOG(LogLightmassRender, Warning, TEXT("LIGHTMASS: Material has an unsupported shading model: %d on %s"), 
 			(int32)ShadingModel,
@@ -1054,7 +1056,7 @@ bool FLightmassMaterialRenderer::CreateRenderTarget(EPixelFormat InFormat, int32
 		RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		RenderTarget->InitCustomFormat(InSizeX, InSizeY, InFormat, false);
 
-		Canvas = new FCanvas(RenderTarget->GameThread_GetRenderTargetResource(), NULL, 0, 0, 0);
+		Canvas = new FCanvas(RenderTarget->GameThread_GetRenderTargetResource(), NULL, 0, 0, 0, GMaxRHIFeatureLevel);
 		check(Canvas);
 	}
 

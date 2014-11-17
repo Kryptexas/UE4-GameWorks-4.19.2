@@ -36,10 +36,10 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile the hit proxy vertex shader on PC
-		return IsPCPlatform(Platform) && 
-			IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) &&
+		return IsPCPlatform(Platform)
+			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) || IsPCPlatform(Platform))
 			// and only compile for the default material or materials that are masked.
-			(Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
+			&& (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
 	}
 
 protected:
@@ -110,7 +110,6 @@ public:
 	{
 		// Only compile the hit proxy vertex shader on PC
 		return IsPCPlatform(Platform) 
-			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) 
 			// and only compile for default materials or materials that are masked.
 			&& (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
 	}
@@ -162,7 +161,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	DomainShader = NULL;
 
 	EMaterialTessellationMode MaterialTessellationMode = MaterialResource->GetTessellationMode();
-	if(RHISupportsTessellation(GRHIShaderPlatform)
+	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
@@ -173,7 +172,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	PixelShader = MaterialResource->GetShader<FHitProxyPS>(InVertexFactory->GetType());
 }
 
-void FHitProxyDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+void FHitProxyDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -186,7 +185,7 @@ void FHitProxyDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const F
 	}
 
 	// Set the shared mesh resources.
-	FMeshDrawingPolicy::DrawShared(RHICmdList, View);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext);
 }
 
 /** 
@@ -212,10 +211,11 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	const FHitProxyId HitProxyId
+	const FHitProxyId HitProxyId,
+	const ContextDataType PolicyContext
 	) const
 {
-	EmitMeshDrawEvents(PrimitiveSceneProxy, Mesh);
+	EmitMeshDrawEvents(RHICmdList, PrimitiveSceneProxy, Mesh);
 
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
@@ -252,7 +252,7 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	// Add the static mesh to the DPG's hit proxy draw list.
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
 	const FMaterial* Material = MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
-	if ( !Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition() )
+	if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition_RenderThread())
 	{
 		// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 		MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -260,7 +260,7 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	
 	Scene->HitProxyDrawList.AddMesh(
 		StaticMesh,
-		StaticMesh->HitProxyId,
+		StaticMesh->BatchHitProxyId,
 		FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
 		Scene->GetFeatureLevel()
 		);
@@ -273,7 +273,7 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	{
 		Scene->HitProxyDrawList_OpaqueOnly.AddMesh(
 			StaticMesh,
-			StaticMesh->HitProxyId,
+			StaticMesh->BatchHitProxyId,
 			FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
 			Scene->GetFeatureLevel()
 			);
@@ -303,17 +303,17 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 		if( View.bAllowTranslucentPrimitivesInHitProxy || !IsTranslucentBlendMode( Material->GetBlendMode() ) || ( HitProxy && HitProxy->AlwaysAllowsTranslucentPrimitives() ) )
 #endif
 		{
-			if ( !Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition() )
+			if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition_RenderThread())
 			{
 				// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			}
 			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy, View.GetFeatureLevel() );
 			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-			DrawingPolicy.SetSharedState(RHICmdList, &View);
+			DrawingPolicy.SetSharedState(RHICmdList, &View, FHitProxyDrawingPolicy::ContextDataType());
 			for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 			{
-				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, HitProxyId);
+				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, HitProxyId, FHitProxyDrawingPolicy::ContextDataType());
 				DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 			}
 			return true;
@@ -322,10 +322,11 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 	return false;
 }
 
-void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
-{
 #if WITH_EDITOR
 
+TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& RHICmdList, const FSceneRenderer * SceneRenderer)
+{
+	auto& ViewFamily = SceneRenderer->ViewFamily;
 	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
@@ -343,24 +344,31 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 		GRenderTargetPool.FindFreeElement(Desc, HitProxyRT, TEXT("HitProxy"));
 	}
 
-	if(!HitProxyRT)
+	if (!HitProxyRT)
 	{
 		// HitProxyRT==0 should never happen but better we don't crash
-		return;
+		return HitProxyRT;
 	}
-	
+
 	SetRenderTarget(RHICmdList, HitProxyRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 
 	// Clear color for each view.
-	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+	auto& Views = SceneRenderer->Views;
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 		RHICmdList.Clear(true, FLinearColor::White, false, 1, false, 0, FIntRect());
 	}
+	return HitProxyRT;
+}
 
-	// Find the visible primitives.
-	InitViews(RHICmdList);
+void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer * SceneRenderer, TRefCountPtr<IPooledRenderTarget> HitProxyRT)
+{
+	auto & ViewFamily = SceneRenderer->ViewFamily;
+	auto & Views = SceneRenderer->Views;
+
+	const auto FeatureLevel = SceneRenderer->FeatureLevel;
 
 	// Dynamic vertex and index buffers need to be committed before rendering.
 	FGlobalDynamicVertexBuffer::Get().Commit();
@@ -371,9 +379,9 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[SceneRenderer->FeatureLevel]);
 
-	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
@@ -385,46 +393,82 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 		RHICmdList.Clear(false, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
 		// Adjust the visibility map for this view
-		if( !View.bAllowTranslucentPrimitivesInHitProxy )
+		if (!View.bAllowTranslucentPrimitivesInHitProxy)
 		{
 			// Draw the scene's hit proxy draw lists. (opaque primitives only)
-			Scene->HitProxyDrawList_OpaqueOnly.DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			SceneRenderer->Scene->HitProxyDrawList_OpaqueOnly.DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 		}
 		else
 		{
 			// Draw the scene's hit proxy draw lists.
-			Scene->HitProxyDrawList.DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			SceneRenderer->Scene->HitProxyDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 		}
 
 		const bool bPreFog = true;
 		const bool bHitTesting = true;
 
-		// Draw all dynamic primitives using the hit proxy drawing policy.
-		DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
-			RHICmdList,
-			View,
-			View.VisibleDynamicPrimitives,
-			FHitProxyDrawingPolicyFactory::ContextType(),
-			bPreFog,
-			bHitTesting
-			);
+		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
-		// Draw all visible editor primitives using the hit proxy drawing policy
-		DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
-			RHICmdList,
-			View,
-			View.VisibleEditorPrimitives,
-			FHitProxyDrawingPolicyFactory::ContextType(),
-			bPreFog,
-			bHitTesting
-			);
+		if (bUseGetMeshElements)
+		{
+			FHitProxyDrawingPolicyFactory::ContextType DrawingContext;
 
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				
+				if (MeshBatch.bSelectable)
+				{
+					const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
+					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
+				}
+			}
+
+			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
+			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicEditorMeshElements[MeshBatchIndex];
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+
+				if (MeshBatch.bSelectable)
+				{
+					const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
+					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
+				}
+			}
+
+			View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+		}
+		else 
+		{
+			// Draw all dynamic primitives using the hit proxy drawing policy.
+			DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
+				RHICmdList,
+				View,
+				View.VisibleDynamicPrimitives,
+				FHitProxyDrawingPolicyFactory::ContextType(),
+				bPreFog,
+				bHitTesting
+				);
+
+			// Draw all visible editor primitives using the hit proxy drawing policy
+			DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
+				RHICmdList,
+				View,
+				View.VisibleEditorPrimitives,
+				FHitProxyDrawingPolicyFactory::ContextType(),
+				bPreFog,
+				bHitTesting
+				);
+		}
 
 		// Draw the view's elements.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_World, bPreFog);
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		View.BatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
+		View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
 
 		// Some elements should never be occluded (e.g. gizmos).
 		// So we render those twice, first to overwrite potentially nearer objects,
@@ -433,14 +477,14 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 		// Draw the view's foreground elements last.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_Foreground, bPreFog);
 
-		View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
+		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
 
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 		// Draw the view's foreground elements last.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_Foreground, bPreFog);
 
-		View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
+		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
 	}
 
 	// Finish drawing to the hit proxy render target.
@@ -462,7 +506,7 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 
 	// Generate the vertices and triangles mapping the hit proxy RT pixels into the view family's RT pixels.
 	FBatchedElements BatchedElements;
-	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
@@ -500,6 +544,7 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 	BatchedElements.Draw(
 				RHICmdList,
+				FeatureLevel,
 				bNeedToSwitchVerticalAxis,
 				PixelToView,
 				RenderTargetSize.X,
@@ -509,5 +554,33 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 				);
 
 	RHICmdList.EndScene();
+}
+#endif
+
+void FForwardShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
+{
+#if WITH_EDITOR
+	TRefCountPtr<IPooledRenderTarget> HitProxyRT = ::InitHitProxyRender(RHICmdList, this);
+	// HitProxyRT==0 should never happen but better we don't crash
+	if (HitProxyRT)
+	{
+		// Find the visible primitives.
+		InitViews(RHICmdList);
+		::RenderHitProxies(RHICmdList, this, HitProxyRT);
+	}
+#endif
+}
+
+void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
+{
+#if WITH_EDITOR
+	TRefCountPtr<IPooledRenderTarget> HitProxyRT = ::InitHitProxyRender(RHICmdList, this);
+	// HitProxyRT==0 should never happen but better we don't crash
+	if (HitProxyRT)
+	{
+		// Find the visible primitives.
+		InitViews(RHICmdList);
+		::RenderHitProxies(RHICmdList, this, HitProxyRT);
+	}
 #endif
 }

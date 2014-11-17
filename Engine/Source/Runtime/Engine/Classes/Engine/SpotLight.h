@@ -2,7 +2,7 @@
 
 #pragma once
 
-
+#include "Engine/Light.h"
 #include "SpotLight.generated.h"
 
 UCLASS(ClassGroup=(Lights, SpotLights), MinimalAPI, meta=(ChildCanTick))
@@ -16,7 +16,7 @@ class ASpotLight : public ALight
 #if WITH_EDITORONLY_DATA
 	// Reference to editor arrow component visualization 
 	UPROPERTY()
-	TSubobjectPtr<UArrowComponent> ArrowComponent;
+	TSubobjectPtr<class UArrowComponent> ArrowComponent;
 #endif
 
 	// BEGIN DEPRECATED (use component functions now in level script)

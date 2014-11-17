@@ -13,11 +13,15 @@ USlider::USlider(const FPostConstructInitializeProperties& PCIP)
 	Orientation = EOrientation::Orient_Horizontal;
 	SliderBarColor = FLinearColor::White;
 	SliderHandleColor = FLinearColor::White;
+
+	SSlider::FArguments Defaults;
+	WidgetStyle = *Defaults._Style;
 }
 
 TSharedRef<SWidget> USlider::RebuildWidget()
 {
 	MySlider = SNew(SSlider)
+		.Style(&WidgetStyle)
 		.OnMouseCaptureBegin(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureBegin))
 		.OnMouseCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureEnd))
 		.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged));
@@ -25,9 +29,9 @@ TSharedRef<SWidget> USlider::RebuildWidget()
 	return MySlider.ToSharedRef();
 }
 
-void USlider::SyncronizeProperties()
+void USlider::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	TAttribute<float> ValueBinding = OPTIONAL_BINDING(float, Value);
 	
@@ -52,15 +56,23 @@ void USlider::HandleOnMouseCaptureEnd()
 	OnMouseCaptureEnd.Broadcast();
 }
 
-float USlider::GetValue()
+float USlider::GetValue() const
 {
-	return MySlider->GetValue();
+	if ( MySlider.IsValid() )
+	{
+		return MySlider->GetValue();
+	}
+
+	return Value;
 }
 
 void USlider::SetValue(float InValue)
 {
 	Value = InValue;
-	return MySlider->SetValue(InValue);
+	if ( MySlider.IsValid() )
+	{
+		MySlider->SetValue(InValue);
+	}
 }
 
 #if WITH_EDITOR
@@ -68,6 +80,11 @@ void USlider::SetValue(float InValue)
 const FSlateBrush* USlider::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.Slider");
+}
+
+const FText USlider::GetPaletteCategory()
+{
+	return LOCTEXT("Common", "Common");
 }
 
 #endif

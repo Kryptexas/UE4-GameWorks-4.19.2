@@ -42,6 +42,11 @@ namespace Lightmass
 			OutI2 = (QuadX + 1) + (QuadY + 1) * NumVertices;
 			break;
 		}
+
+		if (bReverseWinding)
+		{
+			Swap(OutI1, OutI2);
+		}
 	}
 
 	// from FStaticLightMesh....
@@ -116,6 +121,7 @@ namespace Lightmass
 		NumVertices = ComponentSizeQuads + 2*ExpandQuadsX + 1;
 		NumQuads = NumVertices - 1;
 		UVFactor = LightMapRatio / NumVertices;
+		bReverseWinding = (LocalToWorld.RotDeterminant() < 0.0f);
 	}
 
 	void FLandscapeStaticLightingTextureMapping::Import( class FLightmassImporter& Importer )

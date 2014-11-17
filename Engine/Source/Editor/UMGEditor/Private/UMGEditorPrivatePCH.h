@@ -15,7 +15,12 @@
 #include "ScopedTransaction.h"
 #include "TextFilter.h"
 
+#include "ObjectEditorUtils.h"
+
 #include "UMG.h"
+#include "UMGStyle.h"
+
+#include "WidgetDesignerSettings.h"
 
 #include "UMGEditorClasses.h"
 #include "WidgetBlueprint.h"
@@ -36,14 +41,15 @@
 #include "HorizontalSlotExtension.h"
 #include "CanvasSlotExtension.h"
 #include "UniformGridSlotExtension.h"
+#include "GridSlotExtension.h"
 
 #include "DetailCustomizations.h"
-#include "CanvasSlotCustomization.h"
-#include "HorizontalAlignmentCustomization.h"
-#include "VerticalAlignmentCustomization.h"
-#include "SlateChildSizeCustomization.h"
 
 #include "WidgetTemplate.h"
 #include "WidgetTemplateDragDropOp.h"
 
 #include "WidgetBlueprintEditorUtils.h"
+
+#include "WidgetBlueprintLibrary.h"
+
+#include "WidgetBlueprintCompiler.h"

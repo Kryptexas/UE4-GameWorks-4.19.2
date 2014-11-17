@@ -4,8 +4,10 @@
 
 #define LOCTEXT_NAMESPACE "Slate"
 
+
 /** A text box that is used for searching. Meant to be as easy to use as possible with as few options as possible. */
-class SLATE_API SSearchBox : public SEditableTextBox
+class SLATE_API SSearchBox
+	: public SEditableTextBox
 {
 
 public:
@@ -27,7 +29,7 @@ public:
 		, _OnSearch()
 		, _SelectAllTextWhenFocused( true )
 		, _DelayChangeNotificationsWhileTyping( false )
-		{}
+	{ }
 
 		/** Style used to draw this search box */
 		SLATE_STYLE_ARGUMENT( FSearchBoxStyle, Style )
@@ -59,14 +61,19 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
+
+public:
+
+	// SWidget overrides
+
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 private:
 
-	/** Handler for when text in the editable text box changed */
+	/** Callback for changes in the editable text box. */
 	void HandleTextChanged(const FText& NewText);
 
-	/** Handler for when text in the editable text box is committed */
+	/** Callback for committing changes in the editable text box. */
 	void HandleTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
 
 private:
@@ -107,5 +114,6 @@ private:
 	bool bTypingFilterText;
 	FText LastPendingTextChangedValue;
 };
+
 
 #undef LOCTEXT_NAMESPACE

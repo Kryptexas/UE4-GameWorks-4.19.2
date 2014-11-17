@@ -36,6 +36,12 @@
 #cmakedefine inline @HAVE_INLINE@
 #cmakedefine volatile @HAVE_VOLATILE@
 
+/* EG BEGIN */
+/* define this to include SDL functionality needed for Unreal Engine (Slate). */
+#cmakedefine SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
+
+
 /* C datatypes */
 /* Define SIZEOF_VOIDP for 64/32 architectures */
 #ifdef __LP64__

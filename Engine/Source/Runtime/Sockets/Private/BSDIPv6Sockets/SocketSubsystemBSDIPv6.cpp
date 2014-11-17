@@ -18,7 +18,7 @@ FSocket* FSocketSubsystemBSDIPv6::CreateSocket(const FName& SocketType, const FS
 {
 	SOCKET Socket = INVALID_SOCKET;
 	FSocket* NewSocket = NULL;
-	switch (SocketType.GetIndex())
+	switch (SocketType.GetComparisonIndex())
 	{
 	case NAME_DGram:
 		// Creates a data gram (UDP) socket

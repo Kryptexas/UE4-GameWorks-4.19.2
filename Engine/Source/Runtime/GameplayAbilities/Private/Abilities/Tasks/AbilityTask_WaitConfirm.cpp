@@ -5,7 +5,7 @@
 UAbilityTask_WaitConfirm::UAbilityTask_WaitConfirm(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	RegisteredCallback = false;
 }
 
 void UAbilityTask_WaitConfirm::OnConfirmCallback(UGameplayAbility* InAbility)
@@ -13,18 +13,12 @@ void UAbilityTask_WaitConfirm::OnConfirmCallback(UGameplayAbility* InAbility)
 	OnConfirm.Broadcast();
 
 	// We are done. Kill us so we don't keep getting broadcast messages
-	MarkPendingKill();
+	EndTask();
 }
 
 UAbilityTask_WaitConfirm* UAbilityTask_WaitConfirm::WaitConfirm(class UObject* WorldContextObject)
 {
-	check(WorldContextObject);
-
-	UAbilityTask_WaitConfirm * MyObj = NewObject<UAbilityTask_WaitConfirm>();
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	MyObj->InitTask(ThisAbility);	
-
-	return MyObj;
+	return NewTask<UAbilityTask_WaitConfirm>(WorldContextObject);	
 }
 
 void UAbilityTask_WaitConfirm::Activate()
@@ -33,8 +27,10 @@ void UAbilityTask_WaitConfirm::Activate()
 	{
 		if (Ability->GetCurrentActivationInfo().ActivationMode == EGameplayAbilityActivationMode::Predicting)
 		{
-			// Register delegate so that when we are confirmed by the server, we call OnConfirmCallback
+			// Register delegate so that when we are confirmed by the server, we call OnConfirmCallback	
+			
 			Ability->OnConfirmDelegate.AddUObject(this, &UAbilityTask_WaitConfirm::OnConfirmCallback);
+			RegisteredCallback = true;
 		}
 		else
 		{
@@ -42,4 +38,14 @@ void UAbilityTask_WaitConfirm::Activate()
 			OnConfirmCallback(Ability.Get());
 		}
 	}
+}
+
+void UAbilityTask_WaitConfirm::OnDestroy(bool AbilityEnded)
+{
+	if (RegisteredCallback && Ability.IsValid())
+	{
+		Ability->OnConfirmDelegate.RemoveUObject(this, &UAbilityTask_WaitConfirm::OnConfirmCallback);
+	}
+
+	Super::OnDestroy(AbilityEnded);
 }

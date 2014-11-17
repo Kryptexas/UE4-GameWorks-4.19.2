@@ -9,11 +9,12 @@
 class SLATE_API SBox : public SPanel
 {
 	public:
-		class FBoxSlot : public TSupportsContentAlignmentMixin<FBoxSlot>, public TSupportsContentPaddingMixin<FBoxSlot>, public TSupportsOneChildMixin<SWidget, FBoxSlot>
+		class FBoxSlot : public TSupportsOneChildMixin<FBoxSlot>, public TSupportsContentAlignmentMixin<FBoxSlot>, public TSupportsContentPaddingMixin<FBoxSlot>
 		{
 			public:
 				FBoxSlot()
-				: TSupportsContentAlignmentMixin<FBoxSlot>(HAlign_Fill, VAlign_Fill)
+				: TSupportsOneChildMixin<FBoxSlot>()
+				, TSupportsContentAlignmentMixin<FBoxSlot>(HAlign_Fill, VAlign_Fill)
 				{
 				}
 		};
@@ -25,6 +26,10 @@ class SLATE_API SBox : public SPanel
 			, _Content()
 			, _WidthOverride(FOptionalSize())
 			, _HeightOverride(FOptionalSize())
+			, _MinDesiredWidth(FOptionalSize())
+			, _MinDesiredHeight(FOptionalSize())
+			, _MaxDesiredWidth(FOptionalSize())
+			, _MaxDesiredHeight(FOptionalSize())
 			{
 				_Visibility = EVisibility::SelfHitTestInvisible;
 			}
@@ -47,7 +52,21 @@ class SLATE_API SBox : public SPanel
 			/** When specified, ignore the content's desired size and report the HeightOverride as the Box's desired height. */
 			SLATE_ATTRIBUTE( FOptionalSize, HeightOverride)
 
+			/** When specified, will report the MinDesiredWidth if larger than the content's desired width. */
+			SLATE_ATTRIBUTE(FOptionalSize, MinDesiredWidth)
+
+			/** When specified, will report the MinDesiredHeight if larger than the content's desired height. */
+			SLATE_ATTRIBUTE(FOptionalSize, MinDesiredHeight)
+
+			/** When specified, will report the MaxDesiredWidth if smaller than the content's desired width. */
+			SLATE_ATTRIBUTE(FOptionalSize, MaxDesiredWidth)
+
+			/** When specified, will report the MaxDesiredHeight if smaller than the content's desired height. */
+			SLATE_ATTRIBUTE(FOptionalSize, MaxDesiredHeight)
+
 		SLATE_END_ARGS()
+
+		SBox();
 
 		void Construct( const FArguments& InArgs );
 
@@ -61,7 +80,36 @@ class SLATE_API SBox : public SPanel
 		 * See the Content slot.
 		 */
 		void SetContent(const TSharedRef< SWidget >& InContent);
+
+		/** See HAlign argument */
+		void SetHAlign(EHorizontalAlignment HAlign);
+
+		/** See VAlign argument */
+		void SetVAlign(EVerticalAlignment VAlign);
+
+		/** See Padding attribute */
+		void SetPadding(const TAttribute<FMargin>& InPadding);
+
+		/** See WidthOverride attribute */
+		void SetWidthOverride(TAttribute<FOptionalSize> InWidthOverride);
+
+		/** See HeightOverride attribute */
+		void SetHeightOverride(TAttribute<FOptionalSize> InHeightOverride);
+
+		/** See MinDesiredWidth attribute */
+		void SetMinDesiredWidth(TAttribute<FOptionalSize> InMinDesiredWidth);
+
+		/** See MinDesiredHeight attribute */
+		void SetMinDesiredHeight(TAttribute<FOptionalSize> InMinDesiredHeight);
+
+		/** See MaxDesiredWidth attribute */
+		void SetMaxDesiredWidth(TAttribute<FOptionalSize> InMaxDesiredWidth);
+
+		/** See MaxDesiredHeight attribute */
+		void SetMaxDesiredHeight(TAttribute<FOptionalSize> InMaxDesiredHeight);
+
 private:
+
 		FBoxSlot ChildSlot;
 
 		/** When specified, ignore the content's desired size and report the.WidthOverride as the Box's desired width. */
@@ -69,7 +117,18 @@ private:
 
 		/** When specified, ignore the content's desired size and report the.HeightOverride as the Box's desired height. */
 		TAttribute<FOptionalSize> HeightOverride;
-	
+		
+		/** When specified, will report the MinDesiredWidth if larger than the content's desired width. */
+		TAttribute<FOptionalSize> MinDesiredWidth;
+
+		/** When specified, will report the MinDesiredHeight if larger than the content's desired height. */
+		TAttribute<FOptionalSize> MinDesiredHeight;
+
+		/** When specified, will report the MaxDesiredWidth if smaller than the content's desired width. */
+		TAttribute<FOptionalSize> MaxDesiredWidth;
+
+		/** When specified, will report the MaxDesiredHeight if smaller than the content's desired height. */
+		TAttribute<FOptionalSize> MaxDesiredHeight;
 };
 
 

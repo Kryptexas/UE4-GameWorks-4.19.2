@@ -19,7 +19,7 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!PawnOwner || !UpdatedComponent)
+	if (!PawnOwner || !UpdatedComponent || ShouldSkipUpdate(DeltaTime))
 	{
 		return;
 	}
@@ -45,7 +45,7 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 
 			if (Hit.IsValidBlockingHit())
 			{
-				HandleImpact(Hit);
+				HandleImpact(Hit, DeltaTime, Delta);
 				// Try to slide the remaining distance along the surface.
 				SlideAlongSurface(Delta, 1.f-Hit.Time, Hit.Normal, Hit, true);
 			}
@@ -86,7 +86,7 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
-	const FVector ControlAcceleration = GetInputVector().ClampMaxSize(1.f);
+	const FVector ControlAcceleration = GetPendingInputVector().ClampMaxSize(1.f);
 
 	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
 	const float MaxPawnSpeed = GetMaxSpeed() * AnalogInputModifier;

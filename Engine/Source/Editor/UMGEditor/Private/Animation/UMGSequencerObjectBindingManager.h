@@ -7,7 +7,7 @@
 class FUMGSequencerObjectBindingManager : public ISequencerObjectBindingManager
 {
 public:
-	FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UMovieScene& InMovieScene );
+	FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation );
 	~FUMGSequencerObjectBindingManager();
 
 	/** ISequencerObjectBindingManager interface */
@@ -20,6 +20,12 @@ public:
 	virtual void UnbindPossessableObjects( const FGuid& PossessableGuid ) override;
 	virtual void GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const override;
 	
+	/** @return true if the current animation is valid */
+	bool HasValidWidgetAnimation() const;
+
+	/** @return the current widget animation */
+	UWidgetAnimation* GetWidgetAnimation() { return WidgetAnimation.Get(); }
+
 	/** Rebuilds mappings to live preview objects */
 	void InitPreviewObjects();
 
@@ -29,7 +35,7 @@ private:
 	/** Mapping of preview objects to sequencer guids */
 	TMap< TWeakObjectPtr<UObject>, FGuid> PreviewObjectToGuidMap;
 
-	TWeakObjectPtr<UMovieScene> MovieScene;
+	TWeakObjectPtr<UWidgetAnimation> WidgetAnimation;
 
 	FWidgetBlueprintEditor& WidgetBlueprintEditor;
 };

@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="NewIncludePaths">List of include paths to add</param>
 		/// <param name="bAddingSystemIncludes">Are the include paths to add system include paths</param>
-		void AddInteliiSenseIncludePaths( List<string> NewIncludePaths, bool bAddingSystemIncludes );
+		void AddInteliiSenseIncludePaths(HashSet<string> NewIncludePaths, bool bAddingSystemIncludes);
 	}
 
 
@@ -171,6 +171,14 @@ namespace UnrealBuildTool
 			set;
 		}
 
+		/// Whether this project should be built for all solution targets
+		public bool ShouldBuildForAllSolutionTargets
+		{
+			get;
+			set;
+		}
+
+
 
 
 		/// All of the targets in this project.  All non-stub projects must have at least one target.
@@ -299,7 +307,7 @@ namespace UnrealBuildTool
 		/// Adds all of the specified include paths to this VCProject's list of include paths for all modules in the project
 		/// </summary>
 		/// <param name="NewIncludePaths">List of include paths to add</param>
-		public void AddInteliiSenseIncludePaths( List<string> NewIncludePaths, bool bAddingSystemIncludes ) 
+		public void AddInteliiSenseIncludePaths(HashSet<string> NewIncludePaths, bool bAddingSystemIncludes) 
 		{
 			foreach( var CurPath in NewIncludePaths )
 			{
@@ -432,6 +440,12 @@ namespace UnrealBuildTool
 				Result = "\"" + Result + "\"";
 			}
 			return Result;
+		}
+
+		/** Visualizer for the debugger */
+		public override string ToString()
+		{
+			return RelativeProjectFilePath;
 		}
 
 		/// Map of file paths to files in the project.

@@ -5,8 +5,8 @@
  */
 
 #pragma once
-
-#include "Editor/UnrealEd/Classes/ThumbnailRendering/SceneThumbnailInfo.h"
+#include "Camera/CameraTypes.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
 #include "WorldThumbnailInfo.generated.h"
 
 UENUM()

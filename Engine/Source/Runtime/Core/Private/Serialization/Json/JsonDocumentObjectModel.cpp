@@ -63,7 +63,15 @@ bool FJsonValue::TryGetNumber(int32& OutNumber) const
 	double Double;
 	if(TryGetNumber(Double) && Double >= INT_MIN && Double <= INT_MAX)
 	{
-		OutNumber = (int32)(Double + 0.5);
+		if (Double >= 0.0)
+		{
+			OutNumber = (int32)(Double + 0.5);
+		}
+		else
+		{
+			OutNumber = (int32)(Double - 0.5);
+		}
+		
 		return true;
 	}
 	return false;

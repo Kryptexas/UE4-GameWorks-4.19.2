@@ -824,7 +824,7 @@ void FLevelCollectionViewModel::ClearStreamingLevelVolumes()
 					if ( LevelStreamingVolume )
 					{
 						LevelStreamingVolume->Modify();
-						LevelStreamingVolume->StreamingLevelNames.Remove( StreamingLevel->PackageName );
+						LevelStreamingVolume->StreamingLevelNames.Remove( StreamingLevel->GetWorldAssetPackageFName() );
 					}
 				}
 
@@ -1108,23 +1108,21 @@ void FLevelCollectionViewModel::MoveActorsToSelected_Executed()
 			{
 				TArray<AActor*> ControlledActors;
 				InterpEditMode->MatineeActor->GetControlledActors(ControlledActors);
-				if (ControlledActors.Num() > 0)
+
+				// are any of the selected actors in the matinee
+				USelection* SelectedActors = GEditor->GetSelectedActors();
+				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 				{
-					// are any of the selected actors in the matinee
-					USelection* SelectedActors = GEditor->GetSelectedActors();
-					for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+					AActor* Actor = CastChecked<AActor>(*Iter);
+					if (Actor != nullptr && (Actor == InterpEditMode->MatineeActor || ControlledActors.Contains(Actor)))
 					{
-						AActor* Actor = CastChecked<AActor>(*Iter);
-						if (Actor != nullptr && ControlledActors.Contains(Actor))
+						const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "MatineeUnableToMove", "You must close Matinee before moving actors.\nDo you wish to do this now and continue?"));
+						if (!ExitInterp)
 						{
-							const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "MatineeUnableToMove", "You must close Matinee before moving actors.\nDo you wish to do this now and continue?"));
-							if (!ExitInterp)
-							{
-								return;
-							}
-							GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_InterpEdit);
-							break;
+							return;
 						}
+						GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_InterpEdit);
+						break;
 					}
 				}
 			}
@@ -1400,7 +1398,7 @@ void FLevelCollectionViewModel::AddExistingLevel_Executed()
 
 void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter)
 {
-	if ( FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")) )
+	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
 		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
 		const bool bAllowMultipleSelection = true;
@@ -1825,7 +1823,7 @@ void FLevelCollectionViewModel::AddStreamingLevelVolumes()
 
 					// Associate the level to the volume.
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevelNames.AddUnique( StreamingLevel->PackageName );
+					LevelStreamingVolume->StreamingLevelNames.AddUnique( StreamingLevel->GetWorldAssetPackageFName() );
 
 					// Associate the volume to the level.
 					StreamingLevel->EditorStreamingVolumes.AddUnique( LevelStreamingVolume );
@@ -2121,33 +2119,30 @@ bool FLevelCollectionViewModel::IsValidMoveActorsToLevel()
 	if (bSelectionHasChanged)
 	{
 		bSelectionHasChanged = false;
-		USelection* SelectedActors = GEditor->GetSelectedActors();
+		bCachedIsValidActorMoveResult = false;
 
-		// you cant move no selected actors to a level
-		if (SelectedActors->Num() == 0)
+		// We only operate on a single level
+		if ( SelectedLevels.Num() == 1 )
 		{
-			bCachedIsValidActorMoveResult = false;
-			return false;
-		}
-
-		// are any of the selected actors in the selected levels
-		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
-		{
-			AActor* Actor = CastChecked<AActor>(*Iter);
-			if (Actor != nullptr)
+			ULevel* Level = SelectedLevels[0]->GetLevel().Get();
+			if ( Level )
 			{
-				const ULevel* ActorsLevel = Actor->GetLevel();
-				for (TSharedPtr<FLevelViewModel> SelectedLevel : SelectedLevels)
+				// Allow the move if at least one actor is in another level
+				USelection* SelectedActors = GEditor->GetSelectedActors();
+				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 				{
-					if (SelectedLevel->GetLevel().Get() == ActorsLevel)
+					AActor* Actor = CastChecked<AActor>(*Iter);
+					if (Actor != nullptr)
 					{
-						bCachedIsValidActorMoveResult = false;
-						return false;
+						if (Actor->GetLevel() != Level)
+						{
+							bCachedIsValidActorMoveResult = true;
+							break;
+						}
 					}
 				}
 			}
 		}
-		bCachedIsValidActorMoveResult = true;
 	}
 
 	// if non of the selected actors are in the level, just check the level is unlocked

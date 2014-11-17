@@ -9,7 +9,6 @@ const FName FBlueprintEditorTabs::DebugID( TEXT( "Debug" ) );
 const FName FBlueprintEditorTabs::PaletteID( TEXT( "PaletteList" ) );
 const FName FBlueprintEditorTabs::CompilerResultsID( TEXT( "CompilerResults" ) );
 const FName FBlueprintEditorTabs::FindResultsID( TEXT( "FindResults" ) );
-const FName FBlueprintEditorTabs::MergeToolID(TEXT("MergeTool"));
 const FName FBlueprintEditorTabs::ConstructionScriptEditorID( TEXT( "ConstructionScriptEditor" ) );
 const FName FBlueprintEditorTabs::SCSViewportID( TEXT( "SCSViewport" ) );
 const FName FBlueprintEditorTabs::MyBlueprintID( TEXT( "MyBlueprint" ) );

@@ -33,7 +33,7 @@ public:
 	/**
 	 * Destructor.
 	 */
-	~FAutomationTestPreset( ) { }
+	virtual ~FAutomationTestPreset( ) { }
 
 	/**
 	 * Gets the GUid for this preset
@@ -115,6 +115,8 @@ public:
 	 */
 	FAutomationTestPresetManager();
 
+	virtual ~FAutomationTestPresetManager() {}
+
 	/**
 	 * Creates a new empty preset
 	 */
@@ -144,7 +146,7 @@ public:
 	 */
 	void SavePreset( const AutomationPresetRef Preset);
 
-	/*
+	/**
 	* Load all Presets from disk.
 	*/
 	void LoadPresets( );

@@ -6,22 +6,24 @@
 
 #include "CanvasPanelSlot.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAnchorData
 {
 public:
 	GENERATED_USTRUCT_BODY()
 
+public:
+
 	/** Offset. */
-	UPROPERTY(EditAnywhere, Category=AnchorData)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnchorData)
 	FMargin Offsets;
 	
 	/** Anchors. */
-	UPROPERTY(EditAnywhere, Category=AnchorData)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnchorData)
 	FAnchors Anchors;
 
 	/** Alignment. */
-	UPROPERTY(EditAnywhere, Category=AnchorData)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnchorData)
 	FVector2D Alignment;
 };
 
@@ -31,11 +33,15 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	GENERATED_UCLASS_BODY()
 
 	/** The anchoring information for the slot */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)")
 	FAnchorData LayoutData;
 
+	/** When AutoSize is true we use the widget's desired size */
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)", AdvancedDisplay, meta=(DisplayName="Size To Content"))
+	bool bAutoSize;
+
 	/** The order priority this widget is rendered in.  Higher values are rendered last (and so they will appear to be on top). */
-	UPROPERTY(EditDefaultsOnly, Category=AnchorData)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)")
 	int32 ZOrder;
 
 	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
@@ -49,32 +55,58 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	virtual bool CanResize(const FVector2D& Direction) const override;
 
 	/** Sets the position of the slot */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	void SetPosition(FVector2D InPosition);
+
+	/** Sets the size of the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	void SetSize(FVector2D InSize);
+
+	/** Sets the position of the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetOffsets(FMargin InOffset);
 	
 	/** Sets the anchors on the slot */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetAnchors(FAnchors InAnchors);
 
 	/** Sets the alignment on the slot */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetAlignment(FVector2D InAlignment);
 
+	/** Sets the slot to be auto-sized */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	void SetAutoSize(bool InbAutoSize);
+
 	/** Sets the z-order on the slot */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetZOrder(int32 InZOrder);
 
+	/** Sets the anchors on the slot */
+	UFUNCTION()
+	void SetMinimum(FVector2D InMinimumAnchors);
+
+	/** Sets the anchors on the slot */
+	UFUNCTION()
+	void SetMaximum(FVector2D InMaximumAnchors);
+
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	// UObject interface
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange);
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
 	// End of UObject interface
+
+	/** Stores the current layout information about the slot and parent canvas. */
+	void SaveBaseLayout();
+
+	/** Compares the saved base layout against the current state.  Updates the necessary properties to maintain a stable position. */
+	void RebaseLayout(bool PreserveSize = true);
 #endif
 
 private:

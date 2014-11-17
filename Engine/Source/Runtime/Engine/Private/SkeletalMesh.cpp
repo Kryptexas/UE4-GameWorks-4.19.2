@@ -1904,7 +1904,7 @@ bool FSkeletalMeshResource::RequiresCPUSkinning(ERHIFeatureLevel::Type FeatureLe
 	const int32 MaxGPUSkinBones = GetFeatureLevelMaxNumberOfBones(FeatureLevel);
 	const int32 MaxBonesPerChunk = GetMaxBonesPerChunk();
 	// Do CPU skinning if we need too many bones per chunk, or if we have too many influences per vertex on lower end
-	return (MaxBonesPerChunk > MaxGPUSkinBones) || (HasExtraBoneInfluences() && FeatureLevel < ERHIFeatureLevel::SM3);
+	return (MaxBonesPerChunk > MaxGPUSkinBones) || (HasExtraBoneInfluences() && FeatureLevel < ERHIFeatureLevel::ES3_1);
 }
 
 /*-----------------------------------------------------------------------------
@@ -2488,8 +2488,15 @@ void USkeletalMesh::CalculateInvRefMatrices()
 			}
 
 			// Precompute inverse so we can use from-refpose-skin vertices.
-			RefBasesInvMatrix[b] = RefBases[b].Inverse(); 
+			RefBasesInvMatrix[b] = RefBases[b].InverseFast(); 
 		}
+
+#if WITH_EDITORONLY_DATA
+		if(RetargetBasePose.Num() == 0)
+		{
+			RetargetBasePose = RefSkeleton.GetRefBonePose();
+		}
+#endif // WITH_EDITORONLY_DATA
 	}
 }
 
@@ -2685,6 +2692,13 @@ void USkeletalMesh::PostLoad()
 		// Rebuild name table.
 		RefSkeleton.RebuildNameToIndexMap();
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (RetargetBasePose.Num() == 0)
+	{
+		RetargetBasePose = RefSkeleton.GetRefBonePose();
+	}
+#endif
 }
 
 void USkeletalMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
@@ -3579,11 +3593,9 @@ void ASkeletalMeshActor::CheckForErrors()
 
 		if (SkeletalMeshComponent->SkeletalMesh == NULL)
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SkeletalMeshNull", "{ActorName} : Skeletal mesh actor has NULL SkeletalMesh property" ), Arguments ) ))
+				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_SkeletalMeshNull", "Skeletal mesh actor has NULL SkeletalMesh property")))
 				->AddToken(FMapErrorToken::Create(FMapErrors::SkeletalMeshNull));
 		}
 	}
@@ -3593,7 +3605,7 @@ void ASkeletalMeshActor::CheckForErrors()
 		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SkeletalMeshComponent", "{ActorName} : Skeletal mesh actor has NULL SkeletalMeshComponent property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_SkeletalMeshComponent", "Skeletal mesh actor has NULL SkeletalMeshComponent property")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::SkeletalMeshComponent));
 	}
 }
@@ -3779,13 +3791,10 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	SkelMeshResource(InSkelMeshResource)
 		,	SkeletalMeshForDebug(Component->SkeletalMesh)
 		,	PhysicsAssetForDebug(Component->GetPhysicsAsset())
-		,	LevelColor(255,255,255)
-		,	PropertyColor(255,255,255)
 		,	bForceWireframe(Component->bForceWireframe)
 		,	bCanHighlightSelectedSections(Component->bCanHighlightSelectedSections)
-		,	MaterialRelevance(Component->GetMaterialRelevance())
+		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene()->GetFeatureLevel()))
 		,	bMaterialsNeedMorphUsage_GameThread(false)
-		,   WireframeOverlayColor(255, 255, 255, 255)
 {
 	check(MeshObject);
 	check(SkelMeshResource);
@@ -3798,6 +3807,8 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 	{
 		bAlwaysHasVelocity = true;
 	}
+
+	const auto FeatureLevel = GetScene()->GetFeatureLevel();
 
 	// setup materials and performance classification for each LOD.
 	extern bool GForceDefaultMaterial;
@@ -3840,7 +3851,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			if (GForceDefaultMaterial && Material && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				MaterialRelevance |= Material->GetRelevance();
+				MaterialRelevance |= Material->GetRelevance(FeatureLevel);
 			}
 
 			// if this is a clothing section, then enabled and will be drawn but the corresponding original section should be disabled
@@ -3856,7 +3867,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			  (bClothSection && !Material->CheckMaterialUsage(MATUSAGE_Clothing)))
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				MaterialRelevance |= Material->GetRelevance();
+				MaterialRelevance |= Material->GetRelevance(FeatureLevel);
 			}
 
 			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, GetScene()->GetFeatureLevel() );
@@ -3867,7 +3878,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 					*Material->GetPathName(), 
 					*Component->SkeletalMesh->GetPathName() )
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
-				MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance();
+				MaterialRelevance |= UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance(FeatureLevel);
 			}
 
 			bool bSectionCastsShadow = !bSectionHidden && bCastShadow &&
@@ -3893,12 +3904,14 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 		if ( LevelStreaming )
 		{
-			LevelColor = LevelStreaming->DrawColor;
+			LevelColor = LevelStreaming->LevelColor;
 		}
 	}
 
 	// Get a color for property coloration
-	GEngine->GetPropertyColorationColor( (UObject*)Component, PropertyColor );
+	FColor NewPropertyColor;
+	GEngine->GetPropertyColorationColor( (UObject*)Component, NewPropertyColor );
+	PropertyColor = NewPropertyColor;
 }
 
 // FPrimitiveSceneProxy interface.
@@ -4049,6 +4062,87 @@ HHitProxy* FSkeletalMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Compon
 }
 #endif
 
+void FSkeletalMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FSkeletalMeshSceneProxy_GetMeshElements);
+	GetMeshElementsConditionallySelectable(Views, ViewFamily, true, VisibilityMap, Collector);
+}
+
+void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+{
+	if( !MeshObject )
+	{
+		return;
+	}	
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		if (VisibilityMap & (1 << ViewIndex))
+		{
+			const FSceneView* View = Views[ViewIndex];
+			MeshObject->UpdateMinDesiredLODLevel(View, GetBounds(), GFrameNumberRenderThread);
+		}
+	}
+
+	const int32 LODIndex = MeshObject->GetLOD();
+	check(LODIndex < SkelMeshResource->LODModels.Num());
+	const FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+	if( LODSections.Num() > 0 )
+	{
+		const FLODSectionElements& LODSection = LODSections[LODIndex];
+
+		check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
+
+		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
+		{
+			FSkelMeshSection Section = Iter.GetSection();
+			const FSkelMeshChunk& Chunk = Iter.GetChunk();
+			const FSectionElementInfo& SectionElementInfo = Iter.GetSectionElementInfo();
+			const FTwoVectors& CustomLeftRightVectors = Iter.GetCustomLeftRightVectors();
+
+#if WITH_EDITORONLY_DATA
+			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
+			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionElementInfo.UseMaterialIndex);
+#endif
+			// If hidden skip the draw
+			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
+			{
+				continue;
+			}
+
+			// If disabled, then skip the draw
+			if(Section.bDisabled)
+			{
+				continue;
+			}
+
+			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors, bSelectable, Collector);
+		}
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		if (VisibilityMap & (1 << ViewIndex))
+		{
+			// debug drawing
+			TArray<FTransform>* BoneSpaceBases = MeshObject->GetSpaceBases();
+
+			if( PhysicsAssetForDebug )
+			{
+				DebugDrawPhysicsAsset(Collector.GetPDI(ViewIndex),ViewFamily.EngineShowFlags);
+			}
+
+			if (ViewFamily.EngineShowFlags.SkeletalMeshes)
+			{
+				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+			}
+		}
+	}
+#endif
+}
+
 /** 
 * Draw the scene proxy as a dynamic element
 *
@@ -4114,7 +4208,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, 
 
 	if( PhysicsAssetForDebug )
 	{
-		DebugDrawPhysicsAsset(PDI,View);
+		DebugDrawPhysicsAsset(PDI,View->Family->EngineShowFlags);
 	}
 
 	if (View->Family->EngineShowFlags.SkeletalMeshes)
@@ -4124,46 +4218,141 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, 
 #endif
 }
 
-/** 
-* Draw only one section of the scene proxy as a dynamic element
-*
-* @param	PDI - draw interface to render to
-* @param	View - current view
-* @param 	ForceLOD - Force this LOD. If -1, use current LOD of mesh. 
-* @param	InMaterial - which material section to draw
-*/
-void FSkeletalMeshSceneProxy::DrawDynamicElementsByMaterial(FPrimitiveDrawInterface* PDI,const FSceneView* View, int32 ForceLOD, int32 InMaterial)
+void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
+	const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
+	const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bSelectable, FMeshElementCollector& Collector ) const
 {
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_SkeletalMeshSceneProxy_DrawDynamicElementsByMaterial );
-
-	// Check if this has valid DynamicData
-	if( !MeshObject || !MeshObject->HaveValidDynamicData())
+	// If hidden skip the draw
+	if (Section.bDisabled || MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
 	{
 		return;
-	}		  
+	}
 
-	const int32 LODIndex = ( ForceLOD<0 )? MeshObject->GetLOD() : ForceLOD;
-	check(LODIndex < SkelMeshResource->LODModels.Num());
-	const FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
-	const FLODSectionElements& LODSection = LODSections[LODIndex];
+#if !WITH_EDITOR
+	const bool bIsSelected = false;
+#else // #if !WITH_EDITOR
+	bool bIsSelected = IsSelected();
 
-	check(LODSection.SectionElements.Num()==LODModel.Sections.Num());
-
-	for (FSkeletalMeshSectionIter Iter(LODIndex,*MeshObject,LODModel,LODSection); Iter; ++Iter)
+	// if the mesh isn't selected but the mesh section is selected in the AnimSetViewer, find the mesh component and make sure that it can be highlighted (ie. are we rendering for the AnimSetViewer or not?)
+	if( !bIsSelected && Section.bSelected && bCanHighlightSelectedSections )
 	{
-		const FSkelMeshSection& Section = Iter.GetSection();
-		const FSkelMeshChunk& Chunk = Iter.GetChunk();
-		const FSectionElementInfo& SectionElementInfo = Iter.GetSectionElementInfo();
-		const FTwoVectors& CustomLeftRightVectors = Iter.GetCustomLeftRightVectors();
+		bIsSelected = true;
+	}
+#endif // #if WITH_EDITOR
 
-		if (SectionElementInfo.UseMaterialIndex != InMaterial)
+	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
+	const ERHIFeatureLevel::Type FeatureLevel = ViewFamily.GetFeatureLevel();
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		if (VisibilityMap & (1 << ViewIndex))
 		{
-			continue;
-		}
+			const FSceneView* View = Views[ViewIndex];
 
-		DrawDynamicElementsSection(PDI, View, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors );
+			FMeshBatch& Mesh = Collector.AllocateMesh();
+			FMeshBatchElement& BatchElement = Mesh.Elements[0];
+			Mesh.DynamicVertexData = NULL;
+			Mesh.UseDynamicData = false;
+			Mesh.LCI = NULL;
+			Mesh.bWireframe |= bForceWireframe;
+			Mesh.Type = PT_TriangleList;
+			Mesh.VertexFactory = MeshObject->GetVertexFactory(LODIndex,Section.ChunkIndex);
+			Mesh.bSelectable = bSelectable;
+			BatchElement.FirstIndex = Section.BaseIndex;
+
+			BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
+			BatchElement.MaxVertexIndex = LODModel.NumVertices - 1;
+
+			BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
+
+			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType(), ViewFamily.GetFeatureLevel() );
+			if ( bRequiresAdjacencyInformation )
+			{
+				check( LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
+				BatchElement.IndexBuffer = LODModel.AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
+				Mesh.Type = PT_12_ControlPointPatchList;
+				BatchElement.FirstIndex *= 4;
+			}
+
+		#if WITH_EDITOR
+
+			Mesh.BatchHitProxyId = SectionElementInfo.HitProxy ? SectionElementInfo.HitProxy->Id : FHitProxyId();
+
+			if (Section.bSelected)
+			{
+				auto SelectionOverrideProxy = new FOverrideSelectionColorMaterialRenderProxy(
+					SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
+					GetSelectionColor(GEngine->GetSelectedMaterialColor(), bIsSelected, IsHovered())
+					);
+
+				Collector.RegisterOneFrameMaterialProxy(SelectionOverrideProxy);
+
+				Mesh.MaterialRenderProxy = SelectionOverrideProxy;
+			}
+			else
+			{
+				Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+			}
+		#else
+			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+		#endif
+
+			BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+
+			// Select which indices to use if TRISORT_CustomLeftRight
+			if( Section.TriangleSorting == TRISORT_CustomLeftRight )
+			{
+				switch( MeshObject->CustomSortAlternateIndexMode )
+				{
+				case CSAIM_Left:
+					// Left view - use second set of indices.
+					BatchElement.FirstIndex += Section.NumTriangles * 3;
+					break;
+				case  CSAIM_Right:
+					// Right view - use first set of indices.
+					break;
+				default:
+					// Calculate the viewing direction
+					FVector SortWorldOrigin = GetLocalToWorld().TransformPosition(CustomLeftRightVectors.v1);
+					FVector SortWorldDirection = GetLocalToWorld().TransformVector(CustomLeftRightVectors.v2);
+
+					if( (SortWorldDirection | (SortWorldOrigin - View->ViewMatrices.ViewOrigin)) < 0.f )
+					{
+						BatchElement.FirstIndex += Section.NumTriangles * 3;
+					}
+					break;
+				}
+			}
+
+			BatchElement.NumPrimitives = Section.NumTriangles;
+			if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
+			{
+				if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent)
+				{
+					BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
+					if( BatchElement.NumPrimitives == 0 )
+					{
+						continue;
+					}
+				}
+			}
+			BatchElement.MinVertexIndex = Chunk.BaseVertexIndex;
+			Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+			Mesh.CastShadow = SectionElementInfo.bEnableShadowCasting;
+
+			Mesh.bCanApplyViewModeOverrides = true;
+			Mesh.bUseWireframeSelectionColoring = bIsSelected;
+
+			Collector.AddMesh(ViewIndex, Mesh);
+
+			const int32 NumVertices = Chunk.NumRigidVertices + Chunk.NumSoftVertices;
+			INC_DWORD_STAT_BY(STAT_GPUSkinVertices,(uint32)(bIsCPUSkinned ? 0 : NumVertices));
+			INC_DWORD_STAT_BY(STAT_SkelMeshTriangles,Mesh.GetNumPrimitives());
+			INC_DWORD_STAT(STAT_SkelMeshDrawCalls);
+		}
 	}
 }
+
 void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface* PDI,const FSceneView* View,
 														const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, 
 														const FSkelMeshChunk& Chunk, const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors )
@@ -4180,8 +4369,9 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	}
 #endif // #if WITH_EDITOR
 
+	const auto FeatureLevel = View->GetFeatureLevel();
+
 	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-	FLinearColor WireframeLinearColor(WireframeOverlayColor);
 
 	if(Section.bDisabled)
 		return;
@@ -4207,7 +4397,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 
 	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
 
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), View->GetFeatureLevel());
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), FeatureLevel);
 	if ( bRequiresAdjacencyInformation )
 	{
 		check( LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
@@ -4263,7 +4453,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	BatchElement.NumPrimitives = Section.NumTriangles;
 	if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 	{
-		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent)
+		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode() == BLEND_Translucent)
 		{
 			BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
 			if( BatchElement.NumPrimitives == 0 )
@@ -4292,7 +4482,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	const int32 NumPasses = DrawRichMesh(
 		PDI,
 		Mesh,
-		WireframeLinearColor,
+		WireframeColor,
 		LevelColor,
 		PropertyColor,
 		this,
@@ -4308,14 +4498,13 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 
 /**
  * Returns the world transform to use for drawing.
- * @param View - Current view
  * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
  * @param OutWorldToLocal - Will contain the world-to-local transform when the function returns.
  */
-void FSkeletalMeshSceneProxy::GetWorldMatrices( const FSceneView* View, FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal )
+void FSkeletalMeshSceneProxy::GetWorldMatrices( FMatrix& OutLocalToWorld, FMatrix& OutWorldToLocal ) const
 {
 	OutLocalToWorld = GetLocalToWorld();
-	OutWorldToLocal = GetLocalToWorld().Inverse();
+	OutWorldToLocal = GetLocalToWorld().InverseFast();
 }
 
 /**
@@ -4356,10 +4545,10 @@ int32 FSkeletalMeshSceneProxy::GetCurrentLODIndex()
 /** 
  * Render physics asset for debug display
  */
-void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI,const FSceneView* View)
+void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags) const
 {
 	FMatrix LocalToWorld, WorldToLocal;
-	GetWorldMatrices( View, LocalToWorld, WorldToLocal );
+	GetWorldMatrices( LocalToWorld, WorldToLocal );
 
 	FMatrix ScalingMatrix = LocalToWorld;
 	FVector TotalScale = ScalingMatrix.ExtractScaling();
@@ -4373,11 +4562,11 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI
 		if(BoneSpaceBases)
 		{
 			check(PhysicsAssetForDebug);
-			if( View->Family->EngineShowFlags.Collision && IsCollisionEnabled() )
+			if( EngineShowFlags.Collision && IsCollisionEnabled() )
 			{
 				PhysicsAssetForDebug->DrawCollision(PDI, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
 			}
-			if( View->Family->EngineShowFlags.Constraints )
+			if( EngineShowFlags.Constraints )
 			{
 				PhysicsAssetForDebug->DrawConstraints(PDI, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
 			}
@@ -4416,10 +4605,11 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 		// update the new LODSections on the render thread proxy
 		if (MaterialsToSwap.Num())
 		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			UpdateSkelProxyLODSectionElementsCmd,
 				TSet<UMaterialInterface*>,MaterialsToSwap,MaterialsToSwap,
 				UMaterialInterface*,DefaultMaterial,UMaterial::GetDefaultMaterial(MD_Surface),
+				ERHIFeatureLevel::Type, FeatureLevel, GetScene()->GetFeatureLevel(),
 			FSkeletalMeshSceneProxy*,SkelMeshSceneProxy,this,
 			{
 					for( int32 LodIdx=0; LodIdx < SkelMeshSceneProxy->LODSections.Num(); LodIdx++ )
@@ -4435,7 +4625,7 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 							}
 						}
 					}
-					SkelMeshSceneProxy->MaterialRelevance |= DefaultMaterial->GetRelevance();
+					SkelMeshSceneProxy->MaterialRelevance |= DefaultMaterial->GetRelevance(FeatureLevel);
 			});
 		}
 	}

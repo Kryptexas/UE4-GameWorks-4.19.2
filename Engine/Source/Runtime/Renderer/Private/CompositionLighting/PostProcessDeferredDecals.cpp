@@ -10,6 +10,7 @@
 #include "PostProcessing.h"
 #include "PostProcessDeferredDecals.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("r.Decal.StencilSizeThreshold"),
@@ -140,74 +141,95 @@ void SetDecalBlendState(FRHICommandList& RHICmdList, const ERHIFeatureLevel::Typ
 {
 	if(RenderStage == 0)
 	{
-		// todo if(SMFeatureLevel == ERHIFeatureLevel::SM4)
-		switch(DecalBlendMode)
+		// before base pass (for DBuffer decals)
+
+		if(SMFeatureLevel == ERHIFeatureLevel::SM4)
 		{
-		case DBM_DBuffer_ColorNormalRoughness:
+			// DX10 doesn't support masking/using different blend modes per MRT.
+			// We set the opacity in the shader to 0 so we can use the same frame buffer blend.
+
 			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );
+			return;
+		}
+		else
+		{
+			// see DX10 comment above
+			// As we set the opacity in the shader we don't need to set different frame buffer blend modes but we like to hint to the driver that we
+			// don't need to output there. We also could replace this with many SetRenderTarget calls but it might be slower (needs to be tested).
 
-		case DBM_DBuffer_Color:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
-			break;
+			switch(DecalBlendMode)
+			{
+			case DBM_DBuffer_ColorNormalRoughness:
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_ColorNormal:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI() );		
-			break;
+			case DBM_DBuffer_Color:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_ColorRoughness:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+			case DBM_DBuffer_ColorNormal:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_Normal:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
-			break;
+			case DBM_DBuffer_ColorRoughness:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_NormalRoughness:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+			case DBM_DBuffer_Normal:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
+				break;
 
-		case DBM_DBuffer_Roughness:
-			// we can optimize using less MRT later
-			RHICmdList.SetBlendState( TStaticBlendState< 
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
-			break;
+			case DBM_DBuffer_NormalRoughness:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
 
-		default:
-			// the decal type should not be rendered in this pass - internal error
-			check(0);	
-			break;
+			case DBM_DBuffer_Roughness:
+				// we can optimize using less MRT later
+				RHICmdList.SetBlendState( TStaticBlendState< 
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
+				break;
+
+			default:
+				// the decal type should not be rendered in this pass - internal error
+				check(0);	
+				break;
+			}
 		}
 
 		return;
 	}
 	else
 	{
+		// before lighting (for non DBuffer decals)
+
 		switch(DecalBlendMode)
 		{
 		case DBM_Translucent:
@@ -350,9 +372,9 @@ IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDe
 FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
+void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
-	SCOPED_DRAW_EVENT(StencilDecalMask, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask, DEC_SCENE_ITEMS);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
@@ -361,10 +383,12 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
 	// Write 1 to highest bit of stencil to areas that should not receive decals
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Replace, SO_Replace, SO_Replace>::GetRHI(), 0x80);
 
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FStencilDecalMaskPS> PixelShader(GetGlobalShaderMap());
+	const auto FeatureLevel = View.GetFeatureLevel();
+	auto ShaderMap = View.ShaderMap;
+	TShaderMapRef<FScreenVS> ScreenVertexShader(ShaderMap);
+	TShaderMapRef<FStencilDecalMaskPS> PixelShader(ShaderMap);
 	
-	SetGlobalBoundShaderState(RHICmdList, StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
 	PixelShader->SetParameters(RHICmdList, View);
 
@@ -482,7 +506,7 @@ public:
 		// 1,1,1 requires no scale
 		//			ComponentTrans = ComponentTrans.GetScaled(GDefaultDecalSize);
 
-		FMatrix WorldToComponent = ComponentTrans.ToMatrixWithScale().Inverse();
+		FMatrix WorldToComponent = ComponentTrans.ToMatrixWithScale().InverseFast();
 
 		// Set the transform from screen space to light space.
 		if(ScreenToDecal.IsBound())
@@ -616,7 +640,7 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 
 bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
-	SCOPED_DRAW_EVENT(RenderPreStencil, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
 
@@ -697,7 +721,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		PassOutputs[0].RenderTargetDesc = OutputOfMyInput->RenderTargetDesc;
 	}
 
-	SCOPED_DRAW_EVENT(PostProcessDeferredDecals, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals, DEC_SCENE_ITEMS);
 
 	if(RenderStage == 0)
 	{
@@ -730,7 +754,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		}
 
 
-		SCOPED_DRAW_EVENT(DBufferClear, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DBufferClear, DEC_SCENE_ITEMS);
 		{
 			// could be optimized
 			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
@@ -745,7 +769,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	}
 
 	// this cast is safe as only the dedicated server implements this differently and this pass should not be executed on the dedicated server
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FScene& Scene = *(FScene*)ViewFamily.Scene;
 
@@ -792,7 +816,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			ComponentToWorldMatrix.GetScaledAxis( EAxis::Z ).SizeSquared() * FMath::Square(GDefaultDecalSize.Z));
 
 		// can be optimized as the test is too conservative (sphere instead of OBB)
-		if(!View.ViewFrustum.IntersectSphere(ComponentToWorldMatrix.GetOrigin(), ConservativeRadius))
+		if(ConservativeRadius < SMALL_NUMBER || !View.ViewFrustum.IntersectSphere(ComponentToWorldMatrix.GetOrigin(), ConservativeRadius))
 		{
 			bIsShown = false;
 		}
@@ -862,9 +886,9 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		int32 LastDecalHasNormal = -1; // Decal state can change based on its normal property.(SM5)
 		ERenderTargetMode LastRenderTargetMode = RTM_Unknown;
 		int32 WasInsideDecal = -1;
-		const ERHIFeatureLevel::Type SMFeatureLevel = GetMaxSupportedFeatureLevel(GRHIShaderPlatform);
+		const ERHIFeatureLevel::Type SMFeatureLevel = Context.GetFeatureLevel();
 
-		SCOPED_DRAW_EVENT(Decals, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Decals, DEC_SCENE_ITEMS);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());
 		
 		RHICmdList.SetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);

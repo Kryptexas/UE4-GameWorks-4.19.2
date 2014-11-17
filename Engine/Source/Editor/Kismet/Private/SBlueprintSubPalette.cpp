@@ -12,7 +12,7 @@
 #include "BlueprintPaletteFavorites.h"
 #include "BlueprintEditorUtils.h"
 #include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
-#include "BlueprintActionMenuItem.h"
+#include "BlueprintDragDropMenuItem.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
 
@@ -126,7 +126,7 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 			ImpededReasonOut = FText::GetEmpty();
 		}
 		// as a general catch-all, if a node cannot be pasted, it probably can't be created there
-		else if (bCanBePlaced && !NodeToBePlaced->CanPasteHere(HoveredGraphIn, GraphSchema) && !bWillFocusOnExistingNode)
+		else if (bCanBePlaced && !NodeToBePlaced->CanPasteHere(HoveredGraphIn) && !bWillFocusOnExistingNode)
 		{
 			bCanBePlaced = false;
 			ImpededReasonOut = LOCTEXT("CannotPaste", "Cannot place this node in this type of graph");
@@ -323,9 +323,9 @@ FReply SBlueprintSubPalette::OnActionDragged( const TArray< TSharedPtr<FEdGraphS
 				return FReply::Handled().BeginDragDrop(FKismetDelegateDragDropAction::New(DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate));
 			}
 		}
-		else if (InAction->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
+		else if (InAction->GetTypeId() == FBlueprintDragDropMenuItem::StaticGetTypeId())
 		{
-			FBlueprintActionMenuItem* BlueprintAction = (FBlueprintActionMenuItem*)InAction.Get();
+			FBlueprintDragDropMenuItem* BlueprintAction = (FBlueprintDragDropMenuItem*)InAction.Get();
 
 			TSharedPtr<FDragDropOperation> DragDropOp = BlueprintAction->OnDragged(AnalyticsDelegate);
 			if (DragDropOp.IsValid())
@@ -384,7 +384,7 @@ void SBlueprintSubPalette::RequestRefreshActionsList()
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTipText)
+TSharedRef<SVerticalBox> SBlueprintSubPalette::ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTipText)
 {
 	TSharedPtr<SToolTip> ToolTip;
 	SAssignNew(ToolTip, SToolTip).Text(ToolTipText);

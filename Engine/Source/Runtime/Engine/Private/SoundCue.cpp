@@ -6,7 +6,7 @@
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundWave.h"
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "UnrealEd.h"
 #endif
@@ -354,7 +354,7 @@ const FAttenuationSettings* USoundCue::GetAttenuationSettingsToApply() const
 	return Super::GetAttenuationSettingsToApply();
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void USoundCue::CreateGraph()
 {
 	check(SoundCueGraph == NULL);

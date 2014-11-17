@@ -7,6 +7,7 @@
 #include "Matinee/MatineeActor.h"
 
 #include "LevelCollectionModel.h"
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -251,7 +252,7 @@ void FLevelCollectionModel::Tick( float DeltaTime )
 		for (ULevelStreaming* StreamingLevel : GetSimulationWorld()->StreamingLevels)
 		{
 			// Rebuild the original NonPrefixedPackageName so we can find it
-			const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
+			const FString PrefixedPackageName = StreamingLevel->GetWorldAssetPackageName();
 			const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
 					+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
 								
@@ -1467,23 +1468,21 @@ void FLevelCollectionModel::MoveActorsToSelected_Executed()
 		{
 			TArray<AActor*> ControlledActors;
 			InterpEditMode->MatineeActor->GetControlledActors(ControlledActors);
-			if (ControlledActors.Num() > 0)
+
+			// are any of the selected actors in the matinee
+			USelection* SelectedActors = GEditor->GetSelectedActors();
+			for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 			{
-				// are any of the selected actors in the matinee
-				USelection* SelectedActors = GEditor->GetSelectedActors();
-				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+				AActor* Actor = CastChecked<AActor>(*Iter);
+				if (Actor != nullptr && (Actor == InterpEditMode->MatineeActor || ControlledActors.Contains(Actor)))
 				{
-					AActor* Actor = CastChecked<AActor>(*Iter);
-					if (Actor != nullptr && ControlledActors.Contains(Actor))
+					const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "MatineeUnableToMove", "You must close Matinee before moving actors.\nDo you wish to do this now and continue?"));
+					if (!ExitInterp)
 					{
-						const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "MatineeUnableToMove", "You must close Matinee before moving actors.\nDo you wish to do this now and continue?"));
-						if (!ExitInterp)
-						{
-							return;
-						}
-						GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_InterpEdit);
-						break;
+						return;
 					}
+					GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_InterpEdit);
+					break;
 				}
 			}
 		}
@@ -1760,33 +1759,30 @@ bool FLevelCollectionModel::IsValidMoveActorsToLevel()
 	if (bSelectionHasChanged)
 	{
 		bSelectionHasChanged = false;
-		USelection* SelectedActors = GEditor->GetSelectedActors();
-		// you cant move no selected actors to a level
-		if (SelectedActors->Num() == 0)
-		{
-			bCachedIsValidActorMoveResult = false;
-			return false;
-		}
+		bCachedIsValidActorMoveResult = false;
 
-		// are any of the selected actors in the selected levels
-		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		// We can only operate on a single selected level
+		if ( SelectedLevelsList.Num() == 1 )
 		{
-			AActor* Actor = CastChecked<AActor>(*Iter);
-			if (Actor != nullptr)
+			ULevel* Level = SelectedLevelsList[0]->GetLevelObject();
+			if (Level)
 			{
-				const ULevel* ActorsLevel = Actor->GetLevel();
-				for (TSharedPtr<FLevelModel> SelectedLevel : SelectedLevelsList)
+				// Allow the move if at least one actor is in another level
+				USelection* SelectedActors = GEditor->GetSelectedActors();
+				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 				{
-					if (SelectedLevel->GetLevelObject() == ActorsLevel)
+					AActor* Actor = CastChecked<AActor>(*Iter);
+					if (Actor != nullptr)
 					{
-						bCachedIsValidActorMoveResult = false;
-						return false;
+						if (Actor->GetLevel() != Level)
+						{
+							bCachedIsValidActorMoveResult = true;
+							break;
+						}
 					}
 				}
 			}
 		}
-
-		bCachedIsValidActorMoveResult = true;
 	}
 			
 	// if non of the selected actors are in the level, just check the level is unlocked

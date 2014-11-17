@@ -8,6 +8,4 @@ UCLASS()
 class  GAMEPLAYABILITIES_API UGameplayAbilityBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
 	GENERATED_UCLASS_BODY()
-
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 };

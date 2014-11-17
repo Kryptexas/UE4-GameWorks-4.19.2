@@ -7,9 +7,9 @@
 #pragma once
 
 #include "ParticleVertexFactory.h"
-#include "ParticleBeamTrailVertexFactory.h"
 #include "MeshParticleVertexFactory.h"
 #include "MaterialShared.h"
+#include "Materials/MaterialInterface.h"
 
 #define _ENABLE_PARTICLE_LOD_INGAME_
 
@@ -128,7 +128,6 @@ class UParticleLODLevel;
 class USkeletalMeshComponent;
 
 class FParticleSystemSceneProxy;
-class FParticleDynamicData;
 struct FDynamicBeam2EmitterData;
 struct FDynamicTrail2EmitterData;
 
@@ -852,7 +851,7 @@ struct FModuleLocationBoneSocketInstancePayload
 	void InitArrayProxies( int32 FixedArraySize )
 	{
 		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
-        // size for these arrays is calculated in RequiredBytesPerInstance.
+		// size for these arrays is calculated in RequiredBytesPerInstance.
 		const uint32 StructSize =  sizeof(FModuleLocationBoneSocketInstancePayload);
 		PrevFrameBoneSocketPositions = TPreallocatedArrayProxy<FVector>((uint8*)this + StructSize, FixedArraySize);
 
@@ -888,8 +887,8 @@ struct FModuleLocationVertSurfaceInstancePayload
 	void InitArrayProxies(int32 FixedArraySize)
 	{
 		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
-        // size for these arrays is calculated in RequiredBytesPerInstance.
- 		const uint32 StructSize =  sizeof(FModuleLocationVertSurfaceInstancePayload);
+		// size for these arrays is calculated in RequiredBytesPerInstance.
+		const uint32 StructSize =  sizeof(FModuleLocationVertSurfaceInstancePayload);
 		ValidAssociatedBoneIndices = TPreallocatedArrayProxy<int32>((uint8*)this + StructSize, FixedArraySize);
 
 		uint32 StructOffset = StructSize + (FixedArraySize*sizeof(int32));
@@ -988,10 +987,10 @@ struct FEmitterDynamicParameterPayload
  *	@param	InParticle					The particle being processed
  *	@param	OutDynamicData				The dynamic data from the particle
  */
-FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
+FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, const FBaseParticle& InParticle, FVector4& OutDynamicData)
 {
 	checkSlow(InDynamicPayloadOffset > 0);
-	FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
+	const FEmitterDynamicParameterPayload* DynPayload = ((const FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
 	OutDynamicData.X = DynPayload->DynamicParameterValue[0];
 	OutDynamicData.Y = DynPayload->DynamicParameterValue[1];
 	OutDynamicData.Z = DynPayload->DynamicParameterValue[2];
@@ -1163,15 +1162,6 @@ public:
 protected:
 	void ClearPoolInternal();
 
-	/** 
-	 *	Create a vertex factory for the given type.
-	 *
-	 *	@param	InType						The type of vertex factory to create.
-	 *
-	 *	@return	FParticleVertexFactoryBase*	The created VF; NULL if invalid InType
-	 */
-	FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel);
-
 	TArray<FParticleVertexFactoryBase*>	VertexFactoriesAvailable[PVFT_MAX][ERHIFeatureLevel::Num];
 	TArray<FParticleVertexFactoryBase*>	VertexFactories;
 };
@@ -1295,8 +1285,8 @@ struct FDynamicEmitterReplayDataBase
 		  Scale( FVector( 1.0f ) ),
 		  SortMode(0),	// Default to PSORTMODE_None
 		  bOverrideSystemMacroUV(0),
-	      MacroUVRadius(0.f),
-	      MacroUVPosition(0.f,0.f,0.f)
+		  MacroUVRadius(0.f),
+		  MacroUVPosition(0.f,0.f,0.f)
 	{
 	}
 
@@ -1318,8 +1308,8 @@ struct FDynamicEmitterReplayDataBase
 		Ar << Scale;
 		Ar << SortMode;
 		Ar << bOverrideSystemMacroUV;
-	    Ar << MacroUVRadius;
-	    Ar << MacroUVPosition;
+		Ar << MacroUVRadius;
+		Ar << MacroUVPosition;
 	}
 
 };
@@ -1338,19 +1328,28 @@ struct FDynamicEmitterDataBase
 	 *	Create the render thread resources for this emitter data
 	 *
 	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
 	 */
-	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
+	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
 	{
+	}
+
+	/**
+	 *	Get the vertex factory for this emitter data, possibly creating it
+	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
+	 */
+	FParticleVertexFactoryBase* GetVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
+	{
+		if (!ParticleVertexFactory)
+		{
+			ParticleVertexFactory = BuildVertexFactory(InOwnerProxy);
+		}
+		return ParticleVertexFactory;
 	}
 
 	/**
 	 *	Release the render thread resources for this emitter data
 	 *
 	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
 	 */
 	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
 	{
@@ -1364,7 +1363,9 @@ struct FDynamicEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) = 0;
+	virtual int32 RenderEmitter(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) = 0;
+
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const {}
 
 	/**
 	 *	Retrieve the material render proxy to use for rendering this emitter. PURE VIRTUAL
@@ -1378,7 +1379,7 @@ struct FDynamicEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -1397,8 +1398,18 @@ struct FDynamicEmitterDataBase
 	/** true if this emitter has valid rendering data */
 	uint32	bValid:1;
 
+protected:
+	/**
+	 *	Create the vertex factory for this emitter data
+	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
+	 */
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
+	{
+		return nullptr;
+	}
+
 	/** The vertex factory used for rendering */
-	FParticleVertexFactoryBase* VertexFactory; // RENDER-THREAD USAGE ONLY!!!
+	FParticleVertexFactoryBase* ParticleVertexFactory; // RENDER-THREAD USAGE ONLY!!!
 
 private:
 
@@ -1407,10 +1418,10 @@ private:
 	 */
 	void ReturnVertexFactory()
 	{
-		if (VertexFactory != NULL)
+		if (ParticleVertexFactory != NULL)
 		{
-			GParticleVertexFactoryPool.ReturnParticleVertexFactory(VertexFactory);
-			VertexFactory = NULL;
+			GParticleVertexFactoryPool.ReturnParticleVertexFactory(ParticleVertexFactory);
+			ParticleVertexFactory = NULL;
 		}
 	}
 };
@@ -1512,7 +1523,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 */
 	void SortSpriteParticles(int32 SortMode, bool bLocalSpace, 
 		int32 ParticleCount, const TArray<uint8>& ParticleData, int32 ParticleStride, const TArray<uint16>& ParticleIndices,
-		const FSceneView* View, const FMatrix& LocalToWorld, FParticleOrder* ParticleOrder);
+		const FSceneView* View, const FMatrix& LocalToWorld, FParticleOrder* ParticleOrder) const;
 
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
@@ -1557,7 +1568,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *	@param	View		The scene view being rendered
 	 *	@param	bCrosses	If true, render Crosses at particle position; false, render points
 	 */
-	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
+	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const;
 
 	/**
 	 *	Fill index and vertex buffers. Often called from a different thread
@@ -1575,7 +1586,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *
 	 *	@param	Me			buffer pair to compute
 	 */
-	virtual void DoBufferFill(FAsyncBufferFillData& Me)
+	virtual void DoBufferFill(FAsyncBufferFillData& Me)const
 	{
 		// this must be overridden, but in some cases a destructor call will leave this a no-op
 		// because the vtable has been reset to the base class 
@@ -1622,7 +1633,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *	@param	InView			View to look up in the buffer table
 	 *  @return Completed buffers
 	 */
-	const FAsyncBufferFillData& EnsureFillCompletion(const FSceneView *InView)
+	const FAsyncBufferFillData& EnsureFillCompletion(const FSceneView *InView) const
 	{
 		check(AsyncBufferFillTasks.Num());
 		// - 1 because we often fill only one, for _all_ views, if no match we always take the last one
@@ -1701,7 +1712,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const override
 	{
-		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM3;
+		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM4;
 		return bInstanced ? sizeof(FParticleSpriteVertex) : sizeof(FParticleSpriteVertexNonInstanced);
 	}
 
@@ -1733,7 +1744,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@return	bool			true if successful, false if failed
 	 */
-	bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld);
+	bool GetVertexAndIndexData(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld) const;
 
 	/**
 	 *	Retrieve the vertex and (optional) index required to render this emitter.
@@ -1748,12 +1759,12 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@return	bool			true if successful, false if failed
 	 */
-	bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld);
+	bool GetVertexAndIndexDataNonInstanced(void* VertexData, void* DynamicParameterVertexData, void* FillIndexData, FParticleOrder* ParticleOrder, const FVector& InCameraPosition, const FMatrix& InLocalToWorld) const;
 
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -1764,6 +1775,8 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/** Gathers simple lights for this emitter. */
 	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+
 	/**
 	 *	Render thread only draw call
 	 *
@@ -1771,7 +1784,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual int32 RenderEmitter(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1780,7 +1793,9 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@return	bool			true if successful, false if failed
 	 */
-	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy);
+	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy);
+
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	/**
 	 *	Release the render thread resources for this emitter data
@@ -1798,7 +1813,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	}
 
 	/** The frame source data for this particle system.  This is everything needed to represent this
-	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
+		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicSpriteEmitterReplayData Source;
 
@@ -1876,7 +1891,9 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@return	bool			true if successful, false if failed
 	 */
-	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy);
+	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy);
+
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	/**
 	 *	Release the render thread resources for this emitter data
@@ -1887,6 +1904,8 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy);
 
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+
 	/**
 	 *	Render thread only draw call
 	 *
@@ -1894,7 +1913,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View);
+	virtual int32 RenderEmitter(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View);
 	
 	/**
 	 *	Retrieve the instance data required to render this emitter.
@@ -1905,7 +1924,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	Proxy                   The scene proxy for the particle system that owns this emitter
 	 *	@param	View                    The scene view being rendered
 	 */
-	void GetInstanceData(void* InstanceData, void* DynamicParameterData, FParticleSystemSceneProxy* Proxy, const FSceneView* View);
+	void GetInstanceData(void* InstanceData, void* DynamicParameterData, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const;
 
 	/**
 	 *	Helper function for retrieving the particle transform.
@@ -1919,13 +1938,13 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	View						The scene view being rendered
 	 *	@param	OutTransform				The InstanceToWorld transform matrix for the particle
 	 */
-	void GetParticleTransform(FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, 
-		const FQuat& PointToLockedAxis, FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat);
+	void GetParticleTransform(const FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, 
+		const FQuat& PointToLockedAxis, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
 
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -1960,7 +1979,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	 Initialize this emitter's vertex factory with the vertex buffers from the mesh's rendering data.
 	 */
-	void SetupVertexFactory( FMeshParticleVertexFactory* VertexFactory, FStaticMeshLODResources& LODResources);
+	void SetupVertexFactory( FMeshParticleVertexFactory* VertexFactory, FStaticMeshLODResources& LODResources) const;
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const
@@ -1969,7 +1988,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	}
 
 	/** The frame source data for this particle system.  This is everything needed to represent this
-	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
+		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicMeshEmitterReplayData Source;
 
@@ -2181,14 +2200,10 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
 
-	/**
-	 *	Create the render thread resources for this emitter data
-	 *
-	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
-	 */
-	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy);
+
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
+	
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
 
 	/**
 	 *	Render thread only draw call
@@ -2197,12 +2212,12 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View);
+	virtual int32 RenderEmitter(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View);
 
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -2211,16 +2226,16 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber);
 
 	// Debugging functions
-	virtual void RenderDirectLine(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View);
-	virtual void RenderLines(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View);
+	virtual void RenderDirectLine(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) const;
+	virtual void RenderLines(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) const;
 
-	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
+	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const;
 
 	// Data fill functions
-	int32 FillIndexData(struct FAsyncBufferFillData& Data);
-	int32 FillVertexData_NoNoise(struct FAsyncBufferFillData& Data);
-	int32 FillData_Noise(struct FAsyncBufferFillData& Data);
-	int32 FillData_InterpolatedNoise(struct FAsyncBufferFillData& Data);
+	int32 FillIndexData(struct FAsyncBufferFillData& Data) const;
+	int32 FillVertexData_NoNoise(struct FAsyncBufferFillData& Data) const;
+	int32 FillData_Noise(struct FAsyncBufferFillData& Data) const;
+	int32 FillData_InterpolatedNoise(struct FAsyncBufferFillData& Data) const;
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const
@@ -2228,8 +2243,8 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 		return Source;
 	}
 
-	/** Perform the actual work of filling the buffer, often called from another thread */
-	virtual void DoBufferFill(FAsyncBufferFillData& Me);
+	/** Perform the actual work of filling the buffer */
+	virtual void DoBufferFill(FAsyncBufferFillData& Me) const;
 
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
@@ -2253,7 +2268,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void GetIndexAllocInfo(int32& OutNumIndices, int32& OutStride ) const;
 
 	/** The frame source data for this particle system.  This is everything needed to represent this
-	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
+		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicBeam2EmitterReplayData Source;
 
@@ -2341,7 +2356,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		, bRenderTangents(false)
 		, bRenderTessellation(false)
 		, bTextureTileDistance(false)
-	    , DistanceTessellationStepSize(12.5f)
+		, DistanceTessellationStepSize(12.5f)
 		, TangentTessellationScalar(25.0f)
 		, TextureTileDistance(0.0f)
 	{
@@ -2350,14 +2365,9 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
 
-	/**
-	 *	Create the render thread resources for this emitter data
-	 *
-	 *	@param	InOwnerProxy	The proxy that owns this dynamic emitter data
-	 *
-	 *	@return	bool			true if successful, false if failed
-	 */
-	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy);
+	virtual FParticleVertexFactoryBase* BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy);
+
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override;
 
 	/**
 	 *	Render thread only draw call
@@ -2366,7 +2376,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View);
+	virtual int32 RenderEmitter(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View);
 
 	virtual bool ShouldUsePrerenderView()
 	{
@@ -2376,7 +2386,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	Proxy			The 'owner' particle system scene proxy
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
@@ -2384,11 +2394,11 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	 */
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber);
 
-	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
+	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const;
 
 	// Data fill functions
-	virtual int32 FillIndexData(struct FAsyncBufferFillData& Data);
-	virtual int32 FillVertexData(struct FAsyncBufferFillData& Data);
+	virtual int32 FillIndexData(struct FAsyncBufferFillData& Data) const;
+	virtual int32 FillVertexData(struct FAsyncBufferFillData& Data) const;
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const
@@ -2403,7 +2413,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		return SourcePointer;
 	}
 
-	virtual void DoBufferFill(FAsyncBufferFillData& Me)
+	virtual void DoBufferFill(FAsyncBufferFillData& Me) const
 	{
 		if( Me.VertexCount <= 0 || Me.IndexCount <= 0 || Me.VertexData == NULL || Me.IndexData == NULL )
 		{
@@ -2467,10 +2477,10 @@ struct FDynamicRibbonEmitterData : public FDynamicTrailsEmitterData
 	virtual void Init(bool bInSelected);
 
 	virtual bool ShouldUsePrerenderView();
-	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
+	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const;
 
 	// Data fill functions
-	virtual int32 FillVertexData(struct FAsyncBufferFillData& Data);
+	virtual int32 FillVertexData(struct FAsyncBufferFillData& Data) const;
 		
 	/**
 	 *	Get the source replay data for this emitter
@@ -2506,10 +2516,10 @@ struct FDynamicAnimTrailEmitterData : public FDynamicTrailsEmitterData
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
 
-	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
+	virtual void RenderDebug(const FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses) const;
 
 	// Data fill functions
-	virtual int32 FillVertexData(struct FAsyncBufferFillData& Data);
+	virtual int32 FillVertexData(struct FAsyncBufferFillData& Data) const;
 
 	/** 
 	 *	The frame source data for this particle system.  This is everything needed to represent this
@@ -2580,6 +2590,7 @@ public:
 		return false;
 	}
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
@@ -2595,7 +2606,7 @@ public:
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
 	 *	@param	FrameNumber		The frame number of this pre-render
@@ -2649,14 +2660,14 @@ public:
 	 * world space primitive uniform buffer is up-to-date.
 	 * Only called in the rendering thread.
 	 */
-	void UpdateWorldSpacePrimitiveUniformBuffer();
+	void UpdateWorldSpacePrimitiveUniformBuffer() const;
 
 	/** Object position in post projection space. */
 	void GetObjectPositionAndScale(const FSceneView& View, FVector2D& ObjectNDCPosition, FVector2D& ObjectMacroUVScales) const;
 
 	// While this isn't good OO design, access to everything is made public.
 	// This is to allow custom emitter instances to easily be written when extending the engine.
-	FMatrix GetWorldToLocal() const		{	return GetLocalToWorld().Inverse();	}
+	FMatrix GetWorldToLocal() const		{	return GetLocalToWorld().InverseFast();	}
 	bool GetCastShadow() const			{	return bCastShadow;				}
 	const FMaterialRelevance& GetMaterialRelevance() const
 	{
@@ -2665,8 +2676,7 @@ public:
 	float GetPendingLODDistance()		{	return PendingLODDistance;		}
 	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetWorldSpacePrimitiveUniformBuffer() const { return WorldSpacePrimitiveUniformBuffer; }
 
-	FColoredMaterialRenderProxy* GetSelectedWireframeMatInst()		{	return &SelectedWireframeMaterialInstance;		}
-	FColoredMaterialRenderProxy* GetDeselectedWireframeMatInst()	{	return &DeselectedWireframeMaterialInstance;	}
+	const FColoredMaterialRenderProxy* GetDeselectedWireframeMatInst() const	{	return &DeselectedWireframeMaterialInstance;	}
 
 	/** Gets a mesh batch from the pool. */
 	FMeshBatch* GetPooledMeshBatch();
@@ -2697,7 +2707,6 @@ protected:
 	FParticleDynamicData* DynamicData;			// RENDER THREAD USAGE ONLY
 	FParticleDynamicData* LastDynamicData;		// RENDER THREAD USAGE ONLY
 
-	FColoredMaterialRenderProxy SelectedWireframeMaterialInstance;
 	FColoredMaterialRenderProxy DeselectedWireframeMaterialInstance;
 
 	int32 LODMethod;
@@ -2705,8 +2714,8 @@ protected:
 
 	int32 LastFramePreRendered;
 
-	/** The primitive's uniform buffer. */
-	TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
+	/** The primitive's uniform buffer.  Mutable because it is cached state during GetDynamicMeshElements. */
+	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
 
 	/** Pool for holding FMeshBatches to reduce allocations. */
 	TIndirectArray<FMeshBatch, TInlineAllocator<4> > MeshBatchPool;

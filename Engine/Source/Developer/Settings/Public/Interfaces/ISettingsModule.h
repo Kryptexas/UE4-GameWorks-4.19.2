@@ -134,7 +134,6 @@ public:
 	 * Gets a pointer to the Settings module instance.
 	 *
 	 * @todo gmp: better implementation using dependency injection / abstract factory.
-	 *
 	 * @return A pointer to the Settings module, or nullptr if the module isn't loaded.
 	 */
 	static ISettingsModule* Get( )
@@ -149,8 +148,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~ISettingsModule( ) { }
 };

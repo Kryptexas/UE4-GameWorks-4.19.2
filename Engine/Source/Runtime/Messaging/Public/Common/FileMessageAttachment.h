@@ -5,6 +5,8 @@
 
 /**
  * Implements a message attachment whose data is held in a file.
+ *
+ * WARNING: Message attachments do not work yet for out of process messages.
  */
 class FFileMessageAttachment
 	: public IMessageAttachment
@@ -32,9 +34,7 @@ public:
 		, Filename(InFilename)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FFileMessageAttachment( )
 	{
 		if (AutoDeleteFile)
@@ -54,9 +54,9 @@ public:
 
 private:
 
-	// Holds a flag indicating whether the file should be deleted.
+	/** Holds a flag indicating whether the file should be deleted. */
 	bool AutoDeleteFile;
 
-	// Holds the name of the file that holds the attached data.
+	/** Holds the name of the file that holds the attached data. */
 	FString Filename;
 };

@@ -9,13 +9,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureEndEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Value);
 
 /** Slider widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
-	///** The style used to draw the slider. */
-	//SLATE_STYLE_ARGUMENT(FSliderStyle, Style)
+	/** The progress bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FSliderStyle WidgetStyle;
 
 	/** The volume value to display. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -58,19 +61,20 @@ class UMG_API USlider : public UWidget
 	FOnFloatValueChangedEvent OnValueChanged;
 
 	/** Gets the current value of the slider. */
-	UFUNCTION(BlueprintPure, Category="Behavior")
-	float GetValue();
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	float GetValue() const;
 
 	/** Sets the current value of the slider. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetValue(float InValue);
 	
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

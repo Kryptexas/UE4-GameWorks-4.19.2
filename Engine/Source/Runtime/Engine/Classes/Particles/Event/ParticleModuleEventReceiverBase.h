@@ -13,7 +13,7 @@ class UParticleModuleEventReceiverBase : public UParticleModuleEventBase
 
 	/** The type of event that will generate the kill. */
 	UPROPERTY(EditAnywhere, Category=Source)
-	TEnumAsByte<enum EParticleEventType> EventGeneratorType;
+	TEnumAsByte<EParticleEventType> EventGeneratorType;
 
 	/** The name of the emitter of interest for generating the event. */
 	UPROPERTY(EditAnywhere, Category=Source)

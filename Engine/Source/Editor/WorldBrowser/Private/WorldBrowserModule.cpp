@@ -24,16 +24,22 @@ void FWorldBrowserModule::StartupModule()
 		FBuiltinEditorModes::EM_StreamingLevel,
 		NSLOCTEXT("WorldBrowser", "StreamingLevelMode", "Level Transform Editing"));
 
-	FWorldDelegates::OnPostWorldInitialization.AddRaw(this, &FWorldBrowserModule::OnWorldCreated);
-	FWorldDelegates::OnWorldCleanup.AddRaw(this, &FWorldBrowserModule::OnWorldCleanup);
+	if (ensure(GEngine))
+	{
+		GEngine->OnWorldAdded().AddRaw(this, &FWorldBrowserModule::OnWorldCreated);
+		GEngine->OnWorldDestroyed().AddRaw(this, &FWorldBrowserModule::OnWorldDestroyed);
+	}
 	UWorldComposition::OnWorldCompositionCreated.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
 	UWorldComposition::OnWorldCompositionDestroyed.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
 }
 
 void FWorldBrowserModule::ShutdownModule()
 {
-	FWorldDelegates::OnPostWorldInitialization.RemoveAll(this);
-	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
+	if (GEngine)
+	{
+		GEngine->OnWorldAdded().RemoveAll(this);
+		GEngine->OnWorldDestroyed().RemoveAll(this);
+	}
 	UWorldComposition::OnWorldCompositionCreated.RemoveAll(this);
 	UWorldComposition::OnWorldCompositionDestroyed.RemoveAll(this);
 
@@ -61,7 +67,7 @@ TSharedRef<SWidget> FWorldBrowserModule::CreateWorldBrowserComposition()
 	return SNew(SWorldComposition).InWorld(EditorWorld);
 }
 
-void FWorldBrowserModule::OnWorldCreated(UWorld* InWorld, const UWorld::InitializationValues IVS)
+void FWorldBrowserModule::OnWorldCreated(UWorld* InWorld)
 {
 	if (InWorld && 
 		InWorld->WorldType == EWorldType::Editor)
@@ -80,23 +86,20 @@ void FWorldBrowserModule::OnWorldCompositionChanged(UWorld* InWorld)
 	}
 }
 
-void FWorldBrowserModule::OnWorldCleanup(UWorld* InWorld, bool bSessionEnded, bool bCleanupResources)
+void FWorldBrowserModule::OnWorldDestroyed(UWorld* InWorld)
 {
-	if (bCleanupResources)
+	TSharedPtr<FLevelCollectionModel> SharedWorldModel = WorldModel.Pin();
+	// Is there any editors alive?
+	if (SharedWorldModel.IsValid())
 	{
-		TSharedPtr<FLevelCollectionModel> SharedWorldModel = WorldModel.Pin();
-		// Is there any editors alive?
-		if (SharedWorldModel.IsValid())
+		UWorld* ManagedWorld = SharedWorldModel->GetWorld(/*bEvenIfPendingKill*/true);
+		// Is it our world gets cleaned up?
+		if (ManagedWorld == InWorld)
 		{
-			UWorld* ManagedWorld = SharedWorldModel->GetWorld(/*bEvenIfPendingKill*/true);
-			// Is it our world gets cleaned up?
-			if (ManagedWorld == InWorld)
-			{
-				// Will reset all references to a shared world model
-				OnBrowseWorld.Broadcast(NULL);
-				// So we have to be the last owner of this model
-				check(SharedWorldModel.IsUnique());
-			}
+			// Will reset all references to a shared world model
+			OnBrowseWorld.Broadcast(NULL);
+			// So we have to be the last owner of this model
+			check(SharedWorldModel.IsUnique());
 		}
 	}
 }

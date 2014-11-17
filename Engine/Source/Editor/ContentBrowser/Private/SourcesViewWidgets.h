@@ -6,7 +6,7 @@
 class SAssetTreeItem : public SCompoundWidget
 {
 public:
-	DECLARE_DELEGATE_TwoParams( FOnNameChanged, const TSharedPtr<FTreeItem>& /*TreeItem*/, const FVector2D& /*MessageLocation*/);
+	DECLARE_DELEGATE_ThreeParams( FOnNameChanged, const TSharedPtr<FTreeItem>& /*TreeItem*/, const FString& /*OldPath*/, const FVector2D& /*MessageLocation*/);
 	DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnVerifyNameChanged, const FText& /*InName*/, FText& /*OutErrorMessage*/, const FString& /*FolderPath*/);
 	DECLARE_DELEGATE_TwoParams( FOnAssetsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
 	DECLARE_DELEGATE_TwoParams( FOnPathsDragDropped, const TArray<FString>& /*PathNames*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
@@ -141,8 +141,8 @@ public:
 	DECLARE_DELEGATE_ThreeParams( FOnAssetsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TSharedPtr<FCollectionItem>& /*CollectionItem*/, FText& /*OutMessage*/);
 
 	SLATE_BEGIN_ARGS( SCollectionListItem )
-		: _ParentWidget()
-		, _CollectionItem( TSharedPtr<FCollectionItem>() )
+		: _CollectionItem( TSharedPtr<FCollectionItem>() )
+		, _ParentWidget()
 	{}
 
 	/** Data for the collection this item represents */

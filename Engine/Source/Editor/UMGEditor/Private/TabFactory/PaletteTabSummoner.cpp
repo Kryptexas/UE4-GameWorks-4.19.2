@@ -14,7 +14,7 @@ FPaletteTabSummoner::FPaletteTabSummoner(TSharedPtr<class FWidgetBlueprintEditor
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("WidgetTemplatesTabLabel", "Palette");
-	//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Palette");
 
 	bIsSingleton = true;
 
@@ -26,10 +26,8 @@ TSharedRef<SWidget> FPaletteTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 {
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
-	return SNew(STutorialWrapper, TEXT("Palette"))
-		[
-			SNew(SPaletteView, BlueprintEditorPtr)
-		];
+	return SNew(SPaletteView, BlueprintEditorPtr)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Palette")));
 }
 
 #undef LOCTEXT_NAMESPACE 

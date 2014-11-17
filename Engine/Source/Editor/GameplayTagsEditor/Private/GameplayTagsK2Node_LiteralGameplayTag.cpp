@@ -6,6 +6,7 @@
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagsK2Node_LiteralGameplayTag"
 
@@ -41,14 +42,12 @@ bool UGameplayTagsK2Node_LiteralGameplayTag::CanCreateUnderSpecifiedSchema( cons
 void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuEntries( FGraphContextMenuBuilder& ContextMenuBuilder ) const
 {
 	Super::GetMenuEntries(ContextMenuBuilder);
-	
-	const FString FunctionCategory(TEXT("Call Function"));
 
 	UK2Node* EnumNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UGameplayTagsK2Node_LiteralGameplayTag>();
 
-	const FString Category = FunctionCategory + TEXT("|Gameplay Tags|Tag Container");
+	const FString Category = TEXT("Gameplay Tags|Tag Container");
 	const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-	const FString Tooltip = EnumNodeTemplate->GetTooltip();
+	const FString Tooltip = EnumNodeTemplate->GetTooltipText().ToString();
 	const FString Keywords = EnumNodeTemplate->GetKeywords();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
@@ -148,17 +147,29 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 	}
 }
 
-void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
-	
-	ActionListOut.Add(NodeSpawner);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UGameplayTagsK2Node_LiteralGameplayTag::GetMenuCategory() const
 {
-	return LOCTEXT("ActionMenuCategory", "Gameplay Tags");
+	return LOCTEXT("ActionMenuCategory", "Gameplay Tags|Tag Container");
 }
 
 #undef LOCTEXT_NAMESPACE

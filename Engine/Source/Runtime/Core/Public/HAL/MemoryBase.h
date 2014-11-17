@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "UnrealMemory.h"
 
-/*=============================================================================
-	MemoryBase.h: Base memory management definitions.
-=============================================================================*/
+#include "UnrealMemory.h"
 
 #ifndef __MEMORYBASE_H__
 #define __MEMORYBASE_H__
@@ -20,6 +17,7 @@ MALLOC_PROFILER( CORE_API extern class FMallocProfiler* GMallocProfiler; )
 /** Holds generic memory stats, internally implemented as a map. */
 struct FGenericMemoryStats;
 
+
 /**
  * Inherit from FUseSystemMallocForNew if you want your objects to be placed in memory
  * alloced by the system malloc routines, bypassing GMalloc. This is e.g. used by FMalloc
@@ -32,7 +30,7 @@ public:
 	 * Overloaded new operator using the system allocator.
 	 *
 	 * @param	Size	Amount of memory to allocate (in bytes)
-	 * @return			A pointer to a block of memory with size Size or NULL
+	 * @return			A pointer to a block of memory with size Size or nullptr
 	 */
 	void* operator new( size_t Size )
 	{
@@ -53,7 +51,7 @@ public:
 	 * Overloaded array new operator using the system allocator.
 	 *
 	 * @param	Size	Amount of memory to allocate (in bytes)
-	 * @return			A pointer to a block of memory with size Size or NULL
+	 * @return			A pointer to a block of memory with size Size or nullptr
 	 */
 	void* operator new[]( size_t Size )
 	{
@@ -196,5 +194,5 @@ protected:
 	static uint32 TotalReallocCalls;
 };
 
-#endif
 
+#endif

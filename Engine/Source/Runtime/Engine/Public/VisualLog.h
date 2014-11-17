@@ -32,9 +32,15 @@ struct ENGINE_API FVisLogEntry
 		FString Line;
 		FName Category;
 		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		int64 UserData;
+		FName TagName;
 
 		FLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine)
-			: Line(InLine), Category(InCategory), Verbosity(InVerbosity)
+			: Line(InLine), Category(InCategory), Verbosity(InVerbosity), UserData(0)
+		{}
+
+		FLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine, int64 InUserData)
+			: Line(InLine), Category(InCategory), Verbosity(InVerbosity), UserData(InUserData)
 		{}
 	};
 	TArray<FLogLine> LogLines;
@@ -148,8 +154,19 @@ struct ENGINE_API FVisLogEntry
 	};
 	TArray<FHistogramSample>	HistogramSamples;
 
+	struct FDataBlock
+	{
+		FDataBlock() : Verbosity(ELogVerbosity::All) {}
 
-	FVisLogEntry(const class AActor* Actor, TArray<TWeakObjectPtr<AActor> >* Children);
+		FName TagName;
+		FName Category;
+		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		TArray<uint8>	Data;
+	};
+	TArray<FDataBlock>	DataBlocks;
+
+
+	FVisLogEntry(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children);
 	FVisLogEntry(TSharedPtr<FJsonValue> FromJson);
 	
 	TSharedPtr<FJsonValue> ToJson() const;
@@ -165,6 +182,9 @@ struct ENGINE_API FVisLogEntry
 
 	// histogram sample
 	void AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, const FName& GraphName, const FName& DataName);
+
+	// Custom data block
+	void AddDataBlock(const FString& TagName, const TArray<uint8>& BlobDataArray, const FName& CategoryName);
 
 	// find index of status category
 	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
@@ -190,67 +210,96 @@ struct ENGINE_API FVisLogEntry
 #define TO_TEXT_LOG(CategoryName, Verbosity, Format, ...) 
 #endif // LOG_TO_UELOG_AS_WELL
 
-#define REDIRECT_TO_VLOG(Dest) RedirectToVisualLog(Dest)
-#define REDIRECT_ACTOR_TO_VLOG(Src, Dest) Src->RedirectToVisualLog(Dest)
+#define REDIRECT_TO_VLOG(Dest) FVisualLog::Get().RedirectToVisualLog(this, Dest)
+#define REDIRECT_OBJECT_TO_VLOG(Src, Dest) FVisualLog::Get().RedirectToVisualLog(Src, Dest)
 
-#define UE_VLOG(Actor, CategoryName, Verbosity, Format, ...) \
+#define UE_VLOG(Object, CategoryName, Verbosity, Format, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
-	FVisualLog::Get().LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
+	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
+	{ \
+		const AActor* MyOwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
+		ensure(MyOwnerActor != NULL); \
+		if (MyOwnerActor) \
+		{  \
+			FVisualLog::Get().LogLine(MyOwnerActor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
+		} \
+	} \
 	if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(CategoryName, Verbosity)) \
 	{ \
-		if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity) && (Actor) != NULL) \
+		if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity) && (Object) != NULL) \
 		{ \
 			TO_TEXT_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 		} \
 	} \
 }
 
-#define UE_CVLOG(Condition, Actor, CategoryName, Verbosity, Format, ...) if(Condition) \
+#define UE_CVLOG(Condition, Object, CategoryName, Verbosity, Format, ...) if(Condition) \
 { \
-	UE_VLOG(Actor, CategoryName, Verbosity, Format, ##__VA_ARGS__); \
+	UE_VLOG(Object, CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 }
 
-#define UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, Thickness, DescriptionFormat, ...) \
+#define UE_VLOG_SEGMENT_THICK(Object, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, Thickness, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get().GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
+		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
+		ensure(OwnerActor != NULL); \
+		if (OwnerActor) \
+		{  \
+			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
+		} \
 	} \
 }
 
-#define UE_VLOG_SEGMENT(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, 0, DescriptionFormat, ##__VA_ARGS__)
+#define UE_VLOG_SEGMENT(Object, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) \
+	UE_VLOG_SEGMENT_THICK(Object, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, 0, DescriptionFormat, ##__VA_ARGS__)
 
-#define UE_VLOG_LOCATION(Actor, CategoryName, Verbosity, Location, Radius, Color, DescriptionFormat, ...) \
+#define UE_VLOG_LOCATION(Object, CategoryName, Verbosity, Location, Radius, Color, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get().GetEntryToWrite(Actor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
+		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
+		ensure(OwnerActor != NULL); \
+		if (OwnerActor) \
+		{  \
+			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
+		} \
 	} \
 }
 
-#define UE_VLOG_BOX(Actor, CategoryName, Verbosity, Box, Color, DescriptionFormat, ...) \
+#define UE_VLOG_BOX(Object, CategoryName, Verbosity, Box, Color, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get().GetEntryToWrite(Actor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
+		ensure(OwnerActor != NULL); \
+		if (OwnerActor) \
+		{  \
+			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+		} \
 	} \
 }
 
-#define UE_VLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data) \
+#define UE_VLOG_HISTOGRAM(Object, CategoryName, Verbosity, GraphName, DataName, Data) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 	if (FVisualLog::Get().IsRecording() && (!FVisualLog::Get().IsAllBlocked() || FVisualLog::Get().InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-		FVisualLog::Get().GetEntryToWrite(Actor)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
+		const AActor* OwnerActor = FVisualLog::Get().GetVisualLogRedirection(Object); \
+		ensure(OwnerActor != NULL); \
+		if (OwnerActor) \
+		{  \
+			FVisualLog::Get().GetEntryToWrite(OwnerActor)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
+		} \
 	} \
 }
 
@@ -271,11 +320,16 @@ namespace VisualLogJson
 	static const FString TAG_TYPECOLORSIZE = TEXT("TypeColorSize");
 	static const FString TAG_POINTS = TEXT("Points");
 	static const FString TAG_ELEMENTSTODRAW = TEXT("ElementsToDraw");
+	static const FString TAG_TAGNAME = TEXT("DataBlockTagName");
+	static const FString TAG_USERDATA = TEXT("UserData");
 
 	static const FString TAG_HISTOGRAMSAMPLES = TEXT("HistogramSamples");
 	static const FString TAG_HISTOGRAMSAMPLE = TEXT("Sample");
 	static const FString TAG_HISTOGRAMGRAPHNAME = TEXT("GraphName");
 	static const FString TAG_HISTOGRAMDATANAME = TEXT("DataName");
+
+	static const FString TAG_DATABLOCK = TEXT("DataBlock");
+	static const FString TAG_DATABLOCK_DATA = TEXT("DataBlockData");
 
 	static const FString TAG_LOGS = TEXT("Logs");
 }
@@ -288,7 +342,7 @@ struct ENGINE_API FActorsVisLog
 	FString FullName;
 	TArray<TSharedPtr<FVisLogEntry> > Entries;
 
-	FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<AActor> >* Children);
+	FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children);
 	FActorsVisLog(TSharedPtr<FJsonValue> FromJson);
 
 	TSharedPtr<FJsonValue> ToJson() const;
@@ -296,12 +350,21 @@ struct ENGINE_API FActorsVisLog
 
 DECLARE_DELEGATE_RetVal(FString, FVisualLogFilenameGetterDelegate);
 
+struct FVisualLogExtensionInterface
+{
+	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor) = 0;
+	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
+	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
+	virtual void LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName) = 0;
+};
+
+
 /** This class is to capture all log output even if the Visual Logger is closed */
 class ENGINE_API FVisualLog : public FOutputDevice
 {
 public:
 	typedef TMap<const class AActor*, TSharedPtr<FActorsVisLog> > FLogsMap;
-	typedef TMap<const class AActor*, TArray<TWeakObjectPtr<AActor> > > FLogRedirectsMap;
+	typedef TMap<const class AActor*, TArray<TWeakObjectPtr<UObject> > > FLogRedirectsMap;
 
 	DECLARE_DELEGATE_TwoParams(FOnNewLogCreatedDelegate, const AActor*, TSharedPtr<FActorsVisLog>);
 
@@ -316,9 +379,13 @@ public:
 
 	void Cleanup(bool bReleaseMemory = false);
 
-	void Redirect(class AActor* Actor, const class AActor* NewRedirection);
+	void Redirect(class UObject* Source, const class AActor* NewRedirection);
 	
-	void LogLine(const class AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line);
+	const class AActor* GetVisualLogRedirection(const class UObject* Source);
+
+	void RedirectToVisualLog(const class UObject* Src, const class AActor* Dest);
+
+	void LogLine(const class AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData = 0, FName TagName = NAME_Name);
 
 	const FLogsMap* GetLogs() const { return &LogsMap; }
 
@@ -344,6 +411,11 @@ public:
 	/** highly encouradged to use FVisualLogFilenameGetterDelegate::CreateUObject with this */
 	void SetLogFileNameGetter(const FVisualLogFilenameGetterDelegate& InLogFileNameGetter) { LogFileNameGetter = InLogFileNameGetter; }
 
+	TMap<FName, FVisualLogExtensionInterface*> AllExtensions;
+	void RegisterExtension(FName TagName, FVisualLogExtensionInterface* ExtensionInterface) { AllExtensions.Add(TagName, ExtensionInterface); }
+	void UnregisterExtension(FName TagName, FVisualLogExtensionInterface* ExtensionInterface) { AllExtensions.Remove(TagName); }
+	FVisualLogExtensionInterface* GetExtensionForTag(const FName TagName) { return AllExtensions.Contains(TagName) ? AllExtensions[TagName] : NULL; }
+	TMap<FName, FVisualLogExtensionInterface*>& GetAllExtensions() { return AllExtensions; }
 protected:
 
 	FString GetLogFileFullName() const;
@@ -392,5 +464,5 @@ private:
 	#define UE_VLOG_BOX(Actor, CategoryName, Verbosity, Box, Color, DescriptionFormat, ...) 
 	#define UE_VLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data)
 	#define REDIRECT_TO_VLOG(Dest)
-	#define REDIRECT_ACTOR_TO_VLOG(Src, Destination) 
-#endif
+	#define REDIRECT_OBJECT_TO_VLOG(Src, Destination) 
+#endif //ENABLE_VISUAL_LOG

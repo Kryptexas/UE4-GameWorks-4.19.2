@@ -34,7 +34,7 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	virtual bool CanDuplicateNode() const override;
 	virtual bool CanUserDeleteNode() const override;
 	virtual void DestroyNode() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual void NodeConnectionListChanged() override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) override;
@@ -61,7 +61,7 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 
 	virtual bool IsSubNode() const { return false; }
 
-	/*
+	/**
 	 * Finds the difference in Behavior Tree properties
 	 * 
 	 * @param Struct The struct of the class we are looking at
@@ -141,9 +141,6 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 
 	/** debugger flag: mark as failed on search path */
 	uint32 bDebuggerMarkSearchFailed : 1;
-
-	/** debugger flag: mark as optional on search path */
-	uint32 bDebuggerMarkSearchOptional : 1;
 
 	/** debugger flag: mark as trigger of search path */
 	uint32 bDebuggerMarkSearchTrigger : 1;

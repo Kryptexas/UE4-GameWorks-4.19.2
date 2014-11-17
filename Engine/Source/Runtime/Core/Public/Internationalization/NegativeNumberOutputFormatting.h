@@ -9,11 +9,14 @@ namespace ENumberNegativePattern
 	 * enum value associated with a pattern used to display negative number values
 	 * Below X represents the number being converted to display, - will be replaced
 	 * with the cultural value NegativeSign
-	 * (X)		BracketXBracket
-	 * -X		NegativeSymbolX
-	 * - X		NegativeSymbolSpaceX
-	 * X-		XNegativeSymbol
-	 * X -		XSpaceNegativeSymbol
+	 *
+	 * |--------|----------------------|
+	 * | (X)	| BracketXBracket      |
+	 * | -X		| NegativeSymbolX      |
+	 * | - X	| NegativeSymbolSpaceX |
+	 * | X-		| XNegativeSymbol      |
+	 * | X -	| XSpaceNegativeSymbol |
+	 * |--------|----------------------|
 	 */
 	enum Type
 	{

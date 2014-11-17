@@ -25,14 +25,44 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	//		TargetData
 	// -------------------------------------------------------------------------------
 
-	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
-	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
+	UFUNCTION(BlueprintCallable, Category = "Ability|TargetData")
+	static FGameplayAbilityTargetDataHandle AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd);
 
-	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromLocations(const FGameplayAbilityTargetingLocationInfo& SourceLocation, const FGameplayAbilityTargetingLocationInfo& TargetLocation);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataHandleFromAbilityTargetDataMesh(FGameplayAbilityTargetData_Mesh Data);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
 
-	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
-	static FHitResult GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle HitResult);
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static int32 GetDataCountFromTargetData(FGameplayAbilityTargetDataHandle TargetData);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActor(AActor* Actor);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static TArray<AActor*> GetActorsFromTargetData(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static bool TargetDataHasHitResult(FGameplayAbilityTargetDataHandle HitResult, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FHitResult GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle HitResult, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static bool TargetDataHasOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FTransform GetTargetDataOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static bool TargetDataHasEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
+	static FVector GetTargetDataEndPoint(FGameplayAbilityTargetDataHandle TargetData, int32 Index);
 
 	// -------------------------------------------------------------------------------
 	//		GameplayCue
@@ -46,6 +76,7 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static bool HasHitResult(FGameplayCueParameters Parameters);
+
 
 	// -------------------------------------------------------------------------------
 

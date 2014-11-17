@@ -12,17 +12,37 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 {
 	PropertyEditor = InPropertyEditor;
 
-	ChildSlot
-	[
-		SAssignNew( PrimaryWidget, SEditableTextBox )
-		.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
-		.Font( InArgs._Font )
-		.SelectAllTextWhenFocused( true )
-		.ClearKeyboardFocusOnCommit(false)
-		.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
-		.SelectAllTextOnCommit( true )
-		.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
-	];
+	const UProperty* Property = InPropertyEditor->GetProperty();
+	bIsMultiLine = !Property->GetBoolMetaData("SingleLine");
+	if(bIsMultiLine)
+	{
+		ChildSlot
+		[
+			SAssignNew( PrimaryWidget, SMultiLineEditableTextBox)
+			.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
+			.Font( InArgs._Font )
+			.SelectAllTextWhenFocused( false )
+			.ClearKeyboardFocusOnCommit(false)
+			.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
+			.SelectAllTextOnCommit( false )
+			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+			.AutoWrapText(true)
+		];
+	}
+	else
+	{
+		ChildSlot
+		[
+			SAssignNew( PrimaryWidget, SEditableTextBox )
+			.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
+			.Font( InArgs._Font )
+			.SelectAllTextWhenFocused( true )
+			.ClearKeyboardFocusOnCommit(false)
+			.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
+			.SelectAllTextOnCommit( true )
+			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+		];
+	}
 
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
 	{
@@ -35,7 +55,15 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 
 void SPropertyEditorText::GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )
 {
-	OutMinDesiredWidth = 125.0f;
+	if(bIsMultiLine)
+	{
+		OutMinDesiredWidth = 250.0f;
+	}
+	else
+	{
+		OutMinDesiredWidth = 125.0f;
+	}
+	
 	OutMaxDesiredWidth = 600.0f;
 }
 
@@ -75,6 +103,16 @@ FReply SPropertyEditorText::OnKeyboardFocusReceived( const FGeometry& MyGeometry
 {
 	// Forward keyboard focus to our editable text widget
 	return FReply::Handled().SetKeyboardFocus( PrimaryWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+}
+
+void SPropertyEditorText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	const float CurrentHeight = AllottedGeometry.GetLocalSize().Y;
+	if (bIsMultiLine && PreviousHeight.IsSet() && PreviousHeight.GetValue() != CurrentHeight)
+	{
+		PropertyEditor->RequestRefresh();
+	}
+	PreviousHeight = CurrentHeight;
 }
 
 bool SPropertyEditorText::CanEdit() const

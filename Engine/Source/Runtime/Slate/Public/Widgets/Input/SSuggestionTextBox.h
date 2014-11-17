@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSuggestionTextBox.h: Declares the SSuggestionTextBox class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -49,125 +45,81 @@ public:
 		, _SuggestionTextStyle( &FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>("SuggestionTextBox.Text") )
 		, _SuggestionListMaxHeight(250.0)
 		, _Text()
-		{ }
+	{ }
 
-		/**
-		 * The color of the background/border around the editable text.
-		 */
+		/** The color of the background/border around the editable text. */
 		SLATE_ATTRIBUTE(FSlateColor, BackgroundColor)
 
-		/**
-		 * The image of the background/border around the editable text.
-		 */
+		/** The image of the background/border around the editable text. */
 		SLATE_ARGUMENT(const FSlateBrush*, BackgroundImage)
 
-		/**
-		 * Whether to clear keyboard focus when pressing enter to commit changes.
-		 */
+		/** Whether to clear keyboard focus when pressing enter to commit changes. */
 		SLATE_ATTRIBUTE(bool, ClearKeyboardFocusOnCommit)
 
-		/**
-		 * Provides an alternative mechanism for error reporting.
-		 */
+		/** Provides an alternative mechanism for error reporting. */
 		SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
 
-		/**
-		 * Font color and opacity.
-		 */
+		/** Font color and opacity. */
 		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
 
-		/**
-		 * Text color and opacity.
-		 */
+		/** Text color and opacity. */
 		SLATE_ATTRIBUTE(FSlateColor, ForegroundColor)
 
-		/**
-		 * Hint text that appears when there is no text in the text box.
-		 */
+		/** Hint text that appears when there is no text in the text box. */
 		SLATE_ATTRIBUTE(FText, HintText)
 
-		/**
-		 * Workaround as we loose focus when the auto completion closes.
-		 */
+		/** Workaround as we loose focus when the auto completion closes. */
 		SLATE_ATTRIBUTE(bool, IsCaretMovedWhenGainFocus)
 
-		/**
-		 * Minimum width that a text block should be.
-		 */
+		/** Minimum width that a text block should be. */
 		SLATE_ATTRIBUTE(float, MinDesiredWidth)
 
-		/**
-		 * Called before the history list is shown.
-		 */
+		/** Called before the history list is shown. */
 		SLATE_EVENT(FOnShowingHistory, OnShowingHistory)
 
-		/**
-		 * Called before the suggestion list is shown.
-		 */
+		/** Called before the suggestion list is shown. */
 		SLATE_EVENT(FOnShowingSuggestions, OnShowingSuggestions)
 
-		/**
-		 * Called whenever the text is changed interactively by the user.
-		 */
+		/** Called whenever the text is changed interactively by the user. */
 		SLATE_EVENT(FOnTextChanged, OnTextChanged)
 
-		/**
-		 * Called when the text has been committed.
-		 */
+		/** Called when the text has been committed. */
 		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
 
-		/**
-		 * Whether to allow the user to back out of changes when they press the escape key.
-		 */
+		/** Whether to allow the user to back out of changes when they press the escape key. */
 		SLATE_ATTRIBUTE(bool, RevertTextOnEscape)
 
-		/**
-		 * Whether to select all text when pressing enter to commit changes.
-		 */
+		/** Whether to select all text when pressing enter to commit changes. */
 		SLATE_ATTRIBUTE(bool, SelectAllTextOnCommit)
 
-		/**
-		 * Whether to select all text when the user clicks to give focus on the widget.
-		 */
+		/** Whether to select all text when the user clicks to give focus on the widget. */
 		SLATE_ATTRIBUTE(bool, SelectAllTextWhenFocused)
 
-		/**
-		 * The styling of the text box.
-		 */
+		/** The styling of the text box. */
 		SLATE_STYLE_ARGUMENT(FEditableTextBoxStyle, TextStyle)
 
-		/**
-		 * The styling of the suggestion text.
-		 */
+		/** The styling of the suggestion text. */
 		SLATE_STYLE_ARGUMENT(FTextBlockStyle, SuggestionTextStyle)
 
-		/**
-		 * The maximum height of the suggestion list.
-		 */
+		/** The maximum height of the suggestion list. */
 		SLATE_ATTRIBUTE(float, SuggestionListMaxHeight)
 
-		/**
-		 * Sets the text content for this editable text box widget.
-		 */
+		/** Sets the text content for this editable text box widget. */
 		SLATE_ATTRIBUTE(FText, Text)
 
 	SLATE_END_ARGS()
 
-
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	SSuggestionTextBox( );
-
 
 public:
 
 	/**
 	 * Construct this widget.  Called by the SNew() Slate macro.
 	 *
-	 * @param InArgs - Declaration used by the SNew() macro to construct this widget.
+	 * @param InArgs Declaration used by the SNew() macro to construct this widget.
 	 */
 	void Construct( const FArguments& InArgs );
 
@@ -187,7 +139,7 @@ public:
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction.
 	 * If no error reporting was provided, the TextBox will create a default error reporter.
 	 *
-	 * @param InError - The error string to set. 
+	 * @param InError The error string to set. 
 	 */
 	void SetError( const FString& InError )
 	{
@@ -197,21 +149,16 @@ public:
 	/**
 	 * Sets the text string currently being edited 
 	 *
-	 * @param InNewText - The new text string.
+	 * @param InNewText The new text string.
 	 */
 	void SetText( const TAttribute< FText >& InNewText );
 
-
 protected:
 	
-	/**
-	 * Clears the list of suggestions and hides the suggestions list.
-	 */
+	/** Clears the list of suggestions and hides the suggestions list. */
 	void ClearSuggestions( );
 
-	/**
-	 * Sets the keyboard focus to the text box.
-	 */
+	/** Sets the keyboard focus to the text box. */
 	void FocusTextBox( );
 
 	/**
@@ -221,28 +168,24 @@ protected:
 	 */
 	FString GetSelectedSuggestionString( ) const;
 
-	/**
-	 * Highlights the selected suggestion in the suggestion list.
-	 */
+	/** Highlights the selected suggestion in the suggestion list. */
 	void MarkActiveSuggestion( );
 
 	/**
 	 * Sets the list of suggestions.
 	 *
-	 * @param SuggestionStrings - The suggestion strings.
-	 * @param InHistoryMode - Whether the suggestions represent the input history.
+	 * @param SuggestionStrings The suggestion strings.
+	 * @param InHistoryMode Whether the suggestions represent the input history.
 	 */
 	void SetSuggestions( TArray<FString>& SuggestionStrings, bool InHistoryMode );
 
-
 protected:
 
+	// SWidget overrides
+
 	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent ) override;
-
 	virtual bool SupportsKeyboardFocus( ) const override;
-
 
 private:
 
@@ -260,7 +203,6 @@ private:
 
 	// Callback committing the text box input.
 	void HandleTextBoxTextCommitted( const FText& InText, ETextCommit::Type CommitInfo );
-
 
 private:
 
@@ -284,7 +226,6 @@ private:
 
 	// The styling of the suggestion text.
 	const FTextBlockStyle* SuggestionTextStyle;
-
 
 private:
 

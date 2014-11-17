@@ -15,16 +15,22 @@
 UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	MyWorld = Cast<UWorld>(GetOuter());
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+		if (AISystem)
+		{
+			AISystem->AddReferenceFromProxyObject(this);
+		}
+	}
 }
 
 void UAIAsyncTaskBlueprintProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type MovementResult)
 {
-	if (RequestID.IsEquivalent(MoveRequestId) && AIController.IsValid())
+	if (RequestID.IsEquivalent(MoveRequestId) && AIController.IsValid(true))
 	{
-		if (!AIController->IsPendingKill() && AIController->ReceiveMoveCompleted.IsBound())
-		{
-			AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
-		}
+		AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
 
 		if (MovementResult == EPathFollowingResult::Success)
 		{
@@ -34,21 +40,32 @@ void UAIAsyncTaskBlueprintProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFo
 		{
 			OnFail.Broadcast(MovementResult);
 		}
+
+		UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+		if (AISystem)
+		{
+			AISystem->RemoveReferenceToProxyObject(this);
+		}
 	}
 }
 
 void UAIAsyncTaskBlueprintProxy::OnNoPath()
 {
 	OnFail.Broadcast(EPathFollowingResult::Aborted);
+	UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+	if (AISystem)
+	{
+		AISystem->RemoveReferenceToProxyObject(this);
+	}
 }
 
 void UAIAsyncTaskBlueprintProxy::BeginDestroy()
 {
-	if (AIController.IsValid() && !AIController->IsPendingKill() && AIController->ReceiveMoveCompleted.IsBound())
+	UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+	if (AISystem)
 	{
-		AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
+		AISystem->RemoveReferenceToProxyObject(this);
 	}
-
 	Super::BeginDestroy();
 }
 
@@ -72,7 +89,8 @@ class UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyOb
 	AAIController* AIController = Cast<AAIController>(Pawn->GetController());
 	if (AIController)
 	{
-		MyObj = NewObject<UAIAsyncTaskBlueprintProxy>();
+		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		MyObj = NewObject<UAIAsyncTaskBlueprintProxy>(World);
 		FNavPathSharedPtr Path = TargetActor ? AIController->FindPath(TargetActor, true) : AIController->FindPath(Destination, true);
 		if (Path.IsValid())
 		{
@@ -82,7 +100,6 @@ class UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyOb
 		}
 		else
 		{
-			UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 			World->GetTimerManager().SetTimer(MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1, false);
 		}
 	}

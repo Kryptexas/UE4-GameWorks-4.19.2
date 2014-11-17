@@ -33,6 +33,7 @@
 #include "MaterialEditorActions.h"
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -116,9 +117,9 @@ void UMaterialGraphNode::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
-bool UMaterialGraphNode::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UMaterialGraphNode::CanPasteHere(const UEdGraph* TargetGraph) const
 {
-	if (Super::CanPasteHere(TargetGraph, Schema))
+	if (Super::CanPasteHere(TargetGraph))
 	{
 		const UMaterialGraph* MaterialGraph = Cast<const UMaterialGraph>(TargetGraph);
 		if (MaterialGraph)
@@ -153,7 +154,7 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return FText::FromString(GetParameterName());
 	}
-	else if (TitleType == ENodeTitleType::ListView)
+	else if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 	{
 		return FText::FromString(MaterialExpression->GetClass()->GetDescription());
 	}
@@ -255,7 +256,7 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 	return Settings->PureFunctionCallNodeTitleColor;
 }
 
-FString UMaterialGraphNode::GetTooltip() const
+FText UMaterialGraphNode::GetTooltipText() const
 {
 	if (MaterialExpression)
 	{
@@ -272,10 +273,10 @@ FString UMaterialGraphNode::GetTooltip() const
 				ToolTip += ToolTips[Index];
 			}
 
-			return ToolTip;
+			return FText::FromString(ToolTip);
 		}
 	}
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void UMaterialGraphNode::PrepareForCopying()
@@ -380,6 +381,12 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 			// Select upstream and downstream nodes
 			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().SelectDownstreamNodes);
 			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().SelectUpstreamNodes);
+		}
+		Context.MenuBuilder->EndSection();
+
+		Context.MenuBuilder->BeginSection("MaterialEditorMenuDocumentation");
+		{
+			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().GoToDocumentation);
 		}
 		Context.MenuBuilder->EndSection();
 

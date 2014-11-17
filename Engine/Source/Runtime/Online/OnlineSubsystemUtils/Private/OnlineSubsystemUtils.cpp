@@ -10,6 +10,7 @@
 
 #include "Voice.h"
 #include "SoundDefinitions.h"
+#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 // Testing classes
 #include "Tests/TestFriendsInterface.h"
@@ -59,6 +60,12 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 			{
 				AudioComponent->bIsUISound = true;
 				AudioComponent->SetVolumeMultiplier(1.5f);
+
+				const FStringAssetReference VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
+				if (VoiPSoundClassName.IsValid())
+				{
+					AudioComponent->SoundClassOverride = LoadObject<USoundClass>(NULL, *VoiPSoundClassName.ToString());
+				}
 			}
 			else
 			{

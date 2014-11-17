@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
 
 #if !UE_BUILD_SHIPPING
 
@@ -202,7 +202,7 @@ protected:
 	FCriticalSection SynchronizationObject;
 
 	FProfiledPlatformFile()
-		: LowerLevel(NULL)
+		: LowerLevel(nullptr)
 		, StartTime(0.0)
 	{
 	}
@@ -221,7 +221,7 @@ public:
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		// Inner is required.
-		check(Inner != NULL);
+		check(Inner != nullptr);
 		LowerLevel = Inner;
 		StartTime = FPlatformTime::Seconds() * 1000.0;
 		return !!LowerLevel;
@@ -252,7 +252,7 @@ class TProfiledPlatformFile : public FProfiledPlatformFile
 		FScopeLock ScopeLock(&SynchronizationObject);
 
 		TSharedPtr< FProfiledFileStatsFileBase >* ExistingStat = Stats.Find( Path );
-		if( ExistingStat != NULL )
+		if( ExistingStat != nullptr )
 		{
 			return (StatsType*)(ExistingStat->Get());
 		}
@@ -273,7 +273,7 @@ public:
 	}
 	static const TCHAR* GetTypeName()
 	{
-		return NULL;
+		return nullptr;
 	}
 	virtual const TCHAR* GetName() const override
 	{
@@ -501,7 +501,7 @@ protected:
 public:
 
 	FPlatformFileReadStats()
-		: LowerLevel(NULL)
+		: LowerLevel(nullptr)
 		, Timer(0.f)
 	{
 	}
@@ -612,5 +612,5 @@ public:
 	}
 };
 
-#endif // !UE_BUILD_SHIPPING
 
+#endif // !UE_BUILD_SHIPPING

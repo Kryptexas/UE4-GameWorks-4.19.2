@@ -52,23 +52,44 @@ FLinearColor UAnimGraphNode_StateMachineBase::GetNodeTitleColor() const
 	return FLinearColor(0.8f, 0.8f, 0.8f);
 }
 
-FString UAnimGraphNode_StateMachineBase::GetTooltip() const
+FText UAnimGraphNode_StateMachineBase::GetTooltipText() const
 {
-	return TEXT("Animation State Machine");
+	return LOCTEXT("StateMachineTooltip", "Animation State Machine");
 }
 
 FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText FirstLine = (EditorStateMachineGraph != NULL) ? FText::FromString(EditorStateMachineGraph->GetName()) : LOCTEXT("ErrorNoGraph", "Error: No Graph");
-	if(TitleType == ENodeTitleType::FullTitle)
+	if ((TitleType == ENodeTitleType::ListView) && (EditorStateMachineGraph == nullptr))
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Title"), FirstLine);
-
-		return FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args);
+		return LOCTEXT("AddNewStateMachine", "Add New State Machine...");
+	}
+	else if (EditorStateMachineGraph == nullptr)
+	{
+		if (TitleType == ENodeTitleType::FullTitle)
+		{
+			return LOCTEXT("NullStateMachineFullTitle", "Error: No Graph\nState Machine");
+		}
+		else
+		{
+			return LOCTEXT("ErrorNoGraph", "Error: No Graph");
+		}
+	}
+	else if (TitleType == ENodeTitleType::FullTitle)
+	{
+		// @TODO: don't know enough about this node type to comfortably assert that
+		//        the EditorStateMachineGraph won't change after the node has 
+		//        spawned... until then, we'll leave this optimization off
+		//if (CachedFullTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Title"), FText::FromName(EditorStateMachineGraph->GetFName()));
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedFullTitle = FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args);
+		}
+		return CachedFullTitle;
 	}
 
-	return FirstLine;
+	return FText::FromName(EditorStateMachineGraph->GetFName());
 }
 
 FString UAnimGraphNode_StateMachineBase::GetNodeCategory() const

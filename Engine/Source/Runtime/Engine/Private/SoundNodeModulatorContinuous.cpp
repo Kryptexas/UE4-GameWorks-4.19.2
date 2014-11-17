@@ -96,7 +96,3 @@ void USoundNodeModulatorContinuous::ParseNodes( FAudioDevice* AudioDevice, const
 	Super::ParseNodes( AudioDevice, NodeWaveInstanceHash, ActiveSound, UpdatedParams, WaveInstances );
 }
 
-FString USoundNodeModulatorContinuous::GetUniqueString() const
-{
-	return( TEXT( "ModulatorContinuousComplex/" ) );
-}

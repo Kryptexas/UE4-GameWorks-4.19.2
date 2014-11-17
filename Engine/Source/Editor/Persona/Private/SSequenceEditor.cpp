@@ -49,6 +49,7 @@ void SSequenceEditor::Construct(const FArguments& InArgs)
 	.Padding(0, 10)
 	[
 		SAssignNew( AnimCurvePanel, SAnimCurvePanel )
+		.Persona(InArgs._Persona)
 		.Sequence(SequenceObj)
 		.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
 		.ViewInputMin(this, &SAnimEditorBase::GetViewMinInput)
@@ -85,14 +86,18 @@ void SSequenceEditor::SetSequenceObj(UAnimSequenceBase * NewSequence)
 
 void SSequenceEditor::PostUndo()
 {
-	PersonaPtr.Pin()->SetPreviewAnimationAsset(SequenceObj);
-	// need to refresh panel
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+	if(SharedPersona.IsValid())
+	{
+		SharedPersona->SetPreviewAnimationAsset(SequenceObj);
+	}
+
 	if( SequenceObj )
 	{
 		SetInputViewRange(0, SequenceObj->SequenceLength);
 
-		// update notify panel 
 		AnimNotifyPanel->Update();
+		AnimCurvePanel->UpdatePanel();
 	}
 }
 

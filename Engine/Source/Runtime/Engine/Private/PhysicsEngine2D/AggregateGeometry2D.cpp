@@ -118,7 +118,7 @@ void FAggregateGeometry2D::EmptyElements()
 	ConvexElements.Empty();
 }
 
-void FAggregateGeometry2D::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid) const
+void FAggregateGeometry2D::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest) const
 {
 	//@TODO: PAPER2D: Implement this method
 }

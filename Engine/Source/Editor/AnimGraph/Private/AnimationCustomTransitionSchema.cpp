@@ -23,6 +23,7 @@ void UAnimationCustomTransitionSchema::CreateDefaultNodesForGraph(UEdGraph& Grap
 	ResultSinkNode->NodePosX = 0;
 	ResultSinkNode->NodePosY = 0;
 	ResultNodeCreator.Finalize();
+	SetNodeMetaData(ResultSinkNode, FNodeMetadata::DefaultGraphNode);
 
 	UAnimationCustomTransitionGraph* TypedGraph = CastChecked<UAnimationCustomTransitionGraph>(&Graph);
 	TypedGraph->MyResultNode = ResultSinkNode;
@@ -35,6 +36,7 @@ void UAnimationCustomTransitionSchema::CreateDefaultNodesForGraph(UEdGraph& Grap
 		SourcePoseNode->NodePosX = -300;
 		SourcePoseNode->NodePosY = -150;
 		SourceNodeCreator.Finalize();
+		SetNodeMetaData(SourcePoseNode, FNodeMetadata::DefaultGraphNode);
 
 	}
 	{
@@ -44,6 +46,7 @@ void UAnimationCustomTransitionSchema::CreateDefaultNodesForGraph(UEdGraph& Grap
 		DestinationPoseNode->NodePosX = -300;
 		DestinationPoseNode->NodePosY = 150;
 		DestinationNodeCreator.Finalize();
+		SetNodeMetaData(DestinationPoseNode, FNodeMetadata::DefaultGraphNode);
 	}
 }
 

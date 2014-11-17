@@ -13,11 +13,11 @@ namespace UnrealBuildTool
 	{
 		void RegisterToolChain();
 		
-		CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
+		CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
 		
-		CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles);
+		CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles);
 		
-		FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
+		FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
 		
 		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile);
 		
@@ -27,8 +27,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
 		/// </summary>
-		/// <param name="UObjectModules">List of UObject modules we generated code for.</param>
-		void PostCodeGeneration(UEBuildTarget Target, UHTManifest Manifest);
+		/// <param name="Manifest">List of UObject modules we generated code for.</param>
+		void PostCodeGeneration(UHTManifest Manifest);
 		
 		void PreBuildSync();
 		
@@ -39,6 +39,12 @@ namespace UnrealBuildTool
 		void SetUpGlobalEnvironment();
 
         void AddFilesToManifest(ref FileManifest manifest, UEBuildBinary Binary );
+
+		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
+
+		void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries);
+
+		string GetPlatformVersion();
 	}
 
 	public abstract class UEToolChain : IUEToolChain
@@ -75,15 +81,20 @@ namespace UnrealBuildTool
 
 		public abstract void RegisterToolChain();
 
-		public abstract CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
+		public abstract CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
 
-		public virtual CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles)
+		public virtual CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles)
 		{
 			CPPOutput Result = new CPPOutput();
 			return Result;
 		}
 
 		public abstract FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
+		public virtual FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		{
+			return new FileItem[] { LinkFiles(LinkEnvironment, bBuildImportLibraryOnly) };
+		}
+
 
 		public virtual void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
 		{
@@ -128,8 +139,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
 		/// </summary>
-		/// <param name="UObjectModules">List of UObject modules we generated code for.</param>
-		public virtual void PostCodeGeneration(UEBuildTarget Target,  UHTManifest Manifest)
+		/// <param name="Manifest">List of UObject modules we generated code for.</param>
+		public virtual void PostCodeGeneration(UHTManifest Manifest)
 		{
 		}
 
@@ -159,5 +170,52 @@ namespace UnrealBuildTool
         {
 
         }
+
+
+		protected void AddPrerequisiteSourceFile( UEBuildTarget Target, IUEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems )
+		{
+			PrerequisiteItems.Add( SourceFile );
+
+			var RemoteThis = this as RemoteToolChain;
+			bool bAllowUploading = RemoteThis != null && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;	// Don't use remote features when compiling from a Mac
+			if( bAllowUploading )
+			{
+				RemoteThis.QueueFileForBatchUpload(SourceFile);
+			}
+
+			if( !BuildConfiguration.bUseExperimentalFastBuildIteration )	// In fast build iteration mode, we'll gather includes later on
+			{
+				// @todo fastubt: What if one of the prerequisite files has become missing since it was updated in our cache? (usually, because a coder eliminated the source file)
+				//		-> Two CASES:
+				//				1) NOT WORKING: Non-unity file went away (SourceFile in this context).  That seems like an existing old use case.  Compile params or Response file should have changed?
+				//				2) WORKING: Indirect file went away (unity'd original source file or include).  This would return a file that no longer exists and adds to the prerequiteitems list
+				var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.Config.CPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseExperimentalFastDependencyScan );
+				foreach (FileItem IncludedFile in IncludedFileList)
+				{
+					PrerequisiteItems.Add( IncludedFile );
+
+					if( bAllowUploading &&
+						!BuildConfiguration.bUseExperimentalFastDependencyScan )	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
+					{
+						RemoteThis.QueueFileForBatchUpload(IncludedFile);
+					}
+				}
+			}
+		}
+
+		public virtual void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+		{
+
+		}
+
+		public virtual void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
+		{
+
+		}
+
+		public virtual string GetPlatformVersion()
+		{
+			return "";
+		}
 	};
 }

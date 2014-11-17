@@ -96,21 +96,15 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 	return bSuccess;
 }
 
-bool FProjectManager::AreProjectModulesUpToDate()
+bool FProjectManager::CheckModuleCompatibility(TArray<FString>& OutIncompatibleModules)
 {
-	return !CurrentProject.IsValid() || FModuleDescriptor::AreModulesUpToDate(CurrentProject->Modules);
+	return !CurrentProject.IsValid() || FModuleDescriptor::CheckModuleCompatbility(CurrentProject->Modules, true, OutIncompatibleModules);
 }
 
 const FString& FProjectManager::GetAutoLoadProjectFileName()
 {
 	static FString RecentProjectFileName = FPaths::Combine(*FPaths::GameAgnosticSavedDir(), TEXT("AutoLoadProject.txt"));
 	return RecentProjectFileName;
-}
-
-const FString& FProjectManager::NonStaticGetProjectFileExtension()
-{
-	static FString GameProjectFileExtension(TEXT("uproject"));
-	return GameProjectFileExtension;
 }
 
 bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)

@@ -22,7 +22,8 @@ public class OpenGLDrv : ModuleRules
 		PrivateIncludePathModuleNames.Add("ImageWrapper");
 		DynamicallyLoadedModuleNames.Add("ImageWrapper");
 
-		AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+        if (Target.Platform != UnrealTargetPlatform.HTML5)
+		    AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{

@@ -5,6 +5,7 @@
 #include "HUD.generated.h"
 
 class FCanvasTextItem;
+class UTexture;
 
 /** List of actors and debug text to draw, @see AddDebugText(), RemoveDebugText(), and DrawDebugTextList() */
 USTRUCT()
@@ -229,11 +230,6 @@ protected:
 	UPROPERTY()
 	TArray<struct FDebugTextInfo> DebugTextList;
 
-private:
-
-	/** Areas of the screen where UIBlur is enabled. */
-	TArray< FIntRect > UIBlurOverrideRectangles;
-
 public:
 	//=============================================================================
 	// Utils
@@ -398,15 +394,15 @@ public:
 	void DrawMaterialSimple(UMaterialInterface* Material, float ScreenX, float ScreenY, float ScreenW, float ScreenH, float Scale=1.f, bool bScalePosition=false);
 
 	/** Transforms a 3D world-space vector into 2D screen coordinates */
-	UFUNCTION(BlueprintPure, Category=HUD)
-	FVector Project(FVector Location);
+	UFUNCTION(BlueprintCallable, Category = HUD)
+	FVector Project(FVector Location) const;
 	
 	/** Transforms a 2D screen location into a 3D location and direction */
-	UFUNCTION(BlueprintPure, Category=HUD)
-	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection);
+	UFUNCTION(BlueprintCallable, Category = HUD)
+	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection) const;
 
 
-	/*
+	/**
 	 * Returns the array of actors inside a selection rectangle, with a class filter.
 	 *
 	 * Sample usage:
@@ -418,12 +414,13 @@ public:
 	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
 	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
 	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bIncludeNonCollidingComponents 	Whether to include even non-colliding components of the actor when determining its bounds
 	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
 	 *
 	 * returns false if selection could not occur. Make sure template class is extending AActor.
 	 */
 	template <typename ClassFilter>
-	bool GetActorsInSelectionRectangle(const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<ClassFilter*>& OutActors, bool bActorMustBeFullyEnclosed = false)
+	bool GetActorsInSelectionRectangle(const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<ClassFilter*>& OutActors, bool bIncludeNonCollidingComponents = true, bool bActorMustBeFullyEnclosed = false)
 	{
 		//Is Actor subclass?
 		if (!ClassFilter::StaticClass()->IsChildOf(AActor::StaticClass()))
@@ -433,7 +430,7 @@ public:
 
 		//Run Inner Function, output to Base AActor Array
 		TArray<AActor*> OutActorsBaseArray;
-		GetActorsInSelectionRectangle(ClassFilter::StaticClass(), FirstPoint, SecondPoint, OutActorsBaseArray, bActorMustBeFullyEnclosed);
+		GetActorsInSelectionRectangle(ClassFilter::StaticClass(), FirstPoint, SecondPoint, OutActorsBaseArray, bIncludeNonCollidingComponents, bActorMustBeFullyEnclosed);
 
 		//Construct casted template type array
 		for (AActor* EachActor : OutActorsBaseArray)
@@ -456,11 +453,12 @@ public:
 	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
 	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
 	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bIncludeNonCollidingComponents 	Whether to include even non-colliding components of the actor when determining its bounds
 	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
 	 *
 	 */
 	UFUNCTION(BlueprintPure, Category=HUD)
-	void GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed = false);
+	void GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bIncludeNonCollidingComponents = true, bool bActorMustBeFullyEnclosed = false);
 
 
 	/**
@@ -620,19 +618,6 @@ public:
 	 */
 	const FHUDHitBox* GetHitBoxWithName( const FName InName ) const;
 
-	//=============================================================================
-	// UIBlur overrides
-	//=============================================================================
-
-	/** Empty the list of UIBlur rectangles  */
-	void ClearUIBlurOverrideRects();
-
-	/** Add a rectangle in which UIBlur will be enabled */
-	void AddUIBlurOverrideRect( const FIntRect& UIBlurOverrideRect );
-
-	/** Get the array of rectangles in which UIBlur enabled */
-	const TArray<FIntRect>& GetUIBlurRectangles() const;
-	
 protected:
 	bool IsCanvasValid_WarnIfNot() const;
 

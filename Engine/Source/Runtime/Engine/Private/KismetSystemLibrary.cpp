@@ -1,12 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Engine/Console.h"
 #include "LatentActions.h"
 #include "DelayAction.h"
 #include "InterpolateComponentToAction.h"
 #include "Advertising.h"
 #include "Online.h"
+#include "Camera/CameraActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -20,6 +22,11 @@ void UKismetSystemLibrary::StackTraceImpl(const FFrame& StackFrame)
 {
 	const FString Trace = StackFrame.GetStackTrace();
 	UE_LOG(LogBlueprintUserMessages, Log, TEXT("\n%s"), *Trace);
+}
+
+bool UKismetSystemLibrary::IsValid(const UObject* Object)
+{
+	return ::IsValid(Object);
 }
 
 FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
@@ -219,12 +226,19 @@ void UKismetSystemLibrary::ExecuteConsoleCommand(UObject* WorldContextObject, co
 	}
 }
 
-void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer)
+void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer, TEnumAsByte<EQuitPreference::Type> QuitPreference)
 {
 	APlayerController* TargetPC = SpecificPlayer ? SpecificPlayer : UGameplayStatics::GetPlayerController(WorldContextObject, 0);
 	if( TargetPC )
 	{
-		TargetPC->ConsoleCommand("quit");
+		if ( QuitPreference == EQuitPreference::Background)
+		{
+			TargetPC->ConsoleCommand("quit background");
+		}
+		else
+		{
+			TargetPC->ConsoleCommand("quit");
+		}
 	}
 }
 
@@ -473,6 +487,18 @@ void UKismetSystemLibrary::SetObjectPropertyByName(UObject* Object, FName Proper
 	}
 }
 
+void UKismetSystemLibrary::SetClassPropertyByName(UObject* Object, FName PropertyName, TSubclassOf<UObject> Value)
+{
+	if (Object && *Value)
+	{
+		auto ClassProp = FindField<UClassProperty>(Object->GetClass(), PropertyName);
+		if (ClassProp != NULL && Value->IsChildOf(ClassProp->MetaClass)) // check it's the right type
+		{
+			ClassProp->SetObjectPropertyValue_InContainer(Object, *Value);
+		}
+	}
+}
+
 void UKismetSystemLibrary::SetStringPropertyByName(UObject* Object, FName PropertyName, const FString& Value)
 {
 	if(Object != NULL)
@@ -561,6 +587,18 @@ void UKismetSystemLibrary::SetTransformPropertyByName(UObject* Object, FName Pro
 	}
 }
 
+void UKismetSystemLibrary::Generic_SetStructurePropertyByName(UObject* OwnerObject, FName StructPropertyName, const void* SrcStructAddr)
+{
+	if (OwnerObject != NULL)
+	{
+		UStructProperty* StructProp = FindField<UStructProperty>(OwnerObject->GetClass(), StructPropertyName);
+		if (StructProp != NULL)
+		{
+			void* Dest = StructProp->ContainerPtrToValuePtr<void>(OwnerObject);
+			StructProp->CopyValuesInternal(Dest, SrcStructAddr, 1);
+		}
+	}
+}
 
 void UKismetSystemLibrary::GetActorListFromComponentList(const TArray<UPrimitiveComponent*>& ComponentList, UClass* ActorClassFilter, TArray<class AActor*>& OutActorList)
 {
@@ -1144,7 +1182,7 @@ void DrawDebugSweptBox(const UWorld* InWorld, FVector const& Start, FVector cons
 }
 
 
-bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector & HalfSize, const FRotator & Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf)
+bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf)
 {
 	static const FName BoxTraceSingleName(TEXT("BoxTraceSingle"));
 
@@ -1199,7 +1237,7 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 	return bHit;
 }
 
-bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector & HalfSize, const FRotator & Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf)
+bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf)
 {
 	static const FName BoxTraceMultiName(TEXT("BoxTraceMulti"));
 
@@ -2289,25 +2327,25 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 }
 
 /** Draw a debug line */
-void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const& LineStart, FVector const& LineEnd, FLinearColor Color, float LifeTime, float Thickness)
+void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, FLinearColor Color, float LifeTime, float Thickness)
 {
 	::DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), LineStart, LineEnd, Color, false, LifeTime, SDPG_World, Thickness);
 }
 
 /** Draw a debug point */
-void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const& Position, float Size, FLinearColor PointColor, float LifeTime)
+void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const Position, float Size, FLinearColor PointColor, float LifeTime)
 {
 	::DrawDebugPoint(GEngine->GetWorldFromContextObject(WorldContextObject), Position, Size, PointColor, false, LifeTime, SDPG_World);
 }
 
 /** Draw directional arrow, pointing from LineStart to LineEnd. */
-void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector const& LineStart, FVector const& LineEnd, float ArrowSize, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, float ArrowSize, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugDirectionalArrow(GEngine->GetWorldFromContextObject(WorldContextObject), LineStart, LineEnd, ArrowSize, Color, false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug box */
-void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector const& Center, FVector Extent, FLinearColor Color, const FRotator Rotation, float LifeTime)
+void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector const Center, FVector Extent, FLinearColor Color, const FRotator Rotation, float LifeTime)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (Rotation == FRotator::ZeroRotator)
@@ -2321,37 +2359,42 @@ void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector con
 }
 
 /** Draw a debug coordinate system. */
-void UKismetSystemLibrary::DrawDebugCoordinateSystem(UObject* WorldContextObject, FVector const& AxisLoc, FRotator const& AxisRot, float Scale)
+void UKismetSystemLibrary::DrawDebugCoordinateSystem(UObject* WorldContextObject, FVector const AxisLoc, FRotator const AxisRot, float Scale, float LifeTime)
 {
-	::DrawDebugCoordinateSystem(GEngine->GetWorldFromContextObject(WorldContextObject), AxisLoc, AxisRot, Scale, false, SDPG_World);
+	::DrawDebugCoordinateSystem(GEngine->GetWorldFromContextObject(WorldContextObject), AxisLoc, AxisRot, Scale, false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug sphere */
-void UKismetSystemLibrary::DrawDebugSphere(UObject* WorldContextObject, FVector const& Center, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugSphere(UObject* WorldContextObject, FVector const Center, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugSphere(GEngine->GetWorldFromContextObject(WorldContextObject), Center, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug cylinder */
-void UKismetSystemLibrary::DrawDebugCylinder(UObject* WorldContextObject, FVector const& Start, FVector const& End, float Radius, int32 Segments, FLinearColor Color)
+void UKismetSystemLibrary::DrawDebugCylinder(UObject* WorldContextObject, FVector const Start, FVector const End, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugCylinder(GEngine->GetWorldFromContextObject(WorldContextObject), Start, End, Radius, Segments, Color.ToFColor(true), false, SDPG_World);
+	::DrawDebugCylinder(GEngine->GetWorldFromContextObject(WorldContextObject), Start, End, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug cone */
-void UKismetSystemLibrary::DrawDebugCone(UObject* WorldContextObject, FVector const& Origin, FVector const& Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color)
+void UKismetSystemLibrary::DrawDebugCone(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color)
 {
-	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, SDPG_World);
+	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, -1.f, SDPG_World);
+}
+
+void UKismetSystemLibrary::DrawDebugConeInDegrees(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color, float LifeTime)
+{
+	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, FMath::DegreesToRadians(AngleWidth), FMath::DegreesToRadians(AngleHeight), NumSides, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug capsule */
-void UKismetSystemLibrary::DrawDebugCapsule(UObject* WorldContextObject, FVector const& Center, float HalfHeight, float Radius, const FRotator& Rotation, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugCapsule(UObject* WorldContextObject, FVector const Center, float HalfHeight, float Radius, const FRotator Rotation, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugCapsule(GEngine->GetWorldFromContextObject(WorldContextObject), Center, HalfHeight, Radius, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
 
 /** Draw a debug string at a 3d world location. */
-void UKismetSystemLibrary::DrawDebugString(UObject* WorldContextObject, FVector const& TextLocation, const FString& Text, class AActor* TestBaseActor, FLinearColor TextColor, float Duration)
+void UKismetSystemLibrary::DrawDebugString(UObject* WorldContextObject, FVector const TextLocation, const FString& Text, class AActor* TestBaseActor, FLinearColor TextColor, float Duration)
 {
 	::DrawDebugString(GEngine->GetWorldFromContextObject( WorldContextObject ), TextLocation, Text, TestBaseActor, TextColor.ToFColor(true), Duration);
 }
@@ -2364,7 +2407,7 @@ void UKismetSystemLibrary::FlushDebugStrings( UObject* WorldContextObject )
 }
 
 /** Draws a debug plane. */
-void UKismetSystemLibrary::DrawDebugPlane(UObject* WorldContextObject, FPlane const& P, FVector const& Loc, float Size, FLinearColor Color, float LifeTime)
+void UKismetSystemLibrary::DrawDebugPlane(UObject* WorldContextObject, FPlane const& P, FVector const Loc, float Size, FLinearColor Color, float LifeTime)
 {
 	::DrawDebugSolidPlane(GEngine->GetWorldFromContextObject( WorldContextObject ), P, Loc, Size, Color.ToFColor(true), false, LifeTime, SDPG_World);
 }
@@ -2377,12 +2420,12 @@ void UKismetSystemLibrary::FlushPersistentDebugLines(UObject* WorldContextObject
 }
 
 /** Draws a debug frustum. */
-void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor)
+void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor, float Duration)
 {
 	if( FrustumTransform.IsRotationNormalized() )
 	{
 		FMatrix FrustumToWorld =  FrustumTransform.ToMatrixWithScale();
-		::DrawDebugFrustum(GEngine->GetWorldFromContextObject(WorldContextObject), FrustumToWorld, FrustumColor, false, SDPG_World);
+		::DrawDebugFrustum(GEngine->GetWorldFromContextObject(WorldContextObject), FrustumToWorld, FrustumColor, false, Duration, SDPG_World);
 	}
 }
 
@@ -2593,7 +2636,7 @@ void UKismetSystemLibrary::CollectGarbage()
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
+void UKismetSystemLibrary::ShowAdBanner(bool bShowOnBottomOfScreen)
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
@@ -2601,7 +2644,7 @@ void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
 	}
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_HideAdBanner()
+void UKismetSystemLibrary::HideAdBanner()
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
@@ -2609,7 +2652,7 @@ void UKismetSystemLibrary::EXPERIMENTAL_HideAdBanner()
 	}
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
+void UKismetSystemLibrary::ForceCloseAdBanner()
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
@@ -2644,8 +2687,24 @@ void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerC
 		ExternalUI->ShowAchievementsUI(LocalUserNum);
 	}
 }
+
 void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)
 {
 	// We should never hit these!  They're stubs to avoid NoExport on the class.
 	check(0);
 }
+
+void UKismetSystemLibrary::ControlScreensaver(bool bAllowScreenSaver)
+{
+	FPlatformMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformMisc::EScreenSaverAction::Enable : FPlatformMisc::EScreenSaverAction::Disable);
+}
+
+void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World && World->GetFirstLocalPlayerFromController() != nullptr && World->GetFirstLocalPlayerFromController()->ViewportClient != nullptr )
+	{
+		World->GetFirstLocalPlayerFromController()->ViewportClient->SetSuppressTransitionMessage(bState);
+	}
+}
+

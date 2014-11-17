@@ -47,11 +47,6 @@ public:
 	static FOnPackageMarkedDirty PackageMarkedDirtyEvent;
 
 private:
-#if !IS_MONOLITHIC
-	/** True if we have attempted to load code for this package from a DLL already */
-	bool bHasAttemptedBind;
-#endif
-
 	/** Used by the editor to determine if a package has been changed.																							*/
 	bool	bDirty;
 public:
@@ -393,12 +388,6 @@ public:
 	static EObjectMark GetObjectMarksForTargetPlatform( const class ITargetPlatform* TargetPlatform, const bool bIsCooking );
 
 };
-
-/** Delegate type for saving check */
-DECLARE_DELEGATE_RetVal_ThreeParams(bool, FIsPackageOKToSaveDelegate, UPackage*, const FString&, FOutputDevice*);
-
-/** Delegate used by SavePackage() to check whether a package should be saved */
-extern COREUOBJECT_API FIsPackageOKToSaveDelegate GIsPackageOKToSaveDelegate;
 
 /*-----------------------------------------------------------------------------
 	UMetaData.

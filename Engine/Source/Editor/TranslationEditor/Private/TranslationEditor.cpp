@@ -1111,15 +1111,40 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 		// Write translation data first to ensure all changes are exported
 		DataManager->WriteTranslationData();
 
+		// Source path needs to be relative to Engine or Game directory
+		FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+		FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+		FString FolderRelativeManifestPath = ManifestFilePath;
+		bool IsEngineManifest = false;
+		if (ManifestFullPath.StartsWith(EngineFullPath))
+		{
+			IsEngineManifest = true;
+		}
+		if (IsEngineManifest)
+		{
+			FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::EngineDir());
+		}
+		else
+		{
+			FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::GameDir());
+		}
+
+		// Paths like "Content/Localization/Editor/" are not considered relative for some reason, so add "./" if neccessary
+		if (!FPaths::IsRelative(FolderRelativeManifestPath))
+		{
+			FolderRelativeManifestPath = FString(TEXT("./")) + FolderRelativeManifestPath;
+		}
+
 		UInternationalizationExportSettings* ExportSettings = NewObject<UInternationalizationExportSettings>();
 		ExportSettings->CulturesToGenerate.Empty();
 		ExportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
 		ExportSettings->CommandletClass = "InternationalizationExport";
-		ExportSettings->SourcePath = FPaths::GetPath(ManifestFilePath);
+		ExportSettings->SourcePath = FPaths::GetPath(FolderRelativeManifestPath);
 		ExportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
 		ExportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
 		ExportSettings->bExportLoc = true;
 		ExportSettings->bImportLoc = false;
+		ExportSettings->bUseCultureDirectory = false;
 
 		ExportSettings->DestinationPath = DefaultPath / DefaultFilename;
 
@@ -1235,15 +1260,40 @@ void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
 
 	if (bOpened)
 	{
+		// Source path needs to be relative to Engine or Game directory
+		FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+		FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+		FString FolderRelativeManifestPath = ManifestFilePath;
+		bool IsEngineManifest = false;
+		if (ManifestFullPath.StartsWith(EngineFullPath))
+		{
+			IsEngineManifest = true;
+		}
+		if (IsEngineManifest)
+		{
+			FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::EngineDir());
+		}
+		else
+		{
+			FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::GameDir());
+		}
+
+		// Paths like "Content/Localization/Editor/" are not considered relative for some reason, so add "./" if neccessary
+		if (!FPaths::IsRelative(FolderRelativeManifestPath))
+		{
+			FolderRelativeManifestPath = FString(TEXT("./")) + FolderRelativeManifestPath;
+		}
+
 		UInternationalizationExportSettings* ImportSettings = NewObject<UInternationalizationExportSettings>();
 		ImportSettings->CulturesToGenerate.Empty();
 		ImportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
 		ImportSettings->CommandletClass = "InternationalizationExport";
-		ImportSettings->DestinationPath = FPaths::GetPath(ManifestFilePath);
+		ImportSettings->DestinationPath = FPaths::GetPath(FolderRelativeManifestPath);
 		ImportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
 		ImportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
 		ImportSettings->bExportLoc = false;
 		ImportSettings->bImportLoc = true;
+		ImportSettings->bUseCultureDirectory = false;
 
 		ImportSettings->SourcePath = DefaultPath / FPaths::GetBaseFilename(ManifestFilePath);
 

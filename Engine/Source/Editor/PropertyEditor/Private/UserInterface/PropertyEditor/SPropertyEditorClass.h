@@ -85,6 +85,8 @@ private:
 	bool bIsBlueprintBaseOnly;
 	/** Should we be able to select "None" as a class? */
 	bool bAllowNone;
+	/** Should only placeable classes be displayed? */
+	bool bAllowOnlyPlaceable;
 
 	/** Attribute used to get the currently selected class (required if PropertyEditor == null) */
 	TAttribute<const UClass*> SelectedClass;

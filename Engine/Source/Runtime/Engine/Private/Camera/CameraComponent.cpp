@@ -7,6 +7,9 @@
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
+static void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValue);
+
+
 //////////////////////////////////////////////////////////////////////////
 // UCameraComponent
 
@@ -26,13 +29,17 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 	OrthoWidth = 512.0f;
 	bConstrainAspectRatio = false;
 	PostProcessBlendWeight = 1.0f;
-	bUseControllerViewRotation = true;
+	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
+	bUsePawnControlRotation = false;
 	bAutoActivate = true;
+
+	// Init deprecated var, for old code that may refer to it.
+	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void UCameraComponent::OnRegister()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (ProxyMeshComponent == NULL)
 	{
 		ProxyMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
@@ -60,6 +67,9 @@ void UCameraComponent::OnRegister()
 #endif
 
 	Super::OnRegister();
+
+	// Init deprecated var, for old code that may refer to it.
+	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void UCameraComponent::OnUnregister()
@@ -86,7 +96,24 @@ void UCameraComponent::OnUnregister()
 #endif
 }
 
-#if WITH_EDITORONLY_DATA
+
+void UCameraComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	const int32 LinkerUE4Ver = GetLinkerUE4Version();
+
+	if (LinkerUE4Ver < VER_UE4_RENAME_CAMERA_COMPONENT_VIEW_ROTATION)
+	{
+		bUsePawnControlRotation = bUseControllerViewRotation_DEPRECATED;
+	}
+
+	// Init deprecated var, for old code that may refer to it.
+	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
+}
+
+
+#if WITH_EDITOR
 void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != NULL)
@@ -95,6 +122,7 @@ void UCameraComponent::RefreshVisualRepresentation()
 		DrawFrustum->FrustumStartDist = 10.f;
 		DrawFrustum->FrustumEndDist = 1000.f;
 		DrawFrustum->FrustumAspectRatio = AspectRatio;
+		DrawFrustum->MarkRenderStateDirty();
 	}
 }
 
@@ -128,12 +156,12 @@ void UCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bUseControllerViewRotation)
+	if (bUsePawnControlRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{
 			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
-			if (PawnViewRotation != GetComponentRotation())
+			if (!PawnViewRotation.Equals(GetComponentRotation()))
 			{
 				SetWorldRotation(PawnViewRotation);
 			}
@@ -171,4 +199,30 @@ void UCameraComponent::CheckForErrors()
 	}
 }
 #endif
+
+
+void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValue)
+{
+	// BEGIN_IGNORE_DEPRECATION_WARNINGS
+	#ifdef __clang__
+		#pragma clang diagnostic push
+		#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	#else
+		#pragma warning(push)
+		#pragma warning(disable:4995)
+		#pragma warning(disable:4996)
+	#endif
+
+	Component.bUseControllerViewRotation = bValue;
+
+	// END_IGNORE_DEPRECATION_WARNINGS
+	#ifdef __clang__
+		#pragma clang diagnostic pop
+	#else
+		#pragma warning(pop)
+	#endif
+}
+
+
 #undef LOCTEXT_NAMESPACE
+

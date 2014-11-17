@@ -1489,7 +1489,7 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 	make_intrinsic_emit_vertex(ir, state);
 	make_intrinsic_end_primitive(ir, state);
 
-	if (state->language_version >= 430)
+	if (state->language_version >= 310)
 	{
 		make_intrinsic_barriers(ir, state);
 		make_intrinsic_pack_functions(ir, state);

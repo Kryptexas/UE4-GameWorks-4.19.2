@@ -75,9 +75,9 @@ FDetailWidgetRow FDetailLayoutCustomization::GetWidgetRow() const
 
 
 FDetailCategoryImpl::FDetailCategoryImpl( FName InCategoryName, TSharedRef<FDetailLayoutBuilderImpl> InDetailLayout )
-	: DetailLayoutBuilder( InDetailLayout )
+	: HeaderContentWidget( NULL )
+	, DetailLayoutBuilder( InDetailLayout )
 	, CategoryName( InCategoryName )
-	, HeaderContentWidget( NULL )
 	, SortOrder( 0 )
 	, bRestoreExpansionState( true )
 	, bShouldBeInitiallyCollapsed( false )

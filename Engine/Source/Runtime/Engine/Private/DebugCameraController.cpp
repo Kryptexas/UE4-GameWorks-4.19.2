@@ -93,7 +93,44 @@ void ADebugCameraController::SetupInputComponent()
 
 	InputComponent->BindAction("DebugCamera_ToggleDisplay", IE_Pressed, this, &ADebugCameraController::ToggleDisplay);
 	InputComponent->BindAction("DebugCamera_FreezeRendering", IE_Pressed, this, &ADebugCameraController::ToggleFreezeRendering);
+
+	InputComponent->BindTouch(IE_Pressed, this, &ADebugCameraController::OnTouchBegin);
+	InputComponent->BindTouch(IE_Released, this, &ADebugCameraController::OnTouchEnd);
+	InputComponent->BindTouch(IE_Repeat, this, &ADebugCameraController::OnFingerMove);
 }
+
+
+void ADebugCameraController::OnTouchBegin(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if (FingerIndex == ETouchIndex::Touch1)
+	{
+		LastTouchDragLocation = FVector2D(Location);
+	}
+}
+
+void ADebugCameraController::OnTouchEnd(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if (FingerIndex == ETouchIndex::Touch1)
+	{
+		LastTouchDragLocation = FVector2D::ZeroVector;
+	}
+}
+
+static const float TouchDragRotationScale = 0.1f;
+
+void ADebugCameraController::OnFingerMove(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if ( (FingerIndex == ETouchIndex::Touch1) && (!LastTouchDragLocation.IsZero()) )
+	{
+		FVector2D const DragDelta = (FVector2D(Location) - LastTouchDragLocation) * TouchDragRotationScale;
+
+		AddYawInput(DragDelta.X);
+		AddPitchInput(DragDelta.Y);
+
+		LastTouchDragLocation = FVector2D(Location);
+	}
+}
+
 
 void ADebugCameraController::Select( FHitResult const& Hit )
 {

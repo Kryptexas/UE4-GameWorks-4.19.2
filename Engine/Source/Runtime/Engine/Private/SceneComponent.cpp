@@ -37,34 +37,33 @@ USceneComponent::USceneComponent(const class FPostConstructInitializeProperties&
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
 {
-	// With no attachment
-	FTransform ParentToWorld = FTransform::Identity;
-
 	Parent = Parent ? Parent : AttachParent;
-
 	if (Parent != NULL)
 	{
-		ParentToWorld = Parent->GetSocketTransform(AttachSocketName);
+		const FTransform ParentToWorld = Parent->GetSocketTransform(AttachSocketName);
+		FTransform NewCompToWorld = NewRelativeTransform * ParentToWorld;
+
+		if(bAbsoluteLocation)
+		{
+			NewCompToWorld.SetTranslation(NewRelativeTransform.GetTranslation());
+		}
+
+		if(bAbsoluteRotation)
+		{
+			NewCompToWorld.SetRotation(NewRelativeTransform.GetRotation());
+		}
+
+		if(bAbsoluteScale)
+		{
+			NewCompToWorld.SetScale3D(NewRelativeTransform.GetScale3D());
+		}
+
+		return NewCompToWorld;
 	}
-
-	FTransform NewCompToWorld = NewRelativeTransform * ParentToWorld;
-
-	if(bAbsoluteLocation)
+	else
 	{
-		NewCompToWorld.SetTranslation(NewRelativeTransform.GetTranslation());
+		return NewRelativeTransform;
 	}
-
-	if(bAbsoluteRotation)
-	{
-		NewCompToWorld.SetRotation(NewRelativeTransform.GetRotation());
-	}
-
-	if(bAbsoluteScale)
-	{
-		NewCompToWorld.SetScale3D(NewRelativeTransform.GetScale3D());
-	}
-
-	return NewCompToWorld;
 }
 
 void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove)
@@ -173,10 +172,9 @@ class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const
 
 bool USceneComponent::IsDeferringMovementUpdates() const
 {
-	FScopedMovementUpdate* CurrentScopedUpdate = GetCurrentScopedMovement();
-	if (CurrentScopedUpdate)
+	if (ScopedMovementStack.Num() > 0)
 	{
-		checkSlow(CurrentScopedUpdate->IsDeferringUpdates());
+		checkSlow(ScopedMovementStack.Last()->IsDeferringUpdates());
 		return true;
 	}
 	
@@ -374,6 +372,32 @@ void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool b
 	const FTransform NewRelTransform = DeltaTransform * RelativeTransform;
 
 	SetRelativeTransform(NewRelTransform, bSweep);
+}
+
+void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep)
+{
+	if (!DeltaLocation.IsZero())
+	{
+		const FVector NewWorldLocation = DeltaLocation + ComponentToWorld.GetTranslation();
+		SetWorldLocation(NewWorldLocation, bSweep);
+	}
+}
+
+void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep)
+{
+	if (!DeltaRotation.IsZero())
+	{
+		const FQuat NewWorldRotation = DeltaRotation.Quaternion() * ComponentToWorld.GetRotation();
+		SetWorldRotation(NewWorldRotation.Rotator(), bSweep);
+	}
+}
+
+void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep)
+{
+	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
+	const FVector NewWorldLocation = DeltaTransform.GetTranslation() + ComponentToWorld.GetTranslation();
+
+	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)));
 }
 
 void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
@@ -664,7 +688,13 @@ void USceneComponent::AppendDescendants(TArray<USceneComponent*>& Children) cons
 	}
 }
 
-void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName, EAttachLocation::Type AttachType /*= EAttachLocation::KeepRelativeOffset */)
+//This function is used for giving AttachTo different bWeldSimulatedBodies default, but only when called from BP
+void USceneComponent::K2_AttachTo(class USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType, bool bWeldSimulatedBodies /*= true*/)
+{
+	AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+}
+
+void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName, EAttachLocation::Type AttachType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*= false*/)
 {
 	if(Parent != NULL)
 	{
@@ -727,17 +757,23 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		{
 			//This code requires some explaining. Inside the editor we allow user to attach physically simulated objects to other objects. This is done for convenience so that users can group things together in hierarchy.
 			//At runtime we must not attach physically simulated objects as it will cause double transform updates, and you should just use a physical constraint if attachment is the desired behavior.
+			//Note if bWeldSimulatedBodies = true then they actually want to keep these objects simulating together
 			//We must fixup the relative location,rotation,scale as the attachment is no longer valid. Blueprint uses simple construction to try and attach before ComponentToWorld has ever been updated, so we cannot rely on it.
 			//As such we must calculate the proper Relative information
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
 			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && GetWorld() && GetWorld()->IsGameWorld())
+
+			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !bWeldSimulatedBodies && GetWorld() && GetWorld()->IsGameWorld())
 			{
 				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
-				UpdateComponentToWorldWithParent(Parent, false);
-				RelativeLocation = ComponentToWorld.GetLocation();
-				RelativeRotation = ComponentToWorld.GetRotation().Rotator();
-				RelativeScale3D = ComponentToWorld.GetScale3D();
+				if (bMaintainWorldPosition == false)	//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
+				{
+					UpdateComponentToWorldWithParent(Parent, false);
+					RelativeLocation = ComponentToWorld.GetLocation();
+					RelativeRotation = ComponentToWorld.GetRotation().Rotator();
+					RelativeScale3D = ComponentToWorld.GetScale3D();
+				}
+
 				return;
 			}
 		}
@@ -829,6 +865,23 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		// calculate transform with new attachment condition
 		UpdateComponentToWorld();
+
+		if (UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this))
+		{
+			if (FBodyInstance * BI = PrimitiveComponent->GetBodyInstance())
+			{
+				if (bWeldSimulatedBodies)
+				{
+					PrimitiveComponent->WeldToImplementation(AttachParent, AttachSocketName, bWeldSimulatedBodies);
+				}
+			}
+		}
+
+		// Update overlaps, in case location changed or overlap state depends on attachment.
+		if (IsRegistered())
+		{
+			UpdateOverlaps();
+		}
 	}
 }
 
@@ -841,6 +894,11 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
 {
 	if(AttachParent != NULL)
 	{
+		if (UPrimitiveComponent * PrimComp = Cast<UPrimitiveComponent>(this))
+		{
+			PrimComp->UnWeldFromParent();
+		}
+
 		// Make sure parent points to us if we're registered
 		checkf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (GetOwner() ? *GetOwner()->GetName() : TEXT("Unowned")), *AttachParent->GetName());
 
@@ -876,6 +934,12 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
 
 		// calculate transform with new attachment condition
 		UpdateComponentToWorld();
+
+		// Update overlaps, in case location changed or overlap state depends on attachment.
+		if (IsRegistered())
+		{
+			UpdateOverlaps();
+		}
 	}
 }
 
@@ -1151,7 +1215,7 @@ void USceneComponent::SetPhysicsVolume( APhysicsVolume * NewVolume,  bool bTrigg
 			if( PhysicsVolume )
 			{
 				PhysicsVolume->ActorLeavingVolume(A);
-				PhysicsVolumeChangedDelegate.ExecuteIfBound(NewVolume);
+				PhysicsVolumeChangedDelegate.Broadcast(NewVolume);
 			}
 			PhysicsVolume = NewVolume;
 			if( PhysicsVolume )
@@ -1168,7 +1232,7 @@ void USceneComponent::SetPhysicsVolume( APhysicsVolume * NewVolume,  bool bTrigg
 
 void USceneComponent::BeginDestroy()
 {
-	PhysicsVolumeChangedDelegate.Unbind();
+	PhysicsVolumeChangedDelegate.Clear();
 
 	Super::BeginDestroy();
 }
@@ -1211,6 +1275,11 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
+	if (IsDeferringMovementUpdates())
+	{
+		return;
+	}
+	
 	if (bShouldUpdatePhysicsVolume)
 	{
 		UpdatePhysicsVolume(bDoNotifies);
@@ -1596,7 +1665,7 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 			FScopedMovementUpdate* OuterScope = Component->GetCurrentScopedMovement();
 			if (OuterScope && OuterScope->bDeferUpdates)
 			{
-				if (s_ScopedWarningCount < 100)
+				if (s_ScopedWarningCount < 100 || (GFrameCounter & 31) == 0)
 				{
 					s_ScopedWarningCount++;
 					UE_LOG(LogSceneComponent, Error, TEXT("FScopedMovementUpdate attempting to use immediate updates within deferred scope, will use deferred updates instead."));
@@ -1711,42 +1780,12 @@ const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
 
 void USceneComponent::UpdateNavigationData()
 {
-	AActor* MyActor = GetOwner();
-
 	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
-		IsRegistered() && MyActor && MyActor->IsNavigationRelevant() &&
-		World && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+		IsRegistered() && World && World->IsGameWorld() &&
+		World->GetNetMode() < ENetMode::NM_Client)
 	{
-		const bool bShouldUpdate = CheckNavigationRelevancy(this);
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-		
-		if (bShouldUpdate && NavSys)
-		{
-			NavSys->UpdateNavOctree(MyActor);
-		}
+		UNavigationSystem::UpdateNavOctree(this);
 	}
-}
-
-bool USceneComponent::CheckNavigationRelevancy(USceneComponent* TestComponent)
-{
-	check(TestComponent);
-
-	bool bResult = TestComponent->IsNavigationRelevant();
-	for (int32 Idx = 0; Idx < TestComponent->AttachChildren.Num() && !bResult; Idx++)
-	{
-		USceneComponent* Child = TestComponent->AttachChildren[Idx];
-		if (Child)
-		{
-			bResult = CheckNavigationRelevancy(Child);
-		}
-	}
-
-	return bResult;
-}
-
-bool USceneComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const
-{
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

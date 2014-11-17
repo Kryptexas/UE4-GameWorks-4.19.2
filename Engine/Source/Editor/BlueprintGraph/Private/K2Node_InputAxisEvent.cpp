@@ -4,6 +4,8 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/InputAxisDelegateBinding.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAxisEvent"
 
@@ -37,21 +39,31 @@ void UK2Node_InputAxisEvent::Initialize(const FName AxisName)
 
 FText UK2Node_InputAxisEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
-
-	FText LocFormat = NSLOCTEXT("K2Node", "InputAxis_Name", "InputAxis {InputAxisName}");
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
-		LocFormat = NSLOCTEXT("K2Node", "InputAxis_ListTitle", "{InputAxisName}");
+		return FText::FromName(InputAxisName);
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
+
+		FText LocFormat = NSLOCTEXT("K2Node", "InputAxis_Name", "InputAxis {InputAxisName}");
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LocFormat, Args);
 	}
 
-	return FText::Format(LocFormat, Args);
+	return CachedNodeTitle;
 }
 
-FString UK2Node_InputAxisEvent::GetTooltip() const
+FText UK2Node_InputAxisEvent::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "InputAxis_Tooltip", "Event that provides the current value of the %s axis once per frame when input is enabled for the containing actor.").ToString(), *InputAxisName.ToString());
+	if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputAxis_Tooltip", "Event that provides the current value of the {0} axis once per frame when input is enabled for the containing actor."), FText::FromName(InputAxisName));
+	}
+	return CachedTooltip;
 }
 
 void UK2Node_InputAxisEvent::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
@@ -85,61 +97,74 @@ void UK2Node_InputAxisEvent::RegisterDynamicBinding(UDynamicBlueprintBinding* Bi
 	InputAxisBindingObject->InputAxisDelegateBindings.Add(Binding);
 }
 
-bool UK2Node_InputAxisEvent::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UK2Node_InputAxisEvent::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
 	// By default, to be safe, we don't allow events to be pasted, except under special circumstances (see below)
-	bool bAllowPaste = false;
+	bool bIsCompatible = false;
 
-	// Ensure that we can be instanced under the specified schema
-	if (CanCreateUnderSpecifiedSchema(Schema))
+	// Find the Blueprint that owns the target graph
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+	if (Blueprint && Blueprint->SkeletonGeneratedClass)
 	{
-		// Can only place events in ubergraphs
-		if (Schema->GetGraphType(TargetGraph) == EGraphType::GT_Ubergraph)
-		{
-			// Find the Blueprint that owns the target graph
-			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
-			if (Blueprint && Blueprint->SkeletonGeneratedClass)
-			{
-				bAllowPaste = Blueprint->ParentClass->IsChildOf(AActor::StaticClass());
-				if (!bAllowPaste)
-				{
-					UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the graph does not belong to an Actor."), *GetFName().ToString());
-				}
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because it cannot be created under the specified schema."), *GetFName().ToString());
+		bIsCompatible = Blueprint->ParentClass->IsChildOf(AActor::StaticClass());
 	}
 
-	return bAllowPaste;
+	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
-void UK2Node_InputAxisEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_InputAxisEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FName> AxisNames;
 	GetDefault<UInputSettings>()->GetAxisNames(AxisNames);
 
+	auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName AxisName)
+	{
+		UK2Node_InputAxisEvent* InputNode = CastChecked<UK2Node_InputAxisEvent>(NewNode);
+		InputNode->Initialize(AxisName);
+	};
+
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+
 	for (FName const InputAxisName : AxisNames)
 	{
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+		{
+			continue;
+		}
+
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
 
-		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName AxisName)
-		{
-			UK2Node_InputAxisEvent* InputNode = CastChecked<UK2Node_InputAxisEvent>(NewNode);
-			InputNode->Initialize(AxisName);
-		};
-
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputAxisName);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 
 FText UK2Node_InputAxisEvent::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Events"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Events"));
+	}
+	return CachedCategory;
+}
+
+FBlueprintNodeSignature UK2Node_InputAxisEvent::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddKeyValue(InputAxisName.ToString());
+
+	return NodeSignature;
 }
 
 #undef LOCTEXT_NAMESPACE

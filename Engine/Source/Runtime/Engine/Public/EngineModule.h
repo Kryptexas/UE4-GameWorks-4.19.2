@@ -4,6 +4,8 @@
 
 #pragma once
 
+class IRendererModule;
+
 /** Implements the engine module. */
 class FEngineModule : public FDefaultModuleImpl
 {

@@ -170,7 +170,7 @@ void FSessionManager::FindExpiredSessions( const FDateTime& Now )
 
 bool FSessionManager::IsValidOwner( const FString& Owner )
 {
-	if (Owner == FPlatformProcess::UserName(false))
+	if (Owner == FPlatformProcess::UserName(true))
 	{
 		return true;
 	}

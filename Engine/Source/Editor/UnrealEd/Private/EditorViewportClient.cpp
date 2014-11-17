@@ -15,8 +15,12 @@
 #include "IAnalyticsProvider.h"
 #include "Matinee/MatineeActor.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
+
+const EViewModeIndex FEditorViewportClient::DefaultPerspectiveViewMode = VMI_Lit;
+const EViewModeIndex FEditorViewportClient::DefaultOrthoViewMode = VMI_BrushWireframe;
 
 static TAutoConsoleVariable<int32> CVarAlignedOrthoZoom(
 	TEXT("r.Editor.AlignedOrthoZoom"),
@@ -238,8 +242,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
 	, PreviewScene(InPreviewScene)
-	, PerspViewModeIndex(VMI_Lit)
-	, OrthoViewModeIndex(VMI_BrushWireframe)
+	, PerspViewModeIndex(DefaultPerspectiveViewMode)
+	, OrthoViewModeIndex(DefaultOrthoViewMode)
 	, NearPlane(-1.0f)
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
@@ -273,7 +277,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 
 	EngineShowFlags.SetSnap(1);
 
-	SetViewMode(VMI_Lit);
+	SetViewMode(IsPerspective() ? PerspViewModeIndex : OrthoViewModeIndex);
 
 	ModeTools->OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
 }
@@ -336,7 +340,7 @@ void FEditorViewportClient::SetViewLocationForOrbiting(const FVector& LookAtPoin
 {
 	FMatrix Matrix = FTranslationMatrix(-GetViewLocation());
 	Matrix = Matrix * FInverseRotationMatrix(GetViewRotation());
-	FMatrix CamRotMat = Matrix.Inverse();
+	FMatrix CamRotMat = Matrix.InverseFast();
 	FVector CamDir = FVector(CamRotMat.M[0][0],CamRotMat.M[0][1],CamRotMat.M[0][2]);
 	SetViewLocation( LookAtPoint - DistanceToCamera * CamDir );
 	SetLookAtLocation( LookAtPoint );
@@ -363,7 +367,7 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 
 		// Convert orbit view to regular view
 		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
-		OrbitMatrix = OrbitMatrix.Inverse();
+		OrbitMatrix = OrbitMatrix.InverseFast();
 
 		if( !bUsingOrbitCamera )
 		{
@@ -383,10 +387,10 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 				OrbitViewMatrix *= FRotationMatrix( FRotator(0,90.f,0) );
 
 				FMatrix RotMat = FTranslationMatrix( -ViewTransform.GetLookAt() ) * OrbitViewMatrix;
-				FMatrix RotMatInv = RotMat.Inverse();
+				FMatrix RotMatInv = RotMat.InverseFast();
 				FRotator RollVec = RotMatInv.Rotator();
 				FMatrix YawMat = RotMatInv * FInverseRotationMatrix( FRotator(0, 0, -RollVec.Roll));
-				FMatrix YawMatInv = YawMat.Inverse();
+				FMatrix YawMatInv = YawMat.InverseFast();
 				FRotator YawVec = YawMat.Rotator();
 				FRotator rotYawInv = YawMatInv.Rotator();
 				SetViewRotation( FRotator(-RollVec.Roll,YawVec.Yaw,0) );
@@ -406,6 +410,13 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 	const FVector Position = BoundingBox.GetCenter();
 	float Radius = BoundingBox.GetExtent().Size();
 
+	float AspectToUse = AspectRatio;
+	FIntPoint ViewportSize = Viewport->GetSizeXY();
+	if(!bUseControllingActorViewInfo && ViewportSize.X > 0 && ViewportSize.Y > 0)
+	{
+		AspectToUse = Viewport->GetDesiredAspectRatio();
+	}
+
 	const bool bEnable=false;
 	ToggleOrbitCamera(bEnable);
 
@@ -417,9 +428,9 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 			* than the width of the viewport, we scale the radius by the aspect ratio in order to compensate for the fact that we have
 			* less visible vertically than horizontally.
 			*/
-			if( AspectRatio > 1.0f )
+			if( AspectToUse > 1.0f )
 			{
-				Radius *= AspectRatio;
+				Radius *= AspectToUse;
 			}
 
 			/** 
@@ -451,7 +462,7 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 				* to find the new OrthoZoom value for the viewport. The 15.0f is a fudge factor.
 				*/
 				float NewOrthoZoom;
-				uint32 MinAxisSize = (AspectRatio > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
+				uint32 MinAxisSize = (AspectToUse > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
 				float Zoom = Radius / (MinAxisSize / 2);
 
 				NewOrthoZoom = Zoom * (Viewport->GetSizeXY().X*15.0f);
@@ -703,7 +714,7 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 	ApplyRequiredCursorVisibility( true );
 
 	// Force a cursor update to make sure its returned to default as it could of been left in any state and wont update itself till an action is taken
-	SetRequiredCursorOverride( true , EMouseCursor::Default );
+	SetRequiredCursorOverride( false , EMouseCursor::Default );
 	FSlateApplication::Get().QueryCursor();
 
 	if( IsMatineeRecordingWindow() )
@@ -715,7 +726,7 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 
 void FEditorViewportClient::LostFocus(FViewport* InViewport)
 {
-	StopTracking();	
+	StopTracking();
 }
 
 void FEditorViewportClient::Tick(float DeltaTime)
@@ -1069,7 +1080,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
 		
 		// Certain keys are only available while the flight camera input mode is active
-		const bool bUsingFlightInput = IsFlightCameraInputModeActive();
+		const bool bUsingFlightInput = IsFlightCameraInputModeActive() || bIsUsingTrackpad;
 
 		// Do we want to use the regular arrow keys for flight input?
 		// Because the arrow keys are used for nudging actors, we'll only do this while the ALT key is up
@@ -1590,7 +1601,7 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 			FRotationMatrix( FRotator(0,GetViewRotation().Yaw,0) ) * 
 			FRotationMatrix( FRotator(0, 0, GetViewRotation().Pitch));
 
-		FVector TransformedDelta = RotMat.Inverse().TransformVector(DeltaLocation);
+		FVector TransformedDelta = RotMat.InverseFast().TransformVector(DeltaLocation);
 
 		SetViewLocation( GetViewLocation() + TransformedDelta );
 		SetLookAtLocation( GetLookAtLocation() + TransformedDelta );
@@ -1599,7 +1610,7 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 	}
 	else if ( IsOrbitZoomMode( InViewport ) )
 	{
-		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix().Inverse();
+		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix().InverseFast();
 
 		FVector DeltaLocation = FVector(0, Drag.X+ -Drag.Y, 0);
 
@@ -1611,7 +1622,7 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 			FRotationMatrix( FRotator(0,GetViewRotation().Yaw,0) ) * 
 			FRotationMatrix( FRotator(0, 0, GetViewRotation().Pitch));
 
-		FVector TransformedDelta = RotMat.Inverse().TransformVector(DeltaLocation);
+		FVector TransformedDelta = RotMat.InverseFast().TransformVector(DeltaLocation);
 
 		SetViewLocation( OrbitMatrix.GetOrigin() + TransformedDelta );
 
@@ -1684,8 +1695,10 @@ bool FEditorViewportClient::IsFlightCameraActive() const
 		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveGesture()->Key )
 		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveGesture()->Key ) );
 
+	const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
+
 	// Movement key pressed and automatic movement enabled
-	bIsFlightMovementKey &= GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_Always;
+	bIsFlightMovementKey &= (GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_Always) | bIsUsingTrackpad;
 
 	// Not using automatic movement but the flight camera is active
 	bIsFlightMovementKey |= IsFlightCameraInputModeActive() && (GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_RMBOnly );
@@ -2078,7 +2091,7 @@ void FEditorViewportClient::DrawAxes(FViewport* InViewport, FCanvas* Canvas, con
 	FMatrix ViewTM = FMatrix::Identity;
 	if ( bUsingOrbitCamera)
 	{
-		ViewTM = FRotationMatrix( ViewTransform.ComputeOrbitMatrix().Inverse().Rotator() );
+		ViewTM = FRotationMatrix( ViewTransform.ComputeOrbitMatrix().InverseFast().Rotator() );
 	}
 	else
 	{
@@ -2141,7 +2154,7 @@ void FEditorViewportClient::DrawAxes(FViewport* InViewport, FCanvas* Canvas, con
 }
 
 /** Convert the specified number (in cm or unreal units) into a readable string with relevant si units */
-FString UnrealUnitsToSiUnits(float UnrealUnits)
+FString FEditorViewportClient::UnrealUnitsToSiUnits(float UnrealUnits)
 {
 	// Put it in mm to start off with
 	UnrealUnits *= 10.f;
@@ -3093,6 +3106,11 @@ TSharedPtr<FDragTool> FEditorViewportClient::MakeDragTool(EDragTool::Type)
 	return MakeShareable( new FDragTool );
 }
 
+bool FEditorViewportClient::CanUseDragTool() const
+{
+	return !ShouldOrbitCamera() && GetCurrentWidgetAxis() == EAxisList::None && (!ModeTools || ModeTools->AllowsViewportDragTool());
+}
+
 bool FEditorViewportClient::ShouldOrbitCamera() const
 {
 	if( bCameraLock )
@@ -3134,6 +3152,7 @@ bool FEditorViewportClient::IsFlightCameraInputModeActive() const
 			const bool bIsNonOrbitMiddleMouse = bMiddleMouseButtonDown && !IsAltPressed();
 
 			const bool bIsMouseLooking =
+				bIsTracking &&
 				Widget->GetCurrentAxis() == EAxisList::None &&
 				( bLeftMouseButtonDown || bMiddleMouseButtonDown || bRightMouseButtonDown || bIsUsingTrackpad ) &&
 				!IsCtrlPressed() && !IsShiftPressed() && !IsAltPressed();
@@ -3849,12 +3868,44 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 {
 	if (GIsDumpingMovie || FScreenshotRequest::IsScreenshotRequested() || GIsHighResScreenshot)
 	{
+		// Default capture region is the entire viewport
+		FIntRect CaptureRect(0, 0, 0, 0);
+
+		bool bCaptureAreaValid = GetHighResScreenshotConfig().CaptureRegion.Area() > 0;
+
+		// If capture region isn't valid, we need to determine which rectangle to capture from.
+		// We need to calculate a proper view rectangle so that we can take into account camera
+		// properties, such as it being aspect ratio constrainted
+		if (GIsHighResScreenshot && !bCaptureAreaValid)
+		{
+			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+				InViewport,
+				GetScene(),
+				EngineShowFlags)
+				.SetRealtimeUpdate(IsRealtime()));
+			auto* ViewportBak = Viewport;
+			Viewport = InViewport;
+			FSceneView* View = CalcSceneView(&ViewFamily);
+			Viewport = ViewportBak;
+			CaptureRect = View->ViewRect;
+		}
+
 		FString ScreenShotName = FScreenshotRequest::GetFilename();
 		TArray<FColor> Bitmap;
-		if( GetViewportScreenShot(InViewport, Bitmap) )
+		if (GetViewportScreenShot(InViewport, Bitmap, CaptureRect))
 		{
-			FIntPoint BitmapSize = InViewport->GetSizeXY();
-			FIntRect SourceRect = GIsHighResScreenshot ? GetHighResScreenshotConfig().CaptureRegion : FIntRect(0, 0, GScreenshotResolutionX, GScreenshotResolutionY);
+			// Determine the size of the captured viewport data.
+			FIntPoint BitmapSize = CaptureRect.Area() > 0 ? CaptureRect.Size() : InViewport->GetSizeXY();
+			
+			// Determine which region of the captured data we want to save out. If the highres screenshot capture region 
+			// is not valid, we want to save out everything in the viewrect that we just grabbed.
+			FIntRect SourceRect = FIntRect(0, 0, 0, 0);
+			if (GIsHighResScreenshot && bCaptureAreaValid)
+			{
+				// Highres screenshot capture region is valid, so use that
+				SourceRect = GetHighResScreenshotConfig().CaptureRegion;
+			}
+
 			bool bWriteAlpha = false;
 
 			// If this is a high resolution screenshot and we are using the masking feature,
@@ -3864,6 +3915,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 				bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
 			}
 
+			// Save the bitmap to disc
 			FFileHelper::CreateBitmap(*ScreenShotName, BitmapSize.X, BitmapSize.Y, Bitmap.GetTypedData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 		}
 		
@@ -3957,7 +4009,7 @@ void FEditorViewportClient::DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const 
 			FCanvasTextItem TextItem( FVector2D( ScreenBoxMin.X + ((ScreenBoxMax.X - ScreenBoxMin.X) * 0.5f),ScreenBoxMin.Y), FText::FromString( InLabelText ), GEngine->GetMediumFont(), InColor );
 			TextItem.bCentreX = true;
 			InCanvas->DrawItem( TextItem );
-		}		
+		}
 	}
 }
 

@@ -67,13 +67,3 @@ float USoundNodeDelay::GetDuration()
 	// And return the two together.
 	return( ChildDuration + DelayMax );
 }
-
-FString USoundNodeDelay::GetUniqueString() const
-{
-	FString Unique = TEXT( "Delay" );
-
-	Unique += FString::Printf( TEXT( " %g %g" ), DelayMin, DelayMax );
-
-	Unique += TEXT( "/" );
-	return( Unique );
-}

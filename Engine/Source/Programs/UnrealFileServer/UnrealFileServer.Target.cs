@@ -52,6 +52,7 @@ public class UnrealFileServerTarget : TargetRules
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		UEBuildConfiguration.bBuildDeveloperTools = false;
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

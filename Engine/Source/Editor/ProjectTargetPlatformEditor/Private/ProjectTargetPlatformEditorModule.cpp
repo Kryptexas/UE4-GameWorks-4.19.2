@@ -41,7 +41,7 @@ public:
 			LOCTEXT("SupportedPlatformsMenuLabel", "Supported Platforms..."),
 			LOCTEXT("SupportedPlatformsMenuToolTip", "Change which platforms this project supports"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Game"), FName("SupportedPlatforms")))
+			FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Project"), FName("SupportedPlatforms")))
 			);
 	}
 

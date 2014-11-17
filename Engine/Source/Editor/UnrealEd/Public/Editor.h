@@ -88,6 +88,10 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlueprintContextMenuCreated, FBlueprintGraphActionListBuilder &/*ContextMenuBuilder*/);
 	/** Delegate used for entering or exiting an editor mode */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnEditorModeTransitioned, FEdMode* /*Mode*/);
+	/** delegate type for when a user requests to delete certain assets... DOES NOT mean the asset(s) will be deleted (the user could cancel) */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetsPreDelete, const TArray<UObject*>&);
+	/** delegate type for when one or more assets have been deleted */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetsDeleted, const TArray<UClass*>& /*DeletedAssetClasses*/);
 
 	/** Called when the CurrentLevel is switched to a new level.  Note that this event won't be fired for temporary
 		changes to the current level, such as when copying/pasting actors. */
@@ -177,6 +181,10 @@ struct UNREALED_API FEditorDelegates
 	static FOnBlueprintContextMenuCreated OnBlueprintContextMenuCreated;
 	/** Called on editor shutdown after packages have been successfully saved */
 	static FSimpleMulticastDelegate OnShutdownPostPackagesSaved;
+	/** Called when the user requests certain assets be deleted (DOES NOT imply that the asset will be deleted... the user could cancel) */
+	static FOnAssetsPreDelete OnAssetsPreDelete;
+	/** Called when one or more assets have been deleted */
+	static FOnAssetsDeleted OnAssetsDeleted;
 };
 
 /**
@@ -556,8 +564,6 @@ UNREALED_API bool IsUniqueObjectName( const FName& InName, UObject* Outer, FText
  * Provides access to the FEditorModeTools for the level editor
  */
 UNREALED_API class FEditorModeTools& GLevelEditorModeTools();
-DEPRECATED(4.3, "GEditorModeTools is now deprecated. Please use GLevelEditorModeTools instead.")
-UNREALED_API class FEditorModeTools& GEditorModeTools();
 
 namespace EditorUtilities
 {

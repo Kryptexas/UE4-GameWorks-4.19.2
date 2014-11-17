@@ -5,28 +5,33 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Misc/SecureHash.h"
 #include "RefCounting.h"
-#include "ShaderCore.h"
-#include "Shader.h"
-#include "VertexFactory.h"
 #include "RenderResource.h"
-#include "ShaderCompiler.h"
 #include "UniformBuffer.h"
 #include "SceneTypes.h"
 #include "StaticParameterSet.h"
+#include "Shader.h"
+#include "VertexFactory.h"
 
-class FMeshMaterialShaderMap;
 class FMaterialShaderMap;
 class FMaterialShaderType;
 class FMaterial;
 class FMaterialRenderProxy;
+class FMeshMaterialShaderMap;
+class FMeshMaterialShaderType;
+class FShaderCompileJob;
+class FShaderType;
+class FShaderTypeDependency;
+class FVertexFactoryType;
+class FVertexFactoryTypeDependency;
 class UMaterial;
 class UMaterialInstance;
 class UMaterialExpression;
 class UMaterialInterface;
 class UTexture;
 struct FExpressionInput;
+struct FShaderCompilerEnvironment;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16
@@ -362,14 +367,17 @@ public:
 	/** A hash of the base property overrides for this material instance. */
 	FSHAHash BasePropertyOverridesHash;
 	
+
 	FMaterialShaderMapId()
 		: BaseMaterialId(0, 0, 0, 0)
 		, QualityLevel(EMaterialQualityLevel::High)
 		, FeatureLevel(ERHIFeatureLevel::SM4)
 		, Usage(EMaterialShaderMapUsage::Default)
-	{
-	}
-	
+	{ }
+
+	~FMaterialShaderMapId()
+	{ }
+
 	void SetShaderDependencies(const TArray<FShaderType*>& ShaderTypes, const TArray<FVertexFactoryType*>& VFTypes);
 
 	void Serialize(FArchive& Ar);
@@ -408,32 +416,10 @@ public:
 	void AppendKeyString(FString& KeyString) const;
 
 	/** Returns true if the requested shader type is a dependency of this shader map Id. */
-	bool ContainsShaderType(const FShaderType* ShaderType) const
-	{
-		for (int32 TypeIndex = 0; TypeIndex < ShaderTypeDependencies.Num(); TypeIndex++)
-		{
-			if (ShaderTypeDependencies[TypeIndex].ShaderType == ShaderType)
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
+	bool ContainsShaderType(const FShaderType* ShaderType) const;
 
 	/** Returns true if the requested vertex factory type is a dependency of this shader map Id. */
-	bool ContainsVertexFactoryType(const FVertexFactoryType* VFType) const
-	{
-		for (int32 TypeIndex = 0; TypeIndex < VertexFactoryTypeDependencies.Num(); TypeIndex++)
-		{
-			if (VertexFactoryTypeDependencies[TypeIndex].VertexFactoryType == VFType)
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
+	bool ContainsVertexFactoryType(const FVertexFactoryType* VFType) const;
 };
 
 /**
@@ -567,7 +553,7 @@ public:
 	ENGINE_API void GetShaderList(TMap<FShaderId,FShader*>& OutShaders) const;
 
 	/** Registers a material shader map in the global map so it can be used by materials. */
-	void Register();
+	void Register(EShaderPlatform InShaderPlatform);
 
 	// Reference counting.
 	ENGINE_API void AddRef();
@@ -973,13 +959,15 @@ public:
 		//@todo - remove non-dynamic parameter particle VF and always support dynamic parameter
 		return true; 
 	}
-	ENGINE_API bool RequiresSceneColorCopy() const;
+	ENGINE_API bool RequiresSceneColorCopy_GameThread() const;
+	ENGINE_API bool RequiresSceneColorCopy_RenderThread() const;
 	ENGINE_API bool NeedsSceneTextures() const;
 	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
 
 	/** Does the material modify the mesh position. */
-	ENGINE_API bool MaterialModifiesMeshPosition() const;
+	ENGINE_API bool MaterialModifiesMeshPosition_RenderThread() const;
+	ENGINE_API bool MaterialModifiesMeshPosition_GameThread() const;
 
 	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
 	ENGINE_API bool MaterialMayModifyMeshPosition() const;
@@ -1220,6 +1208,9 @@ struct FUniformExpressionCache
 	}
 };
 
+class USubsurfaceProfile;
+typedef void* USubsurfaceProfilePointer;
+
 /**
  * A material render proxy used by the renderer.
  */
@@ -1283,12 +1274,17 @@ public:
 		return MaterialRenderProxyMap;
 	}
 
+	void SetSubsurfaceProfileRT(const USubsurfaceProfilePointer Ptr) { SubsurfaceProfileRT = Ptr; }
+	USubsurfaceProfilePointer GetSubsurfaceProfileRT() const { return SubsurfaceProfileRT; }
+
 private:
 
 	/** true if the material is selected. */
 	bool bSelected : 1;
 	/** true if the material is hovered. */
 	bool bHovered : 1;
+	/** 0 if not set, for the render thread */
+	USubsurfaceProfilePointer SubsurfaceProfileRT;
 
 	/** 
 	 * Tracks all material render proxies in all scenes, can only be accessed on the rendering thread.
@@ -1600,4 +1596,4 @@ ENGINE_API int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Comp
 ENGINE_API FString GetNameOfMaterialProperty(EMaterialProperty Property);
 
 /** TODO - This can be removed whenever VER_UE4_MATERIAL_ATTRIBUTES_REORDERING is no longer relevant. */
-ENGINE_API void DoMaterialAttributeReorder(FExpressionInput* Input);
+ENGINE_API void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver);

@@ -37,9 +37,4 @@ UGameplayAbilityBlueprint* UGameplayAbilityBlueprint::FindRootGameplayAbilityBlu
 	return ParentBP;
 }
 
-void UGameplayAbilityBlueprint::PostLoad()
-{
-	Super::PostLoad();
-}
-
 #endif

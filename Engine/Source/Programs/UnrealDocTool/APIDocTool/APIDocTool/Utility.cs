@@ -9,12 +9,21 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
 using DoxygenLib;
+using System.IO.Compression;
 
 namespace APIDocTool
 {
 	static class Utility
 	{
 		static HashSet<string> AllLinkPaths = new HashSet<string>();
+
+		public static void AddUnique<T>(this List<T> Items, T Item)
+		{
+			if(!Items.Contains(Item))
+			{
+				Items.Add(Item);
+			}
+		}
 
 		public static void AddToDictionaryList<T, U>(T Key, U Value, Dictionary<T, List<U>> Dict)
 		{
@@ -67,7 +76,13 @@ namespace APIDocTool
 		{
 			if (Directory.Exists(Dir))
 			{
-				Directory.Delete(Dir, true);
+				try
+				{
+					Directory.Delete(Dir, true);
+				}
+				catch(IOException)
+				{
+				}
 			}
 		}
 
@@ -83,7 +98,8 @@ namespace APIDocTool
 				{
 					foreach (string SubDir in Directory.EnumerateDirectories(Dir))
 					{
-						Directory.Delete(SubDir, true);
+						SafeDeleteDirectoryContents(SubDir, true);
+//						Directory.Delete(SubDir, true);
 					}
 				}
 			}
@@ -257,14 +273,6 @@ namespace APIDocTool
 
 		public static string GetBriefDescription(string Description)
 		{
-			const int DesiredLength = 200;
-
-			// If the description is already short, just use that.
-			if(Description.Length < DesiredLength)
-			{
-				return Description;
-			}
-
 			// Find the first newline, or period that's followed by a space and not within any type of paren
 			int Nesting = 0;
 			for(int Idx = 0; Idx < Description.Length; Idx++)
@@ -417,6 +425,143 @@ namespace APIDocTool
 			char Result = Char.ToLowerInvariant(C);
 			if(Result == '/') Result = '\\';
 			return Result;
+		}
+
+		public static void CreateTgzFromDir(string ArchivePath, string BaseDir)
+		{
+			List<string> InputFiles = new List<string>();
+			Utility.FindFilesForTar(BaseDir, "", InputFiles, true);
+			Utility.CreateTgzFromFiles(ArchivePath, BaseDir, InputFiles);
+		}
+
+		public static void CreateTgzFromFiles(string TarPath, string BaseDir, IEnumerable<string> InputFiles)
+		{
+			using (FileStream TarFileStream = new FileStream(TarPath, FileMode.Create))
+			{
+				using (GZipStream ZipStream = new GZipStream(TarFileStream, CompressionMode.Compress))
+				{
+					using (BinaryWriter TarWriter = new BinaryWriter(ZipStream))
+					{
+						foreach (string InputFile in InputFiles)
+						{
+							byte[] FileData = File.ReadAllBytes(Path.Combine(BaseDir, InputFile));
+							WriteFileToTar(TarWriter, InputFile, FileData);
+						}
+						TarWriter.Write(new byte[1024]);
+					}
+				}
+			}
+		}
+
+		public static void FindFilesForTar(string BaseDir, string BaseTarPath, List<string> Files, bool bRecursive)
+		{
+			DirectoryInfo Dir = new DirectoryInfo(Path.Combine(BaseDir, BaseTarPath));
+			if (Dir.Exists)
+			{
+				FindFilesForTar(Dir, BaseTarPath, Files, bRecursive);
+			}
+		}
+
+		public static void FindFilesForTar(DirectoryInfo Dir, string BaseTarPath, List<string> Files, bool bRecursive)
+		{
+			if (bRecursive)
+			{
+				foreach (DirectoryInfo ChildDir in Dir.GetDirectories())
+				{
+					FindFilesForTar(ChildDir, Path.Combine(BaseTarPath, ChildDir.Name), Files, bRecursive);
+				}
+			}
+			foreach (FileInfo FileInfo in Dir.GetFiles())
+			{
+				Files.Add(Path.Combine(BaseTarPath, FileInfo.Name));
+			}
+		}
+
+		const int TarFileNameFieldLength = 99;
+
+		public static void WriteFileToTar(BinaryWriter Writer, string FilePath, byte[] FileData)
+		{
+			string NormalizedFilePath = FilePath.Replace('\\', '/');
+
+			// Generate a long header record if necessary
+			if (NormalizedFilePath.Length > TarFileNameFieldLength)
+			{
+				WriteTarHeader(Writer, "././@LongLink", NormalizedFilePath.Length + 1, 'L');
+
+				byte[] FilePathBytes = new byte[NormalizedFilePath.Length + 1];
+				EncodeTarString(FilePathBytes, 0, FilePathBytes.Length, NormalizedFilePath);
+
+				WriteTarBlocks(Writer, FilePathBytes);
+			}
+
+			// Now write the normal file
+			WriteTarHeader(Writer, NormalizedFilePath, FileData.Length, '0');
+			WriteTarBlocks(Writer, FileData);
+		}
+
+		static void WriteTarHeader(BinaryWriter Writer, string FileName, int Length, char Type)
+		{
+			// Write the name
+			byte[] Header = new byte[512];
+
+			// Name
+			EncodeTarString(Header, 0, TarFileNameFieldLength, FileName);
+
+			// File mode
+			EncodeTarValue(Header, 100, 7, 0x81ff);
+
+			// UID
+			EncodeTarValue(Header, 108, 7, 0);
+
+			// GID
+			EncodeTarValue(Header, 116, 7, 0);
+
+			// File size
+			EncodeTarValue(Header, 124, 12, Length);
+
+			// File timestamp
+			EncodeTarValue(Header, 136, 12, 0);
+
+			// File type ('0' = Regular file)
+			Header[156] = (byte)Type;
+
+			// Generate the the checksum (seed the checksum as if the field was initialized with 8 spaces)
+			int Checksum = (byte)' ' * 8;
+			for (int Idx = 0; Idx < Header.Length; Idx++) Checksum += Header[Idx];
+			EncodeTarValue(Header, 148, 7, Checksum);
+
+			// Write the header
+			Writer.Write(Header);
+		}
+
+		static void WriteTarBlocks(BinaryWriter Writer, byte[] Data)
+		{
+			Writer.Write(Data);
+			Writer.Write(new byte[(512 - (Data.Length % 512)) % 512]);
+		}
+
+		static void EncodeTarString(byte[] Data, int Offset, int Length, string Text)
+		{
+			// Convert the Text to ASCII
+			for (int Idx = 0; Idx < Math.Min(Length, Text.Length); Idx++)
+			{
+				if (Text[Idx] == 0 || Text[Idx] > 0x7f)
+				{
+					throw new Exception("Invalid character in TAR string");
+				}
+				else
+				{
+					Data[Offset + Idx] = (byte)Text[Idx];
+				}
+			}
+		}
+
+		static void EncodeTarValue(byte[] Data, int Offset, int Length, int Value)
+		{
+			// Write the value as an octal string followed by a space
+			string ValueString = Convert.ToString(Value, 8) + " ";
+			while (ValueString.Length < Length) ValueString = " " + ValueString;
+			EncodeTarString(Data, Offset, Length, ValueString);
 		}
 	}
 }

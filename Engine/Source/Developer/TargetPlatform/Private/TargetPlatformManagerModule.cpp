@@ -6,6 +6,9 @@
 
 #include "TargetPlatformPrivatePCH.h"
 #include "PlatformInfo.h"
+#include "DesktopPlatformModule.h"
+#include "IPhysXFormatModule.h"
+#include "IPhysXFormat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
 
@@ -40,7 +43,7 @@ public:
 			FString UBTParams(TEXT("-autosdkonly"));
 			int32 UBTReturnCode = -1;
 			FString UBTOutput;
-			if (!FUBTInvoker::InvokeUnrealBuildToolSync(UBTParams, *GLog, true, UBTReturnCode, UBTOutput))
+			if (!FDesktopPlatformModule::Get()->InvokeUnrealBuildToolSync(UBTParams, *GLog, true, UBTReturnCode, UBTOutput))
 			{
 				UE_LOG(LogTargetPlatformManager, Fatal, TEXT("Failed to run UBT to check SDK status!"));
 			}
@@ -149,6 +152,10 @@ public:
 				{
 					Results = Platforms;
 				}
+			}
+			else
+			{
+				Results = Platforms;
 			}
 		}
 

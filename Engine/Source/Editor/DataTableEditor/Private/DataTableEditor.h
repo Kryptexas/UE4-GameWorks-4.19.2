@@ -25,6 +25,9 @@ public:
 	 */
 	void InitDataTableEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UDataTable* Table );
 
+	/** Constructor */
+	FDataTableEditor();
+
 	/** Destructor */
 	virtual ~FDataTableEditor();
 
@@ -42,6 +45,9 @@ public:
 
 
 private:
+
+	/** Called when an object is reimported */
+	void OnPostReimport(UObject* InObject, bool bSuccess);
 
 	void ReloadVisibleData();
 

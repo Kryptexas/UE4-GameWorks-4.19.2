@@ -173,7 +173,7 @@ void UGameUserSettings::ValidateSettings()
 
 	if ( ResolutionSizeX <= 0 || ResolutionSizeY <= 0 )
 	{
-		SetScreenResolution( FIntPoint(GSystemResolution.ResX, GSystemResolution.ResY) );
+		SetScreenResolution(FIntPoint(GSystemResolution.ResX, GSystemResolution.ResY));
 
 		// Set last confirmed video settings
 		LastConfirmedFullscreenMode = FullscreenMode;
@@ -185,7 +185,7 @@ void UGameUserSettings::ValidateSettings()
 	UpdateVersion();
 }
 
-void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
+void UGameUserSettings::ApplyNonResolutionSettings()
 {
 	ValidateSettings();
 
@@ -196,9 +196,6 @@ void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
 		CVar->Set(NewWindowMode);
 	}
-
-	// Request a resolution change
-	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewWindowMode, bCheckForCommandLineOverrides);
 
 	// Update vsync cvar
 	{
@@ -212,17 +209,37 @@ void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 		Scalability::SetQualityLevels(ScalabilityQuality);
 	}
 
-	UE_LOG(LogConsoleResponse, Display, TEXT(""));
+	IConsoleManager::Get().CallAllConsoleVariableSinks();
+}
 
+void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrides)
+{
+	ValidateSettings();
+
+	EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
+
+	{
+		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+		CVar->Set(NewFullscreenMode);
+	}
+
+	// Request a resolution change
+	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewFullscreenMode, bCheckForCommandLineOverrides);
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
 	SaveSettings();
 }
 
+void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
+{
+	ApplyResolutionSettings(bCheckForCommandLineOverrides);
+	ApplyNonResolutionSettings();
+
+	UE_LOG(LogConsoleResponse, Display, TEXT(""));
+}
+
 void UGameUserSettings::ApplySettings()
 {
-	// deprecated.  calling the new version with true to match 4.3 behavior
-	// should generally use false going forward except when you want command line options to override settings
 	ApplySettings(true);
 }
 
@@ -247,16 +264,17 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 	}
 }
 
-void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bConditionallyOverride)
+void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bInDoOverrides /* = true */)
 {
-	if (bConditionallyOverride)
+	if (bInDoOverrides)
 	{
-		// check to see if the command line params should override the requested change
 		UGameEngine::ConditionallyOverrideSettings(InResolutionX, InResolutionY, InWindowMode);
-		{
-			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-			CVar->Set(InWindowMode);
-		}
+	}
+
+
+	{
+		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+		CVar->Set(InWindowMode);
 	}
 	FSystemResolution::RequestResolutionChange(InResolutionX, InResolutionY, InWindowMode);
 }
@@ -264,6 +282,7 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 void UGameUserSettings::SaveSettings()
 {
 	SaveConfig(CPF_Config, *GGameUserSettingsIni);
+	Scalability::SaveState(GGameUserSettingsIni);
 }
 
 void UGameUserSettings::LoadConfigIni( bool bForceReload/*=false*/ )
@@ -305,7 +324,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 		{
 			// Grab display metrics so we can get the primary display output size.
 			FDisplayMetrics DisplayMetrics;
-			FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 
 			ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
@@ -318,7 +337,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 		CVar->Set((int32)WindowMode);
 	}
 
-	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode, true);
+	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode, false);
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
@@ -346,7 +365,7 @@ void UGameUserSettings::ResetToCurrentSettings()
 		SetFullscreenMode(GetWindowModeType(GEngine->GameViewport->GetWindow()->GetWindowMode()));
 
 		//set the current resolution
-		SetScreenResolution(FIntPoint( GSystemResolution.ResX, GSystemResolution.ResY ));
+		SetScreenResolution(FIntPoint(GSystemResolution.ResX, GSystemResolution.ResY));
 
 		// Set the current VSync state
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VSync"));
@@ -356,6 +375,9 @@ void UGameUserSettings::ResetToCurrentSettings()
 		FullscreenMode = LastConfirmedFullscreenMode;
 		ResolutionSizeX = LastUserConfirmedResolutionSizeX;
 		ResolutionSizeY = LastUserConfirmedResolutionSizeY;
+
+		// Reset the quality settings to the current levels
+		ScalabilityQuality = Scalability::GetQualityLevels();
 	}
 }
 

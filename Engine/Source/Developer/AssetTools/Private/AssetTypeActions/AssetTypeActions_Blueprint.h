@@ -2,7 +2,9 @@
 
 #pragma once
 
-class FAssetTypeActions_Blueprint : public FAssetTypeActions_Base
+#include "AssetTypeActions_Base.h"
+
+class ASSETTOOLS_API FAssetTypeActions_Blueprint : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
@@ -25,10 +27,6 @@ protected:
 	virtual bool CanCreateNewDerivedBlueprint() const;
 
 private:
-
-	/* Called to open the blueprint defaults view, this opens whatever text diff tool the user has */
-	void OpenInDefaults(const class UBlueprint* OldBlueprint, const class UBlueprint* NewBlueprint ) const;
-
 	/** Handler for when EditDefaults is selected */
 	void ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlueprint>> Objects);
 

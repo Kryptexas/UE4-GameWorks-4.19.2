@@ -619,26 +619,31 @@ public:
 
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
-		LandscapeInfo = InTarget.LandscapeInfo.Get();
-
-		ALandscapeProxy* Landscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
-		if (!Landscape)
+		if (ViewportClient->IsCtrlPressed())
 		{
-			return false;
+			LandscapeInfo = InTarget.LandscapeInfo.Get();
+
+			ALandscapeProxy* Landscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+			if (!Landscape)
+			{
+				return false;
+			}
+
+			if (!Landscape->SplineComponent)
+			{
+				CreateSplineComponent(Landscape, FVector(1.f) / Landscape->GetRootComponent()->RelativeScale3D);
+			}
+
+			const FTransform LandscapeToSpline = Landscape->LandscapeActorToWorld().GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
+
+			AddControlPoint(Landscape, LandscapeToSpline.TransformPosition(InHitLocation));
+
+			GUnrealEd->RedrawLevelEditingViewports();
+
+			return true;
 		}
 
-		if (!Landscape->SplineComponent)
-		{
-			CreateSplineComponent(Landscape, FVector(1.f) / Landscape->GetRootComponent()->RelativeScale3D);
-		}
-
-		const FTransform LandscapeToSpline = Landscape->LandscapeActorToWorld().GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
-
-		AddControlPoint(Landscape, LandscapeToSpline.TransformPosition(InHitLocation));
-
-		GUnrealEd->RedrawLevelEditingViewports();
-
-		return true;
+		return false;
 	}
 
 	virtual void EndTool(FEditorViewportClient* ViewportClient) override

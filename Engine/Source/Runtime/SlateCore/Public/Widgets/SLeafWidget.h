@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SLeafWidget.h: Declares the SLeafWidget class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,6 +13,9 @@ class SLATECORE_API SLeafWidget
 	: public SWidget
 {
 public:
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final;
+
+private:
 
 	// Begin SWidget overrides
 

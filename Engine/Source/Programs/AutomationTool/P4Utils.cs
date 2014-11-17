@@ -1253,6 +1253,14 @@ namespace AutomationTool
 								Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File + "#head"), false); // sync the file without overwriting local one
 								ReconcileNoDeletes(CL, CommandUtils.MakePathSafeToUseWithCommandLine(File));  // re-check out, if it changed, or add
                                 DidSomething = true;
+								bool isClPending = false;
+								if (ChangeFiles(CL, out isClPending).Count == 0)
+								{
+									CommandUtils.Log(TraceEventType.Information, "No edits left to commit after brutal submit resolve. Assuming another build committed same changes already and exiting as success.");
+									DeleteChange(CL);
+									// No changes to submit, no need to retry.
+									return;
+								}
                             }
                         }
                     }

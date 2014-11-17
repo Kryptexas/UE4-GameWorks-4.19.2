@@ -13,6 +13,7 @@
 #include "SNodePanel.h"
 #include "SGraphPanel.h"
 #include "SGraphNode.h"
+#include "SGraphNodeResizable.h"
 #include "SGraphPin.h"
 #include "BlueprintUtilities.h"
 #include "GraphEditorDragDropAction.h"

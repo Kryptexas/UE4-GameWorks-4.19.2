@@ -2017,6 +2017,9 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 			}
 		}
 
+		// Clear resources so that if it's already been played, it will reload the wave data
+		Sound->FreeResources();
+
 		// Presize the offsets array, in case the sound was new or the original sound data was stripped by cooking.
 		if ( Sound->ChannelOffsets.Num() != SPEAKER_Count )
 		{
@@ -3751,7 +3754,9 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				uint8* PCXPalette = (uint8 *)(BufferEnd - 256 * 3);
 				TArray<FColor>	Palette;
 				for(uint32 i=0; i<256; i++ )
+				{
 					Palette.Add(FColor(PCXPalette[i*3+0],PCXPalette[i*3+1],PCXPalette[i*3+2],i == 0 ? 0 : 255));
+				}
 
 				// Import it.
 				FColor* DestEnd	= DestPtr + NewU * NewV;
@@ -3763,9 +3768,11 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 					{
 						uint32 RunLength = Color & 0x3f;
 						Color = *Buffer++;
-						checkf( (DestPtr+RunLength)<DestEnd, TEXT("RLE going off the end of buffer") );
+					
 						for(uint32 Index = 0;Index < RunLength;Index++)
+						{
 							*DestPtr++ = Palette[Color];
+						}
 					}
 					else *DestPtr++ = Palette[Color];
 				}
@@ -5276,7 +5283,7 @@ void FCustomizableTextObjectFactory::ClearObjectNameUsage(UObject* InParent, FNa
 	{
 		check(Found->GetOuter() == InParent);
 
-		Found->Rename(nullptr, nullptr, REN_None);
+		Found->Rename(nullptr, nullptr, REN_DontCreateRedirectors);
 	}
 }
 
@@ -5685,9 +5692,26 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 
 		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
 		{
+			const TArray<UAssetUserData*>* UserData = Mesh->GetAssetUserDataArray();
+			TArray<UAssetUserData*> UserDataCopy;
+			if (UserData)
+			{
+				for (int32 Idx = 0; Idx < UserData->Num(); Idx++)
+				{
+					UserDataCopy.Add((UAssetUserData*)StaticDuplicateObject((*UserData)[Idx], GetTransientPackage(), nullptr));
+				}
+			}
+
 			if (FFbxImporter->ReimportStaticMesh(Mesh, ImportData))
 			{
 				UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
+
+				// Copy user data to newly created mesh
+				for (int32 Idx = 0; Idx < UserDataCopy.Num(); Idx++)
+				{
+					UserDataCopy[Idx]->Rename(nullptr, Mesh, REN_DontCreateRedirectors | REN_DoNotDirty);
+					Mesh->AddAssetUserData(UserDataCopy[Idx]);
+				}
 
 				// Try to find the outer package so we can dirty it up
 				if (Mesh->GetOuter())
@@ -6044,90 +6068,6 @@ public:
 	}
 };
 
-/*------------------------------------------------------------------------------
-	UBlueprintGeneratedClassFactory implementation.
-------------------------------------------------------------------------------*/
-UBlueprintGeneratedClassFactory::UBlueprintGeneratedClassFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-
-	// Look in the config file to determine what the default base class is, if any
-	FString ClassPath;
-	GConfig->GetString(TEXT("/Script/Engine.Engine"), TEXT("DefaultBlueprintBaseClassName"), /*out*/ ClassPath, GEngineIni);
-	UClass* DefaultParentClass = !ClassPath.IsEmpty() 
-		? LoadClass<UObject>(nullptr, *ClassPath, nullptr, LOAD_None, nullptr) 
-		: nullptr;
-	
-	if( !DefaultParentClass || !FKismetEditorUtilities::CanCreateBlueprintOfClass(DefaultParentClass) )
-	{
-		DefaultParentClass = AActor::StaticClass();
-	}
-
-	bCreateNew = false;
-	bEditAfterNew = true;
-	SupportedClass = UBlueprintGeneratedClass::StaticClass();
-	ParentClass = DefaultParentClass;
-}
-
-bool UBlueprintGeneratedClassFactory::ConfigureProperties()
-{
-	// Null the parent class to ensure one is selected
-	ParentClass = nullptr;
-
-	// Fill in options
-	FClassViewerInitializationOptions Options;
-	Options.Mode = EClassViewerMode::ClassPicker;
-	Options.DisplayMode = EClassViewerDisplayMode::TreeView;
-	Options.bShowObjectRootClass = true;
-
-	// Only want blueprint actor base classes.
-	Options.bIsBlueprintBaseOnly = true;
-
-	// This will allow unloaded blueprints to be shown.
-	Options.bShowUnloadedBlueprints = true;
-
-	// Prevent creating blueprints of classes that require special setup (they'll be allowed in the corresponding factories / via other means)
-	TSharedPtr<FBlueprintParentFilter> Filter = MakeShareable(new FBlueprintParentFilter);
-	Options.ClassFilter = Filter;
-	if (!IsMacroFactory())
-	{
-		Filter->DisallowedChildrenOfClasses.Add(ALevelScriptActor::StaticClass());
-		Filter->DisallowedChildrenOfClasses.Add(UAnimInstance::StaticClass());
-	}
-
-	// Filter out interfaces in all cases; they can never contain code, so it doesn't make sense to use them as a macro basis
-	Filter->DisallowedChildrenOfClasses.Add(UInterface::StaticClass());
-
-	const FText TitleText = LOCTEXT("CreateBlueprintOptions", "Pick Parent Class");
-	UClass* ChosenClass = nullptr;
-	const bool bPressedOk = SClassPickerDialog::PickClass(TitleText, Options, ChosenClass, UBlueprint::StaticClass());
-
-	if ( bPressedOk )
-	{
-		ParentClass = ChosenClass;
-
-		FEditorDelegates::OnFinishPickingBlueprintClass.Broadcast(ParentClass);
-	}
-
-	return bPressedOk;
-};
-
-UObject* UBlueprintGeneratedClassFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
-{
-	// Make sure we are trying to factory a blueprint, then create and init one
-	check(Class->IsChildOf(UBlueprintGeneratedClass::StaticClass()));
-
-	if ((ParentClass == nullptr) || !FKismetEditorUtilities::CanCreateBlueprintOfClass(ParentClass))
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, FText::FromString(FString::Printf(TEXT("Cannot create a blueprint based on the class '%s'."),
-			(ParentClass != nullptr) ? *(ParentClass->GetName()) : TEXT("(null)"))));
-		return nullptr;
-	}
-	else
-	{
-		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
-	}
-}
 
 /*------------------------------------------------------------------------------
 	UBlueprintFactory implementation.
@@ -6257,6 +6197,11 @@ FText UBlueprintMacroFactory::GetToolTip() const
 	return LOCTEXT("BlueprintMacroLibraryTooltip", "Blueprint Macro Libraries are containers of macros to be used in other blueprints. They cannot contain variables, inherit from other blueprints, or be placed in levels. Changes to macros in a Blueprint Macro Library will not take effect until client blueprints are recompiled.");
 }
 
+FString UBlueprintMacroFactory::GetToolTipDocumentationExcerpt() const
+{
+	return TEXT("UBlueprint_Macro");
+}
+
 UObject* UBlueprintMacroFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
 	// Make sure we are trying to factory a blueprint, then create and init one
@@ -6312,6 +6257,11 @@ uint32 UBlueprintFunctionLibraryFactory::GetMenuCategories() const
 FText UBlueprintFunctionLibraryFactory::GetToolTip() const
 {
 	return LOCTEXT("BlueprintFunctionLibraryTooltip", "Blueprint Function Libraries are containers of functions to be used in other blueprints. They cannot contain variables, inherit from other blueprints, or be placed in levels. Changes to functions in a Blueprint Function Library will take effect without recompiling the client blueprints.");
+}
+
+FString UBlueprintFunctionLibraryFactory::GetToolTipDocumentationExcerpt() const
+{
+	return TEXT("UBlueprint_FunctionLibrary");
 }
 
 UObject* UBlueprintFunctionLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
@@ -6372,6 +6322,11 @@ uint32 UBlueprintInterfaceFactory::GetMenuCategories() const
 FText UBlueprintInterfaceFactory::GetToolTip() const
 {
 	return LOCTEXT("BlueprintInterfaceTooltip", "A Blueprint Interface is a collection of one or more functions - name only, no implementation - that can be added to other Blueprints. These other Blueprints are then expected to implement the functions of the Blueprint Interface in a unique manner.");
+}
+
+FString UBlueprintInterfaceFactory::GetToolTipDocumentationExcerpt() const
+{
+	return TEXT("UBlueprint_Interface");
 }
 
 UObject* UBlueprintInterfaceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
@@ -7123,6 +7078,24 @@ UForceFeedbackEffectFactory::UForceFeedbackEffectFactory(const class FPostConstr
 UObject* UForceFeedbackEffectFactory::FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn )
 {
 	return ConstructObject<UForceFeedbackEffect>( UForceFeedbackEffect::StaticClass(), InParent, InName, Flags );
+}
+
+/*-----------------------------------------------------------------------------
+USubsurfaceProfileFactory implementation.
+-----------------------------------------------------------------------------*/
+USubsurfaceProfileFactory::USubsurfaceProfileFactory(const class FPostConstructInitializeProperties& PCIP)
+: Super(PCIP)
+{
+
+	SupportedClass = USubsurfaceProfile::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* USubsurfaceProfileFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return ConstructObject<USubsurfaceProfile>(USubsurfaceProfile::StaticClass(), InParent, InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------

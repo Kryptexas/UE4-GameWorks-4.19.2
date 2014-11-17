@@ -200,6 +200,7 @@ enum UpdateFlags
 	DT_CROWD_OPTIMIZE_TOPO			= 1 << 4,	///< Use dtPathCorridor::optimizePathTopology() to optimize the agent path.
 	DT_CROWD_OPTIMIZE_VIS_MULTI		= 1 << 5,	///< [UE4] Multiple calls for optimizePathVisibility instead of checking last point
 	DT_CROWD_OFFSET_PATH			= 1 << 6,	///< [UE4] Offset path points from corners by agent radius
+	DT_CROWD_SLOWDOWN_AT_GOAL		= 1 << 7,	///< [UE4] Slowdown before reaching goal
 };
 
 struct NAVMESH_API dtCrowdAgentDebugInfo

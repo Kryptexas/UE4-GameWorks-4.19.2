@@ -5,7 +5,12 @@
 
 static SDL_Window* CreateDummyGLWindow()
 {
-	SDL_Init( SDL_INIT_VIDEO );
+	FPlatformMisc::PlatformInitMultimedia(); //	will not initialize more than once
+
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_VIDEO);
+#endif // DO_CHECK
 
 	// Create a dummy window.
 	SDL_Window *h_wnd = SDL_CreateWindow(	NULL,
@@ -53,6 +58,23 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 	}
 
 	Context = SDL_GL_CreateContext( WindowHandle );
+	if (Context == nullptr)
+	{
+		FString SdlError(ANSI_TO_TCHAR(SDL_GetError()));
+		
+		// ignore errors getting version, it will be clear from the logs
+		int OpenGLMajorVersion = -1;
+		int OpenGLMinorVersion = -1;
+		SDL_GL_GetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, &OpenGLMajorVersion );
+		SDL_GL_GetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, &OpenGLMinorVersion );
+		
+		UE_LOG(LogInit, Fatal, TEXT("FSlateOpenGLContext::Initialize - Could not create OpenGL %d.%d context, SDL error: '%s'"), 
+				OpenGLMajorVersion, OpenGLMinorVersion,
+				*SdlError
+			);
+		// unreachable
+		return;
+	}
 	SDL_GL_MakeCurrent( WindowHandle, Context );
 }
 
@@ -66,7 +88,7 @@ void FSlateOpenGLContext::Destroy()
 		if	( bReleaseWindowOnDestroy )
 		{
 			SDL_DestroyWindow( WindowHandle );
-			SDL_Quit();
+			// we will tear down SDL in PlatformTearDown()
 		}
 		WindowHandle = NULL;
 

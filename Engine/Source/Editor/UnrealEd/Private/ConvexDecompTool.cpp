@@ -5,7 +5,19 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+
+#ifdef __clang__
+	// HACD headers use pragmas that Clang doesn't recognize (inline depth)
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wunknown-pragmas"	// warning : unknown pragma ignored [-Wunknown-pragmas]
+#endif
+
 #include "ThirdParty/HACD/HACD_1.0/public/HACD.h"
+
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
+
 #include "ConvexDecompTool.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConvexDecompTool, Log, All);

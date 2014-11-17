@@ -158,10 +158,13 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetParentClass, Package, FName(*Name), BPTYPE_Normal, TargetParentBP->GetClass(), UBlueprintGeneratedClass::StaticClass());
 			if (NewBP)
 			{
-				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
-
 				// Notify the asset registry
 				FAssetRegistryModule::AssetCreated(NewBP);
+
+				// the editor should be opened AFTER being added to the asset 
+				// registry (some systems could queue off of the asset registry 
+				// add event, and already having that blueprint open can be odd)
+				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
 
 				// Mark the package dirty...
 				Package->MarkPackageDirty();
@@ -172,7 +175,7 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 
 FText FAssetTypeActions_Blueprint::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<UBlueprint> InObject)
 {
-	if(InObject->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated))
+	if (!CanExecuteNewDerivedBlueprint(InObject))
 	{
 		return LOCTEXT("Blueprint_NewDerivedBlueprintIsDeprecatedTooltip", "Blueprint class is deprecated, cannot derive a child Blueprint!");
 	}
@@ -184,7 +187,9 @@ FText FAssetTypeActions_Blueprint::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<
 
 bool FAssetTypeActions_Blueprint::CanExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprint> InObject)
 {
-	return !InObject->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
+	auto BP = InObject.Get();
+	auto BPGC = BP ? BP->GeneratedClass : NULL;
+	return BPGC && !BPGC->HasAnyClassFlags(CLASS_Deprecated);
 }
 
 bool FAssetTypeActions_Blueprint::ShouldUseDataOnlyEditor( const UBlueprint* Blueprint ) const
@@ -222,8 +227,7 @@ void FAssetTypeActions_Blueprint::PerformAssetDiff(UObject* OldAsset, UObject* N
 					  .BlueprintNew(NewBlueprint)
 					  .OldRevision(OldRevision)
 					  .NewRevision(NewRevision)
-					  .ShowAssetNames(!bIsSingleAsset)
-					  .OpenInDefaults(const_cast<FAssetTypeActions_Blueprint*>(this), &FAssetTypeActions_Blueprint::OpenInDefaults) );
+					  .ShowAssetNames(!bIsSingleAsset) );
 
 	// Make this window a child of the modal window if we've been spawned while one is active.
 	TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
@@ -249,21 +253,6 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 	}
 
 	return ThumbnailInfo;
-}
-
-void FAssetTypeActions_Blueprint::OpenInDefaults( const UBlueprint* OldBlueprint, const UBlueprint* NewBlueprint ) const
-{
-	const bool bComparedBlueprintsHaveGeneratedClasses = *(OldBlueprint->GeneratedClass) && *(NewBlueprint->GeneratedClass);
-	ensure(bComparedBlueprintsHaveGeneratedClasses);
-	if (bComparedBlueprintsHaveGeneratedClasses)
-	{
-		const FString OldTextFilename = DumpAssetToTempFile(OldBlueprint->GeneratedClass->GetDefaultObject());
-		const FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());
-		const FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
-
-		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-     	AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
-	}
 }
 
 FText FAssetTypeActions_Blueprint::GetAssetDescription(const FAssetData& AssetData) const

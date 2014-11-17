@@ -24,6 +24,18 @@ public:
 	 * @param Scale Non-uniform scale to apply to matrix.
 	 */
 	FScaleMatrix( const FVector& Scale );
+
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static FMatrix Make(float Scale)
+	{
+		return FScaleMatrix(Scale);
+	}
+
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static FMatrix Make(const FVector& Scale)
+	{
+		return FScaleMatrix(Scale);
+	}
 };
 
 

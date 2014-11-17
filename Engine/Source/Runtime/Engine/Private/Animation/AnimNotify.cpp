@@ -50,3 +50,12 @@ FString UAnimNotify::GetNotifyName_Implementation() const
 	
 	return NotifyName;
 }
+
+void UAnimNotify::PostLoad()
+{
+	Super::PostLoad();
+#if WITH_EDITOR
+	// Ensure that all loaded notifies are transactional
+	SetFlags(GetFlags() | RF_Transactional);
+#endif
+}

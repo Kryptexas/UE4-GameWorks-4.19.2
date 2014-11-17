@@ -101,7 +101,10 @@ extern class FLightmassSwarm* GSwarm;
 /** Whether we should report detailed stats back to Unreal. */
 extern bool GReportDetailedStats;
 
-/** Whether Lightmass is running in debug mode (-debug), using a hardcoded job and not requesting tasks from Swarm. */
+/** 
+ * Whether Lightmass is running in debug mode (-debug), using a hardcoded job and not requesting tasks from Swarm. 
+ * Warning!  This will only process mapping tasks and will skip other types of tasks.
+ */
 extern bool GDebugMode;
 
 } //namespace Lightmass

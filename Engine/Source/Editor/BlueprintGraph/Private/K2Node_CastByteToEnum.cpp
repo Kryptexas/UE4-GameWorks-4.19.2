@@ -5,8 +5,9 @@
 #include "KismetCompiler.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "K2Node_CastByteToEnum.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 const FString UK2Node_CastByteToEnum::ByteInputPinName = TEXT("Byte");
 
@@ -25,16 +26,22 @@ void UK2Node_CastByteToEnum::AllocateDefaultPins()
 	CreatePin(EGPD_Output, Schema->PC_Byte, TEXT(""), Enum, false, false, Schema->PN_ReturnValue);
 }
 
-FString UK2Node_CastByteToEnum::GetTooltip() const
+FText UK2Node_CastByteToEnum::GetTooltipText() const
 {
-	return FString::Printf( 
-		*NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum %s").ToString(),
-		*Enum->GetName());
+	if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(
+			NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum {0}"),
+			FText::FromName(Enum->GetFName())
+		);
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_CastByteToEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText::FromString(GetTooltip());
+	return GetTooltipText();
 }
 
 FText UK2Node_CastByteToEnum::GetCompactNodeTitle() const
@@ -124,7 +131,10 @@ public:
 		UEdGraphPin* OutPin = Node->FindPinChecked(Schema->PN_ReturnValue);
 		if (ensure(Context.NetMap.Find(OutPin) == NULL))
 		{
-			Context.NetMap.Add(OutPin, *ValueSource);
+			// We need to copy here to avoid passing in a reference to an element inside the map. The array
+			// that owns the map members could be reallocated, causing the reference to become stale.
+			FBPTerminal* ValueSourceCopy = *ValueSource;
+			Context.NetMap.Add(OutPin, ValueSourceCopy);
 		}
 	}
 };
@@ -135,42 +145,57 @@ FNodeHandlingFunctor* UK2Node_CastByteToEnum::CreateNodeHandler(FKismetCompilerC
 	{
 		return new FKCHandler_CastByteToEnum(CompilerContext);
 	}
-	return NULL;
+	return new FNodeHandlingFunctor(CompilerContext);;
 }
 
-void UK2Node_CastByteToEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+bool UK2Node_CastByteToEnum::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
+	const UEnum* SubCategoryObject = Cast<UEnum>(OtherPin->PinType.PinSubCategoryObject.Get());
+	if (SubCategoryObject)
+	{
+		if (SubCategoryObject != Enum)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UK2Node_CastByteToEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto SetNodeEnumLambda = [](UEdGraphNode* NewNode, UField const* /*EnumField*/, TWeakObjectPtr<UEnum> NonConstEnumPtr)
+	{
+		UK2Node_CastByteToEnum* EnumNode = CastChecked<UK2Node_CastByteToEnum>(NewNode);
+		EnumNode->Enum  = NonConstEnumPtr.Get();
+		EnumNode->bSafe = true;
+	};
+
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
 		UEnum const* Enum = (*EnumIt);
-		// we only want to add global "standalone" enums here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any enums that were changed).
-		//
-		// @TODO: don't love how this code is essentially duplicated in BlueprintActionDatabase.cpp, for class enums
-		bool bIsStandaloneEnum = Enum->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneEnum || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
 		{
 			continue;
 		}
 
-		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Enum))
 		{
-			UK2Node_CastByteToEnum* EnumNode = CastChecked<UK2Node_CastByteToEnum>(NewNode);
-			if (EnumPtr.IsValid())
-			{
-				EnumNode->Enum = EnumPtr.Get();
-			}
-			EnumNode->bSafe = true;
-		};
+			continue;
+		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Enum);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = Enum;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeEnumLambda, NonConstEnumPtr);
 
-		TWeakObjectPtr<UEnum> EnumPtr = Enum;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+		// this enum could belong to a class, or is a user defined enum (asset), 
+		// that's why we want to make sure to register it along with the action 
+		// (so the action can be refreshed when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Enum, NodeSpawner);
 	}
 }
 

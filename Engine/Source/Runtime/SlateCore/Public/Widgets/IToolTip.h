@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IToolTip.h: Declares the IToolTip interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,7 +22,14 @@ public:
 	 *
 	 * @return The content widget.
 	 */
-	virtual const TSharedRef<SWidget>& GetContentWidget( ) = 0;
+	virtual TSharedRef<SWidget> GetContentWidget( ) = 0;
+
+	/**
+	 * Sets the tool tip's content widget.
+	 *
+	 * @param InContentWidget The new content widget to set.
+	 */
+	virtual void SetContentWidget( const TSharedRef<SWidget>& InContentWidget ) = 0;
 
 	/**
 	 * Checks whether this tool tip has no content to display right now.
@@ -44,8 +47,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IToolTip( ) { }
 };

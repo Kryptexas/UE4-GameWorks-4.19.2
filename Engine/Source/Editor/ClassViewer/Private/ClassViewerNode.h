@@ -12,7 +12,7 @@ public:
 	 * @param	InClassDisplayName				The display name of the class this node represents
 	 * @param	bInIsPlaceable					true if the class is a placeable class.
 	 */
-	FClassViewerNode( const FString& InClassName, const FString& InClassDisplayName, bool bInIsPlaceable );
+	FClassViewerNode( const FString& InClassName, const FString& InClassDisplayName );
 
 	FClassViewerNode( const FClassViewerNode& InCopyObject);
 
@@ -47,15 +47,7 @@ public:
 	}
 
 	/** Checks if the class is placeable. */
-	bool IsClassPlaceable() const
-	{
-		return bIsClassPlaceable;
-	}
-
-	void IsClassPlaceable(bool bInIsClassPlaceable)
-	{
-		bIsClassPlaceable = bInIsClassPlaceable;
-	}
+	bool IsClassPlaceable() const;
 
 	bool IsRestricted() const;
 
@@ -68,9 +60,6 @@ private:
 
 	/** List of children. */
 	TArray<TSharedPtr<FClassViewerNode>> ChildrenList;
-
-	/** true if the class is placeable. */
-	bool bIsClassPlaceable;
 
 public:
 	/** The class this node is associated with. */

@@ -21,6 +21,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
+#include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "Landscape/LandscapeProxy.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "Animation/AnimSet.h"
@@ -52,6 +53,8 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "ComponentReregisterContext.h"
+#include "Engine/DocumentationActor.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -105,10 +108,10 @@ static int32 CleanBSPMaterials(UWorld* InWorld, bool bPreviewOnly, bool bLogBrus
 	// Clear the mark flag the polys of all non-volume, non-builder brushes.
 	// Make a list of all brushes that were encountered.
 	TArray<ABrush*> Brushes;
-	for ( FActorIterator It(InWorld) ; It ; ++It )
+	for ( TActorIterator<ABrush> It(InWorld) ; It ; ++It )
 	{
-		ABrush* ItBrush = Cast<ABrush>(*It);
-		if ( ItBrush && !ItBrush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(ItBrush) && !ItBrush->IsBrushShape() )
+		ABrush* ItBrush = *It;
+		if ( !ItBrush->IsVolumeBrush() && !FActorEditorUtils::IsABuilderBrush(ItBrush) && !ItBrush->IsBrushShape() )
 		{
 			if( ItBrush->Brush && ItBrush->Brush->Polys )
 			{
@@ -685,22 +688,8 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		if ( NewBrush )
 		{
 			ULevel::LevelDirtiedEvent.Broadcast();
+			RebuildStaticNavigableGeometry(InWorld->GetCurrentLevel());
 		}
-
-#if WITH_NAVIGATION_GENERATOR
-		// update static navigable geometry in every level
-		for ( int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); ++LevelIndex ) 
-		{
-			ULevel* Level =  InWorld->GetLevel(LevelIndex);	
-
-			GEditor->RebuildStaticNavigableGeometry(Level);
-		}
-
-		if (IsLoading() == false) 
-		{
-			InWorld->GetNavigationSystem()->Build();
-		}
-#endif
 
 		if(FParse::Command(&Str,TEXT("SELECTNEWBRUSH")))
 		{
@@ -782,6 +771,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		if ( NewBrush )
 		{
 			ULevel::LevelDirtiedEvent.Broadcast();
+			RebuildStaticNavigableGeometry(InWorld->GetCurrentLevel());
 		}
 
 		if(FParse::Command(&Str,TEXT("SELECTNEWBRUSH")))
@@ -987,10 +977,15 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 int32 UEditorEngine::BeginTransaction(const TCHAR* TransactionContext, const FText& Description, UObject* PrimaryObject)
 {
-	// generate transaction context
-	int32 index = Trans->Begin( TransactionContext, Description );
-	Trans->SetPrimaryUndoObject(PrimaryObject);
-	return index;
+	int32 Index = INDEX_NONE;
+
+	if (!bIsSimulatingInEditor)
+	{
+		// generate transaction context
+		Index = Trans->Begin(TransactionContext, Description);
+		Trans->SetPrimaryUndoObject(PrimaryObject);
+	}
+	return Index;
 }
 
 int32 UEditorEngine::BeginTransaction(const FText& Description)
@@ -1000,7 +995,13 @@ int32 UEditorEngine::BeginTransaction(const FText& Description)
 
 int32 UEditorEngine::EndTransaction()
 {
-	return Trans->End();
+	int32 Index = INDEX_NONE;
+	if (!bIsSimulatingInEditor)
+	{
+		Index = Trans->End();
+	}
+
+	return Index;
 }
 
 void UEditorEngine::ResetTransaction(const FText& Reason)
@@ -1437,6 +1438,8 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	FBSPOps::GFastRebuild = 1;
 
 	Level.UpdateModelComponents();
+
+	RebuildStaticNavigableGeometry(&Level);
 }
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
@@ -1559,7 +1562,6 @@ void UEditorEngine::RebuildAlteredBSP()
 		if ( LevelToRebuild.IsValid() )
 		{
 			RebuildLevel(*LevelToRebuild.Get());
-			GEditor->RebuildStaticNavigableGeometry(LevelToRebuild.Get());
 			NumLevelsTouched++;
 		}
 	}
@@ -1570,21 +1572,6 @@ void UEditorEngine::RebuildAlteredBSP()
 	{
 		FEditorDelegates::MapChange.Broadcast( MapChangeEventFlags::MapRebuild );
 	}
-
-#if WITH_NAVIGATION_GENERATOR	
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (World != NULL && World->GetNavigationSystem() != NULL)
-	{
-		for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
-		{
-			TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
-			if ( LevelToRebuild.IsValid() )
-			{
-				World->GetNavigationSystem()->UpdateLevelCollision(LevelToRebuild.Get());
-			}
-		}
-	}
-#endif // WITH_NAVIGATION_GENERATOR
 	
 	RedrawLevelEditingViewports();
 
@@ -1660,7 +1647,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	// Stop all audio and remove references 
 	if ( GetAudioDevice() )
 	{
-		GetAudioDevice()->Flush(NULL);
+		GetAudioDevice()->Flush(ContextWorld);
 	}
 
 	// Reset the editor transform to avoid loading the new world with an offset if loading a sublevel
@@ -2020,12 +2007,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 		FString LongTempFname;
 		if ( FPackageName::TryConvertFilenameToLongPackageName(TempFname, LongTempFname) )
 		{
- 			if ( Context.World() && Context.World()->GetOutermost() && Context.World()->GetOutermost() == FindPackage(NULL, *LongTempFname) )
- 			{
- 				// This map is already loaded and in the editor.
- 				return true;
- 			}
-
 			// Is the new world already loaded?
 			UPackage* ExistingPackage = FindPackage(NULL, *LongTempFname);
 			UWorld* ExistingWorld = NULL;
@@ -2098,7 +2079,15 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Arguments.Add(TEXT("MapFileName"), FText::FromString( MapFileName ));
 						FMessageLog("LoadErrors").NewPage( FText::Format( LOCTEXT("LoadMapLogPage", "Loading map: {MapFileName}"), Arguments ) );
 					}
-					EditorDestroyWorld( Context, LocalizedLoadingMap, ExistingWorld );
+
+					// If we are loading the same world again (reloading) then we must not specify that we want to keep this world in memory.
+					// Otherwise, try to keep the existing world in memory since there is not reason to reload it.
+					UWorld* NewWorld = nullptr;
+					if (ExistingWorld != nullptr && Context.World() != ExistingWorld)
+					{
+						NewWorld = ExistingWorld;
+					}
+					EditorDestroyWorld( Context, LocalizedLoadingMap, NewWorld );
 
 					// Refresh ExistingPackage and Existing World now that GC has occurred.
 					ExistingPackage = FindPackage(NULL, *LongTempFname);
@@ -2663,9 +2652,29 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 		return;
 	}
 
+	// Find actors that are already in the destination level and deselect them
+	{
+		TArray<AActor*> ActorsToDeselect;
+		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+		{
+			AActor* Actor = static_cast<AActor*>(*It);
+			if ( Actor && Actor->GetLevel() == InDestLevel )
+			{
+				ActorsToDeselect.Add(Actor);
+			}
+		}
+
+		for ( auto* Actor : ActorsToDeselect )
+		{
+			const bool bInSelected = false;
+			const bool bNotify = false;
+			SelectActor(Actor, bInSelected, bNotify);
+		}
+	}
+
 	if (GetSelectedActorCount() <= 0)
 	{
-		// Nothing to move, probably source level was hidden and actors lost selection mark
+		// Nothing to move, probably source level was hidden and actors lost selection mark or all actors were already in the destination level
 		return;
 	}
 
@@ -2978,13 +2987,9 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 				}
 
 				// Clean-up flag for Landscape Proxy cases...
-				for( FActorIterator CurActorIt(InWorld); CurActorIt; ++CurActorIt )
+				for( TActorIterator<ALandscapeProxy> ProxyIt(InWorld); ProxyIt; ++ProxyIt )
 				{
-					ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(*CurActorIt);
-					if (Proxy)
-					{
-						Proxy->bIsMovingToLevel = false;
-					}
+					ProxyIt->bIsMovingToLevel = false;
 				}
 
 				BufferLevel->ClearLevelComponents();
@@ -3021,7 +3026,9 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 		return;
 	}
 
-	FVector SaveClickLocation = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, nullptr, GEditor->ClickLocation, GEditor->ClickPlane).GetLocation();
+	const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
+		.AlignToSurfaceRotation(false);
+	FVector SaveClickLocation = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData).GetLocation();
 	
 	ULevel* DesiredLevel = InWorld->GetCurrentLevel();
 
@@ -3314,7 +3321,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 						ULevelStreaming* SubLevelStreaming = SubLevelWorld->StreamingLevels[SubLevelIndex];
 						if (SubLevelStreaming != NULL && SubLevelStreaming->GetLoadedLevel() == NULL)
 						{
-							UE_LOG(LogEditorServer, Warning, TEXT("%s contains streaming level '%s' which isn't loaded."), *SubLevelWorldSettings->GetName(), *SubLevelStreaming->PackageName.ToString());
+							UE_LOG(LogEditorServer, Warning, TEXT("%s contains streaming level '%s' which isn't loaded."), *SubLevelWorldSettings->GetName(), *SubLevelStreaming->GetWorldAssetPackageName());
 						}
 					}
 				}
@@ -3456,7 +3463,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 		Arguments.Add(TEXT("Warnings"), WarningCount - ErrorCount);
 		Arguments.Add(TEXT("Time"), CurrentTime);
 		FMessageLog("MapCheck").Info()
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Complete", "========== Map Check: {Errors} Error(s), {Warnings} Warning(s), [{Time}ms] ==========" ), Arguments ) ));
+			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Complete", "Map check complete: {Errors} Error(s), {Warnings} Warning(s), took {Time}ms to complete." ), Arguments ) ));
 	}
 
 	GWarn->EndSlowTask();
@@ -3469,6 +3476,10 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			{
 				MapCheckLog.Notify(LOCTEXT("MapCheckGenErrors", "Map check generated errors!"));
 			}
+			else if (WarningCount > 0)
+			{
+				MapCheckLog.Notify(LOCTEXT("MapCheckGenWarnings", "Map check generated warnings!"));
+			}
 		}
 		else
 		{
@@ -3478,9 +3489,13 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			}
 			else if(Notification == EMapCheckNotification::NotifyOfResults)
 			{				
-				if(WarningCount > 0)
+				if (ErrorCount > 0)
 				{
 					MapCheckLog.Notify(LOCTEXT("MapCheckFoundErrors", "Map Check found some errors!"));
+				}
+				else if (WarningCount > 0)
+				{
+					MapCheckLog.Notify(LOCTEXT("MapCheckFoundWarnings", "Map Check found some issues!"));
 				}
 				else
 				{
@@ -4134,7 +4149,17 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 	{
 		return;
 	}
-	
+
+	// If the first actor is a documentation actor open his document link
+	if (Actors.Num() == 1)
+	{
+		ADocumentationActor* DocActor = Cast<ADocumentationActor>(Actors[0]);
+		if (DocActor != nullptr)
+		{
+			DocActor->OpenDocumentLink();
+		}
+	}
+
 	TArray<AActor*> InvisLevelActors;
 
 	TArray<UClass*> PrimitiveComponentTypesToIgnore;
@@ -4166,6 +4191,34 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 				const FVector DefaultExtent(CustomCameraAlignEmitterDistance,CustomCameraAlignEmitterDistance,CustomCameraAlignEmitterDistance);
 				const FBox DefaultSizeBox(Actor->GetActorLocation() - DefaultExtent, Actor->GetActorLocation() + DefaultExtent);
 				BoundingBox += DefaultSizeBox;
+			}
+			else if( Actor->IsA<ABrush>() && GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
+			{
+				FEdModeGeometry* GeometryMode = GLevelEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
+
+				TArray<FGeomVertex*> SelectedVertices;
+				GeometryMode->GetSelectedVertices( SelectedVertices );
+				for( FGeomVertex* Vertex : SelectedVertices )
+				{
+					BoundingBox += Vertex->GetWidgetLocation();
+				}
+				
+				TArray<FGeomPoly*> SelectedPolys;
+				GeometryMode->GetSelectedPolygons( SelectedPolys );
+				for( FGeomPoly* Poly : SelectedPolys )
+				{
+					BoundingBox += Poly->GetWidgetLocation();
+				}
+
+				TArray<FGeomEdge*> SelectedEdges;
+				GeometryMode->GetSelectedEdges( SelectedEdges );
+				for( FGeomEdge* Edge : SelectedEdges )
+				{
+					BoundingBox += Edge->GetWidgetLocation();
+				}
+
+				// Zoom out a little bit so you can see the selection
+				BoundingBox = BoundingBox.ExpandBy( 25 );
 			}
 			else
 			{
@@ -6024,7 +6077,7 @@ bool UEditorEngine::HandleSetDetailModeViewCommand( const TCHAR* Str, FOutputDev
 			Actor->GetComponents(Components);
 
 			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
-				{
+			{
 				Components[ComponentIndex]->MarkRenderStateDirty();
 			}
 		}
@@ -6127,12 +6180,11 @@ bool UEditorEngine::HandleListMapPackageDependenciesCommand( const TCHAR* Str, F
 
 bool UEditorEngine::HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	for( FActorIterator It(InWorld); It; ++It )
+	for( TActorIterator<AVolume> It(InWorld); It; ++It )
 	{
-		AActor* Actor = *It;
-		AVolume* Volume = Cast<AVolume>(Actor);
+		AVolume* Volume = *It;
 
-		if(Volume != NULL && !Volume->IsTemplate() && Volume->BrushComponent.IsValid())
+		if(!Volume->IsTemplate() && Volume->BrushComponent.IsValid())
 		{
 			UE_LOG(LogEditorServer, Log, TEXT("BSBC: %s"), *Volume->GetPathName() );
 			Volume->BrushComponent->BuildSimpleBrushCollision();

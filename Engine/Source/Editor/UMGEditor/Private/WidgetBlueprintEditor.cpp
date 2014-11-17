@@ -7,6 +7,9 @@
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Animation/UMGSequencerObjectBindingManager.h"
+#include "ObjectEditorUtils.h"
+
+#include "PropertyCustomizationHelpers.h"
 
 #include "WidgetBlueprintApplicationModes.h"
 //#include "WidgetDefafaultsApplicationMode.h"
@@ -21,6 +24,7 @@ FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(NULL)
 {
+	
 }
 
 FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
@@ -32,6 +36,10 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	}
 
 	GEditor->OnObjectsReplaced().RemoveAll(this);
+	
+	Sequencer.Reset();
+
+	SequencerObjectBindingManager.Reset();
 }
 
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
@@ -50,7 +58,7 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	if ( Blueprint->WidgetTree->RootWidget == NULL )
 	{
 		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		RootWidget->IsDesignTime(true);
+		RootWidget->SetIsDesignTime(true);
 		Blueprint->WidgetTree->RootWidget = RootWidget;
 	}
 
@@ -58,24 +66,24 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 
 	SequencerObjectBindingManager->InitPreviewObjects();
 
-	WidgetCommandList = MakeShareable(new FUICommandList);
+	DesignerCommandList = MakeShareable(new FUICommandList);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Delete,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Delete,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::DeleteSelectedWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanDeleteSelectedWidgets)
 		);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Copy,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Copy,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CopySelectedWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
 		);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Cut,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutSelectedWidgets)
 		);
 
-	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
+	DesignerCommandList->MapAction(FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanPasteWidgets)
 		);
@@ -128,7 +136,24 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 	// to ensure values that are pending are committed on focus loss, and migrated properly
 	// to the old selected widgets.
 	SelectedWidgets.Empty();
+	SelectedObjects.Empty();
+
 	SelectedWidgets.Append(TempSelection);
+
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
+void FWidgetBlueprintEditor::SelectObjects(const TSet<UObject*>& Objects)
+{
+	OnSelectedWidgetsChanging.Broadcast();
+
+	SelectedWidgets.Empty();
+	SelectedObjects.Empty();
+
+	for ( UObject* Obj : Objects )
+	{
+		SelectedObjects.Add(Obj);
+	}
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -163,50 +188,46 @@ const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
 	return SelectedWidgets;
 }
 
+const TSet< TWeakObjectPtr<UObject> >& FWidgetBlueprintEditor::GetSelectedObjects() const
+{
+	return SelectedObjects;
+}
+
+void FWidgetBlueprintEditor::InvalidatePreview()
+{
+	bPreviewInvalidated = true;
+}
+
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	FBlueprintEditor::OnBlueprintChanged(InBlueprint);
 
 	if ( InBlueprint )
 	{
-		// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
-		OnSelectedWidgetsChanging.Broadcast();
-
-		UpdatePreview(InBlueprint, true);
-
-		CleanSelection();
-
-		// Fire the selection updated event to ensure everyone is watching the same widgets.
-		OnSelectedWidgetsChanged.Broadcast();
+		RefreshPreview();
 	}
 }
 
 void FWidgetBlueprintEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
 {
-	// Objects being replaced could force a selection change
-	OnSelectedWidgetsChanging.Broadcast();
-
-	TSet<FWidgetReference> TempSelection;
-	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	// Remove dead references and update references
+	for ( int32 HandleIndex = WidgetHandlePool.Num() - 1; HandleIndex >= 0; HandleIndex-- )
 	{
-		UWidget* OldTemplate = WidgetRef.GetTemplate();
+		TSharedPtr<FWidgetHandle> Ref = WidgetHandlePool[HandleIndex].Pin();
 
-		UObject* const* NewObject = ReplacementMap.Find(OldTemplate);
-		if ( NewObject )
+		if ( Ref.IsValid() )
 		{
-			UWidget* NewTemplate = Cast<UWidget>(*NewObject);
-			TempSelection.Add(FWidgetReference::FromTemplate(SharedThis(this), NewTemplate));
+			UObject* const* NewObject = ReplacementMap.Find(Ref->Widget.Get());
+			if ( NewObject )
+			{
+				Ref->Widget = Cast<UWidget>(*NewObject);
+			}
 		}
 		else
 		{
-			TempSelection.Add(WidgetRef);
+			WidgetHandlePool.RemoveAtSwap(HandleIndex);
 		}
 	}
-
-	SelectedWidgets = TempSelection;
-
-	// Fire the selection updated event to ensure everyone is watching the same widgets.
-	OnSelectedWidgetsChanged.Broadcast();
 }
 
 bool FWidgetBlueprintEditor::CanDeleteSelectedWidgets()
@@ -247,6 +268,27 @@ void FWidgetBlueprintEditor::CutSelectedWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
 	FWidgetBlueprintEditorUtils::CutWidgets(GetWidgetBlueprintObj(), Widgets);
+}
+
+const UWidgetAnimation* FWidgetBlueprintEditor::RefreshCurrentAnimation()
+{
+	if( !SequencerObjectBindingManager->HasValidWidgetAnimation() )
+	{
+		const TArray<UWidgetAnimation*>& Animations = GetWidgetBlueprintObj()->Animations;
+		if( Animations.Num() > 0 )
+		{
+			// Ensure we are viewing a valid animation
+			ChangeViewedAnimation( *Animations[0] );
+			return Animations[0];
+		}
+		else
+		{
+			ChangeViewedAnimation( *UWidgetAnimation::GetNullAnimation() );
+			return nullptr;
+		}
+	}
+
+	return SequencerObjectBindingManager->GetWidgetAnimation();
 }
 
 bool FWidgetBlueprintEditor::CanPasteWidgets()
@@ -302,45 +344,11 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we 
 	//       look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if ( PreviewWidgetActorPtr.IsStale(true) )
+	if ( PreviewWidgetPtr.IsStale(true) || bPreviewInvalidated )
 	{
-		UpdatePreview(GetWidgetBlueprintObj(), true);
+		bPreviewInvalidated = false;
+		RefreshPreview();
 	}
-}
-
-static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, UProperty* MemberProperty)
-{
-	FString SourceValue;
-
-	// Get the property addresses for the source and destination objects.
-	uint8* SourceAddr = MemberProperty->ContainerPtrToValuePtr<uint8>(SourceObject);
-	uint8* DestionationAddr = MemberProperty->ContainerPtrToValuePtr<uint8>(DestinationObject);
-
-	if ( SourceAddr == NULL || DestionationAddr == NULL )
-	{
-		return false;
-	}
-
-	// Get the current value from the source object.
-	MemberProperty->ExportText_Direct(SourceValue, SourceAddr, SourceAddr, NULL, PPF_Localized);
-
-	const bool bNotifyObjectOfChange = true;
-
-	if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
-	{
-		DestinationObject->PreEditChange(MemberProperty);
-	}
-
-	// Set the value on the destination object.
-	MemberProperty->ImportText(*SourceValue, DestionationAddr, 0, DestinationObject);
-
-	if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
-	{
-		FPropertyChangedEvent PropertyEvent(MemberProperty);
-		DestinationObject->PostEditChangeProperty(PropertyEvent);
-	}
-
-	return true;
 }
 
 static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode, UProperty* MemberProperty, bool bIsModify)
@@ -356,7 +364,15 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 		}
 		else
 		{
-			return MigratePropertyValue(SourceObject, DestinationObject, MemberProperty);
+			// Check to see if there's an edit condition property we also need to migrate.
+			bool bDummyNegate = false;
+			UBoolProperty* EditConditionProperty = PropertyCustomizationHelpers::GetEditConditionProperty(MemberProperty, bDummyNegate);
+			if ( EditConditionProperty != NULL )
+			{
+				FObjectEditorUtils::MigratePropertyValue(SourceObject, EditConditionProperty, DestinationObject, EditConditionProperty);
+			}
+
+			return FObjectEditorUtils::MigratePropertyValue(SourceObject, MemberProperty, DestinationObject, MemberProperty);
 		}
 	}
 	
@@ -410,6 +426,37 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 	}
 }
 
+void FWidgetBlueprintEditor::PostUndo(bool bSuccessful)
+{
+	FBlueprintEditor::PostUndo(bSuccessful);
+
+	OnWidgetBlueprintTransaction.Broadcast();
+}
+
+void FWidgetBlueprintEditor::PostRedo(bool bSuccessful)
+{
+	FBlueprintEditor::PostRedo(bSuccessful);
+
+	OnWidgetBlueprintTransaction.Broadcast();
+}
+
+TSharedRef<SWidget> FWidgetBlueprintEditor::CreateSequencerWidget()
+{
+	TSharedRef<SOverlay> SequencerOverlayRef =
+		SNew(SOverlay)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Sequencer")))
+		+ SOverlay::Slot()
+		[
+			GetSequencer()->GetSequencerWidget()
+		];
+
+	SequencerOverlay = SequencerOverlayRef;
+
+	RefreshCurrentAnimation();
+
+	return SequencerOverlayRef;
+}
+
 UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 {
 	return Cast<UWidgetBlueprint>(GetBlueprintObj());
@@ -417,7 +464,37 @@ UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 
 UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 {
-	return PreviewWidgetActorPtr.Get();
+	if ( PreviewWidgetPtr.IsStale(true) )
+	{
+		return NULL;
+	}
+
+	return PreviewWidgetPtr.Get();
+}
+
+FWidgetReference FWidgetBlueprintEditor::GetReferenceFromTemplate(UWidget* TemplateWidget)
+{
+	TSharedRef<FWidgetHandle> Reference = MakeShareable(new FWidgetHandle(TemplateWidget));
+	WidgetHandlePool.Add(Reference);
+
+	return FWidgetReference(SharedThis(this), Reference);
+}
+
+FWidgetReference FWidgetBlueprintEditor::GetReferenceFromPreview(UWidget* PreviewWidget)
+{
+	UUserWidget* PreviewRoot = GetPreview();
+	if ( PreviewRoot )
+	{
+		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+		if ( PreviewWidget )
+		{
+			FString Name = PreviewWidget->GetName();
+			return GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Name));
+		}
+	}
+
+	return FWidgetReference(SharedThis(this), TSharedPtr<FWidgetHandle>());
 }
 
 TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
@@ -426,23 +503,21 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 	{
 		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
-		FWidgetAnimation* WidgetAnimation = nullptr;
+		UWidgetAnimation* WidgetAnimation = nullptr;
 
-		if( Blueprint->AnimationData.Num() )
+		if( Blueprint->Animations.Num() )
 		{
-			WidgetAnimation = &Blueprint->AnimationData[0];
+			WidgetAnimation = Blueprint->Animations[0];
 		}
 		else
 		{
-			UMovieScene* MovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), Blueprint, MakeUniqueObjectName( Blueprint, UMovieScene::StaticClass(), "DefaultAnimationData"), RF_Transactional );
-			FWidgetAnimation NewAnimation;
-			NewAnimation.MovieScene = MovieScene;
-			int32 Index = Blueprint->AnimationData.Add( NewAnimation );
+			UWidgetAnimation* NewAnimation = ConstructObject<UWidgetAnimation>(UWidgetAnimation::StaticClass(), Blueprint, MakeUniqueObjectName(Blueprint, UWidgetAnimation::StaticClass(), "NewAnimation"), RF_Transactional);
+			NewAnimation->MovieScene =  ConstructObject<UMovieScene>(UMovieScene::StaticClass(), NewAnimation, NAME_None, RF_Transactional);
 
-			WidgetAnimation = &Blueprint->AnimationData[Index];
+			WidgetAnimation = NewAnimation;
 		}
 
-		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *WidgetAnimation->MovieScene) );
+		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *WidgetAnimation ) );
 		check( !SequencerObjectBindingManager.IsValid() );
 
 		SequencerObjectBindingManager = ObjectBindingManager;
@@ -457,6 +532,60 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 	return Sequencer;
 }
 
+void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimationToView )
+{
+	if( InAnimationToView.MovieScene != Sequencer->GetRootMovieScene() )
+	{
+		TSharedRef<FUMGSequencerObjectBindingManager> NewObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, InAnimationToView));
+
+		Sequencer->ResetToNewRootMovieScene(*InAnimationToView.MovieScene, NewObjectBindingManager);
+
+		check(SequencerObjectBindingManager.IsUnique());
+
+		SequencerObjectBindingManager = NewObjectBindingManager;
+
+		SequencerObjectBindingManager->InitPreviewObjects();
+
+		TSharedPtr<SOverlay> SequencerOverlayPin = SequencerOverlay.Pin();
+		if( &InAnimationToView == UWidgetAnimation::GetNullAnimation() && SequencerOverlayPin.IsValid() )
+		{
+			Sequencer->GetSequencerWidget()->SetEnabled(false);
+			// Disable sequencer from interaction
+			SequencerOverlayPin->AddSlot(1)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew( STextBlock )
+				.TextStyle( FEditorStyle::Get(), "UMGEditor.NoAnimationFont" )
+				.Text( LOCTEXT("NoAnimationSelected","No Animation Selected") )
+			];
+
+			SequencerOverlayPin->SetVisibility( EVisibility::HitTestInvisible );
+		}
+		else if( SequencerOverlayPin.IsValid() && SequencerOverlayPin->GetNumWidgets() > 1 )
+		{
+			Sequencer->GetSequencerWidget()->SetEnabled(true);
+
+			SequencerOverlayPin->RemoveSlot(1);
+			// Allow sequencer to be interacted with
+			SequencerOverlayPin->SetVisibility( EVisibility::SelfHitTestInvisible );
+		}
+	}
+}
+
+void FWidgetBlueprintEditor::RefreshPreview()
+{
+	// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
+	OnSelectedWidgetsChanging.Broadcast();
+
+	UpdatePreview(GetWidgetBlueprintObj(), true);
+
+	CleanSelection();
+
+	// Fire the selection updated event to ensure everyone is watching the same widgets.
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
 void FWidgetBlueprintEditor::DestroyPreview()
 {
 	UUserWidget* PreviewActor = GetPreview();
@@ -466,21 +595,6 @@ void FWidgetBlueprintEditor::DestroyPreview()
 
 		PreviewActor->MarkPendingKill();
 	}
-
-	//if ( PreviewBlueprint != NULL )
-	//{
-	//	if ( PreviewBlueprint->SimpleConstructionScript != NULL
-	//		&& PreviewActor == PreviewBlueprint->SimpleConstructionScript->GetComponentEditorActorInstance() )
-	//	{
-	//		// Ensure that all editable component references are cleared
-	//		PreviewBlueprint->SimpleConstructionScript->ClearEditorComponentReferences();
-
-	//		// Clear the reference to the preview actor instance
-	//		PreviewBlueprint->SimpleConstructionScript->SetComponentEditorActorInstance(NULL);
-	//	}
-
-	//	PreviewBlueprint = NULL;
-	//}
 }
 
 void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate)
@@ -510,14 +624,10 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewActor->SetFlags(RF_Transactional);
 		
 		// Configure all the widgets to be set to design time.
-		PreviewActor->IsDesignTime(true);
-		for(UWidget* SubPreviewWidget : PreviewActor->Components)
-		{
-			SubPreviewWidget->IsDesignTime(true);
-		}
+		PreviewActor->SetIsDesignTime(true);
 
 		// Store a reference to the preview actor.
-		PreviewWidgetActorPtr = PreviewActor;
+		PreviewWidgetPtr = PreviewActor;
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();

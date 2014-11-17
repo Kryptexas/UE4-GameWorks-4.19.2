@@ -12,6 +12,7 @@
 #include "StaticMeshVertexData.h"
 #include "TargetPlatform.h"
 #include "SpeedTreeWind.h"
+#include "DistanceFieldAtlas.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -250,146 +251,6 @@ void FStaticMeshVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 	Stride = VertexData->GetStride();
 }
 
-TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>(PF_R16F);
-
-FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat) :
-	BlockAllocator(0, 0, 0, 512, 512, 512, false, false)
-{
-	Format = InFormat;
-}
-
-void FDistanceFieldVolumeTextureAtlas::AddAllocation(FDistanceFieldVolumeTexture* Texture)
-{
-	PendingAllocations.AddUnique(Texture);
-}
-
-void FDistanceFieldVolumeTextureAtlas::RemoveAllocation(FDistanceFieldVolumeTexture* Texture)
-{
-	PendingAllocations.Remove(Texture);
-
-	if (CurrentAllocations.Contains(Texture))
-	{
-		const FIntVector Min = Texture->GetAllocationMin();
-		const FIntVector Size = Texture->VolumeData.Size;
-		verify(BlockAllocator.RemoveElement(Min.X, Min.Y, Min.Z, Size.X, Size.Y, Size.Z));
-		CurrentAllocations.Remove(Texture);
-	}
-}
-
-void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
-{
-	if (PendingAllocations.Num() > 0)
-	{
-		//@todo - sort largest to smallest for best packing
-		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
-		{
-			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
-			const FIntVector Size = Texture->VolumeData.Size;
-
-			if (!BlockAllocator.AddElement((uint32&)Texture->AtlasAllocationMin.X, (uint32&)Texture->AtlasAllocationMin.Y, (uint32&)Texture->AtlasAllocationMin.Z, Size.X, Size.Y, Size.Z))
-			{
-				UE_LOG(LogStaticMesh,Error,TEXT("Failed to allocate %ux%ux%u in distance field atlas"), Size.X, Size.Y, Size.Z);
-				PendingAllocations.RemoveAt(AllocationIndex);
-				AllocationIndex--;
-			}
-		}
-
-		if (!VolumeTextureRHI
-			|| BlockAllocator.GetSizeX() > VolumeTextureRHI->GetSizeX()
-			|| BlockAllocator.GetSizeY() > VolumeTextureRHI->GetSizeY()
-			|| BlockAllocator.GetSizeZ() > VolumeTextureRHI->GetSizeZ())
-		{
-			FRHIResourceCreateInfo CreateInfo;
-
-			VolumeTextureRHI = RHICreateTexture3D(
-				BlockAllocator.GetSizeX(), 
-				BlockAllocator.GetSizeY(), 
-				BlockAllocator.GetSizeZ(), 
-				Format,
-				1,
-				TexCreate_ShaderResource,
-				CreateInfo);
-
-			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
-			float MemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
-			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb"), VolumeTextureRHI->GetSizeX(), VolumeTextureRHI->GetSizeY(), VolumeTextureRHI->GetSizeZ(), MemorySize);
-
-			// Re-upload all textures since we had to reallocate
-			PendingAllocations.Append(CurrentAllocations);
-			CurrentAllocations.Empty();
-		}
-
-		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
-		{
-			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
-			const FIntVector Size = Texture->VolumeData.Size;
-
-			const FUpdateTextureRegion3D UpdateRegion(
-				Texture->AtlasAllocationMin.X,
-				Texture->AtlasAllocationMin.Y,
-				Texture->AtlasAllocationMin.Z,
-				0,
-				0,
-				0,
-				Size.X,
-				Size.Y,
-				Size.Z);
-
-			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
-
-			// Update the volume texture atlas
-			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.DistanceFieldVolume.GetData());
-		}
-
-		CurrentAllocations.Append(PendingAllocations);
-		PendingAllocations.Empty();
-	}
-}
-
-void FDistanceFieldVolumeTexture::Initialize()
-{
-	if (IsValidDistanceFieldVolume())
-	{
-		bReferencedByAtlas = true;
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			AddAllocation,
-			FDistanceFieldVolumeTextureAtlas*, Atlas, Atlas,
-			FDistanceFieldVolumeTexture*, DistanceFieldVolumeTexture, this,
-			{
-				Atlas->AddAllocation(DistanceFieldVolumeTexture);
-			}
-		);
-	}
-}
-
-void FDistanceFieldVolumeTexture::Release()
-{
-	if (bReferencedByAtlas)
-	{
-		bReferencedByAtlas = false;
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			ReleaseAllocation,
-			FDistanceFieldVolumeTextureAtlas*, Atlas, Atlas,
-			FDistanceFieldVolumeTexture*, DistanceFieldVolumeTexture, this,
-			{
-				Atlas->RemoveAllocation(DistanceFieldVolumeTexture);
-			}
-		);
-	}
-}
-
-FIntVector FDistanceFieldVolumeTexture::GetAllocationSize() const
-{
-	return VolumeData.Size;
-}
-
-bool FDistanceFieldVolumeTexture::IsValidDistanceFieldVolume() const
-{
-	return VolumeData.Size.GetMax() > 0;
-}
-
 /*-----------------------------------------------------------------------------
 	FStaticMeshLODResources
 -----------------------------------------------------------------------------*/
@@ -408,6 +269,8 @@ FArchive& operator<<(FArchive& Ar, FStaticMeshSection& Section)
 
 void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Index)
 {
+	// Note: this is all derived data, native versioning is not needed, but be sure to bump STATICMESH_DERIVEDDATA_VER when modifying!
+
 	// On cooked platforms we never need the resource data.
 	// TODO: Not needed in uncooked games either after PostLoad!
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData();
@@ -433,8 +296,6 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		ColorVertexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		IndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		DepthOnlyIndexBuffer.Serialize(Ar, bNeedsCPUAccess);
-		
-		Ar << DistanceFieldData;
 
 		if( !StripFlags.IsEditorDataStripped() )
 		{
@@ -605,6 +466,18 @@ void FStaticMeshLODResources::InitVertexFactory(
 		});
 }
 
+FStaticMeshLODResources::FStaticMeshLODResources()
+	: DistanceFieldData(NULL)
+	, MaxDeviation(0.0f)
+	, bHasAdjacencyInfo(false)
+{
+}
+
+FStaticMeshLODResources::~FStaticMeshLODResources()
+{
+	delete DistanceFieldData;
+}
+
 void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 {
 	const auto MaxShaderPlatform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
@@ -645,8 +518,11 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 
 	InitVertexFactory(VertexFactory, Parent, NULL);
 	BeginInitResource(&VertexFactory);
-	
-	DistanceFieldData.VolumeTexture.Initialize();
+
+	if (DistanceFieldData)
+	{
+		DistanceFieldData->VolumeTexture.Initialize();
+	}
 
 	const uint32 StaticMeshVertexMemory = 
 		VertexBuffer.GetStride() * VertexBuffer.GetNumVertices() + 
@@ -677,10 +553,11 @@ void FStaticMeshLODResources::ReleaseResources()
 	DEC_DWORD_STAT_BY( STAT_StaticMeshIndexMemory, StaticMeshIndexMemory );
 
 	// Release the vertex and index buffers.
-	if (AdjacencyIndexBuffer.IsInitialized())
-	{
-		BeginReleaseResource(&AdjacencyIndexBuffer);
-	}
+	
+	// AdjacencyIndexBuffer may not be initialized at this time, but it is safe to release it anyway.
+	// The bInitialized flag will be safely checked in the render thread.
+	// This avoids a race condition regarding releasing this resource.
+	BeginReleaseResource(&AdjacencyIndexBuffer);
 
 	BeginReleaseResource(&IndexBuffer);
 	BeginReleaseResource(&WireframeIndexBuffer);
@@ -689,10 +566,13 @@ void FStaticMeshLODResources::ReleaseResources()
 	BeginReleaseResource(&ColorVertexBuffer);
 	BeginReleaseResource(&DepthOnlyIndexBuffer);
 
-	DistanceFieldData.VolumeTexture.Release();
-
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
+
+	if (DistanceFieldData)
+	{
+		DistanceFieldData->VolumeTexture.Release();
+	}
 }
 
 /*------------------------------------------------------------------------------
@@ -716,11 +596,14 @@ FStaticMeshRenderData::FStaticMeshRenderData()
 
 void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCooked)
 {
-#if WITH_EDITORONLY_DATA
+	// Note: this is all derived data, native versioning is not needed, but be sure to bump STATICMESH_DERIVEDDATA_VER when modifying!
+#if WITH_EDITOR
 	if (Ar.IsSaving())
 	{
 		ResolveSectionInfo(Owner);
 	}
+#endif
+#if WITH_EDITORONLY_DATA
 	if (!bCooked)
 	{
 		Ar << WedgeMap;
@@ -730,6 +613,30 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 #endif // #if WITH_EDITORONLY_DATA
 
 	LODResources.Serialize(Ar, Owner);
+
+	// Inline the distance field derived data for cooked builds
+	if (bCooked)
+	{
+		for (int32 ResourceIndex = 0; ResourceIndex < LODResources.Num(); ResourceIndex++)
+		{
+			FStaticMeshLODResources& LOD = LODResources[ResourceIndex];
+
+			bool bValid = LOD.DistanceFieldData != NULL;
+
+			Ar << bValid;
+
+			if (bValid)
+			{
+				if (!LOD.DistanceFieldData)
+				{
+					LOD.DistanceFieldData = new FDistanceFieldVolumeData();
+				}
+
+				Ar << *(LOD.DistanceFieldData);
+			}
+		}
+	}
+
 	Ar << Bounds;
 	Ar << bLODsShareStaticLighting;
 	Ar << bReducedBySimplygon;
@@ -751,9 +658,9 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 
 void FStaticMeshRenderData::InitResources(UStaticMesh* Owner)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	ResolveSectionInfo(Owner);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	for (int32 LODIndex = 0; LODIndex < LODResources.Num(); ++LODIndex)
 	{
@@ -778,7 +685,7 @@ void FStaticMeshRenderData::AllocateLODResources(int32 NumLODs)
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 /**
  * Calculates the view distance that a mesh should be displayed at.
  * @param MaxDeviation - The maximum surface-deviation between the reduced geometry and the original. This value should be acquired from Simplygon
@@ -1079,10 +986,16 @@ FArchive& operator<<(FArchive& Ar, FMeshReductionSettings& ReductionSettings)
 
 FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 {
+	// Note: this serializer is currently only used to build the mesh DDC key, no versioning is required
 	Ar << BuildSettings.bRecomputeNormals;
 	Ar << BuildSettings.bRecomputeTangents;
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
+	Ar << BuildSettings.bGenerateLightmapUVs;
+
+	Ar << BuildSettings.MinLightmapResolution;
+	Ar << BuildSettings.SrcLightmapIndex;
+	Ar << BuildSettings.DstLightmapIndex;
 
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_BUILD_SCALE_VECTOR)
 	{
@@ -1096,6 +1009,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	}
 	
 	Ar << BuildSettings.DistanceFieldResolutionScale;
+	Ar << BuildSettings.bGenerateDistanceFieldAsIfTwoSided;
 	return Ar;
 }
 
@@ -1103,22 +1017,18 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("4668778561B445A9523C94440EA899D")
+#define STATICMESH_DERIVEDDATA_VER TEXT("46A8778361B442A9523C54440EA1E9D")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
 	static FString CachedVersionString;
 	if (CachedVersionString.IsEmpty())
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowMeshDistanceFieldRepresentations"));
-		FString DistanceFieldAllowed = (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("Dist") : TEXT("");
-
 		// Static mesh versioning is controlled by the version reported by the mesh utilities module.
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-		CachedVersionString = FString::Printf(TEXT("%s_%s_%s"),
+		CachedVersionString = FString::Printf(TEXT("%s_%s"),
 			STATICMESH_DERIVEDDATA_VER,
-			*MeshUtilities.GetVersionString(),
-			*DistanceFieldAllowed
+			*MeshUtilities.GetVersionString()
 			);
 	}
 	return CachedVersionString;
@@ -1194,6 +1104,14 @@ FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMeshLODGro
 		);
 }
 
+FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
+{
+	return FDerivedDataCacheInterface::BuildCacheKey(
+		TEXT("DIST"),
+		*FString::Printf(TEXT("%s_%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER),
+		TEXT(""));
+}
+
 void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettings& LODSettings)
 {
 	int32 T0 = FPlatformTime::Cycles();
@@ -1221,7 +1139,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 		FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-		MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, Owner->Materials, LODGroup);
+		MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
 		bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
 		FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
 		Serialize(Ar, Owner, /*bCooked=*/ false);
@@ -1234,8 +1152,22 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			);
 		FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::BuildCycles, T1-T0);
 	}
+
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+
+	if (CVar->GetValueOnGameThread() != 0)
+	{
+		FString DistanceFieldKey = BuildDistanceFieldDerivedDataKey(DerivedDataKey);
+		
+		if (!LODResources[0].DistanceFieldData)
+		{
+			LODResources[0].DistanceFieldData = new FDistanceFieldVolumeData();
+		}
+
+		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner);
+	}
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*-----------------------------------------------------------------------------
 UStaticMesh
@@ -1329,6 +1261,11 @@ SIZE_T FStaticMeshRenderData::GetResourceSize() const
 
 		ResourceSize += VBSize + IBSize;
 		ResourceSize += LODRenderData.Sections.GetAllocatedSize();
+
+		if (LODRenderData.DistanceFieldData)
+		{
+			ResourceSize += LODRenderData.DistanceFieldData->GetResourceSize();
+		}
 	}
 
 #if WITH_EDITORONLY_DATA
@@ -1567,13 +1504,13 @@ FStaticMeshSourceModel::~FStaticMeshSourceModel()
 #endif // #if WITH_EDITOR
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void FStaticMeshSourceModel::SerializeBulkData(FArchive& Ar, UObject* Owner)
 {
 	check(RawMeshBulkData != NULL);
 	RawMeshBulkData->Serialize(Ar, Owner);
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*------------------------------------------------------------------------------
 	FMeshSectionInfoMap
@@ -1668,7 +1605,7 @@ void FMeshSectionInfoMap::Serialize(FArchive& Ar)
 
 #endif // #if WITH_EDITORONLY_DATA
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh, const ITargetPlatform* Platform)
 {
 	check(Mesh && Mesh->RenderData);
@@ -1754,7 +1691,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << NavCollision;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
 	{
 		int64 StartCycles = FPlatformTime::Cycles();
@@ -1767,7 +1704,9 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			FPlatformTime::ToSeconds(EndCycles - StartCycles)
 			);
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )
 	{
 		if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_DEPRECATED_STATIC_MESH_THUMBNAIL_PROPERTIES_REMOVED )
@@ -1836,7 +1775,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		Ar << Sockets;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_REFACTOR && !StripFlags.IsEditorDataStripped())
 	{
 		for (int32 i = 0; i < SourceModels.Num(); ++i)
@@ -1850,7 +1789,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		// created until postload and it is needed for bounding information
 		bRequiresLODDistanceConversion = Ar.UE4Ver() < VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS;
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	// Inline the derived data for cooked builds. Never include render data when
 	// counting memory as it is included by GetResourceSize.
@@ -1862,7 +1801,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			RenderData->Serialize(Ar, this, bCooked);
 		}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		else if (Ar.IsSaving())
 		{
 			FStaticMeshRenderData& PlatformRenderData = GetPlatformStaticMeshRenderData(this, Ar.CookingTarget());
@@ -1912,7 +1851,7 @@ void UStaticMesh::PostLoad()
 {
 	Super::PostLoad();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Needs to happen before 'CacheDerivedData'
 	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
 	{
@@ -1921,6 +1860,14 @@ void UStaticMesh::PostLoad()
 		{
 			FStaticMeshSourceModel& SrcModel = SourceModels[LODIndex];
 			SrcModel.BuildSettings.BuildScale3D = FVector( SrcModel.BuildSettings.BuildScale_DEPRECATED );
+		}
+	}
+
+	if( GetLinkerUE4Version() < VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS )
+	{
+		for( int32 i = 0; i < SourceModels.Num(); i++ )
+		{
+			SourceModels[i].BuildSettings.bGenerateLightmapUVs = false;
 		}
 	}
 
@@ -1937,7 +1884,7 @@ void UStaticMesh::PostLoad()
 	{
 		FixupZeroTriangleSections();
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	EnforceLightmapRestrictions();
 	
@@ -2163,7 +2110,7 @@ void UStaticMesh::CreateNavCollision()
 void UStaticMesh::GetVertexColorData(TMap<FVector, FColor>& VertexColorData)
 {
 	VertexColorData.Empty();
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// What LOD to get vertex colors from.  
 	// Currently mesh painting only allows for painting on the first lod.
 	const uint32 PaintingMeshLODIndex = 0;
@@ -2201,7 +2148,7 @@ void UStaticMesh::GetVertexColorData(TMap<FVector, FColor>& VertexColorData)
  */
 void UStaticMesh::SetVertexColorData(const TMap<FVector, FColor>& VertexColorData)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// What LOD to get vertex colors from.  
 	// Currently mesh painting only allows for painting on the first lod.
 	const uint32 PaintingMeshLODIndex = 0;
@@ -2238,7 +2185,7 @@ void UStaticMesh::SetVertexColorData(const TMap<FVector, FColor>& VertexColorDat
 		SourceModels[PaintingMeshLODIndex].RawMeshBulkData->SaveRawMesh(Mesh);
 	}
 	// TODO_STATICMESH: Build?
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 void UStaticMesh::EnforceLightmapRestrictions()
@@ -2527,7 +2474,7 @@ FStaticMeshLODResources& UStaticMesh::GetLODForExport( int32 LODIndex )
 	return RenderData->LODResources[LODIndex];
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 bool UStaticMesh::CanLODsShareStaticLighting() const
 {
 	bool bCanShareData = true;

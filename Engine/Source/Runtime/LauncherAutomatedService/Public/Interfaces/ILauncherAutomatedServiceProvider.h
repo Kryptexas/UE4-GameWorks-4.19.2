@@ -17,7 +17,7 @@ class ILauncherAutomatedServiceProvider
 {
 public:
 
-	/*
+	/**
 	 * Get the exit code of the service
 	 *
 	 * @return The exit Code of the service

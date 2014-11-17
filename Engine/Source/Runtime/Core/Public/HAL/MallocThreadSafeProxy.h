@@ -1,11 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FMallocThreadSafeProxy.h: FMalloc proxy used to render any FMalloc thread
-							  safe.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * FMalloc proxy that synchronizes access, making the used malloc thread safe.
@@ -133,4 +129,3 @@ public:
 		return UsedMalloc->GetDescriptiveName(); 
 	}
 };
-

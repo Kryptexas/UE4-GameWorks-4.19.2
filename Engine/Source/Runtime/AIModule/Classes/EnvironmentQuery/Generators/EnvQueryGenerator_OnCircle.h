@@ -26,7 +26,7 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 	FEnvFloatParam Angle;
 	
 	UPROPERTY()
-	float AngleRadians;
+	mutable float AngleRadians;
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
@@ -41,7 +41,7 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 
 	virtual void PostLoad() override;
 
-	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;
@@ -52,11 +52,4 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 
 protected:
 	FVector CalcDirection(struct FEnvQueryInstance& QueryInstance) const;
-
-	DECLARE_DELEGATE_SevenParams(FRunTraceSignature, const FVector&, const FVector&, UWorld*, enum ECollisionChannel, const FCollisionQueryParams&, const FVector&, FVector&);
-
-	void RunLineTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
-	void RunSphereTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
-	void RunCapsuleTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
-	void RunBoxTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
 };

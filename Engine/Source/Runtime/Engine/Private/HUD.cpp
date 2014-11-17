@@ -23,8 +23,8 @@ AHUD::AHUD(const class FPostConstructInitializeProperties& PCIP)
 	PrimaryActorTick.bCanEverTick = true;
 	bHidden = true;
 	bReplicates = false;
-	
-	WhiteColor = FColor(255, 255, 255, 255);	
+
+	WhiteColor = FColor(255, 255, 255, 255);
 	GreenColor = FColor(0, 255, 0, 255);
 	RedColor = FColor(255, 0, 0, 255);
 
@@ -43,16 +43,16 @@ void AHUD::SetCanvas(class UCanvas* InCanvas, class UCanvas* InDebugCanvas)
 
 void AHUD::Draw3DLine(FVector Start, FVector End, FColor LineColor)
 {
-	GetWorld()->LineBatcher->DrawLine(Start,End,LineColor,SDPG_World);
+	GetWorld()->LineBatcher->DrawLine(Start, End, LineColor, SDPG_World);
 }
 
-void AHUD::Draw2DLine(int32 X1,int32 Y1,int32 X2,int32 Y2,FColor LineColor)
+void AHUD::Draw2DLine(int32 X1, int32 Y1, int32 X2, int32 Y2, FColor LineColor)
 {
 	check(Canvas);
 
-	FCanvasLineItem LineItem( FVector2D(X1, Y1), FVector2D(X2, Y2) );
-	LineItem.SetColor( LineColor );
-	LineItem.Draw( Canvas->Canvas );
+	FCanvasLineItem LineItem(FVector2D(X1, Y1), FVector2D(X2, Y2));
+	LineItem.SetColor(LineColor);
+	LineItem.Draw(Canvas->Canvas);
 }
 
 void AHUD::PostInitializeComponents()
@@ -94,11 +94,11 @@ FVector2D AHUD::GetCoordinateOffset() const
 
 		if (SceneView)
 		{
-			Offset.X = (SceneView->ViewRect.Min.X - SceneView->UnconstrainedViewRect.Min.X) // This accounts for the borders when the aspect ratio is locked
-							- SceneView->UnconstrainedViewRect.Min.X;						// And this will deal with the viewport offset if its a split screen
+			Offset.X = (SceneView->ViewRect.Min.X - SceneView->UnscaledViewRect.Min.X) // This accounts for the borders when the aspect ratio is locked
+				- SceneView->UnscaledViewRect.Min.X;						// And this will deal with the viewport offset if its a split screen
 
-			Offset.Y = (SceneView->ViewRect.Min.Y - SceneView->UnconstrainedViewRect.Min.Y)
-							- SceneView->UnconstrainedViewRect.Min.Y;
+			Offset.Y = (SceneView->ViewRect.Min.Y - SceneView->UnscaledViewRect.Min.Y)
+				- SceneView->UnscaledViewRect.Min.Y;
 		}
 	}
 
@@ -107,6 +107,11 @@ FVector2D AHUD::GetCoordinateOffset() const
 
 void AHUD::PostRender()
 {
+	// Theres nothing we can really do without a canvas or a world - so leave now in that case
+	if ( (GetWorld() == nullptr) || (Canvas == nullptr))
+	{
+		return;
+	}
 	// Set up delta time
 	RenderDelta = GetWorld()->TimeSeconds - LastHUDRenderTime;
 
@@ -131,14 +136,17 @@ void AHUD::PostRender()
 		
 		ULocalPlayer* LocalPlayer = GetOwningPlayerController() ? Cast<ULocalPlayer>(GetOwningPlayerController()->Player) : NULL;
 
-		if (LocalPlayer)
+		if (LocalPlayer && LocalPlayer->ViewportClient)
 		{
 			TArray<FVector2D> ContactPoints;
 
-			// TODO: This needs a check whether the platform has a mouse at all, but there is no way to currently do that
 			if (!FSlateApplication::Get().IsFakingTouchEvents())
 			{
-				ContactPoints.Add(LocalPlayer->ViewportClient->GetMousePosition());
+				FVector2D MousePosition;
+				if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+				{
+					ContactPoints.Add(MousePosition);
+				}
 			}
 
 			for (int32 FingerIndex = 0; FingerIndex < EKeys::NUM_TOUCH_KEYS; ++FingerIndex)
@@ -300,18 +308,21 @@ bool AHUD::ShouldDisplayDebug(const FName & DebugType) const
 
 void AHUD::ShowDebugInfo(float& YL, float& YPos)
 {
-	if (!DebugDisplay.Contains(TEXT("Bones")))
+	if (DebugCanvas != nullptr )
 	{
-		FLinearColor BackgroundColor(0.f, 0.f, 0.f, 0.5f);
-		DebugCanvas->Canvas->DrawTile(0, 0, DebugCanvas->ClipX, DebugCanvas->ClipY, 0.f, 0.f, 0.f, 0.f, BackgroundColor);
-	}
+		if (!DebugDisplay.Contains(TEXT("Bones")))
+		{
+			FLinearColor BackgroundColor(0.f, 0.f, 0.f, 0.5f);
+			DebugCanvas->Canvas->DrawTile(0, 0, DebugCanvas->ClipX, DebugCanvas->ClipY, 0.f, 0.f, 0.f, 0.f, BackgroundColor);
+		}
 
-	FDebugDisplayInfo DisplayInfo(DebugDisplay,ToggledDebugCategories);
-	PlayerOwner->PlayerCameraManager->ViewTarget.Target->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+		FDebugDisplayInfo DisplayInfo(DebugDisplay, ToggledDebugCategories);
+		PlayerOwner->PlayerCameraManager->ViewTarget.Target->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
 
-	if (ShouldDisplayDebug(NAME_Game))
-	{
-		GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+		if (ShouldDisplayDebug(NAME_Game))
+		{
+			GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+		}
 	}
 }
 
@@ -372,7 +383,7 @@ void AHUD::OnLostFocusPause(bool bEnable)
 
 void AHUD::DrawDebugTextList()
 {
-	if (DebugTextList.Num() > 0)
+	if( (DebugTextList.Num() > 0) && (DebugCanvas != nullptr ) )
 	{
 		FRotator CameraRot;
 		FVector CameraLoc;
@@ -622,7 +633,7 @@ void AHUD::DrawTextureSimple(UTexture* Texture, float ScreenX, float ScreenY, fl
 	}
 }
 
-FVector AHUD::Project(FVector Location)
+FVector AHUD::Project(FVector Location) const
 {
 	if (IsCanvasValid_WarnIfNot())
 	{
@@ -631,7 +642,7 @@ FVector AHUD::Project(FVector Location)
 	return FVector(0,0,0);
 }
 
-void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection)
+void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection) const
 {
 	WorldPosition = WorldDirection = FVector(0,0,0);
 	if (IsCanvasValid_WarnIfNot())
@@ -641,10 +652,14 @@ void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVect
 }
 
 
-void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed)
+void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bIncludeNonCollidingComponents, bool bActorMustBeFullyEnclosed)
 {
+	// Because this is a HUD function it is likely to get called each tick,
+	// so make sure any previous contents of the out actor array have been cleared!
+	OutActors.Empty();
+
 	//Create Selection Rectangle from Points
-	FBox2D SelectionRectangle;
+	FBox2D SelectionRectangle(0);
 
 	//This method ensures that an appropriate rectangle is generated, 
 	//		no matter what the coordinates of first and second point actually are.
@@ -673,7 +688,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 		AActor* EachActor = *Itr;
 
 		//Get Actor Bounds				//casting to base class, checked by template in the .h
-		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(true); /* All Components */
+		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(bIncludeNonCollidingComponents); /* All Components? */
 
 		//Center
 		const FVector BoxCenter = EachActorBounds.GetCenter();
@@ -859,24 +874,9 @@ const FHUDHitBox* AHUD::GetHitBoxWithName( const FName InName ) const
 	return NULL;
 }
 
-void AHUD::ClearUIBlurOverrideRects()
-{
-	UIBlurOverrideRectangles.Empty();
-}
-
-void AHUD::AddUIBlurOverrideRect( const FIntRect& UIBlurOverrideRect )
-{
-	UIBlurOverrideRectangles.Add(UIBlurOverrideRect);
-}
-
 bool AHUD::AnyCurrentHitBoxHits() const
 {
 	return HitBoxHits.Num() != 0;
-}
-
-const TArray<FIntRect>& AHUD::GetUIBlurRectangles() const
-{
-	return UIBlurOverrideRectangles;
 }
 
 bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent)

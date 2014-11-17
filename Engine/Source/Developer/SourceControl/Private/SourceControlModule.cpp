@@ -15,9 +15,9 @@
 
 DEFINE_LOG_CATEGORY(LogSourceControl);
 
-#if SOURCE_CONTROL_WITH_SLATE
-
 #define LOCTEXT_NAMESPACE "SourceControl"
+
+static const FName SourceControlFeatureName("SourceControl");
 
 namespace SourceControlConstants
 {
@@ -41,9 +41,10 @@ void FSourceControlModule::StartupModule()
 
 	// Register to check for source control features
 	IModularFeatures::Get().OnModularFeatureRegistered().AddRaw(this, &FSourceControlModule::HandleModularFeatureRegistered);
+	IModularFeatures::Get().OnModularFeatureUnregistered().AddRaw(this, &FSourceControlModule::HandleModularFeatureUnregistered);
 
 	// bind default provider to editor
-	IModularFeatures::Get().RegisterModularFeature( "SourceControl", &DefaultSourceControlProvider );
+	IModularFeatures::Get().RegisterModularFeature( SourceControlFeatureName, &DefaultSourceControlProvider );
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	// create a message log for source control to use
@@ -67,10 +68,11 @@ void FSourceControlModule::ShutdownModule()
 #endif
 
 	// unbind default provider from editor
-	IModularFeatures::Get().UnregisterModularFeature( "SourceControl", &DefaultSourceControlProvider );
+	IModularFeatures::Get().UnregisterModularFeature( SourceControlFeatureName, &DefaultSourceControlProvider );
 
 	// we don't care about modular features any more
 	IModularFeatures::Get().OnModularFeatureRegistered().RemoveAll(this);
+	IModularFeatures::Get().OnModularFeatureUnregistered().RemoveAll(this);
 }
 
 void FSourceControlModule::SaveSettings()
@@ -80,6 +82,7 @@ void FSourceControlModule::SaveSettings()
 
 void FSourceControlModule::ShowLoginDialog(const FSourceControlLoginClosed& InOnSourceControlLoginClosed, ELoginWindowMode::Type InLoginWindowMode, EOnLoginWindowStartup::Type InOnLoginWindowStartup)
 {
+#if SOURCE_CONTROL_WITH_SLATE
 	// Get Active Provider Name
 	ActiveProviderName = GetProvider().GetName().ToString();
 
@@ -149,11 +152,19 @@ void FSourceControlModule::ShowLoginDialog(const FSourceControlLoginClosed& InOn
 			FSlateApplication::Get().AddWindow(SourceControlLoginWindowPtr.ToSharedRef());
 		}
 	}
+#else
+	STUBBED("FSourceControlModule::ShowLoginDialog - no Slate");
+#endif // SOURCE_CONTROL_WITH_SLATE
 }
 
 TSharedPtr<class SWidget> FSourceControlModule::CreateStatusWidget() const
 {
+#if SOURCE_CONTROL_WITH_SLATE
 	return SNew(SSourceControlStatus);
+#else
+	STUBBED("FSourceControlModule::CreateStatusWidget - no Slate");
+	return nullptr;
+#endif // SOURCE_CONTROL_WITH_SLATE
 }
 
 void FSourceControlModule::OnSourceControlDialogClosed(const TSharedRef<SWindow>& InWindow)
@@ -189,11 +200,11 @@ void FSourceControlModule::InitializeSourceControlProviders()
 	// Look for valid SourceControl modules - they will register themselves as editor features
 	RefreshSourceControlProviders();
 
-	int32 SourceControlCount = IModularFeatures::Get().GetModularFeatureImplementationCount("SourceControl");
+	int32 SourceControlCount = IModularFeatures::Get().GetModularFeatureImplementationCount(SourceControlFeatureName);
 	if( SourceControlCount > 0 )
 	{
 		FString PreferredSourceControlProvider = SourceControlSettings.GetProvider();
-		TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
+		TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
 		for(auto It(Providers.CreateIterator()); It; It++)
 		{ 
 			ISourceControlProvider* Provider = *It;
@@ -310,7 +321,7 @@ ISourceControlProvider& FSourceControlModule::GetProvider() const
 
 void FSourceControlModule::SetProvider( const FName& InName )
 {
-	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
+	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
 	for(auto It(Providers.CreateIterator()); It; It++)
 	{
 		ISourceControlProvider* Provider = *It;
@@ -335,12 +346,12 @@ void FSourceControlModule::ClearCurrentSourceControlProvider()
 
 int32 FSourceControlModule::GetNumSourceControlProviders()
 {
-	return IModularFeatures::Get().GetModularFeatureImplementationCount("SourceControl");
+	return IModularFeatures::Get().GetModularFeatureImplementationCount(SourceControlFeatureName);
 }
 
 void FSourceControlModule::SetCurrentSourceControlProvider(int32 ProviderIndex)
 {
-	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
+	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
 	check(Providers.IsValidIndex(ProviderIndex));
 	SetCurrentSourceControlProvider(*Providers[ProviderIndex]);
 }
@@ -365,7 +376,7 @@ void FSourceControlModule::SetCurrentSourceControlProvider(ISourceControlProvide
 
 FName FSourceControlModule::GetSourceControlProviderName(int32 ProviderIndex)
 {
-	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>("SourceControl");
+	TArray<ISourceControlProvider*> Providers = IModularFeatures::Get().GetModularFeatureImplementations<ISourceControlProvider>(SourceControlFeatureName);
 	check(Providers.IsValidIndex(ProviderIndex));
 	return Providers[ProviderIndex]->GetName();
 }
@@ -375,11 +386,19 @@ TSharedPtr<class SSourceControlLogin> FSourceControlModule::GetLoginWidget() con
 	return SourceControlLoginPtr;
 }
 
-void FSourceControlModule::HandleModularFeatureRegistered(const FName& Type)
+void FSourceControlModule::HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature)
 {
-	if(Type == TEXT("SourceControl"))
+	if(Type == SourceControlFeatureName)
 	{
 		InitializeSourceControlProviders();
+	}
+}
+
+void FSourceControlModule::HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature)
+{
+	if(Type == SourceControlFeatureName && CurrentSourceControlProvider == static_cast<ISourceControlProvider*>(ModularFeature))
+	{
+		ClearCurrentSourceControlProvider();
 	}
 }
 
@@ -399,5 +418,3 @@ void FSourceControlModule::SetUseGlobalSettings(bool bIsUseGlobalSettings)
 IMPLEMENT_MODULE( FSourceControlModule, SourceControl );
 
 #undef LOCTEXT_NAMESPACE
-
-#endif // SOURCE_CONTROL_WITH_SLATE

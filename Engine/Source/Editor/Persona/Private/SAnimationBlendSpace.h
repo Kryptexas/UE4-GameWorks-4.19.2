@@ -399,8 +399,8 @@ public:
 	 * default value 
 	 */
 	FBlendSpaceGrid()
-		:	GridNum(5, 5), 
-			GridDim(FVector(0, 0, 0), FVector(100, 100, 0))
+		:	GridDim(FVector(0, 0, 0), FVector(100, 100, 0))
+		,	GridNum(5, 5)
 	{
 	}
 

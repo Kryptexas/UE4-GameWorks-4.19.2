@@ -18,6 +18,7 @@
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "ComponentReregisterContext.h"
+#include "ShaderCompiler.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
@@ -822,57 +823,55 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 			ACameraActor* Camera = *CameraIt;
 			if (World->ContainsActor(Camera) && !Camera->IsPendingKill())
 			{
-				for( FActorIterator It(World); It; ++It )
+				for( TActorIterator<AMatineeActor> It(World); It; ++It )
 				{
-					AMatineeActor* MatineeActor = Cast<AMatineeActor>(*It);
-					if( MatineeActor )
+					AMatineeActor* MatineeActor = *It;
+
+					bool bNeedsTermInterp = false;
+					if (MatineeActor->GroupInst.Num() == 0)
 					{
-						bool bNeedsTermInterp = false;
-						if (MatineeActor->GroupInst.Num() == 0)
+						// If matinee is closed, GroupInst will be empty, so we need to populate it
+						bNeedsTermInterp = true;
+						MatineeActor->InitInterp();
+					}
+					UInterpGroupInst* GroupInstance = MatineeActor->FindGroupInst(Camera);
+					if (GroupInstance && GroupInstance->Group)
+					{
+						for (int32 TrackIndex = 0; TrackIndex < GroupInstance->Group->InterpTracks.Num(); TrackIndex++)
 						{
-							// If matinee is closed, GroupInst will be empty, so we need to populate it
-							bNeedsTermInterp = true;
-							MatineeActor->InitInterp();
-						}
-						UInterpGroupInst* GroupInstance = MatineeActor->FindGroupInst(Camera);
-						if (GroupInstance && GroupInstance->Group)
-						{
-							for (int32 TrackIndex = 0; TrackIndex < GroupInstance->Group->InterpTracks.Num(); TrackIndex++)
+							UInterpTrackMove* MoveTrack = Cast<UInterpTrackMove>(GroupInstance->Group->InterpTracks[TrackIndex]);
+							if (MoveTrack)
 							{
-								UInterpTrackMove* MoveTrack = Cast<UInterpTrackMove>(GroupInstance->Group->InterpTracks[TrackIndex]);
-								if (MoveTrack)
+								float StartTime;
+								float EndTime;
+								//@todo - look at the camera cuts to only process time ranges where the camera is actually active
+								MoveTrack->GetTimeRange(StartTime, EndTime);
+								for (int32 TrackInstanceIndex = 0; TrackInstanceIndex < GroupInstance->TrackInst.Num(); TrackInstanceIndex++)
 								{
-									float StartTime;
-									float EndTime;
-									//@todo - look at the camera cuts to only process time ranges where the camera is actually active
-									MoveTrack->GetTimeRange(StartTime, EndTime);
-									for (int32 TrackInstanceIndex = 0; TrackInstanceIndex < GroupInstance->TrackInst.Num(); TrackInstanceIndex++)
+									UInterpTrackInst* TrackInstance = GroupInstance->TrackInst[TrackInstanceIndex];
+									UInterpTrackInstMove* MoveTrackInstance = Cast<UInterpTrackInstMove>(TrackInstance);
+									if (MoveTrackInstance)
 									{
-										UInterpTrackInst* TrackInstance = GroupInstance->TrackInst[TrackInstanceIndex];
-										UInterpTrackInstMove* MoveTrackInstance = Cast<UInterpTrackInstMove>(TrackInstance);
-										if (MoveTrackInstance)
+										//@todo - handle long camera paths
+										for (float Time = StartTime; Time < EndTime; Time += FMath::Max((EndTime - StartTime) * .001f, .001f))
 										{
-											//@todo - handle long camera paths
-											for (float Time = StartTime; Time < EndTime; Time += FMath::Max((EndTime - StartTime) * .001f, .001f))
+											const FVector RelativePosition = MoveTrack->EvalPositionAtTime(TrackInstance, Time);
+											FVector CurrentPosition;
+											FRotator CurrentRotation;
+											MoveTrack->ComputeWorldSpaceKeyTransform(MoveTrackInstance, RelativePosition, FRotator::ZeroRotator, CurrentPosition, CurrentRotation);
+											if (CameraTrackPositions.Num() == 0 || !CurrentPosition.Equals(CameraTrackPositions.Last(), CellSize * .1f))
 											{
-												const FVector RelativePosition = MoveTrack->EvalPositionAtTime(TrackInstance, Time);
-												FVector CurrentPosition;
-												FRotator CurrentRotation;
-												MoveTrack->ComputeWorldSpaceKeyTransform(MoveTrackInstance, RelativePosition, FRotator::ZeroRotator, CurrentPosition, CurrentRotation);
-												if (CameraTrackPositions.Num() == 0 || !CurrentPosition.Equals(CameraTrackPositions.Last(), CellSize * .1f))
-												{
-													CameraTrackPositions.Add(CurrentPosition);
-												}
+												CameraTrackPositions.Add(CurrentPosition);
 											}
 										}
 									}
 								}
 							}
 						}
-						if (bNeedsTermInterp)
-						{
-							MatineeActor->TermInterp();
-						}
+					}
+					if (bNeedsTermInterp)
+					{
+						MatineeActor->TermInterp();
 					}
 				}
 			}
@@ -1117,9 +1116,11 @@ void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 		{
 			if( ErrorCode == NSwarm::SWARM_ERROR_FILE_FOUND_NOT )
 			{
+				static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NormalMapsForStaticLighting"));
+				const bool bUseNormalMapsForLighting = CVar->GetValueOnGameThread() != 0;
+
 				// Only generate normal maps if we'll actually need them for lighting
-				const bool bWantNormals = GEngine->bUseNormalMapsForSimpleLightMaps;
-				MaterialRenderer.BeginGenerateMaterialData(Material, bWantNormals, NewChannelName, MaterialExportData);
+				MaterialRenderer.BeginGenerateMaterialData(Material, bUseNormalMapsForLighting, NewChannelName, MaterialExportData);
 			}
 			else
 			{
@@ -1824,7 +1825,8 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 
 		Scene.MaterialSettings.EnvironmentColor = FLinearColor(LevelSettings.EnvironmentColor) * LevelSettings.EnvironmentIntensity;
 
-		Scene.MaterialSettings.bUseNormalMapsForSimpleLightMaps = GEngine->bUseNormalMapsForSimpleLightMaps;
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NormalMapsForStaticLighting"));
+		Scene.MaterialSettings.bUseNormalMapsForLighting = CVar->GetValueOnGameThread() != 0;
 	}
 	{
 		verify(GConfig->GetBool(TEXT("DevOptions.MeshAreaLights"), TEXT("bVisualizeMeshAreaLightPrimitives"), bConfigBool, GLightmassIni));
@@ -1863,6 +1865,10 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("bUseMaxSurfaceSampleNum"), bConfigBool, GLightmassIni));
 		Scene.DynamicObjectSettings.bUseMaxSurfaceSampleNum = bConfigBool;
 		verify(GConfig->GetInt(TEXT("DevOptions.PrecomputedDynamicObjectLighting"), TEXT("MaxSurfaceLightSamples"), Scene.DynamicObjectSettings.MaxSurfaceLightSamples, GLightmassIni));
+
+		Scene.DynamicObjectSettings.SurfaceLightSampleSpacing *= LevelSettings.VolumeLightSamplePlacementScale;
+		Scene.DynamicObjectSettings.VolumeLightSampleSpacing *= LevelSettings.VolumeLightSamplePlacementScale;
+		Scene.DynamicObjectSettings.DetailVolumeSampleSpacing *= LevelSettings.VolumeLightSamplePlacementScale;
 	}
 	{
 		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bVisualizePrecomputedVisibility"), bConfigBool, GLightmassIni));
@@ -2447,9 +2453,7 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../DotNET/Mac/AgentInterface.dll"),
 		TEXT("../Mac/UnrealLightmass-Core-Mac-Debug.dylib"),
 		TEXT("../Mac/UnrealLightmass-Projects-Mac-Debug.dylib"),
-		TEXT("../Mac/UnrealLightmass-SwarmInterface-Mac-Debug.dylib"),
-		TEXT("../Mac/libtbb.dylib"),
-		TEXT("../Mac/libtbbmalloc.dylib")
+		TEXT("../Mac/UnrealLightmass-SwarmInterface-Mac-Debug.dylib")
 	};
 #else
 	const TCHAR* LightmassExecutable64 = TEXT("../Mac/UnrealLightmass");
@@ -2458,9 +2462,7 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../DotNET/Mac/AgentInterface.dll"),
 		TEXT("../Mac/UnrealLightmass-Core.dylib"),
 		TEXT("../Mac/UnrealLightmass-Projects.dylib"),
-		TEXT("../Mac/UnrealLightmass-SwarmInterface.dylib"),
-		TEXT("../Mac/libtbb.dylib"),
-		TEXT("../Mac/libtbbmalloc.dylib")
+		TEXT("../Mac/UnrealLightmass-SwarmInterface.dylib")
 	};
 #endif
 #elif PLATFORM_LINUX
@@ -2471,7 +2473,10 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../DotNET/Linux/AgentInterface.dll"),
 		TEXT("../Linux/libUnrealLightmass-Core-Linux-Debug.so"),
 		TEXT("../Linux/libUnrealLightmass-Projects-Linux-Debug.so"),
-		TEXT("../Linux/libUnrealLightmass-SwarmInterface-Linux-Debug.so")
+		TEXT("../Linux/libUnrealLightmass-SwarmInterface-Linux-Debug.so"),
+		TEXT("../Linux/libUnrealLightmass-Networking-Linux-Debug.so"),
+		TEXT("../Linux/libUnrealLightmass-Messaging-Linux-Debug.so")
+		TEXT("../../Plugins/Messaging/UdpMessaging/Binaries/Linux/libUnrealLightmass-UdpMessaging-Linux-Debug.so")
 	};
 #else
 	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass");
@@ -2480,10 +2485,13 @@ bool FLightmassProcessor::BeginRun()
 		TEXT("../DotNET/Linux/AgentInterface.dll"),
 		TEXT("../Linux/libUnrealLightmass-Core.so"),
 		TEXT("../Linux/libUnrealLightmass-Projects.so"),
-		TEXT("../Linux/libUnrealLightmass-SwarmInterface.so")
+		TEXT("../Linux/libUnrealLightmass-SwarmInterface.so"),
+		TEXT("../Linux/libUnrealLightmass-Networking.so"),
+		TEXT("../Linux/libUnrealLightmass-Messaging.so"),
+		TEXT("../../Plugins/Messaging/UdpMessaging/Binaries/Linux/libUnrealLightmass-UdpMessaging.so")
 	};
-#endif
-#else // platform
+#endif // UE_BUILD_DEBUG
+#else // PLATFORM_LINUX
 #error "Unknown Lightmass platform"
 #endif
 	const int32 RequiredDependencyPaths64Count = ARRAY_COUNT(RequiredDependencyPaths64);
@@ -2601,14 +2609,6 @@ bool FLightmassProcessor::BeginRun()
 	NumThreads = FMath::Max(1, NumThreads);
 
 	CommandLineParameters += FString::Printf(TEXT(" -numthreads %i"), NumThreads);
-
-	//append on the maximum number of triangles per leaf for the kdop tree
-	uint32 MaxTrisPerLeaf = 4;
-	if (System.GetWorld()->GetWorldSettings())
-	{
-		MaxTrisPerLeaf = System.GetWorld()->GetWorldSettings()->MaxTrianglesPerLeaf;
-	}
-	CommandLineParameters += FString::Printf(TEXT(" -trisperleaf %i"), MaxTrisPerLeaf);
 
 	NSwarm::FJobSpecification JobSpecification32, JobSpecification64;
 	if ( !bUse64bitProcess )
@@ -4034,7 +4034,7 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 	float BytesPerPixel = 1.0f;
 
 	float LightMapTypeModifier = NUM_HQ_LIGHTMAP_COEF;
-	if (!AllowHighQualityLightmaps())
+	if (!AllowHighQualityLightmaps(GMaxRHIFeatureLevel))
 	{
 		LightMapTypeModifier = NUM_LQ_LIGHTMAP_COEF;
 	}

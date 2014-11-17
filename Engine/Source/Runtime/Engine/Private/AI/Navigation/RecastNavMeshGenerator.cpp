@@ -15,6 +15,7 @@
 
 // recast includes
 #include "Recast.h"
+#include "DetourCommon.h"
 #include "DetourNavMeshBuilder.h"
 #include "DetourNavMeshQuery.h"
 #include "RecastAlloc.h"
@@ -141,12 +142,13 @@ public:
 				SCOPE_SECONDS_COUNTER(ThisTime);
 				RecastNavMeshGenerator->GenerateTile(TileId, Version);	
 			
+				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting to build next tile if necessary"),
+					STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary,
+					STATGROUP_TaskGraphTasks);
+
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(RecastNavMeshGenerator, &FRecastNavMeshGenerator::UpdateTileGenerationWorkers, TileId)
-					, TEXT("Requesting to build next tile if necessary")
-					, NULL
-					, ENamedThreads::GameThread
-					);
+					FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(RecastNavMeshGenerator, &FRecastNavMeshGenerator::UpdateTileGenerationWorkers, TileId),
+					GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary), NULL, ENamedThreads::GameThread);
 			}
 			INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
 		}
@@ -399,7 +401,10 @@ static void StoreCollisionCache(FRecastGeometryExport* GeomExport)
 	const int32 CoordsSize = sizeof(float) * 3 * NumVerts;
 	const int32 IndicesSize = sizeof(int32) * 3 * NumFaces;
 	const int32 CacheSize = HeaderSize + CoordsSize + IndicesSize;
-	GeomExport->Data->CollisionData.SetNum(CacheSize);
+	
+	// reserve + add combo to allocate exact amount (without any overhead/slack)
+	GeomExport->Data->CollisionData.Reserve(CacheSize);
+	GeomExport->Data->CollisionData.AddUninitialized(CacheSize);
 
 	// store collisions
 	uint8* RawMemory = GeomExport->Data->CollisionData.GetTypedData();
@@ -753,14 +758,14 @@ void ExportRigidBodyBoxElements(UBodySetup& BodySetup, TNavStatArray<float>& Ver
 
 		// add box vertices
 		FVector UnrealVerts[] = {
-			ElemTM.TransformPosition(FVector(-Extent.X,  Extent.Y, -Extent.Z)),
-			ElemTM.TransformPosition(FVector( Extent.X,  Extent.Y, -Extent.Z)),
-			ElemTM.TransformPosition(FVector( Extent.X, -Extent.Y, -Extent.Z)),
+			ElemTM.TransformPosition(FVector(-Extent.X, -Extent.Y,  Extent.Z)),
+			ElemTM.TransformPosition(FVector( Extent.X, -Extent.Y,  Extent.Z)),
 			ElemTM.TransformPosition(FVector(-Extent.X, -Extent.Y, -Extent.Z)),
+			ElemTM.TransformPosition(FVector( Extent.X, -Extent.Y, -Extent.Z)),
 			ElemTM.TransformPosition(FVector(-Extent.X,  Extent.Y,  Extent.Z)),
 			ElemTM.TransformPosition(FVector( Extent.X,  Extent.Y,  Extent.Z)),
-			ElemTM.TransformPosition(FVector( Extent.X, -Extent.Y,  Extent.Z)),
-			ElemTM.TransformPosition(FVector(-Extent.X, -Extent.Y,  Extent.Z))
+			ElemTM.TransformPosition(FVector(-Extent.X,  Extent.Y, -Extent.Z)),
+			ElemTM.TransformPosition(FVector( Extent.X,  Extent.Y, -Extent.Z))
 		};
 
 		for (int32 iv = 0; iv < ARRAY_COUNT(UnrealVerts); iv++)
@@ -772,29 +777,18 @@ void ExportRigidBodyBoxElements(UBodySetup& BodySetup, TNavStatArray<float>& Ver
 			VertexBuffer.Add(UnrealVerts[iv].Z);
 		}
 		
-		// bottom
-		IndexBuffer.Add(VertBase + 0); IndexBuffer.Add(VertBase + 1); IndexBuffer.Add(VertBase + 2);
-		IndexBuffer.Add(VertBase + 0); IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 3);
-
-		// top
-		IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 5);
-		IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 6);
-
-		// front
-		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 6);
-		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 3); IndexBuffer.Add(VertBase + 2);
-
-		// back
-		IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 5); IndexBuffer.Add(VertBase + 1);
-		IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 1); IndexBuffer.Add(VertBase + 0);
-
-		// left
-		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 0);
-		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 0); IndexBuffer.Add(VertBase + 3);
-
-		// right
-		IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 1); IndexBuffer.Add(VertBase + 5);
-		IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 1);
+		IndexBuffer.Add(VertBase + 3); IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 0);
+		IndexBuffer.Add(VertBase + 3); IndexBuffer.Add(VertBase + 0); IndexBuffer.Add(VertBase + 1);
+		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 3); IndexBuffer.Add(VertBase + 1);
+		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 1); IndexBuffer.Add(VertBase + 5);
+		IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 5);
+		IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 5); IndexBuffer.Add(VertBase + 4);
+		IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 4);
+		IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 0);
+		IndexBuffer.Add(VertBase + 1); IndexBuffer.Add(VertBase + 0); IndexBuffer.Add(VertBase + 4);
+		IndexBuffer.Add(VertBase + 1); IndexBuffer.Add(VertBase + 4); IndexBuffer.Add(VertBase + 5);
+		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 6); IndexBuffer.Add(VertBase + 2);
+		IndexBuffer.Add(VertBase + 7); IndexBuffer.Add(VertBase + 2); IndexBuffer.Add(VertBase + 3);
 	}
 }
 
@@ -962,12 +956,12 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodySetup(UBodySetup& BodySetup, TNavStat
 	TemporaryShapeBuffer.Reset();
 }
 
-FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent& Component, FRecastGeometryExport* GeomExport, const FBox* ClipBounds=NULL)
+FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent* Component, FRecastGeometryExport* GeomExport, const FBox* ClipBounds=NULL)
 {
 #if WITH_PHYSX
 	bool bHasData = false;
 
-	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(&Component);
+	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if (PrimComp && PrimComp->IsNavigationRelevant())
 	{
 		if (PrimComp->HasCustomNavigableGeometry() && !PrimComp->DoCustomNavigableGeometryExport(GeomExport)) 
@@ -985,23 +979,6 @@ FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent& Component, FRecastG
 			}
 
 			GeomExport->SlopeOverride = BodySetup->WalkableSlopeOverride;
-		}
-	}
-#endif // WITH_PHYSX
-}
-
-FORCEINLINE_DEBUGGABLE void ExportActor(AActor& Actor, FRecastGeometryExport* GeomExport, const FBox* ClipBounds=NULL)
-{
-#if WITH_PHYSX
-	TArray<UPrimitiveComponent*> Components;
-	Actor.GetComponents(Components);
-
-	for (int32 i = 0; i < Components.Num(); ++i)
-	{
-		UPrimitiveComponent* PrimComp = Components[i];
-		if (PrimComp->CanEverAffectNavigation() == true)
-		{
-			ExportComponent(*PrimComp, GeomExport, ClipBounds);
 		}
 	}
 #endif // WITH_PHYSX
@@ -3164,10 +3141,9 @@ void FRecastNavMeshGenerator::Init()
 	const float* BMin = Config.bmin;
 	const float* BMax = Config.bmax;
 	rcCalcGridSize(BMin, BMax, CellSize, &GridWidth, &GridHeight);
-	const int32 ConstTileSize = Config.tileSize;
-	const float tcs = Config.tileSize * Config.cs;
-	int32 NewTilesWidth = (GridWidth + ConstTileSize-1) / ConstTileSize;
-	int32 NewTilesHeight = (GridHeight + ConstTileSize-1) / ConstTileSize;
+	const float TileSizeInWorldUnits = Config.tileSize * Config.cs;
+	int32 NewTilesWidth = (GridWidth + Config.tileSize - 1) / Config.tileSize;
+	int32 NewTilesHeight = (GridHeight + Config.tileSize - 1) / Config.tileSize;
 
 	// limit max amount of tiles: config values
 	if (NavGenParams)
@@ -3224,6 +3200,12 @@ void FRecastNavMeshGenerator::Init()
 	if (bInitialized == false || NewTilesHeight != TilesHeight || NewTilesWidth != TilesWidth) 
 	{
 		FScopeLock Lock(&TileGenerationLock);
+
+		{
+			FScopeLock Lock(&NavMeshDirtyLock);
+			DirtyAreas.Reset();
+			DirtyGenerators.Empty(MaxActiveGenerators);
+		}
 		
 		float TileBmin[3];
 		float TileBmax[3];
@@ -3242,13 +3224,13 @@ void FRecastNavMeshGenerator::Init()
 			const int32 X = TileData->X;
 			const int32 Y = TileData->Y;
 
-			TileBmin[0] = BMin[0] + X*tcs;
+			TileBmin[0] = BMin[0] + X*TileSizeInWorldUnits;
 			TileBmin[1] = BMin[1];
-			TileBmin[2] = BMin[2] + Y*tcs;
+			TileBmin[2] = BMin[2] + Y*TileSizeInWorldUnits;
 
-			TileBmax[0] = BMin[0] + (X+1)*tcs;
+			TileBmax[0] = BMin[0] + (X+1)*TileSizeInWorldUnits;
 			TileBmax[1] = BMax[1];
-			TileBmax[2] = BMin[2] + (Y+1)*tcs;
+			TileBmax[2] = BMin[2] + (Y+1)*TileSizeInWorldUnits;
 
 			// @todo check if this tile overlaps current navmesh generation boundaries 
 			// if not remove it
@@ -3428,6 +3410,44 @@ void FRecastNavMeshGenerator::SetUpGeneration(float CellSize, float CellHeight, 
 	// expand bounds a bit to support later inclusion tests
 	NavBounds.ExpandBy(CellSize);
 
+	bool bAdjust = false;
+	bool bClampBounds = false;
+	const float ExtentLimit = float(MAX_int32);
+	FVector BoundsExtent = NavBounds.GetExtent();
+	if (BoundsExtent.X > ExtentLimit)
+	{
+		BoundsExtent.X = ExtentLimit;
+		bClampBounds = bAdjust = true;
+	}
+	else if (BoundsExtent.X < Config.cs)
+	{
+		// minor adjustment to have at least 1 voxel of size here
+		BoundsExtent.X = Config.cs;
+		bAdjust = true;
+	}
+	if (BoundsExtent.Y > ExtentLimit)
+	{
+		BoundsExtent.Y = ExtentLimit;
+		bClampBounds = bAdjust = true;
+	}
+	else if (BoundsExtent.Y < Config.cs)
+	{
+		// minor adjustment to have at least 1 voxel of size here
+		BoundsExtent.Y = Config.cs;
+		bAdjust = true;
+	}
+
+	if (bAdjust)
+	{
+		const FVector BoundsCenter = NavBounds.GetCenter();
+		NavBounds = FBox(BoundsCenter - BoundsExtent, BoundsCenter + BoundsExtent);
+
+		if (bClampBounds)
+		{
+			UE_LOG(LogNavigation, Warning, TEXT("Navigation bounds are too large. Cutting down every dimention down to %.f"), ExtentLimit);
+		}
+	}
+
 	UnrealNavBounds = NavBounds;
 	// now move the box to Recast coords
 	RCNavBounds = Unreal2RecastBox(NavBounds);
@@ -3501,11 +3521,14 @@ void FRecastNavMeshGenerator::RequestGeneration()
 	}
 	else
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh rebuild from scratch from RequestGeneration"),
+			STAT_FSimpleDelegateGraphTask_RequestingNavmeshRebuildFromScratchFromRequestGeneration,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RequestGeneration)
-			, TEXT("Requesting navmesh rebuild from scratch from RequestGeneration")
-			, NULL
-			, ENamedThreads::GameThread
+			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RequestGeneration),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRebuildFromScratchFromRequestGeneration),
+			NULL, ENamedThreads::GameThread
 		);
 	}
 }
@@ -3519,10 +3542,14 @@ void FRecastNavMeshGenerator::RequestDirtyTilesRebuild()
 
 	bRebuildDirtyTilesRequested = true;
 
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.NavMesh Tiles Regeneration"),
+		STAT_FSimpleDelegateGraphTask_NavMeshTilesRegeneration,
+		STATGROUP_TaskGraphTasks);
+
 		// kick off a task to rebuild influenced tiles			
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RegenerateDirtyTiles)
-		, TEXT("NavMesh Tiles Regeneration"), NULL, ENamedThreads::GameThread
+		FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::RegenerateDirtyTiles),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_NavMeshTilesRegeneration), NULL, ENamedThreads::GameThread
 	);
 }
 
@@ -3597,67 +3624,6 @@ bool FRecastNavMeshGenerator::GenerateTiledNavMesh()
 	if ( (DetourMesh == NULL && ConstructTiledNavMesh() == false) )
 	{
 		return false;	
-	}
-
-	const float* BMin = Config.bmin;
-	const float* BMax = Config.bmax;
-	int32 NewGridWidth = 0;
-	int32 NewGridHeight = 0;
-	rcCalcGridSize(BMin, BMax, Config.cs, &NewGridWidth, &NewGridHeight);
-	const int32 ts = Config.tileSize;
-	const int32 tw = (NewGridWidth + ts-1) / ts;
-	const int32 th = (NewGridHeight + ts-1) / ts;
-	if (tw * th <= 0)
-	{
-		return false;
-	}
-	else if (TilesWidth != tw || TilesHeight != th || GridWidth != NewGridWidth || GridHeight != NewGridHeight)
-	{
-		// @todo there's also a low probability number of tiles is the same but other values are different
-		// need to detect that (just in case)
-		
-		TilesWidth = tw;
-		TilesHeight = th;
-		GridWidth = NewGridWidth;
-		GridHeight = NewGridHeight;
-
-		const float tcs = Config.tileSize * Config.cs;
-
-		// Start the build process.
-		float TileBmin[3];
-		float TileBmax[3];
-
-		TileGenerationLock.Lock();
-		// do fresh start
-		++Version;
-		TileGenerators.Reset();
-		TileGenerators.AddUninitialized(th*tw);
-		TileGenerationLock.Unlock();
-
-		DestNavMesh->ReserveTileSet(TilesWidth, TilesHeight);
-		FTileSetItem* TileData = DestNavMesh->GetTileSet();
-		for (int32 TileIndex = 0; TileIndex < TilesWidth * TilesHeight; ++TileIndex, ++TileData)
-		{
-			const int32 X = TileData->X;
-			const int32 Y = TileData->Y;
-
-			TileBmin[0] = BMin[0] + X*tcs;
-			TileBmin[1] = BMin[1];
-			TileBmin[2] = BMin[2] + Y*tcs;
-
-			TileBmax[0] = BMin[0] + (X+1)*tcs;
-			TileBmax[1] = BMax[1];
-			TileBmax[2] = BMin[2] + (Y+1)*tcs;
-
-			// @todo check if this tile overlaps current navmesh generation boundaries 
-			// if not remove it
-			FRecastTileGenerator& TileGenerator = TileGenerators[ Y*TilesWidth + X ];
-			new(&TileGenerator) FRecastTileGenerator();
-			TileGenerator.Init(this, X, Y, TileBmin, TileBmax, InclusionBounds);
-
-			// reinitialize with all data
-			new(TileData) FTileSetItem(X, Y, TileGenerator.GetUnrealBB());
-		}
 	}
 
 	RebuildAll();
@@ -3804,11 +3770,14 @@ void FRecastNavMeshGenerator::UpdateBuilding()
 		}
 
 		// need to send it to main thread - uses some gamethread-only iterators
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh regen from UpdateBuilding"),
+			STAT_FSimpleDelegateGraphTask_RequestingNavmeshRegenFromUpdateBuilding,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::TriggerGeneration)
-			, TEXT("Requesting navmesh regen from UpdateBuilding")
-			, NULL
-			, ENamedThreads::GameThread
+			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::TriggerGeneration),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRegenFromUpdateBuilding), NULL,
+			ENamedThreads::GameThread
 		);
 	}
 	else if(!UnrealNavBounds.IsValid)
@@ -3958,12 +3927,14 @@ bool FRecastNavMeshGenerator::AddTile(FRecastTileGenerator* TileGenerator, AReca
 		if (bOperationSuccessful)
 		{
 			// send off to game thread to not use critical section for modifying AsyncGenerationResultContainer
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Storing async nav generetion result"),
+				STAT_FSimpleDelegateGraphTask_StoringAsyncNavGeneretionResult,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::StoreAsyncResults, AsyncResults)
-				, TEXT("Storing async nav generetion result")
-				, NULL
-				, ENamedThreads::GameThread
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::StoreAsyncResults, AsyncResults),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StoringAsyncNavGeneretionResult), NULL, ENamedThreads::GameThread
+			);
 		}
 	}
 	INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
@@ -4134,7 +4105,7 @@ void FRecastNavMeshGenerator::StartDirtyGenerators()
 		SCOPE_SECONDS_COUNTER(ThisTime);
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_BuildTime)
 
-			const float TileCellSize = (Config.tileSize * Config.cs);
+		const float TileCellSize = (Config.tileSize * Config.cs);
 		const float* BMin = Config.bmin;
 		const float* BMax = Config.bmax;
 
@@ -4350,21 +4321,19 @@ void FRecastNavMeshGenerator::UpdateTileGenerationWorkers(int32 TileId)
 	// prepare next batch of dirty generators in next tick
 	if (GeneratorsQueue.Num() == 0 && DirtyGenerators.Num() > 0)
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Prepare navmesh tile generators"),
+			STAT_FSimpleDelegateGraphTask_PrepareNavmeshTileGenerators,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw(this, &FRecastNavMeshGenerator::StartDirtyGenerators), 
-			TEXT("Prepare navmesh tile generators"), NULL, ENamedThreads::GameThread);
+			GET_STATID(STAT_FSimpleDelegateGraphTask_PrepareNavmeshTileGenerators), NULL,
+			ENamedThreads::GameThread
+		);
 	}
 }
 
-void FRecastNavMeshGenerator::ExportActorGeometry(AActor& Actor, FNavigationRelevantData& Data)
-{
-	FRecastGeometryExport GeomExport(Data);
-	RecastGeometryExport::ExportActor(Actor, &GeomExport);
-	RecastGeometryExport::CovertCoordDataToRecast(GeomExport.VertexBuffer);
-	RecastGeometryExport::StoreCollisionCache(&GeomExport);
-}
-
-void FRecastNavMeshGenerator::ExportComponentGeometry(UActorComponent& Component, FNavigationRelevantData& Data)
+void FRecastNavMeshGenerator::ExportComponentGeometry(UActorComponent* Component, FNavigationRelevantData& Data)
 {
 	FRecastGeometryExport GeomExport(Data);
 	RecastGeometryExport::ExportComponent(Component, &GeomExport);
@@ -4432,12 +4401,13 @@ bool FRecastNavMeshGenerator::TransferGeneratedData()
 		DestNavMesh->GetRecastNavMeshImpl()->SetRecastMesh(DetourMesh, /*bOwnData=*/false);
 
 		// this should be done synchronously
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
+			STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(DestNavMesh.Get(), &ARecastNavMesh::UpdateNavMeshDrawing)
-			, TEXT("Requesting navmesh redraw")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(DestNavMesh.Get(), &ARecastNavMesh::UpdateNavMeshDrawing),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw), NULL, ENamedThreads::GameThread);
 
 		return true;
 	}

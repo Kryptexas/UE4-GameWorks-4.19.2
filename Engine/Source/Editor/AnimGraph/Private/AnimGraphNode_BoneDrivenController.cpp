@@ -11,29 +11,39 @@ UAnimGraphNode_BoneDrivenController::UAnimGraphNode_BoneDrivenController(const F
 
 }
 
-FString UAnimGraphNode_BoneDrivenController::GetTooltip() const
+FText UAnimGraphNode_BoneDrivenController::GetTooltipText() const
 {
-	return LOCTEXT("UAnimGraphNode_BoneDrivenController_ToolTip", "Drives the transform of a bone using the transform of another").ToString();
+	return LOCTEXT("UAnimGraphNode_BoneDrivenController_ToolTip", "Drives the transform of a bone using the transform of another");
 }
 
 FText UAnimGraphNode_BoneDrivenController::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDesc"), GetControllerDescription());
-
-	if(TitleType == ENodeTitleType::ListView)
+	if ((Node.SourceBone.BoneName == NAME_None) && (Node.TargetBone.BoneName == NAME_None) && (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle))
 	{
-		Args.Add(TEXT("Delim"), FText::FromString(TEXT(" - ")));
+		return GetControllerDescription();
 	}
-	else
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		Args.Add(TEXT("Delim"), FText::FromString(TEXT("\n")));
-	}
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDesc"), GetControllerDescription());
+		Args.Add(TEXT("SourceBone"), FText::FromName(Node.SourceBone.BoneName));
+		Args.Add(TEXT("TargetBone"), FText::FromName(Node.TargetBone.BoneName));
 
-	Args.Add(TEXT("SourceBone"), FText::FromName(Node.SourceBone.BoneName));
-	Args.Add(TEXT("TargetBone"), FText::FromName(Node.TargetBone.BoneName));
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			Args.Add(TEXT("Delim"), FText::FromString(TEXT(" - ")));
+		}
+		else
+		{
+			Args.Add(TEXT("Delim"), FText::FromString(TEXT("\n")));
+		}
 
-	return FText::Format(LOCTEXT("AnimGraphNode_BoneDrivenController_Title", "{ControllerDesc}{Delim}Driving Bone: {SourceBone}{Delim}Driven Bone: {TargetBone}"), Args);
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_BoneDrivenController_Title", "{ControllerDesc}{Delim}Driving Bone: {SourceBone}{Delim}Driven Bone: {TargetBone}"), Args));
+	}	
+	return CachedNodeTitles[TitleType];
 }
 
 FText UAnimGraphNode_BoneDrivenController::GetControllerDescription() const

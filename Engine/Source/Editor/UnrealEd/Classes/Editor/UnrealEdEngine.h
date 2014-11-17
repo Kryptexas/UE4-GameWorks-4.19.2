@@ -325,7 +325,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @param	InClass		Class of actor to select
 	 * @param	InArchetype	Archetype of actor to select
 	 */
-	virtual void edactSelectOfClassAndArchetype( UWorld* InWorld, const UClass* InClass, const UObject* InArchetype );
+	virtual void edactSelectOfClassAndArchetype( UWorld* InWorld, const TSubclassOf<AActor> InClass, const UObject* InArchetype );
 
 	/**
 	 * Select all actors in a particular class and its subclasses.
@@ -536,6 +536,24 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	void AttachSelectedActors();
 
 
+	
+	/**
+	 * Can the editor do cook by the book in the editor process space
+	 */
+	virtual bool CanCookByTheBookInEditor() const;
+
+	/**
+	 * Start cook by the book in the editor process space
+	 */
+	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections );
+
+	/**
+	 * Checks if the cook by the book is finished
+	 */
+	virtual bool IsCookByTheBookInEditorFinished() const override;
+
+
+
 	// Hook replacements.
 	void ShowActorProperties();
 
@@ -636,7 +654,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @param InVolumeActorClass	The type of volume actors to update.  If NULL is passed in all volume actor types are updated.
 	 * @param InViewport			The viewport where actor visibility should apply.  Pass NULL for all editor viewports.
 	 */
-	void UpdateVolumeActorVisibility( const UClass* InVolumeActorClass = NULL , FLevelEditorViewportClient* InViewport = NULL);
+	void UpdateVolumeActorVisibility( UClass* InVolumeActorClass = NULL , FLevelEditorViewportClient* InViewport = NULL);
 
 	/**
 	 * Get the index of the provided sprite category

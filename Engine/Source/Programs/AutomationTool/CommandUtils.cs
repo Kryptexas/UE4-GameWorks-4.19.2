@@ -739,11 +739,12 @@ namespace AutomationTool
 		public static bool PushDir_NoExceptions(string WorkingDirectory)
 		{
 			bool Result = true;
+			string OrigCurrentDirectory = Environment.CurrentDirectory;
 			WorkingDirectory = ConvertSeparators(PathSeparator.Default, WorkingDirectory);
 			try
 			{
 				Environment.CurrentDirectory = WorkingDirectory;
-				WorkingDirectoryStack.Push(Environment.CurrentDirectory);
+				WorkingDirectoryStack.Push(OrigCurrentDirectory);
 			}
 			catch
 			{
@@ -1281,6 +1282,53 @@ namespace AutomationTool
 			}
 			File.SetLastWriteTimeUtc(Dest, File.GetLastWriteTimeUtc(Source));
 		}
+
+		/// <summary>
+		/// Copies a directory and all of it's contents recursively. Does not throw exceptions.
+		/// </summary>
+		/// <param name="Source"></param>
+		/// <param name="Dest"></param>
+		/// <returns>True if the operation was successful, false otherwise.</returns>
+		public static bool CopyDirectory_NoExceptions(string Source, string Dest, bool bQuiet = false)
+		{
+			Source = ConvertSeparators(PathSeparator.Default, Source);
+			Dest = ConvertSeparators(PathSeparator.Default, Dest);
+			Dest.TrimEnd(PathSeparator.Default.ToString().ToCharArray());
+
+			if (InternalUtils.SafeDirectoryExists(Dest))
+			{
+				InternalUtils.SafeDeleteDirectory(Dest, bQuiet);
+				if (InternalUtils.SafeDirectoryExists(Dest, true))
+				{
+					return false;
+				}
+			}
+
+			if (!InternalUtils.SafeCreateDirectory(Dest, bQuiet))
+			{
+				return false;
+			}
+			foreach (var SourceSubDirectory in Directory.GetDirectories(Source))
+			{
+				string DestPath = Dest + GetPathSeparatorChar(PathSeparator.Default) + GetLastDirectoryName(SourceSubDirectory);
+				if (!CopyDirectory_NoExceptions(SourceSubDirectory, DestPath, bQuiet))
+				{
+					return false;
+				}
+			}
+			foreach (var SourceFile in Directory.GetFiles(Source))
+			{
+				int FilenameStart = SourceFile.LastIndexOf(GetPathSeparatorChar(PathSeparator.Default));
+				string DestPath = Dest + SourceFile.Substring(FilenameStart);
+				if (!CopyFile_NoExceptions(SourceFile, DestPath, bQuiet))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		/// <summary>
 		/// Returns directory name without filename. 
 		/// The difference between this and Path.GetDirectoryName is that this
@@ -1966,33 +2014,36 @@ namespace AutomationTool
             return StorageDirectory;
         }
 
-        static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
+        public static bool DirectoryExistsAndIsWritable_NoExceptions(string Dir)
         {
+            if (!DirectoryExists_NoExceptions(Dir))
+            {
+				Log(System.Diagnostics.TraceEventType.Information, "Directory {0} does not exist", Dir);
+				return false;
+			}
+
             try
             {
-                if (!DirectoryExists_NoExceptions(Dir))
-                {
-                    return false;
-                }
-                var TestGUID = Guid.NewGuid();
-                var Filename = CombinePaths(Dir, TestGUID.ToString() + ".Temp.txt");
-                WriteAllText_NoExceptions(Filename, "Test");
-                if (FileExists_NoExceptions(true, Filename))
-                {
-                    DeleteFile_NoExceptions(Filename, true);
-                    //Log(System.Diagnostics.TraceEventType.Information, "Resolved shared dir {0}", Dir);
-                    return true;
-                }
-                Log(System.Diagnostics.TraceEventType.Warning, "Shared dir {0} is not writable", Dir);
+				string Filename = CombinePaths(Dir, Guid.NewGuid().ToString() + ".Temp.txt");
+				string NativeFilename = ConvertSeparators(PathSeparator.Default, Filename);
+				using(StreamWriter Writer = new StreamWriter(NativeFilename))
+				{
+					Writer.Write("Test");
+				}
+				if(File.Exists(NativeFilename))
+				{
+		            DeleteFile_NoExceptions(Filename, true);
+		            Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is writable", Dir);
+					return true;
+				}
+			}
+			catch(Exception)
+			{
+			}
 
-            }
-            catch (Exception Ex)
-            {
-                Log(System.Diagnostics.TraceEventType.Warning, "Failed to resolve shared dir {0}", Dir);
-                Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
-            }
-            return false;
-        }
+			Log(System.Diagnostics.TraceEventType.Information, "Directory {0} is not writable", Dir);
+			return false;
+		}
 
         static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
         public static string ResolveSharedBuildDirectory(string GameFolder)
@@ -2284,6 +2335,13 @@ namespace AutomationTool
 				throw new AutomationException("Can't sign '{0}', file or folder does not exist.", InPath);
 			}
 
+			// @todo: OS X 10.9.5/Xcode 6 can't sign libsteam_api.dylib, so we temporarily disable signing of the editor and games,
+			// which code sign individual files (contrary to the Launcher, which signs the whole app bundle)
+			if (CommandUtils.FileExists(InPath))
+			{
+				return;
+			}
+
 			// Executable extensions
 			List<string> Extensions = new List<string>();
 			Extensions.Add(".dylib");
@@ -2345,7 +2403,7 @@ namespace AutomationTool
 			if (!Command.ParseParam("NoSign"))
 			{
 				CommandUtils.Log("Signing up to {0} files...", Files.Count);
-				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.ExternalExecution.GetRuntimePlatform();
+				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.BuildHostPlatform.Current.Platform;
 				if (TargetPlatform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 				{
 					foreach (var File in Files)

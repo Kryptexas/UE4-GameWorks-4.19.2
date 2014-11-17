@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "HotReloadInterface.h"
 
 /**
  * Editor main frame module
@@ -121,6 +122,11 @@ protected:
 	 */
 	bool ShouldShowProjectDialogAtStartup( ) const;
 
+public:
+
+	/** Get the size of the project browser window */
+	static FVector2D GetProjectBrowserWindowSize() { return FVector2D(1100, 730); }
+
 private:
 
 	// Handles the level editor module starting to recompile.
@@ -131,6 +137,9 @@ private:
 
 	// Handles the level editor module finishing to recompile.
 	void HandleLevelEditorModuleCompileFinished( const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog );
+
+	/** Called when Hot Reload completes */
+	void HandleHotReloadFinished( bool bWasTriggeredAutomatically );
 
 	// Handles the code accessor having finished launching its editor
 	void HandleCodeAccessorLaunched( const bool WasSuccessful );

@@ -58,4 +58,6 @@ private:
 	// The List View used to display the read only tag names on the node.
 	TSharedPtr<SListView<TSharedPtr<FString>>> TagListView;
 
+	FString FilterString;
+
 };

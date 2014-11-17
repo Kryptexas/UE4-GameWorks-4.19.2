@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "BlueprintNodeBinder.h" // for IBlueprintNodeBinder::FBindingSet
+
 // Forward declarations
 class UBlueprintNodeSpawner;
 class UBlueprint;
@@ -32,6 +34,111 @@ struct FBlueprintActionContext
 	 * be viable for every pin to pass the filter).
 	 */
 	TArray<UEdGraphPin*> Pins;
+
+	/** 
+	 * A list of objects the user currently has selected (things like blueprint 
+	 * properties, level actors, content-browser assets, etc.). Bound actions
+	 * have to be tied to one of these objects in order to pass the filter.
+	 */
+	TArray<UObject*> SelectedObjects;
+};
+
+/*******************************************************************************
+ * FBlueprintActionInfo
+ ******************************************************************************/
+
+/**
+ * Info struct passed around to filter rejection tests. Wraps a 
+ * UBlueprintNodeSpawner, and caches associated fields/files/etc. as they're 
+ * requested (to optimize duplicated queries cross rejection tests).
+ */
+struct BLUEPRINTGRAPH_API FBlueprintActionInfo
+{
+	/** */
+	FBlueprintActionInfo(UObject const* ActionOwner, UBlueprintNodeSpawner const* Action);
+
+	/** */
+	FBlueprintActionInfo(FBlueprintActionInfo const& Rhs, IBlueprintNodeBinder::FBindingSet const& Bindings);
+
+	/**
+	 * Retrieves the key that the wrapped action is associated with in the 
+	 * FBlueprintActionDatabase (either a UClass, or asset object).
+	 * 
+	 * @return The class/asset that this action conceptually belongs to.
+	 */
+	UObject const* GetActionOwner();
+
+	/**
+	 * Retrieves any bindings that the action will apply to spawned nodes.
+	 * 
+	 * @return The set of bindings tied to this action.
+	 */
+	IBlueprintNodeBinder::FBindingSet const& GetBindings() const;
+
+	/**
+	 * Retrieves a class associated with the wrapped action. Intended to be the 
+	 * action's class "owner". Could be null if the action is keyed to an asset.
+	 * Will not be the spawner's NodeClass (even if it is keyed to it in the 
+	 * database).
+	 * 
+	 * @return The class that this action conceptually belongs to (null if the action is keyed to an asset that we cannot derive a class from).
+	 */
+	UClass const* GetOwnerClass();
+
+	/**
+	 * Retrieves the node class that the wrapped action will spawn (assume to 
+	 * be not null).
+	 * 
+	 * @return The node type that the action will spawn.
+	 */
+	UClass const* GetNodeClass();
+
+	/**
+	 * Certain actions are associated with specific member fields (a member 
+	 * function call, a variable get/set, etc.) This retrieves that member field 
+	 * if there is one (not all actions have an associated field).
+	 * 
+	 * @return The member field associated with the wrapped action (null if there isn't one).
+	 */
+	UField const* GetAssociatedMemberField();
+
+	/**
+	 * Certain actions are associated with specific properties (like delegate  
+	 * node spawners, or variable get/set spawners) This retrieves that property
+	 * from the wrapped action if it can (not all actions have an associated 
+	 * property).
+	 * 
+	 * @return The property associated with the wrapped action (null if there isn't one).
+	 */
+	UProperty const* GetAssociatedProperty();
+
+	/**
+	 * Certain actions are associated with specific functions (like function    
+	 * call spawners, or event spawners) This retrieves the function from the 
+	 * wrapped action if it can (not all actions have an associated function).
+	 * 
+	 * @return The function associated with the wrapped action (null if there isn't one).
+	 */
+	UFunction const* GetAssociatedFunction();
+
+	/** The raw action that this struct represent (const so we don't mutate the database) */
+	UBlueprintNodeSpawner const* const NodeSpawner;
+
+private:
+	/** The class or asset-object that the NodeSpawner action is keyed to (in the action database)*/
+	UObject const* ActionOwner;
+
+	/** Keeps track of the fields we've cached (needed in case one turns out to be null) */
+	uint32 CacheFlags;
+	
+	/** */
+	UClass const*    CachedOwnerClass;
+	UField const*    CachedActionField;
+	UProperty const* CachedActionProperty;
+	UFunction const* CachedActionFunction;
+
+	/** */
+	IBlueprintNodeBinder::FBindingSet Bindings;
 };
 
 
@@ -43,65 +150,74 @@ class BLUEPRINTGRAPH_API FBlueprintActionFilter
 {
 public:
 	/** The filter uses a series of rejection tests matching */
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FIsFilteredDelegate, FBlueprintActionFilter const&, UBlueprintNodeSpawner const*);
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FRejectionTestDelegate, FBlueprintActionFilter const&, FBlueprintActionInfo&);
 
 public:
 	enum EFlags // Flags, which configure certain rejection tests.
 	{
 		/** Deprecated class actions will not be filtered out*/
-		BPFILTER_IncludeDeprecated		= 0x00000001,
+		BPFILTER_PermitDeprecated			= (1<<0),
 
 		/** 
-		 * Excludes nodes associated with global field types (functions, 
-		 * structs, enums, etc.); NOTE: that static function library members are 
-		 * counted as "global". 
+		 * Rejects actions associated with global/static ("persistent") fields.
+		 * However, static members of TargetClasses are kept, and not outright 
+		 * rejected by this (if TargetClasses is left empty, then all 
+		 * "persistent" fields are rejected).
 		 */
-		BPFILTER_ExcludeGlobalFields	= 0x00000002,
+		BPFILTER_RejectGlobalFields			= (1<<1),
 
 		/**
-		 * Makes NodeTypes tests more aggressive by excluding nodes sub-classes, 
-		 * nodes have to explicitly match the class listed. 
+		 * Makes PermittedNodeType tests more aggressive by rejecting node 
+		 * sub-classes, (actions would have to explicitly match a class listed
+		 * in PermittedNodeTypes). 
 		 */
-		BPFILTER_ExcludeChildNodeTypes	= 0x00000004,
+		BPFILTER_RejectPermittedSubClasses	= (1<<2),
+
+		/**
+		 * Makes RejectedNodeType tests less aggressive by permitting node 
+		 * sub-classes, (actions would have to explicitly match a class listed
+		 * in RejectedNodeTypes). 
+		 */
+		BPFILTER_PermitRejectionSubClasses	= (1<<3),
 	};
 	FBlueprintActionFilter(uint32 const Flags = 0x00);
 	
 	/**
-	 * A list of allowed node types. If an action's NodeClass isn't one of
-	 * these types, then it is filtered out. Use the "ExcludeChildNodeTypes"
-	 * flag to aggressively filter out child classes (must be an explicit match).
+	 * Contains the full blueprint/graph/pin context that this is filtering 
+	 * actions for.
 	 */
 	FBlueprintActionContext Context;	
 	
 	/**
-	 * A list of allowed node types. If an action's NodeClass isn't one of
-	 * these types, then it is filtered out. Use the "ExcludeChildNodeTypes"
-	 * flag to aggressively filter out child classes (must be an explicit match).
+	 * A list of allowed node types. If a spawner's NodeClass isn't one of
+	 * these types, then it is filtered out. Use the "RejectPermittedNodeSubClasses"
+	 * flag to aggressively filter out child classes as well (enforcing an 
+	 * explicit match).
 	 */
-	TArray< TSubclassOf<UEdGraphNode> > NodeTypes;
+	TArray< TSubclassOf<UEdGraphNode> > PermittedNodeTypes;
 	
 	/**
 	 * A list of node types that should be filtered out. If a node class is 
-	 * listed both here and in NodeTypes, then the exclusion wins (and it will 
-	 * be filtered out).
+	 * listed both here and in PermittedNodeTypes, then the exclusion wins (it 
+	 * will be filtered out).
 	 */
-	TArray< TSubclassOf<UEdGraphNode> > ExcludedNodeTypes;
+	TArray< TSubclassOf<UEdGraphNode> > RejectedNodeTypes;
 	
 	/**
-	 * A list of classes that you want members for. If an action does not have 
-	 * an associated field, or the associated field doesn't belong to any of 
-	 * these classes, then it is filtered out.
+	 * A list of classes that you want members for. If an action would produce
+	 * a node with a TargetPin, and that pin is incompatible with one of these
+	 * classes, then the action is filtered out.
 	 */
-	TArray<UClass*> OwnerClasses;
+	TArray<UClass*> TargetClasses;
 
 	/**
 	 * Users can extend the filter and add their own rejection tests with this
 	 * method. We use rejection "IsFiltered" tests rather than inclusive tests 
 	 * because it is more optimal to whittle down the list of actions early.
 	 * 
-	 * @param  IsFilteredDelegate	The rejection test you wish to add to this filter.
+	 * @param  RejectionTestDelegate	The rejection test you wish to add to this filter.
 	 */
-	void AddIsFilteredTest(FIsFilteredDelegate IsFilteredDelegate);
+	void AddRejectionTest(FRejectionTestDelegate RejectionTestDelegate);
 
 	/**
 	 * Query to check and see if the specified action gets filtered out by this 
@@ -111,7 +227,7 @@ public:
 	 * @param  BlueprintAction	The node-spawner you wish to test.
 	 * @return False if the action passes the filter, otherwise false (the action got filtered out).
 	 */
-	bool IsFiltered(UBlueprintNodeSpawner const* BlueprintAction);
+	bool IsFiltered(FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Appends another filter to be utilized in IsFiltered() queries, extending  
@@ -145,10 +261,10 @@ private:
 	 * @param  BlueprintAction	The node-spawner you wish to test.
 	 * @return False if the action passes the filter, otherwise false (the action got filtered out).
 	 */
-	bool IsFilteredByThis(UBlueprintNodeSpawner const* BlueprintAction) const;
+	bool IsFilteredByThis(FBlueprintActionInfo& BlueprintAction) const;
 
 	/** Set of rejection tests for this specific filter. */
-	TArray<FIsFilteredDelegate> FilterTests;
+	TArray<FRejectionTestDelegate> FilterTests;
 
 	/** Filters to be logically and'd in with the IsFilteredByThis() result. */
 	TArray<FBlueprintActionFilter> AndFilters;

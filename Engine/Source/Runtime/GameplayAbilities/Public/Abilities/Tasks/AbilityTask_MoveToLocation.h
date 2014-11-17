@@ -20,13 +20,17 @@ class UAbilityTask_MoveToLocation : public UAbilityTask
 	UPROPERTY(BlueprintAssignable)
 	FMoveToLocationDelegate		OnTargetLocationReached;
 
-	void InterpolatePosition();
-
 	/** Move to the specified location, using the curve (range 0 - 1) or linearly if no curve is specified */
-	UFUNCTION(BlueprintCallable, Category = Abilities, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-		static UAbilityTask_MoveToLocation* MoveToLocation(UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve);
+	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_MoveToLocation* MoveToLocation(UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve);
+
+	virtual void Activate() override;
+
+	/** Tick function for this task, if bTickingTask == true */
+	virtual void TickTask(float DeltaTime) override;
 
 protected:
+
 	FVector StartLocation;
 	FVector TargetLocation;
 	float DurationOfMovement;

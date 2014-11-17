@@ -37,7 +37,7 @@ public:
 
 public:
 
-	/*
+	/**
 	 * Shutdown the screen shot manager tools module
 	 */
 	virtual void ShutdownModule( ) override
@@ -45,7 +45,7 @@ public:
 		ScreenShotManager.Reset();
 	}
 
-	/*
+	/**
 	* Startup the screen shot manager tools module
 	*/
 	void StartupModule() override

@@ -29,6 +29,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_Mesh_NoGeometry;
 
+	static FName Generic_Mesh_SmallGeometry;
+
 	static FName Generic_Mesh_TriangulationFailed;
 
 	static FName Generic_Mesh_ConvertSmoothingGroupFailed;
@@ -51,6 +53,8 @@ struct CORE_API FFbxErrors
 	static FName StaticMesh_TooManyMaterials;
 
 	static FName StaticMesh_UVSetLayoutProblem;
+
+	static FName StaticMesh_NoTriangles;
 
 	/** SkeletalMesh **/
 	static FName SkeletalMesh_DifferentRoots;

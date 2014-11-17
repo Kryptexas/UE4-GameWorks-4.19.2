@@ -10,11 +10,6 @@ AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const class FPostConstructInitial
 
 }
 
-void AAbilitySystemDebugHUD::DrawHUD()
-{
-	Super::DrawHUD();
-}
-
 void AAbilitySystemDebugHUD::DrawWithBackground(UFont* InFont, const FString& Text, const FColor& TextColor, EAlignHorizontal::Type HAlign, float& OffsetX, EAlignVertical::Type VAlign, float& OffsetY, float Alpha)
 {
 	float SizeX, SizeY;
@@ -119,7 +114,7 @@ void AAbilitySystemDebugHUD::DrawDebugAbilitySystemComponent(UAbilitySystemCompo
 		// Draw Active GameplayEffect
 		for (FActiveGameplayEffect &Effect : Component->ActiveGameplayEffects.GameplayEffects)
 		{
-			String = FString::Printf(TEXT("%s. [%d] %.2f"), *Effect.Spec.ToSimpleString(), Effect.PredictionKey, Effect.GetTimeRemaining(GameWorldTime));
+			String = FString::Printf(TEXT("%s. [%d, %d] %.2f"), *Effect.Spec.ToSimpleString(), Effect.PredictionKey.Current, Effect.PredictionKey.Base, Effect.GetTimeRemaining(GameWorldTime));
 			DrawWithBackground(Font, String, Color, EAlignHorizontal::Left, X, EAlignVertical::Top, Y);	
 		}
 	}
@@ -135,12 +130,10 @@ static void	ToggleDebugHUD(const TArray<FString>& Args, UWorld* InWorld)
 
 	AAbilitySystemDebugHUD *HUD = NULL;
 
-	for (FActorIterator It(InWorld); It; ++It)
+	for (TActorIterator<AAbilitySystemDebugHUD> It(InWorld); It; ++It)
 	{
-		AActor *Actor = *It;
-		HUD = Cast<AAbilitySystemDebugHUD>(Actor);
-		if (HUD)
-			break;
+		HUD = *It;
+		break;
 	}
 
 	if (!HUD)

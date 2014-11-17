@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UVerticalBox
 
@@ -14,9 +16,9 @@ UVerticalBox::UVerticalBox(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity( Defaults._Visibility.Get() );
 }
 
-void UVerticalBox::ReleaseNativeWidget()
+void UVerticalBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyVerticalBox.Reset();
 }
@@ -48,9 +50,9 @@ void UVerticalBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-UVerticalBoxSlot* UVerticalBox::Add(UWidget* Content)
+UVerticalBoxSlot* UVerticalBox::AddChildVerticalBox(UWidget* Content)
 {
-	return Cast<UVerticalBoxSlot>( Super::AddChild(Content) );
+	return Cast<UVerticalBoxSlot>(Super::AddChild(Content));
 }
 
 TSharedRef<SWidget> UVerticalBox::RebuildWidget()
@@ -76,4 +78,13 @@ const FSlateBrush* UVerticalBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.VerticalBox");
 }
 
+const FText UVerticalBox::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

@@ -110,7 +110,7 @@ struct FTextureSource
 	/** Default constructor. */
 	ENGINE_API FTextureSource();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/**
 	 * Initialize the source data with the given size, number of mips, and format.
 	 * @param NewSizeX - Width of the texture source data.
@@ -207,7 +207,7 @@ private:
 	/** Which mips are locked, if any. */
 	uint32 LockedMips;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/** Return true if the source art is not png compressed but could be. */
 	bool CanPNGCompress() const;
 
@@ -307,7 +307,7 @@ struct FTexturePlatformData
 	/** Serialization for cooked builds. */
 	void SerializeCooked(FArchive& Ar, class UTexture* Owner);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	void Cache(
 		class UTexture& InTexture,
 		const struct FTextureBuildSettings& InSettings,
@@ -584,7 +584,7 @@ public:
 	 */
 	ENGINE_API void SerializeCookedPlatformData(class FArchive& Ar);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/**
 	 * Caches platform data for the texture.
 	 */
@@ -679,11 +679,11 @@ public:
 	 */
 	bool HasHDRSource() const
 	{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		return ((Source.GetFormat() == TSF_BGRE8) || (Source.GetFormat() == TSF_RGBA16F));
 #else
 		return false;
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 	}
 
 

@@ -10,6 +10,7 @@
 #include "PostProcessCombineLUTs.h"
 #include "PostProcessing.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 
 // CVars
@@ -110,7 +111,7 @@ class FLUTBlenderPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FLUTBlenderPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); }
+	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
 
 	FLUTBlenderPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer) 
@@ -202,11 +203,14 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	FGlobalBoundShaderState* LocalBoundShaderState = 0;
 	const FSceneView& View = Context.View;
 
+	const auto FeatureLevel = Context.GetFeatureLevel();
+	auto ShaderMap = Context.GetShaderMap();
+
 	// A macro to handle setting the filter shader for a specific number of samples.
 #define CASE_COUNT(BlendCount) \
 	case BlendCount: \
 	{ \
-		TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(GetGlobalShaderMap()); \
+		TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(ShaderMap); \
 		static FGlobalBoundShaderState BoundShaderState; \
 		LocalBoundShaderState = &BoundShaderState;\
 		LocalPixelShader = *PixelShader;\
@@ -226,28 +230,28 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	}
 #undef CASE_COUNT
 	check(LocalBoundShaderState != NULL);
-	if(UseVolumeTextureLUT(GRHIShaderPlatform))
+	if(UseVolumeTextureLUT(Context.View.GetShaderPlatform()))
 	{
-		TShaderMapRef<FWriteToSliceVS> VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FWriteToSliceGS> GeometryShader(GetGlobalShaderMap());
+		TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
+		TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 
-		SetGlobalBoundShaderState(Context.RHICmdList, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
 		GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
 	}
 	else
 	{
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 
-		SetGlobalBoundShaderState(Context.RHICmdList, *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
 
 		VertexShader->SetParameters(Context);
 	}
 #define CASE_COUNT(BlendCount) \
 	case BlendCount: \
 	{ \
-	TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(GetGlobalShaderMap()); \
+	TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(ShaderMap); \
 	PixelShader->SetParameters(Context.RHICmdList, View, Texture, Weights); \
 	}; \
 	break;
@@ -376,7 +380,7 @@ uint32 FRCPassPostProcessCombineLUTs::GenerateFinalTable(const FFinalPostProcess
 
 void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessCombineLUTs, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessCombineLUTs, DEC_SCENE_ITEMS);
 
 	FTexture* LocalTextures[GMaxLUTBlendCount];
 	float LocalWeights[GMaxLUTBlendCount];
@@ -396,7 +400,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	}
 
 	// for a 3D texture, the viewport is 16x16 (per slice), for a 2D texture, it's unwrapped to 256x16
-	FIntPoint DestSize(UseVolumeTextureLUT(GRHIShaderPlatform) ? 16 : 256, 16);
+	FIntPoint DestSize(UseVolumeTextureLUT(ShaderPlatform) ? 16 : 256, 16);
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -413,7 +417,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 
 	SetLUTBlenderShader(Context, LocalCount, LocalTextures, LocalWeights, VolumeBounds);
 
-	if(UseVolumeTextureLUT(GRHIShaderPlatform))
+	if (UseVolumeTextureLUT(ShaderPlatform))
 	{
 		// use volume texture 16x16x16
 		RasterizeToVolumeTexture(Context.RHICmdList, VolumeBounds);
@@ -421,7 +425,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	else
 	{
 		// use unwrapped 2d texture 256x16
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 		DrawRectangle( 
 			Context.RHICmdList,
@@ -442,7 +446,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 {
 	FPooledRenderTargetDesc Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(256, 16), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
 
-	if(UseVolumeTextureLUT(GRHIShaderPlatform))
+	if(UseVolumeTextureLUT(ShaderPlatform))
 	{
 		Ret.Extent = FIntPoint(16, 16);
 		Ret.Depth = 16;
@@ -451,4 +455,55 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 	Ret.DebugName = TEXT("CombineLUTs");
 
 	return Ret;
+}
+
+bool FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(const FViewInfo* RESTRICT View)
+{
+	check(View);
+
+	FColorTransform ColorTransform;
+	ColorTransform.MinValue = FMath::Clamp(CVarColorMin.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MidValue = FMath::Clamp(CVarColorMid.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MaxValue = FMath::Clamp(CVarColorMax.GetValueOnRenderThread(), -10.0f, 10.0f);
+
+	if(ColorTransform.MinValue != 0.0f)
+	{
+		return true;
+	}
+	if(ColorTransform.MidValue != 0.5f)
+	{
+		return true;
+	}
+	if(ColorTransform.MaxValue != 1.0f)
+	{
+		return true;
+	}
+
+	if(View->ColorScale.R != 1.0f || View->ColorScale.G != 1.0f || View->ColorScale.B != 1.0f)
+	{
+		return true;
+	}
+
+	if(View->OverlayColor.A > (1.0f/512.0f))
+	{
+		return true;
+	}
+
+	if(View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	{
+		const FFinalPostProcessSettings Settings = View->FinalPostProcessSettings;
+		for(uint32 i = 0; i < (uint32)Settings.ContributingLUTs.Num(); ++i)
+		{
+			UTexture* LUTTexture = Settings.ContributingLUTs[i].LUTTexture;
+			if(LUTTexture == NULL) 
+			{
+				continue;
+			}
+			if(Settings.ContributingLUTs[i].Weight > 1.0f / 512.0f)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }

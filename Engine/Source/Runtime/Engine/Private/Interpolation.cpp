@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/LevelScriptActor.h"
 #include "Matinee/MatineeActorCameraAnim.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackInstProperty.h"
@@ -989,7 +990,7 @@ void AMatineeActor::StepInterp( float DeltaTime, bool bPreview )
 			if(NewPosition > MatineeData->InterpLength)
 			{
 				// If looping, play to end, jump to start, and set target to somewhere near the beginning.
-				if(bLooping)
+				if(bLooping && MatineeData->InterpLength > 0.0f )
 				{
 					UpdateInterp(MatineeData->InterpLength, bPreview);
 
@@ -3961,8 +3962,8 @@ void UInterpTrackMove::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, 
 	// If using 'look at' rotation, compute that and apply in world space
 	else if(RotMode == IMR_LookAtGroup)
 	{		
-		FRotator WorldLookAtRot = GetLookAtRotation(TrInst);
 		Actor->GetRootComponent()->SetRelativeLocation(RelativeSpacePos);
+		FRotator WorldLookAtRot = GetLookAtRotation(TrInst);
 		Actor->GetRootComponent()->SetWorldRotation(WorldLookAtRot);
 	}
 	// Setting relative rotation and translation from track
@@ -8026,7 +8027,7 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 	bool bJump = !( MatineeActor->bIsPlaying );
 	UpdateTrack(NewPosition, TrInst, bJump);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	bool bTimeChangedDrastically = !FMath::IsNearlyEqual(NewPosition, MatineeActor->InterpPosition);
 	if ( bTimeChangedDrastically && MatineeActor->bIsScrubbing )
 	{
@@ -9062,14 +9063,6 @@ void UInterpTrackInstAudioMaster::InitTrackInst(UInterpTrack* Track)
 {
 }
 
-void UInterpTrackInstAudioMaster::TermTrackInst(UInterpTrack* Track)
-{
-	Super::TermTrackInst(Track);
-}
-
-
-
-
 /*-----------------------------------------------------------------------------
 	UInterpTrackVisibility
 -----------------------------------------------------------------------------*/
@@ -9655,7 +9648,7 @@ UInterpGroupInstDirector::UInterpGroupInstDirector(const class FPostConstructIni
 void UInterpGroupCamera::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 #if WITH_EDITORONLY_DATA
-	if (PropertyChangedEvent.Property->GetName() == TEXT("AnimSeqName"))
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("AnimSeqName"))
 	{
 		UCameraAnim * CameraAnim = CastChecked<UCameraAnim>(GetOuter());
 		UInterpGroup* Group = CameraAnim->PreviewInterpGroup;

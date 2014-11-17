@@ -62,10 +62,12 @@ struct SCENEOUTLINER_API TOutlinerActorTreeItem : TOutlinerTreeItem
 
 	TOutlinerActorTreeItem(const AActor* InActor)
 		: TOutlinerTreeItem(TOutlinerTreeItem::Actor)
-		, bExistsInCurrentWorldAndPIE(false)
 		, Actor(InActor)
+		, bExistsInCurrentWorldAndPIE(false)
 	{
 	}
+
+	virtual ~TOutlinerActorTreeItem() {}
 
 	/** Determine if this tree item is visible or not */
 	virtual bool IsVisible() const override;
@@ -91,6 +93,8 @@ struct SCENEOUTLINER_API TOutlinerFolderTreeItem : TOutlinerTreeItem
 	{
 		ParsePath(InPath);
 	}
+
+	virtual ~TOutlinerFolderTreeItem() {}
 
 	/** Determine if this tree item is visible or not */
 	virtual bool IsVisible() const override;

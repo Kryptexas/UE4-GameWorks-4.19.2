@@ -14,7 +14,7 @@ public:
 	/**
 	 * ConstraintCanvas slots allow child widgets to be positioned and sized
 	 */
-	class FSlot
+	class FSlot : public TSlotBase<FSlot>
 	{
 	public:		
 		FSlot& Offset( const TAttribute<FMargin>& InOffset )
@@ -35,15 +35,15 @@ public:
 			return *this;
 		}
 
-		FSlot& ZOrder(const TAttribute<int32>& InZOrder)
+		FSlot& AutoSize(const TAttribute<bool>& InAutoSize)
 		{
-			ZOrderAttr = InZOrder;
+			AutoSizeAttr = InAutoSize;
 			return *this;
 		}
 
-		FSlot& operator[]( TSharedRef<SWidget> InWidget )
+		FSlot& ZOrder(const TAttribute<int32>& InZOrder)
 		{
-			Widget = InWidget;
+			ZOrderAttr = InZOrder;
 			return *this;
 		}
 
@@ -52,9 +52,6 @@ public:
 			OutVarToInit = this;
 			return *this;
 		}
-
-		/** The child widget contained in this slot. */
-		TSharedRef<SWidget> Widget;
 
 		/** Offset */
 		TAttribute<FMargin> OffsetAttr;
@@ -65,15 +62,19 @@ public:
 		/** Size */
 		TAttribute<FVector2D> AlignmentAttr;
 
-		/** Size */
+		/** Auto-Size */
+		TAttribute<bool> AutoSizeAttr;
+
+		/** Z-Order */
 		TAttribute<int32> ZOrderAttr;
 
 		/** Default values for a slot. */
 		FSlot()
-			: Widget( SNullWidget::NullWidget )
+			: TSlotBase<FSlot>()
 			, OffsetAttr( FMargin( 0, 0, 1, 1 ) )
 			, AnchorsAttr( FAnchors( 0.0f, 0.0f ) )
 			, AlignmentAttr( FVector2D( 0.5f, 0.5f ) )
+			, AutoSizeAttr( false )
 			, ZOrderAttr( 0 )
 		{ }
 	};
@@ -86,6 +87,8 @@ public:
 		SLATE_SUPPORTS_SLOT( SConstraintCanvas::FSlot )
 
 	SLATE_END_ARGS()
+
+	SConstraintCanvas();
 
 	/**
 	 * Construct this widget
@@ -106,7 +109,7 @@ public:
 	 */
 	FSlot& AddSlot()
 	{
-		SConstraintCanvas::FSlot& NewSlot = SConstraintCanvas::Slot();
+		SConstraintCanvas::FSlot& NewSlot = *(new FSlot());
 		this->Children.Add( &NewSlot );
 		return NewSlot;
 	}

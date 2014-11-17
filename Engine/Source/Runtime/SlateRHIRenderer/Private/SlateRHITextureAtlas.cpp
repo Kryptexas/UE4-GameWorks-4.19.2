@@ -6,8 +6,8 @@
 /* FSlateTextureAtlasRHI structors
  *****************************************************************************/
 
-FSlateTextureAtlasRHI::FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 StrideBytes, uint32 Padding )
-	: FSlateTextureAtlas(Width, Height, StrideBytes, Padding)
+FSlateTextureAtlasRHI::FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle )
+	: FSlateTextureAtlas(Width, Height, StrideBytes, PaddingStyle)
 	, AtlasTexture(new FSlateTexture2DRHIRef(Width, Height, PF_B8G8R8A8, NULL, TexCreate_SRGB, true)) 
 { }
 

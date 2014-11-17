@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LauncherServicesPrivatePCH.h"
+#include "PlatformInfo.h"
 
+#define LOCTEXT_NAMESPACE "LauncherWorker"
 
 bool FLauncherUATTask::FirstTimeCompile = true;
 
@@ -100,6 +102,8 @@ uint32 FLauncherWorker::Run( )
 		}		
 	}
 
+	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+
 	if (Status == ELauncherWorkerStatus::Canceling)
 	{
 		Status = ELauncherWorkerStatus::Canceled;
@@ -109,9 +113,6 @@ uint32 FLauncherWorker::Run( )
 	{
 		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime, TaskChain->ReturnCode());
 	}
-
-	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
-
 
 	return 0;
 }
@@ -178,6 +179,321 @@ void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 }
 
 
+FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile, const TArray<FString>& InPlatforms, TArray<FCommandDesc>& OutCommands, FString& CommandStart )
+{
+	CommandStart = TEXT("");
+	FString UATCommand = TEXT("");
+	FGuid InstanceId(FGuid::NewGuid());
+	FGuid SessionId(FGuid::NewGuid());
+	FString InitialMap = InProfile->GetDefaultLaunchRole()->GetInitialMap();
+	if (InitialMap.IsEmpty() && InProfile->GetCookedMaps().Num() == 1)
+	{
+		InitialMap = InProfile->GetCookedMaps()[0];
+	}
+
+	// game command line
+	FString CommandLine = FString::Printf(TEXT(" -cmdline=\"%s -Messaging\""),
+		*InitialMap);
+
+	// staging directory
+	FString StageDirectory = TEXT("");
+	auto PackageDirectory = InProfile->GetPackageDirectory();
+	if (PackageDirectory.Len() > 0)
+	{
+		StageDirectory += FString::Printf(TEXT(" -stagingdirectory=\"%s\""), *PackageDirectory);
+	}
+
+	// determine if there is a server platform
+	FString ServerCommand = TEXT("");
+	FString ServerPlatforms = TEXT("");
+	FString Platforms = TEXT("");
+	FString PlatformCommand = TEXT("");
+	FString OptionalParams = TEXT("");
+	for (int32 PlatformIndex = 0; PlatformIndex < InPlatforms.Num(); ++PlatformIndex)
+	{
+		// Platform info for the given platform
+		const PlatformInfo::FPlatformInfo* PlatformInfo = PlatformInfo::FindPlatformInfo(FName(*InPlatforms[PlatformIndex]));
+
+		// switch server and no editor platforms to the proper type
+		if (PlatformInfo->TargetPlatformName == FName("LinuxServer"))
+		{
+			ServerPlatforms += TEXT("+Linux");
+		}
+		else if (PlatformInfo->TargetPlatformName == FName("WindowsServer"))
+		{
+			ServerPlatforms += TEXT("+Win64");
+		}
+		else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
+		{
+			Platforms += TEXT("+Linux");
+		}
+		else if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") || PlatformInfo->TargetPlatformName == FName("Windows"))
+		{
+			Platforms += TEXT("+Win64");
+		}
+		else if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
+		{
+			Platforms += TEXT("+Mac");
+		}
+		else
+		{
+			Platforms += TEXT("+");
+			Platforms += PlatformInfo->TargetPlatformName.ToString();
+		}
+
+		// Append any extra UAT flags specified for this platform flavor
+		if (!PlatformInfo->UATCommandLine.IsEmpty())
+		{
+			OptionalParams += TEXT(" ");
+			OptionalParams += PlatformInfo->UATCommandLine;
+		}
+
+	}
+	if (ServerPlatforms.Len() > 0)
+	{
+		ServerCommand = TEXT(" -server -serverplatform=") + ServerPlatforms.RightChop(1);
+	}
+	if (Platforms.Len() > 0)
+	{
+		PlatformCommand = TEXT(" -platform=") + Platforms.RightChop(1);
+	}
+
+	UATCommand += PlatformCommand;
+	UATCommand += ServerCommand;
+	UATCommand += OptionalParams;
+
+	// device list
+	FString DeviceNames = TEXT("");
+	FString DeviceCommand = TEXT("");
+	FString RoleCommands = TEXT("");
+	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
+	if (DeviceGroup.IsValid())
+	{
+		const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();
+		bool bVsyncAdded = false;
+
+		// for each deployed device...
+		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
+		{
+			const FString& DeviceId = Devices[DeviceIndex];
+
+			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
+
+			if (DeviceProxy.IsValid())
+			{
+				// add the platform
+				DeviceNames += TEXT("+\"") + DeviceId + TEXT("\"");
+				TArray<ILauncherProfileLaunchRolePtr> Roles;
+				if (InProfile->GetLaunchRolesFor(DeviceId, Roles) > 0)
+				{
+					for (int32 RoleIndex = 0; RoleIndex < Roles.Num(); RoleIndex++)
+					{
+						if (!bVsyncAdded && Roles[RoleIndex]->IsVsyncEnabled())
+						{
+							RoleCommands += TEXT(" -vsync");
+							bVsyncAdded = true;
+						}
+						RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetCommandLine());
+					}
+				}
+			}			
+		}
+	}
+	if (DeviceNames.Len() > 0)
+	{
+		DeviceCommand += TEXT(" -device=") + DeviceNames.RightChop(1);
+	}
+
+	// additional commands to be sent to the commandline
+	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s\""),
+		*InitialMap,
+		//		*InstanceId.ToString(),
+		*SessionId.ToString(),
+		FPlatformProcess::UserName(true),
+		*InProfile->GetName(),
+		*RoleCommands);
+
+	// map list
+	FString MapList = TEXT("");
+	const TArray<FString>& CookedMaps = InProfile->GetCookedMaps();
+	if (CookedMaps.Num() > 0)
+	{
+		MapList += TEXT(" -map=");
+		for (int32 MapIndex = 0; MapIndex < CookedMaps.Num(); ++MapIndex)
+		{
+			MapList += CookedMaps[MapIndex];
+			if (MapIndex+1 < CookedMaps.Num())
+			{
+				MapList += "+";
+			}
+		}
+	}
+
+	// build
+	if (InProfile->IsBuilding())
+	{
+		UATCommand += TEXT(" -build");
+
+		FCommandDesc Desc;
+		FText Command = FText::Format(LOCTEXT("LauncherBuildDesc", "Build game for {0}"), FText::FromString(Platforms.RightChop(1)));
+		Desc.Name = "Build Task";
+		Desc.Desc = Command.ToString();
+		Desc.EndText = TEXT("********** BUILD COMMAND COMPLETED **********");
+		OutCommands.Add(Desc);
+		CommandStart = TEXT("********** BUILD COMMAND STARTED **********");
+		// @todo: server
+	}
+
+	// cook
+	switch(InProfile->GetCookMode())
+	{
+	case ELauncherProfileCookModes::ByTheBook:
+		{
+			UATCommand += TEXT(" -cook");
+
+			UATCommand += MapList;
+
+			if (InProfile->IsCookingIncrementally())
+			{
+				UATCommand += TEXT(" -iterate");
+			}
+
+			if (InProfile->IsCookingUnversioned())
+			{
+				UATCommand += TEXT(" -Unversioned");
+			}
+
+			FString additionalOptions = InProfile->GetCookOptions();
+			if (!additionalOptions.IsEmpty())
+			{
+				UATCommand += TEXT(" ");
+				UATCommand += additionalOptions;
+			}
+
+			if (InProfile->IsPackingWithUnrealPak())
+			{
+				UATCommand += TEXT(" -pak");
+			}
+
+			FCommandDesc Desc;
+			FText Command = FText::Format(LOCTEXT("LauncherCookDesc", "Cook content for {0}"), FText::FromString(Platforms.RightChop(1)));
+			Desc.Name = "Cook Task";
+			Desc.Desc = Command.ToString();
+			Desc.EndText = TEXT("********** COOK COMMAND COMPLETED **********");
+			OutCommands.Add(Desc);
+			if (CommandStart.Len() == 0)
+			{
+				CommandStart = TEXT("********** COOK COMMAND STARTED **********");
+			}
+		}
+		break;
+	case ELauncherProfileCookModes::OnTheFly:
+		{
+			UATCommand += TEXT(" -cookonthefly");
+
+//			if (InProfile->GetDeploymentMode() == ELauncherProfileDeploymentModes::DoNotDeploy)
+			{
+				UATCommand += " -nokill";
+			}
+
+			FCommandDesc Desc;
+			FText Command = LOCTEXT("LauncherCookDesc", "Starting cook on the fly server");
+			Desc.Name = "Cook Server Task";
+			Desc.Desc = Command.ToString();
+			Desc.EndText = TEXT("********** COOK COMMAND COMPLETED **********");
+			OutCommands.Add(Desc);
+			if (CommandStart.Len() == 0)
+			{
+				CommandStart = TEXT("********** COOK COMMAND STARTED **********");
+			}
+		}
+		break;
+	case ELauncherProfileCookModes::ByTheBookInEditor:
+	case ELauncherProfileCookModes::DoNotCook:
+		UATCommand += TEXT(" -skipcook");
+		break;
+	}
+
+	// stage/package/deploy
+	if (InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy)
+	{
+		switch (InProfile->GetDeploymentMode())
+		{
+		case ELauncherProfileDeploymentModes::CopyRepository:
+			break;
+		case ELauncherProfileDeploymentModes::FileServer:
+		case ELauncherProfileDeploymentModes::CopyToDevice:
+			{
+				UATCommand += TEXT(" -stage -deploy");
+				UATCommand += CommandLine;
+				UATCommand += StageDirectory;
+				UATCommand += DeviceCommand;
+				UATCommand += AdditionalCommandLine;
+
+				FCommandDesc Desc;
+				FText Command = FText::Format(LOCTEXT("LauncherDeployDesc", "Deploying content for {0}"), FText::FromString(Platforms.RightChop(1)));
+				Desc.Name = "Deploy Task";
+				Desc.Desc = Command.ToString();
+				Desc.EndText = TEXT("********** DEPLOY COMMAND COMPLETED **********");
+				OutCommands.Add(Desc);
+				if (CommandStart.Len() == 0)
+				{
+					CommandStart = TEXT("********** STAGE COMMAND STARTED **********");
+				}
+			}
+			break;
+		}
+
+		// run
+		if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
+		{
+			UATCommand += TEXT(" -run");
+
+			FCommandDesc Desc;
+			FText Command = FText::Format(LOCTEXT("LauncherRunDesc", "Launching on {0}"), FText::FromString(DeviceNames.RightChop(1)));
+			Desc.Name = "Run Task";
+			Desc.Desc = Command.ToString();
+			Desc.EndText = TEXT("********** RUN COMMAND COMPLETED **********");
+			OutCommands.Add(Desc);
+			if (CommandStart.Len() == 0)
+			{
+				CommandStart = TEXT("********** RUN COMMAND STARTED **********");
+			}
+		}
+	}
+	else
+	{
+		if (InProfile->GetPackagingMode() == ELauncherProfilePackagingModes::Locally)
+		{
+			UATCommand += TEXT(" -stage -package");
+			UATCommand += StageDirectory;
+			UATCommand += CommandLine;
+			UATCommand += AdditionalCommandLine;
+
+			FCommandDesc Desc;
+			FText Command = FText::Format(LOCTEXT("LauncherPackageDesc", "Packaging content for {0}"), FText::FromString(Platforms.RightChop(1)));
+			Desc.Name = "Package Task";
+			Desc.Desc = Command.ToString();
+			Desc.EndText = TEXT("********** PACKAGE COMMAND COMPLETED **********");
+			OutCommands.Add(Desc);
+			if (CommandStart.Len() == 0)
+			{
+				CommandStart = TEXT("********** STAGE COMMAND STARTED **********");
+			}
+		}
+	}
+
+	// wait for completion of UAT
+	FCommandDesc Desc;
+	FText Command = LOCTEXT("LauncherCompletionDesc", "UAT post launch cleanup");
+	Desc.Name = "Post Launch Task";
+	Desc.Desc = Command.ToString();
+	Desc.EndText = TEXT("********** LAUNCH COMPLETED **********");
+	OutCommands.Add(Desc);
+
+	return UATCommand;
+}
+
 /* FLauncherWorker implementation
  *****************************************************************************/
 
@@ -192,403 +508,119 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 	{
 		Platforms = InProfile->GetCookedPlatforms();
 	}
-	TSharedPtr<FLauncherTask> PerPlatformTask = TaskChain;
-	TSharedPtr<FLauncherTask> PerPlatformBuildTask = NULL;
-	TSharedPtr<FLauncherTask> PerPlatformCookTask = NULL;
-	TSharedPtr<FLauncherTask> PerPlatformPackageTask = NULL;
-	TSharedPtr<FLauncherTask> PerPlatformDeviceTask = NULL;
-	TSharedPtr<FLauncherTask> FirstPlatformBuildTask = NULL;
-	TSharedPtr<FLauncherTask> FirstPlatformCookTask = NULL;
-	TSharedPtr<FLauncherTask> FirstPlatformPackageTask = NULL;
-	TSharedPtr<FLauncherTask> FirstPlatformDeviceTask = NULL;
 
 	FLauncherUATTask::FirstTimeCompile = true;
 
 	// determine deployment platforms
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();
+	FName Variant = NAME_None;
 
 	if (DeviceGroup.IsValid() && Platforms.Num() < 1)
 	{
-		const TArray<FString>& Devices = DeviceGroup->GetDevices();
+		const TArray<FString>& Devices = DeviceGroup->GetDeviceIDs();
 		// for each deployed device...
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 		{
 			const FString& DeviceId = Devices[DeviceIndex];
 
-			ITargetDeviceProxyRef DeviceProxy = DeviceProxyManager->FindOrAddProxy(DeviceId);
+			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
 
-			// add the platform
-			Platforms.AddUnique(DeviceProxy->GetPlatformName());
+			if (DeviceProxy.IsValid())
+			{
+				// add the platform
+				Variant = DeviceProxy->GetTargetDeviceVariant(DeviceId);
+				Platforms.AddUnique(DeviceProxy->GetTargetPlatformName(Variant));
+			}			
 		}
 	}
 
-	// for each desired platform...
-	for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
+#if !WITH_EDITOR
+	// can't cook by the book in the editor if we are not in the editor...
+	check( InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBookInEditor );
+#endif
+
+	TSharedPtr<FLauncherTask> NextTask = TaskChain;
+	if (InProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor)
 	{
-		const FString& TargetPlatformName = Platforms[PlatformIndex];
-		const ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(TargetPlatformName);
-
-		if (TargetPlatform == nullptr)
+		// need a command which will wait for the cook to finish
+		class FWaitForCookInEditorToFinish : public FLauncherTask
 		{
-			continue;
-		}
-
-		// ... build the editor and game ...
-		if (InProfile->IsBuilding())
-		{
-			TSharedPtr<FLauncherUATCommand> Command = NULL;
-			if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
+		public:
+			FWaitForCookInEditorToFinish() : FLauncherTask( FString(TEXT("CookByTheBookInEditor")), FString(TEXT("CookByTheBookInEditorDesk")), NULL, NULL)
 			{
-				Command = MakeShareable(new FLauncherBuildServerCommand(*TargetPlatform));
 			}
-			else
+			virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 			{
-				Command = MakeShareable(new FLauncherBuildGameCommand(*TargetPlatform));
-			}
-			TSharedPtr<FLauncherTask> BuildTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-			BuildTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-			BuildTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-			if (!PerPlatformBuildTask.IsValid())
-			{
-				PerPlatformBuildTask = BuildTask;
-				FirstPlatformBuildTask = BuildTask;
-			}
-			else
-			{
-				PerPlatformBuildTask->AddContinuation(BuildTask);
-				PerPlatformBuildTask = BuildTask;
-			}
-		}
-
-		// ... cook the build...
-		TSharedPtr<FLauncherUATCommand> CookCommand = NULL;
-		if (InProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBook)
-		{
-			TSharedPtr<FLauncherUATCommand> Command = NULL;
-
-			if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
-			{
-				Command = MakeShareable(new FLauncherCookServerCommand(*TargetPlatform));
-			}
-			else
-			{
-				Command = MakeShareable(new FLauncherCookGameCommand(*TargetPlatform));
-			}
-			CookCommand = Command;
-			TSharedPtr<FLauncherTask> CookTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-			CookTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-			CookTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-			if (!PerPlatformCookTask.IsValid())
-			{
-				PerPlatformCookTask = CookTask;
-				FirstPlatformCookTask = CookTask;
-			}
-			else
-			{
-				PerPlatformCookTask->AddContinuation(CookTask);
-				PerPlatformCookTask = CookTask;
-			}
-		}
-        // ... start a per-platform file server, if necessary...
-        else if (InProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFly)
-        {
-            TSharedPtr<FLauncherTask> FileServerTask = NULL; //PerPlatformFileServerTasks.FindOrAdd(TargetPlatformName);
-            
-            if (!FileServerTask.IsValid())
-            {
-                TSharedPtr<FLauncherUATCommand> Command = NULL;
-                if (InProfile->GetLaunchMode() == ELauncherProfileLaunchModes::DoNotLaunch)
-                {
-                    Command = MakeShareable(new FLauncherStandAloneCookOnTheFlyCommand(*TargetPlatform));
-                }
-                else
-                {
-                    Command = MakeShareable(new FLauncherCookOnTheFlyCommand(*TargetPlatform));
-                }
-                CookCommand = Command;
-            }
-        }
-
-		// ... package the build...
-		if (InProfile->GetPackagingMode() != ELauncherProfilePackagingModes::DoNotPackage || ((TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName() == TEXT("HTML5")) && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::CopyRepository && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy))
-		{
-			TSharedPtr<FLauncherUATCommand> Command = NULL;
-			if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
-			{
-				Command = MakeShareable(new FLauncherPackageServerCommand(*TargetPlatform, CookCommand));
-			}
-			else
-			{
-				Command = MakeShareable(new FLauncherPackageGameCommand(*TargetPlatform, CookCommand));
-			}
-			
-			TSharedPtr<FLauncherTask> PackageTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-			PackageTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-			PackageTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-			if (!PerPlatformPackageTask.IsValid())
-			{
-				PerPlatformPackageTask = PackageTask;
-				FirstPlatformPackageTask = PackageTask;
-			}
-			else
-			{
-				PerPlatformPackageTask->AddContinuation(PackageTask);
-				PerPlatformPackageTask = PackageTask;
-			}
-		}
-		else if (InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy && InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::CopyRepository)
-		{
-			TSharedPtr<FLauncherUATCommand> Command = NULL;
-			if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
-			{
-				Command = MakeShareable(new FLauncherStageServerCommand(*TargetPlatform, CookCommand));
-			}
-			else
-			{
-				Command = MakeShareable(new FLauncherStageGameCommand(*TargetPlatform, CookCommand));
-			}
-
-			TSharedPtr<FLauncherTask> StageTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-			StageTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-			StageTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-			if (!PerPlatformPackageTask.IsValid())
-			{
-				PerPlatformPackageTask = StageTask;
-				FirstPlatformPackageTask = StageTask;
-			}
-			else
-			{
-				PerPlatformPackageTask->AddContinuation(StageTask);
-				PerPlatformPackageTask = StageTask;
-			}
-		}
-		
-		// ... and deploy the build
-		if (InProfile->GetDeploymentMode() != ELauncherProfileDeploymentModes::DoNotDeploy)
-		{
-			if (!DeviceGroup.IsValid())
-			{
-				continue;
-			}
-
-			TMap<FString, TSharedPtr<FLauncherTask> > PerPlatformFileServerTasks;
-
-			const TArray<FString>& Devices = DeviceGroup->GetDevices();
-
-			// for each deployed device...
-			for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
-			{
-				const FString& DeviceId = Devices[DeviceIndex];
-
-				ITargetDeviceProxyRef DeviceProxy = DeviceProxyManager->FindOrAddProxy(DeviceId);
-
-				// ... that runs the current platform...
-				if (DeviceProxy->GetPlatformName() != TargetPlatformName)
+				while ( !ChainState.Profile->OnIsCookFinished().Execute() )
 				{
-					continue;
+					FPlatformProcess::Sleep( 0.1f );
 				}
-
-				TSharedPtr<FLauncherTask> PerDeviceTask;
-
-				FString LaunchCommandLine = InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch ? InProfile->GetDefaultLaunchRole()->GetCommandLine() : TEXT("");
-				// ... start a per-platform file server, if necessary...
-				if (InProfile->GetDeploymentMode() == ELauncherProfileDeploymentModes::FileServer)
-				{
-					TSharedPtr<FLauncherTask> FileServerTask = NULL; //PerPlatformFileServerTasks.FindOrAdd(TargetPlatformName);
-
-					if (!FileServerTask.IsValid())
-					{
-						TSharedPtr<FLauncherUATCommand> Command = NULL;
-						if (InProfile->GetLaunchMode() == ELauncherProfileLaunchModes::DoNotLaunch)
-						{
-							Command = MakeShareable(new FLauncherStandAloneCookOnTheFlyCommand(*TargetPlatform));
-						}
-						else
-						{
-							Command = MakeShareable(new FLauncherCookOnTheFlyCommand(*TargetPlatform));
-						}
-						CookCommand = Command;
-						FileServerTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-						FileServerTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-						FileServerTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-					}
-
-					if (!PerPlatformDeviceTask.IsValid())
-					{
-						PerPlatformDeviceTask = FileServerTask;
-						FirstPlatformDeviceTask = FileServerTask;
-					}
-					else
-					{
-						PerPlatformDeviceTask->AddContinuation(FileServerTask);
-						PerPlatformDeviceTask = FileServerTask;
-					}
-				}
-
-				// ... deploy the build to the device...
-				if (InProfile->GetDeploymentMode() == ELauncherProfileDeploymentModes::CopyToDevice)
-				{
-					TSharedPtr<FLauncherUATCommand> Command = NULL;
-					if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
-					{
-						Command = MakeShareable(new FLauncherDeployServerToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
-					}
-					else
-					{
-						Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
-					}
-					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-
-					if (!PerPlatformDeviceTask.IsValid())
-					{
-						PerPlatformDeviceTask = DeployTask;
-						FirstPlatformDeviceTask = DeployTask;
-					}
-					else
-					{
-						PerPlatformDeviceTask->AddContinuation(DeployTask);
-						PerPlatformDeviceTask = DeployTask;
-					}
-				}
-				else if (InProfile->GetDeploymentMode() == ELauncherProfileDeploymentModes::CopyRepository)
-				{
-					TSharedPtr<FLauncherUATCommand> Command = NULL;
-					if (TargetPlatform->PlatformName() == TEXT("WindowsServer") || TargetPlatform->PlatformName() == TEXT("LinuxServer"))
-					{
-						Command = MakeShareable(new FLauncherDeployServerPackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
-					}
-					else
-					{
-						Command = MakeShareable(new FLauncherDeployGamePackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
-					}
-					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-
-					if (!PerPlatformDeviceTask.IsValid())
-					{
-						PerPlatformDeviceTask = DeployTask;
-						FirstPlatformDeviceTask = DeployTask;
-					}
-					else
-					{
-						PerPlatformDeviceTask->AddContinuation(DeployTask);
-						PerPlatformDeviceTask = DeployTask;
-					}
-				}
-				else if (TargetPlatform->PlatformName() == TEXT("XboxOne") || TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName().StartsWith(TEXT("Android")))
-				{
-					TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
-					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-
-					if (!PerPlatformDeviceTask.IsValid())
-					{
-						PerPlatformDeviceTask = DeployTask;
-						FirstPlatformDeviceTask = DeployTask;
-					}
-					else
-					{
-						PerPlatformDeviceTask->AddContinuation(DeployTask);
-						PerPlatformDeviceTask = DeployTask;
-					}
-				}
-
-				// ... and then launch the build...
-				if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
-				{
-					TArray<ILauncherProfileLaunchRolePtr> Roles;
-
-					if (InProfile->GetLaunchRolesFor(DeviceId, Roles) > 0)
-					{
-						// ... for every role assigned to that device
-						for (int32 RoleIndex = 0; RoleIndex < Roles.Num(); ++RoleIndex)
-						{
-							TSharedPtr<FLauncherUATCommand> Command;
-							if (Roles[RoleIndex]->GetInstanceType() == ELauncherProfileRoleInstanceTypes::StandaloneClient)
-							{
-								Command = MakeShareable(new FLauncherLaunchGameCommand(DeviceProxy, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
-							}
-							else if (Roles[RoleIndex]->GetInstanceType() == ELauncherProfileRoleInstanceTypes::DedicatedServer)
-							{
-								Command = MakeShareable(new FLauncherLaunchDedicatedServerCommand(DeviceProxy, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
-							}
-								
-							TSharedPtr<FLauncherTask> PerRoleTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-							PerRoleTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-							PerRoleTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
-
-							if (!PerPlatformDeviceTask.IsValid())
-							{
-								PerPlatformDeviceTask = PerRoleTask;
-								FirstPlatformDeviceTask = PerRoleTask;
-							}
-							else
-							{
-								PerPlatformDeviceTask->AddContinuation(PerRoleTask);
-								PerPlatformDeviceTask = PerRoleTask;
-							}
-						}
-					}
-				}
+				return true;
 			}
-		}
-		else if (InProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFly)
+		};
+		TSharedPtr<FLauncherTask> WaitTask = MakeShareable(new FWaitForCookInEditorToFinish());
+		WaitTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
+		WaitTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
+		NextTask->AddContinuation(WaitTask);
+		NextTask = WaitTask;
+	}
+	TArray<FCommandDesc> Commands;
+	FString StartString;
+	FString UATCommand = CreateUATCommand(InProfile, Platforms, Commands, StartString);
+	TSharedPtr<FLauncherTask> BuildTask = MakeShareable(new FLauncherUATTask(UATCommand, TEXT("Build Task"), TEXT("Launching UAT..."), ReadPipe, WritePipe, InProfile->GetEditorExe(), ProcHandle, this, StartString));
+	BuildTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
+	BuildTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
+	NextTask->AddContinuation(BuildTask);
+	NextTask = BuildTask;
+	for (int32 Index = 0; Index < Commands.Num(); ++Index)
+	{
+		class FLauncherWaitTask : public FLauncherTask
 		{
-//			TMap<FString, TSharedPtr<FLauncherTask> > PerPlatformFileServerTasks;
-			TSharedPtr<FLauncherTask> FileServerTask = NULL; //PerPlatformFileServerTasks.FindOrAdd(TargetPlatformName);
-
-			if (!FileServerTask.IsValid())
+		public:
+			FLauncherWaitTask( const FString& InCommandEnd, const FString& InName, const FString& InDesc, FProcHandle& InProcessHandle, ILauncherWorker* InWorker)
+				: FLauncherTask(InName, InDesc, 0, 0)
+				, CommandText(InCommandEnd)
+				, ProcessHandle(InProcessHandle)
 			{
-				TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherStandAloneCookOnTheFlyCommand(*TargetPlatform));
-				FileServerTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
-				FileServerTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
-				FileServerTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
+				EndTextFound = false;
+				InWorker->OnOutputReceived().AddRaw(this, &FLauncherWaitTask::HandleOutputReceived);
 			}
 
-			if (!PerPlatformDeviceTask.IsValid())
+		protected:
+			virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 			{
-				PerPlatformDeviceTask = FileServerTask;
-				FirstPlatformDeviceTask = FileServerTask;
+				while (FPlatformProcess::IsProcRunning(ProcessHandle) && !EndTextFound)
+				{
+					if (GetStatus() == ELauncherTaskStatus::Canceling)
+					{
+						FPlatformProcess::TerminateProc(ProcessHandle, true);
+						return false;
+					}
+					FPlatformProcess::Sleep(0.25);
+				}
+				if (!EndTextFound && !FPlatformProcess::GetProcReturnCode(ProcessHandle, &Result))
+				{
+					return false;
+				}
+				return (Result == 0);
 			}
-			else
-			{
-				PerPlatformDeviceTask->AddContinuation(FileServerTask);
-				PerPlatformDeviceTask = FileServerTask;
-			}
-		}
-	}
 
-	if (FirstPlatformBuildTask.IsValid())
-	{
-		TaskChain->AddContinuation(FirstPlatformBuildTask);
-	}
-	else
-	{
-		PerPlatformBuildTask = TaskChain;
-	}
-	if (FirstPlatformCookTask.IsValid())
-	{
-		PerPlatformBuildTask->AddContinuation(FirstPlatformCookTask);
-	}
-	else
-	{
-		PerPlatformCookTask = PerPlatformBuildTask;
-	}
-	if (FirstPlatformPackageTask.IsValid())
-	{
-		PerPlatformCookTask->AddContinuation(FirstPlatformPackageTask);
-	}
-	else
-	{
-		PerPlatformPackageTask = PerPlatformCookTask;
-	}
-	if (FirstPlatformDeviceTask.IsValid())
-	{
-		PerPlatformPackageTask->AddContinuation(FirstPlatformDeviceTask);
+			void HandleOutputReceived(const FString& InMessage)
+			{
+				EndTextFound |= InMessage.Contains(CommandText);
+			}
+
+		private:
+			FString CommandText;
+			FProcHandle& ProcessHandle;
+			bool EndTextFound;
+		};			
+
+		TSharedPtr<FLauncherTask> WaitTask = MakeShareable(new FLauncherWaitTask(Commands[Index].EndText, Commands[Index].Name, Commands[Index].Desc, ProcHandle, this));
+		WaitTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
+		WaitTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
+		NextTask->AddContinuation(WaitTask);
+		NextTask = WaitTask;
 	}
 
 	// execute the chain
@@ -599,3 +631,5 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 
 	TaskChain->Execute(ChainState);
 }
+
+#undef LOCTEXT_NAMESPACE

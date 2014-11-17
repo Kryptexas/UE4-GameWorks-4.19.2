@@ -4,9 +4,10 @@
 #include "DebugRenderSceneProxy.h"
 #include "Debug/DebugDrawService.h"
 #include "EnvQueryTypes.h"
+#include "EnvQueryDebugHelpers.h"
 #include "EQSRenderingComponent.generated.h"
 
-class FEQSSceneProxy : public FDebugRenderSceneProxy
+class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
 {
 public:
 	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName = TEXT("DebugAI"), bool bDrawOnlyWhenSelected = true);
@@ -14,10 +15,12 @@ public:
 
 	virtual void DrawDebugLabels(UCanvas* Canvas, APlayerController*) override;
 	
-	//virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 
-	static void CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* QueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts);
+#if  USE_EQS_DEBUGGER 
+	static void CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* QueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, TArray<EQSDebug::FDebugHelper>& DebugItems);
+	static void CollectEQSData(const struct FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems, TArray<EQSDebug::FDebugHelper>& DebugItems);
+#endif
 private:
 	FEnvQueryResult QueryResult;	
 	// can be 0
@@ -37,6 +40,10 @@ class AIMODULE_API UEQSRenderingComponent : public UPrimitiveComponent
 
 	FString DrawFlagName;
 	bool bDrawOnlyWhenSelected;
+
+#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	EQSDebug::FQueryData DebugData;
+#endif
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;

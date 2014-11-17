@@ -9,6 +9,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "SLevelOfDetailBranchNode.h"
 #include "IDocumentation.h"
+#include "TutorialMetaData.h"
 
 /////////////////////////////////////////////////////
 // SNodeTitle
@@ -67,11 +68,33 @@ void SNodeTitle::RebuildWidget()
 
 	// Break the title into lines
 	TArray<FString> Lines;
-	CachedTitle.ToString().ParseIntoArray(&Lines, TEXT("\n"), false);
+	const FString CachedTitleString = CachedTitle.ToString().Replace(TEXT("\r"), TEXT(""));
+	CachedTitleString.ParseIntoArray(&Lines, TEXT("\n"), false);
 
-	if(Lines.Num())
+	if (Lines.Num())
 	{
 		CachedHeadTitle = FText::FromString(Lines[0]);
+	}
+
+	// Pad the height of multi-line node titles to be a multiple of the graph snap grid taller than
+	// single-line nodes, so the pins will still line up if you place the node N cell snaps above
+	if (Lines.Num() > 1)
+	{
+		// Note: This code a little fragile, and will need to be updated if the font or padding of titles
+		// changes in the future, but the failure mode is just a slight misalignment.
+		const int32 EstimatedExtraHeight = (Lines.Num() - 1) * 13;
+
+		const int32 SnapSize = (int32)SNodePanel::GetSnapGridSize();
+		const int32 PadSize = SnapSize - (EstimatedExtraHeight % SnapSize);
+
+		if (PadSize < SnapSize)
+		{
+			VerticalBox->AddSlot()
+			[
+				SNew(SSpacer)
+				.Size(FVector2D(1.0f, PadSize))
+			];
+		}
 	}
 
 	// Make a separate widget for each line, using a less obvious style for subsequent lines
@@ -290,8 +313,11 @@ FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 				//Replace literal node's object reference
 				LiteralNode->SetObjectRef( DragConnectionOp->Actors[ 0 ].Get() );
 
-				UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(GraphNode->GetOuter()));
-				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+				UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(CastChecked<UEdGraph>(GraphNode->GetOuter()));
+				if (Blueprint != nullptr)
+				{
+					FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+				}
 			}
 		}
 		return FReply::Handled();
@@ -485,7 +511,7 @@ FText SGraphNode::GetNodeTooltip() const
 			return FText::FromString(GraphNode->GetNodeTitle(ENodeTitleType::ListView).BuildSourceString());
 		}
 
-		FText TooltipText = FText::FromString(GraphNode->GetTooltip());
+		FText TooltipText = GraphNode->GetTooltipText();
 
 		if (UEdGraph* Graph = GraphNode->GetGraph())
 		{
@@ -517,6 +543,11 @@ FText SGraphNode::GetNodeTooltip() const
 UEdGraphNode* SGraphNode::GetNodeObj() const
 {
 	return GraphNode;
+}
+
+TSharedRef<SGraphNode> SGraphNode::GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return StaticCastSharedRef<SGraphNode>(AsShared());
 }
 
 TSharedPtr<SGraphPanel> SGraphNode::GetOwnerPanel() const
@@ -559,9 +590,9 @@ TSharedPtr<SWidget>	SGraphNode::SetupErrorReporting()
 	UpdateErrorInfo();
 
 	// generate widget
-	SAssignNew(ErrorText, SErrorText )
-			.BackgroundColor( this, &SGraphNode::GetErrorColor )
-			.ToolTipText( this, &SGraphNode::GetErrorMsgToolTip );
+	SAssignNew(ErrorText, SErrorText)
+		.BackgroundColor( this, &SGraphNode::GetErrorColor )
+		.ToolTipText( this, &SGraphNode::GetErrorMsgToolTip );
 
 	ErrorReporting = ErrorText;
 	ErrorReporting->SetError(ErrorMsg);
@@ -697,8 +728,13 @@ void SGraphNode::UpdateGraphNode()
 		SetToolTip(DefaultToolTip);
 	}
 
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
+	PopulateMetaTag(&TagMeta);
+	
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
+
 	this->ChildSlot
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
@@ -707,30 +743,39 @@ void SGraphNode::UpdateGraphNode()
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SBorder)
-				.BorderImage( FEditorStyle::GetBrush( "Graph.Node.Body" ) )
-				.Padding(0)
+				SNew(SOverlay)
+				.AddMetaData<FGraphNodeMetaData>(TagMeta)
+				+SOverlay::Slot()
+				.Padding(Settings->GetNonPinNodeBodyPadding())
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Graph.Node.Body"))
+				]
+				+SOverlay::Slot()
 				[
 					SAssignNew(InnerVerticalBox, SVerticalBox)
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
+					.Padding(Settings->GetNonPinNodeBodyPadding())
 					[
 						TitleAreaWidget
 					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(1.0f)
-					[
-						ErrorText->AsShared()
-					]
+
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
 					[
 						CreateNodeContentArea()
+					]
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(Settings->GetNonPinNodeBodyPadding())
+					[
+						ErrorText->AsShared()
 					]
 				]
 			]			
@@ -887,29 +932,24 @@ TSharedPtr<SGraphPin> SGraphNode::CreatePinWidget(UEdGraphPin* Pin) const
 	return FNodeFactory::CreatePinWidget(Pin);
 }
 
-/**
- * Add a new pin to this graph node. The pin must be newly created.
- *
- * @param PinToAdd   A new pin to add to this GraphNode.
- */
-void SGraphNode::AddPin( const TSharedRef<SGraphPin>& PinToAdd )
+void SGraphNode::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 {	
-	PinToAdd->SetOwner( SharedThis(this) );
+	PinToAdd->SetOwner(SharedThis(this));
 
 	const UEdGraphPin* PinObj = PinToAdd->GetPinObj();
-	const bool bAdvancedParameter = PinObj && PinObj->bAdvancedView;
-	if(bAdvancedParameter)
+	const bool bAdvancedParameter = (PinObj != nullptr) && PinObj->bAdvancedView;
+	if (bAdvancedParameter)
 	{
 		PinToAdd->SetVisibility( TAttribute<EVisibility>(PinToAdd, &SGraphPin::IsPinVisibleAsAdvanced) );
 	}
-	
+
 	if (PinToAdd->GetDirection() == EEdGraphPinDirection::EGPD_Input)
 	{
 		LeftNodeBox->AddSlot()
 			.AutoHeight()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Center)
-			.Padding(10,4)
+			.Padding(Settings->GetInputPinPadding())
 		[
 			PinToAdd
 		];
@@ -921,7 +961,7 @@ void SGraphNode::AddPin( const TSharedRef<SGraphPin>& PinToAdd )
 			.AutoHeight()
 			.HAlign(HAlign_Right)
 			.VAlign(VAlign_Center)
-			.Padding(10,4)
+			.Padding(Settings->GetOutputPinPadding())
 		[
 			PinToAdd
 		];
@@ -984,7 +1024,7 @@ TSharedPtr<SGraphPin> SGraphNode::GetHoveredPin( const FGeometry& MyGeometry, co
 		int32 HoveredPinIndex = SWidget::FindChildUnderMouse( ArrangedPins, MouseEvent );
 		if ( HoveredPinIndex != INDEX_NONE )
 		{
-			return StaticCastSharedRef<SGraphPin>(ArrangedPins(HoveredPinIndex).Widget);
+			return StaticCastSharedRef<SGraphPin>(ArrangedPins[HoveredPinIndex].Widget);
 		}
 	}
 	
@@ -1032,9 +1072,10 @@ FLinearColor SGraphNode::GetPinLabelColorAndOpacity() const
 
 SGraphNode::SGraphNode()
 	: bProvidedComplexTooltip(false)
-	, ErrorColor( FLinearColor::White )
 	, bRenameIsPending( false )
+	, ErrorColor( FLinearColor::White )
 	, CachedUnscaledPosition( FVector2D::ZeroVector )
+	, Settings( GetDefault<UGraphEditorSettings>() )
 {
 	// Set up animation
 	{
@@ -1271,4 +1312,22 @@ EVisibility SGraphNode::IsAddPinButtonVisible() const
 	}
 
 	return bIsHidden ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+void SGraphNode::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
+{
+	if (GraphNode != nullptr)
+	{
+		// We want the name of the blueprint as our name - we can find the node from the GUID
+		UObject* Package = GraphNode->GetOutermost();
+		UObject* LastOuter = GraphNode->GetOuter();
+		while (LastOuter->GetOuter() != Package)
+		{
+			LastOuter = LastOuter->GetOuter();
+		}
+		TagMeta->Tag = FName(*FString::Printf(TEXT("GraphNode_%s_%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString()));
+		TagMeta->OuterName = LastOuter->GetFullName();
+		TagMeta->GUID = GraphNode->NodeGuid;
+		TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString(), *TagMeta->OuterName);		
+	}
 }

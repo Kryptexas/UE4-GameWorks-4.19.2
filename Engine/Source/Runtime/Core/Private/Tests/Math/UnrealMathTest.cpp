@@ -692,11 +692,11 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	TestVectorMatrixInverse( &M3, &M1 );
 	LogTest( TEXT("VectorMatrixInverse"), TestMatricesEqual( M2, M3 ) );
 
-	FTransform Transform;
-	Transform.SetFromMatrix(M1);
-	FTransform InvTransform = Transform.InverseSafe();
-	FTransform InvTransform2 = FTransform(Transform.ToMatrixWithScale().InverseSafe());
-	LogTest( TEXT("FTransform Inverse"), InvTransform.Equals(InvTransform2, 1e-3f ) );
+// 	FTransform Transform;
+// 	Transform.SetFromMatrix(M1);
+// 	FTransform InvTransform = Transform.Inverse();
+// 	FTransform InvTransform2 = FTransform(Transform.ToMatrixWithScale().Inverse());
+// 	LogTest( TEXT("FTransform Inverse"), InvTransform.Equals(InvTransform2, 1e-3f ) );
 
 	V0 = MakeVectorRegister( 100.0f, -100.0f, 200.0f, 1.0f );
 	V1 = VectorTransformVector(V0, &M0);

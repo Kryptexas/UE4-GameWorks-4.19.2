@@ -21,6 +21,7 @@ class AIMODULE_API UBTService_BlueprintBase : public UBTService
 
 	virtual FString GetStaticDescription() const override;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
 
 #if WITH_EDITOR
 	virtual bool UsesBlueprint() const override;
@@ -44,13 +45,21 @@ protected:
 	/** set if ReceiveDeactivation is implemented by blueprint */
 	uint32 bImplementsReceiveDeactivation : 1;
 
+	/** set if ReceiveSearchStart is implemented by blueprint */
+	uint32 bImplementsReceiveSearchStart : 1;
+
 	virtual void OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void OnSearchStart(struct FBehaviorTreeSearchData& SearchData) override;
 
 	/** tick function */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
+
+	/** task search enters branch of tree, initial ReceiveTick won't be called if you implement this event! */
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual void ReceiveSearchStart(AActor* OwnerActor);
 
 	/** service became active */
 	UFUNCTION(BlueprintImplementableEvent)

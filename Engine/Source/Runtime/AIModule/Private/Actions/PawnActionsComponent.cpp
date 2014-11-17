@@ -70,7 +70,7 @@ void FPawnActionStack::Pause()
 {
 	if (TopAction != NULL)
 	{
-		TopAction->Pause();
+		TopAction->Pause(NULL);
 	}
 }
 
@@ -86,7 +86,7 @@ void FPawnActionStack::PushAction(UPawnAction* NewTopAction)
 {
 	if (TopAction != NULL)
 	{
-		TopAction->Pause();
+		TopAction->Pause(NewTopAction);
 		ensure(TopAction->ChildAction == NULL);
 		TopAction->ChildAction = NewTopAction;
 		NewTopAction->ParentAction = TopAction;
@@ -120,6 +120,11 @@ void FPawnActionStack::PopAction(UPawnAction* ActionToPop)
 		{
 			UPawnAction* NextAction = ActionBeingRemoved->ParentAction;
 			
+			if (ActionBeingRemoved->IsBeingAborted() == false && ActionBeingRemoved->IsFinished() == false)
+			{
+				// forcing abort to make sure it happens instantly. We don't have time for delayed finish here.
+				ActionBeingRemoved->Abort(EAIForceParam::Force);
+			}
 			ActionBeingRemoved->OnPopped();
 			if (ActionBeingRemoved->ParentAction)
 			{
@@ -221,7 +226,7 @@ void UPawnActionsComponent::UpdateCurrentAction()
 
 		if (CurrentAction != NULL && CurrentAction->IsActive())
 		{
-			CurrentAction->Pause();
+			CurrentAction->Pause(NewCurrentAction);
 		}
 		CurrentAction = NewCurrentAction;
 		bool bNewActionStartedSuccessfully = true;

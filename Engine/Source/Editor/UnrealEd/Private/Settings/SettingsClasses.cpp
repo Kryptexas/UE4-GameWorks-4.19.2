@@ -1,11 +1,8 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Settings.cpp: Implements the constructors for the various settings classes.
-=============================================================================*/
-
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "EdGraphSchema_K2.h" // for bUseLegacyActionMenus
 
 
 /* UContentBrowserSettings interface
@@ -22,7 +19,9 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
@@ -39,12 +38,12 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 {
-	AnimPreviewLightingDirection = FRotator(-45.0f,45.0f,0);
+	AnimPreviewLightingDirection = FRotator(-45.0f, 45.0f, 0);
 	AnimPreviewSkyColor = FColor(0, 0, 255);
 	AnimPreviewFloorColor = FColor(51, 51, 51);
-	AnimPreviewSkyBrightness = 0.2f*PI;
+	AnimPreviewSkyBrightness = 0.2f * PI;
 	AnimPreviewDirectionalColor = FColor(255, 255, 255);
-	AnimPreviewLightBrightness = 1.0f*PI;
+	AnimPreviewLightBrightness = 1.0f * PI;
 }
 
 
@@ -53,7 +52,9 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const class FP
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
-{
+{ 
+	// setting was originally loaded from .ini into UEdGraphSchema_K2
+	bUseRefactoredBlueprintMenuingSystem = !GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus;
 }
 
 
@@ -137,7 +138,9 @@ void ULevelEditorMiscSettings::PostEditChangeProperty( struct FPropertyChangedEv
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (Name == FName(TEXT("bNavigationAutoUpdate")))
 	{
@@ -187,7 +190,9 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (Name == FName(TEXT("bAllowTranslateRotateZWidget")))
 	{
@@ -202,7 +207,9 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	}
 	else if (Name == FName(TEXT("bHighlightWithBrackets")))
 	{
-		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets ? FLinearColor::Black : GetDefault<UEditorStyleSettings>()->SelectionColor);
+		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets
+			? FLinearColor::Black
+			: GetDefault<UEditorStyleSettings>()->SelectionColor);
 	}
 	else if (Name == FName(TEXT("HoverHighlightIntensity")))
 	{
@@ -219,14 +226,15 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	else if ((Name == FName(TEXT("UserDefinedPosGridSizes"))) || (Name == FName(TEXT("UserDefinedRotGridSizes"))) || (Name == FName(TEXT("ScalingGridSizes"))) || (Name == FName(TEXT("GridIntervals"))))
 	{
 		const float MinGridSize = (Name == FName(TEXT("GridIntervals"))) ? 4.0f : 0.0001f;
-		TArray<float>* ArrayRef = NULL;
-		int32* IndexRef = NULL;
+		TArray<float>* ArrayRef = nullptr;
+		int32* IndexRef = nullptr;
 
 		if (Name == FName(TEXT("ScalingGridSizes")))
 		{
 			ArrayRef = &(ScalingGridSizes);
 			IndexRef = &(CurrentScalingGridSize);
 		}
+
 		// Don't allow an empty array of grid sizes
 		if (ArrayRef->Num() == 0)
 		{
@@ -242,12 +250,12 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			}
 		}
 	}
-	else if( Name == FName(TEXT("bUsePowerOf2SnapSize")) )
+	else if (Name == FName(TEXT("bUsePowerOf2SnapSize")))
 	{
 		const float BSPSnapSize = bUsePowerOf2SnapSize ? 128.0f : 100.0f;
-		UModel::SetGlobalBSPTexelScale( BSPSnapSize );
+		UModel::SetGlobalBSPTexelScale(BSPSnapSize);
 	}
-	else if( Name == FName(TEXT("BillboardScale")))
+	else if (Name == FName(TEXT("BillboardScale")))
 	{
 		UBillboardComponent::SetEditorScale(BillboardScale);
 		UArrowComponent::SetEditorScale(BillboardScale);
@@ -273,6 +281,7 @@ UProjectPackagingSettings::UProjectPackagingSettings( const class FPostConstruct
 	FullRebuild = true;
 	UsePakFile = true;
 	UseOBB_InAPK = false;
+	CulturesToStage.Add("en");
 }
 
 
@@ -280,7 +289,9 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
 
 	if (Name == FName((TEXT("DirectoriesToAlwaysCook"))))
 	{
@@ -299,4 +310,21 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 		FPaths::MakePathRelativeTo(Path, FPlatformProcess::BaseDir());
 		StagingDirectory.Path = Path;
 	}
+	else if (Name == FName(TEXT("ForDistribution")) || Name == FName(TEXT("BuildConfiguration")))
+	{
+		if (ForDistribution)
+		{
+			BuildConfiguration = EProjectPackagingBuildConfigurations::PPBC_Shipping;
+		}
+	}
+}
+
+bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) const
+{
+	if (InProperty->GetFName() == FName(TEXT("BuildConfiguration")) && ForDistribution)
+	{
+		return false;
+	}
+
+	return Super::CanEditChange(InProperty);
 }

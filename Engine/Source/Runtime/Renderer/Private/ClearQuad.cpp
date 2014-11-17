@@ -6,7 +6,7 @@
 FGlobalBoundShaderState GClearMRTBoundShaderState[8];
 
 // TODO support ExcludeRect
-void DrawClearQuadMRT(FRHICommandList& RHICmdList, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+void DrawClearQuadMRT(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
 	// Set new states
 	FBlendStateRHIParamRef BlendStateRHI;
@@ -47,8 +47,11 @@ void DrawClearQuadMRT(FRHICommandList& RHICmdList, bool bClearColor, int32 NumCl
 	RHICmdList.SetBlendState(BlendStateRHI);
 	RHICmdList.SetDepthStencilState(DepthStencilStateRHI);
 
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+
+
 	// Set the new shaders
-	TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 
 	FOneColorPS* PixelShader = NULL;
 
@@ -56,46 +59,46 @@ void DrawClearQuadMRT(FRHICommandList& RHICmdList, bool bClearColor, int32 NumCl
 	// On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
 	if (NumClearColors <= 1)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 2)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 3)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 4)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 5)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 6)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 7)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 	else if (NumClearColors == 8)
 	{
-		TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
 		PixelShader = *MRTPixelShader;
 	}
 
-	SetGlobalBoundShaderState(RHICmdList, GClearMRTBoundShaderState[FMath::Max(NumClearColors - 1, 0)], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GClearMRTBoundShaderState[FMath::Max(NumClearColors - 1, 0)], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
 	FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
 	FMemory::MemZero(ShaderClearColors);
 

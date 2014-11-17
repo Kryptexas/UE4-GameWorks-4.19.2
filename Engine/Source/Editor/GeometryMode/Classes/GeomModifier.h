@@ -44,7 +44,7 @@ public:
 	/** @return		true if the delta was handled by this editor mode tool. */
 	virtual bool InputDelta(class FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale);
 
-	/*
+	/**
 	 * Drawing functions to allow modifiers to have better control over the screen.
 	 */
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);

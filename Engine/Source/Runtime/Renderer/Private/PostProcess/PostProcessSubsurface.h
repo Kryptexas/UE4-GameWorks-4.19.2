@@ -16,22 +16,26 @@
 class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 1>
 {
 public:
+	FRCPassPostProcessSubsurfaceSetup(bool bInVisualize);
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 	virtual void Release() override { delete this; }
+
+	bool bVisualize;
 };
 
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
-// ePId_Input0: SceneColor (horizontal blur) or the pass before (vertical blur)
-// ePId_Input1: optional SubsurfaceTemp input
+// ePId_Input0: optional SubsurfaceTemp input
+// ePId_Input1: SceneColor (horizontal blur) or the pass before (vertical blur)
 // modifies SceneColor, uses some GBuffer attributes
 class FRCPassPostProcessSubsurface : public TRenderingCompositePassBase<2, 1>
 {
 public:
 	// constructor
-	// @param Pass 0/1
+	// @param Pass 0:horizontal/1:vertical
 	// @param InRadius in pixels in the full res image
 	FRCPassPostProcessSubsurface(uint32 Pass, float InRadius);
 
@@ -44,6 +48,6 @@ public:
 private:
 	// in pixels in the full res image
 	float Radius;
-	// 0/1
+	// 0:horizontal/1:vertical
 	uint32 Pass;
 };

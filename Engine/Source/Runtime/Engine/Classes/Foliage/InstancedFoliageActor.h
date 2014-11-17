@@ -2,18 +2,18 @@
 
 
 #pragma once
-
-#include "UniqueObj.h"
-#include "InstancedFoliage.h"
+#include "GameFramework/Actor.h"
+#include "Templates/UniqueObj.h"
 #include "InstancedFoliageActor.generated.h"
 
 // Forward declarations
 class UFoliageType;
 class ULandscapeHeightfieldCollisionComponent;
 struct FFoliageInstancePlacementInfo;
+struct FFoliageMeshInfo;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
-class AInstancedFoliageActor : public AActor, public INavRelevantActorInterface
+class AInstancedFoliageActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -93,7 +93,7 @@ public:
 	// Transforms Editor specific data which is stored in world space
 	ENGINE_API void ApplyLevelTransform(const FTransform& LevelTransform);
 
-	/*
+	/**
 	* Get the instanced foliage actor for the current streaming level.
 	*
 	* @param InCreationWorldIfNone			World to create the foliage instance in
@@ -106,8 +106,4 @@ public:
 	// Get the instanced foliage actor for the specified streaming level. Never creates a new IFA.
 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level);
 #endif	//WITH_EDITOR
-
-	// Begin INavRelevantActorInterface Interface
-	virtual bool DoesSupplyPerComponentNavigationCollision() const override { return true; }
-	// End INavRelevantActorInterface Interface
 };

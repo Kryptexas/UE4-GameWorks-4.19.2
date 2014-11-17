@@ -15,6 +15,7 @@
 #include "UObjectToken.h"
 #include "InstancedStaticMeshSCSEditorCustomization.h"
 #include "UserDefinedStructureEditor.h"
+#include "BlueprintGraphPanelPinFactory.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -100,6 +101,9 @@ void FBlueprintEditorModule::StartupModule()
 
 	// Register internal SCS editor customizations
 	RegisterSCSEditorCustomization("InstancedStaticMeshComponent", FSCSEditorCustomizationBuilder::CreateStatic(&FInstancedStaticMeshSCSEditorCustomization::MakeInstance));
+
+	TSharedPtr<FBlueprintGraphPanelPinFactory> BlueprintGraphPanelPinFactory = MakeShareable(new FBlueprintGraphPanelPinFactory());
+	FEdGraphUtilities::RegisterVisualPinFactory(BlueprintGraphPanelPinFactory);
 }
 
 

@@ -2,8 +2,10 @@
 
 
 #pragma once
+#include "Engine/TriggerBase.h"
 #include "TriggerSphere.generated.h"
 
+/** A sphere shaped trigger, used to generate overlap events in the level */
 UCLASS(MinimalAPI)
 class ATriggerSphere : public ATriggerBase
 {

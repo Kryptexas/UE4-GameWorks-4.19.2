@@ -10,13 +10,13 @@ DEFINE_LOG_CATEGORY_STATIC(LauncherAutomatedService, Log, All);
  *****************************************************************************/
 
 FLauncherAutomatedServiceProvider::FLauncherAutomatedServiceProvider()
-	: LastDevicePingTime( 0.0 )
-	, TimeSinceLastShutdownRequest( 0.0 )
+	: bHasErrors( false )
 	, bHasLaunchedAllInstances( false )
 	, bIsReadyToShutdown( false )
 	, bShouldDeleteProfileWhenComplete( false )
+	, LastDevicePingTime( 0.0 )
 	, SessionID( FGuid::NewGuid() )
-	, bHasErrors( false )
+	, TimeSinceLastShutdownRequest( 0.0 )
 { }
 
 
@@ -205,7 +205,7 @@ void FLauncherAutomatedServiceProvider::SetupProfileAndGroupSettings( const TCHA
 				}
 			}
 
-			bHasValidDeviceGroup = AutomatedDeviceGroup.IsValid() && ( AutomatedDeviceGroup->GetDevices().Num() > 0 );
+			bHasValidDeviceGroup = AutomatedDeviceGroup.IsValid() && (AutomatedDeviceGroup->GetNumDevices() > 0);
 
 			// A reference to the proxy manager responsible for device activity here.
 			DeviceProxyManager = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices")).GetDeviceProxyManager();
@@ -238,16 +238,16 @@ void FLauncherAutomatedServiceProvider::HandleDeviceProxyManagerProxyAdded( cons
 	if (AddedProxy->IsConnected())
 	{
 		FString SessionName = FString::Printf(TEXT("%s - %s"), FPlatformProcess::ComputerName(), *AutomatedDeviceGroup->GetName());
-		FString CommandLine = FString::Printf(TEXT("%s %s -SessionId=\"%s\" -SessionOwner=\"%s\" -SessionName=\"%s\""), *AutomatedProfile->GetDefaultLaunchRole()->GetInitialMap(), *AutomatedProfile->GetDefaultLaunchRole()->GetCommandLine(), *SessionID.ToString(), FPlatformProcess::UserName(false), *SessionName);
+		FString CommandLine = FString::Printf(TEXT("%s %s -SessionId=\"%s\" -SessionOwner=\"%s\" -SessionName=\"%s\""), *AutomatedProfile->GetDefaultLaunchRole()->GetInitialMap(), *AutomatedProfile->GetDefaultLaunchRole()->GetCommandLine(), *SessionID.ToString(), FPlatformProcess::UserName(true), *SessionName);
 
 		// @todo gmp: fix automated service provider; must use ILauncher interface here
 		//AddedProxy->Run(AutomatedProfile->GetBuildConfiguration(), AutomatedProfile->GetBuildGame(), CommandLine);
 
-		UE_LOG(LauncherAutomatedService, Display, TEXT("%s"), *FText::Format(FText::FromString("Deploying to: {0}"), FText::FromString(AddedProxy->GetDeviceId())).ToString());
+		UE_LOG(LauncherAutomatedService, Display, TEXT("%s"), *FText::Format(FText::FromString("Deploying to: {0}"), FText::FromString(AddedProxy->GetName())).ToString());
 
 		DeployedInstances.Add( AddedProxy );
 
-		if( AutomatedDeviceGroup->GetDevices().Num() == DeployedInstances.Num() )
+		if (AutomatedDeviceGroup->GetNumDevices() == DeployedInstances.Num())
 		{
 			bHasLaunchedAllInstances = true;
 			// All devices have been found. Start the automation test process

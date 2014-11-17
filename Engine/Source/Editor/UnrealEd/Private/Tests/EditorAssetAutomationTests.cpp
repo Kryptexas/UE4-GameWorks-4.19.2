@@ -29,76 +29,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorAssetAutomationTests, Log, All);
 
-namespace AssetAutomationCommon
-{
-	/**
-	* Nulls out references to a given object
-	*
-	* @param InObject - Object to null references to
-	*/
-	static void NullReferencesToObject(UObject* InObject)
-	{
-		TArray<UObject*> ReplaceableObjects;
-		TMap<UObject*, UObject*> ReplacementMap;
-		ReplacementMap.Add(InObject, NULL);
-		ReplacementMap.GenerateKeyArray(ReplaceableObjects);
-
-		// Find all the properties (and their corresponding objects) that refer to any of the objects to be replaced
-		TMap< UObject*, TArray<UProperty*> > ReferencingPropertiesMap;
-		for (FObjectIterator ObjIter; ObjIter; ++ObjIter)
-		{
-			UObject* CurObject = *ObjIter;
-
-			// Find the referencers of the objects to be replaced
-			FFindReferencersArchive FindRefsArchive(CurObject, ReplaceableObjects);
-
-			// Inform the object referencing any of the objects to be replaced about the properties that are being forcefully
-			// changed, and store both the object doing the referencing as well as the properties that were changed in a map (so that
-			// we can correctly call PostEditChange later)
-			TMap<UObject*, int32> CurNumReferencesMap;
-			TMultiMap<UObject*, UProperty*> CurReferencingPropertiesMMap;
-			if (FindRefsArchive.GetReferenceCounts(CurNumReferencesMap, CurReferencingPropertiesMMap) > 0)
-			{
-				TArray<UProperty*> CurReferencedProperties;
-				CurReferencingPropertiesMMap.GenerateValueArray(CurReferencedProperties);
-				ReferencingPropertiesMap.Add(CurObject, CurReferencedProperties);
-				for (TArray<UProperty*>::TConstIterator RefPropIter(CurReferencedProperties); RefPropIter; ++RefPropIter)
-				{
-					CurObject->PreEditChange(*RefPropIter);
-				}
-			}
-
-		}
-
-		// Iterate over the map of referencing objects/changed properties, forcefully replacing the references and then
-		// alerting the referencing objects the change has completed via PostEditChange
-		int32 NumObjsReplaced = 0;
-		for (TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter(ReferencingPropertiesMap); MapIter; ++MapIter)
-		{
-			++NumObjsReplaced;
-
-			UObject* CurReplaceObj = MapIter.Key();
-			const TArray<UProperty*>& RefPropArray = MapIter.Value();
-
-			FArchiveReplaceObjectRef<UObject> ReplaceAr(CurReplaceObj, ReplacementMap, false, true, false);
-
-			for (TArray<UProperty*>::TConstIterator RefPropIter(RefPropArray); RefPropIter; ++RefPropIter)
-			{
-				FPropertyChangedEvent PropertyEvent(*RefPropIter);
-				CurReplaceObj->PostEditChangeProperty(PropertyEvent);
-			}
-
-			if (!CurReplaceObj->HasAnyFlags(RF_Transient) && CurReplaceObj->GetOutermost() != GetTransientPackage())
-			{
-				if (!CurReplaceObj->RootPackageHasAnyFlags(PKG_CompiledIn))
-				{
-					CurReplaceObj->MarkPackageDirty();
-				}
-			}
-		}
-	}
-}
-
 /**
 * Container for items related to the create asset test
 */
@@ -328,7 +258,7 @@ namespace CreateAssetHelper
 				if (!bSuccessful)
 				{
 					//Clear references to the object so we can delete it
-					AssetAutomationCommon::NullReferencesToObject(CreatedAsset);
+					AutomationEditorCommonUtils::NullReferencesToObject(CreatedAsset);
 
 					bSuccessful = ObjectTools::DeleteSingleObject(CreatedAsset, false);
 				}
@@ -688,113 +618,6 @@ namespace ImportExportAssetHelper
 	}
 
 	/**
-	* gets a factory class based off an asset file extension
-	*
-	* @param AssetExtension - The file extension to use to find a supporting UFactory
-	*/
-	static UClass* GetFactoryClassForType(const FString& AssetExtension)
-	{
-		// First instantiate one factory for each file extension encountered that supports the extension
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-		{
-			if ((*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)))
-			{
-				UFactory* Factory = Cast<UFactory>((*ClassIt)->GetDefaultObject());
-				if (Factory->bEditorImport && Factory->ValidForCurrentGame())
-				{
-					TArray<FString> FactoryExtensions;
-					Factory->GetSupportedFileExtensions(FactoryExtensions);
-
-					// Case insensitive string compare with supported formats of this factory
-					if (FactoryExtensions.Contains(AssetExtension))
-					{
-						return *ClassIt;
-					}
-				}
-			}
-		}
-
-		return NULL;
-	}
-
-	/**
-	* Applies settings to an object by finding UProperties by name and calling ImportText
-	*
-	* @param InObject - The object to search for matching properties
-	* @param PropertyChain - The list UProperty names recursively to search through
-	* @param Value - The value to import on the found property
-	*/
-	static void ApplyCustomFactorySetting(UObject* InObject, TArray<FString>& PropertyChain, const FString& Value)
-	{
-		const FString PropertyName = PropertyChain[0];
-		PropertyChain.RemoveAt(0);
-
-		UProperty* TargetProperty = FindField<UProperty>(InObject->GetClass(), *PropertyName);
-		if (TargetProperty)
-		{
-			if (PropertyChain.Num() == 0)
-			{
-				TargetProperty->ImportText(*Value, TargetProperty->ContainerPtrToValuePtr<uint8>(InObject), 0, InObject);
-			}
-			else
-			{
-				UStructProperty* StructProperty = Cast<UStructProperty>(TargetProperty);
-				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(TargetProperty);
-
-				UObject* SubObject = NULL;
-				bool bValidPropertyType = true;
-
-				if (StructProperty)
-				{
-					SubObject = StructProperty->Struct;
-				}
-				else if (ObjectProperty)
-				{
-					SubObject = ObjectProperty->GetObjectPropertyValue(ObjectProperty->ContainerPtrToValuePtr<UObject>(InObject));
-				}
-				else
-				{
-					//Unknown nested object type
-					bValidPropertyType = false;
-					UE_LOG(LogEditorAssetAutomationTests, Error, TEXT("ERROR: Unknown nested object type for property: %s"), *PropertyName);
-				}
-
-				if (SubObject)
-				{
-					ApplyCustomFactorySetting(SubObject, PropertyChain, Value);
-				}
-				else if (bValidPropertyType)
-				{
-					UE_LOG(LogEditorAssetAutomationTests, Error, TEXT("Error accessing null property: %s"), *PropertyName);
-				}
-			}
-		}
-		else
-		{
-			UE_LOG(LogEditorAssetAutomationTests, Error, TEXT("ERROR: Could not find factory property: %s"), *PropertyName);
-		}
-	}
-
-	/**
-	* Applies the custom factory settings
-	*
-	* @param InFactory - The factory to apply custom settings to
-	* @param FactorySettings - An array of custom settings to apply to the factory
-	*/
-	static void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings)
-	{
-		for (int32 i = 0; i < FactorySettings.Num(); ++i)
-		{
-			if (FactorySettings[i].SettingName.Len() > 0 && FactorySettings[i].Value.Len() > 0)
-			{
-				TArray<FString> PropertyChain;
-				FactorySettings[i].SettingName.ParseIntoArray(&PropertyChain, TEXT("."), false);
-				ApplyCustomFactorySetting(InFactory, PropertyChain, FactorySettings[i].Value);
-			}
-		}
-	}
-
-	/**
 	* Import test report for a single asset
 	*/
 	struct FAssetImportReport
@@ -961,7 +784,7 @@ namespace ImportExportAssetHelper
 
 			//Get the factory
 			const FString FileExtension = FPaths::GetExtension(ImportPath);
-			UClass* FactoryClass = GetFactoryClassForType(FileExtension);
+			UClass* FactoryClass = AutomationEditorCommonUtils::GetFactoryClassForType(FileExtension);
 
 			if (FactoryClass)
 			{
@@ -969,37 +792,18 @@ namespace ImportExportAssetHelper
 
 				UFactory* ImportFactory = ConstructObject<UFactory>(FactoryClass);
 
-				ImportFactory->ConfigureProperties();
-
 				//Apply any custom settings to the factory
-				ApplyCustomFactorySettings(ImportFactory, FactorySettings);
+				AutomationEditorCommonUtils::ApplyCustomFactorySettings(ImportFactory, FactorySettings);
 
 				FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(ImportPath));
 				FString PackageName = FString::Printf(TEXT("/Game/Automation_Imports/%s"), *Name);
 
-				UPackage* Pkg = CreatePackage(NULL, *PackageName);
-				if (Pkg)
-				{
-					// Make sure the destination package is loaded
-					Pkg->FullyLoad();
+				ImportedAsset = AutomationEditorCommonUtils::ImportAssetUsingFactory(ImportFactory, Name, PackageName, ImportPath);
 
-					UClass* ImportAssetType = ImportFactory->ResolveSupportedClass();
-					bool bDummy = false;
-					ImportedAsset = UFactory::StaticImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone, bDummy, *ImportPath, NULL, ImportFactory, NULL, GWarn, 0);
-
-					if (ImportedAsset)
-					{
-						TestReport.bImportSuccessful = true;
-						State = EState::OpenEditor;
-					}
-					else
-					{
-						UE_LOG(LogEditorAssetAutomationTests, Error, TEXT("Failed to import asset %s using factory %s!"), *Name, *ImportFactory->GetName());
-					}
-				}
-				else
+				if (ImportedAsset)
 				{
-					UE_LOG(LogEditorAssetAutomationTests, Error, TEXT("Failed to create a package for %s!"), *Name);
+					TestReport.bImportSuccessful = true;
+					State = EState::OpenEditor;
 				}
 
 				GWarn->EndSlowTask();
@@ -1155,7 +959,7 @@ namespace ImportExportAssetHelper
 			GUnrealEd->ResetTransaction(FText::FromString(TEXT("FAssetEditorTest")));
 
 			//Clear references to the object so we can delete it
-			AssetAutomationCommon::NullReferencesToObject(ImportedAsset);
+			AutomationEditorCommonUtils::NullReferencesToObject(ImportedAsset);
 
 			//Delete the object
 			TArray<UObject*> ObjList;

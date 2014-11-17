@@ -12,6 +12,17 @@
 
 DEFINE_LOG_CATEGORY(LogMetal)
 
+DEFINE_STAT(STAT_MetalMakeDrawableTime);
+DEFINE_STAT(STAT_MetalDrawCallTime);
+DEFINE_STAT(STAT_MetalPrepareDrawTime);
+DEFINE_STAT(STAT_MetalUniformBufferCleanupTime);
+DEFINE_STAT(STAT_MetalFreeUniformBufferMemory);
+DEFINE_STAT(STAT_MetalNumFreeUniformBuffers);
+DEFINE_STAT(STAT_MetalPipelineStateTime);
+DEFINE_STAT(STAT_MetalBoundShaderStateTime);
+DEFINE_STAT(STAT_MetalVertexDeclarationTime);
+
+
 bool FMetalDynamicRHIModule::IsSupported()
 {
 	return true;
@@ -31,9 +42,8 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	check( !GIsThreadedRendering );
 
 	// Initialize the RHI capabilities.
-	GRHIFeatureLevel = ERHIFeatureLevel::ES2;
-	GRHIShaderPlatform = SP_METAL;
-	GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::ES2;
+	GMaxRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
+	GMaxRHIShaderPlatformValue = SP_METAL;
 
 	GPixelCenterOffset = 0.0f;
 	GSupportsVertexInstancing = false;
@@ -45,12 +55,13 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 //	GRHIVendorId = 
 	GSupportsRenderTargetFormat_PF_G8 = false;
 	GSupportsQuads = false;
-	GRHISupportsTextureStreaming = false;
+	GRHISupportsTextureStreaming = true;
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
 // 	GReadTexturePoolSizeFromIni = true;
 
 	GRHISupportsBaseVertexIndex = false;
+	GRHIRequiresEarlyBackBufferRenderTarget = false;
 
 	GMaxTextureDimensions = 4096;
 	GMaxTextureMipCount = FPlatformMath::CeilLogTwo( GMaxTextureDimensions ) + 1;
@@ -59,7 +70,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GMaxTextureArrayLayers = 2048;
 
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM3] = SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
 
@@ -103,7 +114,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_A1					].PlatformFormat	= MTLPixelFormatInvalid;
 	GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRG11B10Float;
 	GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 4;
-	GPixelFormats[PF_A8					].PlatformFormat	= MTLPixelFormatR8Unorm;
+	GPixelFormats[PF_A8					].PlatformFormat	= MTLPixelFormatA8Unorm;
 	GPixelFormats[PF_R32_UINT			].PlatformFormat	= MTLPixelFormatR32Uint;
 	GPixelFormats[PF_R32_SINT			].PlatformFormat	= MTLPixelFormatR32Sint;
 	GPixelFormats[PF_R16G16B16A16_UINT	].PlatformFormat	= MTLPixelFormatRGBA16Uint;
@@ -174,14 +185,14 @@ void FMetalDynamicRHI::RHIEndScene()
 	FMetalManager::Get()->EndScene();
 }
 
-void FMetalDynamicRHI::PushEvent(const TCHAR* Name)
+void FMetalDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
 #if ENABLE_METAL_GPUEVENTS
 	[FMetalManager::GetContext() pushDebugGroup: [NSString stringWithTCHARString:Name]];
 #endif
 }
 
-void FMetalDynamicRHI::PopEvent()
+void FMetalDynamicRHI::RHIPopEvent()
 {
 #if ENABLE_METAL_GPUEVENTS
 	[FMetalManager::GetContext() popDebugGroup];

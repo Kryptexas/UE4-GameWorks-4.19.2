@@ -11,6 +11,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"TargetPlatform",
+                    "DesktopPlatform",
 				}
 			);
 

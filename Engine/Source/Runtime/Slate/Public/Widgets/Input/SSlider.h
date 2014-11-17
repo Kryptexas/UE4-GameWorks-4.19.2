@@ -59,7 +59,7 @@ public:
 	/**
 	 * Construct the widget.
 	 * 
-	 * @param InDeclaration - A declaration from which to construct the widget.
+	 * @param InDeclaration A declaration from which to construct the widget.
 	 */
 	void Construct( const SSlider::FArguments& InDeclaration );
 
@@ -68,32 +68,30 @@ public:
 
 	/** See the Value attribute */
 	void SetValue(const TAttribute<float>& InValueAttribute);
-    
-    /** See the IndentHandle attribute */
+	
+	/** See the IndentHandle attribute */
 	void SetIndentHandle(const TAttribute<bool>& InIndentHandle);
-    
-    /** See the Locked attribute */
+	
+	/** See the Locked attribute */
 	void SetLocked(const TAttribute<bool>& InLocked);
-    
-    /** See the Orientation attribute */
+	
+	/** See the Orientation attribute */
 	void SetOrientation(EOrientation InOrientation);
-    
-    /** See the SliderBarColor attribute */
+	
+	/** See the SliderBarColor attribute */
 	void SetSliderBarColor(FSlateColor InSliderBarColor);
-    
-    /** See the SliderHandleColor attribute */
+	
+	/** See the SliderHandleColor attribute */
 	void SetSliderHandleColor(FSlateColor InSliderHandleColor);
 
 public:
 
+	// SWidget overrides
+
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
 	virtual FVector2D ComputeDesiredSize() const;
-
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 protected:
@@ -101,27 +99,23 @@ protected:
 	/**
 	 * Commits the specified slider value.
 	 *
-	 * @param NewValue - The value to commit.
+	 * @param NewValue The value to commit.
 	 */
 	void CommitValue(float NewValue);
 
 	/**
 	 * Calculates the new value based on the given absolute coordinates.
 	 *
-	 * @param MyGeometry - The slider's geometry.
-	 * @param AbsolutePosition - The absolute position of the slider.
-	 *
+	 * @param MyGeometry The slider's geometry.
+	 * @param AbsolutePosition The absolute position of the slider.
 	 * @return The new value.
 	 */
 	float PositionToValue( const FGeometry& MyGeometry, const FVector2D& AbsolutePosition );
 
 private:
 
-	// Holds the image to use when the slider handle is in its disabled state.
-	const FSlateBrush* DisabledHandleImage;
-
-	// Holds the image to use when the slider handle is in its normal state.
-	const FSlateBrush* NormalHandleImage;
+	// Holds the style passed to the widget upon construction.
+	const FSliderStyle* Style;
 
 	// Holds a flag indicating whether the slideable area should be indented to fit the handle.
 	TAttribute<bool> IndentHandle;

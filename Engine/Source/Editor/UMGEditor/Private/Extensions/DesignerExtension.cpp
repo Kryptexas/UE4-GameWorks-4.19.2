@@ -14,8 +14,9 @@ FDesignerExtension::FDesignerExtension()
 
 }
 
-void FDesignerExtension::Initialize(UWidgetBlueprint* InBlueprint)
+void FDesignerExtension::Initialize(IUMGDesigner* InDesigner, UWidgetBlueprint* InBlueprint)
 {
+	Designer = InDesigner;
 	Blueprint = InBlueprint;
 }
 

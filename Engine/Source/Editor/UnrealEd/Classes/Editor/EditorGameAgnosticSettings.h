@@ -37,6 +37,9 @@ class UEditorGameAgnosticSettings : public UObject
 	UPROPERTY(config)
 	TArray<FGuid> InProgressSurveys;
 
+	UPROPERTY(config)
+	float AutoScalabilityWorkScaleAmount;
+
 	/** Engine scalability benchmark results */
 	Scalability::FQualityLevels EngineBenchmarkResult;
 

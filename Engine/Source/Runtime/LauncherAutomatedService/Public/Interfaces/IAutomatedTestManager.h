@@ -18,19 +18,19 @@ class IAutomatedTestManager
 {
 public:
 
-	/*
+	/**
 	 * Checks whether we have finished running the automation tests.
 	 *
 	 * @return True if we have finished
 	 */
 	virtual bool IsTestingComplete() = 0;
 
-	/*
+	/**
 	 * Starts the testing process. Called after we have discovered some devices.
 	 */
 	virtual void RunTests() = 0;
 
-	/*
+	/**
 	 * Ticks the automation tests.
 	 *
 	 * @param DeltaTime Time since last update.

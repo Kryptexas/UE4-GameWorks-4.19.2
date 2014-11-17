@@ -143,8 +143,8 @@ struct HMatineeTrackGraphPropBtn : public HHitProxy
 	HMatineeTrackGraphPropBtn(class UInterpGroup* InGroup, int32 InSubTrackGroupIndex, UInterpTrack* InTrack ) :
 		HHitProxy(HPP_UI),
 		Group(InGroup),
-		SubTrackGroupIndex( InSubTrackGroupIndex ),
-		Track(InTrack)
+		Track(InTrack),
+		SubTrackGroupIndex( InSubTrackGroupIndex )
 	{}
 };
 

@@ -34,12 +34,6 @@ public:
 
 public:
 
-	// SCompoundWidget interface
-
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
-public:
-
 	// FNotifyHook interface
 
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) override;
@@ -101,12 +95,6 @@ private:
 	// Callback for clicking the Back link.
 	FReply HandleBackButtonClicked( );
 
-	// Callback for clicking the 'Check Out' button.
-	FReply HandleCheckOutButtonClicked( );
-
-	// Callback for getting the widget index for the notice switcher.
-	bool HandleConfigNoticeUnlocked( ) const;
-
 	// Callback for when the user's culture has changed.
 	void HandleCultureChanged( );
 
@@ -133,6 +121,9 @@ private:
 
 	// Callback for getting the enabled state of the 'Reset to Defaults' button.
 	bool HandleResetToDefaultsButtonEnabled( ) const;
+
+	// Callback for getting the visibility of options that are only visible when editing something that came from a non-default object
+	EVisibility EditingNonDefaultSettingsVisibility( ) const;
 
 	// Callback for navigating a settings section link.
 	void HandleSectionLinkNavigate( ISettingsSectionPtr Section );
@@ -164,24 +155,24 @@ private:
 	// Callback for determining the visibility of the settings view.
 	EVisibility HandleSettingsViewVisibility( ) const;
 
-	// Callback for determining whether we are currently looking for the source control state of the config file
-	bool HandleLookingForSourceControlState( ) const;
-
 	// Reports a preference changed event to the analytics system */
 	void RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const;
+
+	// Returns the config file name currently being edited
+	FString GetConfigFileName() const;
+
+	// Do we need to edit the default config file?
+	bool IsDefaultConfigCheckOutNeeded() const;
+
+	void ReloadConfigObject();
+
 private:
+
+	// Watcher widget for the default config file (checks file status / SCC state)
+	TSharedPtr<class SSettingsEditorCheckoutNotice> FileWatcherWidget;
 
 	// Holds the vertical box for settings categories.
 	TSharedPtr<SVerticalBox> CategoriesBox;
-
-	// Holds a flag indicating whether the section's configuration file needs to be checked out.
-	bool DefaultConfigCheckOutNeeded;
-
-	// Holds a flag indicating whether the section's configuration file has a source control status request in progress.
-	bool DefaultConfigQueryInProgress;
-
-	// Holds a timer for checking whether the section's configuration file needs to be checked out.
-	float DefaultConfigCheckOutTimer;
 
 	// Holds the overlay slot for custom widgets.
 	SOverlay::FOverlaySlot* CustomWidgetSlot;
@@ -197,7 +188,4 @@ private:
 
 	// Holds the details view.
 	TSharedPtr<IDetailsView> SettingsView;
-
-	// Cached filename for the config file we are displaying
-	FString CachedConfigFileName;
 };

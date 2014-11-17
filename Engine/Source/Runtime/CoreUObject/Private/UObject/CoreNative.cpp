@@ -11,6 +11,10 @@ class FCoreUObjectModule : public FDefaultModuleImpl
 public:
 	virtual void StartupModule() override
 	{
+		// Register all classes that have been loaded so far. This is required for CVars to work.
+		void UClassRegisterAllCompiledInClasses();
+		UClassRegisterAllCompiledInClasses();
+
 		void InitUObject();
 		FCoreDelegates::OnInit.AddStatic(InitUObject);
 
@@ -22,7 +26,7 @@ IMPLEMENT_MODULE( FCoreUObjectModule, CoreUObject );
 
 // if we are not using compiled in natives, we still need this as a base class for intrinsics
 #if !USE_COMPILED_IN_NATIVES
-IMPLEMENT_CLASS(UObject);
+IMPLEMENT_CLASS(UObject, 0);
 COREUOBJECT_API class UClass* Z_Construct_UClass_UObject();
 UClass* Z_Construct_UClass_UObject()
 {
@@ -229,7 +233,7 @@ UObject* FObjectInstancingGraph::InstancePropertyValue( class UObject* Component
 	// if the object we're instancing the components for (Owner) has the current component's outer in its archetype chain, and its archetype has a NULL value
 	// for this component property it means that the archetype didn't instance its component, so we shouldn't either.
 
-	if (ComponentTemplate == NULL && CurrentValue != NULL && Owner->IsBasedOnArchetype(CurrentValue->GetOuter()))
+	if (ComponentTemplate == NULL && CurrentValue != NULL && (Owner && Owner->IsBasedOnArchetype(CurrentValue->GetOuter())))
 	{
 		NewValue = NULL;
 	}

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ArrangedChildren.h: Declares the FArrangedChildren class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -101,15 +97,27 @@ class SLATECORE_API FArrangedChildren
 		return Array.Num();
 	}
 
-	const FArrangedWidget& operator()(int32 Index) const
+	const FArrangedWidget& operator[]( int32 Index ) const
 	{
 		return Array[Index];
 	}
 
-	FArrangedWidget& operator()(int32 Index)
+	FArrangedWidget& operator[]( int32 Index )
 	{
 		return Array[Index];
 	}
+
+	//// @todo umg na deprecate this
+	//const FArrangedWidget& operator()(int32 Index) const
+	//{
+	//	return Array[Index];
+	//}
+
+	//// @todo umg na deprecate this
+	//FArrangedWidget& operator()(int32 Index)
+	//{
+	//	return Array[Index];
+	//}
 
 	const FArrangedWidget& Last() const
 	{
@@ -140,5 +148,4 @@ class SLATECORE_API FArrangedChildren
 	{
 		Array.Empty();
 	}
-
 };

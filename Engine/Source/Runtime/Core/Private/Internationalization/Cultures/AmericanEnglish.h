@@ -8,10 +8,10 @@
 class FAmericanEnglishCulture
 {
 public:
-	static TSharedRef<FCulture, ESPMode::ThreadSafe> Create()
+	static FCultureRef Create()
 	{
 #if UE_ENABLE_ICU
-		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture( FString("en-US") ) );
+		FCultureRef Culture = MakeShareable( new FCulture( FString("en-US") ) );
 #else
 		TArray<FString> InNativeDigits;
 
@@ -43,7 +43,7 @@ public:
 			, "%"					//const FString PercentSymbol
 			, "‰"					//const FString PerMilleSymbol
 			, ""					//const FString PositiveSign
-			, ECurrencyNegativePattern::BracketCurrencySymbolXBracket
+			, ECurrencyNegativePattern::NegativeSymbolCurrencySymbolX
 			, ECurrencyPositivePattern::CurrencySymbolX
 			, EPercentNegativePattern::NegativeSymbolXPct
 			, EPercentPositivePattern::XPct
@@ -131,7 +131,7 @@ public:
 			);
 
 
-		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture(
+		FCultureRef Culture = MakeShareable( new FCulture(
 			  LOCTEXT("AmericanEnglishDisplayName", "English (United States)")		//const FText DisplayName
 			, FString(TEXT("English (United States)"))			//const FString EnglishName
 			, 1033												//const int KeyboardLayoutId

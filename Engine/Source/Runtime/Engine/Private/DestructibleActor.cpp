@@ -7,12 +7,13 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysXSupport.h"
-
+#include "PhysicsEngine/DestructibleActor.h"
 
 ADestructibleActor::ADestructibleActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	DestructibleComponent = PCIP.CreateDefaultSubobject<UDestructibleComponent>(this, TEXT("DestructibleComponent0"));
+	DestructibleComponent->bCanEverAffectNavigation = bAffectNavigation;
 	RootComponent = DestructibleComponent;
 }
 

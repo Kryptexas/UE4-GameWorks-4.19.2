@@ -32,6 +32,8 @@ public:
 	{
 	}
 
+	virtual ~FConsoleVariableCellPresenter() {}
+
 	/**
 	 * Event handler triggered when the user presses the edit CVars button
 	 *

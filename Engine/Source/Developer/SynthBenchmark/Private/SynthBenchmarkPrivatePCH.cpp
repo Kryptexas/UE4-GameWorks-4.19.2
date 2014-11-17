@@ -21,7 +21,7 @@ class FSynthBenchmark : public ISynthBenchmark
 	virtual void ShutdownModule() override;
 	
 	/** ISynthBenchmark implementation */
-	virtual void Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uint32 WorkScale, bool bDebugOut) const override;
+	virtual void Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, float WorkScale) const override;
 };
 
 IMPLEMENT_MODULE( FSynthBenchmark, SynthBenchmark )
@@ -39,10 +39,12 @@ void FSynthBenchmark::ShutdownModule()
 
 // @param RunCount should be around 10 but can be adjusted for precision 
 // @param Function should run for about 3 ms
-// @return performance index: 100 is a developer machine: Intel Xeon E5-2660 2.2GHz
-static float RunBenchmark(uint32 RunCount, float (*Function)())
+static FTimeSample RunBenchmark(float WorkScale, float (*Function)())
 {
 	float Sum = 0;
+
+	// this test doesn't support fractional WorkScale
+	uint32 RunCount = FMath::Max((int32)1, (int32)WorkScale);
 
 	for(uint32 i = 0; i < RunCount; ++i)
 	{
@@ -59,10 +61,10 @@ static float RunBenchmark(uint32 RunCount, float (*Function)())
 		FPlatformMisc::MemoryBarrier();
 	}
 	
-	return Sum / RunCount;
+	return FTimeSample(Sum, Sum / RunCount);
 }
 
-void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uint32 WorkScale, bool bDebugOut) const
+void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, float WorkScale) const
 {
 	check(WorkScale > 0);
 
@@ -70,12 +72,12 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uin
 	{
 		// run a very quick GPU benchmark (less confidence but at least we get some numbers)
 		// it costs little time and we get some stats
-		WorkScale = 1;
+		WorkScale = 1.0f;
 	}
 
 	const double StartTime = FPlatformTime::Seconds();
 
-	UE_LOG(LogSynthBenchmark, Display, TEXT("FSynthBenchmark (V0.92):"));
+	UE_LOG(LogSynthBenchmark, Display, TEXT("FSynthBenchmark (V0.95):  requested WorkScale=%.2f"), WorkScale);
 	UE_LOG(LogSynthBenchmark, Display, TEXT("==============="));
 	
 #if UE_BUILD_DEBUG
@@ -96,7 +98,7 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uin
 
 	for(uint32 i = 0; i < ARRAY_COUNT(InOut.CPUStats); ++i)
 	{
-		UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %f %s '%s'"), InOut.CPUStats[i].GetMeasuredTime(), InOut.CPUStats[i].GetValueType(), InOut.CPUStats[i].GetDesc());
+		UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %f %s '%s'"), InOut.CPUStats[i].GetNormalizedTime(), InOut.CPUStats[i].GetValueType(), InOut.CPUStats[i].GetDesc());
 	}
 
 	UE_LOG(LogSynthBenchmark, Display, TEXT(""));
@@ -143,7 +145,53 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, uin
 	{
 		IRendererModule& RendererModule = FModuleManager::LoadModuleChecked<IRendererModule>(TEXT("Renderer"));
 
-		RendererModule.GPUBenchmark(InOut, WorkScale, bDebugOut);
+		// First we run a quick test. If that shows very bad performance we don't need another test
+		// The hardware is slow, we don't need a long test and risk driver TDR (driver recovery).
+		// We have seen this problem on very low end GPUs.
+		{
+			const float fFirstWorkScale = 0.01f;
+			const float fSecondWorkScale = 0.1f;
+
+			float GPUTime = 0.0f;
+
+			RendererModule.GPUBenchmark(InOut, fFirstWorkScale);
+			GPUTime = InOut.ComputeTotalGPUTime();
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU first test: %.2fs"), GPUTime);
+
+			for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+			{
+				UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be very inaccurate)"),
+					1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+			}
+
+			if(GPUTime < 0.1f)
+			{
+				RendererModule.GPUBenchmark(InOut, fSecondWorkScale);
+				GPUTime = InOut.ComputeTotalGPUTime();
+				UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU second test: %.2fs"), GPUTime);
+
+				// for testing
+				for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+				{
+					UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be inaccurate)"),
+						1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+				}
+
+				if(GPUTime < 0.1f)
+				{
+					RendererModule.GPUBenchmark(InOut, WorkScale);
+					GPUTime = InOut.ComputeTotalGPUTime();
+					UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU third test: %.2fs"), GPUTime);
+				}
+			}
+		}
+
+		for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
+		{
+			UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s'"),
+				1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
+		}
+		UE_LOG(LogSynthBenchmark, Display, TEXT(""));
 
 		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 0: %.1f"), InOut.GPUStats[0].ComputePerfIndex());
 		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 1: %.1f"), InOut.GPUStats[1].ComputePerfIndex());

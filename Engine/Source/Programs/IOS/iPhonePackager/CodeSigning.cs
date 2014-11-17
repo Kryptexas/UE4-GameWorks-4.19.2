@@ -70,11 +70,12 @@ namespace iPhonePackager
 		/// <summary>
 		/// Makes sure the required files for code signing exist and can be found
 		/// </summary>
-		public static bool FindRequiredFiles(out MobileProvision Provision, out X509Certificate2 Cert, out bool bHasOverridesFile)
+		public static bool FindRequiredFiles(out MobileProvision Provision, out X509Certificate2 Cert, out bool bHasOverridesFile, out bool bNameMatch, bool bNameCheck = true)
 		{
 			Provision = null;
 			Cert = null;
 			bHasOverridesFile = File.Exists(Config.GetPlistOverrideFilename());
+			bNameMatch = false;
 
 			// Load Info.plist, which guides nearly everything else
 			string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
@@ -122,7 +123,7 @@ namespace iPhonePackager
 			// Check for a mobile provision
 			try
 			{
-				string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
+				string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch);
 				Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
 			}
 			catch (Exception)
@@ -134,11 +135,24 @@ namespace iPhonePackager
 			{
 				try
 				{
-					string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, false);
+					string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch, false);
 					Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
 				}
 				catch (Exception)
 				{
+				}
+
+				// if we have a null provision see if we can find a valid provision without checking for name match
+				if (Provision == null && !bNameCheck)
+				{
+					try
+					{
+						string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch, false, false);
+						Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+					}
+					catch (Exception)
+					{
+					}
 				}
 			}
 
@@ -151,20 +165,11 @@ namespace iPhonePackager
 			return true;
 		}
 
-		public static bool DoRequiredFilesExist()
-		{
-			MobileProvision Provision;
-			X509Certificate2 Cert;
-			bool bOverridesExists;
-			CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bOverridesExists);
-
-			return bOverridesExists && (Provision != null) && (Cert != null);
-		}
-
 		protected virtual byte[] GetMobileProvision(string CFBundleIdentifier)
 		{
 			// find the movile provision file in the library
-			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
+			bool bNameMatch;
+			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch);
 
 			byte[] Result = null;
 			try
@@ -198,30 +203,116 @@ namespace iPhonePackager
 			}
 		}
 
+		static private string CertToolData = "";
+		static public void OutputReceivedCertToolProcessCall(Object Sender, DataReceivedEventArgs Line)
+		{
+			if ((Line != null) && !String.IsNullOrEmpty (Line.Data)) {
+				CertToolData += Line.Data + "\n";
+			}
+		}
+
 		/// <summary>
 		/// Tries to find a matching certificate on this machine from the the serial number of one of the
 		/// certificates in the mobile provision (the one in the mobileprovision is missing the public/private key pair)
 		/// </summary>
 		public static X509Certificate2 FindCertificate(MobileProvision ProvisionToWorkFrom)
 		{
-			// Open the personal certificate store on this machine
-			X509Store Store = new X509Store();
-			Store.Open(OpenFlags.ReadOnly);
+			Program.LogVerbose("  Looking for a certificate that matches the application identifier '{0}'", ProvisionToWorkFrom.ApplicationIdentifier);
 
-			// Try finding a matching certificate from the serial number (the one in the mobileprovision is missing the public/private key pair)
 			X509Certificate2 Result = null;
-			foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates)
-			{
-				X509Certificate2Collection FoundCerts = Store.Certificates.Find(X509FindType.FindBySerialNumber, SourceCert.SerialNumber, false);
 
-				if (FoundCerts.Count > 0)
-				{
-					Result = FoundCerts[0];
-					break;
+			if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX) {
+				// run certtool y to get the currently installed certificates
+				CertToolData = "";
+				Process CertTool = new Process ();
+				CertTool.StartInfo.FileName = "/usr/bin/certtool";
+				CertTool.StartInfo.UseShellExecute = false;
+				CertTool.StartInfo.Arguments = "y";
+				CertTool.StartInfo.RedirectStandardOutput = true;
+				CertTool.OutputDataReceived += new DataReceivedEventHandler (OutputReceivedCertToolProcessCall);
+				CertTool.Start ();
+				CertTool.BeginOutputReadLine ();
+				CertTool.WaitForExit ();
+				if (CertTool.ExitCode == 0) {
+					foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates) {
+						X509Certificate2 ValidInTimeCert = null;
+						// see if certificate can be found by serial number
+						string SerialNumber = SourceCert.GetSerialNumberString ();
+						for (int Index = 14; Index > 0; Index -= 2) {
+							SerialNumber = SerialNumber.Insert (Index, " ");
+						}
+
+						if (CertToolData.Contains (SerialNumber)) {
+							// check the cert time
+							int StartLine = CertToolData.IndexOf (SerialNumber);
+							string BeforeStart = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Not Before", StartLine))+1);
+							BeforeStart = BeforeStart.Remove(BeforeStart.IndexOf("\n"));
+							string AfterStart = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Not After", StartLine))+1);
+							AfterStart = AfterStart.Remove(AfterStart.IndexOf("\n"));
+							string CommonName = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Common Name", CertToolData.IndexOf("Subject Name", StartLine)))+1);
+							CommonName = CommonName.Remove(CommonName.IndexOf("\n"));
+
+							DateTime EffectiveDate = DateTime.Parse (BeforeStart);
+							DateTime ExpirationDate = DateTime.Parse (AfterStart);
+							DateTime Now = DateTime.Now;
+
+							bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
+
+							Program.LogVerbose ("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", CommonName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", BeforeStart, AfterStart);
+							if (bCertTimeIsValid) {
+								ValidInTimeCert = SourceCert;
+							}
+						}
+
+						if (ValidInTimeCert != null) {
+							// Found a cert in the valid time range, quit now!
+							Result = ValidInTimeCert;
+							break;
+						}
+					}
+				} else {
 				}
+			} else {
+				// Open the personal certificate store on this machine
+				X509Store Store = new X509Store ();
+				Store.Open (OpenFlags.ReadOnly);
+
+				// Try finding a matching certificate from the serial number (the one in the mobileprovision is missing the public/private key pair)
+				foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates) {
+					X509Certificate2Collection FoundCerts = Store.Certificates.Find (X509FindType.FindBySerialNumber, SourceCert.SerialNumber, false);
+
+					Program.LogVerbose ("  .. Provision entry SN '{0}' matched {1} installed certificate(s)", SourceCert.SerialNumber, FoundCerts.Count);
+
+					X509Certificate2 ValidInTimeCert = null;
+					foreach (X509Certificate2 TestCert in FoundCerts) {
+						//@TODO: Pretty sure the certificate information from the library is in local time, not UTC and this works as expected, but it should be verified!
+						DateTime EffectiveDate = TestCert.NotBefore;
+						DateTime ExpirationDate = TestCert.NotAfter;
+						DateTime Now = DateTime.Now;
+
+						bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
+
+						Program.LogVerbose ("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", TestCert.FriendlyName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", TestCert.GetEffectiveDateString (), TestCert.GetExpirationDateString ());
+						if (bCertTimeIsValid) {
+							ValidInTimeCert = TestCert;
+							break;
+						}
+					}
+
+					if (ValidInTimeCert != null) {
+						// Found a cert in the valid time range, quit now!
+						Result = ValidInTimeCert;
+						break;
+					}
+				}
+
+				Store.Close ();
 			}
 
-			Store.Close();
+			if (Result == null)
+			{
+				Program.LogVerbose("  .. Failed to find a valid certificate that was in date");
+			}
 
 			return Result;
 		}
@@ -366,8 +457,11 @@ namespace iPhonePackager
 
 			// Install the Apple trust chain certs (required to do a CMS signature with full chain embedded)
 			List<string> TrustChainCertFilenames = new List<string>();
-			TrustChainCertFilenames.Add("AppleWorldwideDeveloperRelationsCA.pem");
-			TrustChainCertFilenames.Add("AppleRootCA.pem");
+
+			string CertPath = Path.GetFullPath(Config.EngineBuildDirectory);
+			TrustChainCertFilenames.Add(Path.Combine(CertPath, "AppleWorldwideDeveloperRelationsCA.pem"));
+			TrustChainCertFilenames.Add(Path.Combine(CertPath, "AppleRootCA.pem"));
+
 			InstallCertificates(TrustChainCertFilenames);
 
 			// Find and load the signing cert
@@ -381,7 +475,7 @@ namespace iPhonePackager
 			}
 			else
 			{
-				Program.Log("... Found matching certificate '{0}'", SigningCert.FriendlyName);
+				Program.Log("... Found matching certificate '{0}' (valid from {1} to {2})", SigningCert.FriendlyName, SigningCert.GetEffectiveDateString(), SigningCert.GetExpirationDateString());
 			}
 		}
 
@@ -469,6 +563,8 @@ namespace iPhonePackager
 
 			foreach (MachObjectFile Exe in FatBinary.MachObjectFiles)
 			{
+				Program.Log("... Processing one mach object (binary is {0})", FatBinary.bIsFatBinary ? "fat" : "thin");
+				
 				// Pad the memory stream with extra room to handle any possible growth in the code signing data
 				int OverSize = 1024 * 1024;
 				MemoryStream OutputExeStream = new MemoryStream(SourceExeData.Length + OverSize);
@@ -562,7 +658,7 @@ namespace iPhonePackager
 				// and signed by the signature blob
 
 				// Do an initial signature just to get the size
-				Program.Log("... Initial signature step");
+				Program.Log("... Initial signature step ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
 				CodeSignatureBlob.SignCodeDirectory(SigningCert, SigningTime, FinalCodeDirectoryBlob);
 
 				// Compute the size of everything, and push it into the EXE header
@@ -580,7 +676,7 @@ namespace iPhonePackager
 				CodeSigningBlobLC.PatchPositionAndSize(OutputExeContext, (uint)BlobStartPosition, (uint)BlobLength);
 
 				// Now that the executable loader command has been inserted and the appropriate section modified, compute all the hashes
-				Program.Log("... Computing hashes");
+				Program.Log("... Computing hashes ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
 				OutputExeContext.Flush();
 
 				// Fill out the special hashes
@@ -594,7 +690,7 @@ namespace iPhonePackager
 				FinalCodeDirectoryBlob.ComputeImageHashes(OutputExeStream.ToArray());
 
 				// And compute the final signature
-				Program.Log("... Final signature step");
+				Program.Log("... Final signature step ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
 				CodeSignatureBlob.SignCodeDirectory(SigningCert, SigningTime, FinalCodeDirectoryBlob);
 
 				// Generate the signing blob and place it in the output (verifying it didn't change in size)
@@ -610,8 +706,10 @@ namespace iPhonePackager
 				OutputExeContext.PopPosition();
 
 				// Truncate the data so the __LINKEDIT section extends right to the end
+				Program.Log("... Committing all edits ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
 				OutputExeContext.CompleteWritingAndClose();
 
+				Program.Log("... Truncating/copying final binary", DateTime.Now - SigningTime);
 				ulong DesiredExecutableLength = LinkEditSegmentLC.FileSize + LinkEditSegmentLC.FileOffset;
 				byte[] FinalExeData = OutputExeStream.ToArray();
 				if ((ulong)FinalExeData.Length < DesiredExecutableLength)
@@ -621,9 +719,11 @@ namespace iPhonePackager
 				Array.Resize(ref FinalExeData, (int)DesiredExecutableLength); //@todo: Extend the file system interface so we don't have to copy 20 MB just to truncate a few hundred bytes
 
 				// Save the patched and signed executable
-				Program.Log("Saving signed executable...");
+				Program.Log("Saving signed executable... ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
 				FileSystem.WriteAllBytes(CFBundleExecutable, FinalExeData);
 			}
+
+			Program.Log("Finished code signing, which took {0:0.00} s", (DateTime.Now - SigningTime).TotalSeconds);
 		}
 	}
 }

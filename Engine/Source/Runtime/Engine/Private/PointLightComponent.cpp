@@ -84,6 +84,7 @@ public:
 			OutInitializer.MinLightW = 0.1f;
 			OutInitializer.MaxDistanceToCastInLightW = Radius;
 			OutInitializer.SplitIndex = INDEX_NONE;
+			OutInitializer.bRayTracedDistanceFieldShadow = UseRayTracedDistanceFieldShadows() && DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform);
 		
 			return true;
 		}

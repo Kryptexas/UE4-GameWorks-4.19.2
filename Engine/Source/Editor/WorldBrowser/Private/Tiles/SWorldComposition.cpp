@@ -204,7 +204,7 @@ public:
 		const bool bShowPotentiallyVisibleLevels = FSlateApplication::Get().GetModifierKeys().IsAltDown() && 
 													AllottedGeometry.IsUnderLocation(CursorPosition);
 	
-		//WorldModel->UpdateStreamingPreview(WorldMouseLocation, bShowPotentiallyVisibleLevels);
+		WorldModel->UpdateStreamingPreview(WorldMouseLocation, bShowPotentiallyVisibleLevels);
 			
 		// deffered scroll and zooming requests
 		if (bHasScrollToRequest || bHasScrollByRequest)
@@ -272,7 +272,7 @@ public:
 			}
 		}
 	}
-	
+
 	/**  SWidget interface */
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
@@ -300,7 +300,7 @@ public:
 
 		for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 		{
-			FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+			FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 			TSharedRef<SWorldTileItem> ChildNode = StaticCastSharedRef<SWorldTileItem>(CurWidget.Widget);
 		
 			ChildNode->bAffectedByMarquee = SelectionToVisualize->Contains(ChildNode->GetObjectBeingDisplayed());
@@ -314,8 +314,11 @@ public:
 			float ScreenSpaceSize = FLevelCollectionModel::EditableAxisLength()*GetZoomAmount()*2.f;
 			FVector2D PaintSize = FVector2D(ScreenSpaceSize, ScreenSpaceSize);
 			FVector2D PaintPosition = GraphCoordToPanelCoord(FVector2D::ZeroVector) - (PaintSize*0.5f);
-			FPaintGeometry EditableArea = AllottedGeometry.ToPaintGeometry(PaintPosition, PaintSize);
-			EditableArea.DrawScale = 0.2f;
+			float Scale = 0.2f; // Scale down drawing border
+			FSlateLayoutTransform LayoutTransform(Scale, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() + PaintPosition);
+			FSlateRenderTransform RenderTransform(Scale, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() + PaintPosition);
+			FPaintGeometry EditableArea(LayoutTransform, RenderTransform, PaintSize/Scale);
+
 			FLinearColor PaintColor = FLinearColor::Yellow;
 			PaintColor.A = 0.4f;
 
@@ -350,7 +353,7 @@ public:
 			// Draw a current camera position
 			{
 				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
-				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().InverseSafe();
+				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().Inverse();
 				FVector ObserverPosition	= ObserverViewToWorld.GetOrigin();
 				FRotator ObserverRotation	= ObserverViewToWorld.Rotator();
 								
@@ -478,7 +481,7 @@ protected:
 	uint32 PaintBackground(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, uint32 LayerId) const
 	{
 		FVector2D ScreenWorldOrigin = GraphCoordToPanelCoord(FVector2D(0, 0));
-		FSlateRect ScreenRect = AllottedGeometry.GetRect();
+		FSlateRect ScreenRect(FVector2D(0, 0), AllottedGeometry.GetLocalSize());
 	
 		// World Y-axis
 		if (ScreenWorldOrigin.X > ScreenRect.Left &&
@@ -606,7 +609,7 @@ protected:
 		if (NodeUnderMouseIndex != INDEX_NONE)
 		{
 			// PRESSING ON A NODE!
-			const FArrangedWidget& NodeGeometry = ArrangedChildren(NodeUnderMouseIndex);
+			const FArrangedWidget& NodeGeometry = ArrangedChildren[NodeUnderMouseIndex];
 			const FVector2D MousePositionInNode = NodeGeometry.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 			TSharedRef<SNode> NodeWidgetUnderMouse = StaticCastSharedRef<SNode>( NodeGeometry.Widget );
 
@@ -643,7 +646,7 @@ protected:
 	{
 		VisibleChildren.Empty();
 
-		FSlateRect PanelRect = AllottedGeometry.GetRect();
+		FSlateRect PanelRect(FVector2D(0, 0), AllottedGeometry.GetLocalSize());
 		FVector2D ViewStartPos = PanelCoordToGraphCoord(FVector2D(PanelRect.Left, PanelRect.Top));
 		FVector2D ViewEndPos = PanelCoordToGraphCoord(FVector2D(PanelRect.Right, PanelRect.Bottom));
 		FSlateRect ViewRect(ViewStartPos, ViewEndPos);
@@ -770,14 +773,13 @@ protected:
 	}
 
 	/** Delegate callback: world origin is going to be moved. */
-	void PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin)
+	void PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 	{
-		if (WorldModel->GetWorld() != InWorld)
+		if (InWorld && (WorldModel->GetWorld() == InWorld || WorldModel->GetSimulationWorld() == InWorld))		
 		{
-			return;
+			FIntVector Offset = InDstOrigin - InSrcOrigin;
+			RequestScrollBy(-FVector2D(Offset.X, Offset.Y));
 		}
-				
-		RequestScrollBy(-FVector2D(InDstOrigin - InSrcOrigin));
 	}
 	
 	/** Handles new item added to data source */
@@ -1214,7 +1216,7 @@ FText SWorldComposition::GetZoomText() const
 FString SWorldComposition::GetCurrentOriginText() const
 {
 	UWorld* CurrentWorld = (TileWorldModel->IsSimulating() ? TileWorldModel->GetSimulationWorld() : TileWorldModel->GetWorld());
-	return FString::Printf(TEXT("%d, %d"), CurrentWorld->GlobalOriginOffset.X, CurrentWorld->GlobalOriginOffset.Y);
+	return FString::Printf(TEXT("%d, %d"), CurrentWorld->OriginLocation.X, CurrentWorld->OriginLocation.Y);
 }
 
 FString SWorldComposition::GetCurrentLevelText() const

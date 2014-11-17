@@ -4,6 +4,7 @@
 
 #include "ParserHelper.h"
 #include "BaseParser.h"
+#include "CompilationResult.h"
 
 class FClass;
 class FClasses;

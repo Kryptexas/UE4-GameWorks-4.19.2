@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsTargetPlatformModule.cpp: Implements the FWindowsTargetPlatformModule class.
-=============================================================================*/
-
 #include "WindowsTargetPlatformPrivatePCH.h"
 
 
@@ -13,7 +9,7 @@
 /**
  * Holds the target platform singleton.
  */
-static ITargetPlatform* Singleton = NULL;
+static ITargetPlatform* Singleton = nullptr;
 
 
 /**
@@ -24,37 +20,17 @@ class FWindowsTargetPlatformModule
 {
 public:
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FWindowsTargetPlatformModule( )
 	{
-		Singleton = NULL;
+		Singleton = nullptr;
 	}
-
-
-public:
-
-	// Begin ITargetPlatformModule interface
-
-	virtual ITargetPlatform* GetTargetPlatform( ) override
-	{
-		if (Singleton == NULL)
-		{
-			Singleton = new TGenericWindowsTargetPlatform<true, false, false>();
-		}
-
-		return Singleton;
-	}
-
-	// End ITargetPlatformModule interface
-
 
 public:
 
 	// this is an example of a hotfix, declared here for no particular reason. Once we have other examples, it can be deleted.
 #if 0
-	void HotfixTest(void *InPayload, int PayloadSize)
+	void HotfixTest( void *InPayload, int PayloadSize )
 	{
 		check(sizeof(FTestHotFixPayload) == PayloadSize);
 		
@@ -63,7 +39,24 @@ public:
 		Payload->Result = Payload->ValueToReturn;
 	}
 #endif
-	// Begin IModuleInterface interface
+
+public:
+
+	// ITargetPlatformModule interface
+
+	virtual ITargetPlatform* GetTargetPlatform( ) override
+	{
+		if (Singleton == nullptr)
+		{
+			Singleton = new TGenericWindowsTargetPlatform<true, false, false>();
+		}
+
+		return Singleton;
+	}
+
+public:
+
+	// IModuleInterface interface
 
 	virtual void StartupModule() override
 	{
@@ -111,12 +104,9 @@ public:
 		}
 		else
 		{
-			TargetSettings = NULL;
+			TargetSettings = nullptr;
 		}
 	}
-
-	// End IModuleInterface interface
-
 
 private:
 

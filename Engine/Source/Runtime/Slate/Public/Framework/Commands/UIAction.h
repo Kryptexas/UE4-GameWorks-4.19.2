@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UIAction.h: Declares the FUIAction structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -39,9 +35,7 @@ struct FUIAction
 
 public:
 
-	/**
-	 * Default constructor
-	 */
+	/** Default constructor. */
 	FUIAction( ) { }
 
 	/**
@@ -103,8 +97,7 @@ public:
 	/**
 	 * Compares this UI action to another for equality.
 	 *
-	 * @param Other - The other action to compare to.
-	 *
+	 * @param Other The other action to compare to.
 	 * @return true if both actions are equal, false otherwise.
 	 */
 	bool operator==( const FUIAction& Other ) const

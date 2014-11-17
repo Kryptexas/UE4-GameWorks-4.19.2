@@ -31,3 +31,8 @@ void AAbilitySystemTestPawn::PostInitializeComponents()
 	}
 	*/
 }
+
+UAbilitySystemComponent* AAbilitySystemTestPawn::GetAbilitySystemComponent() const
+{
+	return FindComponentByClass<UAbilitySystemComponent>();
+}

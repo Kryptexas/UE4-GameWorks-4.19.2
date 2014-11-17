@@ -1,24 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// Controller, the base class of players or AI.
-//
-// Controllers are non-physical actors that can possess a Pawn to control
-// its actions.  PlayerControllers are used by human players to control pawns, while
-// AIControllers implement the artificial intelligence for the pawns they control.
-// Controllers take control of a pawn using their Possess() method, and relinquish
-// control of the pawn by calling UnPossess().
-//
-// Controllers receive notifications for many of the events occurring for the Pawn they
-// are controlling.  This gives the controller the opportunity to implement the behavior
-// in response to this event, intercepting the event and superseding the Pawn's default
-// behavior.
-//
-// The control rotation (accessed via GetControlRotation()), determines the aiming
-// orientation of the controlled Pawn.
-//
-//=============================================================================
-
 #pragma once
 #include "AI/Navigation/NavAgentInterface.h"
 #include "Controller.generated.h"
@@ -28,6 +9,25 @@ class UPathFollowingComponent;
 
 UDELEGATE(BlueprintAuthorityOnly)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AActor*, DamagedActor, class AActor*, DamageCauser );
+
+//=============================================================================
+/**
+ * Controllers are non-physical actors that can possess a Pawn to control
+ * its actions.  PlayerControllers are used by human players to control pawns, while
+ * AIControllers implement the artificial intelligence for the pawns they control.
+ * Controllers take control of a pawn using their Possess() method, and relinquish
+ * control of the pawn by calling UnPossess().
+ *
+ * Controllers receive notifications for many of the events occurring for the Pawn they
+ * are controlling.  This gives the controller the opportunity to implement the behavior
+ * in response to this event, intercepting the event and superseding the Pawn's default
+ * behavior.
+ *
+ * ControlRotation (accessed via GetControlRotation()), determines the viewing/aiming
+ * direction of the controlled Pawn and is affected by input such as from a mouse or gamepad.
+ * 
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/
+ */
 
 UCLASS(abstract, notplaceable, NotBlueprintable, HideCategories=(Collision,Rendering,"Utilities|Transformation")) 
 class ENGINE_API AController : public AActor, public INavAgentInterface
@@ -51,7 +51,7 @@ private:
 
 public:
 	/** PlayerState containing replicated information about the player using this controller (only exists for players, not NPCs). */
-	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
+	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
 	class APlayerState* PlayerState;
 
 protected:
@@ -126,7 +126,7 @@ public:
 	 * @param StateName the name of the state to test against
 	 * @return true if current state is StateName
 	 */
-	bool IsInState(FName InStateName);
+	bool IsInState(FName InStateName) const;
 	
 	/** @return the name of the current state */
 	FName GetStateName() const;
@@ -233,13 +233,7 @@ public:
 	 */
 	virtual void PawnPendingDestroy(class APawn* inPawn);
 
-	/**
-	 * Notification of someone in the game being killed (to be overridden for things classes like AI)
-	 * @param	AController * Killer - The controller of the player who did the killing
-	 * @param	AController * KilledPlayer - The controller of the player who got killed
-	 * @param	APawn * KilledPawn - The pawn of the player who got killed
-	 * @param	const UDamageType * DamageType - The damage type used to kill the player
-	 */
+	DEPRECATED(4.5, "NotifyKilled is unused in engine code and will be removed from AController.")
 	virtual void NotifyKilled(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType) {}
 
 	/** Called when this controller instigates ANY damage */
@@ -272,8 +266,10 @@ public:
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
 	virtual FVector GetNavAgentLocation() const override;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
-	virtual bool ShouldPostponePathUpdates() const override;
 	// End INavAgentInterface Interface
+
+	/** Allows agent to postpone any path updates (e.g. locked by gameplay). */
+	bool ShouldPostponePathUpdates() const;
 	
 	/** prepares path finding and path following components */
 	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp);
@@ -293,6 +289,10 @@ protected:
 	/** State entered when inactive (no possessed pawn, not spectating, etc). */
 	virtual void EndInactiveState();
 
+	/** Event when this controller instigates ANY damage */
+	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly)
+	virtual void ReceiveInstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser);
+
 public:
 	/** Called when the level this controller is in is unloaded via streaming. */
 	virtual void CurrentLevelUnloaded();
@@ -300,10 +300,6 @@ public:
 private:
 	// Hidden functions that don't make sense to use on this class.
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
-
-	/** Event when this controller instigates ANY damage */
-	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly)
-	virtual void ReceiveInstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser);
 
 	/** Called when the controller has instigated damage in any way */
 	UPROPERTY(BlueprintAssignable)

@@ -20,6 +20,7 @@
 #endif
 
 #include "GameplayDebuggingComponent.h"
+#include "LogVisualizerModule.h"
 
 #include "SFilterList.h"
 
@@ -162,7 +163,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnRecordButtonClicked)
@@ -176,7 +176,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SCheckBox)
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
@@ -192,7 +191,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SCheckBox)
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
@@ -207,7 +205,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.MaxWidth(3)
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SSeparator)
 						.Orientation(Orient_Vertical)
@@ -216,7 +213,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnSave)
@@ -230,7 +226,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnLoad)
@@ -244,7 +239,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnRemove)
@@ -257,7 +251,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					+SHorizontalBox::Slot()
 					.MaxWidth(3)
 					.Padding(1)
-					.AspectRatio()
 					[
 						SNew(SSeparator)
 						.Orientation(Orient_Vertical)
@@ -357,13 +350,11 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(STutorialWrapper, TEXT("CategoryFilters"))
-				[
-					SAssignNew(FilterListPtr, SLogFilterList)
-					.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
-					/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
-					/*.FrontendFilters(FrontendFilters)*/
-				]
+				SAssignNew(FilterListPtr, SLogFilterList)
+				.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("CategoryFilters")))
+				/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
+				/*.FrontendFilters(FrontendFilters)*/
 			]
 
 			+SVerticalBox::Slot()
@@ -523,7 +514,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 									SAssignNew(LogsLinesWidget, SListView<TSharedPtr<FLogEntryItem> >)
 									.ItemHeight(20)
 									.ListItemsSource(&LogEntryLines)
-									.SelectionMode(ESelectionMode::Multi)
+									.SelectionMode(ESelectionMode::Single)
+									.OnSelectionChanged(this, &SLogVisualizer::LogEntryLineSelectionChanged)
 									.OnGenerateRow(this, &SLogVisualizer::LogEntryLinesGenerateRow)
 								]
 							]
@@ -543,6 +535,13 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 
 	LogVisualizer->OnLogAdded().AddSP(this, &SLogVisualizer::OnLogAdded);
 
+	if (LogsList.Num() == 0)
+	{
+		Timeline->SetVisibility(EVisibility::Hidden);
+		ScrollBar->SetVisibility(EVisibility::Hidden);
+		ZoomSlider->SetVisibility(EVisibility::Hidden);
+	}
+
 	TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
 	TSharedPtr<FActorsVisLog>* SharedLog = Logs.GetTypedData();
 	for (int32 LogIndex = 0; LogIndex < Logs.Num(); ++LogIndex, ++SharedLog)
@@ -551,13 +550,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 		{
 			AddOrUpdateLog(LogIndex, SharedLog->Get());
 		}
-	}
-
-	if (LogsList.Num() == 0)
-	{
-		Timeline->SetVisibility(EVisibility::Hidden);
-		ScrollBar->SetVisibility(EVisibility::Hidden);
-		ZoomSlider->SetVisibility(EVisibility::Hidden);
 	}
 
 	DoFullUpdate();
@@ -572,6 +564,11 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SLogVisualizer::~SLogVisualizer()
 {
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->DestroyActor(FLogVisualizerModule::Get()->GetHelperActor(World));
+	}
 	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
 	LogVisualizer->OnLogAdded().RemoveAll(this);
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
@@ -589,7 +586,7 @@ void SLogVisualizer::OnListDoubleClick(TSharedPtr<FLogsListItem> LogListItem)
 		TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[LogListItem->LogIndex];
 		for (FActorIterator It(GetWorld()); It; ++It)
 		{
-			AActor* Actor = Cast<AActor>(*It);
+			AActor* Actor = *It;
 			if (Actor->GetFName() == Log->Name)
 			{
 				Actor->GetActorBounds(false, Orgin, Extent);
@@ -771,6 +768,24 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 					break;
 				}
 			}
+
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+			for (const auto CurrentBlock : CurrentEntry->DataBlocks)
+			{
+				const bool bCurrentCategoryPassed = FilterListPtr->IsFilterEnabled(CurrentBlock.Category.ToString(), ELogVerbosity::All);
+				const bool bCurrentTagNamePassed = FilterListPtr->IsFilterEnabled(CurrentBlock.TagName.ToString(), ELogVerbosity::All);
+
+				if (CurrentBlock.Category != NAME_None && (bCurrentCategoryPassed &&	bCurrentTagNamePassed))
+				{
+					OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
+					bAddedEntry = true;
+					break;
+				}
+			}
 		}
 	}
 	else
@@ -864,6 +879,23 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 						break;
 					}
 				}
+				if (bAddedEntry)
+				{
+					continue;
+				}
+
+				for (const auto CurrentData : CurrentEntry->DataBlocks)
+				{
+					const bool bCurrentCategoryPassed = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All);
+					const bool bCurrentTagNamePassed = FilterListPtr->IsFilterEnabled(CurrentData.TagName.ToString(), ELogVerbosity::All);
+
+					if (CurrentData.TagName != NAME_None && (bCurrentCategoryPassed &&	bCurrentTagNamePassed))
+					{
+						OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
+						bAddedEntry = true;
+						break;
+					}
+				}
 			}
 
 		}
@@ -938,6 +970,24 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 					break;
 				}
 			}
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+			for (const auto CurrentData : LogEntry->DataBlocks)
+			{
+				const bool bCurrentCategoryPassed = bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentData.Category.ToString().Find(QuickFilterText) != INDEX_NONE);
+				const bool bCurrentTagNamePassed = !bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentData.TagName.ToString().Find(QuickFilterText) != INDEX_NONE);
+
+				if (bCurrentCategoryPassed &&	bCurrentTagNamePassed)
+				{
+					OutEntries.AddUnique(LogEntry);
+					bAddedEntry = true;
+					break;
+				}
+			}
+
 		} //for (int32 Index = 0; Index < NumEntries; ++Index)
 	} //if (QuickFilterText.Len() > 0)
 	else
@@ -1138,6 +1188,21 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 				}
 			}
 
+			if (!bShouldShow)
+			{
+				for (const auto CurrentData : Log->Entries[NewEntryIndex]->DataBlocks)
+				{
+					const FName CurrentCategory = CurrentData.Category;
+					const FName CurrentTagName = CurrentData.TagName;
+					if (CurrentCategory == NAME_None ||
+						(FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentTagName.ToString(), ELogVerbosity::All)))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
 			if (bShouldShow)
 			{
 				break;
@@ -1228,6 +1293,18 @@ void SLogVisualizer::AddOrUpdateLog(int32 LogIndex, const FActorsVisLog* Log)
 			const FString DataNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].DataName.ToString();
 			FilterListPtr->AddGraphFilter(GraphNameAsString, DataNameAsString, FColor::White);
 		}
+
+		for (const auto CurrentData : Log->Entries[EntryIndex]->DataBlocks)
+		{
+			int32 Index = UsedCategories.Find(CurrentData.Category.ToString());
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CurrentData.Category.ToString());
+				FilterListPtr->AddFilter(CurrentData.Category.ToString(), GetColorForUsedCategory(Index));
+			}
+		}
+
+
 	}
 
 	if (CurrentIndex == INDEX_NONE)
@@ -1434,12 +1511,27 @@ TSharedRef<ITableRow> SLogVisualizer::LogEntryLinesGenerateRow(TSharedPtr<FLogEn
 			]			
 		];
 }
-/*
-void SLogVisualizer::LogEntryLineSelectionChanged(TSharedPtr<FLogsListItem> SelectedItem, ESelectInfo::Type SelectInfo)
-{
 
+void SLogVisualizer::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo)
+{
+	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLog::Get().GetAllExtensions();
+	for (auto Iterator = AllExtensions.CreateIterator(); Iterator; ++Iterator)
+	{
+		FVisualLogExtensionInterface* Extension = (*Iterator).Value;
+		if (Extension != NULL)
+		{
+			if (SelectedItem.IsValid() == true)
+			{
+				Extension->LogEntryLineSelectionChanged(SelectedItem, SelectedItem->UserData, SelectedItem->TagName);
+			}
+			else
+			{
+				Extension->LogEntryLineSelectionChanged(SelectedItem, 0, NAME_None);
+			}
+		}
+	}
 }
-*/
+
 bool SLogVisualizer::ShouldListLog(const TSharedPtr<FActorsVisLog>& Log)
 {
 	//// Check log name filter
@@ -1666,6 +1758,8 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 
 			EntryItem.Verbosity = LogLine->Verbosity;
 			EntryItem.Line = LogLine->Line;
+			EntryItem.UserData = LogLine->UserData;
+			EntryItem.TagName = LogLine->TagName;
 
 			LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
 		}
@@ -1673,6 +1767,12 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 
 	SetCurrentViewedTime(LogEntry->TimeStamp);
 
+	UWorld* World = GetWorld();
+	for (auto It = FVisualLog::Get().GetAllExtensions().CreateIterator(); It; ++It)
+	{
+		(*It).Value->OnTimestampChange(LogEntry->TimeStamp, World, FLogVisualizerModule::Get()->GetHelperActor(World));
+	}
+	InvalidateCanvas();
 	LogsLinesWidget->RequestListRefresh();
 }
 
@@ -2102,6 +2202,26 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				}
 			}
 
+			AActor* HelperActor = FLogVisualizerModule::Get()->GetHelperActor(World);
+			for (const auto CurrentData : Entry->DataBlocks)
+			{
+				const FName TagName = CurrentData.TagName;
+				const bool bIsValidByFilter = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentData.TagName.ToString(), ELogVerbosity::All);
+				FVisualLogExtensionInterface* Extension = FVisualLog::Get().GetExtensionForTag(TagName);
+				if (!Extension)
+				{
+					continue;
+				}
+
+				if (!bIsValidByFilter)
+				{
+					Extension->DisableDrawingForData(World, Canvas, HelperActor, TagName, CurrentData, Entry->TimeStamp);
+				}
+				else
+				{
+					Extension->DrawData(World, Canvas, HelperActor, TagName, CurrentData, Entry->TimeStamp);
+				}
+			}
 
 			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetTypedData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();
@@ -2419,7 +2539,7 @@ void SLogVisualizer::CameraActorSelected(AActor* SelectedActor)
 
 void SLogVisualizer::SelectActor(AActor* SelectedActor)
 {
-	const AActor* LogOwner = SelectedActor->GetVisualLogRedirection();
+	const AActor* LogOwner = FVisualLog::Get().GetVisualLogRedirection(SelectedActor);
 	const int32 LogIndex = LogVisualizer->GetLogIndexForActor(LogOwner);
 	if (LogVisualizer->Logs.IsValidIndex(LogIndex))
 	{

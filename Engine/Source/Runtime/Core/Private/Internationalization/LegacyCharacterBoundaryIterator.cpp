@@ -1,60 +1,105 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
-#include "CharacterBoundaryIterator.h"
+#include "BreakIterator.h"
 
 #if !UE_ENABLE_ICU
 
-FCharacterBoundaryIterator::FCharacterBoundaryIterator(const FText& Text)
-	: String( Text.ToString() ), CurrentPosition(0)
+class FLegacyCharacterBoundaryIterator : public IBreakIterator
+{
+public:
+	FLegacyCharacterBoundaryIterator();
+
+	virtual void SetString(const FText& InText) override;
+	virtual void SetString(const FString& InString) override;
+	virtual void SetString(const TCHAR* const InString, const int32 InStringLength) override;
+	virtual void ClearString() override;
+
+	virtual int32 GetCurrentPosition() const override;
+
+	virtual int32 ResetToBeginning() override;
+	virtual int32 ResetToEnd() override;
+
+	virtual int32 MoveToPrevious() override;
+	virtual int32 MoveToNext() override;
+	virtual int32 MoveToCandidateBefore(const int32 InIndex) override;
+	virtual int32 MoveToCandidateAfter(const int32 InIndex) override;
+
+private:
+	FString String;
+	int32 CurrentPosition;
+};
+
+FLegacyCharacterBoundaryIterator::FLegacyCharacterBoundaryIterator()
+	: String()
+	, CurrentPosition(0)
 {
 }
 
-FCharacterBoundaryIterator::FCharacterBoundaryIterator(const FString& InString)
-	: String( InString ), CurrentPosition(0)
+void FLegacyCharacterBoundaryIterator::SetString(const FText& InText)
 {
+	String = InText.ToString();
+	ResetToBeginning();
 }
 
-FCharacterBoundaryIterator::FCharacterBoundaryIterator(const TCHAR* const InString, const int32 StringLength)
-	: String( StringLength, InString ), CurrentPosition(0)
+void FLegacyCharacterBoundaryIterator::SetString(const FString& InString)
 {
+	String = InString;
+	ResetToBeginning();
 }
 
-int32 FCharacterBoundaryIterator::GetCurrentPosition() const
+void FLegacyCharacterBoundaryIterator::SetString(const TCHAR* const InString, const int32 InStringLength) 
+{
+	String = FString(InString, InStringLength);
+	ResetToBeginning();
+}
+
+void FLegacyCharacterBoundaryIterator::ClearString()
+{
+	String = FString();
+	ResetToBeginning();
+}
+
+int32 FLegacyCharacterBoundaryIterator::GetCurrentPosition() const
 {
 	return CurrentPosition;
 }
 
-int32 FCharacterBoundaryIterator::ResetToBeginning()
+int32 FLegacyCharacterBoundaryIterator::ResetToBeginning()
 {
 	return CurrentPosition = 0;
 }
 
-int32 FCharacterBoundaryIterator::ResetToEnd()
+int32 FLegacyCharacterBoundaryIterator::ResetToEnd()
 {
 	return CurrentPosition = String.Len();
 }
 
-int32 FCharacterBoundaryIterator::MoveToPrevious()
+int32 FLegacyCharacterBoundaryIterator::MoveToPrevious()
 {
 	return MoveToCandidateBefore(CurrentPosition);
 }
 
-int32 FCharacterBoundaryIterator::MoveToNext()
+int32 FLegacyCharacterBoundaryIterator::MoveToNext()
 {
 	return MoveToCandidateAfter(CurrentPosition);
 }
 
-int32 FCharacterBoundaryIterator::MoveToCandidateBefore(const int32 Index)
+int32 FLegacyCharacterBoundaryIterator::MoveToCandidateBefore(const int32 InIndex)
 {
-	CurrentPosition = FMath::Clamp( Index - 1, 0, String.Len() );
-	return CurrentPosition >= Index ? -1 : CurrentPosition;
+	CurrentPosition = FMath::Clamp( InIndex - 1, 0, String.Len() );
+	return CurrentPosition >= InIndex ? INDEX_NONE : CurrentPosition;
 }
 
-int32 FCharacterBoundaryIterator::MoveToCandidateAfter(const int32 Index)
+int32 FLegacyCharacterBoundaryIterator::MoveToCandidateAfter(const int32 InIndex)
 {
-	CurrentPosition = FMath::Clamp( Index + 1, 0, String.Len() );
-	return CurrentPosition <= Index ? -1 : CurrentPosition;
+	CurrentPosition = FMath::Clamp( InIndex + 1, 0, String.Len() );
+	return CurrentPosition <= InIndex ? INDEX_NONE : CurrentPosition;
+}
+
+TSharedRef<IBreakIterator> FBreakIterator::CreateCharacterBoundaryIterator()
+{
+	return MakeShareable(new FLegacyCharacterBoundaryIterator());
 }
 
 #endif

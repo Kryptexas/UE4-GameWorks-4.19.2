@@ -7,6 +7,7 @@ class FMaterial;
 class FMaterialShaderMap;
 class ULightComponent;
 class USkyLightComponent;
+class FAtmosphericFogSceneInfo;
 
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
@@ -169,6 +170,11 @@ public:
 	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) = 0;
 
 	/**
+	 * Returns the scene's FAtmosphericFogSceneInfo if it exists
+	 */
+	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() = 0;
+
+	/**
 	 * Adds a wind source component to the scene.
 	 * @param WindComponent - The component to add.
 	 */
@@ -231,7 +237,7 @@ public:
 	/**
 	 * Get the optional UWorld that is associated with this scene
 	 * 
- 	 * @return UWorld instance used by this scene
+	 * @return UWorld instance used by this scene
 	 */
 	virtual class UWorld* GetWorld() const = 0;
 	/**
@@ -299,6 +305,11 @@ public:
 	virtual bool IsEditorScene() const { return false; }
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GRHIFeatureLevel; }
+
+	bool ShouldUseDeferredRenderer() const
+	{
+		return GetFeatureLevel() >= ERHIFeatureLevel::SM4;
+	}
 
 protected:
 	virtual ~FSceneInterface() {}

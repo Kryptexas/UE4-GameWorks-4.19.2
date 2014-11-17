@@ -42,12 +42,6 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),
-	CommitResourceTableCycles(0),
-	CacheResourceTableCalls(0),
-	CacheResourceTableCycles(0),
-	SetShaderTextureCycles(0),
-	SetShaderTextureCalls(0),
-	SetTextureInTableCalls(0),
 	SceneFrameCounter(0),
 	ResourceTableFrameCounter(INDEX_NONE),
 	CurrentDSVAccessType(DSAT_Writable),
@@ -79,20 +73,20 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	}
 
 	// ES2 feature level emulation in D3D11
-	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
 	{
-		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::ES2;
-		GRHIShaderPlatform = SP_PCD3D_ES2;
+		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::ES2;
+		GMaxRHIShaderPlatformValue = SP_PCD3D_ES2;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
-		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM5;
-		GRHIShaderPlatform = SP_PCD3D_SM5;
+		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
+		GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
-		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM4;
-		GRHIShaderPlatform = SP_PCD3D_SM4;
+		GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM4;
+		GMaxRHIShaderPlatformValue = SP_PCD3D_SM4;
 	}
 
 	GPixelCenterOffset = 0.0f;	// Note that in D3D11, there is no half-texel offset (ala DX9)	
@@ -209,6 +203,16 @@ void FD3D11DynamicRHI::Shutdown()
 	ZeroBuffer = NULL;
 	ZeroBufferSize = 0;
 }
+
+void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name)
+{ 
+	GPUProfilingData.PushEvent(Name); 
+}
+void FD3D11DynamicRHI::RHIPopEvent()
+{ 
+	GPUProfilingData.PopEvent(); 
+}
+
 
 /**
  * Returns a supported screen resolution that most closely matches the input.
@@ -410,9 +414,6 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		DynamicVB = NULL;
 		DynamicIB = NULL;
 
-		ReleasePooledUniformBuffers();
-		ReleasePooledTextures();
-
 		// Release references to bound uniform buffers.
 		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
 		{
@@ -424,6 +425,12 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 
 		// Release the device and its IC
 		StateCache.SetContext(nullptr);
+
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
+
+		ReleasePooledUniformBuffers();
+		ReleasePooledTextures();
 
 		// When running with D3D debug, clear state and flush the device to get rid of spurious live objects in D3D11's report.
 		if (D3D11RHI_ShouldCreateWithD3DDebug())

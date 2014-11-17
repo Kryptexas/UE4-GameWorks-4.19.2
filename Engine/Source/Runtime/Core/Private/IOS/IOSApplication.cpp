@@ -45,7 +45,7 @@ FPlatformRect FIOSApplication::GetWorkArea( const FPlatformRect& CurrentWindow )
 	return FIOSWindow::GetScreenRect();
 }
 
-void FIOSApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	// Get screen rect
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FIOSWindow::GetScreenRect();

@@ -9,43 +9,62 @@
 UAbilityTask_WaitGameplayEffectRemoved::UAbilityTask_WaitGameplayEffectRemoved(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	Registered = false;
 }
 
 UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::WaitForGameplayEffectRemoved(UObject* WorldContextObject, FActiveGameplayEffectHandle InHandle)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (ThisAbility)
-	{
-		UAbilityTask_WaitGameplayEffectRemoved * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitGameplayEffectRemoved>();
-		MyObj->InitTask(ThisAbility);
-		MyObj->Handle = InHandle;
+	auto MyObj = NewTask<UAbilityTask_WaitGameplayEffectRemoved>(WorldContextObject);
+	MyObj->Handle = InHandle;
 
-		return MyObj;
-	}
-	return NULL;
+	return MyObj;
 }
 
 void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 {
-	if (AbilitySystemComponent.IsValid())	
-	{		
-		FOnActiveGameplayEffectRemoved* DelPtr = AbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+	if (Handle.IsValid() == false)
+	{
+		InvalidHandle.Broadcast();
+		EndTask();
+		return;;
+	}
+
+	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
+
+	if (EffectOwningAbilitySystemComponent)
+	{
+		FOnActiveGameplayEffectRemoved* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
 		if (DelPtr)
 		{
 			DelPtr->AddUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
-		}
-		else
-		{
-			// GameplayEffect was already removed, treat this as a warning? Could be cases of immunity or chained gameplay rules that would instant remove something
-			OnGameplayEffectRemoved();
+			Registered = true;
 		}
 	}
+
+	if (!Registered)
+	{
+		// GameplayEffect was already removed, treat this as a warning? Could be cases of immunity or chained gameplay rules that would instant remove something
+		OnGameplayEffectRemoved();
+	}
+}
+
+void UAbilityTask_WaitGameplayEffectRemoved::OnDestroy(bool AbilityIsEnding)
+{
+	UAbilitySystemComponent* EffectOwningAbilitySystemComponent = Handle.GetOwningAbilitySystemComponent();
+	if (EffectOwningAbilitySystemComponent)
+	{
+		FOnActiveGameplayEffectRemoved* DelPtr = EffectOwningAbilitySystemComponent->OnGameplayEffectRemovedDelegate(Handle);
+		if (DelPtr)
+		{
+			DelPtr->RemoveUObject(this, &UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved);
+		}
+	}
+
+	Super::OnDestroy(AbilityIsEnding);
 }
 
 void UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved()
 {
 	OnRemoved.Broadcast();
-	MarkPendingKill();
+	EndTask();
 }

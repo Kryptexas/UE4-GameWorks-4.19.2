@@ -104,10 +104,23 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 		Label = ToolBarComboButtonBlock->Label;
 	}
 
+	bool bBool = TEXT("Bool");
+
+	// Setup the string for the metatag
+	FName TagName;
+	if (ToolBarComboButtonBlock->GetTutorialHighlightName() == NAME_None)
+	{
+		TagName = *FString::Printf(TEXT("ToolbarComboButton,%s,0"), *Label.Get().ToString());
+	}
+	else
+	{
+		TagName = ToolBarComboButtonBlock->GetTutorialHighlightName();
+	}
+	
 	// Create the content for our button
 	TSharedRef< SWidget > ButtonContent =
 		SNew( SVerticalBox )
-
+		.AddMetaData<FTagMetaData>(FTagMetaData(TagName))
 		// Icon image
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -141,7 +154,8 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 	FName BlockStyle = EMultiBlockLocation::ToName(ISlateStyle::Join( StyleName, ".Button" ), BlockLocation);
 	FName ColorStyle = ISlateStyle::Join( StyleName, ".SToolBarComboButtonBlock.ComboButton.Color" );
 
-	ChildSlot.Widget =
+	ChildSlot
+	[
 		SNew( SComboButton )
 			.ContentPadding(0)
 
@@ -160,7 +174,7 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 
 			// Route the content generator event
 			.OnGetMenuContent( this, &SToolBarComboButtonBlock::OnGetMenuContent )
-		;
+	];
 
 	ChildSlot.Padding(StyleSet->GetMargin(ISlateStyle::Join( StyleName, ".SToolBarComboButtonBlock.Padding" )));
 	// Bind our widget's enabled state to whether or not our action can execute

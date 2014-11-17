@@ -3,7 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
 #if WITH_EDITOR

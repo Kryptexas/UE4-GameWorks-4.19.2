@@ -26,12 +26,12 @@ class FIOSTargetDevice : public ITargetDevice
 public:
 	FIOSTargetDevice (const ITargetPlatform& InTargetPlatform)
 		: TargetPlatform(InTargetPlatform)
+		, DeviceEndpoint()
+		, AppId()
 		, bCanReboot(false)
 		, bCanPowerOn(false)
 		, bCanPowerOff(false)
 		, DeviceType(ETargetDeviceTypes::Indeterminate)
-		, DeviceEndpoint()
-		, AppId()
 	{
 		DeviceId = FTargetDeviceId(TargetPlatform.PlatformName(), FPlatformProcess::ComputerName());
 		DeviceName = FPlatformProcess::ComputerName();

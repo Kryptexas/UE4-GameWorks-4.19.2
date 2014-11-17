@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UHorizontalBox
 
@@ -14,9 +16,9 @@ UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UHorizontalBox::ReleaseNativeWidget()
+void UHorizontalBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyHorizontalBox.Reset();
 }
@@ -48,7 +50,7 @@ void UHorizontalBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-UHorizontalBoxSlot* UHorizontalBox::Add(UWidget* Content)
+UHorizontalBoxSlot* UHorizontalBox::AddChildToHorizontalBox(UWidget* Content)
 {
 	return Cast<UHorizontalBoxSlot>( Super::AddChild(Content) );
 }
@@ -76,4 +78,13 @@ const FSlateBrush* UHorizontalBox::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.HorizontalBox");
 }
 
+const FText UHorizontalBox::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

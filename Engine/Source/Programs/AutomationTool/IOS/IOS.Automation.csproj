@@ -60,16 +60,6 @@
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="IOSPlatform.Automation.cs" />
-    <Compile Include="IPhonePackager\CodeSigning.cs" />
-    <Compile Include="IPhonePackager\CompileTime.cs" />
-    <Compile Include="IPhonePackager\Config.cs" />
-    <Compile Include="IPhonePackager\CookTime.cs" />
-    <Compile Include="IPhonePackager\DeployTime.cs" />
-    <Compile Include="IPhonePackager\FileOperations.cs" />
-    <Compile Include="IPhonePackager\iPhonePackager.cs" />
-    <Compile Include="IPhonePackager\MachObjects.cs" />
-    <Compile Include="IPhonePackager\MobileProvisionUtilities.cs" />
-    <Compile Include="IPhonePackager\Utilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs" />
   </ItemGroup>

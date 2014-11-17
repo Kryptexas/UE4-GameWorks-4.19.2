@@ -245,6 +245,8 @@ public:
 
 	class FSceneViewport* GetGameViewport();
 
+	TSharedPtr<class SViewport> GetGameViewportWidget();
+
 	UGameInstance* GetGameInstance() const;
 
 	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance);
@@ -343,7 +345,7 @@ public:
 	 * Called every frame to allow the game viewport to update time based state.
 	 * @param	DeltaTime	The time since the last call to Tick.
 	 */
-	void Tick( float DeltaTime );
+	virtual void Tick( float DeltaTime );
 
 	/**
 	 * Determines whether this viewport client should receive calls to InputAxis() if the game's window is not currently capturing the mouse.
@@ -392,13 +394,17 @@ public:
 	 *
 	 * @param	out_ViewportSize	[out] will be filled in with the size of the main viewport
 	 */
-	void GetViewportSize( FVector2D& ViewportSize );
+	void GetViewportSize( FVector2D& ViewportSize ) const;
 
 	/** @return Whether or not the main viewport is fullscreen or windowed. */
-	bool IsFullScreenViewport();
+	bool IsFullScreenViewport() const;
 
 	/** @return mouse position in game viewport coordinates (does not account for splitscreen) */
-	FVector2D GetMousePosition();
+	DEPRECATED(4.5, "Use GetMousePosition that returns a boolean if mouse is in window instead.")
+	FVector2D GetMousePosition() const;
+
+	/** @return mouse position in game viewport coordinates (does not account for splitscreen) */
+	bool GetMousePosition(FVector2D& MousePosition) const;
 
 	/**
 	 * Determine whether a fullscreen viewport should be used in cases where there are multiple players.
@@ -562,10 +568,10 @@ public:
 	/** The platform-specific viewport frame which this viewport is contained by. */
 	FViewportFrame* ViewportFrame;
 
-	/*
- 	 * Controls supression of the blue transition text messages 
+	/**
+ 	 * Controls suppression of the blue transition text messages 
 	 * 
-	 * @param bSuppress	Pass true to supress messages
+	 * @param bSuppress	Pass true to suppress messages
 	 */
 	void SetSuppressTransitionMessage( bool bSuppress )
 	{
@@ -626,6 +632,38 @@ public:
 	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
 	{
 		SoundShowFlags = InSoundShowFlags;
+	}
+
+	/**
+	 * Set whether to ignore input.
+	 */
+	void SetIgnoreInput(bool Ignore)
+	{
+		bIgnoreInput = Ignore;
+	}
+
+	/**
+	 * Check whether we should ignore input.
+	 */
+	virtual bool IgnoreInput() override
+	{
+		return bIgnoreInput;
+	}
+
+	/**
+	 * Set the mouse capture behavior when the viewport is clicked
+	 */
+	void SetCaptureMouseOnClick(EMouseCaptureMode::Type Mode)
+	{
+		MouseCaptureMode = Mode;
+	}
+
+	/**
+	 * Gets the mouse capture behavior when the viewport is clicked
+	 */
+	virtual EMouseCaptureMode::Type CaptureMouseOnClick() override
+	{
+		return MouseCaptureMode;
 	}
 
 private:
@@ -707,6 +745,12 @@ private:
 
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
+
+	/** Whether or not to ignore input */
+	bool bIgnoreInput;
+
+	/** Mouse capture behavior when the viewport is clicked */
+	EMouseCaptureMode::Type MouseCaptureMode;
 };
 
 

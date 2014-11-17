@@ -12,6 +12,7 @@ public:
 
 	// SGraphNode interface
 	virtual void CreatePinWidgets() override;
+	virtual void PopulateMetaTag(FGraphNodeMetaData* TagMeta) const override;
 	// End of SGraphNode interface
 
 	// SNodePanel::SNode interface

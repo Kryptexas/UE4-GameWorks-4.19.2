@@ -260,6 +260,37 @@ void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
 	}
 }
 
+bool APartyBeaconHost::SwapTeams(const FUniqueNetIdRepl& PartyLeader, const FUniqueNetIdRepl& OtherPartyLeader)
+{
+	bool bSuccess = false;
+	if (State)
+	{
+		if (State->SwapTeams(PartyLeader, OtherPartyLeader))
+		{
+			ReservationChanged.ExecuteIfBound();
+			bSuccess = true;
+		}
+	}
+
+	return bSuccess;
+}
+
+
+bool APartyBeaconHost::ChangeTeam(const FUniqueNetIdRepl& PartyLeader, int32 NewTeamNum)
+{
+	bool bSuccess = false;
+	if (State)
+	{
+		if (State->ChangeTeam(PartyLeader, NewTeamNum))
+		{
+			ReservationChanged.ExecuteIfBound();
+			bSuccess = true;
+		}
+	}
+
+	return bSuccess;
+}
+
 bool APartyBeaconHost::PlayerHasReservation(const FUniqueNetId& PlayerId) const
 {
 	bool bHasReservation = false;

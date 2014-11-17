@@ -129,9 +129,6 @@ public:
 	/** The render info for the primitive which created this mesh. */
 	FPrimitiveSceneInfo* PrimitiveSceneInfo;
 
-	/** The ID of the hit proxy which represents this static mesh. */
-	FHitProxyId HitProxyId;
-
 	/** The index of the mesh in the scene's static meshes array. */
 	int32 Id;
 
@@ -149,10 +146,12 @@ public:
 		FMeshBatch(InMesh),
 		ScreenSize(InScreenSize),
 		PrimitiveSceneInfo(InPrimitiveSceneInfo),
-		HitProxyId(InHitProxyId),
 		Id(INDEX_NONE),
 		bShadowOnly(bInShadowOnly)
-	{}
+	{
+		BatchHitProxyId = InHitProxyId;
+	}
+
 	~FStaticMesh();
 
 	/** Adds a link from the mesh to its entry in a draw list. */
@@ -179,7 +178,6 @@ private:
 		FMeshBatch(InStaticMesh),
 		ScreenSize(InStaticMesh.ScreenSize),
 		PrimitiveSceneInfo(InStaticMesh.PrimitiveSceneInfo),
-		HitProxyId(InStaticMesh.HitProxyId),
 		Id(InStaticMesh.Id)
 	{}
 };

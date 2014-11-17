@@ -4,8 +4,25 @@
 #include "MacApplication.h"
 #include "FeedbackContextMarkup.h"
 #include "MacNativeFeedbackContext.h"
+#include "CocoaThread.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
+
+class FMacScopedSystemModalMode
+{
+public:
+	FMacScopedSystemModalMode()
+	{
+		MacApplication->SystemModalMode(true);
+	}
+	
+	~FMacScopedSystemModalMode()
+	{
+		MacApplication->SystemModalMode(false);
+	}
+private:
+	FScopedSystemModalMode SystemModalMode;
+};
 
 class FCocoaScopeContext
 {
@@ -223,99 +240,108 @@ bool FDesktopPlatformMac::SaveFileDialog(const void* ParentWindowHandle, const F
 
 bool FDesktopPlatformMac::OpenDirectoryDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, FString& OutFolderName)
 {
-	SCOPED_AUTORELEASE_POOL;
-	FCocoaScopeContext ContextGuard;
-
 	MacApplication->SetCapture( NULL );
 
-	NSOpenPanel* Panel = [NSOpenPanel openPanel];
-	[Panel setCanChooseFiles: false];
-	[Panel setCanChooseDirectories: true];
-	[Panel setAllowsMultipleSelection: false];
-	[Panel setCanCreateDirectories: true];
-
-	CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
-	[Panel setTitle: (NSString*)Title];
-	CFRelease(Title);
-
-	CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
-	NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
-	[Panel setDirectoryURL: DefaultPathURL];
-	CFRelease(DefaultPathCFString);
-
 	bool bSuccess = false;
-
 	{
-		FScopedSystemModalMode SystemModalScope;
-		NSInteger Result = [Panel runModal];
+		FMacScopedSystemModalMode SystemModalScope;
+		bSuccess = MainThreadReturn(^{
+			SCOPED_AUTORELEASE_POOL;
+			FCocoaScopeContext ContextGuard;
 
-		if (Result == NSFileHandlingPanelOKButton)
-		{
-			NSURL *FolderURL = [[Panel URLs] objectAtIndex: 0];
-			TCHAR FolderPath[MAX_PATH];
-			FPlatformString::CFStringToTCHAR((CFStringRef)[FolderURL path], FolderPath);
-			OutFolderName = FolderPath;
-			FPaths::NormalizeFilename(OutFolderName);
+			NSOpenPanel* Panel = [NSOpenPanel openPanel];
+			[Panel setCanChooseFiles: false];
+			[Panel setCanChooseDirectories: true];
+			[Panel setAllowsMultipleSelection: false];
+			[Panel setCanCreateDirectories: true];
 
-			bSuccess = true;
-		}
+			CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
+			[Panel setTitle: (NSString*)Title];
+			CFRelease(Title);
+
+			CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
+			NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
+			[Panel setDirectoryURL: DefaultPathURL];
+			CFRelease(DefaultPathCFString);
+
+			bool bSuccess = false;
+
+			NSInteger Result = [Panel runModal];
+
+			if (Result == NSFileHandlingPanelOKButton)
+			{
+				NSURL *FolderURL = [[Panel URLs] objectAtIndex: 0];
+				TCHAR FolderPath[MAX_PATH];
+				FPlatformString::CFStringToTCHAR((CFStringRef)[FolderURL path], FolderPath);
+				OutFolderName = FolderPath;
+				FPaths::NormalizeFilename(OutFolderName);
+
+				bSuccess = true;
+			}
+
+			[Panel close];
+
+			return bSuccess;
+		});
 	}
-
-	[Panel close];
-
 	MacApplication->ResetModifierKeys();
-
+	
 	return bSuccess;
 }
 
-bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags)
+bool FDesktopPlatformMac::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {
-	SCOPED_AUTORELEASE_POOL;
-	FCocoaScopeContext ContextGuard;
-
 	MacApplication->SetCapture( NULL );
-
-	NSFontPanel* Panel = [NSFontPanel sharedFontPanel];
-	[Panel setFloatingPanel: false];
-	[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: false];
-	FFontDialogAccessoryView* AccessoryView = [[FFontDialogAccessoryView alloc] initWithFrame: NSMakeRect(0.0, 0.0, 190.0, 80.0)];
-	[Panel setAccessoryView: AccessoryView];
-
+	
+	bool bSuccess = false;
 	{
-		FScopedSystemModalMode SystemModalScope;
-		[NSApp runModalForWindow: Panel];
+		FMacScopedSystemModalMode SystemModalScope;
+		bSuccess = MainThreadReturn(^{
+			SCOPED_AUTORELEASE_POOL;
+			FCocoaScopeContext ContextGuard;
+
+			NSFontPanel* Panel = [NSFontPanel sharedFontPanel];
+			[Panel setFloatingPanel: false];
+			[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: false];
+			FFontDialogAccessoryView* AccessoryView = [[FFontDialogAccessoryView alloc] initWithFrame: NSMakeRect(0.0, 0.0, 190.0, 80.0)];
+			[Panel setAccessoryView: AccessoryView];
+
+			[NSApp runModalForWindow: Panel];
+			
+			[Panel close];
+
+			bool bSuccess = [AccessoryView result];
+
+			[Panel setAccessoryView: NULL];
+			[AccessoryView release];
+			[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: true];
+
+			if( bSuccess )
+			{
+				NSFont* Font = [Panel panelConvertFont: [NSFont userFontOfSize: 0]];
+
+				TCHAR FontName[MAX_PATH];
+				FPlatformString::CFStringToTCHAR((CFStringRef)[Font fontName], FontName);
+
+				OutFontName = FontName;
+				OutHeight = [Font pointSize];
+
+				auto FontFlags = EFontImportFlags::None;
+
+				if( [Font underlineThickness] >= 1.0 )
+				{
+					FontFlags |= EFontImportFlags::EnableUnderline;
+				}
+
+				OutFlags = FontFlags;
+			}
+
+			return bSuccess;
+		});
 	}
-
-	[Panel close];
-
-	bool bSuccess = [AccessoryView result];
-
-	[Panel setAccessoryView: NULL];
-	[AccessoryView release];
-	[[Panel standardWindowButton: NSWindowCloseButton] setEnabled: true];
-
-	if( bSuccess )
-	{
-		NSFont* Font = [Panel panelConvertFont: [NSFont userFontOfSize: 0]];
-
-		TCHAR FontName[MAX_PATH];
-		FPlatformString::CFStringToTCHAR((CFStringRef)[Font fontName], FontName);
-
-		OutFontName = FontName;
-		OutHeight = [Font pointSize];
-
-		uint32 FontFlags = EFontImportFlags::None;
-
-		if( [Font underlineThickness] >= 1.0 )
-		{
-			FontFlags |= EFontImportFlags::EnableUnderline;
-		}
-
-		OutFlags = static_cast<EFontImportFlags::Type>(FontFlags);
-	}
-
+	
 	MacApplication->ResetModifierKeys();
-
+	
 	return bSuccess;
 }
 
@@ -355,6 +381,12 @@ void OpenLauncherCommandLine( const FString& InCommandLine )
 	
 }
 
+bool FDesktopPlatformMac::CanOpenLauncher(bool Install)
+{
+	FString Path;
+	return GetLauncherPath(Path) || (Install && GetLauncherInstallerPath(Path));
+}
+
 bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 {
 	// If the launcher is already running, bring it to front
@@ -367,161 +399,130 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 		return true;
 	}
 
-	FString LaunchPath;
-
-	bool bWasLaunched = false;
-	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+	// Try to start a new instance
+	FString LauncherPath;
+	if(GetLauncherPath(LauncherPath))
 	{
-		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Mac"), TEXT("UnrealEngineLauncher-Mac-Debug.app/Contents/MacOS/UnrealEngineLauncher-Mac-Debug"));
-		CommandLineParams += TEXT(" -noselfupdate");
-	}
-	else
-	{
-		LaunchPath = TEXT("/Applications/Unreal Engine.app/Contents/MacOS/UnrealEngineLauncher-Mac-Shipping");
-	}
-
-	if( !FPaths::FileExists(LaunchPath) )
-	{
-		// The app could have been installed manually from the dmg, launch it where ever it is
-		NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
-		NSString* Path = [Workspace fullPathForApplication:@"Unreal Engine"];
-		if( Path )
+		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 		{
-			NSURL* URL = [NSURL fileURLWithPath:Path];
-			if( URL )
-			{
-				NSArray* Arguments = [NSArray arrayWithObjects:CommandLineParams.GetNSString(),nil];
-				bWasLaunched = [Workspace launchApplicationAtURL:URL options:0 configuration:[NSDictionary dictionaryWithObject:Arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:nil];
-				
-				OpenLauncherCommandLine(CommandLineParams);
-			}
+			CommandLineParams += TEXT(" -noselfupdate");
 		}
+		return FPlatformProcess::CreateProc(*LauncherPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LauncherPath), NULL).IsValid();
 	}
 
-	if( !bWasLaunched )
+	// Try to install it
+	FString InstallerPath;
+	if(GetLauncherInstallerPath(InstallerPath))
 	{
-		if( FPaths::FileExists(LaunchPath) )
-		{
-			bWasLaunched = FPlatformProcess::CreateProc(*LaunchPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LaunchPath), NULL).IsValid();
-		}
-		else if (Install)
-		{
-			// ... or run the installer if desired
-			LaunchPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngine.dmg")));
-
-			if (FPaths::FileExists(LaunchPath))
-			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication(*LaunchPath);
-				bWasLaunched = true;
-			}
-			else
-			{
-				bWasLaunched = false;
-			}
-		}
-
+		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
+		return true;
 	}
-	return bWasLaunched;
+
+	return false;
 }
 
 bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
-	SCOPED_AUTORELEASE_POOL;
-	FCocoaScopeContext ContextGuard;
-
 	MacApplication->SetCapture( NULL );
 
-	NSSavePanel* Panel = bSave ? [NSSavePanel savePanel] : [NSOpenPanel openPanel];
-
-	if (!bSave)
-	{
-		NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
-		[OpenPanel setCanChooseFiles: true];
-		[OpenPanel setCanChooseDirectories: false];
-		[OpenPanel setAllowsMultipleSelection: Flags & EFileDialogFlags::Multiple];
-	}
-
-	[Panel setCanCreateDirectories: bSave];
-
-	CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
-	[Panel setTitle: (NSString*)Title];
-	CFRelease(Title);
-
-	CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
-	NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
-	[Panel setDirectoryURL: DefaultPathURL];
-	CFRelease(DefaultPathCFString);
-
-	CFStringRef FileNameCFString = FPlatformString::TCHARToCFString(*DefaultFile);
-	[Panel setNameFieldStringValue: (NSString*)FileNameCFString];
-	CFRelease(FileNameCFString);
-
-	FFileDialogAccessoryView* AccessoryView = [[FFileDialogAccessoryView alloc] initWithFrame: NSMakeRect( 0.0, 0.0, 250.0, 85.0 ) dialogPanel: Panel];
-	[Panel setAccessoryView: AccessoryView];
-
-	TArray<FString> FileTypesArray;
-	int32 NumFileTypes = FileTypes.ParseIntoArray(&FileTypesArray, TEXT("|"), true);
-
-	NSMutableArray* AllowedFileTypes = [NSMutableArray arrayWithCapacity: NumFileTypes];
-
-	if( NumFileTypes > 0 )
-	{
-		for( int32 Index = 0; Index < NumFileTypes; ++Index )
-		{
-			CFStringRef Type = FPlatformString::TCHARToCFString(*FileTypesArray[Index]);
-			[AllowedFileTypes addObject: (NSString*)Type];
-			CFRelease(Type);
-		}
-	}
-
-	[AccessoryView AddAllowedFileTypes:AllowedFileTypes];
-
 	bool bSuccess = false;
-	NSWindow* FocusWindow = [[NSApplication sharedApplication] keyWindow];
-
 	{
-		FScopedSystemModalMode SystemModalScope;
+		FMacScopedSystemModalMode SystemModalScope;
+		bSuccess = MainThreadReturn(^{
+			SCOPED_AUTORELEASE_POOL;
+			FCocoaScopeContext ContextGuard;
 
-		NSInteger Result = [Panel runModal];
-		[AccessoryView release];
+			NSSavePanel* Panel = bSave ? [NSSavePanel savePanel] : [NSOpenPanel openPanel];
 
-		if (Result == NSFileHandlingPanelOKButton)
-		{
-			if (bSave)
-			{
-				TCHAR FilePath[MAX_PATH];
-				FPlatformString::CFStringToTCHAR((CFStringRef)[[Panel URL] path], FilePath);
-				new(OutFilenames) FString(FilePath);
-			}
-			else
+			if (!bSave)
 			{
 				NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
-				for (NSURL *FileURL in [OpenPanel URLs])
+				[OpenPanel setCanChooseFiles: true];
+				[OpenPanel setCanChooseDirectories: false];
+				[OpenPanel setAllowsMultipleSelection: Flags & EFileDialogFlags::Multiple];
+			}
+
+			[Panel setCanCreateDirectories: bSave];
+
+			CFStringRef Title = FPlatformString::TCHARToCFString(*DialogTitle);
+			[Panel setTitle: (NSString*)Title];
+			CFRelease(Title);
+
+			CFStringRef DefaultPathCFString = FPlatformString::TCHARToCFString(*DefaultPath);
+			NSURL* DefaultPathURL = [NSURL fileURLWithPath: (NSString*)DefaultPathCFString];
+			[Panel setDirectoryURL: DefaultPathURL];
+			CFRelease(DefaultPathCFString);
+
+			CFStringRef FileNameCFString = FPlatformString::TCHARToCFString(*DefaultFile);
+			[Panel setNameFieldStringValue: (NSString*)FileNameCFString];
+			CFRelease(FileNameCFString);
+
+			FFileDialogAccessoryView* AccessoryView = [[FFileDialogAccessoryView alloc] initWithFrame: NSMakeRect( 0.0, 0.0, 250.0, 85.0 ) dialogPanel: Panel];
+			[Panel setAccessoryView: AccessoryView];
+
+			TArray<FString> FileTypesArray;
+			int32 NumFileTypes = FileTypes.ParseIntoArray(&FileTypesArray, TEXT("|"), true);
+
+			NSMutableArray* AllowedFileTypes = [NSMutableArray arrayWithCapacity: NumFileTypes];
+
+			if( NumFileTypes > 0 )
+			{
+				for( int32 Index = 0; Index < NumFileTypes; ++Index )
 				{
-					TCHAR FilePath[MAX_PATH];
-					FPlatformString::CFStringToTCHAR((CFStringRef)[FileURL path], FilePath);
-					new(OutFilenames) FString(FilePath);
+					CFStringRef Type = FPlatformString::TCHARToCFString(*FileTypesArray[Index]);
+					[AllowedFileTypes addObject: (NSString*)Type];
+					CFRelease(Type);
 				}
 			}
 
-			// Make sure all filenames gathered have their paths normalized
-			for (auto FilenameIt = OutFilenames.CreateIterator(); FilenameIt; ++FilenameIt)
+			[AccessoryView AddAllowedFileTypes:AllowedFileTypes];
+
+			bool bSuccess = false;
+			NSWindow* FocusWindow = [[NSApplication sharedApplication] keyWindow];
+
+			NSInteger Result = [Panel runModal];
+			[AccessoryView release];
+
+			if (Result == NSFileHandlingPanelOKButton)
 			{
-				FPaths::NormalizeFilename(*FilenameIt);
+				if (bSave)
+				{
+					TCHAR FilePath[MAX_PATH];
+					FPlatformString::CFStringToTCHAR((CFStringRef)[[Panel URL] path], FilePath);
+					new(OutFilenames) FString(FilePath);
+				}
+				else
+				{
+					NSOpenPanel* OpenPanel = (NSOpenPanel*)Panel;
+					for (NSURL *FileURL in [OpenPanel URLs])
+					{
+						TCHAR FilePath[MAX_PATH];
+						FPlatformString::CFStringToTCHAR((CFStringRef)[FileURL path], FilePath);
+						new(OutFilenames) FString(FilePath);
+					}
+				}
+
+				// Make sure all filenames gathered have their paths normalized
+				for (auto FilenameIt = OutFilenames.CreateIterator(); FilenameIt; ++FilenameIt)
+				{
+					FPaths::NormalizeFilename(*FilenameIt);
+				}
+
+				bSuccess = true;
 			}
 
-			bSuccess = true;
-		}
+			[Panel close];
+			
+			if(FocusWindow)
+			{
+				[FocusWindow makeKeyWindow];
+			}
+
+			return bSuccess;
+		});
 	}
-
-	[Panel close];
-
-	MacApplication->ResetModifierKeys();
 	
-	if(FocusWindow)
-	{
-		[FocusWindow makeKeyWindow];
-	}
+	MacApplication->ResetModifierKeys();
 
 	return bSuccess;
 }
@@ -559,7 +560,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 	}
 	else
 	{
-		NSRunAlertPanel(@"Error", UProjectPath.GetNSString(), @"OK", NULL, NULL);
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *UProjectPath, TEXT("Error"));
 	}
 
 	FConfigFile ConfigFile;
@@ -567,6 +568,20 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 	ConfigFile.Read(ConfigPath);
 
 	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
+	// Remove invalid entries
+	TArray<FName> KeysToRemove;
+	for (auto It : Section)
+	{
+		const FString& EngineDir = It.Value;
+		if (EngineDir.Contains("Unreal Engine.app/Contents/") || EngineDir.Contains("/Users/Shared/UnrealEngine/Launcher") || !IFileManager::Get().DirectoryExists(*EngineDir))
+		{
+			KeysToRemove.Add(It.Key);
+		}
+	}
+	for (auto Key : KeysToRemove)
+	{
+		Section.Remove(Key);
+	}
 
 	CFArrayRef AllApps = LSCopyApplicationURLsForURL((__bridge CFURLRef)[NSURL fileURLWithPath:UProjectPath.GetNSString()], kLSRolesAll);
 	if (AllApps)
@@ -578,7 +593,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 			NSBundle* AppBundle = [NSBundle bundleWithURL:AppURL];
 			FString EngineDir = FString([[AppBundle bundlePath] stringByDeletingLastPathComponent]);
 			if (([[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
-				&& EngineDir.RemoveFromEnd(TEXT("/Engine/Binaries/Mac")))
+				&& EngineDir.RemoveFromEnd(TEXT("/Engine/Binaries/Mac")) && !EngineDir.Contains("Unreal Engine.app/Contents/") && !EngineDir.Contains("/Users/Shared/UnrealEngine/Launcher"))
 			{
 				FString EngineId;
 				const FName* Key = Section.FindKey(EngineDir);
@@ -590,7 +605,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 				{
 					if (!OutInstallations.FindKey(EngineDir))
 					{
-						EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+						EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
 						Section.AddUnique(*EngineId, EngineDir);
 						ConfigFile.Dirty = true;
 					}
@@ -649,6 +664,59 @@ bool FDesktopPlatformMac::RunUnrealBuildTool(const FText& Description, const FSt
 	// Spawn it
 	int32 ExitCode = 0;
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, TEXT("/bin/sh"), CmdLineParams, Warn, &ExitCode) && ExitCode == 0;
+}
+
+bool FDesktopPlatformMac::IsUnrealBuildToolRunning()
+{
+	// For now assume that if mono application is running, we're running UBT
+	// @todo: we need to get the commandline for the mono process and check if UBT.exe is in there.
+	return FPlatformProcess::IsApplicationRunning(TEXT("mono"));
+}
+
+bool FDesktopPlatformMac::GetLauncherPath(FString& OutLauncherPath) const
+{
+	// Try the default executable in the binaries directory
+	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+	{
+		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Mac"), TEXT("UnrealEngineLauncher-Mac-Debug.app/Contents/MacOS/UnrealEngineLauncher-Mac-Debug"));
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
+	}
+	else
+	{
+		FString LauncherPath = TEXT("/Applications/Unreal Engine.app/Contents/MacOS/UnrealEngineLauncher-Mac-Shipping");
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
+	}
+
+	// Otherwise search for it...
+	NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
+	NSString* Path = [Workspace fullPathForApplication:@"Unreal Engine"];
+	if( Path )
+	{
+		OutLauncherPath = FString(Path);
+		return true;
+	}
+
+	return false;
+}
+
+bool FDesktopPlatformMac::GetLauncherInstallerPath(FString& OutInstallerPath) const
+{
+	// Check if the installer exists
+	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngine.dmg")));
+	if (FPaths::FileExists(InstallerPath))
+	{
+		OutInstallerPath = InstallerPath;
+		return true;
+	}
+	return false;
 }
 
 FFeedbackContext* FDesktopPlatformMac::GetNativeFeedbackContext()

@@ -1,6 +1,7 @@
 
 #include "LiveEditorPrivatePCH.h"
 
+#include "Kismet/KismetMathLibrary.h"
 #include "BlueprintGraphDefinitions.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -151,7 +152,7 @@ void UK2Node_LiveEditObject::AllocateDefaultPins()
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
 	// If required add the world context pin
-	if (GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins))
+	if (GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
 	{
 		CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, UK2Node_LiveEditObjectStatics::WorldContextPinName);
 	}
@@ -184,19 +185,21 @@ void UK2Node_LiveEditObject::AllocateDefaultPins()
 FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BaseClassPin = GetBaseClassPin();
-
-	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
+	if ((BaseClassPin == nullptr) || (BaseClassPin->DefaultObject == nullptr))
 	{
-		SpawnString = FText::FromString(BaseClassPin->DefaultObject->GetName());
+		return NSLOCTEXT("K2Node", "LiveEditObject_NullTitle", "LiveEditObject NONE");
 	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FNumberFormattingOptions NumberOptions;
+		NumberOptions.UseGrouping = false;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SpawnString"), FText::FromName(BaseClassPin->DefaultObject->GetFName()));
+		Args.Add(TEXT("ID"), FText::AsNumber(GetUniqueID(), &NumberOptions));
 
-	FNumberFormattingOptions NumberOptions;
-	NumberOptions.UseGrouping = false;
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SpawnString"), SpawnString);
-	Args.Add(TEXT("ID"), FText::AsNumber(GetUniqueID(), &NumberOptions));
-	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_LiveEditObject::PinDefaultValueChanged(UEdGraphPin* Pin) 
@@ -776,7 +779,7 @@ UEdGraphPin *UK2Node_LiveEditObject::GetClampMaxPin() const
 
 void UK2Node_LiveEditObject::SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const
 {
-	MutatablePin.PinToolTip = UEdGraphSchema_K2::TypeToString(MutatablePin.PinType);
+	MutatablePin.PinToolTip = UEdGraphSchema_K2::TypeToText(MutatablePin.PinType).ToString();
 
 	UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
 	if (K2Schema != nullptr)

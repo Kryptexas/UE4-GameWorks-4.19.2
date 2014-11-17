@@ -525,6 +525,14 @@ private:
 	/** Bring up the search tab */
 	void OnFindInMaterial();
 
+	/** Open documentation for the selected node class */
+	void OnGoToDocumentation();
+	/** Can we open documentation for the selected node */
+	bool CanGoToDocumentation();
+
+	/** Util to try and get doc link for the currently selected node */
+	FString GetDocLinkForSelectedNode();
+
 	/** Callback from the Asset Registry when an asset is renamed. */
 	void RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName);
 

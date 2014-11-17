@@ -6,7 +6,6 @@
 UBTComposite_Sequence::UBTComposite_Sequence(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Sequence";
-	OptionalDeactivationResult = EBTNodeResult::Succeeded;
 
 	OnNextChild.BindUObject(this, &UBTComposite_Sequence::GetNextChildHandler);
 }
@@ -21,7 +20,7 @@ int32 UBTComposite_Sequence::GetNextChildHandler(struct FBehaviorTreeSearchData&
 		// newly activated: start from first
 		NextChildIdx = 0;
 	}
-	else if ((LastResult == EBTNodeResult::Succeeded || LastResult == EBTNodeResult::Optional) && (PrevChild + 1) < GetChildrenNum())
+	else if (LastResult == EBTNodeResult::Succeeded && (PrevChild + 1) < GetChildrenNum())
 	{
 		// success = choose next child
 		NextChildIdx = PrevChild + 1;

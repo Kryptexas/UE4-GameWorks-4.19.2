@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsEvent.h: Declares the FEventWin class.
-=============================================================================*/
-
 #pragma once
 
 #include "AllowWindowsPlatformTypes.h"
+
 
 /**
  * Implements the Windows version of the FEvent interface.
@@ -19,53 +16,53 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FEventWin ()
-		: Event(NULL)
+	FEventWin( )
+		: Event(nullptr)
 	{
 	}
 
 	/**
-	 * Destructor.
+	 * Virtual destructor.
 	 */
-	virtual ~FEventWin ()
+	virtual ~FEventWin( )
 	{
-		if (Event != NULL)
+		if (Event != nullptr)
 		{
 			CloseHandle(Event);
 		}
 	}
 
-
 public:
 
-	virtual bool Create (bool bIsManualReset = false) override
+	virtual bool Create( bool bIsManualReset = false ) override
 	{
 		// Create the event and default it to non-signaled
-		Event = CreateEvent(NULL, bIsManualReset, 0, NULL);
+		Event = CreateEvent(nullptr, bIsManualReset, 0, nullptr);
 
-		return Event != NULL;
+		return Event != nullptr;
 	}
 
-	virtual void Trigger () override
+	virtual void Trigger( ) override
 	{
 		check(Event);
 
 		SetEvent(Event);
 	}
 
-	virtual void Reset () override
+	virtual void Reset( ) override
 	{
 		check(Event);
 
 		ResetEvent(Event);
 	}
 
-	virtual bool Wait (uint32 WaitTime, const bool bIgnoreThreadIdleStats = false) override;
+	virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) override;
 
 private:
 
 	// Holds the handle to the event
 	HANDLE Event;
 };
+
 
 #include "HideWindowsPlatformTypes.h"

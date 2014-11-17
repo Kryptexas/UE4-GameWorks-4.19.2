@@ -401,6 +401,8 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 	uint32										bRequireFullVisibilityToRender:1;
 	/** Whether this level is specific to client, visibility state will not be replicated to server	*/
 	uint32										bClientOnlyVisible:1;
+	/** Whether this level was duplicated for PIE	*/
+	uint32										bWasDuplicatedForPIE:1;
 	/** Current index into actors array for updating components.							*/
 	int32										CurrentActorIndexForUpdateComponents;
 
@@ -470,6 +472,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
 	virtual void PreSave() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -647,17 +650,17 @@ public:
 	/** @todo document */
 	ENGINE_API TArray<FVector> const* GetStaticNavigableGeometry() const { return &StaticNavigableGeometry;}
 
-	/* 
+	/** 
 	* Is this the persistent level 
 	*/
 	ENGINE_API bool IsPersistentLevel() const;
 
-	/* 
+	/** 
 	* Is this the current level in the world it is owned by
 	*/
 	ENGINE_API bool IsCurrentLevel() const;
 	
-	/* 
+	/** 
 	 * Shift level actors by specified offset
 	 * The offset vector will get subtracted from all actors positions and corresponding data structures
 	 *

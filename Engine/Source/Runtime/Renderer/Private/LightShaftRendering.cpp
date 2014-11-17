@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/PostProcessTemporalAA.h"
+#include "SceneUtils.h"
 
 
 /** Tweaked values from UE3 implementation **/
@@ -225,7 +226,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -258,7 +259,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); 
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -332,7 +333,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); 
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -389,7 +390,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); 
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
 	/** Default constructor. */
@@ -450,7 +451,7 @@ void AllocateOrReuseLightShaftRenderTarget(FRHICommandListImmediate& RHICmdList,
 template<bool bDownsampleOcclusion>
 void DownsamplePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
 {
-	SCOPED_DRAW_EVENT(Downsample, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Downsample, DEC_SCENE_ITEMS);
 
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const uint32 DownsampleFactor	= GetLightShaftDownsampleFactor();
@@ -463,30 +464,30 @@ void DownsamplePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View,
 	RHICmdList.SetViewport(DownSampledXY.X, DownSampledXY.Y, 0.0f, DownSampledXY.X + DownsampledSizeX, DownSampledXY.Y + DownsampledSizeY, 1.0f);
 
 	// Set shaders and texture
-	TShaderMapRef<FDownsampleLightShaftsVertexShader> DownsampleLightShaftsVertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FDownsampleLightShaftsVertexShader> DownsampleLightShaftsVertexShader(View.ShaderMap);
 	TRefCountPtr<IPooledRenderTarget> UnusedRT;
 
 	switch(LightSceneInfo->Proxy->GetLightType())
 	{
 	case LightType_Directional:
 		{
-			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Directional, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(GetGlobalShaderMap());
-			SetGlobalBoundShaderState(RHICmdList, DownsampleDirectionalLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
+			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Directional, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(View.ShaderMap);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), DownsampleDirectionalLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
 			DownsampleLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, UnusedRT);
 		}
 		break;
 	case LightType_Spot:
 		{
-			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Spot, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(GetGlobalShaderMap());
-			SetGlobalBoundShaderState(RHICmdList, DownsampleSpotLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
+			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Spot, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(View.ShaderMap);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), DownsampleSpotLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
 			DownsampleLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, UnusedRT);
 		}
 		break;
 	default:
 	case LightType_Point:
 		{
-			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Point, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(GetGlobalShaderMap());
-			SetGlobalBoundShaderState(RHICmdList, DownsamplePointLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
+			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Point, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(View.ShaderMap);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), DownsamplePointLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
 			DownsampleLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, UnusedRT);
 		}
 		break;
@@ -596,7 +597,7 @@ void ApplyRadialBlurPasses(
 	/** First pass dest. */
 	TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
 {
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
 
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const uint32 DownsampleFactor	= GetLightShaftDownsampleFactor();
@@ -615,15 +616,15 @@ void ApplyRadialBlurPasses(
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-		TShaderMapRef<FBlurLightShaftsPixelShader> BlurLightShaftsPixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(RHICmdList, BlurLightShaftsBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *BlurLightShaftsPixelShader);
+		TShaderMapRef<FBlurLightShaftsPixelShader> BlurLightShaftsPixelShader(View.ShaderMap);
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BlurLightShaftsBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *BlurLightShaftsPixelShader);
 
 		TRefCountPtr<IPooledRenderTarget>& EffectiveSource = PassIndex == 0 ? FirstPassSource : LightShaftsSource;
 		/// ?
 		BlurLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, PassIndex, EffectiveSource);
 
 		{
-			SCOPED_DRAW_EVENT(RadialBlur, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, RadialBlur, DEC_SCENE_ITEMS);
 			// Apply a radial blur to the bloom and occlusion mask
 			DrawRectangle( 
 				RHICmdList,
@@ -645,7 +646,7 @@ void ApplyRadialBlurPasses(
 
 void FinishOcclusionTerm(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
 {
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
 
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const uint32 DownsampleFactor	= GetLightShaftDownsampleFactor();
@@ -661,13 +662,13 @@ void FinishOcclusionTerm(FRHICommandList& RHICmdList, const FViewInfo& View, con
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FFinishOcclusionPixelShader> MaskOcclusionTermPixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(RHICmdList, AccumulateTermBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *MaskOcclusionTermPixelShader);
+	TShaderMapRef<FFinishOcclusionPixelShader> MaskOcclusionTermPixelShader(View.ShaderMap);
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), AccumulateTermBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *MaskOcclusionTermPixelShader);
 	/// ?
 	MaskOcclusionTermPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, LightShaftsSource);
 
 	{
-		SCOPED_DRAW_EVENT(FinishOcclusion, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, FinishOcclusion, DEC_SCENE_ITEMS);
 		// Apply a radial blur to the bloom and occlusion mask
 		DrawRectangle( 
 			RHICmdList,
@@ -732,7 +733,7 @@ FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHI
 
 			if (bEnableOcclusion && LightSceneInfo->Proxy->GetLightType() == LightType_Directional)
 			{
-				SCOPED_DRAW_EVENT(RenderLightShaftOcclusion, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, RenderLightShaftOcclusion, DEC_SCENE_ITEMS);
 
 				// Allocate light shaft render targets on demand, using the pool
 				// Need two targets to ping pong between
@@ -789,7 +790,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); 
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
 	/** Default constructor. */
@@ -835,7 +836,7 @@ IMPLEMENT_SHADER_TYPE(,FApplyLightShaftsPixelShader,TEXT("LightShaftShader"),TEX
 
 void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource)
 {
-	SCOPED_DRAW_EVENT(Apply, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Apply, DEC_SCENE_ITEMS);
 
 	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
@@ -844,10 +845,10 @@ void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo&
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FApplyLightShaftsPixelShader> ApplyLightShaftsPixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+	TShaderMapRef<FApplyLightShaftsPixelShader> ApplyLightShaftsPixelShader(View.ShaderMap);
 
-	SetGlobalBoundShaderState(RHICmdList, ApplyLightShaftsBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ApplyLightShaftsPixelShader);
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), ApplyLightShaftsBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ApplyLightShaftsPixelShader);
 
 	/// ?
 	ApplyLightShaftsPixelShader->SetParameters(RHICmdList, View, LightShaftsSource);
@@ -885,7 +886,7 @@ void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandListImmedia
 
 			if (LightSceneInfo->bEnableLightShaftBloom)
 			{
-				SCOPED_DRAW_EVENT(RenderLightShaftBloom, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, RenderLightShaftBloom, DEC_SCENE_ITEMS);
 
 				// Allocate light shaft render targets on demand, using the pool
 				AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShafts0, TEXT("LightShafts0"));

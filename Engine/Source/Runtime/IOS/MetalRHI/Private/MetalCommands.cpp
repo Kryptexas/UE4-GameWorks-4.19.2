@@ -6,6 +6,8 @@
 
 #include "MetalRHIPrivate.h"
 
+static const bool GUsesInvertedZ = true;
+
 static MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 {
 	switch (PrimitiveType)
@@ -252,6 +254,14 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Vertex
 	DYNAMIC_CAST_METGALRESOURCE(VertexShader, VertexShader);
 	VertexShader->BoundUniformBuffers[BufferIndex] = BufferRHI;
 	VertexShader->DirtyUniformBuffers |= 1 << BufferIndex;
+
+	auto& Bindings = VertexShader->Bindings;
+	check(BufferIndex < Bindings.NumUniformBuffers);
+	if (Bindings.bHasRegularUniformBuffers)
+	{
+		auto* UB = (FMetalUniformBuffer*)BufferRHI;
+		[FMetalManager::GetContext() setVertexBuffer:UB->Buffer offset:UB->Offset atIndex:BufferIndex];
+	}
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
@@ -274,6 +284,14 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelSh
 	DYNAMIC_CAST_METGALRESOURCE(PixelShader, PixelShader);
 	PixelShader->BoundUniformBuffers[BufferIndex] = BufferRHI;
 	PixelShader->DirtyUniformBuffers |= 1 << BufferIndex;
+
+	auto& Bindings = PixelShader->Bindings;
+	check(BufferIndex < Bindings.NumUniformBuffers);
+	if (Bindings.bHasRegularUniformBuffers)
+	{
+		auto* UB = (FMetalUniformBuffer*)BufferRHI;
+		[FMetalManager::GetContext() setFragmentBuffer:UB->Buffer offset:UB->Offset atIndex:BufferIndex];
+	}
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
@@ -301,29 +319,29 @@ void FMetalDynamicRHI::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, 
 	FTextureRHIParamRef NewDepthStencilTargetRHI, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)
 {
 	FMetalManager* Manager = FMetalManager::Get();
-	
-	// only support 1 for now!!!
-	check(NumSimultaneousRenderTargets <= 1);
-	
-	// update the current RTs
-	if (NumSimultaneousRenderTargets && NewRenderTargets[0].Texture != NULL)
+	for (int32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; RenderTargetIndex++)
 	{
-		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(NewRenderTargets[0].Texture);
-		Manager->SetCurrentRenderTarget(&Surface);
-	}
-	else
-	{
-		Manager->SetCurrentRenderTarget(NULL);
+		const FRHIRenderTargetView& RenderTargetView = NewRenderTargets[RenderTargetIndex];
+		// update the current RTs
+		if (RenderTargetIndex < NumSimultaneousRenderTargets && RenderTargetView.Texture != NULL)
+		{
+			FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+			Manager->SetCurrentRenderTarget(&Surface, RenderTargetIndex, RenderTargetView.MipIndex, RenderTargetView.ArraySliceIndex, GetMetalRTLoadAction(RenderTargetView.LoadAction), GetMetalRTStoreAction(RenderTargetView.StoreAction), NumSimultaneousRenderTargets);
+		}
+		else
+		{
+			Manager->SetCurrentRenderTarget(NULL, RenderTargetIndex, 0, 0, MTLLoadActionDontCare, MTLStoreActionStore, NumSimultaneousRenderTargets);
+		}
 	}
 	
 	if (NewDepthStencilTargetRHI)
 	{
 		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(NewDepthStencilTargetRHI);
-		Manager->SetCurrentDepthStencilTarget(&Surface);
+		Manager->SetCurrentDepthStencilTarget(&Surface, MTLLoadActionClear, MTLStoreActionDontCare, GUsesInvertedZ ? 0.0f : 1.0f);
 	}
 	else
 	{
-		Manager->SetCurrentDepthStencilTarget(NULL);
+		Manager->SetCurrentDepthStencilTarget(NULL, MTLLoadActionClear, MTLStoreActionDontCare, GUsesInvertedZ ? 0.0f : 1.0f);
 	}
 	
 	// now that we have a new render target, we need a new context to render to it!
@@ -332,8 +350,13 @@ void FMetalDynamicRHI::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, 
 	// Set the viewport to the full size of render target 0.
 	if (NewRenderTargets && NewRenderTargets[0].Texture)
 	{
-		FMetalSurface& RenderTarget = GetMetalSurfaceFromRHITexture(NewRenderTargets[0].Texture);
-		RHISetViewport(0, 0, 0.0f, RenderTarget.Texture.width, RenderTarget.Texture.height, 1.0f);
+		const FRHIRenderTargetView& RenderTargetView = NewRenderTargets[0];
+		FMetalSurface& RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+		
+		uint32 Width = FMath::Max(RenderTarget.Texture.width >> RenderTargetView.MipIndex, (uint32)1);
+		uint32 Height = FMath::Max(RenderTarget.Texture.height >> RenderTargetView.MipIndex, (uint32)1);
+		
+		RHISetViewport(0, 0, 0.0f, Width, Height, 1.0f);
 	}
 }
 
@@ -341,6 +364,49 @@ void FMetalDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 {
 }
 
+void FMetalDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
+{
+	FMetalManager* Manager = FMetalManager::Get();
+	for (int32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; RenderTargetIndex++)
+	{
+		const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
+		// update the current RTs
+		if (RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets && RenderTargetView.Texture != NULL)
+		{
+			FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+			Manager->SetCurrentRenderTarget(&Surface, RenderTargetIndex, RenderTargetView.MipIndex, RenderTargetView.ArraySliceIndex, GetMetalRTLoadAction(RenderTargetView.LoadAction), GetMetalRTStoreAction(RenderTargetView.StoreAction), RenderTargetsInfo.NumColorRenderTargets);
+		}
+		else
+		{
+			Manager->SetCurrentRenderTarget(NULL, RenderTargetIndex, 0, 0, MTLLoadActionDontCare, MTLStoreActionStore, RenderTargetsInfo.NumColorRenderTargets);
+		}
+	}
+
+	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture)
+	{
+		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+		Manager->SetCurrentDepthStencilTarget(&Surface, GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.LoadAction), GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.StoreAction), RenderTargetsInfo.DepthClearValue);
+	}
+	else
+	{
+		Manager->SetCurrentDepthStencilTarget(NULL, MTLLoadActionClear, MTLStoreActionDontCare, 1.0f);
+	}
+
+	// now that we have a new render target, we need a new context to render to it!
+	Manager->UpdateContext();
+
+	// Set the viewport to the full size of render target 0.
+	if (RenderTargetsInfo.ColorRenderTarget[0].Texture)
+	{
+		const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
+		FMetalSurface& RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+
+		uint32 Width = FMath::Max(RenderTarget.Texture.width >> RenderTargetView.MipIndex, (uint32)1);
+		uint32 Height = FMath::Max(RenderTarget.Texture.height >> RenderTargetView.MipIndex, (uint32)1);
+
+		RHISetViewport(0, 0, 0.0f, Width, Height, 1.0f);
+	}
+}
 
 // Occlusion/Timer queries.
 void FMetalDynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
@@ -363,6 +429,8 @@ void FMetalDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexI
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
 	checkf(NumInstances == 1, TEXT("Currently only 1 instance is supported"));
 	
+	RHI_DRAW_CALL_STATS(PrimitiveType,NumInstances*NumPrimitives);
+
 	// how many verts to render
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 
@@ -388,6 +456,8 @@ void FMetalDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
 	checkf(NumInstances == 1, TEXT("Currently only 1 instance is supported"));
 	checkf(BaseVertexIndex  == 0, TEXT("BaseVertexIndex must be 0, see GRHISupportsBaseVertexIndex"));
+
+	RHI_DRAW_CALL_STATS(PrimitiveType,NumInstances*NumPrimitives);
 
 	DYNAMIC_CAST_METGALRESOURCE(IndexBuffer,IndexBuffer);
 
@@ -446,6 +516,8 @@ void FMetalDynamicRHI::RHIEndDrawPrimitiveUP()
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
 
+	RHI_DRAW_CALL_STATS(GPendingPrimitiveType,GPendingNumPrimitives);
+
 	// set the vertex buffer
 	[FMetalManager::GetContext() setVertexBuffer:FMetalManager::Get()->GetRingBuffer() offset:GPendingVertexBufferOffset atIndex:UNREAL_TO_METAL_BUFFER_INDEX(0)];
 	
@@ -488,6 +560,8 @@ void FMetalDynamicRHI::RHIBeginDrawIndexedPrimitiveUP( uint32 PrimitiveType, uin
 void FMetalDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
+
+	RHI_DRAW_CALL_STATS(GPendingPrimitiveType,GPendingNumPrimitives);
 
 	// set the vertex buffer
 	[FMetalManager::GetContext() setVertexBuffer:FMetalManager::Get()->GetRingBuffer() offset:GPendingVertexBufferOffset atIndex:UNREAL_TO_METAL_BUFFER_INDEX(0)];

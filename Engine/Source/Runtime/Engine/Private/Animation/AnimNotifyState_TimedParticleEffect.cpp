@@ -12,7 +12,7 @@ UAnimNotifyState_TimedParticleEffect::UAnimNotifyState_TimedParticleEffect(const
 	RotationOffset = FRotator(0.0f, 0.0f, 0.0f);
 }
 
-void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
+void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float TotalDuration)
 {
 	// Only spawn if we've got valid params
 	if(ValidateParameters(MeshComp))
@@ -20,7 +20,7 @@ void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * 
 		UParticleSystemComponent* NewComponent = UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset);
 	}
 
-	Received_NotifyBegin(MeshComp, Animation);
+	Received_NotifyBegin(MeshComp, Animation, TotalDuration);
 }
 
 void UAnimNotifyState_TimedParticleEffect::NotifyTick(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime)
@@ -102,17 +102,20 @@ FString UAnimNotifyState_TimedParticleEffect::GetNotifyName_Implementation() con
 	return UAnimNotifyState::GetNotifyName_Implementation();
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UAnimNotifyState_TimedParticleEffect::PreEditChange(UProperty* PropertyAboutToChange)
 {
-	if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, PSTemplate) && PSTemplate != NULL)
+	if(PropertyAboutToChange)
 	{
-		PreviousPSTemplates.Add(PSTemplate);
-	}
+		if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, PSTemplate) && PSTemplate != NULL)
+		{
+			PreviousPSTemplates.Add(PSTemplate);
+		}
 
-	if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, SocketName) && SocketName != FName(TEXT("None")))
-	{
-		PreviousSocketNames.Add(SocketName);
+		if(PropertyAboutToChange->GetName() == GET_MEMBER_NAME_STRING_CHECKED(UAnimNotifyState_TimedParticleEffect, SocketName) && SocketName != FName(TEXT("None")))
+		{
+			PreviousSocketNames.Add(SocketName);
+		}
 	}
 }
 #endif

@@ -169,7 +169,10 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 		// Hide pin labels
 		for (auto InputPin : this->InputPins)
 		{
-			InputPin->SetShowLabel(false);
+			if (InputPin->GetPinObj()->ParentPin == nullptr)
+			{
+				InputPin->SetShowLabel(false);
+			}
 		}
 
 		for (auto OutputPin : this->OutputPins)

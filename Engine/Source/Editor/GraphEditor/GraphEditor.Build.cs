@@ -19,6 +19,12 @@ public class GraphEditor : ModuleRules
 			}
 		);
 
+        PublicIncludePathModuleNames.AddRange(
+            new string[] {                
+                "IntroTutorials"
+            }
+        );
+
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] { 
 				"EditorWidgets"
@@ -27,6 +33,7 @@ public class GraphEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"Engine",
@@ -41,7 +48,7 @@ public class GraphEditor : ModuleRules
 				"AnimGraph",
 				"Documentation",
 				"RenderCore",
-				"RHI"
+				"RHI",
 			}
 		);
 

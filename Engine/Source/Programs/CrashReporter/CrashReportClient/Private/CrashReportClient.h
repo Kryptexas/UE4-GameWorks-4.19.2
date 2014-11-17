@@ -9,31 +9,51 @@
 /**
  * Helper task class to process a crash report in the background
  */
-class FDiagnoseReportWorker
+class FDiagnoseReportWorker 
 {
 public:
+	/** Diagnostics from crash report text to fill in. */
+	FText& DiagnosticText;
+
+	/** Error report files to use. */
+	const FPlatformErrorReport& ErrorReport;
+
+	/** Machine ID. */
+	const FString MachineId;
+
+	/** Epic Account ID. */
+	const FString EpicAccountId;
+
+	/** User name without dot. */
+	const FString UserNameNoDot;
+
+	/** Initialization constructor. */
+	FDiagnoseReportWorker( FText* InDiagnosticText, const FString InMachineId, const FString InEpicAccountId, const FString InUserNameNoDot, const FPlatformErrorReport* InErrorReport )
+		: DiagnosticText( *InDiagnosticText )		
+		, ErrorReport( *InErrorReport )
+		, MachineId(InMachineId)
+		, EpicAccountId(InEpicAccountId)
+		, UserNameNoDot(InUserNameNoDot)
+	{}
+
 	/**
-	 * Do platform-specific work to get information about the crash
+	 * Do platform-specific work to get information about the crash.
 	 */
 	void DoWork();
 
 	/** 
-	 * Give the name for external event viewers
 	 * @return The name to display in external event viewers
 	 */
-	static const TCHAR* Name();
-
-	/** Diagnostics from crash report text to fill in */
-	FText* DiagnosticText;
-
-	/** Error report files to use */
-	const FPlatformErrorReport* ErrorReportFiles;
+	static const TCHAR* Name()
+	{
+		return TEXT( "FDiagnoseCrashWorker" );
+	}
 };
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
 /**
- * Main implementation of the crash report client applcation
+ * Main implementation of the crash report client application
  */
 class FCrashReportClient : public TSharedFromThis<FCrashReportClient>
 {
@@ -42,7 +62,7 @@ public:
 	 * Constructor: sets up background diagnosis
 	 * @param ErrorReport Error report to upload
 	 */
-	explicit FCrashReportClient(const FPlatformErrorReport& ErrorReport, const FString& AppName);
+	FCrashReportClient( const FPlatformErrorReport& InErrorReport );
 
 	/**
 	 * Respond to the user pressing Submit
@@ -140,9 +160,6 @@ private:
 		};
 	};
 
-	/** Complete path of report directory */
-	FString ReportDirectory;
-
 	/** What the app is currently doing */
 	EApplicationState::Type AppState;
 
@@ -162,13 +179,10 @@ private:
 	TOneShotTaskUsingDedicatedThread<FDiagnoseReportWorker> DiagnoseReportTask;
 
 	/** Platform code for accessing the report */
-	FPlatformErrorReport ErrorReportFiles;
+	FPlatformErrorReport ErrorReport;
 
 	/** Object that uploads report files to the server */
 	FCrashUpload Uploader;
-
-	/** Name of the executable that crashed */
-	FString CrashedAppName;
 
 	/** Text for Cancel/Close button, including count-down value */
 	FText CancelButtonText;

@@ -2,8 +2,10 @@
 
 
 #pragma once
+#include "Engine/TriggerBase.h"
 #include "TriggerBox.generated.h"
 
+/** A box shaped trigger, used to generate overlap events in the level */
 UCLASS(MinimalAPI)
 class ATriggerBox : public ATriggerBase
 {

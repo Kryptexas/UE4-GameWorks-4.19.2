@@ -35,7 +35,8 @@ public:
 	 * @param InName - The device name.
 	 */
 	FHTML5TargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InName )
-		: TargetPlatform(InTargetPlatform)
+		: TargetPlatform(InTargetPlatform), 
+		  Name(InName)
 	{ }
 
 	/**
@@ -111,4 +112,6 @@ private:
 
 	// Holds a reference to the device's target platform.
 	const ITargetPlatform& TargetPlatform;
+
+	FString Name; 
 };

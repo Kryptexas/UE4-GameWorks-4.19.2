@@ -34,7 +34,8 @@ void UAssetObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxRe
 {
 	// We never serialize our reference while the garbage collector is harvesting references
 	// to objects, because we don't want asset pointers to keep objects from being garbage collected
-	if( !Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() )
+	// Allow persistent archives so they can keep track of string references. (e.g. FArchiveSaveTagImports)
+	if( !Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent() )
 	{
 		FAssetPtr OldValue = *(FAssetPtr*)Value;
 		Ar << *(FAssetPtr*)Value;

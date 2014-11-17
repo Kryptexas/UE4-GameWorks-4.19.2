@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance
 //----------------------------------------------------------------------//
-void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
+void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType)
 {
 	if (Node == NULL)
 	{
@@ -18,10 +18,10 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 
 	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
 	{
-		Node->Services[ServiceIndex]->InitializeForInstance(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex);
+		Node->Services[ServiceIndex]->InitializeInSubtree(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 	}
 
-	Node->InitializeForInstance(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex);
+	Node->InitializeInSubtree(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 
 	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
 	{
@@ -29,16 +29,16 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 
 		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
-			ChildInfo.Decorators[DecoratorIndex]->InitializeForInstance(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.Decorators[DecoratorIndex]->InitializeInSubtree(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 		}
 
 		if (ChildInfo.ChildComposite)
 		{
-			Initialize(OwnerComp, ChildInfo.ChildComposite, InstancedIndex);
+			Initialize(OwnerComp, ChildInfo.ChildComposite, InstancedIndex, InitType);
 		}
 		else if (ChildInfo.ChildTask)
 		{
-			ChildInfo.ChildTask->InitializeForInstance(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.ChildTask->InitializeInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 		}
 	}
 }
@@ -69,21 +69,60 @@ void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp,
 	}
 }
 
-void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
+void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType)
 {
-	const FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
+	FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
 	if (Info.FirstNodeInstance >= 0)
 	{
+		const int32 MaxAllowedIdx = OwnerComp->NodeInstances.Num();
 		const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ?
-			OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance :
-			OwnerComp->NodeInstances.Num();
+			FMath::Min(OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance, MaxAllowedIdx) :
+			MaxAllowedIdx;
 
 		for (int32 Idx = Info.FirstNodeInstance; Idx < LastNodeIdx; Idx++)
 		{
 			OwnerComp->NodeInstances[Idx]->OnInstanceDestroyed(OwnerComp);
 		}
 	}
+
+	CleanupNodes(OwnerComp, RootNode, CleanupType);
+	Info.InstanceMemory = InstanceMemory;
 }
+
+void FBehaviorTreeInstance::CleanupNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType)
+{
+	if (Node == NULL)
+	{
+		return;
+	}
+
+	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
+	{
+		Node->Services[ServiceIndex]->CleanupInSubtree(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), CleanupType);
+	}
+
+	Node->CleanupInSubtree(OwnerComp, Node->GetNodeMemory<uint8>(*this), CleanupType);
+
+	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
+	{
+		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
+
+		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
+		{
+			ChildInfo.Decorators[DecoratorIndex]->CleanupInSubtree(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), CleanupType);
+		}
+
+		if (ChildInfo.ChildComposite)
+		{
+			CleanupNodes(OwnerComp, ChildInfo.ChildComposite, CleanupType);
+		}
+		else if (ChildInfo.ChildTask)
+		{
+			ChildInfo.ChildTask->CleanupInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), CleanupType);
+		}
+	}
+}
+
 
 //----------------------------------------------------------------------//
 // FBTNodeIndex
@@ -104,6 +143,9 @@ bool FBTNodeIndex::TakesPriorityOver(const FBTNodeIndex& Other) const
 //----------------------------------------------------------------------//
 // FBehaviorTreeSearchData
 //----------------------------------------------------------------------//
+
+int32 FBehaviorTreeSearchData::NextSearchId = 1;
+
 void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo)
 {
 	UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
@@ -139,12 +181,18 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 	}
 }
 
+void FBehaviorTreeSearchData::AssignSearchId()
+{
+	SearchId = NextSearchId;
+	NextSearchId++;
+}
+
 //----------------------------------------------------------------------//
 // FBlackboardKeySelector
 //----------------------------------------------------------------------//
 void FBlackboardKeySelector::CacheSelectedKey(class UBlackboardData* BlackboardAsset)
 {
-	if (BlackboardAsset && !(bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey))
+	if (BlackboardAsset && !(bNoneIsAllowedValue && SelectedKeyName == NAME_None))
 	{
 		if (SelectedKeyName == NAME_None)
 		{
@@ -262,7 +310,7 @@ UBehaviorTreeTypes::UBehaviorTreeTypes(const class FPostConstructInitializePrope
 
 FString UBehaviorTreeTypes::DescribeNodeResult(EBTNodeResult::Type NodeResult)
 {
-	static FString ResultDesc[] = { TEXT("Succeeded"), TEXT("Failed"), TEXT("Optional"), TEXT("Aborted"), TEXT("InProgress") };
+	static FString ResultDesc[] = { TEXT("Succeeded"), TEXT("Failed"), TEXT("Aborted"), TEXT("InProgress") };
 	return (NodeResult < ARRAY_COUNT(ResultDesc)) ? ResultDesc[NodeResult] : FString();
 }
 

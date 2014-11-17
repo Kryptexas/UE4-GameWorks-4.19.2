@@ -5,36 +5,49 @@
 #include "ScrollBox.generated.h"
 
 /** An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization. */
-UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UScrollBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Style of the scrollbox */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	/** The style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FScrollBoxStyle WidgetStyle;
 
-	/** Style of the scrollbox's bar */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* BarStyle;
+	/** The bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Bar Style" ))
+	FScrollBarStyle WidgetBarStyle;
 
-	virtual void ReleaseNativeWidget() override;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
-	/** Removes all child widget from the scrollbox */
-	UFUNCTION(BlueprintCallable, Category="Widget")
-	void ClearChildren();
+	UPROPERTY()
+	USlateWidgetStyleAsset* BarStyle_DEPRECATED;
+
+	/** The orientation of the scrolling and stacking in the box. */
+	UPROPERTY(EditDefaultsOnly, Category = "Behavior")
+	TEnumAsByte<EOrientation> Orientation;
 
 	/** Updates the scroll offset of the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetScrollOffset(float NewScrollOffset);
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 #endif
 

@@ -20,6 +20,7 @@ public:
 	virtual void PassLoadingScreenWindowBackToGame() const override;
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& LoadingScreenAttributes) override;
 	virtual bool PlayMovie() override;
+	virtual void StopMovie() override;
 	virtual void WaitForMovieToFinish() override;
 	virtual bool IsLoadingFinished() const override;
 	virtual bool IsMovieCurrentlyPlaying() const override;
@@ -84,6 +85,8 @@ private:
 	/** Attributes of the loading screen we are currently displaying */
 	FLoadingScreenAttributes LoadingScreenAttributes;
 	
+	/** The last time a movie was started */
+	double LastPlayTime;
 private:
 	/** Singleton handle */
 	static TSharedPtr<FDefaultGameMoviePlayer> MoviePlayer;

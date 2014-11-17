@@ -421,16 +421,16 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
 
 			// Add include paths to the argument list.
-			foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
 			{
 				Arguments += string.Format(" /I \"{0}\"", IncludePath);
 			}
-			foreach (string IncludePath in CompileEnvironment.Config.SystemIncludePaths)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 			{
 				Arguments += string.Format(" /I \"{0}\"", IncludePath);
 			}
@@ -480,6 +480,8 @@ namespace UnrealBuildTool
 
 // Log.TraceInformation("Compile Arguments for {0}:", ModuleName);
 // Log.TraceInformation(Arguments);
+
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 			
 			// Create a compile action for each source file.
 			CPPOutput Result = new CPPOutput();
@@ -490,11 +492,7 @@ namespace UnrealBuildTool
 				bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				CompileAction.PrerequisiteItems.Add(SourceFile);
-				foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
-				{
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
-				}
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
 				// If this is a CLR file then make sure our dependent assemblies are added as prerequisites
 				if (CompileEnvironment.Config.CLRMode == CPPCLRMode.CLREnabled)
@@ -650,7 +648,6 @@ namespace UnrealBuildTool
 				CompileAction.bIsVCCompiler = true;
 				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.StatusDescription = string.Format("{0}", Path.GetFileName(SourceFile.AbsolutePath));
-				CompileAction.StatusDetailedDescription = SourceFile.Description;
 
 				// Don't farm out creation of precomputed headers as it is the critical path task.
 				CompileAction.bCanExecuteRemotely = CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create;

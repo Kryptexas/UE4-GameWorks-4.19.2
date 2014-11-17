@@ -1,9 +1,7 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	Platform.h: Setup the includes for the platform
-==================================================================================*/
 #pragma once
+
 
 // define all other platforms to be zero
 //@port Define the platform here to be zero when compiling for other platforms
@@ -24,6 +22,12 @@
 #endif
 #if !defined(PLATFORM_ANDROID)
 	#define PLATFORM_ANDROID 0
+#endif
+#if !defined(PLATFORM_ANDROIDGL4)
+	#define PLATFORM_ANDROIDGL4 0
+#endif
+#if !defined(PLATFORM_ANDROIDES31)
+	#define PLATFORM_ANDROIDES31 0
 #endif
 #if !defined(PLATFORM_WINRT)
 	#define PLATFORM_WINRT 0
@@ -240,6 +244,18 @@
 	#define PLATFORM_SUPPORTS_NAMED_PIPES		0
 #endif
 
+#ifndef PLATFORM_SUPPORTS_RHI_THREAD
+	#define PLATFORM_SUPPORTS_RHI_THREAD		0
+#endif
+
+#ifndef PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	#define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult		0
+#endif
+
+#ifndef PLATFORM_USES_FIXED_RHI_CLASS
+	#define PLATFORM_USES_FIXED_RHI_CLASS		0
+#endif
+
 #ifndef PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
 	#define PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS	1
 #endif
@@ -326,7 +342,7 @@
 	#define ABSTRACT
 #endif
 #ifndef CONSTEXPR
-	#define CONSTEXPR
+	#define CONSTEXPR constexpr
 #endif
 
 // String constants

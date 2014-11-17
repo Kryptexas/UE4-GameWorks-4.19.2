@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CoreStyle.cpp: Implements the FCoreStyle class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 
@@ -150,6 +146,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	Style->Set("NormalFont", TTF_FONT("Fonts/Roboto-Regular", 9));
 
+	Style->Set("SmallFont", TTF_FONT("Fonts/Roboto-Regular", 8));
+
 	// Normal Text
 	FTextBlockStyle NormalText = FTextBlockStyle()
 		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 9))
@@ -158,6 +156,10 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		.SetShadowColorAndOpacity(FLinearColor::Black)
 		.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
 		.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f /8.f)));
+
+	// Small Text
+	FTextBlockStyle SmallText = FTextBlockStyle(NormalText)
+		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 8));
 
 	// Embossed Text
 	Style->Set("EmbossedText", FTextBlockStyle(NormalText)
@@ -264,6 +266,17 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "GenericCommands.Redo", new IMAGE_BRUSH( "Icons/icon_redo_16px", Icon16x16 ) );
 	}
 
+	// SScrollBar defaults...
+	const FScrollBarStyle ScrollBar = FScrollBarStyle()
+		.SetVerticalBackgroundImage( IMAGE_BRUSH( "Common/Scrollbar_Background_Vertical", FVector2D(8,8) ) )
+		.SetHorizontalBackgroundImage( IMAGE_BRUSH( "Common/Scrollbar_Background_Horizontal", FVector2D(8,8) ) )
+		.SetNormalThumbImage( BOX_BRUSH( "Common/Scrollbar_Thumb", FMargin(4.f/16.f) ) )
+		.SetDraggedThumbImage( BOX_BRUSH( "Common/Scrollbar_Thumb", FMargin(4.f/16.f) ) )
+		.SetHoveredThumbImage( BOX_BRUSH( "Common/Scrollbar_Thumb", FMargin(4.f/16.f) ) );
+	{
+		Style->Set( "Scrollbar", ScrollBar );
+	}
+
 	// SButton defaults...
 	const FButtonStyle Button = FButtonStyle()
 		.SetNormal( BOX_BRUSH( "Common/Button", FVector2D(32,32), 8.0f/32.0f ) )
@@ -344,11 +357,11 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		const FCheckBoxStyle ToggleButtonStyle = FCheckBoxStyle()
 			.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
 			.SetUncheckedImage( FSlateNoResource() )
-			.SetUncheckedPressedImage( BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed ) )
 			.SetUncheckedHoveredImage( BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor ) )
+			.SetUncheckedPressedImage( BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed ) )
 			.SetCheckedImage( BOX_BRUSH("Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor_Pressed ) )
-			.SetCheckedHoveredImage( BOX_BRUSH("Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor_Pressed ) )
-			.SetUncheckedPressedImage( BOX_BRUSH("Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor ) );
+			.SetCheckedHoveredImage( BOX_BRUSH("Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor ) )
+			.SetCheckedPressedImage( BOX_BRUSH("Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor_Pressed ) );
 		Style->Set( "ToggleButtonCheckbox", ToggleButtonStyle );
 
 		/* A radio button is actually just a SCheckBox box with different images */
@@ -389,7 +402,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
 		.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
 		.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
+		.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) )
+		.SetScrollBarStyle( ScrollBar );
 	{
 		Style->Set( "NormalEditableTextBox", NormalEditableTextBoxStyle );
 		// "NormalFont".
@@ -412,6 +426,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// STextBlock defaults...
 	{
 		Style->Set("NormalText", NormalText);
+		Style->Set("SmallText", SmallText);
 	}
 
 	// SInlineEditableTextBlock
@@ -421,17 +436,31 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetShadowOffset( FVector2D::ZeroVector )
 			.SetShadowColorAndOpacity( FLinearColor::Black );
 
+		FTextBlockStyle InlineEditableTextBlockSmallReadOnly = FTextBlockStyle(InlineEditableTextBlockReadOnly)
+			.SetFont(SmallText.Font);
+
 		FEditableTextBoxStyle InlineEditableTextBlockEditable = FEditableTextBoxStyle()
 			.SetFont(NormalText.Font)
 			.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
 			.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
 			.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
+			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) )
+			.SetScrollBarStyle( ScrollBar );
+
+		FEditableTextBoxStyle InlineEditableTextBlockSmallEditable = FEditableTextBoxStyle(InlineEditableTextBlockEditable)
+			.SetFont(SmallText.Font);
 
 		FInlineEditableTextBlockStyle InlineEditableTextBlockStyle = FInlineEditableTextBlockStyle()
 			.SetTextStyle(InlineEditableTextBlockReadOnly)
 			.SetEditableTextBoxStyle(InlineEditableTextBlockEditable);
+
 		Style->Set( "InlineEditableTextBlockStyle", InlineEditableTextBlockStyle );
+
+		FInlineEditableTextBlockStyle InlineEditableTextBlockSmallStyle = FInlineEditableTextBlockStyle()
+			.SetTextStyle(InlineEditableTextBlockSmallReadOnly)
+			.SetEditableTextBoxStyle(InlineEditableTextBlockSmallEditable);
+
+		Style->Set("InlineEditableTextBlockSmallStyle", InlineEditableTextBlockSmallStyle);
 	}
 
 	// SSuggestionTextBox defaults...
@@ -451,7 +480,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	// SBorder defaults...
 	{
-		Style->Set( "Border", new BOX_BRUSH( "Old/Border", 4.0f/16.0f ) );
+		Style->Set( "Border", new BORDER_BRUSH( "Old/Border", 4.0f/16.0f ) );
 	}
 
 	// SHyperlink defaults...
@@ -483,17 +512,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Throbber.CircleChunk", new IMAGE_BRUSH( "Common/Throbber_Piece", FVector2D(8,8) ) );
 	}
 
-	// SScrollBar defaults...
-	{
-		Style->Set( "Scrollbar", FScrollBarStyle()
-			.SetVerticalBackgroundImage( IMAGE_BRUSH( "Common/Scrollbar_Background_Vertical", FVector2D(8,8) ) )
-			.SetHorizontalBackgroundImage( IMAGE_BRUSH( "Common/Scrollbar_Background_Horizontal", FVector2D(8,8) ) )
-			.SetNormalThumbImage( BOX_BRUSH( "Common/Scrollbar_Thumb", FMargin(4.f/16.f) ) )
-			.SetDraggedThumbImage( BOX_BRUSH( "Common/Scrollbar_Thumb", FMargin(4.f/16.f) ) )
-			.SetHoveredThumbImage( BOX_BRUSH( "Common/Scrollbar_Thumb", FMargin(4.f/16.f) ) )
-			);
-	}
-
 	// SExpandableArea defaults...
 	{
 		Style->Set( "ExpandableArea", FExpandableAreaStyle()
@@ -510,7 +528,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox_Special", FMargin(8.0f/32.0f) ) )
 			.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Special_Hovered", FMargin(8.0f/32.0f) ) )
 			.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Special_Hovered", FMargin(8.0f/32.0f) ) )
-			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
+			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) )
+			.SetScrollBarStyle( ScrollBar );
 
 		Style->Set( "SearchBox", FSearchBoxStyle()
 			.SetTextBoxStyle( SpecialEditableTextBoxStyle )
@@ -524,6 +543,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// SSlider and SVolumeControl defaults...
 	{
 		FSliderStyle SliderStyle = FSliderStyle()
+			.SetNormalBarImage(FSlateColorBrush(FColor::White))
+			.SetDisabledBarImage(FSlateColorBrush(FLinearColor::Gray))
 			.SetNormalThumbImage( IMAGE_BRUSH( "Common/Button", FVector2D(8.0f, 14.0f) ) )
 			.SetDisabledThumbImage( IMAGE_BRUSH( "Common/Button_Disabled", FVector2D(8.0f, 14.0f) ) );
 		Style->Set( "Slider", SliderStyle );
@@ -982,6 +1003,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ScrollBox", FScrollBoxStyle()
 			.SetTopShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowTop", FVector2D(64,8) ) )
 			.SetBottomShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowBottom", FVector2D(64,8) ) )
+			.SetLeftShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowLeft", FVector2D(8, 64) ) )
+			.SetRightShadowBrush( IMAGE_BRUSH( "Common/ScrollBoxShadowRight", FVector2D(8, 64) ) )
 			);
 	}
 
@@ -1111,6 +1134,24 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		Style->Set("Wizard.BackIcon", new IMAGE_BRUSH("Icons/BackIcon", Icon8x8));
 		Style->Set("Wizard.NextIcon", new IMAGE_BRUSH("Icons/NextIcon", Icon8x8));
+	}
+
+	// Syntax highlighting
+	{
+		const FTextBlockStyle MonospacedText = FTextBlockStyle()
+			.SetFont(TTF_FONT("Fonts/DroidSansMono", 9))
+			.SetColorAndOpacity(FSlateColor::UseForeground())
+			.SetShadowOffset(FVector2D::ZeroVector)
+			.SetShadowColorAndOpacity(FLinearColor::Black)
+			.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
+			.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f/8.f))
+			);
+
+		Style->Set("SyntaxHighlight.Normal", MonospacedText);
+		Style->Set("SyntaxHighlight.Node", FTextBlockStyle(MonospacedText).SetColorAndOpacity(FLinearColor(FColor(0xff006ab4)))); // blue
+		Style->Set("SyntaxHighlight.NodeAttributeKey", FTextBlockStyle(MonospacedText).SetColorAndOpacity(FLinearColor(FColor(0xffb40000)))); // red
+		Style->Set("SyntaxHighlight.NodeAttribueAssignment", FTextBlockStyle(MonospacedText).SetColorAndOpacity(FLinearColor(FColor(0xffb2b400)))); // yellow
+		Style->Set("SyntaxHighlight.NodeAttributeValue", FTextBlockStyle(MonospacedText).SetColorAndOpacity(FLinearColor(FColor(0xffb46100)))); // orange
 	}
 
 	return Style;

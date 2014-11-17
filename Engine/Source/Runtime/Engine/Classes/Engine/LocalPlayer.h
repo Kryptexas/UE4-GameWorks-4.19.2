@@ -11,9 +11,15 @@
 struct ENGINE_API FLocalPlayerContext
 {
 	FLocalPlayerContext();
-	FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer );
-	FLocalPlayerContext( const class APlayerController* InPlayerController );
-	FLocalPlayerContext( const FLocalPlayerContext& InPlayerContext );
+	FLocalPlayerContext(const class ULocalPlayer* InLocalPlayer);
+	FLocalPlayerContext(const class APlayerController* InPlayerController);
+	FLocalPlayerContext(const FLocalPlayerContext& InPlayerContext);
+
+	/** Is this context initialized and still valid? */
+	bool IsValid() const;
+
+	/** Is this context initialized */
+	bool IsInitialized() const;
 
 	/* Returns the world context. */
 	UWorld* GetWorld() const;
@@ -24,11 +30,52 @@ struct ENGINE_API FLocalPlayerContext
 	/* Returns the player controller. */
 	class APlayerController* GetPlayerController() const;
 
-	/** Is this context initialized and still valid? */
-	bool IsValid() const;
+	/** Templated version of GetPlayerController() */
+	template<class T>
+	FORCEINLINE T* GetPlayerController() const
+	{
+		return CastChecked<T>(GetPlayerController(), ECastCheckedType::NullAllowed);
+	}
 
-	/** Is this context initialized */
-	bool IsInitialized() const;
+	/** Getter for the Game State */
+	class AGameState* GetGameState() const;
+
+	/** Templated Getter for the Game State */
+	template<class T>
+	FORCEINLINE T* GetGameState() const
+	{
+		return CastChecked<T>(GetGameState(), ECastCheckedType::NullAllowed);
+	}
+
+	/** Getter for the Player State */
+	class APlayerState* GetPlayerState() const;
+
+	/** Templated Getter for the Player State */
+	template<class T>
+	FORCEINLINE T* GetPlayerState() const
+	{
+		return CastChecked<T>(GetPlayerState(), ECastCheckedType::NullAllowed);
+	}
+
+	/** Getter for this player's HUD */
+	class AHUD* GetHUD() const;
+
+	/** Templated Getter for the HUD */
+	template<class T>
+	FORCEINLINE T* GetHUD() const
+	{
+		return CastChecked<T>(GetHUD(), ECastCheckedType::NullAllowed);
+	}
+
+	/** Getter for the base pawn of this player */
+	class APawn* GetPawn() const;
+
+	/** Templated getter for the player's pawn */
+	template<class T>
+	FORCEINLINE T* GetPawn() const
+	{
+		return CastChecked<T>(GetPawn(), ECastCheckedType::NullAllowed);
+	}
 
 private:	
 
@@ -54,6 +101,9 @@ class ENGINE_API ULocalPlayer : public UPlayer
 	/** The controller ID which this player accepts input from. */
 	UPROPERTY()
 	int32 ControllerId;
+
+	/** The FUniqueNetId which this player is associated with. */
+	TSharedPtr<class FUniqueNetId> CachedUniqueNetId;
 
 	/** The master viewport containing this player's view. */
 	UPROPERTY()
@@ -238,7 +288,27 @@ public:
 	 *
 	 * @return unique Id associated with this player
 	 */
-	TSharedPtr<class FUniqueNetId> GetUniqueNetId() const;
+	TSharedPtr<class FUniqueNetId> GetUniqueNetIdFromCachedControllerId() const;
+
+	/** 
+	 * Retrieves this player's unique net ID that was previously cached
+	 *
+	 * @return unique Id associated with this player
+	 */
+	TSharedPtr<class FUniqueNetId> GetCachedUniqueNetId() const;
+
+	/** Sets the players current cached unique net id */
+	void SetCachedUniqueNetId( TSharedPtr<class FUniqueNetId> NewUniqueNetId );
+
+	/** 
+	 * Retrieves the preferred unique net id. This is for backwards compatibility for games that don't use the cached unique net id logic
+	 *
+	 * @return unique Id associated with this player
+	 */
+	TSharedPtr<FUniqueNetId> GetPreferredUniqueNetId() const;
+
+	/** Returns true if the cached unique net id, is the one assigned to the controller id from the OSS */
+	bool IsCachedUniqueNetIdPairedWithControllerId() const;
 
 	/**
 	 * This function will give you two points in Pixel Space that surround the World Space box.

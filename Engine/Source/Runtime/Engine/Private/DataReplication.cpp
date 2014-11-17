@@ -309,7 +309,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 
 	if ( Object == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReceivedNak: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReceivedNak: Object == NULL" ) );
 		return;
 	}
 
@@ -374,7 +374,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 	if ( Object == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReceivedBunch: Object == NULL" ) );
 		return false;
 	}
 
@@ -459,28 +459,10 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 				}
 			}
 #endif
-
 			if ( !Retirement[ ReplicatedProp->RepIndex ].CustomDelta )
 			{
 				// We hijack a non custom delta property to signify we are using FRepLayout to read the entire property block
-				FPropertyRetirement & Retire = Retirement[ ReplicatedProp->RepIndex ];
-
-				bool bDiscardLayout = false;
-
-				if ( Bunch.PacketId >= Retire.InPacketId ) //!! problem with reliable pkts containing dynamic references, being retransmitted, and overriding newer versions. Want "OriginalPacketId" for retransmissions?
-				{
-					// Receive this new property.
-					Retire.InPacketId = Bunch.PacketId;
-				}
-				else
-				{
-					UE_LOG( LogNet, Fatal, TEXT( "Bunch.PacketId < Retire.InPacketId. PacketId: %i, LastPacketId: %i, Partial: %s, Object: %s" ), Bunch.PacketId, Retire.InPacketId, Bunch.bPartial ? TEXT( "YES" ) : TEXT( "NO" ), *Object->GetFullName() );
-					bDiscardLayout = true;
-				}
-
-				check( Bunch.PacketId >= Retire.InPacketId );
-				
-				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bDiscardLayout, bOutHasUnmapped ) )
+				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bOutHasUnmapped ) )
 				{
 					UE_LOG( LogNet, Error, TEXT( "ReceiveProperties FAILED %s in %s" ), *ReplicatedProp->GetName(), *Object->GetFullName() );
 					return false;
@@ -506,32 +488,9 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 				}
 
 				// Pointer to destination.
-				uint8 * DestObj		= (uint8*)Object;
-				uint8 * DestRecent	= RepState->StaticBuffer.Num() ? RepState->StaticBuffer.GetTypedData() : NULL;
+				uint8 * DestRecent = RepState->StaticBuffer.GetTypedData();
 
-				// Check property ordering.
-				FPropertyRetirement & Retire = Retirement[ ReplicatedProp->RepIndex + Element ];
-
-				if ( Bunch.PacketId >= Retire.InPacketId ) //!! problem with reliable pkts containing dynamic references, being retransmitted, and overriding newer versions. Want "OriginalPacketId" for retransmissions?
-				{
-					// Receive this new property.
-					Retire.InPacketId = Bunch.PacketId;
-				}
-				else
-				{
-					UE_LOG( LogNet, Fatal, TEXT( "Bunch.PacketId < Retire.InPacketId. PacketId: %i, LastPacketId: %i, Partial: %s, Object: %s" ), Bunch.PacketId, Retire.InPacketId, Bunch.bPartial ? TEXT( "YES" ) : TEXT( "NO" ), *Object->GetFullName() );
-
-					// Skip this property, because it's out-of-date.
-					UE_LOG( LogNetTraffic, Log, TEXT( "Received out-of-date %s" ), *ReplicatedProp->GetName() );
-
-					DestObj		= NULL;
-					DestRecent	= NULL;
-				}
-
-				check( Bunch.PacketId >= Retire.InPacketId );
-
-				FMemMark Mark(FMemStack::Get());
-				uint8 * Data = DestObj ? ReplicatedProp->ContainerPtrToValuePtr<uint8>(DestObj, Element) : NewZeroed<uint8>(FMemStack::Get(),ReplicatedProp->ElementSize);
+				uint8 * Data = ReplicatedProp->ContainerPtrToValuePtr<uint8>((uint8*)Object, Element);
 				TArray<uint8>	MetaData;
 				PTRINT Offset = 0;
 
@@ -597,8 +556,6 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 						PropertyChanged = false;
 					}
 				}
-
-				Mark.Pop();
 
 				// Successfully received it.
 				UE_LOG( LogNetTraffic, Log, TEXT( " %s - %s - Change: %d" ), *Object->GetName(), *ReplicatedProp->GetName(), PropertyChanged );
@@ -679,7 +636,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 			if ( Bunch.IsError() )
 			{
-				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Bunch.IsError() == true: %s" ), *Object->GetFullName() );
+				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Bunch.IsError() == true: Function: %s, Object: %s" ), *Message.ToString(), *Object->GetFullName() );
 				return false;
 			}
 
@@ -701,10 +658,11 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 			}
 			else
 			{
-				UE_LOG( LogNet, Warning, TEXT( "Rejected unwanted function %s in %s" ), *Message.ToString(), *Object->GetFullName() );
+				UE_LOG( LogNet, Verbose, TEXT( "Rejected unwanted function %s in %s" ), *Message.ToString(), *Object->GetFullName() );
 
 				if ( !OwningChannel->Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get here too often
 				{
+					UE_LOG( LogNet, Error, TEXT( "Rejected too many unwanted functions %s in %s" ), *Message.ToString(), *Object->GetFullName() );
 					return false;
 				}
 			}
@@ -772,7 +730,7 @@ void FObjectReplicator::PostReceivedBunch()
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "PostReceivedBunch: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "PostReceivedBunch: Object == NULL" ) );
 		return;
 	}
 
@@ -955,7 +913,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	if ( Object == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReplicateProperties: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReplicateProperties: Object == NULL" ) );
 		return false;
 	}
 
@@ -1020,7 +978,7 @@ void FObjectReplicator::ForceRefreshUnreliableProperties()
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ForceRefreshUnreliableProperties: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ForceRefreshUnreliableProperties: Object == NULL" ) );
 		return;
 	}
 
@@ -1035,7 +993,7 @@ void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReli
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "PostSendBunch: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "PostSendBunch: Object == NULL" ) );
 		return;
 	}
 
@@ -1117,7 +1075,7 @@ bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReadyForDormancy: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "ReadyForDormancy: Object == NULL" ) );
 		return true;		// Technically, we don't want to hold up dormancy, but the owner needs to clean us up, so we warn
 	}
 
@@ -1152,7 +1110,7 @@ void FObjectReplicator::StartBecomingDormant()
 {
 	if ( GetObject() == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "StartBecomingDormant: Object == NULL" ) );
+		UE_LOG( LogNet, Verbose, TEXT( "StartBecomingDormant: Object == NULL" ) );
 		return;
 	}
 

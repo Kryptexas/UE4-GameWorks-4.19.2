@@ -26,6 +26,12 @@ ActorFactory.cpp:
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "VectorField/VectorField.h"
+
+#include "Engine/TriggerBox.h"
+#include "Engine/TriggerSphere.h"
+#include "Engine/TriggerCapsule.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
@@ -135,7 +141,6 @@ UObject* UActorFactory::GetAssetFromActorInstance(AActor* ActorInstance)
 	return NULL;
 }
 
-/** Return a rotator which aligns this actor type to the specified surface normal */
 FQuat UActorFactory::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
 {
 	if (bUseSurfaceOrientation)
@@ -203,6 +208,10 @@ AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FVecto
 void UActorFactory::PostSpawnActor( UObject* Asset, AActor* NewActor)
 {
 	// Subclasses may implement this to modify the actor after it has been spawned
+	if (Asset)
+	{
+		GEditor->SetActorLabelUnique(NewActor, Asset->GetName());
+	}
 }
 
 void UActorFactory::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -379,6 +388,10 @@ void UActorFactoryDeferredDecal::PostSpawnActor(UObject* Asset, AActor* NewActor
 
 		// Init Component
 		DecalComponent->RegisterComponent();
+	}
+	else if (Asset)
+	{
+		GEditor->SetActorLabelUnique(NewActor, Asset->GetName());
 	}
 }
 
@@ -640,7 +653,7 @@ UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const class FPostConstr
 bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
 { 
 	if ( !AssetData.IsValid() || 
-		( !AssetData.GetClass()->IsChildOf( UAnimSequence::StaticClass() ) && 
+		( !AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) && 
 		  !AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() )) )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimData", "A valid anim data must be specified.");
@@ -650,7 +663,7 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
-	if ( AssetData.GetClass()->IsChildOf( UAnimSequence::StaticClass() ) )
+	if ( AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) )
 	{
 		const FString* SkeletonPath = AssetData.TagsAndValues.Find("Skeleton");
 		if ( SkeletonPath == NULL || SkeletonPath->IsEmpty() ) 
@@ -723,7 +736,7 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* Asset ) const
 {
 	USkeletalMesh* SkeletalMesh = NULL;
-	UAnimSequence* AnimationAsset = Cast<UAnimSequence>( Asset );
+	UAnimSequenceBase* AnimationAsset = Cast<UAnimSequenceBase>( Asset );
 	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>( Asset );
 
 	if( AnimationAsset != NULL )
@@ -764,6 +777,8 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 			NewSASComponent->AnimationData.AnimToPlay = AnimationAsset;
 			// set runtime data
 			NewSASComponent->SetAnimation(AnimationAsset);
+
+			GEditor->SetActorLabelUnique(NewActor, AnimationAsset->GetName());
 		}
 		else if( VertexAnimation )
 		{
@@ -772,6 +787,8 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 
 			// set runtime data
 			NewSASComponent->SetVertexAnimation(VertexAnimation);
+
+			GEditor->SetActorLabelUnique(NewActor, VertexAnimation->GetName());
 		}
 	}
 }
@@ -1314,6 +1331,8 @@ UActorFactoryPointLight::UActorFactoryPointLight(const class FPostConstructIniti
 {
 	DisplayName = LOCTEXT("PointLightDisplayName", "Point Light");
 	NewActorClass = APointLight::StaticClass();
+	SpawnPositionOffset = FVector(200, 0, 0);
+	bUseSurfaceOrientation = true;
 }
 
 /*-----------------------------------------------------------------------------
@@ -1514,6 +1533,8 @@ void UActorFactoryVectorFieldVolume::PostSpawnActor( UObject* Asset, AActor* New
 	UVectorField* VectorField = CastChecked<UVectorField>(Asset);
 	AVectorFieldVolume* VectorFieldVolumeActor = CastChecked<AVectorFieldVolume>(NewActor);
 
+	GEditor->SetActorLabelUnique(NewActor, VectorField->GetName());
+
 	if ( VectorFieldVolumeActor && VectorFieldVolumeActor->VectorFieldComponent )
 	{
 		VectorFieldVolumeActor->VectorFieldComponent->VectorField = VectorField;
@@ -1592,6 +1613,11 @@ void UActorFactoryBoxVolume::PostSpawnActor( UObject* Asset, AActor* NewActor )
 	{
 		UCubeBuilder* Builder = ConstructObject<UCubeBuilder>( UCubeBuilder::StaticClass() );
 		CreateBrushForVolumeActor( VolumeActor, Builder );
+
+		if (Asset)
+		{
+			GEditor->SetActorLabelUnique(NewActor, Asset->GetName());
+		}
 	}
 }
 
@@ -1629,6 +1655,11 @@ void UActorFactorySphereVolume::PostSpawnActor( UObject* Asset, AActor* NewActor
 		Builder->SphereExtrapolation = 2;
 		Builder->Radius = 192.0f;
 		CreateBrushForVolumeActor( VolumeActor, Builder );
+
+		if (Asset)
+		{
+			GEditor->SetActorLabelUnique(NewActor, Asset->GetName());
+		}
 	}
 }
 
@@ -1664,6 +1695,11 @@ void UActorFactoryCylinderVolume::PostSpawnActor( UObject* Asset, AActor* NewAct
 		UCylinderBuilder* Builder = ConstructObject<UCylinderBuilder>( UCylinderBuilder::StaticClass() );
 		Builder->OuterRadius = 128.0f;
 		CreateBrushForVolumeActor( VolumeActor, Builder );
+
+		if (Asset)
+		{
+			GEditor->SetActorLabelUnique(NewActor, Asset->GetName());
+		}
 	}
 }
 

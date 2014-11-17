@@ -340,13 +340,13 @@ struct FPostProcessSettings
 	// -----------------------------------------------------------------------
 
 
-	UPROPERTY(interp, Category=Film, AdvancedDisplay, meta=(editcondition = "bOverride_FilmWhitePoint", DisplayName = "Tint"))
+	UPROPERTY(interp, Category=Film, meta=(editcondition = "bOverride_FilmWhitePoint", DisplayName = "Tint"))
 	FLinearColor FilmWhitePoint;
-	UPROPERTY(interp, Category=Film, meta=(editcondition = "bOverride_FilmShadowTint", DisplayName = "Tint Shadow"))
+	UPROPERTY(interp, Category=Film, AdvancedDisplay, meta=(editcondition = "bOverride_FilmShadowTint", DisplayName = "Tint Shadow"))
 	FLinearColor FilmShadowTint;
-	UPROPERTY(interp, Category=Film, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShadowTintBlend", DisplayName = "Tint Shadow Blend"))
+	UPROPERTY(interp, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShadowTintBlend", DisplayName = "Tint Shadow Blend"))
 	float FilmShadowTintBlend;
-	UPROPERTY(interp, Category=Film, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShadowTintAmount", DisplayName = "Tint Shadow Amount"))
+	UPROPERTY(interp, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShadowTintAmount", DisplayName = "Tint Shadow Amount"))
 	float FilmShadowTintAmount;
 
 	UPROPERTY(interp, Category=Film, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_FilmSaturation", DisplayName = "Saturation"))
@@ -463,7 +463,7 @@ struct FPostProcessSettings
 	float LPVIntensity;
 
 	/** CURRENTLY DISABLED - The strength of the warp offset for reducing light bleeding. 0.0 is off, 1.0 is the "normal" value, but higher values can be used to boost the effect*/
-	UPROPERTY(interp, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVWarpIntensity", UIMin = "0", UIMax = "1", DisplayName = "(DISABLED) Grid Warp Intensity") )
+	UPROPERTY(interp, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVWarpIntensity", UIMin = "0", UIMax = "1", DisplayName = "(DISABLED) Grid Warp Intensity"))
 	float LPVWarpIntensity;
 
 	/** Bias applied to light injected into the LPV in cell units. Increase to reduce bleeding through thin walls*/
@@ -483,7 +483,7 @@ struct FPostProcessSettings
 	float LPVSecondaryBounceIntensity;
 
 	/** Bias applied to the geometry volume in cell units. Increase to reduce darkening due to secondary occlusion */
-	UPROPERTY(interp, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVGeometryVolumeBias", UIMin = "0", UIMax = "2", DisplayName = "Geometry Volume Bias") )
+	UPROPERTY(interp, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVGeometryVolumeBias", UIMin = "0", UIMax = "2", DisplayName = "Geometry Volume Bias"))
 	float LPVGeometryVolumeBias;
 
 	UPROPERTY(interp, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVEmissiveInjectionIntensity", UIMin = "0", UIMax = "20", DisplayName = "Emissive Injection Intensity") )
@@ -558,7 +558,7 @@ struct FPostProcessSettings
 	 * Logarithmic adjustment for the exposure. Only used if a tonemapper is specified.
 	 * 0: no adjustment, -1:2x darker, -2:4x darker, 1:2x brighter, 2:4x brighter, ...
 	 */
-	UPROPERTY(interp, Category=AutoExposure, meta=(UIMin = "-8.0", UIMax = "8.0", editcondition = "bOverride_AutoExposureBias"))
+	UPROPERTY(interp, Category = AutoExposure, meta = (UIMin = "-8.0", UIMax = "8.0", editcondition = "bOverride_AutoExposureBias", DisplayName = "Exposure Bias"))
 	float AutoExposureBias;
 
 	/** temporary exposed until we found good values, -8: 1/256, -10: 1/1024 */
@@ -590,7 +590,7 @@ struct FPostProcessSettings
 	class UTexture* LensFlareBokehShape;
 
 	/** RGB defines the lens flare color, A it's position. This is a temporary solution. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LensFlares, meta=(editcondition = "bOverride_LensFlareTints", DisplayName = "Tints"))
+	UPROPERTY(EditAnywhere, Category=LensFlares, meta=(editcondition = "bOverride_LensFlareTints", DisplayName = "Tints"))
 	FLinearColor LensFlareTints[8];
 
 	/** 0..1 0=off/no vignette .. 1=strong vignette */
@@ -598,11 +598,11 @@ struct FPostProcessSettings
 	float VignetteIntensity;
 
 	/** Vignette color. */
-	UPROPERTY(interp, Category=SceneColor, meta=(editcondition = "bOverride_VignetteColor", DisplayName = "Vignette Color"))
+	UPROPERTY(interp, Category=SceneColor, AdvancedDisplay, meta=(editcondition = "bOverride_VignetteColor", DisplayName = "Vignette Color"))
 	FLinearColor VignetteColor;
 
 	/** 0..1 grain jitter */
-	UPROPERTY(interp, Category=SceneColor, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_GrainJitter"))
+	UPROPERTY(interp, Category = SceneColor, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_GrainJitter"))
 	float GrainJitter;
 
 	/** 0..1 grain intensity */
@@ -662,11 +662,11 @@ struct FPostProcessSettings
 	float AmbientOcclusionMipThreshold;
 
 	/** Adjusts indirect lighting color. (1,1,1) is default. (0,0,0) to disable GI. The show flag 'Global Illumination' must be enabled to use this property. */
-	UPROPERTY(interp, Category=GlobalIllumination, AdvancedDisplay, meta=(editcondition = "bOverride_IndirectLightingColor", DisplayName = "Indirect Lighting Color"))
+	UPROPERTY(interp, Category=GlobalIllumination, meta=(editcondition = "bOverride_IndirectLightingColor", DisplayName = "Indirect Lighting Color"))
 	FLinearColor IndirectLightingColor;
 
 	/** Scales the indirect lighting contribution. A value of 0 disables GI. Default is 1. The show flag 'Global Illumination' must be enabled to use this property. */
-	UPROPERTY(interp, Category=GlobalIllumination, AdvancedDisplay, meta=(ClampMin = "0", UIMax = "4.0", editcondition = "bOverride_IndirectLightingIntensity", DisplayName = "Indirect Lighting Intensity"))
+	UPROPERTY(interp, Category=GlobalIllumination, meta=(ClampMin = "0", UIMax = "4.0", editcondition = "bOverride_IndirectLightingIntensity", DisplayName = "Indirect Lighting Intensity"))
 	float IndirectLightingIntensity;
 
 	/** 0..1=full intensity */
@@ -744,7 +744,7 @@ struct FPostProcessSettings
 	float MotionBlurPerObjectSize;
 
 	/** to render with lower resolution and upscale, controlled by console variable, 100:off, needs to be <99 to see effect, only applied in game  */
-	UPROPERTY(interp, Category=Misc, meta=(ClampMin = "0.0", ClampMax = "400.0", editcondition = "bOverride_ScreenPercentage"))
+	UPROPERTY(interp, Category=Misc, AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "400.0", editcondition = "bOverride_ScreenPercentage"))
 	float ScreenPercentage;
 
 	/** TemporalAA, FXAA, ... */
@@ -794,6 +794,7 @@ struct FPostProcessSettings
 		SceneColorTint = FLinearColor(1, 1, 1);
 		SceneFringeIntensity = 0.0f;
 		SceneFringeSaturation = 0.5f;
+		// next value might get overwritten by r.DefaultFeature.Bloom
 		BloomIntensity = 1.0f;
 		BloomThreshold = 1.0f;
 		Bloom1Tint = FLinearColor(0.5f, 0.5f, 0.5f);
@@ -821,15 +822,17 @@ struct FPostProcessSettings
 		LPVTransmissionIntensity = 1.0f;
 		AutoExposureLowPercent = 80.0f;
 		AutoExposureHighPercent = 98.3f;
+		// next value might get overwritten by r.DefaultFeature.AutoExposure
 		AutoExposureMinBrightness = 0.03f;
+		// next value might get overwritten by r.DefaultFeature.AutoExposure
 		AutoExposureMaxBrightness = 2.0f;
 		AutoExposureBias = 0.0f;
 		AutoExposureSpeedUp = 3.0f;
 		AutoExposureSpeedDown = 1.0f;
 		HistogramLogMin = -8.0f;
 		HistogramLogMax = 4.0f;
-		// Note: We changed this from 1.0f to 0.0f for a faster default.
-		LensFlareIntensity = 0.0f;
+		// next value might get overwritten by r.DefaultFeature.LensFlare
+		LensFlareIntensity = 1.0f;
 		LensFlareTint = FLinearColor(1.0f, 1.0f, 1.0f);
 		LensFlareBokehSize = 3.0f;
 		LensFlareThreshold = 8.0f;
@@ -837,6 +840,7 @@ struct FPostProcessSettings
 		VignetteColor = FLinearColor(0.0f, 0.0f, 0.0f);
 		GrainIntensity = 0.0f;
 		GrainJitter = 0.0f;
+		// next value might get overwritten by r.DefaultFeature.AmbientOcclusion
 		AmbientOcclusionIntensity = .5f;
 		AmbientOcclusionStaticFraction = 1.0f;
 		AmbientOcclusionRadius = 40.0f;
@@ -873,6 +877,7 @@ struct FPostProcessSettings
 		LensFlareTints[5] = FLinearColor(0.9f, 1.0f, 0.8f, 0.27f);
 		LensFlareTints[6] = FLinearColor(1.0f, 0.8f, 0.4f, 0.22f);
 		LensFlareTints[7] = FLinearColor(0.9f, 0.7f, 0.7f, 0.15f);
+		// next value might get overwritten by r.DefaultFeature.MotionBlur
 		MotionBlurAmount = 0.5f;
 		MotionBlurMax = 5.0f;
 		MotionBlurPerObjectSize = 0.5f;

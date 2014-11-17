@@ -41,7 +41,7 @@ void FDamageEvent::GetBestHitInfo(AActor const* HitActor, AActor const* HitInsti
 		OutHitInfo.Actor = const_cast<AActor*>(HitActor);
 		OutHitInfo.bBlockingHit = true;
 		OutHitInfo.BoneName = NAME_None;
-		OutHitInfo.Component = HitActor->GetRootPrimitiveComponent();
+		OutHitInfo.Component = Cast<UPrimitiveComponent>(HitActor->GetRootComponent());
 		
 		// assume the actor got hit in the center of his root component
 		OutHitInfo.ImpactPoint = HitActor->GetActorLocation();
@@ -145,7 +145,7 @@ USceneComponent* FComponentReference::GetComponent(AActor* OwningActor) const
 			}
 			else
 			{
-				Result = SearchActor->GetRootPrimitiveComponent();
+				Result = Cast<UPrimitiveComponent>(SearchActor->GetRootComponent());
 			}
 		}
 	}

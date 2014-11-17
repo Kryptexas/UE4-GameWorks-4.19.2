@@ -38,7 +38,6 @@ public:
 	/** Ensure amount of inputs matches new amount of children */
 	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) override;
 #endif
-	virtual FString GetUniqueString() const override;
 	// End USoundNode interface. 
 };
 

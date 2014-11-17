@@ -25,9 +25,12 @@ public:
 
 	// ITargetDeviceProxyLocator interface
 
-	virtual ITargetDeviceProxyRef FindOrAddProxy( const FString& DeviceId ) override;
-	virtual ITargetDeviceProxyPtr FindProxy( const FString& DeviceId ) override;
-	virtual void GetProxies( const FString& PlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies ) override;
+	virtual ITargetDeviceProxyRef FindOrAddProxy(const FString& Name) override;
+	virtual ITargetDeviceProxyPtr FindProxy(const FString& Name) override;
+	
+	virtual ITargetDeviceProxyPtr FindProxyDeviceForTargetDevice(const FString& DeviceId) override;
+	
+	virtual void GetProxies(FName TargetPlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies) override;
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceProxyManager, ITargetDeviceProxyManager::FOnTargetDeviceProxyAdded, FOnTargetDeviceProxyAdded);
 	virtual FOnTargetDeviceProxyAdded& OnProxyAdded( ) override

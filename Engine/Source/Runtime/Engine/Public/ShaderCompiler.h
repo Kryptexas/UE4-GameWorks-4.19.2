@@ -78,7 +78,7 @@ public:
 	virtual ~FShaderCompileThreadRunnable();
 
 	// FRunnable interface.
-	virtual bool Init(void) { return true; bIsRunning = true; }
+	virtual bool Init(void) { bIsRunning = true; return true; }
 	virtual void Exit(void) { bIsRunning = false; }
 	virtual void Stop(void) { bForceFinish = true; }
 	virtual uint32 Run(void);
@@ -213,8 +213,8 @@ private:
 	 */
 	double WorkersBusyTime;
 
-	/** Launches the worker, returns the launched Process Id. */
-	uint32 LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe);
+	/** Launches the worker, returns the launched process handle. */
+	FProcHandle LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe);
 
 	/** Blocks on completion of the given shader maps. */
 	void BlockOnShaderMapCompletion(const TArray<int32>& ShaderMapIdsToFinishCompiling, TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps);
@@ -311,9 +311,9 @@ public:
 	ENGINE_API void ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion);
 
 	/**
-	 * Returns true if the given PID is actually a ShaderCompilerWorker, and it's still running.
+	 * Returns true if the given shader compile worker is still running.
 	 */
-	static bool IsShaderCompilerWorkerRunning(uint32 ProcessId);
+	static bool IsShaderCompilerWorkerRunning(FProcHandle & WorkerHandle);
 };
 
 /** The global shader compiling thread manager. */
@@ -338,8 +338,5 @@ extern void GlobalBeginCompileShader(
 /** Implementation of the 'recompileshaders' console command.  Recompiles shaders at runtime based on various criteria. */
 extern bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar);
 
-/** Returns whether the global shader map contains all global shader types. */
-extern ENGINE_API bool IsGlobalShaderMapComplete();
-
-/** Returns whether all global shader types containing the substring are complete and ready for rendering. */
-extern ENGINE_API bool AreGlobalShadersComplete(const TCHAR* TypeNameSubstring);
+/** Returns whether all global shader types containing the substring are complete and ready for rendering. if type name is null, check everything */
+extern ENGINE_API bool IsGlobalShaderMapComplete(const TCHAR* TypeNameSubstring = nullptr);

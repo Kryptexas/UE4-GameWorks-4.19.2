@@ -118,7 +118,7 @@ void UEdGraphSchema_BehaviorTreeDecorator::CreateDefaultNodesForGraph(UEdGraph& 
 	FGraphNodeCreator<UBehaviorTreeDecoratorGraphNode_Logic> NodeCreator(Graph);
 	UBehaviorTreeDecoratorGraphNode_Logic* MyNode = NodeCreator.CreateNode();
 	MyNode->LogicMode = EDecoratorLogicMode::Sink;
-
+	SetNodeMetaData(MyNode, FNodeMetadata::DefaultGraphNode);
 	NodeCreator.Finalize();
 }
 
@@ -213,7 +213,7 @@ void UEdGraphSchema_BehaviorTreeDecorator::GetBreakLinkToSubMenuActions( class F
 			// Add name of connection if possible
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("NodeTitle"), Title );
-			Args.Add( TEXT("PinName"), FText::FromString( Pin->PinName ) );
+			Args.Add( TEXT("PinName"), Pin->GetDisplayName() );
 			Title = FText::Format( LOCTEXT("BreakDescPin", "{NodeTitle} ({PinName})"), Args );
 		}
 

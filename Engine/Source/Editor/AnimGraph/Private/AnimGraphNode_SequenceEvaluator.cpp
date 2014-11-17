@@ -36,36 +36,48 @@ void UAnimGraphNode_SequenceEvaluator::ReplaceReferredAnimations(const TMap<UAni
 	HandleAnimReferenceReplacement(Node.Sequence, ComplexAnimsMap, AnimSequenceMap);
 }
 
-FString UAnimGraphNode_SequenceEvaluator::GetTooltip() const
+FText UAnimGraphNode_SequenceEvaluator::GetTooltipText() const
 {
-	if ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive())
-	{
-		return FString::Printf(TEXT("Evaluate %s (additive)"), *(Node.Sequence->GetPathName()));
-	}
-	else
-	{
-		return FString::Printf(TEXT("Evaluate %s"), *(Node.Sequence->GetPathName()));
-	}
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_SequenceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText SequenceName((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"));
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SequenceName"), SequenceName);
-
-	if (Node.Sequence && Node.Sequence->IsValidAdditive())
+	if (Node.Sequence == nullptr)
 	{
-		return FText::Format(LOCTEXT("EvaluateSequence_Additive", "Evaluate {SequenceName} (additive)"), Args);
+		return LOCTEXT("EvaluateSequence_TitleNONE", "Evaluate (None)");
 	}
-	else
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the CacheName won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
-		return FText::Format(LOCTEXT("EvaluateSequence", "Evaluate {SequenceName}"), Args);
+		const FText SequenceName = FText::FromString(Node.Sequence->GetName());
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SequenceName"), SequenceName);
+
+		// FText::Format() is slow, so we cache this to save on performance
+		if (Node.Sequence->IsValidAdditive())
+		{
+			CachedNodeTitle = FText::Format(LOCTEXT("EvaluateSequence_Additive", "Evaluate {SequenceName} (additive)"), Args);
+		}
+		else
+		{
+			CachedNodeTitle = FText::Format(LOCTEXT("EvaluateSequence", "Evaluate {SequenceName}"), Args);
+		}
 	}
+
+	return CachedNodeTitle;
 }
 
 void UAnimGraphNode_SequenceEvaluator::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
+{
+	// Intentionally empty; you can drop down a regular sequence player and convert into a sequence evaluator in the right-click menu.
+}
+
+void UAnimGraphNode_SequenceEvaluator::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// Intentionally empty; you can drop down a regular sequence player and convert into a sequence evaluator in the right-click menu.
 }

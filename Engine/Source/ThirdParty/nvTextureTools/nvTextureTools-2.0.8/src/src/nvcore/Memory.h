@@ -1,4 +1,5 @@
 // This code is in the public domain -- castanyo@yahoo.es
+// Modifications copyright 2014 Epic Games, Inc.
 
 #ifndef NV_CORE_MEMORY_H
 #define NV_CORE_MEMORY_H
@@ -28,7 +29,7 @@ namespace nv
 
 // Override new/delete
 
-#ifdef __APPLE__
+#if (__APPLE__) || (__linux__)
 inline void * operator new (std::size_t size) throw(std::bad_alloc)
 {
 	return nv::mem::malloc(size); 

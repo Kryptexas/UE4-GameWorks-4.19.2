@@ -65,6 +65,9 @@
     <Compile Include="..\..\..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
+    <Compile Include="APIAction.cs" />
+    <Compile Include="APIActionPin.cs" />
+    <Compile Include="APICategory.cs" />
     <Compile Include="APIConstant.cs" />
     <Compile Include="APIConstantIndex.cs" />
     <Compile Include="APIEnumIndex.cs" />
@@ -79,6 +82,13 @@
     <Compile Include="APIRecord.cs" />
     <Compile Include="APIRecordIndex.cs" />
     <Compile Include="BuildTarget.cs" />
+    <Compile Include="fastJSON\Formatter.cs" />
+    <Compile Include="fastJSON\Getters.cs" />
+    <Compile Include="fastJSON\JSON.cs" />
+    <Compile Include="fastJSON\JsonParser.cs" />
+    <Compile Include="fastJSON\JsonSerializer.cs" />
+    <Compile Include="fastJSON\Reflection.cs" />
+    <Compile Include="fastJSON\SafeDictionary.cs" />
     <Compile Include="Icons.cs" />
     <Compile Include="IniFile.cs" />
     <Compile Include="Metadata.cs" />

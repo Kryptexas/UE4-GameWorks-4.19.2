@@ -88,6 +88,9 @@ private:
 	 */
 	bool ShouldDisplayThumbnail( const FArguments& InArgs );
 
+	/** Gets the border brush to show around the thumbnail, changes when the user hovers on it. */
+	const FSlateBrush* GetThumbnailBorder() const;
+
 	/** 
 	 * Get the content to be displayed in the asset/actor picker menu 
 	 * @returns the widget for the menu content
@@ -232,6 +235,9 @@ private:
 
 	/** Main combobutton */
 	TSharedPtr< class SComboButton > AssetComboButton;
+
+	/** The border surrounding the thumbnail image. */
+	TSharedPtr< class SBorder > ThumbnailBorder;
 
 	/** The property editor, if any */
 	TSharedPtr<class FPropertyEditor> PropertyEditor;

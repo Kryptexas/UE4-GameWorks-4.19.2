@@ -27,6 +27,10 @@
 #include "SCaptureRegionWidget.h"
 #include "Settings.h"
 #include "SceneOutlinerTreeItems.h"
+#include "BufferVisualizationData.h"
+#include "EditorViewportCommands.h"
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "SScissorRectBox.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -60,6 +64,9 @@ SLevelViewport::SLevelViewport()
 	, bViewTransitionAnimPending( false )
 	, DeviceProfile("Default")
 	, PIEOverlaySlotIndex(0)
+	, bPIEHasFocus(false)
+	, bPIEContainsFocus(false)
+	, UserAllowThrottlingValue(0)
 {
 }
 
@@ -102,7 +109,12 @@ void SLevelViewport::HandleViewportSettingChanged(FName PropertyName)
 bool SLevelViewport::IsVisible() const
 {
 	// The viewport is visible if we don't have a parent layout (likely a floating window) or this viewport is visible in the parent layout
-	return ViewportWidget.IsValid() && ( !ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible( *this ) );
+	return IsInForegroundTab() && SEditorViewport::IsVisible();
+}
+
+bool SLevelViewport::IsInForegroundTab() const
+{
+	return ViewportWidget.IsValid() && (!ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible(*this));
 }
 
 void SLevelViewport::Construct(const FArguments& InArgs)
@@ -158,7 +170,14 @@ void SLevelViewport::ConstructViewportOverlayContent()
 #if ALLOW_PLAY_IN_VIEWPORT_GAMEUI
 		ViewportOverlay->AddSlot( SlotIndex )
 		[
-			PIEViewportOverlayWidget.ToSharedRef()
+			SNew( SScissorRectBox )
+			[
+				SNew(SDPIScaler)
+				.DPIScale(this, &SLevelViewport::GetGameViewportDPIScale)
+				[
+					PIEViewportOverlayWidget.ToSharedRef()
+				]
+			]
 		];
 
 		++SlotIndex;
@@ -346,6 +365,16 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->EngineShowFlags.CompositeEditorPrimitives = true;
 
 	LevelViewportClient->SetViewModes(ViewportInstanceSettings.PerspViewModeIndex, ViewportInstanceSettings.OrthoViewModeIndex );
+}
+
+float SLevelViewport::GetGameViewportDPIScale() const
+{
+	if ( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
+	{
+		return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( ActiveViewport->GetSize() );
+	}
+
+	return 1.0f;
 }
 
 FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -768,6 +797,32 @@ FReply SLevelViewport::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	const bool bContainsFocus = HasFocusedDescendants();
+
+	LastTickTime = FPlatformTime::Seconds();
+
+	// When we have focus we update the 'Allow Throttling' option in slate to be disabled so that interactions in the
+	// viewport with Slate widgets that are part of the game, don't throttle.
+	if ( bPIEContainsFocus != bContainsFocus )
+	{
+		IConsoleVariable* AllowThrottling = IConsoleManager::Get().FindConsoleVariable(TEXT("Slate.bAllowThrottling"));
+		check(AllowThrottling);
+
+		if ( bContainsFocus )
+		{
+			UserAllowThrottlingValue = AllowThrottling->GetInt();
+			AllowThrottling->Set(0);
+		}
+		else
+		{
+			AllowThrottling->Set(UserAllowThrottlingValue);
+		}
+
+		bPIEContainsFocus = bContainsFocus;
+	}
+
 	// We defer starting animation playback because very often there may be a large hitch after the frame in which
 	// the animation was triggered, and we don't want to start animating until after that hitch.  Otherwise, the
 	// user could miss part of the animation, or even the whole thing!
@@ -871,6 +926,8 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 			{
 				World->EditorViews[LevelViewportClient->ViewportType].CamOrthoZoom = DEFAULT_ORTHOZOOM;
 			}
+	
+			ResetNewLevelViewFlags();
 
 			LevelViewportClient->SetInitialViewTransform(
 				World->EditorViews[LevelViewportClient->ViewportType].CamPosition,
@@ -888,6 +945,9 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 		}
 		else if( MapChangeType == EMapChangeType::NewMap )
 		{
+		
+			ResetNewLevelViewFlags();
+
 			LevelViewportClient->ResetViewForNewMap();
 		}
 		World->EditorViews[LevelViewportClient->ViewportType].CamUpdated = false;
@@ -2107,6 +2167,10 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 		{
 		}
 
+		virtual ~FCustomColumn()
+		{
+		}
+
 		//////////////////////////////////////////////////////////////////////////
 		// Begin ISceneOutlinerColumn Implementation
 
@@ -2424,7 +2488,8 @@ void SActorPreview::Construct( const FArguments& InArgs )
 	// widgets that are added to the viewport overlay.
 	this->SetVisibility(EVisibility::SelfHitTestInvisible);
 
-	this->ChildSlot.Widget =
+	this->ChildSlot
+	[
 		SNew(SBorder)
 		.Padding(0)
 
@@ -2502,7 +2567,8 @@ void SActorPreview::Construct( const FArguments& InArgs )
 					// Pass along the block's tool-tip string
 					.ToolTipText( this, &SActorPreview::GetPinButtonToolTipText )
 			]
-		];
+		]
+	];
 
 	// Setup animation curve for fading in and out.  Note that we add a bit of lead-in time on the fade-in
 	// to avoid hysteresis as the user moves the mouse over the view
@@ -2891,8 +2957,11 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 			// Add our new widget to our viewport's overlay
 			// @todo camerapip: Consider using a canvas instead of an overlay widget -- our viewports get SQUASHED when the view shrinks!
-			auto& HorizontalBoxSlot = ActorPreviewHorizontalBox->AddSlot().AutoWidth();
-			HorizontalBoxSlot.Widget = ActorPreviewWidget.ToSharedRef();
+			ActorPreviewHorizontalBox->AddSlot()
+			.AutoWidth()
+			[
+				ActorPreviewWidget.ToSharedRef()
+			];
 		}
 
 		// OK, at least one new preview viewport was added, so update settings for all views immediately.
@@ -3171,6 +3240,23 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, 
 	GEngine->BroadcastLevelActorListChanged();
 }
 
+EVisibility SLevelViewport::GetMouseCaptureLabelVisibility() const
+{
+	EVisibility visibility = EVisibility::Collapsed;
+
+	if (GEditor->PlayWorld)
+	{
+		// Show the label if the local player's PC isn't set to show the cursor
+		auto const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GEditor->PlayWorld, 0);
+		if (TargetPlayer && TargetPlayer->PlayerController && !TargetPlayer->PlayerController->bShowMouseCursor)
+		{
+			visibility = EVisibility::Visible;
+		}
+	}
+
+	return visibility;
+}
+
 FLinearColor SLevelViewport::GetMouseCaptureLabelColorAndOpacity() const
 {
 	FSlateColor SlateColor = FEditorStyle::GetSlateColor("DefaultForeground");
@@ -3247,6 +3333,7 @@ void SLevelViewport::ShowMouseCaptureLabel(ELabelAnchorMode AnchorMode)
 	[
 		SNew( SBorder )
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+		.Visibility(this, &SLevelViewport::GetMouseCaptureLabelVisibility)
 		.ColorAndOpacity( this, &SLevelViewport::GetMouseCaptureLabelColorAndOpacity )
 		.ForegroundColor( FLinearColor::White )
 		.Padding(15.0f)
@@ -3291,6 +3378,16 @@ void SLevelViewport::HideMouseCaptureLabel()
 {
 	ViewportOverlay->RemoveSlot(PIEOverlaySlotIndex);
 	PIEOverlaySlotIndex = 0;
+}
+
+void SLevelViewport::ResetNewLevelViewFlags()
+{
+	ChangeExposureSetting(FEditorViewportCommands::AutoExposureRadioID);
+
+	const bool bIsPerspective = LevelViewportClient->IsPerspective();
+	LevelViewportClient->SetViewMode(bIsPerspective ? FEditorViewportClient::DefaultPerspectiveViewMode : FEditorViewportClient::DefaultOrthoViewMode);
+
+	OnUseDefaultShowFlags();
 }
 
 void SLevelViewport::EndPlayInEditorSession()

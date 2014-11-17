@@ -82,6 +82,17 @@ struct FGooglePlayLeaderboardMapping
 	FString LeaderboardID;
 };
 
+UENUM()
+namespace EAndroidAudio
+{
+	enum Type
+	{
+		Default = 0 UMETA(DisplayName = "Default", ToolTip = "This option selects the default encoder."),
+		OGG = 1 UMETA(DisplayName = "Ogg Vorbis", ToolTip = "Selects Ogg Vorbis encoding."),
+		ADPCM = 2 UMETA(DisplayName = "ADPCM", ToolTip = "This option selects ADPCM lossless encoding.")
+	};
+}
+
 /**
  * Implements the settings for the Android runtime platform.
  */
@@ -98,6 +109,26 @@ public:
 	// The preferred depth buffer bitcount for Android
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AppManifest)
 	TEnumAsByte<EAndroidDepthBufferPreference::Type> DepthBufferPreference;
+
+	// Enable ArmV7 support? (this will be used if all type are unchecked)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 [aka armeabi-v7a]"))
+	bool bBuildForArmV7;
+
+//	// Enable Arm64 support?
+//	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64"))
+//	bool bBuildForArm64;
+
+	// Enable x86 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86"))
+	bool bBuildForX86;
+
+//	// Enable x86-64 support?
+//	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86_64 [aka x64]"))
+//	bool bBuildForX8664;
+
+	// If selected, the checked architectures will be split into separate .apk files [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	bool bSplitIntoSeparateApks;
 
 	// Should Google Play support be enabled?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
@@ -118,4 +149,14 @@ public:
 	// The unique identifier for the ad obtained from AdMob.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString AdMobAdUnitID;
+
+	/** Android Audio encoding options */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
+	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;
+
+#if WITH_EDITOR
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+#endif
 };

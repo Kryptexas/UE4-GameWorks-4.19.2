@@ -83,6 +83,15 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			ImportUI->PhysicsAsset = NULL;
 		}
 
+		if(bForceImportType)
+		{
+			ImportUI->MeshTypeToImport = ImportType;
+			ImportUI->OriginalImportType = ImportType;
+		}
+
+		ImportUI->bImportAsSkeletal = ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
+		ImportUI->bIsObjImport = bIsObjFormat;
+
 		TSharedPtr<SWindow> ParentWindow;
 
 		if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -172,33 +181,39 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
+
 	if ( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )
 	{
-		InOutImportOptions.NormalImportMethod = ImportUI->StaticMeshImportData->NormalImportMethod;
+		UFbxStaticMeshImportData* StaticMeshData	= ImportUI->StaticMeshImportData;
+		InOutImportOptions.NormalImportMethod		= StaticMeshData->NormalImportMethod;
 	}
 	else if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 	{
-		InOutImportOptions.NormalImportMethod = ImportUI->SkeletalMeshImportData->NormalImportMethod;
+		UFbxSkeletalMeshImportData* SkeletalMeshData	= ImportUI->SkeletalMeshImportData;
+		InOutImportOptions.NormalImportMethod			= SkeletalMeshData->NormalImportMethod;
 	}
 	else
 	{
+		UFbxAnimSequenceImportData* AnimData	= ImportUI->AnimSequenceImportData;
 		InOutImportOptions.NormalImportMethod = FBXNIM_ComputeNormals;
 	}
+
 	// only re-sample if they don't want to use default sample rate
 	InOutImportOptions.bResample = ImportUI->bUseDefaultSampleRate==false;
 	InOutImportOptions.bImportMorph = ImportUI->SkeletalMeshImportData->bImportMorphTargets;
 	InOutImportOptions.bUpdateSkeletonReferencePose = ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose;
-	InOutImportOptions.bImportRigidMesh = ImportUI->bImportRigidMesh;
+	InOutImportOptions.bImportRigidMesh = ImportUI->OriginalImportType == FBXIT_StaticMesh && ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
 	InOutImportOptions.bUseT0AsRefPose = ImportUI->SkeletalMeshImportData->bUseT0AsRefPose;
 	InOutImportOptions.bPreserveSmoothingGroups = ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
 	InOutImportOptions.bCombineToSingle = ImportUI->bCombineMeshes;
 	InOutImportOptions.bReplaceVertexColors = ImportUI->StaticMeshImportData->bReplaceVertexColors;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
+	InOutImportOptions.bGenerateLightmapUVs = ImportUI->StaticMeshImportData->bGenerateLightmapUVs;
 	InOutImportOptions.bOneConvexHullPerUCX = ImportUI->StaticMeshImportData->bOneConvexHullPerUCX;
+	InOutImportOptions.bAutoGenerateCollision = ImportUI->StaticMeshImportData->bAutoGenerateCollision;
 	InOutImportOptions.StaticMeshLODGroup = ImportUI->StaticMeshImportData->StaticMeshLODGroup;
 	InOutImportOptions.bImportMeshesInBoneHierarchy = ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
-	InOutImportOptions.bImportGroupNodeAsRoot = ImportUI->SkeletalMeshImportData->bImportGroupNodeAsRoot;
 	InOutImportOptions.bCreatePhysicsAsset = ImportUI->bCreatePhysicsAsset;
 	InOutImportOptions.PhysicsAsset = ImportUI->PhysicsAsset;
 	// animation options
@@ -207,6 +222,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.AnimationRange.Y = ImportUI->AnimSequenceImportData->EndFrame;
 	InOutImportOptions.AnimationName = ImportUI->AnimationName;
 	InOutImportOptions.bPreserveLocalTransform = ImportUI->bPreserveLocalTransform;
+	InOutImportOptions.bImportCustomAttribute = ImportUI->AnimSequenceImportData->bImportCustomAttribute;
 }
 
 void FImportedMaterialData::AddImportedMaterial( FbxSurfaceMaterial& FbxMaterial, UMaterialInterface& UnrealMaterial )
@@ -234,12 +250,12 @@ void FImportedMaterialData::Clear()
 }
 
 FFbxImporter::FFbxImporter()
-	: bFirstMesh(true)
-	, Importer( NULL )
+	: Scene(NULL)
 	, ImportOptions(NULL)
 	, GeometryConverter(NULL)
-	, Scene(NULL)
 	, SdkManager(NULL)
+	, Importer( NULL )
+	, bFirstMesh(true)
 	, Logger(NULL)
 {
 	// Create the SdkManager
@@ -1068,28 +1084,45 @@ FbxNode* FFbxImporter::GetRootSkeleton(FbxNode* Link)
 }
 
 
-void DumpFBXNode(FbxNode* Node)
+void FFbxImporter::DumpFBXNode(FbxNode* Node) 
 {
 	FbxMesh* Mesh = Node->GetMesh();
 	const FString NodeName(Node->GetName());
-	FbxNodeAttribute* NodeAttribute = Node->GetNodeAttribute();
-	if(NodeAttribute)
-	{
-		FbxNodeAttribute::EType Type = NodeAttribute->GetAttributeType();
-	}
 
 	if(Mesh)
 	{
+		UE_LOG(LogFbx, Log, TEXT("================================================="));
+		UE_LOG(LogFbx, Log, TEXT("Dumping Node START [%s] "), *NodeName);
 		int DeformerCount = Mesh->GetDeformerCount();
-		UE_LOG(LogFbx, Log,TEXT("================================================="));
-		UE_LOG(LogFbx, Log,TEXT("Dumping Node START [%s] : Total Deformer Count %d."), *NodeName, DeformerCount);
+		UE_LOG(LogFbx, Log,TEXT("\tTotal Deformer Count %d."), *NodeName, DeformerCount);
 		for(int i=0; i<DeformerCount; i++)
 		{
 			FbxDeformer* Deformer = Mesh->GetDeformer(i);
 			const FString DeformerName(Deformer->GetName());
 			const FString DeformerTypeName(Deformer->GetTypeName());
-			UE_LOG(LogFbx, Log,TEXT("\t[Node %d] %s (Type %s)."), i+1, *DeformerName, *DeformerTypeName);
+			UE_LOG(LogFbx, Log,TEXT("\t\t[Node %d] %s (Type %s)."), i+1, *DeformerName, *DeformerTypeName);
 			UE_LOG(LogFbx, Log,TEXT("================================================="));
+		}
+
+		FbxNodeAttribute* NodeAttribute = Node->GetNodeAttribute();
+		if(NodeAttribute)
+		{
+			FString NodeAttributeName(NodeAttribute->GetName());
+			FbxNodeAttribute::EType Type = NodeAttribute->GetAttributeType();
+			UE_LOG(LogFbx, Log,TEXT("\tAttribute (%s) Type (%d)."), *NodeAttributeName, (int32)Type);
+		
+			for (int i=0; i<NodeAttribute->GetNodeCount(); ++i)
+			{
+				FbxNode * Child = NodeAttribute->GetNode(i);
+
+				if (Child)
+				{
+					const FString ChildName(Child->GetName());
+					const FString ChildTypeName(Child->GetTypeName());
+					UE_LOG(LogFbx, Log,TEXT("\t\t[Node Attribute Child %d] %s (Type %s)."), i+1, *ChildName, *ChildTypeName);
+				}
+			}
+
 		}
 
 		UE_LOG(LogFbx, Log,TEXT("Dumping Node END [%s]"), *NodeName);
@@ -1202,6 +1235,8 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 {
 	bool RigidNodeFound = false;
 	FbxNode* RigidMeshNode = NULL;
+
+	DEBUG_FBX_NODE("", Node);
 
 	if (Node->GetMesh())
 	{

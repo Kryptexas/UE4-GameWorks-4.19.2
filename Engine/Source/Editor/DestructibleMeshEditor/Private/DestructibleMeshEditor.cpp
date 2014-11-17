@@ -8,9 +8,6 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "EngineAnalytics.h"
-
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 
 const FName FDestructibleMeshEditor::ViewportTabId( TEXT( "DestructibleMeshEditor_Viewport" ) );
@@ -281,6 +278,7 @@ void FDestructibleMeshEditor::ExtendToolbar()
 			.OnSelectionChanged(this, &FDestructibleMeshEditor::PreviewDepthSelectionChanged)
 			.InitiallySelectedItem(PreviewDepths.Num() > 0 ? PreviewDepths[0] : NULL)
 			.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
+			.AddMetaData<FTagMetaData>(TEXT("Destructible.PreviewDepth"))
 			.Content()
 			[
 				SNew( STextBlock )
@@ -295,7 +293,8 @@ void FDestructibleMeshEditor::ExtendToolbar()
 		.HAlign( HAlign_Left )
 		[
 			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
+			.AddMetaData<FTagMetaData>(TEXT("Destructible.ExplodeAmount")) 
+			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding( FMargin(40.0f, 0.0f) )
 			.HAlign(HAlign_Center)
@@ -398,10 +397,6 @@ void FDestructibleMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 
 	if ( bSuccess )
 	{
-		if (FEngineAnalytics::IsAvailable())
-		{
-			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.DestructibleMesh.ReimportedViaEditor"));
-		}
 		RefreshTool();
 	}
 }

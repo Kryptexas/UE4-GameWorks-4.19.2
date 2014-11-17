@@ -46,4 +46,33 @@ void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 		}
 	}
 }
+
+bool APostProcessVolume::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(APostProcessVolume, bEnabled))
+		{
+			return true;
+		}
+
+		if (!bEnabled)
+		{
+			return false;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(APostProcessVolume, BlendRadius))
+		{
+			if (bUnbound)
+			{
+				return false;
+			}
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
+
 #endif // WITH_EDITOR

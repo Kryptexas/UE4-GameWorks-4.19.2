@@ -3,6 +3,11 @@
 
 #define VERTEX_CACHE_H
 
+#if !WIN32
+#include <stdio.h>
+#include <string.h>
+#endif
+
 class VertexCache
 {
 	

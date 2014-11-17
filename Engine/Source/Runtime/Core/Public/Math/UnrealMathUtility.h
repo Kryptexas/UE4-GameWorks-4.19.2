@@ -112,7 +112,7 @@ struct FMath : public FPlatformMath
 	/** Return a uniformly distributed random unit length vector = point on the unit sphere surface. */
 	static FVector VRand();
 	
-	/*
+	/**
 	 * Returns a random unit vector, uniformly distributed, within the specified cone
 	 * ConeHalfAngleRad is the half-angle of cone, in radians.  Returns a normalized vector. 
 	 */
@@ -535,15 +535,120 @@ struct FMath : public FPlatformMath
 		return (a * A) + b;
 	}
 
+	/** Interpolate between A and B, applying an ease in function.  Exp controls the degree of the curve. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpEaseIn(const T& A, const T& B, float Alpha, float Exp)
+	{
+		float const ModifiedAlpha = FMath::Pow(Alpha, Exp);
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolate between A and B, applying an ease out function.  Exp controls the degree of the curve. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpEaseOut(const T& A, const T& B, float Alpha, float Exp)
+	{
+		float const ModifiedAlpha = 1.f - FMath::Pow(1.f - Alpha, Exp);
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
 	/** Interpolate between A and B, applying an ease in/out function.  Exp controls the degree of the curve. */
 	template< class T > 
 	static FORCEINLINE_DEBUGGABLE T InterpEaseInOut( const T& A, const T& B, float Alpha, float Exp )
 	{
-		float const ModifiedAlpha = ( Alpha < 0.5f ) ?
-			0.5f * Pow(2.f * Alpha, Exp) :
-		1.f - 0.5f * Pow(2.f * (1.f - Alpha), Exp);
+		return (Alpha < 0.5f) ?
+			InterpEaseIn(A, B, Alpha * 2.f, Exp) * 0.5f :
+			InterpEaseOut(A, B, Alpha * 2.f - 1.f, Exp) * 0.5f + 0.5f;
+	}
 
+	/** Interpolation between A and B, applying a step function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpStep(const T& A, const T& B, float Alpha, int32 Steps)
+	{
+		if (Steps <= 1)
+		{
+			return A;
+		}
+
+		const float StepsAsFloat = static_cast<float>(Steps);
+		const float NumIntervals = StepsAsFloat - 1.f;
+		float const ModifiedAlpha = FloorToFloat(Alpha * StepsAsFloat) / NumIntervals;
 		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolation between A and B, applying a sinusoidal in function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpSinIn(const T& A, const T& B, float Alpha)
+	{
+		float const ModifiedAlpha = -1.f * cos(Alpha * HALF_PI) + 1.f;
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+	
+	/** Interpolation between A and B, applying a sinusoidal out function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpSinOut(const T& A, const T& B, float Alpha)
+	{
+		float const ModifiedAlpha = sin(Alpha * HALF_PI);
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolation between A and B, applying a sinusoidal in/out function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpSinInOut(const T& A, const T& B, float Alpha)
+	{
+		return (Alpha < 0.5f) ?
+			InterpSinIn(A, B, Alpha * 2.f) * 0.5f :
+			InterpSinOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+	}
+
+	/** Interpolation between A and B, applying an exponential in function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpExpoIn(const T& A, const T& B, float Alpha)
+	{
+		float const ModifiedAlpha = (Alpha == 0.f) ? 0.f : pow(2.f, 10.f * (Alpha - 1.f));
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolation between A and B, applying an exponential out function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpExpoOut(const T& A, const T& B, float Alpha)
+	{
+		float const ModifiedAlpha = (Alpha == 1.f) ? 1.f : -pow(2.f, -10.f * Alpha) + 1.f;
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolation between A and B, applying an exponential in/out function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpExpoInOut(const T& A, const T& B, float Alpha)
+	{
+		return (Alpha < 0.5f) ?
+			InterpExpoIn(A, B, Alpha * 2.f) * 0.5f :
+			InterpExpoOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
+	}
+
+	/** Interpolation between A and B, applying a circular in function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpCircularIn(const T& A, const T& B, float Alpha)
+	{
+		float const ModifiedAlpha = -1.f * (Sqrt(1.f - Alpha * Alpha) - 1.f);
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolation between A and B, applying a circular out function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpCircularOut(const T& A, const T& B, float Alpha)
+	{
+		Alpha -= 1.f;
+		float const ModifiedAlpha = Sqrt(1.f - Alpha  * Alpha);
+		return Lerp<T>(A, B, ModifiedAlpha);
+	}
+
+	/** Interpolation between A and B, applying a circular in/out function. */
+	template< class T >
+	static FORCEINLINE_DEBUGGABLE T InterpCircularInOut(const T& A, const T& B, float Alpha)
+	{
+		return (Alpha < 0.5f) ?
+			InterpCircularIn(A, B, Alpha * 2.f) * 0.5f :
+			InterpCircularOut(A, B, Alpha * 2.f - 1.f) * 0.5f + 0.5f;
 	}
 
 	// Rotator specific interpolation
@@ -605,6 +710,9 @@ struct FMath : public FPlatformMath
 	/** Interpolate float from Current to Target. Scaled by distance to Target, so it has a strong start speed and ease out. */
 	static CORE_API float FInterpTo( float Current, float Target, float DeltaTime, float InterpSpeed );
 
+	/** Interpolate Linear Color from Current to Target. Scaled by distance to Target, so it has a strong start speed and ease out. */
+	static CORE_API FLinearColor CInterpTo(const FLinearColor& Current, const FLinearColor& Target, float DeltaTime, float InterpSpeed);
+
 	/**
 	 * Simple function to create a pulsating scalar value
 	 *
@@ -662,6 +770,9 @@ struct FMath : public FPlatformMath
 	static bool PointBoxIntersection( const FVector& Point, const FBox& Box );
 
 	/** Determines whether a line intersects a box. */
+	static bool LineBoxIntersection( const FBox& Box, const FVector& Start, const FVector& End, const FVector& Direction );
+
+	/** Determines whether a line intersects a box. This overload avoids the need to do the reciprocal every time. */
 	static bool LineBoxIntersection( const FBox& Box, const FVector& Start, const FVector& End, const FVector& Direction, const FVector& OneOverDirection );
 
 	/* Swept-Box vs Box test */
@@ -870,7 +981,7 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool Eval( FString Str, float& OutValue );
 
-	/*
+	/**
 	 * Computes the barycentric coordinates for a given point in a triangle - simpler version
 	 *
 	 * @param	Point			point to convert to barycentric coordinates (in plane of ABC)
@@ -881,7 +992,7 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API FVector GetBaryCentric2D(const FVector& Point, const FVector& A, const FVector& B, const FVector& C);
 
-	/*
+	/**
 	 * Computes the barycentric coordinates for a given point in a triangle
 	 *
 	 * @param	Point			point to convert to barycentric coordinates (in plane of ABC)
@@ -892,7 +1003,7 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API FVector ComputeBaryCentric2D(const FVector& Point, const FVector& A, const FVector& B, const FVector& C);
 
-	/*
+	/**
 	 * Computes the barycentric coordinates for a given point on a tetrahedron (3D)
 	 *
 	 * @param	Point			point to convert to barycentric coordinates
@@ -965,6 +1076,29 @@ struct FMath : public FPlatformMath
 	 * @param Dst in and out
 	 */
 	static CORE_API void ApplyScaleToFloat(float& Dst, const FVector& DeltaScale, float Magnitude = 1.0f);
+
+	// @param x assumed to be in this range: 0..1
+	// @return 0..255
+	static uint8 Quantize8UnsignedByte(float x)
+	{
+		// 0..1 -> 0..255
+		int32 Ret = (int32)(x * 255.999f);
+
+		check(Ret >= 0);
+		check(Ret <= 255);
+
+		return Ret;
+	}
+	
+	// @param x assumed to be in this range: -1..1
+	// @return 0..255
+	static uint8 Quantize8SignedByte(float x)
+	{
+		// -1..1 -> 0..1
+		float y = x * 0.5f + 0.5f;
+
+		return Quantize8UnsignedByte(y);
+	}
 };
 
 // Platform specific vector intrinsics include.

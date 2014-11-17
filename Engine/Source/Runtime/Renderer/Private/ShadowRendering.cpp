@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "TextureLayout.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<float> CVarCSMShadowDepthBias(
 	TEXT("r.Shadow.CSMDepthBias"),
@@ -169,7 +170,8 @@ public:
 					&& (!bUsePositionOnlyStream || VertexFactoryType->SupportsPositionOnly())
 					// Don't render ShadowDepth for translucent unlit materials
 					&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
-					&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+					// Only compile perspective correct light shaders for feature levels >= SM4
+					&& (ShaderMode != VertexShadowDepth_PerspectiveCorrect || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4));
 		}
 	}
 
@@ -513,6 +515,17 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+		if (!IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
+		{
+			return (Material->IsSpecialEngineMaterial()
+				// Only compile for masked or lit translucent materials
+				|| Material->IsMasked())
+				&& ShaderMode == PixelShadowDepth_NonPerspectiveCorrect
+				// Don't render ShadowDepth for translucent unlit materials
+				&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
+				&& !bRenderReflectiveShadowMap;
+		}
+
 		if ( bRenderReflectiveShadowMap )
 		{
 			//Note: This logic needs to stay in sync with OverrideWithDefaultMaterialForShadowDepth!
@@ -534,7 +547,7 @@ public:
 				&& (ShaderMode != PixelShadowDepth_OnePassPointLight || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
 				// Don't render ShadowDepth for translucent unlit materials
 				&& (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit)
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 	}
 
@@ -589,7 +602,7 @@ TGlobalResource<StencilingGeometry::FStencilConeIndexBuffer> StencilingGeometry:
 
 bool FShadowProjectionVS::ShouldCache(EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 }
 
 void FShadowProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const int32 ShadowSplitIndex)
@@ -668,7 +681,7 @@ void OverrideWithDefaultMaterialForShadowDepth(
 {
 	// Override with the default material when possible.
 	if (!InOutMaterialResource->IsMasked() &&						// Don't override masked materials.
-		!InOutMaterialResource->MaterialModifiesMeshPosition() &&	// Don't override materials using world position offset.
+		!InOutMaterialResource->MaterialModifiesMeshPosition_RenderThread() &&	// Don't override materials using world position offset.
 		!bReflectiveShadowmap)										// Don't override when rendering reflective shadow maps.
 	{
 		const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -683,11 +696,6 @@ void OverrideWithDefaultMaterialForShadowDepth(
 /*-----------------------------------------------------------------------------
 	FShadowDepthDrawingPolicy
 -----------------------------------------------------------------------------*/
-
-template<>
-const FProjectedShadowInfo* FShadowDepthDrawingPolicy<false>::PolicyShadowInfo = NULL;
-template<>
-const FProjectedShadowInfo* FShadowDepthDrawingPolicy<true>::PolicyShadowInfo = NULL;
 
 template <bool bRenderingReflectiveShadowMaps>
 void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::UpdateElementState(FShadowStaticMeshElement& State)
@@ -749,7 +757,7 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	bUsePositionOnlyVS = !bRenderingReflectiveShadowMaps
 		&& VertexFactory->SupportsPositionOnlyStream()
 		&& !MaterialResource->IsMasked()
-		&& !MaterialResource->MaterialModifiesMeshPosition();
+		&& !MaterialResource->MaterialModifiesMeshPosition_RenderThread();
 
 	// Vertex related shaders
 	if (bOnePassPointLightShadow)
@@ -846,26 +854,26 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 }
 
 template <bool bRenderingReflectiveShadowMaps>
-void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
-	checkSlow(bDirectionalLight == PolicyShadowInfo->bDirectionalLight && bPreShadow == PolicyShadowInfo->bPreShadow);
+	checkSlow(bDirectionalLight == PolicyContext.ShadowInfo->bDirectionalLight && bPreShadow == PolicyContext.ShadowInfo->bPreShadow);
 
-	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View,PolicyShadowInfo);
+	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View,PolicyContext.ShadowInfo);
 
 	if (GeometryShader)
 	{
-		GeometryShader->SetParameters(RHICmdList, *View,PolicyShadowInfo);
+		GeometryShader->SetParameters(RHICmdList, *View,PolicyContext.ShadowInfo);
 	}
 
 	if(HullShader && DomainShader)
 	{
 		HullShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
-		DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View,PolicyShadowInfo);
+		DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View,PolicyContext.ShadowInfo);
 	}
 
 	if (PixelShader)
 	{
-		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View,PolicyShadowInfo);
+		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View,PolicyContext.ShadowInfo);
 	}
 
 	// Set the shared mesh resources.
@@ -875,12 +883,12 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(F
 	}
 	else
 	{
-		FMeshDrawingPolicy::DrawShared(RHICmdList, View);
+		FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext);
 	}
 
 	// @TODO: only render directional light shadows as two sided, and only when blocking is enabled (required by geometry volume injection)
 	bool bIsTwoSided = IsTwoSided();
-	if ( PolicyShadowInfo->bReflectiveShadowmap )
+	if ( PolicyContext.ShadowInfo->bReflectiveShadowmap )
 	{
 		bIsTwoSided = true;
 	}
@@ -929,12 +937,13 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	const ElementDataType& ElementData
+	const ElementDataType& ElementData,
+	const ContextDataType PolicyContext
 	) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	EmitMeshDrawEvents(PrimitiveSceneProxy, Mesh);
+	EmitMeshDrawEvents(RHICmdList, PrimitiveSceneProxy, Mesh);
 
 	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 
@@ -945,13 +954,13 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 	}
 	if (GeometryShader)
 	{
-		GeometryShader->SetMesh(RHICmdList, PrimitiveSceneProxy, PolicyShadowInfo, View);
+		GeometryShader->SetMesh(RHICmdList, PrimitiveSceneProxy, PolicyContext.ShadowInfo, View);
 	}
 	if (PixelShader)
 	{
 		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 	}
-	// Not calling FMeshDrawingPolicy::SetMeshRenderState as DrawShared sets the rasterizer state
+	// Not calling FMeshDrawingPolicy::SetMeshRenderState as SetSharedState sets the rasterizer state
 }
 
 template <bool bRenderingReflectiveShadowMaps>
@@ -965,7 +974,7 @@ int32 CompareDrawingPolicy(const FShadowDepthDrawingPolicy<bRenderingReflectiveS
 	COMPAREDRAWINGPOLICYMEMBERS(VertexFactory);
 	COMPAREDRAWINGPOLICYMEMBERS(MaterialRenderProxy);
 	COMPAREDRAWINGPOLICYMEMBERS(bDirectionalLight);
-	// Have to sort on two sidedness because rasterizer state is set in DrawShared and not SetMeshRenderState
+	// Have to sort on two sidedness because rasterizer state is set in SetSharedState and not SetMeshRenderState
 	COMPAREDRAWINGPOLICYMEMBERS(bIsTwoSidedMaterial);
 	COMPAREDRAWINGPOLICYMEMBERS(bReverseCulling);
 	COMPAREDRAWINGPOLICYMEMBERS(bOnePassPointLightShadow);
@@ -983,7 +992,7 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 		const EBlendMode BlendMode = Material->GetBlendMode();
 		const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
-		const bool bLightPropagationVolume = UseLightPropagationVolumeRT();
+		const bool bLightPropagationVolume = UseLightPropagationVolumeRT(Scene->GetFeatureLevel());
 		const bool bTwoSided  = Material->IsTwoSided() || StaticMesh->PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
 		const bool bLitOpaque = !IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
 		if(bLightPropagationVolume && (bLitOpaque || Material->ShouldInjectEmissiveIntoLPV()))
@@ -1052,13 +1061,14 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 		const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
 		const bool bOnePassPointLightShadow = Context.ShadowInfo->bOnePassPointLightShadow;
-		const bool bReflectiveShadowmap = Context.ShadowInfo->bReflectiveShadowmap && !bOnePassPointLightShadow;
+		const bool bReflectiveShadowmap = Context.ShadowInfo->bReflectiveShadowmap && !bOnePassPointLightShadow && Material->ShouldInjectEmissiveIntoLPV();
 
 		if ( (!IsTranslucentBlendMode(BlendMode) || bReflectiveShadowmap ) && ShadingModel != MSM_Unlit )
 		{
 			const bool bDirectionalLight = Context.ShadowInfo->bDirectionalLight;
 			const bool bPreShadow = Context.ShadowInfo->bPreShadow;
 			const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneProxy->CastsShadowAsTwoSided();
+			const FShadowDepthDrawingPolicyContext PolicyContext(Context.ShadowInfo);
 
 			OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, View.GetFeatureLevel());
 
@@ -1076,10 +1086,10 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					);
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-				DrawingPolicy.SetSharedState(RHICmdList, &View);
+				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
 				for (int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 			}
@@ -1097,10 +1107,10 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					);
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-				DrawingPolicy.SetSharedState(RHICmdList, &View);
+				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 			}
@@ -1182,7 +1192,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShad
 
 
 template <bool bReflectiveShadowmap>
-void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bReflectiveShadowmap>& SharedDrawingPolicy, const FShadowStaticMeshElement& State, const FViewInfo& View, const FStaticMesh* Mesh)
+void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bReflectiveShadowmap>& SharedDrawingPolicy, const FShadowStaticMeshElement& State, const FViewInfo& View, FShadowDepthDrawingPolicyContext PolicyContext, const FStaticMesh* Mesh)
 {
 #if UE_BUILD_DEBUG
 	// During shadow setup we should have already overridden materials with default material where needed.
@@ -1212,7 +1222,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 	{
 		if(BatchElementMask & 1)
 		{
-			SharedDrawingPolicy.SetMeshRenderState(RHICmdList, View, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, BatchElementIndex, false, FMeshDrawingPolicy::ElementDataType());
+			SharedDrawingPolicy.SetMeshRenderState(RHICmdList, View, Mesh->PrimitiveSceneInfo->Proxy, *Mesh, BatchElementIndex, false, FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 			SharedDrawingPolicy.DrawMesh(RHICmdList, *Mesh, BatchElementIndex);
 			INC_DWORD_STAT(STAT_ShadowDynamicPathDrawCalls);
 		}
@@ -1225,6 +1235,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 template <bool bReflectiveShadowmap>
 void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo)
 {
+	FShadowDepthDrawingPolicyContext PolicyContext(&ShadowInfo);
 	const FShadowStaticMeshElement& FirstShadowMesh = ShadowInfo.SubjectMeshElements[0];
 	const FMaterial* FirstMaterialResource = FirstShadowMesh.MaterialResource;
 
@@ -1256,19 +1267,265 @@ void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, 
 
 			SharedDrawingPolicy.UpdateElementState(CurrentState);
 			RHICmdList.BuildAndSetLocalBoundShaderState(SharedDrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-			SharedDrawingPolicy.SetSharedState(RHICmdList, &View);
+			SharedDrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
 		}
 
-		DrawMeshElements(RHICmdList, SharedDrawingPolicy, OldState, View, ShadowMesh.Mesh);
+		DrawMeshElements(RHICmdList, SharedDrawingPolicy, OldState, View, PolicyContext, ShadowMesh.Mesh);
 	}
 }
 
-void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDeferredShadingSceneRenderer* SceneRenderer)
+void FProjectedShadowInfo::RenderDepthDynamic(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo* FoundView)
+{
+	// Draw the subject's dynamic elements.
+	SCOPE_CYCLE_COUNTER(STAT_WholeSceneDynamicShadowDepthsTime);
+
+	uint32 DrawPrimitiveFlags = 0;
+	if (bReflectiveShadowmap)
+	{
+		// force lowest LOD for RSMs
+		DrawPrimitiveFlags = EDrawDynamicFlags::ForceLowestLOD;
+	}
+
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+	TDynamicPrimitiveDrawer<FShadowDepthDrawingPolicyFactory> Drawer(RHICmdList, FoundView, FShadowDepthDrawingPolicyFactory::ContextType(this), true);
+	uint32 PrimitiveCount = SubjectPrimitives.Num();
+
+	for (uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
+	{
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy = PrimitiveSceneInfo->Proxy;
+
+		// Lookup the primitive's cached view relevance
+		FPrimitiveViewRelevance ViewRelevance = FoundView->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
+
+		if (!ViewRelevance.bInitializedThisFrame)
+		{
+			// Compute the subject primitive's view relevance since it wasn't cached
+			ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(FoundView);
+		}
+
+		// Only draw if the subject primitive is shadow relevant.
+		if (ViewRelevance.bShadowRelevance)
+		{
+			if (bUseGetMeshElements)
+			{
+				FShadowDepthDrawingPolicyFactory::ContextType Context(this);
+
+				//@todo parallelrendering - come up with a better way to filter these by primitive
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < FoundView->DynamicMeshElements.Num(); MeshBatchIndex++)
+				{
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = FoundView->DynamicMeshElements[MeshBatchIndex];
+
+					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
+					{
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+					}
+				}
+			}
+			else 
+			{
+				FScopeCycleCounter Context(PrimitiveSceneProxy->GetStatId());
+				Drawer.SetPrimitive(PrimitiveSceneProxy);
+
+				SubjectPrimitives[PrimitiveIndex]->Proxy->DrawDynamicElements(&Drawer, FoundView, DrawPrimitiveFlags);
+			}
+		}
+	}
+}
+
+class FDrawShadowMeshElementsThreadTask
+{
+	FProjectedShadowInfo& ThisRenderer;
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	bool bReflective;
+
+public:
+
+	FDrawShadowMeshElementsThreadTask(
+		FProjectedShadowInfo* InThisRenderer,
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView,
+		bool InbReflective
+		)
+		: ThisRenderer(*InThisRenderer)
+		, RHICmdList(*InRHICmdList)
+		, View(*InView)
+		, bReflective(InbReflective)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawShadowMeshElementsThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
+
+		if (bReflective)
+		{
+			// reflective shadow map
+			DrawShadowMeshElements<true>(RHICmdList, View, ThisRenderer);
+		}
+		else
+		{
+			// normal shadow map
+			DrawShadowMeshElements<false>(RHICmdList, View, ThisRenderer);
+		}
+		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
+	}
+};
+
+class FRenderDepthDynamicThreadTask
+{
+	FProjectedShadowInfo& ThisRenderer;
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	FSceneRenderer* SceneRenderer;
+
+public:
+
+	FRenderDepthDynamicThreadTask(
+		FProjectedShadowInfo* InThisRenderer,
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView,
+		FSceneRenderer* InSceneRenderer
+		)
+		: ThisRenderer(*InThisRenderer)
+		, RHICmdList(*InRHICmdList)
+		, View(*InView)
+		, SceneRenderer(InSceneRenderer)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderDepthDynamicThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		ThisRenderer.RenderDepthDynamic(RHICmdList, SceneRenderer, &View);
+		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
+	}
+};
+
+static TAutoConsoleVariable<int32> CVarParallelShadows(
+	TEXT("r.ParallelShadows"),
+	1,
+	TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	ECVF_RenderThreadSafe
+	);
+
+void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo* FoundView)
+{
+	FShadowDepthDrawingPolicyContext PolicyContext(this);
+
+	if (RHICmdList.IsImmediate() &&  // translucent shadows are draw on the render thread, using a recursive cmdlist
+		GRHICommandList.UseParallelAlgorithms() && CVarParallelShadows.GetValueOnRenderThread())
+	{
+		// parallel version
+		FScopedCommandListWaitForTasks Flusher;
+
+		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
+		bool OutDirty = false; // unused
+
+		// Draw the subject's static elements using static draw lists
+		if (IsWholeSceneDirectionalShadow())
+		{
+			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
+
+			if (bReflectiveShadowmap)
+			{
+				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisibleParallel(*FoundView, PolicyContext, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility, Width, RHICmdList, OutDirty);
+			}
+			else
+			{
+				// Use the scene's shadow depth draw list with this shadow's visibility map
+				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisibleParallel(*FoundView, PolicyContext, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility, Width, RHICmdList, OutDirty);
+			}
+		}
+		// Draw the subject's static elements using manual state filtering
+		else if (SubjectMeshElements.Num() > 0)
+		{
+			FRHICommandList* CmdList = new FRHICommandList;
+
+			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawShadowMeshElementsThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+				.ConstructAndDispatchWhenReady(this, CmdList, FoundView, bReflectiveShadowmap && !bOnePassPointLightShadow);
+
+			RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+		}
+		{
+			FRHICommandList* CmdList = new FRHICommandList;
+
+			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderDepthDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+				.ConstructAndDispatchWhenReady(this, CmdList, FoundView, SceneRenderer);
+
+			RHICmdList.QueueAsyncCommandListSubmit(AnyThreadCompletionEvent, CmdList);
+		}
+	}
+	else
+	{
+		// single threaded version
+
+		// Draw the subject's static elements using static draw lists
+		if (IsWholeSceneDirectionalShadow())
+		{
+			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
+
+			if (bReflectiveShadowmap)
+			{
+				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(RHICmdList, *FoundView, PolicyContext, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+			}
+			else
+			{
+				// Use the scene's shadow depth draw list with this shadow's visibility map
+				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(RHICmdList, *FoundView, PolicyContext, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+			}
+		}
+		// Draw the subject's static elements using manual state filtering
+		else if (SubjectMeshElements.Num() > 0)
+		{
+			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
+
+			if (bReflectiveShadowmap && !bOnePassPointLightShadow)
+			{
+				// reflective shadow map
+				DrawShadowMeshElements<true>(RHICmdList, *FoundView, *this);
+			}
+			else
+			{
+				// normal shadow map
+				DrawShadowMeshElements<false>(RHICmdList, *FoundView, *this);
+			}
+		}
+		RenderDepthDynamic(RHICmdList, SceneRenderer, FoundView);
+	}
+}
+
+void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer)
 {
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;
 	GetShadowTypeNameForDrawEvent(EventName);
-	SCOPED_DRAW_EVENTF(EventShadowDepthActor, DEC_SCENE_ITEMS, *EventName);
+	SCOPED_DRAW_EVENTF(RHICmdList, EventShadowDepthActor, DEC_SCENE_ITEMS, *EventName);
 #endif
 
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_RenderWholeSceneShadowDepthsTime, bWholeSceneShadow);
@@ -1341,7 +1598,8 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 			break;
 		}
 	}
-	check(FoundView);
+	check(FoundView 
+		&& IsInRenderingThread()); // we should not hack the view in parallel
 
 	// Backup properties of the view that we will override
 	TUniformBufferRef<FViewUniformShaderParameters> OriginalUniformBuffer = FoundView->UniformBuffer;
@@ -1352,6 +1610,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 	FoundView->ViewMatrices.ViewMatrix = ShadowViewMatrix;
 	FBox VolumeBounds[TVC_MAX];
 	FoundView->UniformBuffer = FoundView->CreateUniformBuffer(
+		nullptr,
 		ShadowViewMatrix, 
 		VolumeBounds,
 		TVC_MAX);
@@ -1360,83 +1619,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 	// Lighting only should only affect the material used with direct lighting, not the indirect lighting
 	FoundView->bForceShowMaterials = true;
 
-	FShadowDepthDrawingPolicy<false>::PolicyShadowInfo = this;
-	FShadowDepthDrawingPolicy<true>::PolicyShadowInfo = this;
-
-	{
-		// Draw the subject's static elements using static draw lists
-		if (IsWholeSceneDirectionalShadow())
-		{
-			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
-
-			if (bReflectiveShadowmap)
-			{
-				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
-			}
-			else
-			{
-				// Use the scene's shadow depth draw list with this shadow's visibility map
-				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
-			}
-		}
-		// Draw the subject's static elements using manual state filtering
-		else if (SubjectMeshElements.Num() > 0)
-		{
-			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
-
-			if(bReflectiveShadowmap && !bOnePassPointLightShadow)
-			{
-				// reflective shadow map
-				DrawShadowMeshElements<true>(RHICmdList, *FoundView, *this);
-			}
-			else
-			{
-				// normal shadow map
-				DrawShadowMeshElements<false>(RHICmdList, *FoundView, *this);
-			}
-		}
-
-	}
-
-	// Draw the subject's dynamic elements.
-	{
-		SCOPE_CYCLE_COUNTER(STAT_WholeSceneDynamicShadowDepthsTime);
-
-		uint32 DrawPrimitiveFlags = 0;
-		if(bReflectiveShadowmap)
-		{
-			// force lowest LOD for RSMs
-			DrawPrimitiveFlags = EDrawDynamicFlags::ForceLowestLOD;
-		}
-
-		TDynamicPrimitiveDrawer<FShadowDepthDrawingPolicyFactory> Drawer(RHICmdList, FoundView, FShadowDepthDrawingPolicyFactory::ContextType(this), true);
-		uint32 PrimitiveCount = SubjectPrimitives.Num();
-		for(uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
-		{
-			const FPrimitiveSceneInfo* PrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
-
-			// Lookup the primitive's cached view relevance
-			FPrimitiveViewRelevance ViewRelevance = FoundView->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
-
-			if (!ViewRelevance.bInitializedThisFrame)
-			{
-				// Compute the subject primitive's view relevance since it wasn't cached
-				ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(FoundView);
-			}
-		
-			// Only draw if the subject primitive is shadow relevant.
-			if (ViewRelevance.bShadowRelevance)
-			{
-				FScopeCycleCounter Context(SubjectPrimitives[PrimitiveIndex]->Proxy->GetStatId());
-				Drawer.SetPrimitive(SubjectPrimitives[PrimitiveIndex]->Proxy);
-
-				SubjectPrimitives[PrimitiveIndex]->Proxy->DrawDynamicElements(&Drawer, FoundView, DrawPrimitiveFlags);
-			}
-		}
-	}
-
-	FShadowDepthDrawingPolicy<false>::PolicyShadowInfo = NULL;
-	FShadowDepthDrawingPolicy<true>::PolicyShadowInfo = NULL;
+	RenderDepthInner(RHICmdList, SceneRenderer, FoundView);
 
 	FoundView->bForceShowMaterials = false;
 	FoundView->UniformBuffer = OriginalUniformBuffer;
@@ -1469,15 +1652,15 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	if (ShadowInfo->bTranslucentShadow)
 	{
 		// Get the Shadow Projection Vertex Shader (with transforms)
-		FShadowProjectionVS* ShadowProjVS = GetGlobalShaderMap()->GetShader<FShadowProjectionVS>();
+		FShadowProjectionVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionVS>();
 
 		// Get the translucency pixel shader
-		FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionFromTranslucencyPS<Quality> >();
+		FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<Quality> >();
 
 		// Bind shader
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
 
 		// Set shader parameters
 		ShadowProjVS->SetParameters(RHICmdList, View, ShadowInfo);
@@ -1486,28 +1669,28 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	else if (ShadowInfo->IsWholeSceneDirectionalShadow())
 	{
 		// Get the Shadow Projection Vertex Shader which does not use a transform
-		FShadowProjectionNoTransformVS* ShadowProjVS = GetGlobalShaderMap()->GetShader<FShadowProjectionNoTransformVS>();
+		FShadowProjectionNoTransformVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionNoTransformVS>();
 
 		// Get the Shadow Projection Pixel Shader for PSSM
 		if (ShadowInfo->CascadeSettings.FadePlaneLength > 0)
 		{
 			// This shader fades the shadow towards the end of the split subfrustum.
-			FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionPS<Quality, true> >();
+			FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, true> >();
 
 			static FGlobalBoundShaderState BoundShaderState;
 			
-			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
 
 			ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 		}
 		else
 		{
 			// Do not use the fade plane shader if the fade plane region length is 0 (avoids divide by 0).
-			FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionPS<Quality, false> >();
+			FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
 
 			static FGlobalBoundShaderState BoundShaderState;
 			
-			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
+			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
 
 			ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 		}
@@ -1517,15 +1700,15 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 	else
 	{
 		// Get the Shadow Projection Vertex Shader
-		FShadowProjectionVS* ShadowProjVS = GetGlobalShaderMap()->GetShader<FShadowProjectionVS>();
+		FShadowProjectionVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionVS>();
 
 		// Get the Shadow Projection Pixel Shader
 		// This shader is the ordinary projection shader used by point/spot lights.		
-		FShadowProjectionPixelShaderInterface* ShadowProjPS = GetGlobalShaderMap()->GetShader<TShadowProjectionPS<Quality, false> >();
+		FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), ShadowProjVS, ShadowProjPS);
 
 		ShadowProjVS->SetParameters(RHICmdList, View, ShadowInfo);
 		ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
@@ -1537,7 +1720,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;
 	GetShadowTypeNameForDrawEvent(EventName);
-	SCOPED_DRAW_EVENTF(EventShadowProjectionActor, DEC_SCENE_ITEMS, *EventName);
+	SCOPED_DRAW_EVENTF(RHICmdList, EventShadowProjectionActor, DEC_SCENE_ITEMS, *EventName);
 #endif
 
 	FScopeCycleCounter Scope(bWholeSceneShadow ? GET_STATID(STAT_RenderWholeSceneShadowProjectionsTime) : GET_STATID(STAT_RenderPerObjectShadowProjectionsTime));
@@ -1549,6 +1732,12 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	// Don't render shadows for subjects which aren't view relevant.
 	if (ViewRelevance.bShadowRelevance == false)
 	{
+		return;
+	}
+
+	if (bRayTracedDistanceFieldShadow)
+	{
+		RenderRayTracedDistanceFieldProjection(RHICmdList, *View);
 		return;
 	}
 
@@ -1622,7 +1811,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	}
 
 	// Find the projection shaders.
-	TShaderMapRef<FShadowProjectionVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FShadowProjectionVS> VertexShader(View->ShaderMap);
 
 	// Depth test wo/ writes, no color writing.
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
@@ -1634,7 +1823,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	// If this is a preshadow, mask the projection by the receiver primitives.
 	if (bPreShadow)
 	{
-		SCOPED_DRAW_EVENTF(EventMaskSubjects, DEC_SCENE_ITEMS, TEXT("Stencil Mask Subjects"));
+		SCOPED_DRAW_EVENTF(RHICmdList, EventMaskSubjects, DEC_SCENE_ITEMS, TEXT("Stencil Mask Subjects"));
 
 		// Set stencil to one.
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
@@ -1647,6 +1836,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		// Draw the receiver's dynamic elements.
 		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
+		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < ReceiverPrimitives.Num(); PrimitiveIndex++)
 		{
@@ -1657,7 +1847,22 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 				const FPrimitiveViewRelevance& ViewRelevance = View->PrimitiveViewRelevanceMap[ReceiverPrimitiveSceneInfo->GetIndex()];
 				if (ViewRelevance.bRenderInMainPass)
 				{
-					if (ViewRelevance.bDynamicRelevance)
+					if (bUseGetMeshElements)
+					{
+						FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+
+						for (int32 MeshBatchIndex = 0; MeshBatchIndex < View->DynamicMeshElements.Num(); MeshBatchIndex++)
+						{
+							const FMeshBatchAndRelevance& MeshBatchAndRelevance = View->DynamicMeshElements[MeshBatchIndex];
+
+							if (MeshBatchAndRelevance.PrimitiveSceneProxy == ReceiverPrimitiveSceneInfo->Proxy)
+							{
+								const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+								FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+							}
+						}
+					}
+					else if (ViewRelevance.bDynamicRelevance)
 					{
 						Drawer.SetPrimitive(ReceiverPrimitiveSceneInfo->Proxy);
 						ReceiverPrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, View);
@@ -1679,7 +1884,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 									StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
 									true,
 									ReceiverPrimitiveSceneInfo->Proxy,
-									StaticMesh.HitProxyId
+									StaticMesh.BatchHitProxyId
 									);
 							}
 						}
@@ -1729,9 +1934,9 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			// Draw 2 fullscreen planes, front facing one at the near subfrustum plane, and back facing one at the far.
 
 			// Find the projection shaders.
-			TShaderMapRef<FShadowProjectionNoTransformVS> VertexShaderNoTransform(GetGlobalShaderMap());
+			TShaderMapRef<FShadowProjectionNoTransformVS> VertexShaderNoTransform(View->ShaderMap);
 			VertexShaderNoTransform->SetParameters(RHICmdList, *View);
-			SetGlobalBoundShaderState(RHICmdList, MaskBoundShaderState[0], GetVertexDeclarationFVector4(), *VertexShaderNoTransform, nullptr);
+			SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), MaskBoundShaderState[0], GetVertexDeclarationFVector4(), *VertexShaderNoTransform, nullptr);
 
 			FVector4 Near = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
 			FVector4 Far = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
@@ -1795,10 +2000,10 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		}
 		
 		// Find the projection shaders.
-		TShaderMapRef<FShadowProjectionVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<FShadowProjectionVS> VertexShader(View->ShaderMap);
 
 		// Cache the bound shader state
-		SetGlobalBoundShaderState(RHICmdList, MaskBoundShaderState[1], GetVertexDeclarationFVector4(), *VertexShader, NULL);
+		SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), MaskBoundShaderState[1], GetVertexDeclarationFVector4(), *VertexShader, NULL);
 
 		// Set the projection vertex shader parameters
 		VertexShader->SetParameters(RHICmdList, *View, this);
@@ -1943,12 +2148,12 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 template <uint32 Quality>
 static void SetPointLightShaderTempl(FRHICommandList& RHICmdList, int32 ViewIndex, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo)
 {
-	TShaderMapRef<FShadowProjectionVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<TOnePassPointShadowProjectionPS<Quality> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FShadowProjectionVS> VertexShader(View.ShaderMap);
+	TShaderMapRef<TOnePassPointShadowProjectionPS<Quality> > PixelShader(View.ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(RHICmdList, View, ShadowInfo);
 	PixelShader->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
@@ -2029,7 +2234,7 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 		SubjectPrimitiveId = SubjectPrimitives[0]->GetIndex();
 	}
 
-	const FMatrix InvShadowTransform = (bWholeSceneShadow || bPreShadow) ? SubjectAndReceiverMatrix.Inverse() : InvReceiverMatrix;
+	const FMatrix InvShadowTransform = (bWholeSceneShadow || bPreShadow) ? SubjectAndReceiverMatrix.InverseFast() : InvReceiverMatrix;
 
 	FColor Color;
 
@@ -2066,7 +2271,6 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 	const float InvBufferResolutionY = 1.0f / (float)ShadowBufferResolution.Y;
 	const float ShadowResolutionFractionY = 0.5f * (float)ResolutionY * InvBufferResolutionY;
 	// Calculate the matrix to transform a screenspace position into shadow map space
-	// Translucent preshadows start from post projection space since the position was not derived off of the depth buffer like deferred shadows
 	FMatrix ScreenToShadow = 
 		// Z of the position being transformed is actually view space Z, 
 		// Transform it into post projection space by applying the projection matrix,
@@ -2075,10 +2279,7 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 			FPlane(1,0,0,0),
 			FPlane(0,1,0,0),
 			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[2][2],1),
-			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)
-		);
-
-	ScreenToShadow *=
+			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)) * 
 		// Transform the post projection space position into translated world space
 		// Translated world space is normal world space translated to the view's origin, 
 		// Which prevents floating point imprecision far from the world origin.
@@ -2146,7 +2347,17 @@ FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, 
 /** Returns the resolution of the shadow buffer used for this shadow, based on the shadow's type. */
 FIntPoint FProjectedShadowInfo::GetShadowBufferResolution() const
 {
-	return bAllocatedInPreshadowCache ? GSceneRenderTargets.GetPreShadowCacheTextureResolution() : GSceneRenderTargets.GetShadowDepthTextureResolution();
+	const FTexture2DRHIRef& ShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture(bAllocatedInPreshadowCache);
+
+	//prefer to return the actual size of the allocated texture if possible.  It may be larger than the size of a single shadowmap due to atlasing (see forward renderer CSM handling in InitDynamicShadows).
+	if (ShadowTexture)
+	{
+		return FIntPoint(ShadowTexture->GetSizeX(), ShadowTexture->GetSizeY());
+	}
+	else
+	{
+		return bAllocatedInPreshadowCache ? GSceneRenderTargets.GetPreShadowCacheTextureResolution() : GSceneRenderTargets.GetShadowDepthTextureResolution();
+	}
 }
 
 void FProjectedShadowInfo::UpdateShaderDepthBias()
@@ -2248,7 +2459,7 @@ float FProjectedShadowInfo::ComputeTransitionSize() const
 
 void FProjectedShadowInfo::SortSubjectMeshElements()
 {
-	// Note: this should match the criteria in FProjectedShadowInfo::RenderDepth for deciding when to call DrawShared on a static mesh element for best performance
+	// Note: this should match the criteria in FProjectedShadowInfo::RenderDepth for deciding when to call SetSharedState on a static mesh element for best performance
 	struct FCompareFShadowStaticMeshElement
 	{
 		FORCEINLINE bool operator()( const FShadowStaticMeshElement& A, const FShadowStaticMeshElement& B ) const
@@ -2303,7 +2514,7 @@ FDeferredShadingSceneRenderer
  * @param LightSceneInfo Represents the current light
  * @return true if anything needs to be rendered
  */
-bool FDeferredShadingSceneRenderer::CheckForProjectedShadows( const FLightSceneInfo* LightSceneInfo ) const
+bool FSceneRenderer::CheckForProjectedShadows( const FLightSceneInfo* LightSceneInfo ) const
 {
 	// Find the projected shadows cast by this light.
 	const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
@@ -2356,8 +2567,9 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 		{
 			INC_DWORD_STAT(STAT_WholeSceneShadows);
 
+			if (!ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 			{
-				SCOPED_DRAW_EVENT(ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
 				GSceneRenderTargets.BeginRenderingCubeShadowDepth(RHICmdList, ProjectedShadowInfo->ResolutionX);
 				ProjectedShadowInfo->bAllocated = true;
 				//gilmerge, if clear depth doesn't go into a cmdlist, then how can renderdepth? This occurs in 4 spots
@@ -2369,27 +2581,34 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 			{
 				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
 
-				SCOPED_DRAW_EVENT(ShadowProjectionOnOpaque, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque, DEC_SCENE_ITEMS);
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 				{
-					SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
 					const FViewInfo& View = Views[ViewIndex];
 
 					// Set the device viewport for the view.
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-
-					ProjectedShadowInfo->RenderOnePassPointLightProjection(RHICmdList, ViewIndex, View);
+					
+					if (ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
+					{
+						ProjectedShadowInfo->RenderRayTracedDistanceFieldProjection(RHICmdList, View);
+					}
+					else
+					{
+						ProjectedShadowInfo->RenderOnePassPointLightProjection(RHICmdList, ViewIndex, View);
+					}
 				}
 			}
 
 			// Don't inject shadowed lighting with whole scene shadows used for previewing a light with static shadows,
 			// Since that would cause a mismatch with the built lighting
-			if (!LightSceneInfo->Proxy->HasStaticShadowing())
+			if (!LightSceneInfo->Proxy->HasStaticShadowing() && !ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 			{
 				bInjectedTranslucentVolume = true;
-				SCOPED_DRAW_EVENT(InjectTranslucentVolume, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume, DEC_SCENE_ITEMS);
 				// Inject the shadowed light into the translucency lighting volumes
 				InjectTranslucentVolumeLighting(RHICmdList, *LightSceneInfo, ProjectedShadowInfo);
 			}
@@ -2413,7 +2632,7 @@ void FDeferredShadingSceneRenderer::RenderProjections(
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
 		const FViewInfo& View = Views[ViewIndex];
 
@@ -2590,7 +2809,7 @@ bool FDeferredShadingSceneRenderer::RenderTranslucentProjectedShadows(FRHIComman
 
 		{
 			// Render the translucent shadow depths.
-			SCOPED_DRAW_EVENT(TranslucencyShadowMapGeneration, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, TranslucencyShadowMapGeneration, DEC_SCENE_ITEMS);
 
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{
@@ -2606,7 +2825,7 @@ bool FDeferredShadingSceneRenderer::RenderTranslucentProjectedShadows(FRHIComman
 		// Render the shadow projections.
 		{
 			{
-				SCOPED_DRAW_EVENT(ShadowProjectionOnOpaque, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque, DEC_SCENE_ITEMS);
 				RenderProjections(RHICmdList, LightSceneInfo, Shadows);
 			}
 
@@ -2745,7 +2964,7 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 
 		{
 			// Render the shadow depths.
-			SCOPED_DRAW_EVENT(ReflectiveShadowMapsFromOpaque, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, ReflectiveShadowMapsFromOpaque, DEC_SCENE_ITEMS);
 
 			// render the RSMs
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
@@ -2787,6 +3006,7 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 					{
 						LightPropagationVolume->InjectDirectionalLightRSM( 
 							RHICmdList, 
+							*ProjectedShadowInfo->DependentView,
 							GSceneRenderTargets.GetReflectiveShadowMapDiffuseTexture(), 
 							GSceneRenderTargets.GetReflectiveShadowMapNormalTexture(),
 							GSceneRenderTargets.GetReflectiveShadowMapDepthTexture(),
@@ -2924,7 +3144,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 
 		{
 			// Render the shadow depths.
-			SCOPED_DRAW_EVENT(ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
 
 			GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList);
 
@@ -2934,7 +3154,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{
 				FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
-				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow)
+				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow && !ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 				{
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this);
 				}
@@ -2946,7 +3166,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 		// Render the shadow projections.
 		{
 			{
-				SCOPED_DRAW_EVENT(ShadowProjectionOnOpaque, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque, DEC_SCENE_ITEMS);
 				RenderProjections(RHICmdList, LightSceneInfo, Shadows);
 			}
 			
@@ -2956,13 +3176,15 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 
 				if (ProjectedShadowInfo->bAllocated
 					&& ProjectedShadowInfo->bWholeSceneShadow
+					// Not supported on translucency yet
+					&& !ProjectedShadowInfo->bRayTracedDistanceFieldShadow
 					// Don't inject shadowed lighting with whole scene shadows used for previewing a light with static shadows,
 					// Since that would cause a mismatch with the built lighting
 					// However, stationary directional lights allow whole scene shadows that blend with precomputed shadowing
 					&& (!LightSceneInfo->Proxy->HasStaticShadowing() || ProjectedShadowInfo->IsWholeSceneDirectionalShadow()))
 				{
 					bInjectedTranslucentVolume = true;
-					SCOPED_DRAW_EVENT(InjectTranslucentVolume, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume, DEC_SCENE_ITEMS);
 					// Inject the shadowed light into the translucency lighting volumes
 					InjectTranslucentVolumeLighting(RHICmdList, *LightSceneInfo, ProjectedShadowInfo);
 				}
@@ -3055,7 +3277,7 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 	{
 		if (bHasDepthsToRender)
 		{
-			SCOPED_DRAW_EVENTF(EventShadowDepths, DEC_SCENE_ITEMS, TEXT("Preshadow Cache Depths"));
+			SCOPED_DRAW_EVENTF(RHICmdList, EventShadowDepths, DEC_SCENE_ITEMS, TEXT("Preshadow Cache Depths"));
 
 			SetRenderTarget(RHICmdList, FTextureRHIRef(), GSceneRenderTargets.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture);
 
@@ -3088,7 +3310,7 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 
 		// Render the shadow projections.
 		{
-			SCOPED_DRAW_EVENTF(EventShadowProj, DEC_SCENE_ITEMS, TEXT("Cached Preshadow Projections"));
+			SCOPED_DRAW_EVENTF(RHICmdList, EventShadowProj, DEC_SCENE_ITEMS, TEXT("Cached Preshadow Projections"));
 			RenderProjections(RHICmdList, LightSceneInfo, OpaqueCachedPreshadows);
 
 			// Mark the attenuation buffer as dirty.
@@ -3099,3 +3321,143 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 	return bAttenuationBufferDirty;
 }
 
+/**
+ * Used by RenderLights to render shadows to the attenuation buffer.
+ *
+ * @param LightSceneInfo Represents the current light
+ * @return true if anything got rendered
+ */
+bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo)
+{
+	SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);	
+
+	bool bAttenuationBufferDirty = false;
+
+	// Find the projected shadows cast by this light.
+	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
+	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
+	for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
+	{
+		FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.AllProjectedShadows[ShadowIndex];
+
+		// Check that the shadow is visible in at least one view before rendering it.
+		bool bShadowIsVisible = false;
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			const FViewInfo& View = Views[ViewIndex];
+			if (ProjectedShadowInfo->DependentView && ProjectedShadowInfo->DependentView != &View)
+			{
+				continue;
+			}
+			const FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightSceneInfo->Id];
+			const FPrimitiveViewRelevance ViewRelevance = VisibleLightViewInfo.ProjectedShadowViewRelevanceMap[ShadowIndex];
+			bShadowIsVisible |= !ProjectedShadowInfo->bTranslucentShadow && ViewRelevance.bOpaqueRelevance 
+				&& VisibleLightViewInfo.ProjectedShadowVisibilityMap[ShadowIndex];
+		}
+
+		// Skip shadows which will be handled in RenderOnePassPointLightShadows or RenderReflectiveShadowmaps
+		if (ProjectedShadowInfo->bOnePassPointLightShadow || ProjectedShadowInfo->bReflectiveShadowmap)
+		{
+			bShadowIsVisible = false;
+		}
+
+		if (ProjectedShadowInfo->bPreShadow && !LightSceneInfo->Proxy->HasStaticShadowing())
+		{
+			bShadowIsVisible = false;
+		}
+
+		if (bShadowIsVisible
+			&& (!ProjectedShadowInfo->bPreShadow || ProjectedShadowInfo->HasSubjectPrims())
+			&& !ProjectedShadowInfo->bAllocatedInPreshadowCache)
+		{
+			// Add the shadow to the list of visible shadows cast by this light.
+			if (ProjectedShadowInfo->bWholeSceneShadow)
+			{
+				INC_DWORD_STAT(STAT_WholeSceneShadows);
+			}
+			else if (ProjectedShadowInfo->bPreShadow)
+			{
+				INC_DWORD_STAT(STAT_PreShadows);
+			}
+			else
+			{
+				INC_DWORD_STAT(STAT_PerObjectShadows);
+			}
+			Shadows.Add(ProjectedShadowInfo);
+		}
+	}
+
+	// Sort the projected shadows by resolution.
+	Shadows.Sort( FCompareFProjectedShadowInfoBySplitIndex() );	
+
+	{
+		// Render the shadow depths.
+		SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque, DEC_SCENE_ITEMS);
+
+		// Clearin the render target happens inside the Begin function
+		GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList);
+
+		// render depth for each shadow
+		for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
+			check(!ProjectedShadowInfo->bTranslucentShadow);
+			ProjectedShadowInfo->bRendered = false;
+			ProjectedShadowInfo->bAllocated = true;
+			ProjectedShadowInfo->RenderDepth(RHICmdList, this);
+			bAttenuationBufferDirty = true;
+		}
+
+		GSceneRenderTargets.FinishRenderingShadowDepth(RHICmdList);
+	}
+
+	return bAttenuationBufferDirty;
+}
+
+void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
+{
+	SCOPED_DRAW_EVENT(RHICmdList, Lights, DEC_SCENE_ITEMS);
+
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
+	if (IsSimpleDynamicLightingEnabled() || !bDynamicShadows)
+	{
+		return;
+	}	
+
+	// render shadowmaps for relevant lights.
+	if (Scene->SimpleDirectionalLight)
+	{		
+		const FLightSceneInfo& LightSceneInfo = *Scene->SimpleDirectionalLight;
+
+		if (LightSceneInfo.ShouldRenderViewIndependentWholeSceneShadows()
+			// Only render movable shadowcasting lights
+			&& !LightSceneInfo.Proxy->HasStaticShadowing()
+			&& CheckForProjectedShadows(&LightSceneInfo))
+		{
+			bool bRender = false;
+			// Check if the light is visible in any of the views.
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (LightSceneInfo.ShouldRenderLight(Views[ViewIndex]))
+				{
+					bRender = true;
+					break;
+				}
+			}			
+
+			if (bRender)
+			{				
+				FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
+
+				FString LightNameWithLevel;
+				GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
+				SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, DEC_SCENE_ITEMS, *LightNameWithLevel);
+				
+				INC_DWORD_STAT(STAT_NumShadowedLights);
+
+				//render shadowmap depth				
+				RenderShadowDepthMap(RHICmdList, &LightSceneInfo);				
+			}					
+		}		
+	}	
+}

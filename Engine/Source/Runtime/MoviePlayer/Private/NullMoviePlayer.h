@@ -24,6 +24,7 @@ public:
 	virtual void PassLoadingScreenWindowBackToGame() const override {}
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}
 	virtual bool PlayMovie() override { return false;}
+	virtual void StopMovie() override {}
 	virtual void WaitForMovieToFinish() override {}
 	virtual bool IsLoadingFinished() const override {return true;}
 	virtual bool IsMovieCurrentlyPlaying() const override  {return false;}

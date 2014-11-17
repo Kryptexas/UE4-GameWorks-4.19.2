@@ -35,7 +35,3 @@ void USoundNodeWaveParam::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT N
 	}
 }
 
-FString USoundNodeWaveParam::GetUniqueString() const
-{
-	return TEXT("WaveParam/");
-}

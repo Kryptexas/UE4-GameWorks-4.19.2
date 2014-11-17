@@ -253,7 +253,7 @@ typedef struct _TFormatFlags
 //
 typedef struct _TQonvertImage
 {
-    _TQonvertImage():pData(0), nDataSize(0)
+    _TQonvertImage():nDataSize(0), pData(0)
     {
     
     }

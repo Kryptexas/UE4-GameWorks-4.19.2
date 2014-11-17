@@ -19,14 +19,24 @@ public:
 	* @param DPGIndex - current DPG used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const class FViewInfo* ViewInfo, bool bInitializeOffsets);
+	bool DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bInitializeOffsets);
 
 	/**
 	* Add a new primitive to the list of distortion prims
 	* @param PrimitiveSceneProxy - primitive info to add.
-	* @param ViewInfo - used to transform bounds to view space
 	*/
-	void AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy,const FViewInfo& ViewInfo);
+	void AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy)
+	{
+		Prims.Add(PrimitiveSceneProxy);
+	}
+	/**
+	* Adds a new primitives to the list of distortion prims
+	* @param PrimitiveSceneProxies - primitive info to add.
+	*/
+	void Append(FPrimitiveSceneProxy** PrimitiveSceneProxies, int32 NumProxies)
+	{
+		Prims.Append(PrimitiveSceneProxies, NumProxies);
+	}
 
 	/** 
 	* @return number of prims to render
@@ -47,5 +57,5 @@ public:
 
 private:
 	/** list of distortion prims added from the scene */
-	TArray<FPrimitiveSceneProxy*> Prims;
+	TArray<FPrimitiveSceneProxy*, SceneRenderingAllocator> Prims;
 };

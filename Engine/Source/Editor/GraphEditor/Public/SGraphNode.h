@@ -120,6 +120,9 @@ public:
 	/** @return the node being observed by this widget*/
 	UEdGraphNode* GetNodeObj() const;
 
+	/** @return the node under the mouse (either this node or one of its children) */
+	virtual TSharedRef<SGraphNode> GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 	TSharedPtr<SGraphPanel> GetOwnerPanel() const;
 
 	/**
@@ -299,6 +302,9 @@ protected:
 	/** Callback function executed when Add pin button is clicked */
 	virtual FReply OnAddPin() {return FReply::Handled();}
 
+	/* Populate a meta data tag with information about this graph node */
+	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const;
+
 protected:
 	/** Input pin widgets on this node */
 	TArray< TSharedRef<SGraphPin> > InputPins;
@@ -323,6 +329,7 @@ protected:
 
 	/** Is this node editable */
 	TAttribute<bool> IsEditable;
+
 	FSingleNodeEvent OnDoubleClick;
 
 	// Is the current tooltip a complex one that should be dropped when the tooltip is no longer displayed?
@@ -343,4 +350,7 @@ protected:
 
 	/** Caches true position of node */
 	FVector2D CachedUnscaledPosition;
+
+	/** Cached pointer to graph editor settings */
+	const class UGraphEditorSettings* Settings;
 };

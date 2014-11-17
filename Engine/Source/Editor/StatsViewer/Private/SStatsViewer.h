@@ -155,5 +155,8 @@ private:
 
 	/** Container for custom content supplied by stats pages */
 	TSharedPtr< SBorder > CustomContent;
+
+	/** Container for custom filters supplied by stats pages */
+	TSharedPtr< SBorder > CustomFilter;
 };
 

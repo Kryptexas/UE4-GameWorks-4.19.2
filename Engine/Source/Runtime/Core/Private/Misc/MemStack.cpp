@@ -14,6 +14,7 @@ DECLARE_MEMORY_STAT(TEXT("PageAllocator Used"), STAT_PageAllocatorUsed, STATGROU
 
 
 TLockFreeFixedSizeAllocator<FPageAllocator::PageSize, FThreadSafeCounter> FPageAllocator::TheAllocator;
+TLockFreeFixedSizeAllocator<FPageAllocator::SmallPageSize, FThreadSafeCounter> FPageAllocator::TheSmallAllocator;
 
 #if STATS
 void FPageAllocator::UpdateStats()
@@ -37,7 +38,7 @@ int32 FMemStackBase::GetByteCount() const
 		}
 		else
 		{
-			Count += Top - Chunk->Data;
+			Count += Top - Chunk->Data();
 		}
 	}
 	return Count;
@@ -47,22 +48,32 @@ void FMemStackBase::AllocateNewChunk(int32 MinSize)
 {
 	FTaggedMemory* Chunk=nullptr;
 	// Create new chunk.
-	const int32 DataSize = AlignArbitrary<int32>(MinSize + (int32)sizeof(FTaggedMemory), FPageAllocator::PageSize) - sizeof(FTaggedMemory);
-	const uint32 AllocSize = DataSize + sizeof(FTaggedMemory);
-	if (AllocSize == FPageAllocator::PageSize)
+	int32 TotalSize = MinSize + (int32)sizeof(FTaggedMemory);
+	uint32 AllocSize;
+	if (TopChunk || TotalSize > FPageAllocator::SmallPageSize)
 	{
-		Chunk = (FTaggedMemory*)FPageAllocator::Alloc();
+		AllocSize = AlignArbitrary<int32>(TotalSize, FPageAllocator::PageSize);
+		if (AllocSize == FPageAllocator::PageSize)
+		{
+			Chunk = (FTaggedMemory*)FPageAllocator::Alloc();
+		}
+		else
+		{
+			Chunk = (FTaggedMemory*)FMemory::Malloc(AllocSize);
+			INC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, AllocSize);
+		}
+		check(AllocSize != FPageAllocator::SmallPageSize);
 	}
 	else
 	{
-		Chunk = (FTaggedMemory*)FMemory::Malloc(AllocSize);
-		INC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, AllocSize);
+		AllocSize = FPageAllocator::SmallPageSize;
+		Chunk = (FTaggedMemory*)FPageAllocator::AllocSmall();
 	}
-	Chunk->DataSize        = DataSize;
+	Chunk->DataSize = AllocSize - sizeof(FTaggedMemory);
 
 	Chunk->Next = TopChunk;
 	TopChunk    = Chunk;
-	Top         = Chunk->Data;
+	Top         = Chunk->Data();
 	End         = Top + Chunk->DataSize;
 }
 
@@ -72,23 +83,25 @@ void FMemStackBase::FreeChunks(FTaggedMemory* NewTopChunk)
 	{
 		FTaggedMemory* RemoveChunk = TopChunk;
 		TopChunk                   = TopChunk->Next;
-
 		if (RemoveChunk->DataSize + sizeof(FTaggedMemory) == FPageAllocator::PageSize)
 		{
 			FPageAllocator::Free(RemoveChunk);
+		}
+		else if (RemoveChunk->DataSize + sizeof(FTaggedMemory) == FPageAllocator::SmallPageSize)
+		{
+			FPageAllocator::FreeSmall(RemoveChunk);
 		}
 		else
 		{
 			DEC_MEMORY_STAT_BY(STAT_MemStackLargeBLock, RemoveChunk->DataSize + sizeof(FTaggedMemory));
 			FMemory::Free(RemoveChunk);
 		}
-
 	}
 	Top = nullptr;
 	End = nullptr;
 	if( TopChunk )
 	{
-		Top = TopChunk->Data;
+		Top = TopChunk->Data();
 		End = Top + TopChunk->DataSize;
 	}
 }
@@ -98,7 +111,7 @@ bool FMemStackBase::ContainsPointer(const void* Pointer) const
 	const uint8* Ptr = (const uint8*)Pointer;
 	for (const FTaggedMemory* Chunk = TopChunk; Chunk; Chunk = Chunk->Next)
 	{
-		if (Ptr >= Chunk->Data && Ptr < Chunk->Data + Chunk->DataSize)
+		if (Ptr >= Chunk->Data() && Ptr < Chunk->Data() + Chunk->DataSize)
 		{
 			return true;
 		}

@@ -3,6 +3,7 @@
 #include "MainFramePrivatePCH.h"
 #include "CompilerResultsLog.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
+#include "Developer/HotReload/Public/IHotReload.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -58,7 +59,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 			// Do not maximize the window initially. Keep a small dialog feel.
 			DefaultWindowLocation.InitiallyMaximized = false;
 
-			DefaultWindowLocation.WindowSize = FVector2D(920, 700);
+			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize();
 
 			// Do not let the user adjust the fixed size
 			bIsUserSizable = true;
@@ -117,9 +118,10 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 			TSharedRef<FTabManager::FLayout> LoadedLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 				// We persist the positioning of the level editor and the content browser.
 				// The asset editors currently do not get saved.
-				FTabManager::NewLayout( "UnrealEd_Layout_v1.3" )
+				FTabManager::NewLayout( "UnrealEd_Layout_v1.4" )
 				->AddArea
 				(
+					// level editor window
 					FTabManager::NewPrimaryArea()
 					->Split
 					(
@@ -131,6 +133,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 				)
 				->AddArea
 				(
+					// content browser window
 					FTabManager::NewArea(WindowSize)
 					->Split
 					(
@@ -141,12 +144,33 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 				)
 				->AddArea
 				(
+					// toolkits window
 					FTabManager::NewArea(WindowSize)
+					->SetOrientation(Orient_Vertical)
 					->Split
 					(
 						FTabManager::NewStack()
 						->SetSizeCoefficient(1.0f)
 						->AddTab("StandaloneToolkit", ETabState::ClosedTab)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.35f)
+						->AddTab("MergeTool", ETabState::ClosedTab)
+					)
+				)
+				->AddArea
+				(
+					// settings window
+					FTabManager::NewArea(WindowSize)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(1.0f)
+						->AddTab("EditorSettings", ETabState::ClosedTab)
+						->AddTab("ProjectSettings", ETabState::ClosedTab)
+						->AddTab("PluginsEditor", ETabState::ClosedTab)
 					)
 				)
 			);
@@ -292,6 +316,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 			// Inform the user of the result of the operation
 			FNotificationInfo Info( VideoSaveResultText );
 			Info.ExpireDuration = 5.0f;
+			Info.FadeOutDuration = 0.5f;
 			Info.bUseSuccessFailIcons = false;
 			Info.bUseLargeFont = false;
 			if( HyperLinkText != "" )
@@ -442,8 +467,15 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 		]
 	;
 
-	bool bUseSuperSearch = FParse::Param(FCommandLine::Get(), TEXT("SuperSearch"));;
+	bool bUseSuperSearch = true;
 
+	TSharedPtr<SWidget> StatusWidget = ISourceControlModule::Get().CreateStatusWidget();
+	// source control module can be compiled without UI support, provide a fallback
+	if (!StatusWidget.IsValid())
+	{
+		StatusWidget = SNew( SSpacer );
+	}
+	
 	// Invisible border, so that we can animate our box panel size
 	return SNew( SBorder )
 		.Visibility( EVisibility::SelfHitTestInvisible )
@@ -468,7 +500,6 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 				[
 					SNew(SBox)
 					.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
-					.WidthOverride( 180.0f )
 					[
 						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
 					]
@@ -504,7 +535,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 				.Padding( 6.0f, 0.0f, 2.0f, 0.0f )
 				[
 					// STATUS BUTTON
-					ISourceControlModule::Get().CreateStatusWidget().ToSharedRef()
+					StatusWidget.ToSharedRef()
 				]
 
 			// Editor live streaming toggle button
@@ -588,8 +619,11 @@ void FMainFrameModule::StartupModule( )
 
 	SetLevelNameForWindowTitle(TEXT(""));
 
-	FModuleManager::Get().OnModuleCompilerStarted().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileStarted );
-	FModuleManager::Get().OnModuleCompilerFinished().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileFinished );
+	// Register to find out about when hot reload completes, so we can show a notification
+	IHotReloadModule& HotReloadModule = IHotReloadModule::Get();
+	HotReloadModule.OnModuleCompilerStarted().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileStarted );
+	HotReloadModule.OnModuleCompilerFinished().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileFinished );
+	HotReloadModule.OnHotReload().AddRaw( this, &FMainFrameModule::HandleHotReloadFinished );
 
 #if WITH_EDITOR
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
@@ -626,8 +660,13 @@ void FMainFrameModule::ShutdownModule( )
 
 	FMainFrameCommands::Unregister();
 
-	FModuleManager::Get().OnModuleCompilerStarted().RemoveAll( this );
-	FModuleManager::Get().OnModuleCompilerFinished().RemoveAll( this );
+	if( IHotReloadModule::IsAvailable() )
+	{
+		IHotReloadModule& HotReloadModule = IHotReloadModule::Get();
+		HotReloadModule.OnHotReload().RemoveAll( this );
+		HotReloadModule.OnModuleCompilerStarted().RemoveAll( this );
+		HotReloadModule.OnModuleCompilerFinished().RemoveAll( this );
+	}
 
 #if WITH_EDITOR
 	if(FModuleManager::Get().IsModuleLoaded("SourceCodeAccess"))
@@ -707,7 +746,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileStarted( )
 
 void FMainFrameModule::OnCancelCodeCompilationClicked()
 {
-	FModuleManager::Get().RequestStopCompilation();
+	IHotReloadModule::Get().RequestStopCompilation();
 }
 
 void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog)
@@ -721,7 +760,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 		{
 			TArray< FAnalyticsEventAttribute > CompileAttribs;
 			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration)));
-			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed")));
+			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Result"), ECompilationResult::ToString(CompilationResult)));
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Modules.Recompile"), CompileAttribs);
 		}
 	}
@@ -730,10 +769,11 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 
 	if (NotificationItem.IsValid())
 	{
-		if (CompilationResult == ECompilationResult::Succeeded)
+		if (!ECompilationResult::Failed(CompilationResult))
 		{
 			GEditor->PlayPreviewSound(CompileSuccessSound);
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
+			NotificationItem->SetExpireDuration( 5.0f );
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
 		}
 		else
@@ -752,6 +792,10 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 			{
 				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailedDueToHeaderChange", "Compile failed due to the header changes. Close the editor and recompile project in IDE to apply changes."));
 			}
+			else if (CompilationResult == ECompilationResult::Canceled)
+			{
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Canceled!"));
+			}
 			else
 			{
 				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Failed!"));
@@ -759,11 +803,37 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 			
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->SetHyperlink(FSimpleDelegate::CreateStatic(&Local::ShowCompileLog));
+			NotificationItem->SetExpireDuration(30.0f);
 		}
 
 		NotificationItem->ExpireAndFadeout();
 
 		CompileNotificationPtr.Reset();
+	}
+}
+
+
+void FMainFrameModule::HandleHotReloadFinished( bool bWasTriggeredAutomatically )
+{
+	// Only play the notification for hot reloads that were triggered automatically.  If the user triggered the hot reload, they'll
+	// have a different visual cue for that, such as the "Compiling Complete!" notification
+	if( bWasTriggeredAutomatically )
+	{
+		FNotificationInfo Info( LOCTEXT("HotReloadFinished", "Hot Reload Complete!") );
+		Info.Image = FEditorStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
+		Info.FadeInDuration = 0.1f;
+		Info.FadeOutDuration = 0.5f;
+		Info.ExpireDuration = 1.5f;
+		Info.bUseThrobber = false;
+		Info.bUseSuccessFailIcons = true;
+		Info.bUseLargeFont = true;
+		Info.bFireAndForget = false;
+		Info.bAllowThrottleWhenFrameRateIsLow = false;
+		auto NotificationItem = FSlateNotificationManager::Get().AddNotification( Info );
+		NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+		NotificationItem->ExpireAndFadeout();
+	
+		GEditor->PlayPreviewSound(CompileSuccessSound);
 	}
 }
 

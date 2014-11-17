@@ -127,7 +127,7 @@ static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT
  * @param Ptr	Unaligned memory pointer to the 3 FLOATs
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], undefined)
  */
-#define VectorLoadFloat3( Ptr )			_mm_loadu_ps( (float*)(Ptr) )
+#define VectorLoadFloat3( Ptr )			MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 0.0f )
 
 /**
  * Loads 3 FLOATs from unaligned memory and sets W=0.
@@ -135,7 +135,7 @@ static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT
  * @param Ptr	Unaligned memory pointer to the 3 FLOATs
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], 0.0f)
  */
-#define VectorLoadFloat3_W0( Ptr )		_mm_and_ps( _mm_loadu_ps((float*)(Ptr)), SSE_XYZ_MASK )
+#define VectorLoadFloat3_W0( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 0.0f )
 
 /**
  * Loads 3 FLOATs from unaligned memory and sets W=1.
@@ -143,17 +143,7 @@ static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT
  * @param Ptr	Unaligned memory pointer to the 3 FLOATs
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], 1.0f)
  */
-FORCEINLINE VectorRegister VectorLoadFloat3_W1( const void* Ptr )
-{
-	// Vec = (Ptr[0], Ptr[1], Ptr[2], undefined)
-	VectorRegister Vec = _mm_loadu_ps((const float*)Ptr);
-
-	// Temp = (Ptr[2], undefined, 1.0f, 1.0f)
-	VectorRegister Temp = _mm_movehl_ps( VectorOne(), Vec );
-
-	// Return (Ptr[0], Ptr[1], Ptr[2], 1.0f)
-	return _mm_shuffle_ps( Vec, Temp, SHUFFLEMASK(0,1,0,3) );
-}
+#define VectorLoadFloat3_W1( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 1.0f )
 
 /**
  * Loads 4 FLOATs from aligned memory.

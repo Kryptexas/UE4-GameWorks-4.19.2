@@ -407,34 +407,35 @@ bool FSourceControlWindows::PromptForRevert( const TArray<FString>& InPackageNam
 		{
 			TArray<FString> PackagesToRevert;
 			SourceControlWidget->GetPackagesToRevert( PackagesToRevert );
-			check( PackagesToRevert.Num() > 0 );
-
-			// attempt to unload the packages we are about to revert
-			TArray<UPackage*> PackagesToUnload;
-			for ( TArray<FString>::TConstIterator PackageIter( InPackageNames ); PackageIter; ++PackageIter )
+			if (PackagesToRevert.Num() > 0)
 			{
-				UPackage* Package = FindPackage(NULL, **PackageIter);
-				if(Package != NULL)
+				// attempt to unload the packages we are about to revert
+				TArray<UPackage*> PackagesToUnload;
+				for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
 				{
-					PackagesToUnload.Add(Package);
-				}
-			}
-			
-			if(PackagesToUnload.Num() == 0 || PackageTools::UnloadPackages(PackagesToUnload))
-			{
-				for( auto PackageIter( PackagesToUnload.CreateIterator() ); PackageIter; ++PackageIter )
-				{
-					(*PackageIter)->ClearFlags(RF_WasLoaded);
+					UPackage* Package = FindPackage(NULL, **PackageIter);
+					if (Package != NULL)
+					{
+						PackagesToUnload.Add(Package);
+					}
 				}
 
-				SourceControlProvider.Execute( ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert) );
+				if (PackagesToUnload.Num() == 0 || PackageTools::UnloadPackages(PackagesToUnload))
+				{
+					for (auto PackageIter(PackagesToUnload.CreateIterator()); PackageIter; ++PackageIter)
+					{
+						(*PackageIter)->ClearFlags(RF_WasLoaded);
+					}
+
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert));
+				}
+				else
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SCC_Revert_PackageUnloadFailed", "Could not unload assets when reverting files"));
+				}
+
+				bReverted = true;
 			}
-			else
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("SCC_Revert_PackageUnloadFailed", "Could not unload assets when reverting files") );
-			}
-			
-			bReverted = true;
 		}
 	}
 

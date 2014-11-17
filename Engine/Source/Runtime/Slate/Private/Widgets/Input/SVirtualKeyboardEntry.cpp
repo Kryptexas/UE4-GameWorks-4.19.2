@@ -36,22 +36,24 @@ void SVirtualKeyboardEntry::Construct( const FArguments& InArgs )
  *
  * @param  InNewText  The new text string
  */
-void SVirtualKeyboardEntry::SetText( const TAttribute< FText >& InNewText )
+void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard( const FText& InNewText )
 {
-	EditedText = InNewText.Get();
-
-	// Don't set text if the text attribute has a 'getter' binding on it, otherwise we'd blow away
-	// that binding.  If there is a getter binding, then we'll assume it will provide us with
-	// updated text after we've fired our 'text changed' callbacks
-	if( !Text.IsBound() )
+	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
+	// If it is bound, we'll assume that OnTextChanged will handle the update.
+	if (!Text.IsBound())
 	{
-		Text.Set ( EditedText );
+		Text.Set(InNewText);
 	}
 
-	bNeedsUpdate = true;
+	if (!InNewText.EqualTo(EditedText))
+	{
+		EditedText = InNewText;
 
-	// Let outsiders know that the text content has been changed
-	//OnTextChanged.ExecuteIfBound( HasKeyboardFocus() ? EditedText : Text.Get() );
+		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+		// fired on the game thread in Tick.
+		bNeedsUpdate = true;
+	}
 }
 
 /**
@@ -61,10 +63,7 @@ void SVirtualKeyboardEntry::RestoreOriginalText()
 {
 	if( HasTextChangedFromOriginal() )
 	{
-		SetText(OriginalText);
-
-		// Let outsiders know that the text content has been changed
-		OnTextChanged.ExecuteIfBound( EditedText );
+		SetTextFromVirtualKeyboard(OriginalText);
 	}
 }
 
@@ -245,7 +244,7 @@ FReply SVirtualKeyboardEntry::OnKeyboardFocusReceived( const FGeometry& MyGeomet
 
 	int32 CaretPosition = EditedText.ToString().Len();
 	FSlateApplication& CurrentApp = FSlateApplication::Get();
-	CurrentApp.ShowKeyboard(true, SharedThis(this));
+	CurrentApp.ShowVirtualKeyboard(true, SharedThis(this));
 
 	return FReply::Handled();
 }
@@ -276,7 +275,7 @@ void SVirtualKeyboardEntry::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKe
 	}
 
 	FSlateApplication& CurrentApp = FSlateApplication::Get();
-	CurrentApp.ShowKeyboard(false);
+	CurrentApp.ShowVirtualKeyboard(false);
 
 	OnTextCommitted.ExecuteIfBound( EditedText, TextAction );
 }

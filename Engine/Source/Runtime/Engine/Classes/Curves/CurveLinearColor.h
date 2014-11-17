@@ -4,8 +4,8 @@
 #pragma once
 #include "CurveLinearColor.generated.h"
 
-UCLASS(BlueprintType, MinimalAPI)
-class UCurveLinearColor : public UCurveBase
+UCLASS(BlueprintType)
+class ENGINE_API UCurveLinearColor : public UCurveBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -15,7 +15,7 @@ class UCurveLinearColor : public UCurveBase
 
 	/** Evaluate this float curve at the specified time */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
-	ENGINE_API FLinearColor GetLinearColorValue(float InTime) const;
+	virtual FLinearColor GetLinearColorValue(float InTime) const;
 
 	// Begin FCurveOwnerInterface
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
@@ -25,6 +25,6 @@ class UCurveLinearColor : public UCurveBase
 	bool HasAnyAlphaKeys() const { return FloatCurves[3].GetNumKeys() > 0; }
 
 	/** Determine if Curve is the same */
-	ENGINE_API bool operator == (const UCurveLinearColor& Curve) const;
+	bool operator == (const UCurveLinearColor& Curve) const;
 };
 

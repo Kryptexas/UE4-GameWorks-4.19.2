@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "Components/TimelineComponent.h"
 #include "TimelineTemplate.generated.h"
 
@@ -118,7 +117,7 @@ class UTimelineTemplate : public UObject
 
 	/** How we want the timeline to determine its own length (e.g. specified length, last keyframe) */
 	UPROPERTY(EditAnywhere, Category=TimelineTemplate)
-	TEnumAsByte<enum ETimelineLengthMode> LengthMode;
+	TEnumAsByte<ETimelineLengthMode> LengthMode;
 
 	/** If we want the timeline to auto-play */
 	UPROPERTY(EditAnywhere, Category=TimelineTemplate)
@@ -131,6 +130,10 @@ class UTimelineTemplate : public UObject
 	/** If we want the timeline to loop */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TimelineTemplate)
 	uint32 bReplicated:1;
+
+	/** Compiler Validated As Wired up */
+	UPROPERTY()
+	uint32 bValidatedAsWired:1;
 
 	/** Set of event tracks */
 	UPROPERTY()

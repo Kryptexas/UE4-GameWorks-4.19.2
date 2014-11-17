@@ -6,7 +6,7 @@
 #include "CurveFloat.generated.h"
 
 USTRUCT()
-struct FRuntimeFloatCurve
+struct ENGINE_API FRuntimeFloatCurve
 {
 	GENERATED_USTRUCT_BODY()
 

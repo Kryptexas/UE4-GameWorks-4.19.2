@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 #include "StaticLightingPrivate.h"
+#include "LightMap.h"
 
 // Doxygen cannot not parse this definition since the declaration is in Engine, not UnrealEd
 #if !UE_BUILD_DOCS

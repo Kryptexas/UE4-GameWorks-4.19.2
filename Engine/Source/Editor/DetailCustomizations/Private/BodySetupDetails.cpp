@@ -57,13 +57,14 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			{
 				TSharedPtr<IPropertyHandle> ChildProperty = BodyInstanceHandler->GetChildHandle(ChildIndex);
 				FString Category = FObjectEditorUtils::GetCategory(ChildProperty->GetProperty());
-				if (ChildProperty->GetProperty()->GetName() == TEXT("bSimulatePhysics"))
+				if (ChildProperty->GetProperty()->GetName() == TEXT("bSimulatePhysics") || ChildProperty->GetProperty()->GetName() == TEXT("bAutoWeld"))
 				{
 					// skip bSimulatePhysics
 					// this is because we don't want bSimulatePhysics to show up 
 					// phat editor 
 					// staitc mesh already hides everything else not interested in
 					// so phat editor just should not show this option
+					//also hide bAutoWeld for phat
 					continue;
 				}
 				if (Category == TEXT("Physics"))

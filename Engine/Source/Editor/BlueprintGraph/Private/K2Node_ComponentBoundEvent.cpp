@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "Engine/ComponentDelegateBinding.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -11,13 +12,19 @@ UK2Node_ComponentBoundEvent::UK2Node_ComponentBoundEvent(const class FPostConstr
 
 FText UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
-	Args.Add(TEXT("ComponentPropertyName"), FText::FromName(ComponentPropertyName));
-	return FText::Format(LOCTEXT("ComponentBoundEvent_Title", "{DelegatePropertyName} ({ComponentPropertyName})"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+		Args.Add(TEXT("ComponentPropertyName"), FText::FromName(ComponentPropertyName));
+
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("ComponentBoundEvent_Title", "{DelegatePropertyName} ({ComponentPropertyName})"), Args);
+	}
+	return CachedNodeTitle;
 }
 
-void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectProperty* InComponentProperty, const UMulticastDelegateProperty* InDelegateProperty)
+void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectProperty const* InComponentProperty, const UMulticastDelegateProperty* InDelegateProperty)
 {
 	if( InComponentProperty && InDelegateProperty )
 	{
@@ -28,6 +35,7 @@ void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectPro
 		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InComponentProperty->GetName(), *GetName(), *EventSignatureName.ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;
+		CachedNodeTitle.MarkDirty();
 	}
 }
 
@@ -45,6 +53,7 @@ void UK2Node_ComponentBoundEvent::RegisterDynamicBinding(UDynamicBlueprintBindin
 	Binding.DelegatePropertyName = DelegatePropertyName;
 	Binding.FunctionNameToBind = CustomFunctionName;
 
+	CachedNodeTitle.MarkDirty();
 	ComponentBindingObject->ComponentDelegateBindings.Add(Binding);
 }
 
@@ -60,16 +69,16 @@ UMulticastDelegateProperty* UK2Node_ComponentBoundEvent::GetTargetDelegateProper
 }
 
 
-FString UK2Node_ComponentBoundEvent::GetTooltip() const
+FText UK2Node_ComponentBoundEvent::GetTooltipText() const
 {
 	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
 	if (TargetDelegateProp)
 	{
-		return TargetDelegateProp->GetToolTipText().ToString();
+		return TargetDelegateProp->GetToolTipText();
 	}
 	else
 	{
-		return DelegatePropertyName.ToString();
+		return FText::FromName(DelegatePropertyName);
 	}
 }
 

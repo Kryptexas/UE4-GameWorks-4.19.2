@@ -4,13 +4,16 @@
 #include "Components/ActorComponent.h"
 #include "PawnActionsComponent.generated.h"
 
+class APawn;
+class UPawnAction;
+
 USTRUCT()
 struct FPawnActionEvent
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	class UPawnAction* Action;
+	UPawnAction* Action;
 
 	EPawnActionEventType::Type EventType;
 
@@ -22,7 +25,7 @@ struct FPawnActionEvent
 	FPawnActionEvent() : Action(NULL), EventType(EPawnActionEventType::Invalid), Priority(EAIRequestPriority::MAX), Index(uint32(-1))
 	{}
 
-	FPawnActionEvent(class UPawnAction* Action, EPawnActionEventType::Type EventType, uint32 Index);
+	FPawnActionEvent(UPawnAction* Action, EPawnActionEventType::Type EventType, uint32 Index);
 };
 
 USTRUCT()
@@ -32,21 +35,22 @@ struct FPawnActionStack
 
 private:
 	UPROPERTY()
-	class UPawnAction* TopAction;
+	UPawnAction* TopAction;
+
 public:
 	void Pause();
 	void Resume();
 
 	/** All it does is tie actions into a double-linked list making NewTopAction
 	 *	new stack's top */
-	void PushAction(class UPawnAction* NewTopAction);
+	void PushAction(UPawnAction* NewTopAction);
 
 	/** Looks through the double-linked action list looking for specified action
 	 *	and if found action will be popped along with all it's siblings */
-	void PopAction(class UPawnAction* ActionToPop);
+	void PopAction(UPawnAction* ActionToPop);
 	
-	FORCEINLINE class UPawnAction* GetTop() { return TopAction; }
-	FORCEINLINE const class UPawnAction* GetTop() const { return TopAction; }
+	FORCEINLINE UPawnAction* GetTop() { return TopAction; }
+	FORCEINLINE const UPawnAction* GetTop() const { return TopAction; }
 	FORCEINLINE bool IsEmpty() const { return TopAction == NULL; }
 };
 
@@ -66,7 +70,7 @@ protected:
 	TArray<FPawnActionEvent> ActionEvents;
 
 	UPROPERTY(Transient)
-	class UPawnAction* CurrentAction;
+	UPawnAction* CurrentAction;
 
 	/** set when logic was locked by hi priority stack */
 	uint32 bLockedAILogic : 1;
@@ -80,7 +84,7 @@ public:
 	//----------------------------------------------------------------------//
 
 	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions")
-	static bool PerformAction(class APawn* Pawn, class UPawnAction* Action, TEnumAsByte<EAIRequestPriority::Type> Priority = EAIRequestPriority::HardScript);
+	static bool PerformAction(APawn* Pawn, UPawnAction* Action, TEnumAsByte<EAIRequestPriority::Type> Priority = EAIRequestPriority::HardScript);
 
 	//----------------------------------------------------------------------//
 	// 
@@ -94,14 +98,14 @@ public:
 	FORCEINLINE AController* GetController() { return ControlledPawn ? ControlledPawn->GetController() : NULL; }
 	FORCEINLINE UPawnAction* GetCurrentAction() { return CurrentAction; }
 
-	bool OnEvent(class UPawnAction* Action, EPawnActionEventType::Type Event);
+	bool OnEvent(UPawnAction* Action, EPawnActionEventType::Type Event);
 
 	UFUNCTION(BlueprintCallable, Category = PawnAction)
-	bool PushAction(class UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* Instigator = NULL);
+	bool PushAction(UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* Instigator = NULL);
 
 	/** Aborts given action instance */
 	UFUNCTION(BlueprintCallable, Category = PawnAction)
-	bool AbortAction(class UPawnAction* ActionToAbort);
+	bool AbortAction(UPawnAction* ActionToAbort);
 
 	/** removes all actions instigated with Priority by Instigator
 	 *	@param Priority if equal to EAIRequestPriority::MAX then all priority queues will be searched. 
@@ -111,7 +115,7 @@ public:
 	
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
-	FORCEINLINE class UPawnAction* GetActiveAction(EAIRequestPriority::Type Priority) { return ActionStacks[Priority].GetTop();  }
+	FORCEINLINE UPawnAction* GetActiveAction(EAIRequestPriority::Type Priority) { return ActionStacks[Priority].GetTop(); }
 
 #if ENABLE_VISUAL_LOG
 	void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;

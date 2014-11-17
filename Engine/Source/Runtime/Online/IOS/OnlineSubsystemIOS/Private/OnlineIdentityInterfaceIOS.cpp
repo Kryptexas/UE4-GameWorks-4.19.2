@@ -125,6 +125,18 @@ ELoginStatus::Type FOnlineIdentityIOS::GetLoginStatus(int32 LocalUserNum) const
 	return LoginStatus;
 }
 
+ELoginStatus::Type FOnlineIdentityIOS::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
+
+	if(GetLocalGameCenterUser() != NULL && GetLocalGameCenterUser().isAuthenticated == YES)
+	{
+		LoginStatus = ELoginStatus::LoggedIn;
+	}
+
+	return LoginStatus;
+}
+
 TSharedPtr<FUniqueNetId> FOnlineIdentityIOS::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	return UniqueNetId;
@@ -165,8 +177,42 @@ FString FOnlineIdentityIOS::GetPlayerNickname(int32 LocalUserNum) const
 	return FString();
 }
 
+FString FOnlineIdentityIOS::GetPlayerNickname(const FUniqueNetId& UserId) const 
+{
+	if (GetLocalGameCenterUser() != NULL)
+	{
+		NSString* PersonaName = [GetLocalGameCenterUser() alias];
+		
+        if (PersonaName != nil)
+        {
+            return FString(PersonaName);
+        }
+	}
+
+	return FString();
+}
+
 FString FOnlineIdentityIOS::GetAuthToken(int32 LocalUserNum) const
 {
 	FString ResultToken;
 	return ResultToken;
+}
+
+void FOnlineIdentityIOS::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+}
+
+FPlatformUserId FOnlineIdentityIOS::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+{
+	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
+	{
+		auto CurrentUniqueId = GetUniquePlayerId(i);
+		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
+		{
+			return i;
+		}
+	}
+
+	return PLATFORMUSERID_NONE;
 }

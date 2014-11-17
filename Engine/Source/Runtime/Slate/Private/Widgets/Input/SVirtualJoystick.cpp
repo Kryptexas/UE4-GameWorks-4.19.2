@@ -9,7 +9,9 @@ const float OPACITY_LERP_RATE = 3.f;
 static FORCEINLINE float GetScaleFactor(const FGeometry& Geometry)
 {
 	const float DesiredWidth = 1024.0f;
-	return Geometry.GetDrawSize().GetMax() / DesiredWidth;
+
+	float UndoDPIScaling = 1.0f / Geometry.Scale;
+	return (Geometry.GetDrawSize().GetMax() / DesiredWidth) * UndoDPIScaling;
 }
 
 FORCEINLINE float SVirtualJoystick::GetBaseOpacity()
@@ -444,7 +446,7 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 	}
 }
 
-void SVirtualJoystick::SetVisibility(const bool bInVisible, const bool bInFade)
+void SVirtualJoystick::SetJoystickVisibility(const bool bInVisible, const bool bInFade)
 {
 	// if we aren't fading, then just set the current opacity to desired
 	if (!bInFade)

@@ -41,7 +41,6 @@
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "BusyCursor.h"
-#include "STutorialWrapper.h"
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -59,6 +58,9 @@
 #include "MaterialEditorUtilities.h"
 #include "SMaterialPalette.h"
 #include "FindInMaterial.h"
+#include "SColorPicker.h"
+#include "EditorClassUtils.h"
+#include "IDocumentation.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -66,6 +68,12 @@
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialEditor, Log, All);
+
+static TAutoConsoleVariable<int32> CVarMaterialEdUseDevShaders(
+	TEXT("r.MaterialEditor.UseDevShaders"),
+	0,
+	TEXT("Toggles whether the material editor will use shaders that include extra overhead incurred by the editor. Material editor must be re-opened if changed at runtime."),
+	ECVF_RenderThreadSafe);
 
 const FName FMaterialEditor::PreviewTabId( TEXT( "MaterialEditor_Preview" ) );
 const FName FMaterialEditor::GraphCanvasTabId( TEXT( "MaterialEditor_GraphCanvas" ) );
@@ -86,7 +94,7 @@ bool FMatExpressionPreview::ShouldCache(EShaderPlatform Platform, const FShaderT
 		// we only need the non-light-mapped, base pass, local vertex factory shaders for drawing an opaque Material Tile
 		// @todo: Added a FindShaderType by fname or something"
 
-		if (IsES2Platform(Platform))
+		if (IsMobilePlatform(Platform))
 		{
 			if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassForForwardShadingVSFNoLightMapPolicy")) ||
 				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassForForwardShadingPSFNoLightMapPolicy")))
@@ -221,6 +229,11 @@ void FMaterialEditor::InitEditorForMaterial(UMaterial* InMaterial)
 	// the material editor releases the reference.
 	Material = (UMaterial*)StaticDuplicateObject(OriginalMaterial, GetTransientPackage(), NULL, ~RF_Standalone, UPreviewMaterial::StaticClass()); 
 	
+	Material->CancelOutstandingCompilation();	//The material is compiled later on anyway so no need to do it in Duplication/PostLoad. 
+												//I'm hackily canceling the jobs here but we should really not add the jobs in the first place. <<--- TODO
+												
+	Material->bAllowDevelopmentShaderCompile = CVarMaterialEdUseDevShaders.GetValueOnGameThread();
+
 	// Remove NULL entries, so the rest of the material editor can assume all entries of Material->Expressions are valid
 	// This can happen if an expression class was removed
 	for (int32 ExpressionIndex = Material->Expressions.Num() - 1; ExpressionIndex >= 0; ExpressionIndex--)
@@ -468,6 +481,8 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 		}
 	}
 
+	// Store the name of this material (for the tutorial widget meta)
+	Material->MaterialGraph->OriginalMaterialFullName = OriginalMaterial->GetName();
 	Material->MaterialGraph->RebuildGraph();
 	RecenterEditor();
 
@@ -592,17 +607,13 @@ void FMaterialEditor::CreateInternalWidgets()
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	FMessageLogInitializationOptions LogOptions;
 	// Show Pages so that user is never allowed to clear log messages
-	LogOptions.bShowPages = true;
+	LogOptions.bShowPages = false;
+	LogOptions.bShowFilters = false; //TODO - Provide custom filters? E.g. "Critical Errors" vs "Errors" needed for materials?
+	LogOptions.bAllowClear = false;
 	LogOptions.MaxPageCount = 1;
 	StatsListing = MessageLogModule.CreateLogListing( "MaterialEditorStats", LogOptions );
 
-	Stats = 
-		SNew(SBorder)
-		.Padding(0.0f)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() )
-		];
+	Stats = MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() );
 
 	FindResults =
 		SNew(SFindInMaterial, SharedThis(this));
@@ -735,8 +746,6 @@ void FMaterialEditor::ExtendToolbar()
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleRealtimeExpressions);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().AlwaysRefreshAllPreviews);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMaterialStats);
-				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleReleaseStats);
-				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleBuiltinStats);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMobileStats);
 			}
 			ToolbarBuilder.EndSection();
@@ -1039,15 +1048,6 @@ void FMaterialEditor::LoadEditorSettings()
 		ToggleMobileStats();
 	}
 
-	if (EditorOptions->bReleaseStats)
-	{
-		ToggleReleaseStats();
-	}
-
-	if (EditorOptions->bShowBuiltinStats)
-	{
-		ToggleBuiltinStats();
-	}
 
 	// Primitive type
 	int32 PrimType;
@@ -1073,8 +1073,6 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
 		EditorOptions->bRealtimeExpressionViewport	= IsToggleRealTimeExpressionsChecked();
 		EditorOptions->bLivePreviewUpdate		= IsToggleLivePreviewChecked();
-		EditorOptions->bShowBuiltinStats 		= IsToggleBuiltinStatsChecked();
-		EditorOptions->bReleaseStats 			= IsToggleReleaseStatsChecked();
 		EditorOptions->SaveConfig();
 	}
 
@@ -1387,7 +1385,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	// Handle propagation of the material being edited
 	else
 	{
-		FNavigationLockContext NavUpdateLock;
+		FNavigationLockContext NavUpdateLock(ENavigationLockReason::MaterialUpdate);
 
 		// Create a material update context so we can safely update materials.
 		{
@@ -1528,6 +1526,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 
 				MaterialResource->GetRepresentativeInstructionCounts(Descriptions, InstructionCounts);
 
+				//Built in stats is no longer exposed to the UI but may still be useful so they're still in the code.
 				bool bBuiltinStats = false;
 				const FMaterialResource* EmptyMaterialResource = EmptyMaterial ? EmptyMaterial->GetMaterialResource(FeatureLevel) : NULL;
 				if (bShowBuiltinStats && bStatsFromPreviewMaterial && EmptyMaterialResource && InstructionCounts.Num() > 0)
@@ -1742,18 +1741,6 @@ void FMaterialEditor::BindCommands()
 		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleStatsChecked));
 
 	ToolkitCommands->MapAction(
-		Commands.ToggleReleaseStats,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleReleaseStats),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleReleaseStatsChecked));
-
-	ToolkitCommands->MapAction(
-		Commands.ToggleBuiltinStats,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleBuiltinStats),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleBuiltinStatsChecked));
-
-	ToolkitCommands->MapAction(
 		Commands.ToggleMobileStats,
 		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleMobileStats),
 		FCanExecuteAction(),
@@ -1893,35 +1880,6 @@ void FMaterialEditor::ToggleStats()
 bool FMaterialEditor::IsToggleStatsChecked() const
 {
 	return bShowStats == true;
-}
-
-void FMaterialEditor::ToggleReleaseStats()
-{
-	Material->bAllowDevelopmentShaderCompile = !Material->bAllowDevelopmentShaderCompile;
-	UpdatePreviewMaterial();
-}
-
-bool FMaterialEditor::IsToggleReleaseStatsChecked() const
-{
-	return !Material->bAllowDevelopmentShaderCompile;
-}
-
-void FMaterialEditor::ToggleBuiltinStats()
-{
-	bShowBuiltinStats = !bShowBuiltinStats;
-
-	if (bShowBuiltinStats && !bStatsFromPreviewMaterial)
-	{
-		//Have to be start using the preview material for stats.
-		UpdatePreviewMaterial();
-	}
-
-	UpdateStatsMaterials();
-}
-
-bool FMaterialEditor::IsToggleBuiltinStatsChecked() const
-{
-	return bShowBuiltinStats;
 }
 
 void FMaterialEditor::ToggleMobileStats()
@@ -2377,6 +2335,41 @@ void FMaterialEditor::OnFindInMaterial()
 	FindResults->FocusForUse();
 }
 
+FString FMaterialEditor::GetDocLinkForSelectedNode()
+{
+	FString DocumentationLink;
+
+	TArray<UObject*> SelectedNodes = GraphEditor->GetSelectedNodes().Array();
+	if (SelectedNodes.Num() == 1)
+	{
+		UMaterialGraphNode* SelectedGraphNode = Cast<UMaterialGraphNode>(SelectedNodes[0]);
+		if (SelectedGraphNode != NULL)
+		{
+			FString DocLink = SelectedGraphNode->GetDocumentationLink();
+			FString DocExcerpt = SelectedGraphNode->GetDocumentationExcerptName();
+
+			DocumentationLink = FEditorClassUtils::GetDocumentationLinkFromExcerpt(DocLink, DocExcerpt);
+		}
+	}
+
+	return DocumentationLink;
+}
+
+void FMaterialEditor::OnGoToDocumentation()
+{
+	FString DocumentationLink = GetDocLinkForSelectedNode();
+	if (!DocumentationLink.IsEmpty())
+	{
+		IDocumentation::Get()->Open(DocumentationLink);
+	}
+}
+
+bool FMaterialEditor::CanGoToDocumentation()
+{
+	FString DocumentationLink = GetDocLinkForSelectedNode();
+	return !DocumentationLink.IsEmpty();
+}
+
 void FMaterialEditor::RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName)
 {
 	// Grab the asset class, it will be checked for being a material function.
@@ -2475,7 +2468,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Palette(const FSpawnTabArgs& Args
 		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.Palette"))
 		.Label(LOCTEXT("MaterialPaletteTitle", "Palette"))
 		[
-			SNew( STutorialWrapper, TEXT("MaterialPalette") )
+			SNew( SBox )
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialPalette")))
 			[
 				Palette.ToSharedRef()
 			]
@@ -2492,7 +2486,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Stats(const FSpawnTabArgs& Args)
 		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.CompilerResults"))
 		.Label(LOCTEXT("MaterialStatsTitle", "Stats"))
 		[
-			SNew( STutorialWrapper, TEXT("MaterialStats") )
+			SNew( SBox )
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialStats")))
 			[
 				Stats.ToSharedRef()
 			]
@@ -2509,7 +2504,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Find(const FSpawnTabArgs& Args)
 		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.FindResults"))
 		.Label(LOCTEXT("MaterialFindTitle", "Find Results"))
 		[
-			SNew(STutorialWrapper, TEXT("MaterialFind"))
+			SNew(SBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialFind")))
 			[
 				FindResults.ToSharedRef()
 			]
@@ -2619,6 +2615,9 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		// Set the expression location.
 		NewExpression->MaterialExpressionEditorX = NodePos.X;
 		NewExpression->MaterialExpressionEditorY = NodePos.Y;
+
+		// Create a GUID for the node
+		NewExpression->UpdateMaterialExpressionGuid(true, true);
 
 		if (bAutoAssignResource)
 		{
@@ -3551,6 +3550,12 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().CreateComponentMaskNode,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnCreateComponentMaskNode)
 			);
+
+		GraphEditorCommands->MapAction(FMaterialEditorCommands::Get().GoToDocumentation,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnGoToDocumentation),
+			FCanExecuteAction::CreateSP(this, &FMaterialEditor::CanGoToDocumentation)
+			);
+
 	}
 
 	FGraphAppearanceInfo AppearanceInfo;

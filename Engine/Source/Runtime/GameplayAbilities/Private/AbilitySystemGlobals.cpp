@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
+#include "AttributeSet.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
@@ -9,79 +11,71 @@
 UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
+#if WITH_EDITORONLY_DATA
+	RegisteredReimportCallback = false;
+#endif // #if WITH_EDITORONLY_DATA
+}
 
+void UAbilitySystemGlobals::InitGlobalData()
+{
+	GetGlobalCurveTable();
+	GetGlobalAttributeMetaDataTable();
+	
+	InitAtributeDefaults();
 }
 
 UCurveTable * UAbilitySystemGlobals::GetGlobalCurveTable()
 {
-	if (!GlobalCurveTable && !GlobalCurveTableName.IsEmpty())
-	{
-		GlobalCurveTable = LoadObject<UCurveTable>(NULL, *GlobalCurveTableName, NULL, LOAD_None, NULL);
-#if WITH_EDITOR
-		// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
-		if (GIsEditor && GlobalCurveTable)
-		{
-			GEditor->OnObjectReimported().AddUObject(this, &UAbilitySystemGlobals::OnCurveTableReimported);
-		}
-#endif
-	}
-	
-	return GlobalCurveTable;
+	return InternalGetLoadTable<UCurveTable>(GlobalCurveTable, GlobalCurveTableName);
 }
 
-UDataTable * UAbilitySystemGlobals::GetGlobalAttributeDataTable()
+UDataTable * UAbilitySystemGlobals::GetGlobalAttributeMetaDataTable()
 {
-	if (!GlobalAttributeDataTable && !GlobalAttributeDataTableName.IsEmpty())
+	return InternalGetLoadTable<UDataTable>(GlobalAttributeMetaDataTable, GlobalAttributeMetaDataTableName);
+}
+
+template <class T>
+T* UAbilitySystemGlobals::InternalGetLoadTable(T*& Table, FString TableName)
+{
+	if (!Table && !TableName.IsEmpty())
 	{
-		GlobalAttributeDataTable = LoadObject<UDataTable>(NULL, *GlobalAttributeDataTableName, NULL, LOAD_None, NULL);
+		Table = LoadObject<T>(NULL, *TableName, NULL, LOAD_None, NULL);
 #if WITH_EDITOR
 		// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
-		if (GIsEditor && GlobalAttributeDataTable)
+		if (GIsEditor && Table && !RegisteredReimportCallback)
 		{
-			GEditor->OnObjectReimported().AddUObject(this, &UAbilitySystemGlobals::OnDataTableReimported);
+			GEditor->OnObjectReimported().AddUObject(this, &UAbilitySystemGlobals::OnTableReimported);
+			RegisteredReimportCallback = true;
 		}
 #endif
 	}
 
-	return GlobalAttributeDataTable;
+	return Table;
 }
+
 
 #if WITH_EDITOR
 
-void UAbilitySystemGlobals::OnCurveTableReimported(UObject* InObject)
+void UAbilitySystemGlobals::OnTableReimported(UObject* InObject)
 {
 	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalCurveTable)
 	{
 	}
-}
+	
+	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeDefaultsTable)
+	{
+	}
 
-void UAbilitySystemGlobals::OnDataTableReimported(UObject* InObject)
-{
-	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeDataTable)
+	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeMetaDataTable)
 	{
 	}
 }
 
 #endif
 
-
-UAbilitySystemComponent * UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor *Actor) const
+FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo() const
 {
-	if (Actor)
-	{
-		return Actor->FindComponentByClass<UAbilitySystemComponent>();
-	}
-
-	// Caller should check this
-	ensure(false);
-	return NULL;
-}
-
-FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo(AActor *Actor) const
-{
-	FGameplayAbilityActorInfo * Info = new FGameplayAbilityActorInfo();
-	Info->InitFromActor(Actor);
-	return Info;
+	return new FGameplayAbilityActorInfo();
 }
 
 /** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */
@@ -94,8 +88,28 @@ UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 	return *GlobalPtr;
 }
 
+/** Helping function to avoid having to manually cast */
+UAbilitySystemComponent* UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return nullptr;
+	}
+
+	IAbilitySystemInterface* ASI = InterfaceCast<IAbilitySystemInterface>(Actor);
+	if (ASI)
+	{
+		return ASI->GetAbilitySystemComponent();
+	}
+
+	/** This is slow and not desirable */
+	ABILITY_LOG(Warning, TEXT("GetAbilitySystemComponentFromActor called on Actor that is not IAbilitySystemInterface. This slow!"));
+
+	return Actor->FindComponentByClass<UAbilitySystemComponent>();
+}
 
 // --------------------------------------------------------------------
+
 UFunction* UAbilitySystemGlobals::GetGameplayCueFunction(const FGameplayTag& ChildTag, UClass* Class, FName &MatchedTag)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetGameplayCueFunction);
@@ -136,3 +150,25 @@ UFunction* UAbilitySystemGlobals::GetGameplayCueFunction(const FGameplayTag& Chi
 	return nullptr;
 }
 
+// --------------------------------------------------------------------
+
+/** Initialize FAttributeSetInitter. This is virtual so projects can override what class they use */
+void UAbilitySystemGlobals::AllocAttributeSetInitter()
+{
+	GlobalAttributeSetInitter = TSharedPtr<FAttributeSetInitter>(new FAttributeSetInitter());
+}
+
+FAttributeSetInitter* UAbilitySystemGlobals::GetAttributeSetInitter() const
+{
+	check(GlobalAttributeSetInitter.IsValid());
+	return GlobalAttributeSetInitter.Get();
+}
+
+void UAbilitySystemGlobals::InitAtributeDefaults()
+{
+	if (InternalGetLoadTable<UCurveTable>(GlobalAttributeDefaultsTable, GlobalAttributeSetDefaultsTableName))
+	{	
+		AllocAttributeSetInitter();
+		GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
+	}
+}

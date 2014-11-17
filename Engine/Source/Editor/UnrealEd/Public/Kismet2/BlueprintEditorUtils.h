@@ -49,7 +49,7 @@ public:
 	/**
 	 * Optimized refresh of nodes that depend on external blueprints.  Refreshes the nodes, but does not recompile the skeleton class
 	 */
-	static void RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint);
+	static void RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint, UStruct* RefreshOnlyChild = NULL);
 
 	/**
 	 * Refresh the nodes of an individual graph.
@@ -77,6 +77,11 @@ public:
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
+
+	/**
+	 * Replace subobjects of CDO in linker
+	 */
+	static void PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, UObject* NewCDO);
 
 	/**
 	 * Copies the default properties of all parent blueprint classes in the chain to the specified blueprint's skeleton CDO
@@ -238,7 +243,7 @@ public:
 	 */
 	static void RemoveGraph( UBlueprint* Blueprint, class UEdGraph* GraphToRemove, EGraphRemoveFlags::Type Flags = EGraphRemoveFlags::Default );
 
-	/*
+	/**
 	 * Tries to rename the supplied graph.
 	 * Cleans up function entry node if one exists and marks objects for modification
 	 *
@@ -247,7 +252,7 @@ public:
 	 */
 	static void RenameGraph(class UEdGraph* Graph, const FString& NewName );
 
-	/*
+	/**
 	 * Renames the graph of the supplied node with a valid name based off of the suggestion.
 	 *
 	 * @param GraphNode			The node of the graph to rename.
@@ -314,12 +319,15 @@ public:
 		return nullptr;
 	}
 
-	/** @return true if this Blueprint is dependent on the given blueprint, false otherwise */
-	static bool IsBlueprintDependentOn(UBlueprint const* Blueprint, UBlueprint const* TestBlueprint);
+	/** Gather all bps that Blueprint depends on */
+	static void GatherDependencies(const UBlueprint* Blueprint, TSet<TWeakObjectPtr<UBlueprint>>& OutDependencies);
 
 	/** Returns a list of loaded Blueprints that are dependent on the given Blueprint. */
 	static void GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints);
-	
+
+	/** Ensures, that CachedDependencies in BP are up to date */
+	static void EnsureCachedDependenciesUpToDate(UBlueprint* Blueprint);
+
 	/** returns if a graph is an intermediate build product */
 	static bool IsGraphIntermediate(const UEdGraph* Graph);
 
@@ -379,6 +387,9 @@ public:
 
 	/** Returns whether or not the blueprint supports components */
 	static bool DoesSupportComponents(UBlueprint const* Blueprint);
+
+	/** Returns whether or not the blueprint supports default values (IE has a CDO) */
+	static bool DoesSupportDefaults(UBlueprint const* Blueprint);
 
 	// Returns a descriptive name of the type of blueprint passed in
 	static FString GetBlueprintTypeDescription(const UBlueprint* Blueprint);
@@ -488,6 +499,27 @@ public:
 	static bool AddMemberVariable(UBlueprint* Blueprint, const FName& NewVarName, const FEdGraphPinType& NewVarType, const FString& DefaultValue = FString());
 
 	/**
+	 * Duplicates a variable given it's name and Blueprint
+	 *
+	 * @param InBlueprint					The Blueprint the variable can be found in
+	 * @paramInScope						Local variable's scope
+	 * @param InVariableToDuplicate			Variable name to be found and duplicated
+	 *
+	 * @return								Returns the name of the new variable or NAME_None is failed to duplicate
+	 */
+	static FName DuplicateVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableToDuplicate);
+
+	/**
+	 * Internal function that deep copies a variable description
+	 *
+	 * @param InBlueprint					The blueprint to ensure a uniquely named variable in
+	 * @param InVariableToDuplicate			Variable description to duplicate
+	 *
+	 * @return								Returns a copy of the passed in variable description.
+	 */
+	static FBPVariableDescription DuplicateVariableDescription(UBlueprint* InBlueprint, FBPVariableDescription& InVariableDescription);
+
+	/**
 	 * Removes a member variable if it was declared in this blueprint and not in a base class.
 	 *
 	 * @param	VarName	Name of the variable to be removed.
@@ -504,12 +536,13 @@ public:
 	/**
 	 * Removes the variable nodes associated with the specified var name
 	 *
-	 * @param	Blueprint		The blueprint you want variable nodes removed from.
-	 * @param	VarName			Name of the variable to be removed.
-	 * @param	bForSelfOnly	True if you only want to delete variable nodes that represent ones owned by this blueprint,
-	 *							false if you just want everything with the specified name removed (variables from other classes too).
+	 * @param	Blueprint			The blueprint you want variable nodes removed from.
+	 * @param	VarName				Name of the variable to be removed.
+	 * @param	bForSelfOnly		True if you only want to delete variable nodes that represent ones owned by this blueprint,
+	 * @param	LocalGraphScope		Local scope graph of variables
+	 *								false if you just want everything with the specified name removed (variables from other classes too).
 	 */
-	static void RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly = true);
+	static void RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly = true, UEdGraph* LocalGraphScope = nullptr);
 
 	/**Rename a member variable*/
 	static void RenameMemberVariable(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
@@ -536,6 +569,15 @@ public:
 	 * @param	InVarName			Name of the variable to be removed.
 	 */
 	static void RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVarName);
+
+	/**
+	 * Returns a local variable with the function entry it was found in
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableName	Name of the variable to search for
+	 * @return					The local variable description
+	 */
+	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName);
 
 	/**
 	 * Returns a local variable
@@ -702,9 +744,6 @@ public:
 	/** Change the order of variables in the Blueprint */
 	static bool MoveVariableBeforeVariable(UBlueprint* Blueprint, FName VarNameToMove, FName TargetVarName, bool bDontRecompile);
 
-	/** Move all vars of the supplied category */
-	static bool MoveCategoryBeforeCategory(UBlueprint* Blueprint, FName CategoryToMove, FName TargetCategory);
-
 	/** Find first variable of the supplied category */
 	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FName Category);
 
@@ -745,7 +784,7 @@ public:
 	static bool IsVariableComponent(const FBPVariableDescription& Variable);
 
 	/** Indicates if the variable is used on any graphs in this Blueprint*/
-	static bool IsVariableUsed(const UBlueprint* Blueprint, const FName& Name);
+	static bool IsVariableUsed(const UBlueprint* Blueprint, const FName& Name, UEdGraph* LocalGraphScope = nullptr);
 
 	static void ImportKismetDefaultValueToProperty(UEdGraphPin* SourcePin, UProperty* DestinationProperty, uint8* DestinationAddress, UObject* OwnerObject);
 	
@@ -953,6 +992,10 @@ public:
 	 * @return					The description of the graph
 	 */
 	static FText GetGraphDescription(const UEdGraph* InGraph);
+
+	/** Checks if a graph (or any sub-graphs or referenced graphs) have latent function nodes */
+	static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraph);
+
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
 	static void CleanNullGraphReferencesRecursive(UEdGraph* Graph);

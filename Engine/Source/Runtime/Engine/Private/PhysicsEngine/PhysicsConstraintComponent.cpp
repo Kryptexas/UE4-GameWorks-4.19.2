@@ -62,7 +62,7 @@ UPrimitiveComponent* UPhysicsConstraintComponent::GetComponentInternal(EConstrai
 			// No name specified, use the root component
 			if(ComponentName == NAME_None)
 			{
-				PrimComp = Actor->GetRootPrimitiveComponent();
+				PrimComp = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
 			}
 			// Name specified, see if we can find that property..
 			else

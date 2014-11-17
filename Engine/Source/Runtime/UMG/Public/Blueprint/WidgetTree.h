@@ -36,11 +36,6 @@ public:
 	template< class T >
 	T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
 	{
-		// TODO UMG Editor only?
-		Modify();
-
-		// TODO UMG Don't have the widget tree responsible for construction and adding to the tree.
-
 		if ( WidgetType->IsChildOf(UUserWidget::StaticClass()) )
 		{
 			UUserWidget* Widget = ConstructObject<UUserWidget>(WidgetType, this);
@@ -63,6 +58,13 @@ public:
 		GetAllWidgets(AllWidgets);
 
 		Super::PreSave();
+	}
+
+	virtual void PostLoad() override
+	{
+		//AllWidgets.Empty();
+
+		Super::PostLoad();
 	}
 
 public:

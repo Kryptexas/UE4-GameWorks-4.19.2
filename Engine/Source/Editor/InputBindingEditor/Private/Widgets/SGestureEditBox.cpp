@@ -105,7 +105,7 @@ FText SGestureEditBox::GetNotificationMessage() const
 
 void SGestureEditBox::OnGestureEditorLostFocus()
 {
-	if( (!GestureAcceptButton.IsValid() || FSlateApplication::Get().GetMouseCaptor() != GestureAcceptButton) && !GestureEditor->IsTyping() )
+	if( (!GestureAcceptButton.IsValid() || GestureAcceptButton->HasMouseCapture() == false) && !GestureEditor->IsTyping() )
 	{
 		if( GestureEditor->IsEditing() && GestureEditor->IsEditedGestureValid() && !GestureEditor->HasConflict() )
 		{

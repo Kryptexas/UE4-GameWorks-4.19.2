@@ -25,6 +25,13 @@ ASpectatorPawn::ASpectatorPawn(const class FPostConstructInitializeProperties& P
 
 void ASpectatorPawn::PossessedBy(class AController* NewController)
 {
+	AController* const OldController = Controller;
 	Controller = NewController;
+
+	// dispatch Blueprint event if necessary
+	if (OldController != NewController)
+	{
+		ReceivePossessed(Controller);
+	}
 }
 

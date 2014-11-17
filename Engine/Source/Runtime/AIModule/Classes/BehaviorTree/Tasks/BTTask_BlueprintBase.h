@@ -24,6 +24,7 @@ class AIMODULE_API UBTTask_BlueprintBase : public UBTTaskNode
 
 	virtual FString GetStaticDescription() const override;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
 
 #if WITH_EDITOR
 	virtual bool UsesBlueprint() const override;
@@ -74,11 +75,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void FinishAbort();
 
-	/** task execution will be finished (with result \'Success\') after receiving specified message */
+	/** task execution will be finished (with result 'Success') after receiving specified message */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void SetFinishOnMessage(FName MessageName);
 
-	/** task execution will be finished (with result \'Success\') after receiving specified message with indicated ID */
+	/** task execution will be finished (with result 'Success') after receiving specified message with indicated ID */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void SetFinishOnMessageWithId(FName MessageName, int32 RequestID = -1);
 

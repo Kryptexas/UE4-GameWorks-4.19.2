@@ -11,6 +11,9 @@
 #include "PostProcessing.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessMobile.h"
+#include "SceneUtils.h"
+
+uint32 GetShadowQuality();
 
 
 FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
@@ -24,13 +27,45 @@ FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamil
  */
 void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(InitViews, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, InitViews, DEC_SCENE_ITEMS);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup();
+
+	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
+
+	if (bDynamicShadows && !IsSimpleDynamicLightingEnabled())
+	{
+		// Setup dynamic shadows.
+		InitDynamicShadows(RHICmdList);		
+	}
+
+	// initialize per-view uniform buffer.  Pass in shadow info as necessary.
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo = nullptr;
+
+		FViewInfo& ViewInfo = Views[ViewIndex];
+		FScene* Scene = (FScene*)ViewInfo.Family->Scene;
+		if (bDynamicShadows && Scene->SimpleDirectionalLight)
+		{
+			int32 LightId = Scene->SimpleDirectionalLight->Id;
+			if (VisibleLightInfos.IsValidIndex(LightId))
+			{
+				const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightId];
+				if (VisibleLightInfo.AllProjectedShadows.Num() > 0)
+				{
+					DirectionalLightShadowInfo = &VisibleLightInfo.AllProjectedShadows;
+				}
+			}
+		}
+
+		// Initialize the view's RHI resources.
+		Views[ViewIndex].InitRHIResources(DirectionalLightShadowInfo);
+	}
 
 	OnStartFrame();
 }
@@ -56,6 +91,8 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Find the visible primitives.
 	InitViews(RHICmdList);
 	
+	RenderShadowDepthMaps(RHICmdList);
+
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{
@@ -115,13 +152,17 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// This might eventually be a problem with multiple views.
 		// Using only view 0 to check to do on-chip transform of alpha.
-		const FViewInfo& View = Views[0];
+		FViewInfo& View = Views[0];
+
+		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 
 		bool bOnChipSunMask = 
 			GSupportsRenderTargetFormat_PF_FloatRGBA && 
 			GSupportsShaderFramebufferFetch &&
 			ViewFamily.EngineShowFlags.PostProcessing &&
-			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0));
+			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) || 
+			((GRHIShaderPlatform == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+			);
 
 		// Convert alpha from depth to circle of confusion with sunshaft intensity.
 		// This is done before resolve on hardware with framebuffer fetch.
@@ -145,24 +186,27 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.DiscardRenderTargets(true, true, 0);
 
 		// Finish rendering for each view, or the full stereo buffer if enabled
-		if (GEngine->IsStereoscopic3D())
+		if (ViewFamily.bResolveScene)
 		{
-			check(Views.Num() > 1);
+			if (GEngine->IsStereoscopic3D())
+			{
+				check(Views.Num() > 1);
 
-			//@todo ES2 stereo post: until we get proper stereo postprocessing for ES2, process the stereo buffer as one view
-			FIntPoint OriginalMax0 = Views[0].ViewRect.Max;
-			Views[0].ViewRect.Max = Views[1].ViewRect.Max;
-			GPostProcessing.ProcessES2(RHICmdList, Views[0], bOnChipSunMask);
-			Views[0].ViewRect.Max = OriginalMax0;
-		}
-		else
-		{
-			SCOPED_DRAW_EVENT(FinishRendering, DEC_SCENE_ITEMS);
-			SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
-			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
-			{	
-				SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
-				GPostProcessing.ProcessES2(RHICmdList, Views[ViewIndex], bOnChipSunMask);
+				//@todo ES2 stereo post: until we get proper stereo postprocessing for ES2, process the stereo buffer as one view
+				FIntPoint OriginalMax0 = Views[0].ViewRect.Max;
+				Views[0].ViewRect.Max = Views[1].ViewRect.Max;
+				GPostProcessing.ProcessES2(RHICmdList, Views[0], bOnChipSunMask);
+				Views[0].ViewRect.Max = OriginalMax0;
+			}
+			else
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, PostProcessing, DEC_SCENE_ITEMS);
+				SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
+				for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+				{	
+					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+					GPostProcessing.ProcessES2(RHICmdList, Views[ViewIndex], bOnChipSunMask);
+				}
 			}
 		}
 	}

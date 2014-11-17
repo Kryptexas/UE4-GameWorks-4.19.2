@@ -80,10 +80,7 @@ public:
 		{
 			bShaderTypeMatches = true;
 		}
-		else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassVSFCachedVolumeIndirectLightingPolicy"))
-			|| FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFCachedVolumeIndirectLightingPolicy"))
-			|| FCString::Stristr(ShaderType->GetName(), TEXT("BasePassHSFCachedVolumeIndirectLightingPolicy"))
-			|| FCString::Stristr(ShaderType->GetName(), TEXT("BasePassDSFCachedVolumeIndirectLightingPolicy")))
+		else if (FCString::Stristr(ShaderType->GetName(), TEXT("CachedPointIndirectLightingPolicy")))
 		{
 			bShaderTypeMatches = true;
 		}
@@ -174,7 +171,7 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 	{
 		UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 
-		FNavigationLockContext NavUpdateLock;
+		FNavigationLockContext NavUpdateLock(ENavigationLockReason::MaterialUpdate);
 
 		if(PropertyThatChanged && PropertyThatChanged->GetName()==TEXT("Parent") )
 		{
@@ -601,6 +598,9 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 		// Copy Refraction bias setting
 		SourceInstance->SetScalarParameterValueEditorOnly(TEXT("RefractionDepthBias"), RefractionDepthBias);
 
+		SourceInstance->bOverrideSubsurfaceProfile = bOverrideSubsurfaceProfile;
+		SourceInstance->SubsurfaceProfile = SubsurfaceProfile;
+
 		// Update object references and parameter names.
 		SourceInstance->UpdateParameterNames();
 		VisibleExpressions.Empty();
@@ -690,6 +690,9 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 
 	//Copy refraction settings
 	SourceInstance->GetRefractionSettings(RefractionDepthBias);
+
+	bOverrideSubsurfaceProfile = SourceInstance->bOverrideSubsurfaceProfile;
+	SubsurfaceProfile = SourceInstance->SubsurfaceProfile;
 
 	RegenerateArrays();
 

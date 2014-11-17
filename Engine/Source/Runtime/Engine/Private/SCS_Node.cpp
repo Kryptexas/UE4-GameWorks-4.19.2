@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif
 #include "DeferRegisterComponents.h"
@@ -24,7 +24,7 @@ USCS_Node::USCS_Node(const class FPostConstructInitializeProperties& PCIP)
 #endif
 }
 
-void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform)
+void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
 {
 	check(Actor != NULL);
 	check((ParentComponent != NULL && !ParentComponent->IsPendingKill()) || (RootTransform != NULL)); // must specify either a parent component or a world transform
@@ -55,13 +55,13 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
 			if (ParentComponent == NULL || (ParentComponent && ParentComponent->IsPendingKill()))
 			{
-				FTransform SpawnTransform = *RootTransform;
-				if(SpawnTransform.GetScale3D().IsZero())
+				FTransform WorldTransform = *RootTransform;
+				if(bIsDefaultTransform)
 				{
 					// Note: We use the scale vector from the component template when spawning (to match what happens with a native root)
-					SpawnTransform.SetScale3D(NewSceneComp->RelativeScale3D);
+					WorldTransform.SetScale3D(NewSceneComp->RelativeScale3D);
 				}
-				NewSceneComp->SetWorldTransform(SpawnTransform);
+				NewSceneComp->SetWorldTransform(WorldTransform);
 				Actor->SetRootComponent(NewSceneComp);
 			}
 			// Otherwise, attach to parent component passed in
@@ -122,7 +122,7 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 		{
 			USCS_Node* Node = ChildNodes[NodeIdx];
 			check(Node != NULL);
-			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, NULL);
+			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, NULL, false);
 		}
 	}
 }
@@ -310,7 +310,7 @@ void USCS_Node::SetParent(USceneComponent* InParentComponent)
 	const FName NewParentComponentOwnerClassName = NAME_None;
 
 	// Only modify if it differs from current
-	if(bIsParentComponentNative
+	if(!bIsParentComponentNative
 		|| ParentComponentOrVariableName != NewParentComponentOrVariableName
 		|| ParentComponentOwnerClassName != NewParentComponentOwnerClassName)
 	{

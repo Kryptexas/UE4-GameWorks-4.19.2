@@ -60,31 +60,21 @@ public:
 };
 
 
+
 /**
  * The center for all post processing activities.
  */
 class FPostProcessing
 {
 public:
-	// @param VelocityRT only valid if motion blur is supported
-	void Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
-	void ProcessES2(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bUsedFramebufferFetch);
+	bool AllowFullPostProcessing(const FViewInfo& View, ERHIFeatureLevel::Type FeatureLevel);
+
+	// @param VelocityRT only valid if motion blur is supported
+	void Process(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
+
+	void ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bViewRectSource);
 };
 
 /** The global used for post processing. */
 extern FPostProcessing GPostProcessing;
-
-/**
- * Used to specify the rectangles used by some passes.
- */
-namespace EPostProcessRectSource
-{
-	enum Type
-	{
-		// The default behavior for most cases. represents the entire view rect.
-		GBS_ViewRect,
-		// Specifies that the rectangle(s) for the post process operation will use the UIBlurRects container.
-		GBS_UIBlurRects
-	};
-}

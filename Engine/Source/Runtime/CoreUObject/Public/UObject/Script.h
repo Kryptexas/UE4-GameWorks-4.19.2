@@ -303,6 +303,7 @@ public:
 
 public:
 	static void ThrowScriptException(const UObject* ActiveObject, const struct FFrame& StackFrame, const FBlueprintExceptionInfo& Info);
+	static void SetScriptMaximumLoopIterations( const int32 MaximumLoopIterations );
 };
 
 // Scoped struct to allow execution of script in editor, while resetting the runaway loop counts

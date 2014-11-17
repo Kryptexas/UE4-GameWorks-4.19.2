@@ -2,6 +2,8 @@
 
 #pragma once
 
+class UUserWidget;
+
 /**
  * The SObjectWidet allows UMG to insert an SWidget into the hierarchy that manages the lifetime of the
  * UMG UWidget that created it.  Once the SObjectWidget is destroyed it frees the reference it holds to
@@ -20,15 +22,16 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 
 	virtual ~SObjectWidget(void);
 
-	void Construct(const FArguments& InArgs, class UUserWidget* InWidgetObject);
+	void Construct(const FArguments& InArgs, UUserWidget* InWidgetObject);
 
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FGCObject interface
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	//virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+
+	virtual bool SupportsKeyboardFocus() const override;
 
 	virtual FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent) override;
 	virtual void OnKeyboardFocusLost(const FKeyboardFocusEvent& InKeyboardFocusEvent) override;
@@ -54,6 +57,8 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+
+	void OnDragCancelled(const FDragDropEvent& DragDropEvent, UDragDropOperation* Operation);
 	
 	virtual FReply OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent) override;
 	virtual FReply OnControllerButtonReleased(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent) override;
@@ -67,5 +72,5 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 
 private:
 	/** The UWidget that created this SObjectWidget who needs to be kept alive. */
-	class UUserWidget* WidgetObject;
+	UUserWidget* WidgetObject;
 };

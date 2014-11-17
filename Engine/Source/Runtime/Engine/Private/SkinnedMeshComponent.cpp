@@ -237,28 +237,28 @@ void USkinnedMeshComponent::TickUpdateRate()
 	SCOPE_CYCLE_COUNTER(STAT_TickUpdateRate);
 	if( bEnableUpdateRateOptimizations )
 	{
-		AActor * Owner = GetOwner();
-		if( Owner )
+		AActor* Owner = GetOwner();
+		if (Owner)
 		{
 			// Convert current frame counter from 64 to 32 bits.
 			const uint32 CurrentFrame32 = uint32(GFrameCounter % MAX_uint32);
 
 			// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
-			if( Owner->AnimUpdateRateFrameCount != CurrentFrame32 )
+			if (Owner->AnimUpdateRateFrameCount != CurrentFrame32)
 			{
 				Owner->AnimUpdateRateFrameCount = CurrentFrame32;
-				Owner->AnimUpdateRateTick();
+				AnimUpdateRateTick();
 			}
 
 			// debug -- @todo: hook this up to a console command.
-			if( bDisplayDebugUpdateRateOptimizations )
+			if (bDisplayDebugUpdateRateOptimizations)
 			{
 				FColor DrawColor;
-				switch( Owner->AnimUpdateRateParams.GetUpdateRate() )
+				switch (AnimUpdateRateParams.GetUpdateRate())
 				{
-				case 1 : DrawColor = FColor::Red; break;
-				case 2 : DrawColor = FColor::Green; break;
-				case 3 : DrawColor = FColor::Blue; break;
+				case 1: DrawColor = FColor::Red; break;
+				case 2: DrawColor = FColor::Green; break;
+				case 3: DrawColor = FColor::Blue; break;
 				default: DrawColor = FColor::Black; break;
 				}
 				DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);
@@ -278,14 +278,11 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 	bRecentlyRendered = (LastRenderTime > GetWorld()->TimeSeconds - 1.0f);
 	TickUpdateRate();
 
-	AActor * Owner = GetOwner();
-	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
-
 	bPoseTicked = false;
 	// Tick Pose first
 	if( ShouldTickPose() )
 	{
-		if( bEnableUpdateRateOptimizations && UpdateRateParams.ShouldSkipUpdate() )
+		if (bEnableUpdateRateOptimizations && AnimUpdateRateParams.ShouldSkipUpdate())
 		{
 			SkippedTickDeltaTime += DeltaTime;
 			if( !bRecentlyRendered )
@@ -373,7 +370,7 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrim
 			{
 				TArray<UTexture*> Textures;
 				
-				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false);
+				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 				for(int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++ )
 				{
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
@@ -1202,7 +1199,7 @@ void USkinnedMeshComponent::TransformToBoneSpace(FName BoneName, FVector InPosit
 	{
 		FMatrix BoneToWorldTM = GetBoneMatrix(BoneIndex);
 		FMatrix WorldTM = FRotationTranslationMatrix(InRotation, InPosition);
-		FMatrix LocalTM = WorldTM * BoneToWorldTM.InverseSafe();
+		FMatrix LocalTM = WorldTM * BoneToWorldTM.Inverse();
 
 		OutPosition = LocalTM.GetOrigin();
 		OutRotation = LocalTM.Rotator();
@@ -1555,7 +1552,7 @@ void USkinnedMeshComponent::UnHideBone( int32 BoneIndex )
 
 bool USkinnedMeshComponent::IsBoneHidden( int32 BoneIndex ) const
 {
-	if (ShouldUpdateBoneVisibility())
+	if (ShouldUpdateBoneVisibility() && BoneIndex < BoneVisibilityStates.Num())
 	{
 		if ( BoneIndex != INDEX_NONE )
 		{
@@ -1570,6 +1567,18 @@ bool USkinnedMeshComponent::IsBoneHidden( int32 BoneIndex ) const
 	return false;
 }
 
+
+bool USkinnedMeshComponent::IsBoneHiddenByName( FName BoneName )
+{
+	// Find appropriate BoneIndex
+	int32 BoneIndex = GetBoneIndex(BoneName);
+	if(BoneIndex != INDEX_NONE)
+	{
+		return IsBoneHidden(BoneIndex);
+	}
+
+	return false;
+}
 
 void USkinnedMeshComponent::HideBoneByName( FName BoneName, EPhysBodyOp PhysBodyOption )
 {
@@ -1668,7 +1677,7 @@ int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVertexAnimBa
 	return INDEX_NONE;
 }
 
-TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const
+TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims)
 {
 	TArray<struct FActiveVertexAnim> OutVertexAnims;
 
@@ -1679,7 +1688,7 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const T
 		// Check it has valid weight, and works on this SkeletalMesh
 		if(	ActiveAnim.Weight > MinVertexAnimBlendWeight &&
 			ActiveAnim.VertAnim != NULL &&
-			ActiveAnim.VertAnim->BaseSkelMesh == SkeletalMesh )
+			ActiveAnim.VertAnim->BaseSkelMesh == InSkeletalMesh)
 		{
 			OutVertexAnims.Add(ActiveAnim);
 		}
@@ -1696,7 +1705,7 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const T
 		if(Weight > MinVertexAnimBlendWeight)
 		{
 			// Find morph reference
-			UMorphTarget* Target = FindMorphTarget(CurveName);
+			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTarget(CurveName) : NULL;
 			if(Target != NULL)				
 			{
 				// See if this morph target already has an entry
@@ -1717,5 +1726,106 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const T
 	}
 
 	return OutVertexAnims;
+}
+
+void USkinnedMeshComponent::AnimUpdateRateTick()
+{
+	AActor* Owner = GetOwner();
+
+	if (!Owner)
+	{
+		return;
+	}
+
+	// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
+	bool bRecentlyRendered = false;
+	bool bPlayingRootMotion = false;
+	float MaxDistanceFactor = 0.f;
+
+	// Gather Actor's components
+	TArray<USceneComponent *> ComponentStack;
+	USceneComponent* CurrentComponent = Owner->GetRootComponent();
+
+	while (CurrentComponent)
+	{
+		// push children on the stack so they get tested later
+		ComponentStack.Append(CurrentComponent->AttachChildren);
+
+		if (CurrentComponent->IsRegistered())
+		{
+			USkinnedMeshComponent* SkinMeshComp = Cast<USkinnedMeshComponent>(CurrentComponent);
+			if (SkinMeshComp)
+			{
+				bRecentlyRendered = bRecentlyRendered || (SkinMeshComp->LastRenderTime > (GetWorld()->TimeSeconds - 1.f));
+				MaxDistanceFactor = FMath::Max(MaxDistanceFactor, SkinMeshComp->MaxDistanceFactor);
+				bPlayingRootMotion = bPlayingRootMotion || SkinMeshComp->IsPlayingRootMotion();
+			}
+		}
+
+		CurrentComponent = (ComponentStack.Num() > 0) ? ComponentStack.Pop() : NULL;
+	}
+
+	// Figure out which update rate should be used.
+	AnimUpdateRateSetParams(bRecentlyRendered, MaxDistanceFactor, bPlayingRootMotion);
+}
+
+void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion)
+{
+	// default rules for setting update rates
+
+	// Human controlled characters should be ticked always fully to minimize latency w/ game play events triggered by animation.
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return;
+	}
+
+	AController * Controller = Owner->GetInstigatorController();
+	const bool bHumanControlled = Controller && (Cast<APlayerController>(Controller) != NULL);
+
+	// Not rendered, including dedicated servers. we can skip the Evaluation part.
+	if (!bRecentlyRendered)
+	{
+		AnimUpdateRateParams.Set(*Owner, (bHumanControlled ? 1 : 4), 4, false);
+	}
+	// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
+	else  if (bHumanControlled || bPlayingRootMotion)
+	{
+		AnimUpdateRateParams.Set(*Owner, 1, 1, false);
+	}
+	else
+	{
+		// For visible meshes, figure out how often bones should be evaluated VS interpolated to previous evaluation.
+		// This is based on screen size and makes sense for a 3D FPS game, different games or Actors can implement different rules.
+		int32 DesiredEvaluationRate;
+		if (MaxDistanceFactor > 0.4f)
+		{
+			DesiredEvaluationRate = 1;
+		}
+		else if (MaxDistanceFactor > .2f)
+		{
+			DesiredEvaluationRate = 2;
+		}
+		else
+		{
+			DesiredEvaluationRate = 3;
+		}
+
+		AnimUpdateRateParams.Set(*Owner, DesiredEvaluationRate, DesiredEvaluationRate, true);
+	}
+}
+
+void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames)
+{
+	UpdateRate = FMath::Max(NewUpdateRate, 1);
+	// Make sure EvaluationRate is a multiple of UpdateRate.
+	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);
+	bInterpolateSkippedFrames = bNewInterpSkippedFrames;
+
+	// Make sure we don't overflow. we don't need very large numbers.
+	const uint32 Counter = (GFrameCounter % MAX_uint8) + (Owner.GetAnimUpdateRateShiftTag() % MAX_uint8);
+
+	bSkipUpdate = ((Counter % UpdateRate) > 0);
+	bSkipEvaluation = ((Counter % EvaluationRate) > 0);
 }
 

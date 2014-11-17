@@ -184,9 +184,9 @@ public:
 	, BaseShaderResource(this)
 	, Resource(InResource)
 	, ShaderResourceView(InShaderResourceView)
-	, RTVArraySize(InRTVArraySize)
-	, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
 	, RenderTargetViews(InRenderTargetViews)
+	, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
+	, RTVArraySize(InRTVArraySize)
 	, NumDepthStencilViews(0)
 	{
 		// Set the DSVs for all the access type combinations
@@ -574,10 +574,14 @@ public:
 	/** Initialization constructor. */
 	FD3D11OcclusionQuery(ID3D11Query* InResource, ERenderQueryType InQueryType):
 		Resource(InResource),
+		Result(0),
 		bResultIsCached(false),
-		QueryType(InQueryType),
-		Result(0)
+		QueryType(InQueryType)
 	{}
+
+#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	~FD3D11OcclusionQuery();
+#endif
 };
 
 /** Updates tracked stats for a buffer. */
@@ -630,8 +634,8 @@ public:
 	: FRHIUniformBuffer(InLayout)
 	, Resource(InResource)
 	, RingAllocation(InRingAllocation)
-	, D3D11RHI(InD3D11RHI)
 	, LastCachedFrame((uint32)-1)
+	, D3D11RHI(InD3D11RHI)
 	{}
 
 	virtual ~FD3D11UniformBuffer();

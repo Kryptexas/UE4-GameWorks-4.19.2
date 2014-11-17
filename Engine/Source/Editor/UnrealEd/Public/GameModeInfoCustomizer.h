@@ -43,10 +43,12 @@ public:
 	{
 		// Find the metaclass of this property
 		UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(AGameMode::StaticClass(), DefaultClassPropertyName);
+
 		UClass* MetaClass = ClassProp->MetaClass;
 		const bool bAllowNone = !(ClassProp->PropertyFlags & CPF_NoClear);
 
-		TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FGameModeInfoCustomizer::CanBrowseDefaultClass, DefaultClassPropertyName) ) ;
+		// This is inconsistent with all the other browsers, so disabling it for now
+		//TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FGameModeInfoCustomizer::CanBrowseDefaultClass, DefaultClassPropertyName) ) ;
 
 		// Add a row for choosing a new default class
 		Group.AddWidgetRow()
@@ -71,7 +73,17 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnBrowseDefaultClassClicked, DefaultClassPropertyName), FText(), CanBrowseAtrribute)
+				PropertyCustomizationHelpers::MakeUseSelectedButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnMakeSelectedDefaultClassClicked, DefaultClassPropertyName))
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnBrowseDefaultClassClicked, DefaultClassPropertyName))
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				PropertyCustomizationHelpers::MakeNewBlueprintButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnMakeNewDefaultClassClicked, DefaultClassPropertyName))
 			]
 		];
 	}
@@ -87,7 +99,8 @@ public:
 		// SEe if we are allowed to choose 'no' GameMode
 		const bool bAllowNone = !(DefaultGameModeClassHandle->GetProperty()->PropertyFlags & CPF_NoClear);
 
-		TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>(this, &FGameModeInfoCustomizer::CanBrowseGameMode);
+		// This is inconsistent with other property 
+		//TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>(this, &FGameModeInfoCustomizer::CanBrowseGameMode);
 
 		DefaultGameModeRow
 		.ShowPropertyButtons(false)
@@ -112,24 +125,18 @@ public:
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding( 2.0f, 1.0f, 2.0f, 0.0f )
 			[
-				SNew(SButton)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				.ContentPadding(FMargin(2.0f,0.0f))
-				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode, &LayoutBuilder)
-				.ToolTipText(LOCTEXT("NewGameMode_ToolTip", "Create a new Game Mode"))
-				[
-					SNew( STextBlock )
-					.Text(LOCTEXT("NewGameMode", "New.."))
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-				]
+				PropertyCustomizationHelpers::MakeUseSelectedButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnUseSelectedGameModeClicked, &LayoutBuilder))
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnBrowseGameModeClicked), FText(), CanBrowseAtrribute)
+				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnBrowseGameModeClicked))
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				PropertyCustomizationHelpers::MakeNewBlueprintButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnClickNewGameMode, &LayoutBuilder))
 			]
 		];
 
@@ -224,6 +231,30 @@ public:
 		SyncBrowserToClass(OnGetDefaultClass(ClassPropertyName));
 	}
 
+	void OnMakeNewDefaultClassClicked(FName ClassPropertyName)
+	{
+		UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(AGameMode::StaticClass(), ClassPropertyName);
+
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(LOCTEXT("CreateNewBlueprint", "Create New Blueprint"), ClassProp->MetaClass, FString::Printf(TEXT("New%s"),*ClassProp->MetaClass->GetName()));
+
+		if(Blueprint != NULL && Blueprint->GeneratedClass)
+		{
+			OnSetDefaultClass(Blueprint->GeneratedClass, ClassPropertyName);
+
+			FAssetEditorManager::Get().OpenEditorForAsset(Blueprint);
+		}
+	}
+
+	void OnMakeSelectedDefaultClassClicked(FName ClassPropertyName)
+	{
+		UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(AGameMode::StaticClass(), ClassPropertyName);
+		const UClass* SelectedClass = GEditor->GetFirstSelectedClass(ClassProp->MetaClass);
+		if (SelectedClass)
+		{
+			OnSetDefaultClass(SelectedClass, ClassPropertyName);
+		}
+	}
+
 	bool CanBrowseGameMode() const
 	{
 		return CanSyncToClass(GetCurrentGameModeClass());
@@ -253,7 +284,21 @@ public:
 		}
 	}
 
-	FReply OnClickNewGameMode(IDetailLayoutBuilder* DetailLayout)
+	void OnUseSelectedGameModeClicked(IDetailLayoutBuilder* DetailLayout)
+	{
+		const UClass* SelectedClass = GEditor->GetFirstSelectedClass(AGameMode::StaticClass());
+		if (SelectedClass)
+		{
+			DefaultGameModeClassHandle->SetValueFromFormattedString(SelectedClass->GetPathName());
+		}
+
+		if (DetailLayout)
+		{
+			DetailLayout->ForceRefreshDetails();
+		}
+	}
+
+	void OnClickNewGameMode(IDetailLayoutBuilder* DetailLayout)
 	{
 		// Create a new GameMode BP
 		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(LOCTEXT("CreateNewGameMode", "Create New GameMode"), AGameMode::StaticClass(), TEXT("NewGameMode"));
@@ -267,8 +312,6 @@ public:
 		{
 			DetailLayout->ForceRefreshDetails();
 		}
-
-		return FReply::Handled();
 	}
 
 	/** Are we allowed to modify the currently selected GameMode */

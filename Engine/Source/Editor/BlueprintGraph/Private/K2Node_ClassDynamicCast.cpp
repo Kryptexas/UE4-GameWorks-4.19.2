@@ -5,6 +5,8 @@
 #include "K2Node_ClassDynamicCast.h"
 #include "DynamicCastHandler.h"
 
+#define LOCTEXT_NAMESPACE "K2Node_ClassDynamicCast"
+
 struct FClassDynamicCastHelper
 {
 	static const FString& GetClassToCastName()
@@ -53,6 +55,15 @@ FLinearColor UK2Node_ClassDynamicCast::GetNodeTitleColor() const
 	return GetDefault<UGraphEditorSettings>()->ClassPinTypeColor;
 }
 
+FText UK2Node_ClassDynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		CachedNodeTitle = FText::Format(LOCTEXT("NodeTitle", "{0} Class"), Super::GetNodeTitle(TitleType));
+	}
+	return CachedNodeTitle;
+}
+
 UEdGraphPin* UK2Node_ClassDynamicCast::GetCastSourcePin() const
 {
 	UEdGraphPin* Pin = FindPinChecked(FClassDynamicCastHelper::GetClassToCastName());
@@ -64,3 +75,5 @@ FNodeHandlingFunctor* UK2Node_ClassDynamicCast::CreateNodeHandler(FKismetCompile
 {
 	return new FKCHandler_DynamicCast(CompilerContext, KCST_MetaCast);
 }
+
+#undef LOCTEXT_NAMESPACE

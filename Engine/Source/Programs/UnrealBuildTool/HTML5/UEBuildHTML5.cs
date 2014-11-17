@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		// May include minor revisions or descriptions that a default install from SDK_Manager won't have.
 		// e.g. 1.600_Patch001, or 1.610.001.  The SDK_Manager always installs minor revision patches straight into
 		// the default major revision folder.
-		static private string ExpectedSDKVersion = "1.21.0";
+		static private string ExpectedSDKVersion = "1.22.0";
 
 		/** 
 		 * Whether platform supports switching SDKs during runtime
@@ -110,7 +110,7 @@ namespace UnrealBuildTool
 
         public override bool CanUseXGE()
         {
-            return (GetActiveArchitecture() == "-win32" );
+            return (GetActiveArchitecture() == "-win32");
         }
 
         /**
@@ -269,6 +269,7 @@ namespace UnrealBuildTool
             UEBuildConfiguration.bCompileLeanAndMeanUE = true;
             UEBuildConfiguration.bCompileAPEX = false;
             UEBuildConfiguration.bCompilePhysX = true;
+            UEBuildConfiguration.bRuntimePhysicsCooking = false;
             UEBuildConfiguration.bCompileSimplygon = false;
             UEBuildConfiguration.bCompileICU = false;
         }
@@ -387,8 +388,13 @@ namespace UnrealBuildTool
                     }
                     else if (InModule.ToString() == "NetworkFileSystem") // server 
                     {
-                        InModule.AddPublicDependencyModule("WebSockets");
-                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                        if (UnrealBuildTool.RunningRocket() == false || 
+                            Target.Type == TargetRules.TargetType.Game || 
+                            Target.Type == TargetRules.TargetType.RocketGame )
+                        {
+                            InModule.AddPrivateDependencyModule("WebSockets");
+                            InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                        }
                     }
                 }
             }
@@ -406,7 +412,6 @@ namespace UnrealBuildTool
                 InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
 
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5=1");
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HTML5=1");
             if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-win32")
             {
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_WIN32=1");

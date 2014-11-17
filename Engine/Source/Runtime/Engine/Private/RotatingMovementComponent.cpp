@@ -13,8 +13,8 @@ URotatingMovementComponent::URotatingMovementComponent(const class FPostConstruc
 
 void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	// skip if don't want component updated when not rendered
-	if ( SkipUpdate(DeltaTime) )
+	// skip if we don't want component updated when not rendered or if updated component can't move
+	if ( ShouldSkipUpdate(DeltaTime) )
 	{
 		return;
 	}
@@ -25,13 +25,14 @@ void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	const FQuat NewRotation = bRotationInLocalSpace ? (OldRotation * DeltaRotation) : (DeltaRotation * OldRotation);
 
 	// Compute new location
-	FVector NewLocation = UpdatedComponent->GetComponentLocation();
+	FVector DeltaLocation = FVector::ZeroVector;
 	if (!PivotTranslation.IsZero())
 	{
 		const FVector OldPivot = OldRotation.RotateVector(PivotTranslation);
 		const FVector NewPivot = NewRotation.RotateVector(PivotTranslation);
-		NewLocation = (NewLocation + OldPivot - NewPivot);
+		DeltaLocation = (OldPivot - NewPivot); // ConstrainDirectionToPlane() not necessary because it's done by MoveUpdatedComponent() below.
 	}
 
-	UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
+	const bool bEnableCollision = false;
+	MoveUpdatedComponent(DeltaLocation, NewRotation.Rotator(), bEnableCollision);
 }

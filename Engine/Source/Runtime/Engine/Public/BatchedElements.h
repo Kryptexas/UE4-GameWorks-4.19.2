@@ -7,10 +7,21 @@
 #ifndef _INC_BATCHEDELEMENTS
 #define _INC_BATCHEDELEMENTS
 
-#include "StaticBoundShaderState.h"
 #include "HitProxies.h"
+#include "StaticBoundShaderState.h"
 #include "SceneTypes.h"
 
+
+namespace EBlendModeFilter
+{
+	enum Type
+	{
+		None = 0,
+		OpaqueAndMasked = 1,
+		Translucent = 2,
+		All = (OpaqueAndMasked | Translucent)
+	};
+};
 
 /** The type used to store batched line vertices. */
 struct FSimpleElementVertex
@@ -72,7 +83,7 @@ class FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) = 0;
+	virtual void BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) = 0;
 
 };
 
@@ -136,8 +147,9 @@ public:
 	 * 
 	 * @param NumLines - number of lines to reserve space for
 	 * @param bDepthBiased - whether reserving depth-biased lines or non-biased lines
+	 * @param bThickLines - whether reserving regular lines or thick lines
 	 */
-	void AddReserveLines(int32 NumLines, bool bDepthBiased = false);
+	void AddReserveLines(int32 NumLines, bool bDepthBiased = false, bool bThickLines = false);
 
 	/** Adds a sprite to the batch. */
 	void AddSprite(
@@ -165,7 +177,7 @@ public:
 	 * @param View			Optional FSceneView for shaders that need access to view constants
 	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
 	 */
-	bool Draw(FRHICommandList& RHICmdList, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef()) const;
+	bool Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
 	
 	FORCEINLINE bool HasPrimsToDraw() const
 	{
@@ -285,8 +297,10 @@ private:
 
 	/** bound shader state for the fast path */
 	static FGlobalBoundShaderState SimpleBoundShaderState;
-	/** bound shader state for the regular mesh elements */
-	static FGlobalBoundShaderState RegularBoundShaderState;
+	/** bound shader state for the regular mesh elements with a linear texture */
+	static FGlobalBoundShaderState RegularLinearBoundShaderState;
+	/** bound shader state for the regular mesh elements with an sRGB texture */
+	static FGlobalBoundShaderState RegularSRGBBoundShaderState;
 	/** bound shader state for masked mesh elements */
 	static FGlobalBoundShaderState MaskedBoundShaderState;
 	/** bound shader state for masked mesh elements */
@@ -296,11 +310,12 @@ private:
 	/** bound shader state for color masked elements */
 	static FGlobalBoundShaderState ColorChannelMaskShaderState;
 
-	/*
+	/**
 	 * Sets the appropriate vertex and pixel shader.
 	 */
 	void PrepareShaders(
 		FRHICommandList& RHICmdList,
+		ERHIFeatureLevel::Type FeatureLevel,
 		ESimpleElementBlendMode BlendMode,
 		const FMatrix& Transform,
 		bool bSwitchVerticalAxis,

@@ -19,7 +19,7 @@ public:
 	/** Default values. */
 	FStaticMeshLODGroup()
 		: DefaultNumLODs(1)
-		, DefaultLightMapResolution(32)
+		, DefaultLightMapResolution(64)
 		, BasePercentTrianglesMult(1.0f)
 		, DisplayName( NSLOCTEXT( "UnrealEd", "None", "None" ) )
 	{
@@ -523,125 +523,6 @@ private:
 	void AllocateData( bool bNeedsCPUAccess = true );
 };
 
-class FDistanceFieldVolumeTexture;
-
-/** Global volume texture atlas that collects all static mesh resource distance fields. */
-class FDistanceFieldVolumeTextureAtlas : public FRenderResource
-{
-public:
-	FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat);
-
-	virtual void ReleaseRHI() override
-	{
-		VolumeTextureRHI.SafeRelease();
-	}
-
-	int32 GetSizeX() const { return VolumeTextureRHI->GetSizeX(); }
-	int32 GetSizeY() const { return VolumeTextureRHI->GetSizeY(); }
-	int32 GetSizeZ() const { return VolumeTextureRHI->GetSizeZ(); }
-
-	/** Add an allocation to the atlas. */
-	void AddAllocation(FDistanceFieldVolumeTexture* Texture);
-
-	/** Remove an allocation from the atlas. This must be done prior to deleting the FDistanceFieldVolumeTexture object. */
-	void RemoveAllocation(FDistanceFieldVolumeTexture* Texture);
-
-	/** Reallocates the volume texture if necessary and uploads new allocations. */
-	ENGINE_API void UpdateAllocations();
-
-	EPixelFormat Format;
-	FTexture3DRHIRef VolumeTextureRHI;
-
-private:
-	/** Manages the atlas layout. */
-	FTextureLayout3d BlockAllocator;
-
-	/** Allocations that are waiting to be added until the next update. */
-	TArray<FDistanceFieldVolumeTexture*> PendingAllocations;
-
-	/** Allocations that have already been added, stored in case we need to realloc. */
-	TArray<FDistanceFieldVolumeTexture*> CurrentAllocations;
-};
-
-extern ENGINE_API TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas;
-
-/** Represents a distance field volume texture for a single UStaticMesh. */
-class FDistanceFieldVolumeTexture
-{
-public:
-	FDistanceFieldVolumeTexture(const class FDistanceFieldVolumeData& InVolumeData) :
-		VolumeData(InVolumeData),
-		Atlas(NULL),
-		AtlasAllocationMin(FIntVector(-1, -1, -1)),
-		bReferencedByAtlas(false)
-	{}
-
-	~FDistanceFieldVolumeTexture()
-	{
-		// Make sure we have been properly removed from the atlas before deleting
-		check(!bReferencedByAtlas);
-	}
-
-	void Initialize();
-	void Release();
-
-	FIntVector GetAllocationMin() const
-	{
-		return AtlasAllocationMin;
-	}
-
-	FIntVector GetAllocationSize() const;
-
-	void SetAtlas(FDistanceFieldVolumeTextureAtlas* InAtlas)
-	{
-		Atlas = InAtlas;
-	}
-
-	bool IsValidDistanceFieldVolume() const;
-
-private:
-	const FDistanceFieldVolumeData& VolumeData;
-	FDistanceFieldVolumeTextureAtlas* Atlas;
-	FIntVector AtlasAllocationMin;
-	bool bReferencedByAtlas;
-
-	friend class FDistanceFieldVolumeTextureAtlas;
-};
-
-/** Distance field data payload and output of the mesh build process. */
-class FDistanceFieldVolumeData
-{
-public:
-
-	/** Signed distance field volume stored in local space. */
-	TArray<FFloat16> DistanceFieldVolume;
-
-	/** Dimensions of DistanceFieldVolume. */
-	FIntVector Size;
-
-	/** Local space bounding box of the distance field volume. */
-	FBox LocalBoundingBox;
-
-	/** Whether the mesh was closed and therefore a valid distance field was supported. */
-	bool bMeshWasClosed;
-
-	FDistanceFieldVolumeTexture VolumeTexture;
-
-	FDistanceFieldVolumeData() :
-		Size(FIntVector(0, 0, 0)),
-		LocalBoundingBox(0),
-		bMeshWasClosed(true),
-		VolumeTexture(*this)
-	{}
-
-	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
-	{
-		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed;
-		return Ar;
-	}
-};
-
-
 /** Rendering resources needed to render an individual static mesh LOD. */
 struct FStaticMeshLODResources
 {
@@ -667,7 +548,8 @@ struct FStaticMeshLODResources
 	/** Sections for this LOD. */
 	TArray<FStaticMeshSection> Sections;
 
-	FDistanceFieldVolumeData DistanceFieldData;
+	/** Distance field data associated with this mesh, null if not present.  */
+	class FDistanceFieldVolumeData* DistanceFieldData; 
 
 	/** The maximum distance by which this LOD deviates from the base from which it was generated. */
 	float MaxDeviation;
@@ -676,12 +558,9 @@ struct FStaticMeshLODResources
 	bool bHasAdjacencyInfo;
 
 	/** Default constructor. */
-	FStaticMeshLODResources()
-		: MaxDeviation(0.0f)
-		, bHasAdjacencyInfo(false)
-	{
-		DistanceFieldData.VolumeTexture.SetAtlas(&GDistanceFieldVolumeTextureAtlas);
-	}
+	FStaticMeshLODResources();
+
+	~FStaticMeshLODResources();
 
 	/** Initializes all rendering resources. */
 	void InitResources(UStaticMesh* Parent);
@@ -779,7 +658,8 @@ private:
 #if WITH_EDITORONLY_DATA
 	/** Allow the editor to explicitly update section information. */
 	friend class FLevelOfDetailSettingsLayout;
-
+#endif // #if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/** Resolve all per-section settings. */
 	ENGINE_API void ResolveSectionInfo(UStaticMesh* Owner);
 #endif // #if WITH_EDITORONLY_DATA
@@ -857,21 +737,28 @@ public:
 
 	virtual ~FStaticMeshSceneProxy() {}
 
+	/** Gets the number of mesh batches required to represent the proxy, aside from section needs. */
+	virtual int32 GetNumMeshBatches() const
+	{
+		return 1;
+	}
+
 	/** Sets up a shadow FMeshBatch for a specific LOD. */
-	virtual bool GetShadowMeshElements(int32 LODIndex, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const;
+	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const;
 
 	/** Sets up a FMeshBatch for a specific LOD and element. */
-	virtual bool GetMeshElements(int32 LODIndex,int32 ElementIndex,uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const;
+	virtual bool GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const;
 
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
-	virtual bool GetWireframeMeshElements(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, TArray<FMeshBatch, TInlineAllocator<1>>& OutMeshBatches) const;
+	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const;
+
 
 protected:
 	/**
 	 * Sets IndexBuffer, FirstIndex and NumPrimitives of OutMeshElement.
 	 */
 	virtual void SetIndexSource(int32 LODIndex, int32 ElementIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation ) const;
-	bool IsCollisionView(const FSceneView* View, bool & bDrawSimpleCollision, bool & bDrawComplexCollision) const;
+	bool IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const;
 
 public:
 	// FPrimitiveSceneProxy interface.
@@ -886,11 +773,12 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const override;
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane) const override;
 	virtual bool HasDistanceFieldRepresentation() const override;
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODs.GetAllocatedSize() ); }
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 protected:
 
 	/** Information used by the proxy about a single LOD of the mesh. */
@@ -950,7 +838,7 @@ protected:
 		// FLightCacheInterface.
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const;
 
-		virtual FLightMapInteraction GetLightMapInteraction() const;
+		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 		virtual FShadowMapInteraction GetShadowMapInteraction() const;
 
@@ -976,6 +864,8 @@ protected:
 
 	TIndirectArray<FLODInfo> LODs;
 
+	const FDistanceFieldVolumeData* DistanceFieldData;
+
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
 	 */
@@ -983,16 +873,11 @@ protected:
 
 	FVector TotalScale3D;
 
-	FLinearColor LevelColor;
-	FLinearColor PropertyColor;
-
 	uint32 bCastShadow : 1;
 	ECollisionTraceFlag		CollisionTraceFlag;
 
 	/** The view relevance for all the static mesh's materials. */
 	FMaterialRelevance MaterialRelevance;
-
-	const FLinearColor WireframeColor;
 
 	/** Collision Response of this component**/
 	FCollisionResponseContainer CollisionResponse;
@@ -1005,7 +890,7 @@ protected:
 	float GetScreenSize(int32 LODIndex) const;
 };
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 /**
  * Remaps painted vertex colors when the renderable mesh has changed.
  * @param InPaintedVertices - The original position and normal for each painted vertex.
@@ -1021,4 +906,4 @@ ENGINE_API void RemapPaintedVertexColors(
 	const FStaticMeshVertexBuffer* OptionalVertexBuffer,
 	TArray<FColor>& OutOverrideColors
 	);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR

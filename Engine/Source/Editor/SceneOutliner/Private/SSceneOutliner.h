@@ -218,6 +218,9 @@ namespace SceneOutliner
 		/** Called when the map has changed*/
 		void OnMapChange(uint32 MapFlags);
 
+		/** Called when the current level has changed */
+		void OnNewCurrentLevel();
+
 		/** Open a context menu for this scene outliner */
 		TSharedPtr<SWidget> OnOpenContextMenu() const;
 

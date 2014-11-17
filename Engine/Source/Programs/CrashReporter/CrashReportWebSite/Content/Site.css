@@ -455,7 +455,8 @@ div#utils
 
 input.date,
 #BranchName,
-#GameName
+#GameName,
+#BuildVersion
 {
 	width: 67px;
 	height: 23px;
@@ -794,7 +795,8 @@ th a:visited
 	display: none;
 }
 
-#CrashCommandLine
+#CrashCommandLine,
+#ErrorMessage
 {
 	min-height: 1em;
 	padding: .3em;

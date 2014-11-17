@@ -89,34 +89,41 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_Event::GetTooltip() const
+FText UK2Node_Event::GetTooltipText() const
 {
-	FString Tooltip;
-
 	UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName);
-	if (Function != NULL)
+	if (CachedTooltip.IsOutOfDate() && (Function != nullptr))
 	{
-		Tooltip = Function->GetToolTipText().ToString();
+		CachedTooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
 
 		if (bOverrideFunction || (CustomFunctionName == NAME_None))
 		{
-			FString ClientString;
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("FunctionTooltip"), (FText&)CachedTooltip);
 
 			//@TODO: KISMETREPLICATION: Should do this for events with a custom function name, if it's a newly introduced replicating thingy
 			if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic) || IsCosmeticTickEvent())
 			{
-				ClientString = NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.").ToString();
+				Args.Add(
+					TEXT("ClientString"),
+					NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.")
+				);
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedTooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
 			} 
 			else if(Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
 			{
-				ClientString = NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.").ToString();
-			}
-
-			Tooltip += ClientString;
-		}
+				Args.Add(
+					TEXT("ClientString"),
+					NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.")
+				);
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedTooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
+			}			
+		}		
 	}
 
-	return Tooltip;
+	return CachedTooltip;
 }
 
 FString UK2Node_Event::GetKeywords() const
@@ -343,122 +350,124 @@ bool UK2Node_Event::IsFunctionEntryCompatible(const UK2Node_FunctionEntry* Entry
 	return (EventPins.Num() == 0) && (EntryPins.Num() == 0);
 }
 
-bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UK2Node_Event::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	bool bIsCompatible = Super::IsCompatibleWithGraph(TargetGraph);
+	if (bIsCompatible)
+	{
+		EGraphType const GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
+		bIsCompatible = (GraphType == EGraphType::GT_Ubergraph);
+	}
+	
+	return bIsCompatible;
+}
+
+bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 {
 	// By default, to be safe, we don't allow events to be pasted, except under special circumstances (see below)
-	bool bDisallowPaste = true;
-
-	// Ensure that we can be instanced under the specified schema
-	if(CanCreateUnderSpecifiedSchema(Schema))
+	bool bDisallowPaste = !Super::CanPasteHere(TargetGraph);
+	if(!bDisallowPaste)
 	{
-		// Can only place events in ubergraphs
-		if(Schema->GetGraphType(TargetGraph) == EGraphType::GT_Ubergraph)
+		// Find the Blueprint that owns the target graph
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+		if(Blueprint && Blueprint->SkeletonGeneratedClass)
 		{
-			// Find the Blueprint that owns the target graph
-			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
-			if(Blueprint && Blueprint->SkeletonGeneratedClass)
+			TArray<FName> ExistingNamesInUse;
+			TArray<FString> ExcludedEventNames;
+			TArray<UK2Node_Event*> ExistingEventNodes;
+			TArray<UClass*> ImplementedInterfaceClasses;
+
+			// Gather all names in use by the Blueprint class
+			FBlueprintEditorUtils::GetFunctionNameList(Blueprint, ExistingNamesInUse);
+			FBlueprintEditorUtils::GetClassVariableList(Blueprint, ExistingNamesInUse);
+
+			// Gather all existing event nodes
+			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, ExistingEventNodes);
+
+			// Gather any event names excluded by the Blueprint class
+			const FString ExclusionListKeyName = TEXT("KismetHideOverrides");
+			if(Blueprint->ParentClass->HasMetaData(*ExclusionListKeyName))
 			{
-				TArray<FName> ExistingNamesInUse;
-				TArray<FString> ExcludedEventNames;
-				TArray<UK2Node_Event*> ExistingEventNodes;
-				TArray<UClass*> ImplementedInterfaceClasses;
+				const FString ExcludedEventNameString = Blueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
+				ExcludedEventNameString.ParseIntoArray(&ExcludedEventNames, TEXT(","), true);
+			}
 
-				// Gather all names in use by the Blueprint class
-				FBlueprintEditorUtils::GetFunctionNameList(Blueprint, ExistingNamesInUse);
-				FBlueprintEditorUtils::GetClassVariableList(Blueprint, ExistingNamesInUse);
+			// Gather all interfaces implemented by the Blueprint class
+			FBlueprintEditorUtils::FindImplementedInterfaces(Blueprint, true, ImplementedInterfaceClasses);
 
-				// Gather all existing event nodes
-				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, ExistingEventNodes);
-
-				// Gather any event names excluded by the Blueprint class
-				const FString ExclusionListKeyName = TEXT("KismetHideOverrides");
-				if(Blueprint->ParentClass->HasMetaData(*ExclusionListKeyName))
+			// If this is an internal event, don't paste this event
+			if(!bInternalEvent)
+			{
+				// If this is a function override
+				if(bOverrideFunction)
 				{
-					const FString ExcludedEventNameString = Blueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
-					ExcludedEventNameString.ParseIntoArray(&ExcludedEventNames, TEXT(","), true);
-				}
-
-				// Gather all interfaces implemented by the Blueprint class
-				FBlueprintEditorUtils::FindImplementedInterfaces(Blueprint, true, ImplementedInterfaceClasses);
-
-				// If this is an internal event, don't paste this event
-				if(!bInternalEvent)
-				{
-					// If this is a function override
-					if(bOverrideFunction)
+					// If the function name is hidden by the parent class, don't paste this event
+					bDisallowPaste = EventSignatureClass == Blueprint->ParentClass
+						&& ExcludedEventNames.Contains(EventSignatureName.ToString());
+					if(!bDisallowPaste)
 					{
-						// If the function name is hidden by the parent class, don't paste this event
-						bDisallowPaste = EventSignatureClass == Blueprint->ParentClass
-							&& ExcludedEventNames.Contains(EventSignatureName.ToString());
+						// If the event function is already handled in this Blueprint, don't paste this event
+						for(int32 i = 0; i < ExistingEventNodes.Num() && !bDisallowPaste; ++i)
+						{
+							bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction
+								&& ExistingEventNodes[i]->EventSignatureName == EventSignatureName
+								&& ExistingEventNodes[i]->EventSignatureClass == EventSignatureClass;
+						}
+
 						if(!bDisallowPaste)
 						{
-							// If the event function is already handled in this Blueprint, don't paste this event
-							for(int32 i = 0; i < ExistingEventNodes.Num() && !bDisallowPaste; ++i)
+							// If the signature class is not implemented by the Blueprint parent class or an interface, don't paste this event
+							bDisallowPaste = !Blueprint->ParentClass->IsChildOf(EventSignatureClass)
+								&& !ImplementedInterfaceClasses.Contains(EventSignatureClass);
+							if(bDisallowPaste)
 							{
-								bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction
-									&& ExistingEventNodes[i]->EventSignatureName == EventSignatureName
-									&& ExistingEventNodes[i]->EventSignatureClass == EventSignatureClass;
-							}
-
-							if(!bDisallowPaste)
-							{
-								// If the signature class is not implemented by the Blueprint parent class or an interface, don't paste this event
-								bDisallowPaste = !Blueprint->ParentClass->IsChildOf(EventSignatureClass)
-									&& !ImplementedInterfaceClasses.Contains(EventSignatureClass);
-								if(bDisallowPaste)
-								{
-									UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event signature class (%s) is incompatible with this Blueprint."), *GetFName().ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
-								}
-							}
-							else
-							{
-								UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event function (%s) is already handled."), *GetFName().ToString(), *EventSignatureName.ToString());
+								UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event signature class (%s) is incompatible with this Blueprint."), *GetFName().ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
 							}
 						}
 						else
 						{
-							UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event function (%s) is hidden by the Blueprint parent class (%s)."), *GetFName().ToString(), *EventSignatureName.ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
-						}
-					}
-					else if(CustomFunctionName != NAME_None)
-					{
-						// If this name is already in use, we can't paste this event
-						bDisallowPaste = ExistingNamesInUse.Contains(CustomFunctionName);
-
-						if(!bDisallowPaste)
-						{
-							// Handle events that have a custom function name with an actual signature name/class that is not an override (e.g. AnimNotify events)
-							if(EventSignatureName != NAME_None)
-							{
-								// If the signature class is not implemented by the Blueprint parent class or an interface, don't paste this event
-								bDisallowPaste = !Blueprint->ParentClass->IsChildOf(EventSignatureClass)
-									&& !ImplementedInterfaceClasses.Contains(EventSignatureClass);
-								if(bDisallowPaste)
-								{
-									UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the custom event function (%s) with event signature name (%s) has an event signature class (%s) that is incompatible with this Blueprint."), *GetFName().ToString(), *CustomFunctionName.ToString(), *EventSignatureName.ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
-								}
-							}
-						}
-						else
-						{
-							UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the custom event function (%s) is already handled."), *GetFName().ToString(), *CustomFunctionName.ToString());
+							UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event function (%s) is already handled."), *GetFName().ToString(), *EventSignatureName.ToString());
 						}
 					}
 					else
 					{
-						UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event configuration is not specifically handled (EventSignatureName=%s, EventSignatureClass=%s)."), *GetFName().ToString(), *EventSignatureName.ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
+						UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event function (%s) is hidden by the Blueprint parent class (%s)."), *GetFName().ToString(), *EventSignatureName.ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
+					}
+				}
+				else if(CustomFunctionName != NAME_None)
+				{
+					// If this name is already in use, we can't paste this event
+					bDisallowPaste = ExistingNamesInUse.Contains(CustomFunctionName);
+
+					if(!bDisallowPaste)
+					{
+						// Handle events that have a custom function name with an actual signature name/class that is not an override (e.g. AnimNotify events)
+						if(EventSignatureName != NAME_None)
+						{
+							// If the signature class is not implemented by the Blueprint parent class or an interface, don't paste this event
+							bDisallowPaste = !Blueprint->ParentClass->IsChildOf(EventSignatureClass)
+								&& !ImplementedInterfaceClasses.Contains(EventSignatureClass);
+							if(bDisallowPaste)
+							{
+								UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the custom event function (%s) with event signature name (%s) has an event signature class (%s) that is incompatible with this Blueprint."), *GetFName().ToString(), *CustomFunctionName.ToString(), *EventSignatureName.ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
+							}
+						}
+					}
+					else
+					{
+						UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the custom event function (%s) is already handled."), *GetFName().ToString(), *CustomFunctionName.ToString());
 					}
 				}
 				else
 				{
-					UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because it is flagged as an internal event."), *GetFName().ToString());
+					UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the event configuration is not specifically handled (EventSignatureName=%s, EventSignatureClass=%s)."), *GetFName().ToString(), *EventSignatureName.ToString(), EventSignatureClass ? *EventSignatureClass->GetFName().ToString() : TEXT("NONE"));
 				}
 			}
+			else
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because it is flagged as an internal event."), *GetFName().ToString());
+			}
 		}
-	}
-	else
-	{
-		UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because it cannot be created under the specified schema."), *GetFName().ToString());
 	}
 
 	return !bDisallowPaste;
@@ -630,19 +639,14 @@ void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& 
 
 FText UK2Node_Event::GetMenuCategory() const
 {
-	FText FuncCategory;
+	FString FuncSubCategory;
 	if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
 	{
-		FuncCategory = FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
+		FuncSubCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT(""));
 	}
 
-	FText Category = LOCTEXT("AddEventCategory", "Add Event");
-	if (!FuncCategory.IsEmpty())
-	{
-		Category = FText::Format(LOCTEXT("ConcatenatedCategory", "{0}|{1}"), Category, FuncCategory);
-	}
-
-	return Category;
+	FString RootCategory = LOCTEXT("AddEventCategory", "Add Event").ToString();
+	return FText::FromString(RootCategory + TEXT("|") + FuncSubCategory);
 }
 
 bool UK2Node_Event::IsDeprecated() const

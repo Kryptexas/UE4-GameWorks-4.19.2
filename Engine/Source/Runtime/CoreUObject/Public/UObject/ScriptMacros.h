@@ -27,20 +27,17 @@ enum {MAX_VARIABLE_SIZE = 0x0FFF };
 	Stack.StepCompiledIn<PropertyType>(&ParamName);
 
 #define PARAM_PASSED_BY_REF(ParamName, PropertyType, ParamType)									\
-	ParamType ParamName##Temp;																	\
-	ParamType& ParamName = Stack.StepCompiledInRef<PropertyType, ParamType>(&ParamName##Temp);
+	ParamType& ParamName = Stack.StepCompiledInRef<PropertyType, ParamType>(NULL);
 
 #define PARAM_PASSED_BY_REF_ZEROED(ParamName, PropertyType, ParamType)							\
-	ParamType ParamName##Temp = (ParamType)0;													\
-	ParamType& ParamName = Stack.StepCompiledInRef<PropertyType, ParamType>(&ParamName##Temp);
+	ParamType& ParamName = Stack.StepCompiledInRef<PropertyType, ParamType>(NULL);
 
 #define P_GET_PROPERTY(PropertyType, ParamName)													\
 	PropertyType::TCppType ParamName = PropertyType::GetDefaultPropertyValue();					\
 	Stack.StepCompiledIn<PropertyType>(&ParamName);
 
 #define P_GET_PROPERTY_REF(PropertyType, ParamName)												\
-	PropertyType::TCppType ParamName##Temp = PropertyType::GetDefaultPropertyValue();			\
-	PropertyType::TCppType& ParamName = Stack.StepCompiledInRef<PropertyType, PropertyType::TCppType>(&ParamName##Temp);
+	PropertyType::TCppType& ParamName = Stack.StepCompiledInRef<PropertyType, PropertyType::TCppType>(NULL);
 
 
 

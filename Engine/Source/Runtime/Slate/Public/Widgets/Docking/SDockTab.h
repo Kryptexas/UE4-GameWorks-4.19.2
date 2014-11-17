@@ -153,7 +153,7 @@ public:
 	TSharedPtr<SWindow> GetParentWindow() const;
 
 	/** The width that this tab will overlap with side-by-side tabs. */
-	float GetOverlapWidth();
+	float GetOverlapWidth() const;
 
 	/** The label on the tab */
 	FText GetTabLabel() const;
@@ -169,16 +169,6 @@ public:
 
 	/** Sets the tab icon */
 	void SetTabIcon( const TAttribute<const FSlateBrush*> InTabIcon );
-	
-	/**Is this dock tab being placed via a tab well or via a target*/
-	enum EViaTabwell
-	{
-		DockingViaTabWell,
-		DockingViaTarget
-	};
-
-	/** Checks to see if this tab can dock in this node. Some tabs can only dock via the tab well. */
-	bool CanDockInNode(const TSharedRef<class SDockingNode>& DockNode, EViaTabwell IsDockingViaTabwell ) const;
 
 	/** Should this tab be sized based on its content. */
 	bool ShouldAutosize() const;
@@ -187,7 +177,7 @@ public:
 	bool CanCloseTab() const;
 
 	/** Requests that the tab be closed.  Tabs may prevent closing depending on their state */	
-	void RequestCloseTab();
+	bool RequestCloseTab();
 
 	/** A chance for the tab's content to save any internal layout info */
 	void PersistVisualState();
@@ -208,7 +198,7 @@ public:
 	void ActivateInParent(ETabActivationCause::Type InActivationCause);
 
 	/** Set the tab manager that is controlling this tab */
-	void SetTabManager( const TSharedPtr<class FTabManager>& InTabManager );
+	void SetTabManager( const TSharedPtr<FTabManager>& InTabManager );
 
 	/**
 	 * Set the custom code to execute for saving visual state in this tab.
@@ -288,10 +278,13 @@ protected:
 	/** Specify the TabId that was used to spawn this tab. */
 	void SetLayoutIdentifier( const FTabId& TabId );
 
+	/** @return if the close button should be visible. */
+	EVisibility HandleIsCloseButtonVisible() const;
+
 protected:
 
 	/** The tab manager that created this tab. */
-	TWeakPtr<class FTabManager> MyTabManager;
+	TWeakPtr<FTabManager> MyTabManager;
 
 	/** The stuff to show when this tab is selected */
 	TSharedRef<SWidget> Content;

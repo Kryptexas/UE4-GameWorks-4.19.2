@@ -4,7 +4,7 @@
 
 /** 
  *	User defined enumerations:
- *	- have bIsNamespace set always to true (to comfortable handle names collisions)
+ *	- EnumType is always UEnum::ECppForm::Namespaced (to comfortable handle names collisions)
  *	- always have the last '_MAX' enumerator, that cannot be changed by user
  *	- Full enumerator name has form: '<enumeration path>::<short, user defined enumerator name>'
  */
@@ -24,7 +24,7 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 	uint32 UniqueNameIndex;
 #endif //WITH_EDITORONLY_DATA
 
-	/*
+	/**
 	 * Names stored in "DisplayName" meta data. They are duplicated here, 
 	 * so functions like UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName can use them
 	 * outside the editor. (When meta data are not loaded).

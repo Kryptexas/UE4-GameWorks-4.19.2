@@ -57,6 +57,9 @@ public:
 	virtual void StartupModule() override
 	{
 		TargetSettings = ConstructObject<ULinuxTargetSettings>(ULinuxTargetSettings::StaticClass(), GetTransientPackage(), "LinuxTargetSettings", RF_Standalone);
+
+		// We need to manually load the config properties here, as this module is loaded before the UObject system is setup to do this
+		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
 		TargetSettings->AddToRoot();
 
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
@@ -65,7 +68,7 @@ public:
 		{
 			SettingsModule->RegisterSettings("Project", "Platforms", "Linux",
 				LOCTEXT("TargetSettingsName", "Linux"),
-				LOCTEXT("TargetSettingsDescription", "Linux platform settings description text here"),
+				LOCTEXT("TargetSettingsDescription", "Settings for Linux target platform"),
 				TargetSettings
 			);
 		}
@@ -73,9 +76,23 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		TargetSettings->RemoveFromRoot();
-	}
+		ISettingsModule* SettingsModule = ISettingsModule::Get();
 
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->UnregisterSettings("Project", "Platforms", "Linux");
+		}
+
+		if (!GExitPurge)
+		{
+			// If we're in exit purge, this object has already been destroyed
+			TargetSettings->RemoveFromRoot();
+		}
+		else
+		{
+			TargetSettings = NULL;
+		}
+	}
 	// End IModuleInterface interface
 
 

@@ -8,7 +8,6 @@
 class FDragDropOperation;
 class SWidget;
 
-
 /**
  * A Reply is something that a Slate event returns to the system to notify it about certain aspect of how an event was handled.
  * For example, a widget may handle an OnMouseDown event by asking the system to give mouse capture to a specific Widget.

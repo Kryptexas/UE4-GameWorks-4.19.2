@@ -73,6 +73,13 @@ public:
 
 	static bool ChangeEditableOnBPInstance(UUserDefinedStruct* Struct, FGuid VarGuid, bool bInIsEditable);
 
+	enum EMoveDirection
+	{
+		MD_Up,
+		MD_Down,
+	};
+	static bool MoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid, EMoveDirection MoveDirection);
+
 	//3D Widget
 	static bool CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid);
 
@@ -134,6 +141,10 @@ public:
 	/** Can the structure be a member variable for a BPGClass or BPGStruct */
 	static EStructureError IsStructureValid(const UScriptStruct* Struct, const UStruct* RecursionParent = NULL, FString* OutMsg = NULL);
 
+	/** called after UDS was changed by editor*/
 	static void OnStructureChanged(UUserDefinedStruct* Struct);
+
+	static void BroadcastPreChange(UUserDefinedStruct* Struct);
+	static void BroadcastPostChange(UUserDefinedStruct* Struct);
 };
 

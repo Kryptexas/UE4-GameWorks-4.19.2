@@ -17,6 +17,10 @@
 #include "Kismet2/Kismet2NameValidators.h"
 #include "UserDefinedStructureCompilerUtils.h"
 #include "EditorCategoryUtils.h"
+#include "K2Node_EnumLiteral.h"
+#include "EdGraph/EdGraphNode_Documentation.h"
+#include "Engine/DynamicBlueprintBinding.h"
+#include "Kismet/KismetMathLibrary.h"
 
 static bool bDebugPropertyPropagation = false;
 
@@ -47,10 +51,10 @@ DEFINE_STAT(EKismetCompilerStats_UpdateBlueprintGeneratedClass);
 FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
 	: FGraphCompilerContext(InMessageLog)
 	, Schema(NULL)
+	, CompileOptions(InCompilerOptions)
 	, ObjLoaded(InObjLoaded)
 	, Blueprint(SourceSketch)
 	, NewClass(NULL)
-	, CompileOptions(InCompilerOptions)
 	, ConsolidatedEventGraph(NULL)
 	, UbergraphContext(NULL)
 {
@@ -287,19 +291,6 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 		return;
 	}
 
-	// Fixing up references to the skel or the generated classes to be PSC_Self pins
-	if ((Pin->PinType.PinCategory == Schema->PC_Object) || (Pin->PinType.PinCategory == Schema->PC_Interface))
-	{
-		//@todo:  This is modifying the model, but is acceptable to save another prepass on the pins
-		UEdGraphPin* MutablePin = const_cast<UEdGraphPin*>(Pin);
-
-		if (NewClass && MutablePin->PinType.PinSubCategoryObject.Get() == NewClass)
-			{
-				MutablePin->PinType.PinSubCategory = Schema->PSC_Self;
-				MutablePin->PinType.PinSubCategoryObject = NULL;
-			}
-		}
-
 	if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
 	{
 		// Wildcard pins should never be seen by the compiler; they should always be forced into a particular type by wiring.
@@ -383,7 +374,7 @@ UProperty* FKismetCompilerContext::CreateVariable(const FName VarName, const FEd
 	else
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("VariableInvalidType_Error", "The variable %s declared in @@ has an invalid type %s").ToString(),
-			*VarName.ToString(), *UEdGraphSchema_K2::TypeToString(VarType)), Blueprint);
+			*VarName.ToString(), *UEdGraphSchema_K2::TypeToText(VarType).ToString()), Blueprint);
 	}
 
 	return NewProperty;
@@ -396,8 +387,8 @@ bool FKismetCompilerContext::IsNodePure(const UEdGraphNode* Node) const
 	{
 		return K2Node->IsNodePure();
 	}
-	// Only non K2Nodes are comments, which are pure
-	ensure(Node->IsA(UEdGraphNode_Comment::StaticClass()));
+	// Only non K2Nodes are comments and documentation nodes, which are pure
+	ensure(Node->IsA(UEdGraphNode_Comment::StaticClass())||Node->IsA(UEdGraphNode_Documentation::StaticClass()));
 	return true;
 }
 
@@ -593,7 +584,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			{
 				continue;
 			}
-			MessageLog.Warning(*FString::Printf(*LOCTEXT("AssociatedVarProperty_Error", "AssociatedVarProperty property overriden %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToString(Term.Type)), Term.Source);
+			MessageLog.Warning(*FString::Printf(*LOCTEXT("AssociatedVarProperty_Error", "AssociatedVarProperty property overriden %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
 		}
 
 		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);
@@ -687,7 +678,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 		}
 		else
 		{
-			MessageLog.Error(*FString::Printf(*LOCTEXT("FailedCreateProperty_Error", "Failed to create property %s from @@ due to a bad or unknown type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToString(Term.Type)),
+			MessageLog.Error(*FString::Printf(*LOCTEXT("FailedCreateProperty_Error", "Failed to create property %s from @@ due to a bad or unknown type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()),
 				Term.Source);
 		}
 
@@ -1164,28 +1155,44 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		// Add the function to it's owner class function name -> function map
 		Context.NewClass->AddFunctionToFunctionMap(Context.Function);
 
-		//@TODO: Prune pure functions that don't have any consumers
-
-		// Find the execution path (and make sure it has no cycles)
-		CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
-
 		// Create any user defined variables, this must occur before registering nets so that the properties are in place
 		UField** PropertyStorageLocation = &(Context.Function->Children);
 		CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
 
-		bool bIsPureFunction = true;
-		for (int32 NodeIndex = 0; NodeIndex < Context.LinearExecutionList.Num(); ++NodeIndex)
+		//@TODO: Prune pure functions that don't have any consumers
+		if (bIsFullCompile)
 		{
-			UEdGraphNode* Node = Context.LinearExecutionList[NodeIndex];
+			// Find the execution path (and make sure it has no cycles)
+			CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
 
-			// Register nets in the schedule
-			if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
+			for (int32 NodeIndex = 0; NodeIndex < Context.LinearExecutionList.Num(); ++NodeIndex)
 			{
-				Handler->RegisterNets(Context, Node);
+				UEdGraphNode* Node = Context.LinearExecutionList[NodeIndex];
+
+				// Register nets in the schedule
+				if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
+				{
+					Handler->RegisterNets(Context, Node);
+				}
+				else
+				{
+					MessageLog.Error(*FString::Printf(*LOCTEXT("UnexpectedNodeType_Error", "Unexpected node type %s encountered at @@").ToString(), *(Node->GetClass()->GetName())), Node);
+				}
 			}
-			else
+		}
+		else
+		{
+			for (auto Node : Context.SourceGraph->Nodes)
 			{
-				MessageLog.Error(*FString::Printf(*LOCTEXT("UnexpectedNodeType_Error", "Unexpected node type %s encountered at @@").ToString(), *(Node->GetClass()->GetName())), Node);
+				const bool bGenerateParameters = Node->IsA<UK2Node_FunctionEntry>();
+				const bool bGenerateResult = Node->IsA<UK2Node_FunctionResult>();
+				if (bGenerateParameters || bGenerateResult)
+				{
+					if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
+					{
+						Handler->RegisterNets(Context, Node);
+					}
+				}
 			}
 		}
 	
@@ -1476,12 +1483,16 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	{
 		Function->FunctionFlags |= (OverridenFunction->FunctionFlags & (FUNC_FuncInherit | FUNC_Public | FUNC_Protected | FUNC_Private));
 
-		if( (Function->FunctionFlags & FUNC_AccessSpecifiers) != (OverridenFunction->FunctionFlags & FUNC_AccessSpecifiers) )
+		if ((Function->FunctionFlags & FUNC_AccessSpecifiers) != (OverridenFunction->FunctionFlags & FUNC_AccessSpecifiers))
 		{
 			MessageLog.Error(*LOCTEXT("IncompatibleAccessSpecifier_Error", "Access specifier is not compatible the parent function @@").ToString(), Context.EntryPoint);
 		}
 
-		ensure((Function->FunctionFlags & FUNC_FuncOverrideMatch) == (OverridenFunction->FunctionFlags & FUNC_FuncOverrideMatch));
+		const uint32 OverrideFlagsToCheck = (FUNC_FuncOverrideMatch & ~FUNC_AccessSpecifiers);
+		if ((Function->FunctionFlags & OverrideFlagsToCheck) != (OverridenFunction->FunctionFlags & OverrideFlagsToCheck))
+		{
+			MessageLog.Error(*LOCTEXT("IncompatibleOverrideFlags_Error", "Overriden function is not compatible with the parent function @@. Check flags: Exec, Final, Static.").ToString(), Context.EntryPoint);
+		}
 
 		// Copy metadata from parent function as well
 		UMetaData::CopyMetadata(OverridenFunction, Function);
@@ -1729,23 +1740,26 @@ void FKismetCompilerContext::BuildDynamicBindingObjects(UBlueprintGeneratedClass
 {
 	Class->DynamicBindingObjects.Empty();
 
-	for (int NodeIndex = 0; NodeIndex < ConsolidatedEventGraph->Nodes.Num(); ++NodeIndex)
+	for (FKismetFunctionContext& FunctionContext : FunctionList)
 	{
-		UK2Node* Node = Cast<UK2Node>(ConsolidatedEventGraph->Nodes[NodeIndex]);
-
-		if (Node)
+		for (UEdGraphNode* GraphNode : FunctionContext.SourceGraph->Nodes)
 		{
-			UClass* DynamicBindingClass = Node->GetDynamicBindingClass();
+			UK2Node* Node = Cast<UK2Node>(GraphNode);
 
-			if (DynamicBindingClass)
+			if (Node)
 			{
-				UDynamicBlueprintBinding* DynamicBindingObject = Class->GetDynamicBindingObject(DynamicBindingClass);
-				if (DynamicBindingObject == NULL)
+				UClass* DynamicBindingClass = Node->GetDynamicBindingClass();
+
+				if (DynamicBindingClass)
 				{
-					DynamicBindingObject = ConstructObject<UDynamicBlueprintBinding>(DynamicBindingClass, Class);
-					Class->DynamicBindingObjects.Add(DynamicBindingObject);
+					UDynamicBlueprintBinding* DynamicBindingObject = Class->GetDynamicBindingObject(DynamicBindingClass);
+					if (DynamicBindingObject == NULL)
+					{
+						DynamicBindingObject = ConstructObject<UDynamicBlueprintBinding>(DynamicBindingClass, Class);
+						Class->DynamicBindingObjects.Add(DynamicBindingObject);
+					}
+					Node->RegisterDynamicBinding(DynamicBindingObject);
 				}
-				Node->RegisterDynamicBinding(DynamicBindingObject);
 			}
 		}
 	}
@@ -1800,121 +1814,177 @@ UK2Node_CallFunction* FKismetCompilerContext::CreateCallTimelineFunction(UK2Node
 /** Expand timeline nodes into necessary nodes */
 void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 {
+	// Timeline Pair helper
+	struct FTimelinePair
+	{
+	public:
+		FTimelinePair( UK2Node_Timeline* InNode, UTimelineTemplate* InTemplate )
+		: Node( InNode )
+		, Template( InTemplate )
+		{
+		}
+	public:
+		UK2Node_Timeline* const Node;
+		UTimelineTemplate* Template;
+	};
+
+	TArray<FName> TimelinePlayNodes;
+	TArray<FTimelinePair> Timelines;
+	// Extract timeline pairings and external play nodes
 	for (int32 ChildIndex = 0; ChildIndex < SourceGraph->Nodes.Num(); ++ChildIndex)
 	{
-		UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>( SourceGraph->Nodes[ChildIndex] );
-		if (TimelineNode != NULL)
+		if (UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>( SourceGraph->Nodes[ChildIndex]))
 		{
 			UTimelineTemplate* Timeline = Blueprint->FindTimelineTemplateByVariableName(TimelineNode->TimelineName);
 			if (Timeline != NULL)
 			{
-				FString TimelineNameString = TimelineNode->TimelineName.ToString();
-
-				UEdGraphPin* PlayPin = TimelineNode->GetPlayPin();
-				bool bPlayPinConnected = (PlayPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* PlayFromStartPin = TimelineNode->GetPlayFromStartPin();
-				bool bPlayFromStartPinConnected = (PlayFromStartPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* StopPin = TimelineNode->GetStopPin();
-				bool bStopPinConnected = (StopPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* ReversePin = TimelineNode->GetReversePin();
-				bool bReversePinConnected = (ReversePin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* ReverseFromEndPin = TimelineNode->GetReverseFromEndPin();
-				bool bReverseFromEndPinConnected = (ReverseFromEndPin->LinkedTo.Num() > 0);
-
-				UEdGraphPin* SetTimePin = TimelineNode->GetSetNewTimePin();
-				bool bSetNewTimePinConnected = (SetTimePin->LinkedTo.Num() > 0);
-
-				// Only create nodes for play/stop if they are actually connected - otherwise we get a 'unused node being pruned' warning
-				if(bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected)
-				{
-					// First create 'get var' node to get the timeline object
-					UK2Node_VariableGet* GetTimelineNode = SpawnIntermediateNode<UK2Node_VariableGet>(TimelineNode, SourceGraph);
-					GetTimelineNode->VariableReference.SetSelfMember(TimelineNode->TimelineName);
-					GetTimelineNode->AllocateDefaultPins();
-
-					// Debug data: Associate the timeline node instance with the property that was created earlier
-					UProperty* AssociatedTimelineInstanceProperty = TimelineToMemberVariableMap.FindChecked(Timeline);
-					if (AssociatedTimelineInstanceProperty != NULL)
-					{
-						UObject* TrueSourceObject = MessageLog.FindSourceObject(TimelineNode);
-						NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, AssociatedTimelineInstanceProperty);
-					}
-
-					// Get the variable output pin
-					UEdGraphPin* TimelineVarPin = GetTimelineNode->FindPin(TimelineNameString);
-
-					// This might fail if this is the first compile after adding the timeline (property doesn't exist yet) - in that case, manually add the output pin
-					if(TimelineVarPin == NULL)
-					{
-						TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, TimelineNode->TimelineName.ToString());
-					}
-
-					if(bPlayPinConnected)
-					{
-						static FName PlayName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Play));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayName, TimelineVarPin, PlayPin);
-					}
-
-					if(bPlayFromStartPinConnected)
-					{
-						static FName PlayFromStartName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, PlayFromStart));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayFromStartName, TimelineVarPin, PlayFromStartPin);
-					}
-
-					if(bStopPinConnected)
-					{
-						static FName StopName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Stop));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, StopName, TimelineVarPin, StopPin);
-					}
-
-					if (bReversePinConnected)
-					{
-						static FName ReverseName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Reverse));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseName, TimelineVarPin, ReversePin);
-					}
-
-					if (bReverseFromEndPinConnected)
-					{
-						static FName ReverseFromEndName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, ReverseFromEnd));
-						CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseFromEndName, TimelineVarPin, ReverseFromEndPin);
-					}
-
-					if (bSetNewTimePinConnected)
-					{
-						UEdGraphPin* NewTimePin = TimelineNode->GetNewTimePin();
-
-						static FName SetNewTimeName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, SetNewTime));
-						UK2Node_CallFunction* CallNode = CreateCallTimelineFunction(TimelineNode, SourceGraph, SetNewTimeName, TimelineVarPin, SetTimePin);
-
-						if (CallNode && NewTimePin)
-						{
-							UEdGraphPin* InputPin = CallNode->FindPinChecked(TEXT("NewTime"));
-							MovePinLinksToIntermediate(*NewTimePin, *InputPin);
-						}
-					}
-				}
-
-				// Create event to call on each update
-				UFunction* EventSigFunc = UTimelineComponent::GetTimelineEventSignature();
-
-				// Create event nodes for any event tracks
-				for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
-				{
-					FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
-					CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
-				}
-
-				// Generate Update Pin Event Node
-				CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetUpdateFunctionName(), TEXT("Update"), EventSigFunc->GetFName());
-
-				// Generate Finished Pin Event Node
-				CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetFinishedFunctionName(), TEXT("Finished"), EventSigFunc->GetFName());
-			}			
+				Timelines.Add(FTimelinePair( TimelineNode, Timeline ));
+			}
 		}
+		else if( UK2Node_VariableGet* VarNode = Cast<UK2Node_VariableGet>( SourceGraph->Nodes[ChildIndex] ))
+		{
+			// Check for Timeline Variable Get Nodes
+			UEdGraphPin* const ValuePin = VarNode->GetValuePin();
+
+			if( ValuePin && ValuePin->LinkedTo.Num() > 0  )
+			{
+				UClass* ValueClass = ValuePin->PinType.PinSubCategoryObject.IsValid() ? Cast<UClass>( ValuePin->PinType.PinSubCategoryObject.Get() ) : nullptr;
+				if( ValueClass == UTimelineComponent::StaticClass() )
+				{
+					const FName PinName( *ValuePin->PinName );
+					if( UTimelineTemplate* TimelineTemplate = Blueprint->FindTimelineTemplateByVariableName( PinName ))
+					{
+						TimelinePlayNodes.Add( PinName );
+					}
+				}
+			}
+		}
+	}
+	// Expand and validate timelines
+	for ( auto TimelinePair : Timelines )
+	{
+		UK2Node_Timeline* const TimelineNode = TimelinePair.Node;
+		UTimelineTemplate* Timeline = TimelinePair.Template;
+		const FString TimelineNameString = TimelineNode->TimelineName.ToString();
+
+		UEdGraphPin* PlayPin = TimelineNode->GetPlayPin();
+		bool bPlayPinConnected = (PlayPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* PlayFromStartPin = TimelineNode->GetPlayFromStartPin();
+		bool bPlayFromStartPinConnected = (PlayFromStartPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* StopPin = TimelineNode->GetStopPin();
+		bool bStopPinConnected = (StopPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* ReversePin = TimelineNode->GetReversePin();
+		bool bReversePinConnected = (ReversePin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* ReverseFromEndPin = TimelineNode->GetReverseFromEndPin();
+		bool bReverseFromEndPinConnected = (ReverseFromEndPin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* SetTimePin = TimelineNode->GetSetNewTimePin();
+		bool bSetNewTimePinConnected = (SetTimePin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* UpdatePin = TimelineNode->GetUpdatePin();
+		bool bUpdatePinConnected = (UpdatePin->LinkedTo.Num() > 0);
+
+		UEdGraphPin* FinishedPin = TimelineNode->GetFinishedPin();
+		bool bFinishedPinConnected = (FinishedPin->LinkedTo.Num() > 0);
+		
+
+		// Set the timeline template as wired/not wired for component pruning later
+		const bool bWiredIn = bPlayPinConnected || bPlayFromStartPinConnected || bStopPinConnected || bReversePinConnected || bReverseFromEndPinConnected || bSetNewTimePinConnected;
+		const bool bWiredOut = bUpdatePinConnected || bFinishedPinConnected;
+		const bool bPlayWired = Timeline->bAutoPlay;
+		const bool bReferenced = TimelinePlayNodes.Find( TimelineNode->TimelineName ) != INDEX_NONE;
+
+		Timeline->bValidatedAsWired = bWiredIn || bReferenced || ( bPlayWired && bWiredOut );
+
+		// Only create nodes for play/stop if they are actually connected - otherwise we get a 'unused node being pruned' warning
+		if(bWiredIn)
+		{
+			// First create 'get var' node to get the timeline object
+			UK2Node_VariableGet* GetTimelineNode = SpawnIntermediateNode<UK2Node_VariableGet>(TimelineNode, SourceGraph);
+			GetTimelineNode->VariableReference.SetSelfMember(TimelineNode->TimelineName);
+			GetTimelineNode->AllocateDefaultPins();
+
+			// Debug data: Associate the timeline node instance with the property that was created earlier
+			UProperty* AssociatedTimelineInstanceProperty = TimelineToMemberVariableMap.FindChecked(Timeline);
+			if (AssociatedTimelineInstanceProperty != NULL)
+			{
+				UObject* TrueSourceObject = MessageLog.FindSourceObject(TimelineNode);
+				NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, AssociatedTimelineInstanceProperty);
+			}
+
+			// Get the variable output pin
+			UEdGraphPin* TimelineVarPin = GetTimelineNode->FindPin(TimelineNameString);
+
+			// This might fail if this is the first compile after adding the timeline (property doesn't exist yet) - in that case, manually add the output pin
+			if(TimelineVarPin == NULL)
+			{
+				TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, TimelineNode->TimelineName.ToString());
+			}
+
+			if(bPlayPinConnected)
+			{
+				static FName PlayName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Play));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayName, TimelineVarPin, PlayPin);
+			}
+
+			if(bPlayFromStartPinConnected)
+			{
+				static FName PlayFromStartName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, PlayFromStart));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, PlayFromStartName, TimelineVarPin, PlayFromStartPin);
+			}
+
+			if(bStopPinConnected)
+			{
+				static FName StopName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Stop));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, StopName, TimelineVarPin, StopPin);
+			}
+
+			if (bReversePinConnected)
+			{
+				static FName ReverseName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, Reverse));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseName, TimelineVarPin, ReversePin);
+			}
+
+			if (bReverseFromEndPinConnected)
+			{
+				static FName ReverseFromEndName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, ReverseFromEnd));
+				CreateCallTimelineFunction(TimelineNode, SourceGraph, ReverseFromEndName, TimelineVarPin, ReverseFromEndPin);
+			}
+
+			if (bSetNewTimePinConnected)
+			{
+				UEdGraphPin* NewTimePin = TimelineNode->GetNewTimePin();
+
+				static FName SetNewTimeName(GET_FUNCTION_NAME_CHECKED(UTimelineComponent, SetNewTime));
+				UK2Node_CallFunction* CallNode = CreateCallTimelineFunction(TimelineNode, SourceGraph, SetNewTimeName, TimelineVarPin, SetTimePin);
+
+				if (CallNode && NewTimePin)
+				{
+					UEdGraphPin* InputPin = CallNode->FindPinChecked(TEXT("NewTime"));
+					MovePinLinksToIntermediate(*NewTimePin, *InputPin);
+				}
+			}
+		}
+
+		// Create event to call on each update
+		UFunction* EventSigFunc = UTimelineComponent::GetTimelineEventSignature();
+
+		// Create event nodes for any event tracks
+		for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
+		{
+			FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
+			CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
+		}
+
+		// Generate Update Pin Event Node
+		CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetUpdateFunctionName(), TEXT("Update"), EventSigFunc->GetFName());
+
+		// Generate Finished Pin Event Node
+		CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetFinishedFunctionName(), TEXT("Finished"), EventSigFunc->GetFName());
 	}
 }
 
@@ -2695,6 +2765,22 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 						MakeArrayOut->MakeLinkTo(Pin);
 						MakeArrayNode->PinConnectionListChanged(MakeArrayOut);
 					}
+					else if (Pin->LinkedTo.Num() == 0 &&
+							Pin->DefaultValue != FString() &&
+							Pin->PinType.PinCategory == Schema->PC_Byte &&
+							Pin->PinType.PinSubCategoryObject.IsValid() &&
+							Pin->PinType.PinSubCategoryObject->IsA<UEnum>())
+					{
+						// Similarly, enums need a 'make enum' node because they decay to byte after instantiation:
+						UK2Node_EnumLiteral* EnumLiteralNode = SpawnIntermediateNode<UK2Node_EnumLiteral>(MacroInstanceNode, SourceGraph);
+						EnumLiteralNode->Enum = CastChecked<UEnum>(Pin->PinType.PinSubCategoryObject.Get());
+						EnumLiteralNode->AllocateDefaultPins();
+						EnumLiteralNode->FindPinChecked(Schema->PN_ReturnValue)->MakeLinkTo(Pin);
+
+						UEdGraphPin* InPin = EnumLiteralNode->FindPinChecked(UK2Node_EnumLiteral::GetEnumInputPinName());
+						check(InPin);
+						InPin->DefaultValue = Pin->DefaultValue;
+					}
 					// Otherwise we need to handle the pin splitting
 					else if (Pin->SubPins.Num() > 0)
 					{
@@ -3068,8 +3154,6 @@ void FKismetCompilerContext::Compile()
 	}
 
 	UObject* OldCDO = NULL;
-
-	int32 OldSkelLinkerIdx = INDEX_NONE;
 	int32 OldGenLinkerIdx = INDEX_NONE;
 	ULinkerLoad* OldLinker = Blueprint->GetLinker();
 
@@ -3082,17 +3166,9 @@ void FKismetCompilerContext::Compile()
 		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
 		{
 			FObjectExport& ThisExport = OldLinker->ExportMap[i];
-			if( ThisExport.ObjectName == SkeletonName )
-			{
-				OldSkelLinkerIdx = i;
-			}
-			else if( ThisExport.ObjectName == GeneratedName )
+			if( ThisExport.ObjectName == GeneratedName )
 			{
 				OldGenLinkerIdx = i;
-			}
-
-			if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
-			{
 				break;
 			}
 		}
@@ -3313,7 +3389,8 @@ void FKismetCompilerContext::Compile()
 						}
 					}
 
-					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);			
+					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
+					FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(OldCDO, NewCDO);
 				}
 
 				// >>> Backwards Compatibility: Propagate data from the skel CDO to the gen CDO if we haven't already done so for this blueprint
@@ -3354,16 +3431,8 @@ void FKismetCompilerContext::Compile()
 			// The C++ backend is currently only for debugging, so it's only run if the output will be visible
 			Backend_CPP.GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile);
 		
-			// need to break it down per line to prevent the log from failing to emit it
-			TArray<FString> Lines;
-			FString TotalString = FString::Printf(TEXT("\n\n\n[header]\n\n\n%s[body]\n%s"), *Backend_CPP.Header, *Backend_CPP.Body);
-
-			TotalString.ParseIntoArray(&Lines, TEXT("\n"), true);
-			for (int32 I=0; I<Lines.Num(); ++I)
-			{
-				FString Line = Lines[I];
-				UE_LOG(LogK2Compiler, Log, TEXT("%s"), *Line);
-			}
+			UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *Backend_CPP.Header);
+			UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *Backend_CPP.Body);
 		}
 
 		// Always run the VM backend, it's needed for more than just debug printing
@@ -3410,19 +3479,25 @@ void FKismetCompilerContext::Compile()
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
 	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
 	{
-		TArray<UObject*> AllBlueprints;
-		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
-  
-		// Mark any blueprints that implement this interface as dirty
-		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
+		TArray<UBlueprint*> DependentBlueprints;
+		FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, DependentBlueprints);
+		for (auto CurrentBP : DependentBlueprints)
 		{
-			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
-  
-			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
+			// Get the current dirty state of the package
+			UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+			const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
+
+			CurrentBP->Status = BS_Dirty;
+			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, NewClass);
+			
+			// Note: We do not send a change notification event to the dependent BP here because
+			// we have not yet reinstanced any of the instances of the BP being compiled, which may
+			// be referenced by instances of the dependent BP that may be reconstructed as a result.
+
+			// Clear the package dirty state if it did not initially have any unsaved changes to begin with
+			if(Package != nullptr && Package->IsDirty() && !bStartedWithUnsavedChanges)
 			{
-				CurrentBP->Status = BS_Dirty;
-				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
-				CurrentBP->BroadcastChanged();
+				Package->SetDirtyFlag(false);
 			}
 		}
 	}

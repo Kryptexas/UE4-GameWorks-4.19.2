@@ -4,6 +4,25 @@
 
 #include "DesignerExtension.h"
 
+/** Set of anchor widget types */
+namespace EAnchorWidget
+{
+	enum Type
+	{
+		Center,
+		Left,
+		Right,
+		Top,
+		Bottom,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight,
+
+		MAX_COUNT
+	};
+}
+
 /**
  * The canvas slot extension provides design time widgets for widgets that are selected in the canvas.
  */
@@ -11,6 +30,8 @@ class FCanvasSlotExtension : public FDesignerExtension
 {
 public:
 	FCanvasSlotExtension();
+
+	virtual ~FCanvasSlotExtension() {}
 
 	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const override;
 	
@@ -20,11 +41,15 @@ public:
 
 private:
 
-	FReply HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event);
-	FReply HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event);
-	FReply HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event);
+	FReply HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+	FReply HandleAnchorEndDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
+	FReply HandleAnchorDragging(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget::Type AnchorType);
 
-	void MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta);
+	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height);
+
+	const FSlateBrush* GetAnchorBrush(EAnchorWidget::Type AnchorType) const;
+	EVisibility GetAnchorVisibility(EAnchorWidget::Type AnchorType) const;
+	FVector2D GetAnchorAlignment(EAnchorWidget::Type AnchorType) const;
 
 	static bool GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, int32 SlotIndex, TArray<FVector2D>& Segments);
 	static bool GetCollisionSegmentsForSlot(UCanvasPanel* Canvas, UCanvasPanelSlot* Slot, TArray<FVector2D>& Segments);
@@ -32,9 +57,19 @@ private:
 
 	void PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
+	void ProximitySnapValue(float SnapFrequency, float SnapProximity, float& Value);
+
 private:
 
-	bool bDragging;
+	/** */
+	TArray< TSharedPtr<SWidget> > AnchorWidgets;
 
-	TSharedPtr<SBorder> MoveHandle;
+	/** */
+	bool bMovingAnchor;
+
+	/** */
+	FVector2D MouseDownPosition;
+
+	/** */
+	FAnchors BeginAnchors;
 };

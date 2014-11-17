@@ -49,7 +49,10 @@ public:
 	/**
 	 * @return true if the viewport is visible. false otherwise                  
 	 */
-	bool IsVisible() const;
+	virtual bool IsVisible() const;
+
+	/** @return true if this viewport is in a foregrounded tab */
+	bool IsInForegroundTab() const;
 
 	/**
 	 * @return The editor client for this viewport
@@ -630,6 +633,9 @@ private:
 	/** @return Whether or not redo can be executed */
 	bool CanExecuteRedo() const;
 
+	/** @return Whether the mouse capture label is visible */
+	EVisibility GetMouseCaptureLabelVisibility() const;
+
 	/** @return The current color & opacity for the mouse capture label */
 	FLinearColor GetMouseCaptureLabelColorAndOpacity() const;
 
@@ -641,6 +647,12 @@ private:
 
 	/** Hide the mouse capture label */
 	void HideMouseCaptureLabel();
+
+	/** Resets view flags when a new level is created or opened */
+	void ResetNewLevelViewFlags();
+private:
+	/** Returns the DPI scaler that should be used for game UI in the viewport */
+	float GetGameViewportDPIScale() const;
 
 private:
 	/** Tab which this viewport is located in */
@@ -778,6 +790,12 @@ private:
 
 	/** Whether the PIE view has focus so we can track when to reshow the mouse control label */
 	bool bPIEHasFocus;
+
+	/** Whether the PIE view contains focus (even if not captured), if so we disable throttling. */
+	bool bPIEContainsFocus;
+
+	/** The users value for allowing throttling, we restore this value when we lose focus. */
+	int32 UserAllowThrottlingValue;
 
 protected:
 	void LockActorInternal(AActor* NewActorToLock);

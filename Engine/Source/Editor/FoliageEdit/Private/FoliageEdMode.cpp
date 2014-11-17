@@ -39,8 +39,8 @@
 FEdModeFoliage::FEdModeFoliage()
 	: FEdMode()
 	, bToolActive(false)
-	, SelectionIFA(nullptr)
 	, bCanAltDrag(false)
+	, SelectionIFA(nullptr)
 {
 	// Load resources and construct brush component
 	UMaterial* BrushMaterial = nullptr;
@@ -242,7 +242,7 @@ bool FEdModeFoliage::DisallowMouseDeltaTracking() const
 /** FEdMode: Called once per frame */
 void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
-	if (IsCtrlDown(ViewportClient->Viewport) && bToolActive)
+	if (bToolActive)
 	{
 		ApplyBrush(ViewportClient);
 	}
@@ -310,41 +310,44 @@ static bool FoliageTrace(UWorld* InWorld, FHitResult& OutHit, FVector InStart, F
 void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY)
 {
 	bBrushTraceValid = false;
-	if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
+	if (!ViewportClient->IsMovingCamera())
 	{
-		// Compute a world space ray from the screen space mouse coordinates
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-			ViewportClient->Viewport,
-			ViewportClient->GetScene(),
-			ViewportClient->EngineShowFlags)
-			.SetRealtimeUpdate(ViewportClient->IsRealtime()));
-		FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
-		FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
-
-		FVector Start = MouseViewportRay.GetOrigin();
-		BrushTraceDirection = MouseViewportRay.GetDirection();
-		FVector End = Start + WORLD_MAX * BrushTraceDirection;
-
-		FHitResult Hit;
-		UWorld* World = ViewportClient->GetWorld();
-		static FName NAME_FoliageBrush = FName(TEXT("FoliageBrush"));
-		if (FoliageTrace(World, Hit, Start, End, NAME_FoliageBrush))
+		if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 		{
-			// Check filters
-			UPrimitiveComponent* PrimComp = Hit.Component.Get();
-			UMaterialInterface* Material = PrimComp ? PrimComp->GetMaterial(0) : nullptr;
+			// Compute a world space ray from the screen space mouse coordinates
+			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+				ViewportClient->Viewport,
+				ViewportClient->GetScene(),
+				ViewportClient->EngineShowFlags)
+				.SetRealtimeUpdate(ViewportClient->IsRealtime()));
+			FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
+			FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
 
-			if (PrimComp &&
-				PrimComp->GetOutermost() == World->GetCurrentLevel()->GetOutermost() &&
-				(UISettings.bFilterLandscape || !PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) &&
-				(UISettings.bFilterStaticMesh || !PrimComp->IsA(UStaticMeshComponent::StaticClass())) &&
-				(UISettings.bFilterBSP || !PrimComp->IsA(UModelComponent::StaticClass())) &&
-				(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode()))
-				)
+			FVector Start = MouseViewportRay.GetOrigin();
+			BrushTraceDirection = MouseViewportRay.GetDirection();
+			FVector End = Start + WORLD_MAX * BrushTraceDirection;
+
+			FHitResult Hit;
+			UWorld* World = ViewportClient->GetWorld();
+			static FName NAME_FoliageBrush = FName(TEXT("FoliageBrush"));
+			if (FoliageTrace(World, Hit, Start, End, NAME_FoliageBrush))
 			{
-				// Adjust the sphere brush
-				BrushLocation = Hit.Location;
-				bBrushTraceValid = true;
+				// Check filters
+				UPrimitiveComponent* PrimComp = Hit.Component.Get();
+				UMaterialInterface* Material = PrimComp ? PrimComp->GetMaterial(0) : nullptr;
+
+				if (PrimComp &&
+					PrimComp->GetOutermost() == World->GetCurrentLevel()->GetOutermost() &&
+					(UISettings.bFilterLandscape || !PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) &&
+					(UISettings.bFilterStaticMesh || !PrimComp->IsA(UStaticMeshComponent::StaticClass())) &&
+					(UISettings.bFilterBSP || !PrimComp->IsA(UModelComponent::StaticClass())) &&
+					(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode()))
+					)
+				{
+					// Adjust the sphere brush
+					BrushLocation = Hit.Location;
+					bBrushTraceValid = true;
+				}
 			}
 		}
 	}
@@ -606,7 +609,7 @@ static bool CheckVertexColor(const UFoliageType* Settings, const FColor& VertexC
 
 
 /** Add instances inside the brush to match DesiredInstanceCount */
-void FEdModeFoliage::AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure)
+void FEdModeFoliage::AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, const TArray<int32>& ExistingInstances, float Pressure)
 {
 	checkf(InWorld == IFA->GetWorld(), TEXT("Warning:World does not match Foliage world"));
 	if (DesiredInstanceCount > ExistingInstances.Num())
@@ -762,25 +765,25 @@ void FEdModeFoliage::AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActo
 }
 
 /** Remove instances inside the brush to match DesiredInstanceCount */
-void FEdModeFoliage::RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure)
+void FEdModeFoliage::RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& PotentialInstancesToRemove, float Pressure)
 {
-	int32 InstancesToRemove = FMath::RoundToInt((float)(ExistingInstances.Num() - DesiredInstanceCount) * Pressure);
-	int32 InstancesToKeep = ExistingInstances.Num() - InstancesToRemove;
+	int32 InstancesToRemove = FMath::RoundToInt((float)(PotentialInstancesToRemove.Num() - DesiredInstanceCount) * Pressure);
+	int32 InstancesToKeep = PotentialInstancesToRemove.Num() - InstancesToRemove;
 	if (InstancesToKeep > 0)
 	{
-		// Remove InstancesToKeep random ExistingInstances from the array to leave those ExistingInstances behind, and delete all the rest
+		// Remove InstancesToKeep random PotentialInstancesToRemove from the array to leave those PotentialInstancesToRemove behind, and delete all the rest
 		for (int32 i = 0; i < InstancesToKeep; i++)
 		{
-			ExistingInstances.RemoveSwap(FMath::Rand() % ExistingInstances.Num());
+			PotentialInstancesToRemove.RemoveAtSwap(FMath::Rand() % PotentialInstancesToRemove.Num());
 		}
 	}
 
 	if (!UISettings.bFilterLandscape || !UISettings.bFilterStaticMesh || !UISettings.bFilterBSP || !UISettings.bFilterTranslucent)
 	{
-		// Filter ExistingInstances
-		for (int32 Idx = 0; Idx < ExistingInstances.Num(); Idx++)
+		// Filter PotentialInstancesToRemove
+		for (int32 Idx = 0; Idx < PotentialInstancesToRemove.Num(); Idx++)
 		{
-			UPrimitiveComponent* Base = MeshInfo.Instances[ExistingInstances[Idx]].Base;
+			UPrimitiveComponent* Base = MeshInfo.Instances[PotentialInstancesToRemove[Idx]].Base;
 			UMaterialInterface* Material = Base ? Base->GetMaterial(0) : nullptr;
 
 			// Check if instance is candidate for removal based on filter settings
@@ -792,21 +795,21 @@ void FEdModeFoliage::RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFolia
 				))
 			{
 				// Instance should not be removed, so remove it from the removal list.
-				ExistingInstances.RemoveSwap(Idx);
+				PotentialInstancesToRemove.RemoveAtSwap(Idx);
 				Idx--;
 			}
 		}
 	}
 
-	// Remove ExistingInstances to reduce it to desired count
-	if (ExistingInstances.Num() > 0)
+	// Remove PotentialInstancesToRemove to reduce it to desired count
+	if (PotentialInstancesToRemove.Num() > 0)
 	{
-		MeshInfo.RemoveInstances(IFA, ExistingInstances);
+		MeshInfo.RemoveInstances(IFA, PotentialInstancesToRemove);
 	}
 }
 
 /** Reapply instance settings to exiting instances */
-void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, TArray<int32>& ExistingInstances)
+void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, UFoliageType* Settings, const TArray<int32>& ExistingInstances)
 {
 	checkf(InWorld == IFA->GetWorld(), TEXT("Warning:World does not match Foliage world"));
 	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(Settings);
@@ -1164,8 +1167,8 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 				MeshInfo.SelectInstances(IFA, !IsShiftDown(ViewportClient->Viewport), Instances);
 			}
 			else
-				if (UISettings.GetReapplyToolSelected())
-				{
+			if (UISettings.GetReapplyToolSelected())
+			{
 				if (Settings->ReapplyDensity)
 				{
 					// Adjust instance density
@@ -1187,30 +1190,30 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 
 				// Reapply any settings checked by the user
 				ReapplyInstancesForBrush(World, IFA, Settings, Instances);
-				}
-				else if (UISettings.GetPaintToolSelected())
+			}
+			else if (UISettings.GetPaintToolSelected())
+			{
+				// Shift unpaints
+				if (IsShiftDown(ViewportClient->Viewport))
 				{
-					// Shift unpaints
-					if (IsShiftDown(ViewportClient->Viewport))
+					int32 DesiredInstanceCount = FMath::RoundToInt(BrushArea * Settings->Density * UISettings.GetUnpaintDensity() / (1000.f*1000.f));
+
+					if (DesiredInstanceCount < Instances.Num())
 					{
-						int32 DesiredInstanceCount = FMath::RoundToInt(BrushArea * Settings->Density * UISettings.GetUnpaintDensity() / (1000.f*1000.f));
-
-						if (DesiredInstanceCount < Instances.Num())
-						{
-							RemoveInstancesForBrush(IFA, MeshInfo, DesiredInstanceCount, Instances, Pressure);
-						}
-					}
-					else
-					{
-						// This is the total set of instances disregarding parameters like slope, height or layer.
-						float DesiredInstanceCountFloat = BrushArea * Settings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
-
-						// Allow a single instance with a random chance, if the brush is smaller than the density
-						int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
-
-						AddInstancesForBrush(World, IFA, Settings, MeshInfo, DesiredInstanceCount, Instances, Pressure);
+						RemoveInstancesForBrush(IFA, MeshInfo, DesiredInstanceCount, Instances, Pressure);
 					}
 				}
+				else
+				{
+					// This is the total set of instances disregarding parameters like slope, height or layer.
+					float DesiredInstanceCountFloat = BrushArea * Settings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
+
+					// Allow a single instance with a random chance, if the brush is smaller than the density
+					int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
+
+					AddInstancesForBrush(World, IFA, Settings, MeshInfo, DesiredInstanceCount, Instances, Pressure);
+				}
+			}
 		}
 	}
 	if (UISettings.GetLassoSelectToolSelected())
@@ -1830,41 +1833,46 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 {
 	if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
-		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed && IsCtrlDown(Viewport))
+		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
-			if (!bToolActive)
+			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
+			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
+			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(Viewport) && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
 			{
-				GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
-				InstanceSnapshot.Empty();
-
-				// Special setup beginning a stroke with the Reapply tool
-				// Necessary so we don't keep reapplying settings over and over for the same instances.
-				if (UISettings.GetReapplyToolSelected())
+				if (!bToolActive)
 				{
-					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
-					for (auto& MeshPair : IFA->FoliageMeshes)
-					{
-						FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-						if (MeshPair.Key->IsSelected)
-						{
-							// Take a snapshot of all the locations
-							InstanceSnapshot.Add(MeshPair.Key, FMeshInfoSnapshot(&MeshInfo));
+					GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
+					InstanceSnapshot.Empty();
 
-							// Clear the "FOLIAGE_Readjusted" flag
-							for (int32 Idx = 0; Idx < MeshInfo.Instances.Num(); Idx++)
+					// Special setup beginning a stroke with the Reapply tool
+					// Necessary so we don't keep reapplying settings over and over for the same instances.
+					if (UISettings.GetReapplyToolSelected())
+					{
+						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
+						for (auto& MeshPair : IFA->FoliageMeshes)
+						{
+							FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+							if (MeshPair.Key->IsSelected)
 							{
-								MeshInfo.Instances[Idx].Flags &= (~FOLIAGE_Readjusted);
+								// Take a snapshot of all the locations
+								InstanceSnapshot.Add(MeshPair.Key, FMeshInfoSnapshot(&MeshInfo));
+
+								// Clear the "FOLIAGE_Readjusted" flag
+								for (int32 Idx = 0; Idx < MeshInfo.Instances.Num(); Idx++)
+								{
+									MeshInfo.Instances[Idx].Flags &= (~FOLIAGE_Readjusted);
+								}
 							}
 						}
 					}
+					ApplyBrush(ViewportClient);
+					bToolActive = true;
+					return true;
 				}
 			}
-			ApplyBrush(ViewportClient);
-			bToolActive = true;
-			return true;
 		}
 
-		if (Event == IE_Released && bToolActive && (Key == EKeys::LeftMouseButton || Key == EKeys::LeftControl || Key == EKeys::RightControl))
+		if (bToolActive && Key == EKeys::LeftMouseButton && Event == IE_Released)
 		{
 			//Set the cursor position to that of the slate cursor so it wont snap back
 			Viewport->SetPreCaptureMousePosFromSlateCursor();
@@ -2049,10 +2057,9 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 
 		return true;
 	}
-	else
-		if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
-		{
-		if (HitProxy && HitProxy->IsA(HActor::StaticGetType()) && Click.IsControlDown())
+	else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
+	{
+		if (HitProxy && HitProxy->IsA(HActor::StaticGetType()))
 		{
 			GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 			ApplyPaintBucket(((HActor*)HitProxy)->Actor, Click.IsShiftDown());
@@ -2060,7 +2067,7 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 		}
 
 		return true;
-		}
+	}
 
 	return FEdMode::HandleClick(InViewportClient, HitProxy, Click);
 }

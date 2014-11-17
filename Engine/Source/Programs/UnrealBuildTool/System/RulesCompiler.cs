@@ -201,6 +201,9 @@ namespace UnrealBuildTool
 		/// List of addition frameworks - typically used for External (third party) modules on Mac and iOS
 		public List<UEBuildFramework> PublicAdditionalFrameworks = new List<UEBuildFramework>();
 
+		/// List of addition resources that should be copied to the app bundle for Mac or iOS
+		public List<UEBuildBundleResource> AdditionalBundleResources = new List<UEBuildBundleResource>();
+
 		/// For builds that execute on a remote machine (e.g. iOS), this list contains additional files that
 		/// need to be copied over in order for the app to link successfully.  Source/header files and PCHs are
 		/// automatically copied.  Usually this is simply a list of precompiled third party library dependencies.
@@ -276,6 +279,11 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_PHYSX=0");
 				Definitions.Add("WITH_APEX=0");
 			}
+
+            if(UEBuildConfiguration.bRuntimePhysicsCooking == true)
+            {
+                Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING");
+            }
 		}
 
 		/// <summary>
@@ -311,6 +319,7 @@ namespace UnrealBuildTool
 	public abstract class TargetRules
 	{
 		/// Type of target
+		[Serializable]
 		public enum TargetType
 		{
 			/// Cooked monolithic game executable (GameName.exe).  Also used for a game-agnostic engine executable (UE4Game.exe or RocketGame.exe)
@@ -659,12 +668,25 @@ namespace UnrealBuildTool
             // hack to set up the templates without adding anything to their .targets.cs files
             if (!String.IsNullOrEmpty(TargetName) && TargetName.StartsWith("TP_"))
             {
-                Result.Add(UnrealTargetPlatform.IOS);
-                if (HostPlatform != UnrealTargetPlatform.Mac)
+				if (HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					Result.Add(UnrealTargetPlatform.IOS);
+					Result.Add(UnrealTargetPlatform.Android);
+				}
+                else if (HostPlatform == UnrealTargetPlatform.Mac)
                 {
-                    Result.Add(UnrealTargetPlatform.Android);
-                }
+					Result.Add(UnrealTargetPlatform.IOS);
+				}
             }
+            return Result;
+        }
+        /// <summary>
+        /// Return a list of target platforms for the monolithic without cook
+        /// </summary>
+        /// <returns>a list of target platforms for the monolithic without cook</returns>        
+        public virtual List<UnrealTargetPlatform> GUBP_GetBuildOnlyPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+        {
+            var Result = new List<UnrealTargetPlatform> {};            
             return Result;
         }
         /// <summary>
@@ -1689,6 +1711,8 @@ namespace UnrealBuildTool
 		public static UEBuildTarget CreateTarget(string TargetName, TargetInfo Target,
 			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile)
 		{
+			var CreateTargetStartTime = DateTime.UtcNow;
+
 			string TargetFileName;
 			TargetRules RulesObject = CreateTargetRules(TargetName, Target, bInEditorRecompile, out TargetFileName);
 			if (bInEditorRecompile)
@@ -1720,7 +1744,8 @@ namespace UnrealBuildTool
 							InRulesObject: RulesObject,
 							InAdditionalDefinitions: InAdditionalDefinitions, 
 							InRemoteRoot:InRemoteRoot, 
-							InOnlyModules:InOnlyModules);
+							InOnlyModules:InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
 					}
 					break;
 				case TargetRules.TargetType.Editor:
@@ -1732,7 +1757,8 @@ namespace UnrealBuildTool
 							InRulesObject: RulesObject,
 							InAdditionalDefinitions: InAdditionalDefinitions,
 							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules);
+							InOnlyModules: InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
 					}
 					break;
                 case TargetRules.TargetType.Client:
@@ -1744,7 +1770,8 @@ namespace UnrealBuildTool
                             InRulesObject: RulesObject,
                             InAdditionalDefinitions: InAdditionalDefinitions,
                             InRemoteRoot: InRemoteRoot,
-                            InOnlyModules: InOnlyModules);
+                            InOnlyModules: InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
                     }
                     break;
 				case TargetRules.TargetType.Server:
@@ -1756,7 +1783,8 @@ namespace UnrealBuildTool
 							InRulesObject: RulesObject,
 							InAdditionalDefinitions: InAdditionalDefinitions,
 							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules);
+							InOnlyModules: InOnlyModules,
+							bInEditorRecompile: bInEditorRecompile);
 					}
 					break;
 				case TargetRules.TargetType.Program:
@@ -1769,22 +1797,16 @@ namespace UnrealBuildTool
 							InRulesObject:RulesObject, 
 							InAdditionalDefinitions:InAdditionalDefinitions, 
 							InRemoteRoot:InRemoteRoot, 
-							InOnlyModules:InOnlyModules);
+							InOnlyModules:InOnlyModules,
+							bInEditorRecompile:bInEditorRecompile);
 					}
 					break;
-					/*
-				case TargetRules.TargetType.RocketGame:
-					{
-						BuildTarget = new UEBuildRocketGame(
-							InGameName: TargetName,
-							InPlatform: Target.Platform,
-							InConfiguration: Target.Configuration,
-							InRulesObject: RulesObject,
-							InAdditionalDefinitions: InAdditionalDefinitions,
-							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules);
-					}
-					break;*/
+			}
+
+			if( BuildConfiguration.bPrintPerformanceInfo )
+			{ 
+				var CreateTargetTime = (DateTime.UtcNow - CreateTargetStartTime).TotalSeconds;
+				Log.TraceInformation( "CreateTarget for " + TargetName + " took " + CreateTargetTime + "s" );
 			}
 
 			if (BuildTarget == null)

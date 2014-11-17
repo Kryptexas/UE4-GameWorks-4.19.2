@@ -29,7 +29,7 @@ bool CalcGradient( double grad[4], const FVector& p0, const FVector& p1, const F
 
 	det = - det3_201_123 * n[0] + det3_201_023 * n[1] - det3_201_013 * n[2];
 
-	if( abs( det ) < 1e-8 )
+	if( FMath::Abs( det ) < 1e-8 )
 	{
 		return false;
 	}

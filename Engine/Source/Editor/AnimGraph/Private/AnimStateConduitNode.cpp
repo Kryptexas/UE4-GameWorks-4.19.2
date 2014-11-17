@@ -9,6 +9,8 @@
 #include "AnimationConduitGraphSchema.h"
 #include "AnimGraphNode_TransitionResult.h"
 
+#define LOCTEXT_NAMESPACE "AnimStateConduitNode"
+
 /////////////////////////////////////////////////////
 // UAnimStateConduitNode
 
@@ -42,9 +44,9 @@ FText UAnimStateConduitNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(GetStateName());
 }
 
-FString UAnimStateConduitNode::GetTooltip() const
+FText UAnimStateConduitNode::GetTooltipText() const
 {
-	return TEXT("This is a conduit, which allows specification of a predicate condition for an entire group of transitions");
+	return LOCTEXT("ConduitNodeTooltip", "This is a conduit, which allows specification of a predicate condition for an entire group of transitions");
 }
 
 FString UAnimStateConduitNode::GetStateName() const
@@ -151,3 +153,5 @@ void UAnimStateConduitNode::PostPasteNode()
 	FBlueprintEditorUtils::RenameGraphWithSuggestion(BoundGraph, NameValidator, GetStateName());
 	Super::PostPasteNode();
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -4,6 +4,22 @@
 
 static FBufferVisualizationData GBufferVisualizationData;
 
+static TAutoConsoleVariable<int32> BufferVisualizationDumpFramesAsHDR(
+	TEXT("r.BufferVisualizationDumpFramesAsHDR"),
+	0,
+	TEXT("When saving out buffer visualization materials in a HDR capable format\n")
+	TEXT("0: Do not override default save format.\n")
+	TEXT("1: Force HDR format for buffer visualization materials."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarBufferVisualizationDumpFrames(
+	TEXT("r.BufferVisualizationDumpFrames"),
+	0,
+	TEXT("When screenshots or movies dumps are requested, also save out dumps of the current buffer visualization materials\n")
+	TEXT("0:off (default)\n")
+	TEXT("1:on"),
+	ECVF_RenderThreadSafe);
+
 void FBufferVisualizationData::Initialize()
 {
 	if (!bIsInitialized)
@@ -75,18 +91,11 @@ void FBufferVisualizationData::ConfigureConsoleCommand()
 		*ConsoleDocumentationVisualizationMode,
 		ECVF_Cheat);
 
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.BufferVisualizationDumpFrames"),
-		0,
-		TEXT("When screenshots or movies dumps are requested, also save out dumps of the current buffer visualization materials\n")
-		TEXT("0:off (default)\n")
-		TEXT("1:on"),
-		ECVF_RenderThreadSafe);
-
 	ConsoleDocumentationOverviewTargets = TEXT("Specify the list of post process materials that can be used in the buffer visualization overview. Put nothing between the commas to leave a gap.\n\n\tChoose from:\n");
 	ConsoleDocumentationOverviewTargets += AvailableVisualizationMaterials;
 
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.BufferVisualizationOverviewTargets"),
-		TEXT("DiffuseColor,SpecularColor,SubsurfaceColor,WorldNormal,SeparateTranslucencyRGB,,,Opacity,SeparateTranslucencyA,,,DecalMask,SceneDepth,Roughness,MaterialAO,ShadingModel"), 
+		TEXT("DiffuseColor,SpecularColor,SubsurfaceColor,WorldNormal,SeparateTranslucencyRGB,,,Opacity,SeparateTranslucencyA,,,DecalMask,SceneDepth,Roughness,MaterialAO,ShadingModel,,SceneDepthWorldUnits,SceneColor"), 
 		*ConsoleDocumentationOverviewTargets,
 		ECVF_Default);
 }

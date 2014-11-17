@@ -233,6 +233,7 @@ static void PlatformCreateOpenGLContextCore(FPlatformOpenGLContext* OutContext, 
 		DebugFlag = WGL_CONTEXT_DEBUG_BIT_ARB;
 	}
 
+#if !EMULATE_ES31
 	int AttribList[] =
 	{
 		WGL_CONTEXT_MAJOR_VERSION_ARB, MajorVersion,
@@ -241,6 +242,16 @@ static void PlatformCreateOpenGLContextCore(FPlatformOpenGLContext* OutContext, 
 		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		0
 	};
+#else
+	int AttribList[] =
+	{
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+		WGL_CONTEXT_FLAGS_ARB, DebugFlag,
+		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
+		0
+	};
+#endif
 
 	OutContext->OpenGLContext = wglCreateContextAttribsARB(OutContext->DeviceContext, InParentContext, AttribList);
 }
@@ -449,7 +460,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 
 		glDisable(GL_FRAMEBUFFER_SRGB);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glDrawBuffer(GL_BACK);
+		FOpenGL::DrawBuffer(GL_BACK);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, TempContext.ViewportFramebuffer);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 
@@ -575,7 +586,7 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, BackBufferTarget, BackBufferResource, 0);
 #if UE_BUILD_DEBUG
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
-			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			FOpenGL::DrawBuffer(GL_COLOR_ATTACHMENT0);
 #endif
 			FOpenGL::CheckFrameBuffer();
 

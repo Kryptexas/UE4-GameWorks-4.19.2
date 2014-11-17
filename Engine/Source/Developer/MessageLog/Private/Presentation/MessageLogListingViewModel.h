@@ -7,11 +7,16 @@
 #include "IMessageLogListing.h"
 #include "MessageLogInitializationOptions.h"
 
-/** The non-UI solution specific presentation logic for a collection of messages for a particular system */
-class FMessageLogListingViewModel : public IMessageLogListing, public TSharedFromThis< FMessageLogListingViewModel >
-{
 
+/**
+ * The non-UI solution specific presentation logic for a collection of messages for a particular system.
+ */
+class FMessageLogListingViewModel
+	: public TSharedFromThis<FMessageLogListingViewModel>
+	, public IMessageLogListing
+{
 public:
+
 	/**  
 	 *	Factory method which creates a new FMessageLogListingViewModel object
 	 *
@@ -101,6 +106,12 @@ public:
 	/** Get whether we should show pages or not */
 	bool GetShowPages() const;
 
+	/** Set whether we should show allow the user to clear the log. */
+	void SetAllowClear(bool bInAllowClear);
+
+	/** Get whether we should show allow the user to clear the log. */
+	bool GetAllowClear() const;
+
 	/** Set whether we should discard duplicates or not */
 	void SetDiscardDuplicates(bool bInDiscardDuplicates);
 
@@ -139,14 +150,15 @@ public:
 
 private:
 	FMessageLogListingViewModel( TSharedPtr< FMessageLogListingModel > InMessageLogListingModel, const FText& InLogLabel, const FMessageLogInitializationOptions& InitializationOptions )
-		: MessageLogListingModel( InMessageLogListingModel )
-		, bShowFilters( InitializationOptions.bShowFilters )
+		: bShowFilters( InitializationOptions.bShowFilters )
 		, bShowPages( InitializationOptions.bShowPages )
+		, bAllowClear( InitializationOptions.bAllowClear )
 		, bDiscardDuplicates( InitializationOptions.bDiscardDuplicates )
 		, MaxPageCount( InitializationOptions.MaxPageCount )
 		, CurrentPageIndex( 0 )
 		, bIsRefreshing( false )
 		, LogLabel( InLogLabel )
+		, MessageLogListingModel( InMessageLogListingModel )
 	{}
 
 	/** Rebuilds the list of filtered messages */
@@ -168,6 +180,9 @@ private:
 
 	/** Whether pages should be used/shown for this listing */
 	bool bShowPages;
+
+	/** Whether we allow the user to clear the log. */
+	bool bAllowClear;
 
 	/** Whether to check for duplicate messages & discard them */
 	bool bDiscardDuplicates;

@@ -4,6 +4,7 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
+#include "SSettingsEditorCheckoutNotice.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
 
@@ -25,9 +26,6 @@ SSettingsEditor::~SSettingsEditor( )
 void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditorModelRef& InModel )
 {
 	Model = InModel;
-	DefaultConfigCheckOutTimer = 0.0f;
-	DefaultConfigCheckOutNeeded = false;
-	DefaultConfigQueryInProgress = false;
 	SettingsContainer = InModel->GetSettingsContainer();
 
 	// initialize settings view
@@ -48,17 +46,26 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	SettingsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSettingsEditor::HandleSettingsViewVisibility)));
 	SettingsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled));
 
+	// Create the watcher widget for the default config file (checks file status / SCC state)
+	FileWatcherWidget =
+		SNew(SSettingsEditorCheckoutNotice)
+		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
+		.OnFileProbablyModifiedExternally(this, &SSettingsEditor::ReloadConfigObject)
+		.ConfigFilePath(this, &SSettingsEditor::GetConfigFileName);
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
+			.Padding(16.0f, 0.0f)
 			[
 				SNew(SHorizontalBox)
 
 				+ SHorizontalBox::Slot()
 					.AutoWidth()
+					.Padding(0.0f, 16.0f)
 					[
 						// categories menu
 						SNew(SScrollBox)
@@ -92,13 +99,13 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 				+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
+					.Padding(0.0f, 16.0f)
 					[
 						SNew(SVerticalBox)
 							.Visibility(this, &SSettingsEditor::HandleSettingsBoxVisibility)
 
 						+ SVerticalBox::Slot()
 							.AutoHeight()
-							.Padding(0.0f, 16.0f)
 							[
 								// title and button bar
 								SNew(SHorizontalBox)
@@ -136,6 +143,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									[
 										// set as default button
 										SNew(SButton)
+											.Visibility(this, &SSettingsEditor::EditingNonDefaultSettingsVisibility)
 											.IsEnabled(this, &SSettingsEditor::HandleSetAsDefaultButtonEnabled)
 											.OnClicked(this, &SSettingsEditor::HandleSetAsDefaultButtonClicked)
 											.Text(LOCTEXT("SaveDefaultsButtonText", "Set as Default"))
@@ -178,6 +186,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									[
 										// reset defaults button
 										SNew(SButton)
+											.Visibility(this, &SSettingsEditor::EditingNonDefaultSettingsVisibility)
 											.IsEnabled(this, &SSettingsEditor::HandleResetToDefaultsButtonEnabled)
 											.OnClicked(this, &SSettingsEditor::HandleResetDefaultsButtonClicked)
 											.Text(LOCTEXT("ResetDefaultsButtonText", "Reset to Defaults"))
@@ -187,18 +196,14 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 						+ SVerticalBox::Slot()
 							.AutoHeight()
-							.Padding(0.0f, 0.0f, 0.0f, 16.0f)
+							.Padding(0.0f, 16.0f, 0.0f, 0.0f)
 							[
-								// checkout notice
-								SNew(SSettingsEditorCheckoutNotice)
-									.OnCheckOutClicked(this, &SSettingsEditor::HandleCheckOutButtonClicked)
-									.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
-									.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
-									.LookingForSourceControlState(this, &SSettingsEditor::HandleLookingForSourceControlState)
+								FileWatcherWidget.ToSharedRef()
 							]
 
 						+ SVerticalBox::Slot()
 							.FillHeight(1.0f)
+							.Padding(0.0f, 16.0f, 0.0f, 0.0f)
 							[
 								// settings area
 								SNew(SOverlay)
@@ -221,58 +226,6 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 	ReloadCategories();
 }
-
-
-/* SCompoundWidget interface
- *****************************************************************************/
-
-void SSettingsEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	// cache selected settings object's configuration file state
-	DefaultConfigCheckOutTimer += InDeltaTime;
-
-	if (DefaultConfigCheckOutTimer >= 1.0f)
-	{
-		TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
-
-		if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
-		{
-			CachedConfigFileName = GetDefaultConfigFilePath(SettingsObject);
-			bool NewCheckOutNeeded = false;
-			if(ISourceControlModule::Get().IsEnabled())
-			{
-				// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
-				ISourceControlModule::Get().QueueStatusUpdate(CachedConfigFileName);
-
-				ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(CachedConfigFileName, EStateCacheUsage::Use);
-				NewCheckOutNeeded = SourceControlState.IsValid() && SourceControlState->CanCheckout();
-				DefaultConfigQueryInProgress = SourceControlState.IsValid() && SourceControlState->IsUnknown();
-			}
-			else
-			{
-				NewCheckOutNeeded = (FPaths::FileExists(CachedConfigFileName) && IFileManager::Get().IsReadOnly(*CachedConfigFileName));
-			}
-
-			// file has been checked in or reverted
-			if ((NewCheckOutNeeded == true) && (DefaultConfigCheckOutNeeded == false))
-			{
-				SettingsObject->ReloadConfig();
-			}
-
-			DefaultConfigCheckOutNeeded = NewCheckOutNeeded;
-		}
-		else
-		{
-			DefaultConfigCheckOutNeeded = false;
-		}
-
-		DefaultConfigCheckOutTimer = 0.0f;
-	}
-}
-
 
 /* FNotifyHook interface
  *****************************************************************************/
@@ -355,8 +308,7 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 
 FString SSettingsEditor::GetDefaultConfigFilePath( const TWeakObjectPtr<UObject>& SettingsObject ) const
 {
-	FString RelativeConfigFilePath = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *SettingsObject->GetClass()->ClassConfigName.ToString());
-
+	FString RelativeConfigFilePath = SettingsObject->GetDefaultConfigFilename();
 	return FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
 }
 
@@ -376,8 +328,6 @@ TWeakObjectPtr<UObject> SSettingsEditor::GetSelectedSettingsObject( ) const
 
 TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategoryRef& Category )
 {
-	const float VerticalSlotPadding = 10.0f;
-
 	// create section widgets
 	TSharedRef<SVerticalBox> SectionsBox = SNew(SVerticalBox);
 	TArray<ISettingsSectionPtr> Sections;
@@ -413,7 +363,7 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 	{
 		SectionsBox->AddSlot()
 			.HAlign(HAlign_Left)
-			.Padding(0.0f, VerticalSlotPadding, 0.0f, 0.0f)
+			.Padding(0.0f, 10.0f, 0.0f, 0.0f)
 			[
 				SNew(SHorizontalBox)
 
@@ -444,44 +394,23 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 		}
 	}
 
-	const FSlateBrush* CategoryIcon = FEditorStyle::GetBrush(Category->GetIconName());
-
 	// create category widget
-	return SNew(SHorizontalBox)
+	return SNew(SVerticalBox)
 
-	+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Top)
-		.Padding(8.0f, VerticalSlotPadding, 12.0f, VerticalSlotPadding)
+	+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			// category icon
-			SNew(SImage)
-				.Image((CategoryIcon == FEditorStyle::GetDefaultBrush()) ? FEditorStyle::GetBrush("SettingsEditor.Category_Default") : CategoryIcon)
+			// category title
+			SNew(STextBlock)
+				.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+				.Text(Category->GetDisplayName())
 		]
 
-	+ SHorizontalBox::Slot()
-		.FillWidth(1.0f)
-		.VAlign(VAlign_Center)
+	+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
 		[
-			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0.0f, VerticalSlotPadding, 0.0f, 0.0f)
-				[
-					// category title
-					SNew(STextBlock)
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-						.Text(Category->GetDisplayName())
-				]
-
-			+ SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					// sections list
-					SectionsBox
-				]
+			// sections list
+			SectionsBox
 		];
 }
 
@@ -512,7 +441,7 @@ void SSettingsEditor::ReloadCategories( )
 	{
 		CategoriesBox->AddSlot()
 			.AutoHeight()
-			.Padding(0.0f, 0.0f, 0.0f, 8.0f)
+			.Padding(0.0f, 0.0f, 0.0f, 16.0f)
 			[
 				MakeCategoryWidget(Category.ToSharedRef())
 			];
@@ -533,20 +462,6 @@ void SSettingsEditor::ShowNotification( const FText& Text, SNotificationItem::EC
 /* SSettingsEditor callbacks
  *****************************************************************************/
 
-FReply SSettingsEditor::HandleCheckOutButtonClicked( )
-{
-	if (ISourceControlModule::Get().IsEnabled())
-	{
-		CheckOutDefaultConfigFile();
-	}
-	else
-	{
-		MakeDefaultConfigFileWritable();
-	}
-
-	return FReply::Handled();
-}
-
 
 void SSettingsEditor::HandleCultureChanged( )
 {
@@ -554,15 +469,6 @@ void SSettingsEditor::HandleCultureChanged( )
 }
 
 
-bool SSettingsEditor::HandleConfigNoticeUnlocked( ) const
-{
-	return !DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress;
-}
-
-bool SSettingsEditor::HandleLookingForSourceControlState() const
-{
-	return DefaultConfigQueryInProgress;
-}
 
 void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const
 {
@@ -576,6 +482,20 @@ void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr Sele
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyName"), ChangedProperty->GetName()));
 
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PreferencesChanged"), EventAttributes);
+	}
+}
+
+FString SSettingsEditor::GetConfigFileName() const
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		return GetDefaultConfigFilePath(SettingsObject);
+	}
+	else
+	{
+		return FString();
 	}
 }
 
@@ -673,7 +593,7 @@ bool SSettingsEditor::HandleImportButtonEnabled( ) const
 
 	if (SelectedSection.IsValid())
 	{
-		return (SelectedSection->CanEdit() && SelectedSection->CanImport() && !DefaultConfigCheckOutNeeded);
+		return SelectedSection->CanEdit() && SelectedSection->CanImport() && !IsDefaultConfigCheckOutNeeded();
 	}
 
 	return false;
@@ -691,11 +611,11 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 		// show settings widget
 		if (CustomWidget.IsValid())
 		{
-			CustomWidgetSlot->Widget = CustomWidget.ToSharedRef();
+			CustomWidgetSlot->AttachWidget( CustomWidget.ToSharedRef() );
 		}
 		else
 		{
-			CustomWidgetSlot->Widget = SNullWidget::NullWidget;
+			CustomWidgetSlot->AttachWidget( SNullWidget::NullWidget );
 		}
 
 		SettingsView->SetObject(SelectedSection->GetSettingsObject().Get());
@@ -721,11 +641,11 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 	}
 	else
 	{
-		CustomWidgetSlot->Widget = SNullWidget::NullWidget;
+		CustomWidgetSlot->AttachWidget( SNullWidget::NullWidget );
 		SettingsView->SetObject(nullptr);
 	}
 
-	DefaultConfigCheckOutTimer = 1.0f;
+	FileWatcherWidget->Invalidate();
 }
 
 
@@ -755,6 +675,14 @@ bool SSettingsEditor::HandleResetToDefaultsButtonEnabled( ) const
 }
 
 
+EVisibility SSettingsEditor::EditingNonDefaultSettingsVisibility( ) const
+{
+	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
+
+	return (SelectedSection.IsValid() && SelectedSection->HasDefaultSettingsObject()) ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+
 void SSettingsEditor::HandleSectionLinkNavigate( ISettingsSectionPtr Section )
 {
 	Model->SelectSection(Section);
@@ -778,7 +706,7 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
 
 	if (SelectedSection.IsValid())
 	{
-		if (DefaultConfigCheckOutNeeded)
+		if (IsDefaultConfigCheckOutNeeded())
 		{
 			if (ISourceControlModule::Get().IsEnabled())
 			{
@@ -871,7 +799,7 @@ bool SSettingsEditor::HandleSettingsViewEnabled( ) const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
-	return (SelectedSection.IsValid() && SelectedSection->CanEdit() && (!SelectedSection->HasDefaultSettingsObject() || (!DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress)));
+	return (SelectedSection.IsValid() && SelectedSection->CanEdit() && (!SelectedSection->HasDefaultSettingsObject() || FileWatcherWidget->IsUnlocked()));
 }
 
 
@@ -887,5 +815,29 @@ EVisibility SSettingsEditor::HandleSettingsViewVisibility( ) const
 	return EVisibility::Hidden;
 }
 
+
+// Do we need to edit the default config file?
+bool SSettingsEditor::IsDefaultConfigCheckOutNeeded() const
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		return !FileWatcherWidget->IsUnlocked();
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void SSettingsEditor::ReloadConfigObject()
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		SettingsObject->ReloadConfig();
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

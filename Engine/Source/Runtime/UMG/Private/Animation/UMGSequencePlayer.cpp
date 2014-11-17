@@ -6,18 +6,21 @@
 #include "MovieSceneBindings.h"
 #include "MovieSceneInstance.h"
 #include "MovieScene.h"
+#include "WidgetAnimation.h"
 
 UUMGSequencePlayer::UUMGSequencePlayer(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 	TimeCursorPosition = 0.0f;
-	MovieScene = nullptr;
+	Animation = nullptr;
 }
 
-void UUMGSequencePlayer::InitSequencePlayer( const FWidgetAnimation& Animation, UUserWidget& UserWidget )
+void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& UserWidget )
 {
-	MovieScene = Animation.MovieScene;
+	Animation = &InAnimation;
+
+	UMovieScene* MovieScene = Animation->MovieScene;
 
 	// Cache the time range of the sequence to determine when we stop
 	TimeRange = MovieScene->GetTimeRange();
@@ -29,30 +32,14 @@ void UUMGSequencePlayer::InitSequencePlayer( const FWidgetAnimation& Animation, 
 
 	TMap<FGuid, TArray<UObject*> > GuidToRuntimeObjectMap;
 	// Bind to Runtime Objects
-	for (const FWidgetAnimationBinding& Binding : Animation.AnimationBindings)
+	for (const FWidgetAnimationBinding& Binding : InAnimation.AnimationBindings)
 	{
-		FName ObjectName = Binding.WidgetName;
-		FName SlotWidgetName = Binding.SlotWidgetName;
+		UObject* FoundObject = Binding.FindRuntimeObject( *WidgetTree );
 
-		FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
-
-		UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
-		if(FoundObject)
+		if( FoundObject )
 		{
-			if(SlotWidgetName == NAME_None)
-			{
-				TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
-				Objects.Add(FoundObject);
-			}
-			else
-			{
-				FoundObject = FindObject<UObject>(FoundObject, *ObjectName.ToString());
-				if(FoundObject)
-				{
-					TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
-					Objects.Add(FoundObject);
-				}
-			}
+			TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
+			Objects.Add(FoundObject);
 		}
 	}
 
@@ -96,6 +83,8 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 
 void UUMGSequencePlayer::Play()
 {
+	UMovieScene* MovieScene = Animation->MovieScene;
+
 	RootMovieSceneInstance = MakeShareable( new FMovieSceneInstance( *MovieScene ) );
 
 	RootMovieSceneInstance->RefreshInstance( *this );

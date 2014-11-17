@@ -12,6 +12,12 @@ public class PropertyEditor : ModuleRules
                 "ActorPickerMode",
 			}
 		);
+		
+        PublicIncludePathModuleNames.AddRange(
+            new string[] {                
+                "IntroTutorials"
+            }
+        );
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -36,6 +42,7 @@ public class PropertyEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"EditorStyle",
@@ -45,6 +52,7 @@ public class PropertyEditor : ModuleRules
 				"SlateCore",
 				"EditorWidgets",
 				"Documentation",
+                "RHI",
 			}
 		);
 

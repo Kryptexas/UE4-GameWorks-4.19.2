@@ -30,3 +30,9 @@ TSharedRef<INiagaraEditor> FNiagaraEditorModule::CreateNiagaraEditor( const EToo
 	return NewNiagaraEditor;
 }
 
+TSharedRef<INiagaraEffectEditor> FNiagaraEditorModule::CreateNiagaraEffectEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UNiagaraEffect* Effect)
+{
+	TSharedRef< FNiagaraEffectEditor > NewNiagaraEditor(new FNiagaraEffectEditor());
+	NewNiagaraEditor->InitNiagaraEffectEditor(Mode, InitToolkitHost, Effect);
+	return NewNiagaraEditor;
+}

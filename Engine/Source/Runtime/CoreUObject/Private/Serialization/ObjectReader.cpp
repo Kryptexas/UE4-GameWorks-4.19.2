@@ -7,12 +7,14 @@
 
 FArchive& FObjectReader::operator<<( class FName& N )
 {
-	NAME_INDEX Name;
+	NAME_INDEX ComparisonIndex;
+	NAME_INDEX DisplayIndex;
 	int32 Number;
-	ByteOrderSerialize(&Name, sizeof(Name));
+	ByteOrderSerialize(&ComparisonIndex, sizeof(ComparisonIndex));
+	ByteOrderSerialize(&DisplayIndex, sizeof(DisplayIndex));
 	ByteOrderSerialize(&Number, sizeof(Number));
 	// copy over the name with a name made from the name index and number
-	N = FName((EName)Name, Number);
+	N = FName(ComparisonIndex, DisplayIndex, Number);
 	return *this;
 }
 

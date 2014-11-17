@@ -6,6 +6,9 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintEditorUtils.h"
+#include "EdGraphSchema_K2.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_InputKey"
 
@@ -228,10 +231,16 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (bControl || bAlt || bShift)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ModifierKey"), GetModifierText());
-		Args.Add(TEXT("Key"), GetKeyText());
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args);
+		if (CachedNodeTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ModifierKey"), GetModifierText());
+			Args.Add(TEXT("Key"), GetKeyText());
+			
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args);
+		}
+		return CachedNodeTitle;
 	}
 	else
 	{
@@ -239,17 +248,24 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_InputKey::GetTooltip() const
+FText UK2Node_InputKey::GetTooltipText() const
 {
-	FText ModifierText = GetModifierText();
-	FText KeyText = GetKeyText();
-
-	if ( !ModifierText.IsEmpty() )
+	if (CachedTooltip.IsOutOfDate())
 	{
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText).ToString();
-	}
+		FText ModifierText = GetModifierText();
+		FText KeyText = GetKeyText();
 
-	return FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText).ToString();
+		// FText::Format() is slow, so we cache this to save on performance
+		if (!ModifierText.IsEmpty())
+		{
+			CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText);
+		}
+		else
+		{
+			CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText);
+		}
+	}
+	return CachedTooltip;
 }
 
 FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const
@@ -266,6 +282,16 @@ FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const
 	{
 		return TEXT("GraphEditor.KeyEvent_16x");
 	}
+}
+
+bool UK2Node_InputKey::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+
+	UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
+	bool const bIsConstructionScript = (K2Schema != nullptr) ? K2Schema->IsConstructionScript(Graph) : false;
+
+	return (Blueprint != nullptr) && Blueprint->SupportsInputEvents() && !bIsConstructionScript && Super::IsCompatibleWithGraph(Graph);
 }
 
 UEdGraphPin* UK2Node_InputKey::GetPressedPin() const
@@ -345,10 +371,22 @@ void UK2Node_InputKey::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGr
 	}
 }
 
-void UK2Node_InputKey::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_InputKey::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FKey> AllKeys;
 	EKeys::GetAllKeys(AllKeys);
+
+	auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
+	{
+		UK2Node_InputKey* InputNode = CastChecked<UK2Node_InputKey>(NewNode);
+		InputNode->InputKey = Key;
+	};
+
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
 
 	for (FKey const Key : AllKeys)
 	{
@@ -358,38 +396,67 @@ void UK2Node_InputKey::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionList
 			continue;
 		}
 
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+		{
+			continue;
+		}
+
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
 
-		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
-		{
-			UK2Node_InputKey* InputNode = CastChecked<UK2Node_InputKey>(NewNode);
-			InputNode->InputKey = Key;
-		};
-
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 
 FText UK2Node_InputKey::GetMenuCategory() const
 {
+	enum EAxisKeyCategory
+	{
+		GamepadKeyCategory,
+		MouseButtonCategory,
+		KeyEventCategory,
+		AxisKeyCategory_MAX,
+	};
+	static FNodeTextCache CachedCategories[AxisKeyCategory_MAX];
+
 	FText SubCategory;
+	EAxisKeyCategory CategoryIndex = AxisKeyCategory_MAX;
+
 	if (InputKey.IsGamepadKey())
 	{
 		SubCategory = LOCTEXT("GamepadCategory", "Gamepad Events");
+		CategoryIndex = GamepadKeyCategory;
 	}
 	else if (InputKey.IsMouseButton())
 	{
 		SubCategory = LOCTEXT("MouseCategory", "Mouse Events");
+		CategoryIndex = MouseButtonCategory;
 	}
 	else
 	{
 		SubCategory = LOCTEXT("KeyEventsCategory", "Key Events");
+		CategoryIndex = KeyEventCategory;
 	}
 
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+	if (CachedCategories[CategoryIndex].IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+	}
+	return CachedCategories[CategoryIndex];
+}
 
+FBlueprintNodeSignature UK2Node_InputKey::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddKeyValue(InputKey.ToString());
+
+	return NodeSignature;
 }
 
 #undef LOCTEXT_NAMESPACE

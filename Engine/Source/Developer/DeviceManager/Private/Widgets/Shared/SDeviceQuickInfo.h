@@ -175,7 +175,11 @@ private:
 	{
 		if (DeviceService.IsValid())
 		{
-			return FText::FromString(DeviceService->GetDeviceId().ToString());
+			ITargetDevicePtr Device = DeviceService->GetDevice();
+			if (Device.IsValid())
+			{
+				return FText::FromString(Device->GetId().ToString());
+			}
 		}
 
 		return LOCTEXT("UnknownValue", "<unknown>");
@@ -186,7 +190,7 @@ private:
 	{
 		if (DeviceService.IsValid())
 		{
-			FString DeviceName = DeviceService->GetCachedDeviceName();
+			FString DeviceName = DeviceService->GetDeviceName();
 
 			if (!DeviceName.IsEmpty())
 			{
@@ -241,7 +245,7 @@ private:
 	{
 		if (DeviceService.IsValid())
 		{
-			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(DeviceService->GetDevicePlatformName());
 			if(PlatformInfo)
 			{
 				return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::XLarge));
@@ -256,7 +260,7 @@ private:
 	{
 		if (DeviceService.IsValid())
 		{
-			FString PlatformName = DeviceService->GetDeviceId().GetPlatformName();
+			FString PlatformName = DeviceService->GetDevicePlatformDisplayName();
 
 			if (!PlatformName.IsEmpty())
 			{

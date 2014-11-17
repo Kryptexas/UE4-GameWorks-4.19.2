@@ -148,7 +148,7 @@ protected:
 	void ProcessSyncFile( FArchive& In, FArchive& Out );
 
 
-	virtual bool SendPayload( TArray<uint8> &Out ) { return false; }
+	virtual bool SendPayload( TArray<uint8> &Out ) = 0; 
 	
 private:
 

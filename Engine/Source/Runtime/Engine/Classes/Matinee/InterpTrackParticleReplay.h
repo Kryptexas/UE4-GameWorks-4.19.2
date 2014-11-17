@@ -42,7 +42,7 @@ class UInterpTrackParticleReplay : public UInterpTrack
 	GENERATED_UCLASS_BODY()
 
 	/** Array of keys */
-	UPROPERTY(editinline)
+	UPROPERTY()
 	TArray<struct FParticleReplayTrackKey> TrackKeys;
 
 #if WITH_EDITORONLY_DATA

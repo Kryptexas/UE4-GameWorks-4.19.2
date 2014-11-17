@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InputBindingManager.h: Declares the FInputBindingManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -21,6 +17,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserDefinedGestureChanged, const FUIComma
 class SLATE_API FInputBindingManager
 {
 public:
+
 	/**
 	 * @return The instance of this manager                   
 	 */

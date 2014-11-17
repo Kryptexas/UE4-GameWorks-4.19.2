@@ -24,6 +24,9 @@ namespace StatsViewerConstants
 {
 	/** Delay (in seconds) after a new character is entered into the search box to wait before updating the list (to give them time to enter a whole string instead of useless updating every time a char is put in) **/
 	static const float SearchTextUpdateDelay = 0.5f;
+
+	/** Stat viewer config file section name */
+	static const FString ConfigSectionName = "StatsViewer";
 }
 
 namespace StatsViewerMetadata
@@ -131,16 +134,9 @@ void SStatsViewer::Construct( const FArguments& InArgs )
 				.Padding(0.0f)
 				.HAlign(HAlign_Right)
 				[
-					SNew( SComboButton )
-					.Visibility( this, &SStatsViewer::OnGetObjectSetsVisibility )
-					.ContentPadding(3)
-					.OnGetMenuContent( this, &SStatsViewer::OnGetObjectSetMenuContent )
-					.ButtonContent()
-					[
-						SNew( STextBlock )
-						.Text( this, &SStatsViewer::OnGetObjectSetMenuLabel )
-						.ToolTipText( LOCTEXT( "DisplayedObjects_Tooltip", "Choose the objects whose statistics you want to display" ) )
-					]
+					SAssignNew( CustomFilter, SBorder )
+					.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+					.Padding(0.0f)
 				]
 			]
 		]
@@ -194,6 +190,24 @@ void SStatsViewer::Construct( const FArguments& InArgs )
 			]
 		]
 	];
+
+	// Display stats page from previous stat viewer instance
+	if (!CurrentStats.IsValid())
+	{
+		TSharedPtr<IStatsPage> InitialStatsPage;
+		FString DisplayedStatsPageName;
+		if (GConfig->GetString(*StatsViewerConstants::ConfigSectionName, TEXT("DisplayedStatsPageName"), DisplayedStatsPageName, GEditorUserSettingsIni))
+		{
+			InitialStatsPage = FStatsPageManager::Get().GetPage(FName(*DisplayedStatsPageName));
+		}
+		else
+		{
+			// Default to primitive stats if no config data exists yet
+			InitialStatsPage = FStatsPageManager::Get().GetPage(EStatsPage::PrimitiveStats);
+		}
+
+		SetDisplayedStats(InitialStatsPage.ToSharedRef());
+	}
 }
 
 SStatsViewer::SStatsViewer() :
@@ -684,21 +698,44 @@ void SStatsViewer::SetDisplayedStats( TSharedRef<IStatsPage> StatsPage )
 	}
 
 	CurrentStats = StatsPage;
+	GConfig->SetString(*StatsViewerConstants::ConfigSectionName, TEXT("DisplayedStatsPageName"), *StatsPage->GetName().ToString(), GEditorUserSettingsIni);
 	CurrentStats->OnShow( SharedThis(this) );
 	CurrentObjectSetIndex = CurrentStats->GetSelectedObjectSet();
 	CurrentFilterIndex = 0;
 	FilterTextBoxWidget->SetText( FText::FromString(TEXT("")) );
 
 	// set custom widget, if any
-	TSharedPtr<SWidget> CustomWidget = CurrentStats->GetCustomWidget( SharedThis(this) );
-	if(CustomWidget.IsValid())
+	TSharedPtr<SWidget> CustomContentWidget = CurrentStats->GetCustomWidget( SharedThis(this) );
 	{
-		CustomContent->SetContent( CustomWidget.ToSharedRef() );
-		CustomContent->SetVisibility( EVisibility::Visible );
+		if(CustomContentWidget.IsValid())
+		{
+			CustomContent->SetContent( CustomContentWidget.ToSharedRef() );
+			CustomContent->SetVisibility( EVisibility::Visible );
+		}
+		else
+		{
+			CustomContent->SetVisibility( EVisibility::Collapsed );
+		}
 	}
-	else
+
+	// set custom filter, if any
+	TSharedPtr<SWidget> CustomFilterWidget = CurrentStats->GetCustomFilter( SharedThis(this) );
 	{
-		CustomContent->SetVisibility( EVisibility::Collapsed );
+		if (!CustomFilterWidget.IsValid())
+		{
+			CustomFilterWidget = SNew( SComboButton )
+				.Visibility( this, &SStatsViewer::OnGetObjectSetsVisibility )
+				.ContentPadding(3)
+				.OnGetMenuContent( this, &SStatsViewer::OnGetObjectSetMenuContent )
+				.ButtonContent()
+				[
+					SNew( STextBlock )
+						.Text( this, &SStatsViewer::OnGetObjectSetMenuLabel )
+						.ToolTipText( LOCTEXT( "DisplayedObjects_Tooltip", "Choose the objects whose statistics you want to display" ) )
+				];
+		}
+
+		CustomFilter->SetContent(CustomFilterWidget.ToSharedRef());
 	}
 
 	Refresh();

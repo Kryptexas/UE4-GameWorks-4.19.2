@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ModuleUIPrivatePCH.h"
-
+#include "HotReloadInterface.h"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SModuleUI::Construct(const SModuleUI::FArguments& InArgs)
@@ -252,17 +252,18 @@ FReply SModuleUI::FModuleListItem::OnRecompileClicked()
 			}
 		}
 
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 		if( PackagesToRebind.Num() > 0 )
 		{
 			// Perform a hot reload
-			const bool bWaitForCompletion = true;
-			RebindPackages( PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GLog );
+			const bool bWaitForCompletion = true;			
+			HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GLog);
 		}
 		else
 		{
 			// Perform a regular unload, then reload
 			const bool bReloadAfterRecompile = true;
-			FModuleManager::Get().RecompileModule( ModuleName, bReloadAfterRecompile, *GLog );
+			HotReloadSupport.RecompileModule( ModuleName, bReloadAfterRecompile, *GLog );
 		}
 	}
 

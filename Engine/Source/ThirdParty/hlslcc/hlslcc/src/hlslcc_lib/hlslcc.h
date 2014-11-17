@@ -60,6 +60,7 @@ enum EHlslCompileFlag
 enum EHlslCompileTarget
 {
 	HCT_FeatureLevelSM4,	// Equivalent to GLSL 1.50
+	HCT_FeatureLevelES3_1Ext,// Equivalent to GLSL ES 310 + extensions
 	HCT_FeatureLevelSM5,	// Equivalent to GLSL 4.3
 	HCT_FeatureLevelES2,	// Equivalent to GLSL ES2 1.00
 	HCT_FeatureLevelES3_1,	// Equivalent to GLSL ES 3.1

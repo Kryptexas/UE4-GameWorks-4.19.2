@@ -10,15 +10,13 @@
 
 UEnvQueryGenerator_SimpleGrid::UEnvQueryGenerator_SimpleGrid(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_SimpleGrid::GenerateItems);
-
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
 	Radius.Value = 500.0f;
 	Density.Value = 100.0f;
 }
 
-void UEnvQueryGenerator_SimpleGrid::GenerateItems(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
 	float RadiusValue = 0.0f;
 	float DensityValue = 0.0f;

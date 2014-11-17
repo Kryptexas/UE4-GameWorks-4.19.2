@@ -4,6 +4,8 @@
 #include "GraphEditorActions.h"
 #include "CompilerResultsLog.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpacePlayer
@@ -15,37 +17,56 @@ UAnimGraphNode_BlendSpacePlayer::UAnimGraphNode_BlendSpacePlayer(const FPostCons
 {
 }
 
-FString UAnimGraphNode_BlendSpacePlayer::GetTooltip() const
+FText UAnimGraphNode_BlendSpacePlayer::GetTooltipText() const
 {
-	return FString::Printf(TEXT("Blendspace Player '%s'"), (Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetPathName()) : TEXT("(None)"));
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
-{
-	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
-	
-	if (TitleType == ENodeTitleType::ListView)
+{	
+	if (Node.BlendSpace == nullptr)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-		return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player'{BlendSpaceName}'"), Args);
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			return LOCTEXT("BlendspacePlayer_NONE_ListTitle", "Blendspace Player '(None)'");
+		}
+		else
+		{
+			return LOCTEXT("BlendspacePlayer_NONE_Title", "(None)\nBlendspace Player");
+		}
 	}
-	else
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		FFormatNamedArguments TitleArgs;
-		TitleArgs.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-		FText Title = FText::Format(LOCTEXT("BlendSpacePlayerFullTitle", "{BlendSpaceName}\nBlendspace Player"), TitleArgs);
+		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
 
-		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("Title"), Title);
-			Args.Add(TEXT("SyncGroupName"), FText::FromName(SyncGroup.GroupName));
-			Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
+			Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{BlendSpaceName}'"), Args));
 		}
+		else
+		{
+			FFormatNamedArguments TitleArgs;
+			TitleArgs.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+			FText Title = FText::Format(LOCTEXT("BlendSpacePlayerFullTitle", "{BlendSpaceName}\nBlendspace Player"), TitleArgs);
 
-		return Title;
+			if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Title"), Title);
+				Args.Add(TEXT("SyncGroupName"), FText::FromName(SyncGroup.GroupName));
+				Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
+			}
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitles.SetCachedTitle(TitleType, Title);
+		}
 	}
+	return CachedNodeTitles[TitleType];
 }
 
 void UAnimGraphNode_BlendSpacePlayer::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
@@ -90,6 +111,48 @@ void UAnimGraphNode_BlendSpacePlayer::GetContextMenuActions(const FGraphNodeCont
 		}
 		Context.MenuBuilder->EndSection();
 	}
+}
+
+void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UBlendSpaceBase> BlendSpace)
+	{
+		UAnimGraphNode_BlendSpacePlayer* BlendSpaceNode = CastChecked<UAnimGraphNode_BlendSpacePlayer>(NewNode);
+		BlendSpaceNode->Node.BlendSpace = BlendSpace.Get();
+	};
+
+	for (TObjectIterator<UBlendSpaceBase> BlendSpaceIt; BlendSpaceIt; ++BlendSpaceIt)
+	{
+		UBlendSpaceBase* BlendSpace = *BlendSpaceIt;
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(BlendSpace))
+		{
+			continue;
+		}
+
+		bool const bIsAimOffset = BlendSpace->IsA(UAimOffsetBlendSpace::StaticClass()) ||
+			BlendSpace->IsA(UAimOffsetBlendSpace1D::StaticClass());
+		if (!bIsAimOffset)
+		{
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			check(NodeSpawner != nullptr);
+			ActionRegistrar.AddBlueprintAction(BlendSpace, NodeSpawner);
+
+			TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BlendSpacePtr);
+		}
+	}
+}
+
+FBlueprintNodeSignature UAnimGraphNode_BlendSpacePlayer::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(Node.BlendSpace);
+
+	return NodeSignature;
 }
 
 void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const

@@ -115,3 +115,9 @@ void DrawVectorField(
 	const FSceneView* View,
 	FVectorFieldVisualizationVertexFactory* VertexFactory,
 	FVectorFieldInstance* VectorFieldInstance );
+
+void GetVectorFieldMesh(
+	FVectorFieldVisualizationVertexFactory* VertexFactory,
+	FVectorFieldInstance* VectorFieldInstance,
+	int32 ViewIndex,
+	FMeshElementCollector& Collector);

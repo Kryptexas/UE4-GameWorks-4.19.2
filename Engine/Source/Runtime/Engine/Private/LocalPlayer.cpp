@@ -17,7 +17,7 @@
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
-
+#include "DataChannel.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
@@ -68,6 +68,16 @@ FLocalPlayerContext::FLocalPlayerContext( const FLocalPlayerContext& InPlayerCon
 	SetLocalPlayer(InPlayerContext.GetLocalPlayer());
 }
 
+bool FLocalPlayerContext::IsValid() const
+{
+	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
+}
+
+bool FLocalPlayerContext::IsInitialized() const
+{
+	return LocalPlayer.IsValid();
+}
+
 UWorld* FLocalPlayerContext::GetWorld() const
 {
 	check( LocalPlayer.IsValid() );
@@ -86,14 +96,32 @@ APlayerController* FLocalPlayerContext::GetPlayerController() const
 	return LocalPlayer->PlayerController;
 }
 
-bool FLocalPlayerContext::IsValid() const
+AGameState* FLocalPlayerContext::GetGameState() const
 {
-	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
+	check(LocalPlayer.IsValid());
+	UWorld* World = LocalPlayer->GetWorld();
+	return World ? World->GameState : NULL;
 }
 
-bool FLocalPlayerContext::IsInitialized() const
+APlayerState* FLocalPlayerContext::GetPlayerState() const
 {
-	return LocalPlayer.IsValid();
+	check(LocalPlayer.IsValid());
+	APlayerController* PC = LocalPlayer->PlayerController;
+	return PC ? PC->PlayerState : NULL;
+}
+
+AHUD* FLocalPlayerContext::GetHUD() const
+{
+	check(LocalPlayer.IsValid())
+	APlayerController* PC = LocalPlayer->PlayerController;
+	return PC ? PC->MyHUD : NULL;
+}
+
+class APawn* FLocalPlayerContext::GetPawn() const
+{
+	check(LocalPlayer.IsValid())
+	APlayerController* PC = LocalPlayer->PlayerController;
+	return PC ? PC->GetPawn() : NULL;
 }
 
 void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
@@ -137,8 +165,8 @@ void ULocalPlayer::PostInitProperties()
 
 void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InControllerID)
 {
-	ViewportClient = InViewportClient;
-	ControllerId = InControllerID;
+	ViewportClient		= InViewportClient;
+	ControllerId		= InControllerID;
 }
 
 void ULocalPlayer::InitOnlineSession()
@@ -201,7 +229,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		}
 
 		// Get player unique id
-		TSharedPtr<FUniqueNetId> UniqueId = GetUniqueNetId();
+		TSharedPtr<FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
 
 		PlayerController = InWorld->SpawnPlayActor(this, ROLE_SimulatedProxy, PlayerURL, UniqueId, OutError, GEngine->GetGamePlayers(InWorld).Find(this));
 	}
@@ -273,7 +301,7 @@ void ULocalPlayer::SendSplitJoin()
 			}
 
 			// Send the player unique Id at login
-			FUniqueNetIdRepl UniqueIdRepl(GetUniqueNetId());
+			FUniqueNetIdRepl UniqueIdRepl(GetPreferredUniqueNetId());
 
 			FString URLString = URL.ToString();
 			FNetControlMessage<NMT_JoinSplit>::Send(NetDriver->ServerConnection, URLString, UniqueIdRepl);
@@ -1309,29 +1337,26 @@ bool ULocalPlayer::HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& 
 	{
 		TArray<UWorld*> MatineeActorWorldsThatSkipped;
 		// if so, look for all active matinees that has this Player in a director group
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<AMatineeActor> It(GetWorld()); It; ++It)
 		{
-			AMatineeActor* MatineeActor = Cast<AMatineeActor>(*It);
+			AMatineeActor* MatineeActor = *It;
 
-			if( MatineeActor )
+			// is it currently playing (and skippable)?
+			if (MatineeActor->bIsPlaying && MatineeActor->bIsSkippable && (MatineeActor->bClientSideOnly || MatineeActor->GetWorld()->IsServer()))
 			{
-				// is it currently playing (and skippable)?
-				if (MatineeActor->bIsPlaying && MatineeActor->bIsSkippable && (MatineeActor->bClientSideOnly || MatineeActor->GetWorld()->IsServer()))
+				for (int32 GroupIndex = 0; GroupIndex < MatineeActor->GroupInst.Num(); GroupIndex++)
 				{
-					for (int32 GroupIndex = 0; GroupIndex < MatineeActor->GroupInst.Num(); GroupIndex++)
+					// is the PC the group actor?
+					if (MatineeActor->GroupInst[GroupIndex]->GetGroupActor() == PlayerController)
 					{
-						// is the PC the group actor?
-						if (MatineeActor->GroupInst[GroupIndex]->GetGroupActor() == PlayerController)
+						const float RightBeforeEndTime = 0.1f;
+						// make sure we aren';t already at the end (or before the allowed skip time)
+						if ((MatineeActor->InterpPosition < MatineeActor->MatineeData->InterpLength - RightBeforeEndTime) && 
+							(MatineeActor->InterpPosition >= InitialNoSkipTime))
 						{
-							const float RightBeforeEndTime = 0.1f;
-							// make sure we aren';t already at the end (or before the allowed skip time)
-							if ((MatineeActor->InterpPosition < MatineeActor->MatineeData->InterpLength - RightBeforeEndTime) && 
-								(MatineeActor->InterpPosition >= InitialNoSkipTime))
-							{
-								// skip to end
-								MatineeActor->SetPosition(MatineeActor->MatineeData->InterpLength - RightBeforeEndTime, true);
-								MatineeActorWorldsThatSkipped.AddUnique( MatineeActor->GetWorld() );
-							}
+							// skip to end
+							MatineeActor->SetPosition(MatineeActor->MatineeData->InterpLength - RightBeforeEndTime, true);
+							MatineeActorWorldsThatSkipped.AddUnique( MatineeActor->GetWorld() );
 						}
 					}
 				}
@@ -1549,14 +1574,18 @@ FString ULocalPlayer::GetNickname() const
 		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
 		if (OnlineIdentityInt.IsValid())
 		{
-			return OnlineIdentityInt->GetPlayerNickname(ControllerId);
+			auto UniqueId = GetPreferredUniqueNetId();
+			if (UniqueId.IsValid())
+			{
+				return OnlineIdentityInt->GetPlayerNickname(*UniqueId);
+			}
 		}
 	}
 
 	return TEXT("");
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
+TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
 {
 	UWorld* World = GetWorld();
 	if (World != NULL)
@@ -1573,6 +1602,51 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
 	}
 
 	return NULL;
+}
+
+TSharedPtr<FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const
+{
+	return CachedUniqueNetId;
+}
+
+void ULocalPlayer::SetCachedUniqueNetId( TSharedPtr<class FUniqueNetId> NewUniqueNetId )
+{
+	CachedUniqueNetId = NewUniqueNetId;
+}
+
+TSharedPtr<FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
+{
+	// Prefer the cached unique net id (only if it's valid)
+	// This is for backwards compatibility for games that don't yet cache the unique id properly
+	if (GetCachedUniqueNetId().IsValid() && GetCachedUniqueNetId()->IsValid())
+	{
+		return GetCachedUniqueNetId();
+	}
+
+	// If the cached unique net id is not valid, then get the one paired with the controller
+	return GetUniqueNetIdFromCachedControllerId();
+}
+
+bool ULocalPlayer::IsCachedUniqueNetIdPairedWithControllerId() const
+{
+	// Get the UniqueNetId that is paired with the controller
+	TSharedPtr<FUniqueNetId> UniqueIdFromController = GetUniqueNetIdFromCachedControllerId();
+
+	if (CachedUniqueNetId.IsValid() != UniqueIdFromController.IsValid())
+	{
+		// Definitely can't match if one is valid and not the other
+		return false;
+	}
+
+	if (!CachedUniqueNetId.IsValid())
+	{
+		// Both are invalid, technically they match
+		check(!UniqueIdFromController.IsValid());
+		return true;
+	}
+
+	// Both are valid, ask them if they match
+	return *CachedUniqueNetId == *UniqueIdFromController;
 }
 
 UWorld* ULocalPlayer::GetWorld() const

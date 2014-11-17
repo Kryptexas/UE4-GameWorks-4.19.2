@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateColor.h: Declares the FSlateColor structure.
-=============================================================================*/
-
 #pragma once
 
+#include "Styling/WidgetStyle.h"
 #include "SlateColor.generated.h"
 
 
@@ -14,22 +11,22 @@
  *
  * Should we use the specified color? If not, then which color from the style should we use.
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateColorStylingMode
 {
 	enum Type
 	{
 		/** Color value is stored in this Slate color. */
-		UseColor_Specified,
+		UseColor_Specified UMETA(DisplayName="Specified Color"),
 
 		/** Color value is stored in the linked color. */
-		UseColor_Specified_Link,
+		UseColor_Specified_Link UMETA(Hidden),
 
 		/** Use the widget's foreground color. */
-		UseColor_Foreground,
+		UseColor_Foreground UMETA(DisplayName="Foreground Color"),
 
 		/** Use the widget's subdued color. */
-		UseColor_Foreground_Subdued
+		UseColor_Foreground_Subdued UMETA(Hidden)
 	};
 }
 
@@ -37,8 +34,8 @@ namespace ESlateColorStylingMode
 /**
  * A Slate color can be a directly specified value, or the color can be pulled from a WidgetStyle.
  */
-USTRUCT()
-struct FSlateColor
+USTRUCT(BlueprintType)
+struct SLATECORE_API FSlateColor
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -81,9 +78,7 @@ public:
 	 * Gets the color value represented by this Slate color.
 	 *
 	 * @param InWidgetStyle The widget style to use when this color represents a foreground or subdued color.
-	 *
 	 * @return The color value.
-	 *
 	 * @see GetSpecifiedColor
 	 */
 	const FLinearColor& GetColor( const FWidgetStyle& InWidgetStyle ) const
@@ -113,9 +108,7 @@ public:
 	 * Gets the specified color value.
 	 *
 	 * @return The specified color value.
-	 *
-	 * @see GetColor
-	 * @see IsColorSpecified
+	 * @see GetColor, IsColorSpecified
 	 */
 	FLinearColor GetSpecifiedColor( ) const
 	{
@@ -131,7 +124,6 @@ public:
 	 * Checks whether the values for this color have been specified.
 	 *
 	 * @return true if specified, false otherwise.
-	 *
 	 * @see GetSpecifiedColor
 	 */
 	bool IsColorSpecified( ) const
@@ -139,10 +131,35 @@ public:
 		return (ColorUseRule == ESlateColorStylingMode::UseColor_Specified) || (ColorUseRule == ESlateColorStylingMode::UseColor_Specified_Link);
 	}
 
-public:
+	/**
+	 * Compares this color with another for equality.
+	 *
+	 * @param Other The other color.
+	 *
+	 * @return true if the two colors are equal, false otherwise.
+	 */
+	bool operator==( const FSlateColor& Other ) const 
+	{
+		return SpecifiedColor == Other.SpecifiedColor
+			&& ColorUseRule == Other.ColorUseRule
+			&& (ColorUseRule != ESlateColorStylingMode::UseColor_Specified_Link || LinkedSpecifiedColor == Other.LinkedSpecifiedColor);
+	}
 
 	/**
-	 * @returns an FSlateColor that is the widget's foreground. */
+	 * Compares this color with another for inequality.
+	 *
+	 * @param Other The other color.
+	 *
+	 * @return false if the two colors are equal, true otherwise.
+	 */
+	bool operator!=( const FSlateColor& Other ) const 
+	{
+		return !(*this == Other);
+	}
+
+public:
+
+	/** @returns an FSlateColor that is the widget's foreground. */
 	static FSlateColor UseForeground( )
 	{
 		return FSlateColor( ESlateColorStylingMode::UseColor_Foreground );
@@ -153,6 +170,9 @@ public:
 	{
 		return FSlateColor( ESlateColorStylingMode::UseColor_Foreground_Subdued );
 	}
+
+	/** Used to upgrade an FColor or FLinearColor property to an FSlateColor property */
+	bool SerializeFromMismatchedTag( const struct FPropertyTag& Tag, FArchive& Ar );
 
 protected:
 	
@@ -165,15 +185,25 @@ protected:
 protected:
 
 	// The current specified color; only meaningful when ColorToUse == UseColor_Specified.
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Color)
 	FLinearColor SpecifiedColor;
 
 	// The rule for which color to pick.
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Color)
 	TEnumAsByte<ESlateColorStylingMode::Type> ColorUseRule;
 
 private:
 
 	// A shared pointer to the linked color value, if any.
 	TSharedPtr<FLinearColor> LinkedSpecifiedColor;
+};
+
+template<>
+struct TStructOpsTypeTraits<FSlateColor>
+	: public TStructOpsTypeTraitsBase
+{
+	enum 
+	{
+		WithSerializeFromMismatchedTag = true,
+	};
 };

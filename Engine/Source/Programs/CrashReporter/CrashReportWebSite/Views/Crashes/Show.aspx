@@ -13,41 +13,49 @@
 
 <asp:Content ID="ScriptContent"  ContentPlaceHolderID="ScriptContent" runat="server" >
 	<script type="text/javascript">
-	$(document).ready(function () {
-		$("#EditDescription").click(function () {
-			$("#CrashDescription").css("display", "none");
-			$("#ShowCrashDescription input").css("display", "block");
-			$("#EditDescription").css("display", "none");
-			$("#SaveDescription").css("display", "inline");
-		});
+		$(document).ready(function ()
+		{
+			$("#EditDescription").click(function ()
+			{
+				$("#CrashDescription").css("display", "none");
+				$("#ShowCrashDescription input").css("display", "block");
+				$("#EditDescription").css("display", "none");
+				$("#SaveDescription").css("display", "inline");
+			});
 
-		$("#SaveDescription").click(function () {
-			$('#EditCrashDescriptionForm').submit();
-			$('Description').disable();
-		});
+			$("#SaveDescription").click(function ()
+			{
+				$('#EditCrashDescriptionForm').submit();
+				$('Description').disable();
+			});
 
-		$("#DisplayModuleNames").click(function () {
-			$(".module-name").toggle();
-		});
+			$("#DisplayModuleNames").click(function ()
+			{
+				$(".module-name").toggle();
+			});
 
-		$("#DisplayFunctionNames").click(function () {
-			$(".function-name").toggle();
-		});
+			$("#DisplayFunctionNames").click(function ()
+			{
+				$(".function-name").toggle();
+			});
 
-		$("#DisplayFileNames").click(function () {
-			$(".file-name").toggle();
-		});
+			$("#DisplayFileNames").click(function ()
+			{
+				$(".file-name").toggle();
+			});
 
-		$("#DisplayFilePathNames").click(function () {
-			$(".file-path").toggle();
-		});
+			$("#DisplayFilePathNames").click(function ()
+			{
+				$(".file-path").toggle();
+			});
 
-		$("#DisplayUnformattedCallStack").click(function () {
-			$("#FormattedCallStackContainer").toggle();
-			$("#RawCallStackContainer").toggle();
+			$("#DisplayUnformattedCallStack").click(function ()
+			{
+				$("#FormattedCallStackContainer").toggle();
+				$("#RawCallStackContainer").toggle();
+			});
 		});
-	});
-</script>
+	</script>
 </asp:Content>
 
 <asp:Content ID="AboveMainContent" ContentPlaceHolderID="AboveMainContent" runat="server">
@@ -156,6 +164,9 @@
 				<%=Model.Crash.GetTimeOfCrash()[0] %><br />
 				<%=Model.Crash.GetTimeOfCrash()[1] %>
 
+			<dt>Crash type</dt> 
+				<dd class='even' style='width:8em'><%=Model.Crash.GetCrashTypeAsString()%></dd>
+
 			<dt>User</dt>
 				<dd><%=Html.DisplayFor(m => Model.Crash.User.UserName) %></dd>
 
@@ -174,8 +185,11 @@
 			<dt>Platform</dt>
 				<dd ><%=Html.DisplayFor(m => Model.Crash.PlatformName) %></dd>
 
-			<dt>Computer</dt> 
+			<dt>Machine Id</dt> 
 				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.ComputerName) %></dd>
+
+			<dt>Epic Account Id</dt> 
+				<dd class='even'><%=Html.DisplayFor(m => Model.Crash.EpicAccountId) %></dd>
 
 			<dt>Build Version</dt>
 				<dd ><%=Html.DisplayFor(m => Model.Crash.BuildVersion) %></dd>
@@ -198,6 +212,19 @@
 	</div>
 
 	<div id="CallStackContainer" >
+		<% if( !string.IsNullOrEmpty( Model.Crash.Summary ) ) 
+			{ %>
+				<div id='ShowErrorMessage'>
+					<br />
+					<h3>Error Message</h3>
+					<div id='ErrorMessage'>
+						<%=Model.Crash.Summary %>
+					</div>
+				</div>
+				<br />
+		<%	}
+		%>
+
 		<div class='CrashViewTextBox'>
 			<div class='CrashViewTextBoxRight'>
 				<h3>Call Stack</h3>

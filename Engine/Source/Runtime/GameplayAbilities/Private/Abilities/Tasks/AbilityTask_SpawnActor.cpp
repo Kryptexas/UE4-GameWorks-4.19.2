@@ -13,10 +13,7 @@ UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const class FPostConstructIniti
 
 UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UObject* WorldContextObject, TSubclassOf<AActor> InClass)
 {
-	UAbilityTask_SpawnActor * MyObj = NewObject<UAbilityTask_SpawnActor>();
-	UGameplayAbility * ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	MyObj->InitTask(ThisAbility);
-	return MyObj;	
+	return NewTask<UAbilityTask_SpawnActor>(WorldContextObject);
 }
 
 // ---------------------------------------------------------------------------------------
@@ -36,15 +33,14 @@ void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, A
 {
 	if (SpawnedActor)
 	{
-		FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+		const FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
 
-		SpawnedActor->ExecuteConstruction(SpawnTransform, NULL);
-		SpawnedActor->PostActorConstruction();
+		SpawnedActor->FinishSpawning(SpawnTransform);
 
 		Success.Broadcast(SpawnedActor);
 	}
 
-	MarkPendingKill();
+	EndTask();
 }
 
 // ---------------------------------------------------------------------------------------

@@ -255,14 +255,18 @@ FLinearColor FLinearColor::HSVToLinearRGB() const
 						A);
 }
 
-
 /**
- * Makes a random but quite nice color.
- */
+* Makes a random but quite nice color.
+*/
+FLinearColor FLinearColor::MakeRandomColor()
+{
+	const uint8 Hue = (uint8)(FMath::FRand()*255.f);
+	return FLinearColor::FGetHSV(Hue, 0, 255);
+}
+
 FColor FColor::MakeRandomColor()
 {
-	const uint8 Hue = (uint8)( FMath::FRand()*255.f );
-	return FColor( FLinearColor::FGetHSV(Hue, 0, 255) );
+	return FColor(FLinearColor::MakeRandomColor());
 }
 
 FColor FColor::MakeRedToGreenColorFromScalar(float Scalar)

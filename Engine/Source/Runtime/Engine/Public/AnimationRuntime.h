@@ -6,13 +6,16 @@
 =============================================================================*/ 
 
 #pragma once
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimSequenceBase.h"
 
 struct FInputBlendPose;
+struct FA2CSPose;
 struct FA2Pose;
 struct FAnimTrack;
+struct FPerBoneBlendWeight;
 class UBlendSpaceBase;
-
+class UAnimSequenceBase;
+typedef TArray<FTransform> FTransformArrayA2;
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/
 
@@ -141,6 +144,11 @@ public:
 	/** Fill ref pose **/
 	static void FillWithRefPose(TArray<FTransform> & OutAtoms, const FBoneContainer & RequiredBones);
 
+#if WITH_EDITOR
+	/** fill with retarget base ref pose but this isn't used during run-time, so it always copies all of them */
+	static void FillWithRetargetBaseRefPose( TArray<FTransform> & OutAtoms, const USkeletalMesh * Mesh, const FBoneContainer & RequiredBones );
+#endif
+
 	/** Convert LocalTransforms into MeshSpaceTransforms over RequiredBones. */
 	static void ConvertPoseToMeshSpace(const TArray<FTransform> & LocalTransforms, TArray<FTransform> & MeshSpaceTransforms, const FBoneContainer & RequiredBones);
 
@@ -205,7 +213,7 @@ public:
 	 *
 	 * return ETypeAdvanceAnim type
 	 */
-	static ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float & MoveDelta, float & InOutTime, const float & EndTime);
+	static enum ETypeAdvanceAnim AdvanceTime(const bool & bAllowLooping, const float & MoveDelta, float & InOutTime, const float & EndTime);
 
 	static void TickBlendWeight(float DeltaTime, float DesiredWeight, float & Weight, float& BlendTime);
 	/** 
@@ -256,6 +264,11 @@ public:
 	static void SetSpaceTransform(FA2Pose& Pose, int32 Index, FTransform & NewTransform);
 	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform & NewTransform);
 
+	// space bases
+	static void FillUpSpaceBasesRefPose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose);
+#if WITH_EDITOR
+	static void FillUpSpaceBasesRetargetBasePose(const USkeleton * Skeleton, TArray<FTransform> &SpaceBaseRefPose);
+#endif
 private:
 	/** 
 	* Blend Poses per bone weights : The BasePoses + BlendPoses(SourceIndex) * Blend Weights(BoneIndex)

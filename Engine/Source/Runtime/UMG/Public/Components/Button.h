@@ -2,30 +2,30 @@
 
 #pragma once
 
+#include "ButtonWidgetStyle.h"
+
 #include "Button.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
-/** Buttons are clickable widgets */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+/**
+ * The button is a clickable primitive widget to enable basic interaction.
+ */
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UButton : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** Style of the button */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	/** The template style asset, used to seed the mutable instance of the style. */
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
-	/** The scaling factor for the button border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	FVector2D DesiredSizeScale;
-
-	/** The scaling factor for the button content */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	FVector2D ContentScale;
+	/** The button style used at runtime */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FButtonStyle WidgetStyle;
 	
-	/** The color multiplier for the button images */
+	/** The color multiplier for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
 	FLinearColor ColorAndOpacity;
 	
@@ -33,41 +33,47 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance )
 	FLinearColor BackgroundColor;
 
-	/** The foreground color of the button */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance )
-	FLinearColor ForegroundColor;
+	/** The type of mouse action required by the user to trigger the buttons 'Click' */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	TEnumAsByte<EButtonClickMethod::Type> ClickMethod;
 
-	UPROPERTY(EditDefaultsOnly, Category=Sound)
-	FSlateSound PressedSound;
+	/** The type of touch action required by the user to trigger the buttons 'Click' */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	TEnumAsByte<EButtonTouchMethod::Type> TouchMethod;
 
-	UPROPERTY(EditDefaultsOnly, Category=Sound)
-	FSlateSound HoveredSound;
+	/** Sometimes a button should only be mouse-clickable and never keyboard focusable. */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	bool IsFocusable;
+
+public:
 
 	/** Called when the button is clicked */
-	UPROPERTY(EditDefaultsOnly, Category=Events)
-	FOnReply OnClickedEvent;
-
-	virtual void ReleaseNativeWidget() override;
+	UPROPERTY(BlueprintAssignable)
+	FOnButtonClickedEvent OnClicked;
 	
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	/** Sets the color multiplier for the button content */
+	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
 	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	/** Sets the color multiplier for the button background */
+	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
 	void SetBackgroundColor(FLinearColor InBackgroundColor);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetForegroundColor(FLinearColor InForegroundColor);
-	
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	/**
+	 * Returns true if the user is actively pressing the button.  Do not use this for detecting 'Clicks', use the OnClicked event instead.
+	 *
+	 * @return true if the user is actively pressing the button otherwise false.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Button")
 	bool IsPressed() const;
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
 
 	// Begin UObject interface
 	virtual void PostLoad() override;
@@ -75,6 +81,7 @@ public:
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:
@@ -86,12 +93,15 @@ protected:
 	// End UPanelWidget
 
 protected:
+	/** Handle the actual click event from slate and forward it on */
+	FReply SlateHandleClicked();
+
+protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
-	FReply HandleOnClicked();
-
 protected:
+	/** Cached pointer to the underlying slate button owned by this UWidget */
 	TSharedPtr<SButton> MyButton;
 };

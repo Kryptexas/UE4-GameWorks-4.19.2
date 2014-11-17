@@ -76,8 +76,10 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 	// register for path observing only if we weren't registered already
 	const bool RegisterForPathUpdates = GoalActor.IsValid() == false;	
 	GoalActor = &ActorToObserve;
+	checkSlow(GoalActor.IsValid());
 	GoalActorAsNavAgent = InterfaceCast<INavAgentInterface>(&ActorToObserve);
 	GoalActorLocationTetherDistanceSq = FMath::Square(TetherDistance);
+	UpdateLastRepathGoalLocation();
 
 	NavigationDataUsed->RegisterObservedPath(AsShared());
 }
@@ -88,6 +90,14 @@ void FNavigationPath::SetSourceActor(const AActor& InSourceActor)
 	SourceActorAsNavAgent = InterfaceCast<INavAgentInterface>(&InSourceActor);
 }
 
+void FNavigationPath::UpdateLastRepathGoalLocation()
+{
+	if (GoalActor.IsValid())
+	{
+		GoalActorLastLocation = GoalActorAsNavAgent ? GoalActorAsNavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation();
+	}
+}
+
 EPathObservationResult::Type FNavigationPath::TickPathObservation()
 {
 	if (GoalActor.IsValid() == false)
@@ -96,7 +106,7 @@ EPathObservationResult::Type FNavigationPath::TickPathObservation()
 	}
 
 	const FVector GoalLocation = GoalActorAsNavAgent != NULL ? GoalActorAsNavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation();
-	return FVector::DistSquared(GoalLocation, PathPoints.Last().Location) <= GoalActorLocationTetherDistanceSq ? EPathObservationResult::NoChange : EPathObservationResult::RequestRepath;
+	return FVector::DistSquared(GoalLocation, GoalActorLastLocation) <= GoalActorLocationTetherDistanceSq ? EPathObservationResult::NoChange : EPathObservationResult::RequestRepath;
 }
 
 void FNavigationPath::DisableGoalActorObservation()
@@ -233,7 +243,7 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, in
 			{
 				const FVector Direction = (End - Start);
 
-				if (FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal()))
+				if (FMath::LineBoxIntersection(Box, Start, End, Direction))
 				{
 					bIntersects = true;
 					break;
@@ -287,11 +297,20 @@ const FNavPathType FNavMeshPath::Type;
 FNavMeshPath::FNavMeshPath()
 	: bCorridorEdgesGenerated(false)
 	, bDynamic(false)
-	, bStrigPulled(false)
+	, bStringPulled(false)
 	, bWantsStringPulling(true)
 	, bWantsPathCorridor(false)
 {
 	PathType = FNavMeshPath::Type;
+}
+
+void FNavMeshPath::Reset()
+{
+	PathPoints.Reset();
+	PathCorridor.Reset();
+	PathCorridorCost.Reset();
+	bStringPulled = false;
+	bCorridorEdgesGenerated = false;
 }
 
 float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const
@@ -347,8 +366,8 @@ const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges() c
 #if WITH_RECAST
 	// mz@todo the underlying recast function queries the navmesh a portal at a time, 
 	// which is a waste of performance. A batch-query function has to be added.
-	const int32 CorridorLenght = PathCorridor.Num();
-	if (CorridorLenght != 0 && IsInGameThread() && NavigationDataUsed.IsValid())
+	const int32 CorridorLength = PathCorridor.Num();
+	if (CorridorLength != 0 && IsInGameThread() && NavigationDataUsed.IsValid())
 	{
 		const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
 		MyOwner->GetEdgesForPathCorridor(&PathCorridor, &PathCorridorEdges);
@@ -357,6 +376,15 @@ const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges() c
 #endif // WITH_RECAST
 	return &PathCorridorEdges;
 }
+
+void FNavMeshPath::PerformStringPulling(const FVector& StartLoc, const FVector& EndLoc)
+{
+#if WITH_RECAST
+	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
+	bStringPulled = MyOwner->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, &CustomLinkIds);
+#endif	// WITH_RECAST
+}
+
 
 #if DEBUG_DRAW_OFFSET
 	UWorld* GInternalDebugWorld_ = NULL;
@@ -834,7 +862,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction);
 			}
 
 			Start = End;
@@ -848,7 +876,7 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction);
 			}
 		}
 	}
@@ -965,7 +993,15 @@ void UNavigationPath::OnPathEvent(FNavigationPath* UpdatedPath, ENavPathEvent::T
 	if (UpdatedPath == SharedPath.Get())
 	{
 		PathUpdatedNotifier.Broadcast(this, PathEvent);
-		bIsValid = SharedPath.IsValid() && SharedPath->IsValid();
+		if (SharedPath.IsValid() && SharedPath->IsValid())
+		{
+			bIsValid = true;
+			SetPathPointsFromPath(*UpdatedPath);
+		}
+		else
+		{
+			bIsValid = false;
+		}
 	}
 }
 
@@ -1023,7 +1059,7 @@ void UNavigationPath::EnableRecalculationOnInvalidation(TEnumAsByte<ENavigationO
 	}
 }
 
-float UNavigationPath::GetPathLenght() const
+float UNavigationPath::GetPathLength() const
 {
 	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
 	return !!bIsValid ? SharedPath->GetLength() : -1.f;
@@ -1071,11 +1107,7 @@ void UNavigationPath::SetPath(FNavPathSharedPtr NewSharedPath)
 				NewPath->EnableRecalculationOnInvalidation(RecalculateOnInvalidation == ENavigationOptionFlag::Enable);
 			}
 			
-			PathPoints.Reset(NewPath->GetPathPoints().Num());
-			for (const auto& PathPoint : NewPath->GetPathPoints())
-			{
-				PathPoints.Add(PathPoint.Location);
-			}
+			SetPathPointsFromPath(*NewPath);
 		}
 		else
 		{
@@ -1086,3 +1118,11 @@ void UNavigationPath::SetPath(FNavPathSharedPtr NewSharedPath)
 	}
 }
 
+void UNavigationPath::SetPathPointsFromPath(FNavigationPath& NativePath)
+{
+	PathPoints.Reset(NativePath.GetPathPoints().Num());
+	for (const auto& PathPoint : NativePath.GetPathPoints())
+	{
+		PathPoints.Add(PathPoint.Location);
+	}
+}

@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "RHI.h"
-
 /**
  * The input buffers required for sorting on the GPU.
  */

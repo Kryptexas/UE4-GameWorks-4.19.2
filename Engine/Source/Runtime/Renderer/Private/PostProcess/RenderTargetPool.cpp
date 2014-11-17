@@ -687,7 +687,7 @@ inline void DrawBorder(FCanvas& Canvas, const FIntRect Rect, FLinearColor Color)
 	Canvas.DrawTile(Rect.Max.X - 1, Rect.Min.Y + 1, 1, Rect.Max.Y - Rect.Min.Y - 2, 0, 0, 1, 1, Color);
 }
 
-void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
+void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	if (RenderTargetPoolEvents.Num())
 	{
@@ -728,7 +728,7 @@ void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, con
 				}
 			} TempRenderTarget(View);
 
-			FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime);
+			FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, View.GetFeatureLevel());
 
 			// TinyFont property
 			const int32 FontHeight = 12;

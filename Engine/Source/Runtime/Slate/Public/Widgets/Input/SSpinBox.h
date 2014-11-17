@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * A Slate SpinBox resembles traditional spin boxes in that it is a widget that provides
  * keyboard-based and mouse-based manipulation of a numeric value.
@@ -9,7 +10,8 @@
  * Keyboard-based manipulation: click on the spinbox to enter text mode.
  */
 template<typename NumericType>
-class SSpinBox : public SCompoundWidget
+class SSpinBox
+	: public SCompoundWidget
 {
 public:
 	/** Notification for numeric value change */
@@ -31,6 +33,7 @@ public:
 		, _OnValueCommitted()
 		, _ClearKeyboardFocusOnCommit( false )
 		, _SelectAllTextOnCommit( true )
+		, _MinDesiredWidth(0.0f)
 		{}
 	
 		/** The style used to draw this spinbox */
@@ -66,6 +69,8 @@ public:
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
+		/** Minimum width that a spin box should be */
+		SLATE_ATTRIBUTE( float, MinDesiredWidth )
 
 	SLATE_END_ARGS()
 
@@ -82,19 +87,23 @@ public:
 	{
 		check(InArgs._Style);
 
+		Style = InArgs._Style;
+
 		ForegroundColor = InArgs._Style->ForegroundColor;
+
 		ValueAttribute = InArgs._Value;
 		OnValueChanged = InArgs._OnValueChanged;
 		OnValueCommitted = InArgs._OnValueCommitted;
 		OnBeginSliderMovement = InArgs._OnBeginSliderMovement;
 		OnEndSliderMovement = InArgs._OnEndSliderMovement;
+		MinDesiredWidth = InArgs._MinDesiredWidth;
 	
 		MinValue = InArgs._MinValue;
 		MaxValue = InArgs._MaxValue;
 		MinSliderValue = (InArgs._MinSliderValue.Get().IsSet()) ? InArgs._MinSliderValue : MinValue;
 		MaxSliderValue = (InArgs._MaxSliderValue.Get().IsSet()) ? InArgs._MaxSliderValue : MaxValue;
 
-		bUnlimitedSpinRange = !((InArgs._MinValue.Get().IsSet() && InArgs._MaxValue.Get().IsSet()) || (InArgs._MinSliderValue.Get().IsSet() && InArgs._MaxSliderValue.Get().IsSet()));
+		UpdateIsSpinRangeUnlimited();
 	
 		SliderExponent = InArgs._SliderExponent;
 
@@ -119,7 +128,8 @@ public:
 		.Padding( InArgs._ContentPadding )
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			.Padding( TextMargin )
 			.HAlign(HAlign_Fill) 
@@ -128,8 +138,10 @@ public:
 				SAssignNew(TextBlock, STextBlock)
 				.Font(InArgs._Font)
 				.Text( this, &SSpinBox<NumericType>::GetValueAsString )
+				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 			]
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			.Padding( TextMargin )
 			.HAlign(HAlign_Fill) 
@@ -144,7 +156,10 @@ public:
 				.OnTextCommitted( this, &SSpinBox<NumericType>::TextField_OnTextCommitted )
 				.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
+				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
+				.VirtualKeyboardType(EKeyboardType::Keyboard_Number)
 			]			
+
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.HAlign(HAlign_Fill) 
@@ -152,9 +167,8 @@ public:
 			[
 				SNew(SImage)
 				.Image( &InArgs._Style->ArrowsImage )
-				.ColorAndOpacity( FSlateColor::UseForeground() )
+				.ColorAndOpacity( FSlateColor::UseForeground())
 			]
-
 		];
 	}
 	
@@ -182,7 +196,7 @@ public:
 			BackgroundImage,
 			MyClippingRect,
 			DrawEffects,
-			InWidgetStyle.GetColorAndOpacityTint()
+			BackgroundImage->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 			);
 
 		const int32 FilledLayer = BackgroundLayer + 1;
@@ -213,7 +227,7 @@ public:
 					FillImage,
 					MyClippingRect,
 					DrawEffects,
-					InWidgetStyle.GetColorAndOpacityTint()
+					FillImage->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 					);
 			}
 		}
@@ -226,7 +240,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -249,7 +262,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -282,7 +294,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -425,6 +436,58 @@ public:
 		// The spinbox is considered focused when we are typing it text.
 		return SCompoundWidget::HasKeyboardFocus() || (EditableText.IsValid() && EditableText->HasKeyboardFocus());
 	}
+
+	/** See the Value attribute */
+	float GetValue() const { return ValueAttribute.Get(); }
+	void SetValue(const TAttribute<NumericType>& InValueAttribute) 
+	{
+		ValueAttribute = InValueAttribute; 
+		CommitValue(InValueAttribute.Get(), ECommitMethod::CommittedViaSpin, ETextCommit::Default);
+	}
+
+	/** See the MinValue attribute */
+	NumericType GetMinValue() const { return MinValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
+	void SetMinValue(const TAttribute<TOptional<NumericType>>& InMinValue) 
+	{ 
+		MinValue = InMinValue;
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the MaxValue attribute */
+	NumericType GetMaxValue() const { return MaxValue.Get().Get(TNumericLimits<NumericType>::Max()); }
+	void SetMaxValue(const TAttribute<TOptional<NumericType>>& InMaxValue) 
+	{ 
+		MaxValue = InMaxValue; 
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the MinSliderValue attribute */
+	NumericType GetMinSliderValue() const { return MinSliderValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
+	void SetMinSliderValue(const TAttribute<TOptional<NumericType>>& InMinSliderValue) 
+	{ 
+		MinSliderValue = (InMinSliderValue.Get().IsSet()) ? InMinSliderValue : MinValue;
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the MaxSliderValue attribute */
+	NumericType GetMaxSliderValue() const { return MaxSliderValue.Get().Get(TNumericLimits<NumericType>::Max()); }
+	void SetMaxSliderValue(const TAttribute<TOptional<NumericType>>& InMaxSliderValue) 
+	{ 
+		MaxSliderValue = (InMaxSliderValue.Get().IsSet()) ? InMaxSliderValue : MaxValue;;
+		UpdateIsSpinRangeUnlimited();
+	}
+
+	/** See the Delta attribute */
+	NumericType GetDelta() const { return Delta; }
+	void SetDelta(NumericType InDelta) { Delta = InDelta; }
+
+	/** See the SliderExponent attribute */
+	float GetSliderExponent() const { return SliderExponent.Get(); }
+	void SetSliderExponent(const TAttribute<float>& InSliderExponent) { SliderExponent = InSliderExponent; }
+	
+	/** See the MinDesiredWidth attribute */
+	float GetMinDesiredWidth() const { return SliderExponent.Get(); }
+	void SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth) { MinDesiredWidth = InMinDesiredWidth; }
 
 protected:
 	/** Make the spinbox switch to keyboard-based input mode. */
@@ -602,7 +665,7 @@ protected:
 		return FMath::Clamp<double>(Result, TNumericLimits<NumericType>::Lowest(), TNumericLimits<NumericType>::Max());
 	}
 	
-	/*
+	/**
 	 * Helper structure to check if a given character is supported by underlying numeric type
 	 */
 	template<typename T, typename U = void>
@@ -638,6 +701,12 @@ private:
 
 	/** True when no range is specified, spinner can be spun indefinitely */
 	bool bUnlimitedSpinRange;
+	void UpdateIsSpinRangeUnlimited()
+	{
+		bUnlimitedSpinRange = !((MinValue.Get().IsSet() && MaxValue.Get().IsSet()) || (MinSliderValue.Get().IsSet() && MaxSliderValue.Get().IsSet()));
+	}
+
+	const FSpinBoxStyle* Style;
 
 	const FSlateBrush* BackgroundHoveredBrush;
 	const FSlateBrush* BackgroundBrush;
@@ -646,18 +715,20 @@ private:
 
 	float DistanceDragged;
 	NumericType Delta;
+	TAttribute<float> SliderExponent;
 	TAttribute< TOptional<NumericType> > MinValue;
 	TAttribute< TOptional<NumericType> > MaxValue;
 	TAttribute< TOptional<NumericType> > MinSliderValue;
 	TAttribute< TOptional<NumericType> > MaxSliderValue;
 
-	NumericType GetMinValue() const { return MinValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
-	NumericType GetMaxValue() const { return MaxValue.Get().Get(TNumericLimits<NumericType>::Max()); }
-	NumericType GetMinSliderValue() const { return MinSliderValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
-	NumericType GetMaxSliderValue() const { return MaxSliderValue.Get().Get(TNumericLimits<NumericType>::Max()); }
+	/** Prevents the spinbox from being smaller than desired in certain cases (e.g. when it is empty) */
+	TAttribute<float> MinDesiredWidth;
+	float GetTextMinDesiredWidth() const
+	{
+		return FMath::Max(0.0f, MinDesiredWidth.Get() - Style->ArrowsImage.ImageSize.X);
+	}
 
-	TAttribute<float> SliderExponent;
-
+	/** Whether the user is dragging the slider */
 	bool bDragging;
 	
 	/** Cached mouse position to restore after scrolling. */

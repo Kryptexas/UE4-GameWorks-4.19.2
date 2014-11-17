@@ -241,7 +241,7 @@ private:
 	* @param DrawingPolicyLink - the drawing policy link
 	* @param bDrawnShared - determines whether to draw shared 
 	*/
-	void DrawElement(FRHICommandList& RHICmdList, const FViewInfo& View, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
+	void DrawElement(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
 
 public:
 
@@ -265,7 +265,18 @@ public:
 	 * @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
 	 * @return True if any static meshes were drawn.
 	 */
-	bool DrawVisible(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap);
+	bool DrawVisible(const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap);
+
+	/**
+	* Draws only the static meshes which are in the visibility map, limited to a range of policies
+	* @param View - The view of the meshes to render.
+	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
+	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
+	* @param FirstPolicy - First policy to render
+	* @param LastPolicy - Last policy to render
+	* @return True if any static meshes were drawn.
+	*/
+	bool DrawVisibleInner(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 FirstPolicy, int32 LastPolicy);
 
 	/**
 	 * Draws only the static meshes which are in the visibility map.
@@ -274,16 +285,18 @@ public:
 	 * @param BatchVisibilityArray - An array of batch element visibility bitmasks.
 	 * @return True if any static meshes were drawn.
 	 */
-	bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray);
+	bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray);
 
 	/**
 	* Draws only the static meshes which are in the visibility map.
 	* @param View - The view of the meshes to render.
 	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
 	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
-	* @return True if any static meshes were drawn.
+	* @param Width - parallel width
+	* @param ParentCmdList - cmdlist to put the wait and execute task on
+	* @param OutDirty - set to true if anything is drawn
 	*/
-	FGraphEventRef DrawVisibleParallel(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	void DrawVisibleParallel(const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
 
 	/**
 	 * Draws only the static meshes which are in the visibility map, sorted front-to-back.
@@ -293,7 +306,30 @@ public:
 	 * @param MaxToDraw - The maximum number of meshes to be drawn.
 	 * @return The number of static meshes drawn.
 	 */
-	int32 DrawVisibleFrontToBack(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw);
+	int32 DrawVisibleFrontToBack(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw);
+
+	/**
+	 * Helper functions when policy context is not needed.
+	 */
+	inline bool DrawVisible(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap)
+	{
+		return DrawVisible(View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap);
+	}
+
+	inline bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray)
+	{
+		return DrawVisible(RHICmdList, View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray);
+	}
+
+	inline void DrawVisibleParallel(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty)
+	{
+		DrawVisibleParallel(View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, Width, ParentCmdList, OutDirty);
+	}
+
+	inline int32 DrawVisibleFrontToBack(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw)
+	{
+		return DrawVisibleFrontToBack(RHICmdList, View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, MaxToDraw);
+	}
 
 	/** Sorts OrderedDrawingPolicies front to back. */
 	void SortFrontToBack(FVector ViewPosition);

@@ -3,7 +3,6 @@
 #pragma once
 
 
-
 /**
  * FRotator Slate control
  */
@@ -58,7 +57,6 @@ public:
 		SLATE_EVENT( FOnFloatValueChanged, OnEndSliderMovement )
 
 	SLATE_END_ARGS()
-
 
 	/**
 	 * Construct this widget

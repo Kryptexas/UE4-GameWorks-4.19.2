@@ -9,7 +9,7 @@
  * Constructor
  */
 FToolBarSeparatorBlock::FToolBarSeparatorBlock(const FName& InExtensionHook)
-	: FMultiBlock( NULL, NULL, InExtensionHook, EMultiBlockType::ToolBarSeparator )
+	: FMultiBlock( nullptr, nullptr, InExtensionHook, EMultiBlockType::ToolBarSeparator )
 {
 }
 
@@ -50,16 +50,18 @@ void SToolBarSeparatorBlock::Construct( const FArguments& InArgs )
  */
 void SToolBarSeparatorBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName)
 {
-	ChildSlot.Widget =
+	ChildSlot
+	[
 		SNew( SHorizontalBox )
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( 0.0f, 0.0f, 0.0f, 0.0f )
-				[
-					SNew(SSeparator)
-						.Orientation(Orient_Vertical)
-						.SeparatorImage( StyleSet->GetBrush( ISlateStyle::Join( StyleName, ".Separator" ) ) )
-				];
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding( 0.0f, 0.0f, 0.0f, 0.0f )
+		[
+			SNew(SSeparator)
+				.Orientation(Orient_Vertical)
+				.SeparatorImage( StyleSet->GetBrush( ISlateStyle::Join( StyleName, ".Separator" ) ) )
+		]
+	];
 }
 
 

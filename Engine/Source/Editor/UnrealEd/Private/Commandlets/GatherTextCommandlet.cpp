@@ -44,6 +44,20 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	if(FPaths::IsRelative(GatherTextConfigPath))
+	{
+		FString ProjectBasePath;
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			ProjectBasePath = FPaths::GameDir();
+		}
+		else
+		{
+			ProjectBasePath = FPaths::EngineDir();
+		}
+		GatherTextConfigPath = FPaths::Combine( *ProjectBasePath, *GatherTextConfigPath );
+	}
+
 	GConfig->LoadFile(*GatherTextConfigPath);
 
 	FConfigFile* ConfigFile = GConfig->FindConfigFile(*GatherTextConfigPath);
@@ -107,7 +121,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		UE_LOG(LogGatherTextCommandlet, Log,TEXT("Executing %s: %s"), *SectionName, *CommandletClassName);
 		
 		
-		FString GeneratedCmdLine = FString::Printf(TEXT("-Config=%s -Section=%s"), *GatherTextConfigPath , *SectionName);
+		FString GeneratedCmdLine = FString::Printf(TEXT("-Config=\"%s\" -Section=%s"), *GatherTextConfigPath , *SectionName);
 
 		// Add all the command params with the exception of config
 		for(auto ParamIter = ParamVals.CreateConstIterator(); ParamIter; ++ParamIter)

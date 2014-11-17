@@ -17,11 +17,13 @@ public:
 protected:
 	static void OnPressedCtrlTab();
 	static void OnSummonedAssetPicker();
+	static void OnSummonedConsoleCommandBox();
 public:
 	TSharedPtr<FUICommandInfo> FindInContentBrowser;
 	TSharedPtr<FUICommandInfo> SummonControlTabNavigation;
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialog;
 	TSharedPtr<FUICommandInfo> OpenDocumentation;
 	TSharedPtr<FUICommandInfo> ViewReferences;
+	TSharedPtr<FUICommandInfo> OpenConsoleCommandBox;
 };
 

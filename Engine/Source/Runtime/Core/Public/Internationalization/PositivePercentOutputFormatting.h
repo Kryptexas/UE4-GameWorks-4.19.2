@@ -7,12 +7,15 @@ namespace EPercentPositivePattern
 {
 	/** 
 	 * enum value associated with a pattern used to display positive percent values
-	 * Below X represents the number being converted to display as a percent, % will be replaced
+	 * Below X represents the number being converted to display as a percent, Y will be replaced
 	 * with the cultural values PercentSymbol
-	 * X %	XSpacePct
-	 * X%	XPct
-     * %X	PctX
-	 * % X	PctSpaceX
+	 *
+	 * |-----|------------|
+	 * | X Y | XSpacePct  |
+	 * | XY	 | XPct       |
+     * | YX	 | PctX       |
+	 * | Y X | PctSpaceX  |
+	 * |-----|------------|
 	 */
 	enum Type
 	{

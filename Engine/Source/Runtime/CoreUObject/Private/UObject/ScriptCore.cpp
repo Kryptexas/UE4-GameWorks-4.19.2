@@ -6,6 +6,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "MallocProfiler.h"
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY(LogScriptFrame);
 DEFINE_LOG_CATEGORY_STATIC(LogScriptCore, Log, All);
@@ -26,7 +27,8 @@ COREUOBJECT_API int32 GNativeDuplicate=0;
 COREUOBJECT_API void (UObject::*GCasts[CST_Max])( FFrame &Stack, RESULT_DECL );
 COREUOBJECT_API int32 GCastDuplicate=0;
 
-#define RUNAWAY_LIMIT 1000000
+COREUOBJECT_API int32 GMaximumScriptLoopIterations = 1000000;
+
 #if !PLATFORM_DESKTOP
 	#define RECURSE_LIMIT 120
 #else
@@ -87,6 +89,14 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	}
 }
 
+void FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( const int32 MaximumLoopIterations )
+{
+	if (ensure(MaximumLoopIterations > 0))
+	{
+		GMaximumScriptLoopIterations = MaximumLoopIterations;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FEditorScriptExecutionGuard
 FEditorScriptExecutionGuard::FEditorScriptExecutionGuard()
@@ -117,8 +127,6 @@ void FFrame::Step(UObject *Context, RESULT_DECL)
 
 void FFrame::StepExplicitProperty(void*const Result, UProperty* Property)
 {
-	checkSlow(Result != NULL);
-
 	if (Property->PropertyFlags & CPF_OutParm)
 	{
 		// look through the out parameter infos and find the one that has the address of this property
@@ -135,7 +143,10 @@ void FFrame::StepExplicitProperty(void*const Result, UProperty* Property)
 	else
 	{
 		MostRecentPropertyAddress = Property->ContainerPtrToValuePtr<uint8>(Locals);
-		Property->CopyCompleteValueToScriptVM(Result, MostRecentPropertyAddress);
+		if (Result)
+		{
+			Property->CopyCompleteValueToScriptVM(Result, MostRecentPropertyAddress);
+		}
 	}
 }
 
@@ -262,11 +273,12 @@ COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& 
 	{
 		if( NativeBytecodeIndex<0 || (uint32)NativeBytecodeIndex>ARRAY_COUNT(GNatives) || GNatives[NativeBytecodeIndex]!=&UObject::execUndefined) 
 		{
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 			if (GIsHotReload)
 			{
-				CA_SUPPRESS(6385)
-				AddHotReloadFunctionRemap(Func, GNatives[NativeBytecodeIndex]);
+				IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+				CA_SUPPRESS(6385)				
+				HotReloadSupport.AddHotReloadFunctionRemap(Func, GNatives[NativeBytecodeIndex]);
 			}
 			else
 #endif
@@ -299,7 +311,7 @@ COREUOBJECT_API uint8 GRegisterCast( int32 CastCode, const Native& Func )
 	if (CastCode != INDEX_NONE)
 	{
 		if(  
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 			!GIsHotReload && 
 #endif
 			(CastCode<0 || (uint32)CastCode>ARRAY_COUNT(GCasts) || GCasts[CastCode]!=&UObject::execUndefined) ) 
@@ -577,7 +589,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		while (*Stack.Code != EX_Return)
 		{
 #if DO_GUARD
-			if( Runaway > RUNAWAY_LIMIT )
+			if( Runaway > GMaximumScriptLoopIterations )
 			{
 				// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
 				UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
@@ -587,7 +599,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 				ClearReturnValue(ReturnProp, Result);
 
 				// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
-				const FString Desc = FString::Printf(TEXT("Runaway loop detected (over %i iterations)"), RUNAWAY_LIMIT);
+				const FString Desc = FString::Printf(TEXT("Runaway loop detected (over %i iterations)"), GMaximumScriptLoopIterations );
 				FBlueprintExceptionInfo RunawayLoopExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, RunawayLoopExceptionInfo);
 

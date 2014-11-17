@@ -28,28 +28,33 @@ bool UBTDecorator_Cooldown::CalculateRawConditionValue(class UBehaviorTreeCompon
 	return TimePassed >= CoolDownTime;
 }
 
-void UBTDecorator_Cooldown::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_Cooldown::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const
 {
 	FBTCooldownDecoratorMemory* DecoratorMemory = (FBTCooldownDecoratorMemory*)NodeMemory;
-	DecoratorMemory->LastUseTimestamp = -FLT_MAX;
+	if (InitType == EBTMemoryInit::Initialize)
+	{
+		DecoratorMemory->LastUseTimestamp = -FLT_MAX;
+	}
+
+	DecoratorMemory->bRequestedRestart = false;
 }
 
 void UBTDecorator_Cooldown::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
 	FBTCooldownDecoratorMemory* DecoratorMemory = GetNodeMemory<FBTCooldownDecoratorMemory>(SearchData);
 	DecoratorMemory->LastUseTimestamp = SearchData.OwnerComp->GetWorld()->GetTimeSeconds();
-	DecoratorMemory->RequestedRestart = false;
+	DecoratorMemory->bRequestedRestart = false;
 }
 
 void UBTDecorator_Cooldown::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTCooldownDecoratorMemory* DecoratorMemory = (FBTCooldownDecoratorMemory*)NodeMemory;
-	if (!DecoratorMemory->RequestedRestart)
+	if (!DecoratorMemory->bRequestedRestart)
 	{
 		const float TimePassed = (OwnerComp->GetWorld()->GetTimeSeconds() - DecoratorMemory->LastUseTimestamp);
 		if (TimePassed >= CoolDownTime)
 		{
-			DecoratorMemory->RequestedRestart = true;
+			DecoratorMemory->bRequestedRestart = true;
 			OwnerComp->RequestExecution(this);
 		}
 	}

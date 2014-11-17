@@ -18,7 +18,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual bool CanDuplicateNode() const override { return true; }
 	virtual void PostPasteNode() override;
 	virtual void PostPlacedNewNode() override;

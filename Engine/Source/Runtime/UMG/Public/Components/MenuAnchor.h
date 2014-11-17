@@ -8,7 +8,7 @@
  * The Menu Anchor allows you to specify an location that a popup menu should be anchored to, and should be
  * summoned from.
  */
-UCLASS(meta=( Category="Popup" ), ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
+UCLASS(Experimental)
 class UMG_API UMenuAnchor : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -26,6 +26,8 @@ public:
 	/** The placement location of the summoned widget. */
 	UPROPERTY(EditDefaultsOnly, Category=Menu)
 	TEnumAsByte<EMenuPlacement> Placement;
+
+public:
 
 	/**
 	 * Open or close the popup
@@ -50,14 +52,11 @@ public:
 	///** @return Whether this menu has open submenus */
 	//bool HasOpenSubMenus() const;
 
-	// UWidget interface
-	virtual void SyncronizeProperties() override;
-	// End of UWidget interface
-
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

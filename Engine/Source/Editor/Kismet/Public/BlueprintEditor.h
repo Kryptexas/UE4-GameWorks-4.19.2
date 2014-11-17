@@ -110,6 +110,10 @@ public:
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	// End of IToolkit interface
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnModeSet, FName);
+	FOnModeSet& OnModeSet() { return OnModeSetData; }
+	virtual void SetCurrentMode(FName NewMode) override;
+
 public:
 	/**
 	 * Edits the specified blueprint
@@ -121,7 +125,7 @@ public:
 	 */
 	void InitBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<class UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
-	/*
+	/**
 	 * Set transactional flag on SCSNodes and its children.
 	 *
 	 * @param: Node reference to set transactional flag.
@@ -136,6 +140,7 @@ public:
 	// End of FAssetEditorToolkit 
 
 	// IToolkit interface
+	virtual FName GetToolkitContextFName() const override;
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FText GetToolkitName() const override;
@@ -231,6 +236,11 @@ public:
 
 	/** Returns whether a graph is editable or not */
 	virtual bool IsEditable(UEdGraph* InGraph) const;
+	/** Determines if the graph's title bar should be the only interactable widget .*/
+	bool IsGraphPanelEnabled(UEdGraph* InGraph) const;
+
+	/** Used to determine the visibility of the graph's instruction text. */
+	float GetInstructionTextOpacity(UEdGraph* InGraph) const;
 
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
@@ -416,7 +426,7 @@ public:
 	/** Handles spawning a graph node in the current graph using the passed in gesture */
 	FReply OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph);
 
-	/* 
+	/** 
 	 * Perform the actual promote to variable action on the given pin in the given blueprint.
 	 *
 	 * @param	InBlueprint	The blueprint in which to create the variable.
@@ -478,6 +488,9 @@ public:
 
 	/** Checks to see if the provided graph is contained within the current blueprint */
 	bool IsGraphInCurrentBlueprint(UEdGraph* InGraph) const;
+
+	/** Get the context to use from the Blueprint type */
+	static FName GetContextFromBlueprintType(EBlueprintType InType);
 
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
@@ -744,10 +757,10 @@ protected:
 	void CollapseNodes(TSet<class UEdGraphNode*>& InCollapsableNodes);
 
 	/** Called when a selection of nodes are being collapsed into a function */
-	UEdGraph* CollapseSelectionToFunction(TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutFunctionNode);
+	UEdGraph* CollapseSelectionToFunction(TSharedPtr<SGraphEditor> InRootGraph, TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutFunctionNode);
 
 	/** Called when a selection of nodes are being collapsed into a macro */
-	UEdGraph* CollapseSelectionToMacro(TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutMacroNode);
+	UEdGraph* CollapseSelectionToMacro(TSharedPtr<SGraphEditor> InRootGraph, TSet<class UEdGraphNode*>& InCollapsableNodes, UEdGraphNode*& OutMacroNode);
 
 	/**
 	 * Called when a selection of nodes is being collapsed into a function
@@ -817,8 +830,13 @@ protected:
 
 	/** Get graph appearance */
 	virtual FGraphAppearanceInfo GetGraphAppearance() const;
+	/** Used to get the apperance of a specific graph, GetGraphAppearance() uses the currently focused graph. */
+	FGraphAppearanceInfo GetGraphAppearance(class UEdGraph* InGraph) const;
 
 private:
+
+	/** Returns true if modules can be recompiled */
+	static bool CanRecompileModules();
 
 	/* User wants to edit tunnel via function editor */
 	void OnEditTunnel();
@@ -862,6 +880,12 @@ private:
 
 	/** Called to check if native code browsing is available */
 	bool IsNativeCodeBrowsingAvailable() const;
+
+	/** Called when the user wants to jump to a node's graph definition */
+	void OnGoToDefinition();
+
+	/** Checks to see if it is possible to jump to the selected node's graph definition. */
+	bool CanGoToDefinition() const;
 
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
@@ -1019,6 +1043,13 @@ private:
 	/** Whether the current project is C++ or blueprint based */
 	bool bCodeBasedProject;
 
+	/** Delegates that are fired when the blueprint editor changes modes */
+	FOnModeSet OnModeSetData;
+
+	/** When set, flags which graph has a action menu currently open (if null, no graphs do). */
+	UEdGraph* HasOpenActionMenu;
+	/** Used to nicely fade instruction text, when the context menu is opened. */
+	float InstructionsFadeCountdown;
 };
 
 #undef LOCTEXT_NAMESPACE

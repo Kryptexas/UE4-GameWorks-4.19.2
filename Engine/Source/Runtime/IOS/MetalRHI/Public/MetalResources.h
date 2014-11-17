@@ -159,9 +159,16 @@ public:
 	void Unlock(uint32 MipIndex, uint32 ArrayIndex);
 
 	/**
+	 * Returns how much memory a single mip uses, and optionally returns the stride
+	 */
+	uint32 GetMipSize(uint32 MipIndex, uint32* Stride);
+
+	/**
 	 * Returns how much memory is used by the surface
 	 */
 	uint32 GetMemorySize();
+
+
 
 	EPixelFormat PixelFormat;
 	id<MTLTexture> Texture;
@@ -170,7 +177,11 @@ public:
 	bool bIsCubemap;
 	
 	uint32 Flags;
-	void* LockedMemory;
+	// one per mip
+	void* LockedMemory[16];
+
+	// how much memory is allocated for this texture
+	uint64 TotalTextureSize;
 };
 
 class FMetalTexture2D : public FRHITexture2D

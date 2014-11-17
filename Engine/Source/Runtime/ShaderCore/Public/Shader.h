@@ -1336,8 +1336,5 @@ extern SHADERCORE_API void DispatchIndirectComputeShader(
 /** Returns an array of all target shader formats, possibly from multiple target platforms. */
 extern SHADERCORE_API const TArray<FName>& GetTargetShaderFormats();
 
-/** Returns the runtime shader format. */
-extern SHADERCORE_API FName GetRuntimeShaderFormat();
-
 /** Appends to KeyString for all shaders. */
 extern SHADERCORE_API void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString);

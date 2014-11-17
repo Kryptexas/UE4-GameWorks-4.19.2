@@ -71,6 +71,103 @@ void FDebugRenderSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController*
 	Canvas->SetDrawColor(OldDrawColor);
 }
 
+void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const 
+{
+	QUICK_SCOPE_CYCLE_COUNTER( STAT_DebugRenderSceneProxy_GetDynamicMeshElements );
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		if (VisibilityMap & (1 << ViewIndex))
+		{
+			const FSceneView* View = Views[ViewIndex];
+			FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+
+			// Draw Lines
+			for(int32 LineIdx=0; LineIdx<Lines.Num(); LineIdx++)
+			{
+				const FDebugLine& Line = Lines[LineIdx];
+
+				PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World);
+			}
+
+			// Draw Arrows
+			for(int32 LineIdx=0; LineIdx<ArrowLines.Num(); LineIdx++)
+			{
+				const FArrowLine &Line = ArrowLines[LineIdx];
+
+				DrawLineArrow(PDI, Line.Start, Line.End, Line.Color, 8.0f);
+			}
+
+			// Draw Cylinders
+			for(int32 CylinderIdx=0; CylinderIdx<Cylinders.Num(); CylinderIdx++)
+			{
+				const FWireCylinder& Cylinder = Cylinders[CylinderIdx];
+
+				DrawWireCylinder( PDI, Cylinder.Base, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1),
+					Cylinder.Color, Cylinder.Radius, Cylinder.HalfHeight, 16, SDPG_World );
+			}
+
+			// Draw Stars
+			for(int32 StarIdx=0; StarIdx<Stars.Num(); StarIdx++)
+			{
+				const FWireStar& Star = Stars[StarIdx];
+
+				DrawWireStar(PDI, Star.Position, Star.Size, Star.Color, SDPG_World);
+			}
+
+			// Draw Dashed Lines
+			for(int32 DashIdx=0; DashIdx<DashedLines.Num(); DashIdx++)
+			{
+				const FDashedLine& Dash = DashedLines[DashIdx];
+
+				DrawDashedLine(PDI, Dash.Start, Dash.End, Dash.Color, Dash.DashSize, SDPG_World);
+			}
+
+			// Draw Boxes
+			for(int32 BoxIdx=0; BoxIdx<WireBoxes.Num(); BoxIdx++)
+			{
+				const FDebugBox& Box = WireBoxes[BoxIdx];
+
+				DrawWireBox( PDI, Box.Box, Box.Color, SDPG_World);
+			}
+
+			// Draw solid spheres
+			struct FMaterialCache
+			{
+				FMaterialCache() {}
+
+				FMaterialRenderProxy* operator[](FLinearColor Color) const
+				{
+					FMaterialRenderProxy* MeshColor = NULL;
+					const uint32 HashKey = GetTypeHash(Color);
+					if (MeshColorInstances.Contains(HashKey))
+					{
+						MeshColor = *MeshColorInstances.Find(HashKey);
+					}
+					else
+					{
+						MeshColor = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), Color);
+						MeshColorInstances.Add(HashKey, MeshColor);
+					}
+
+					return MeshColor;
+				}
+
+				mutable TMap<uint32, FMaterialRenderProxy*> MeshColorInstances;
+			};
+			const FMaterialCache MaterialCache;
+
+			for (auto It = SolidSpheres.CreateConstIterator(); It; ++It)
+			{
+				if (PointInView(It->Location, View))
+				{
+					GetSphereMesh(It->Location, FVector(It->Radius), 10, 7, MaterialCache[It->Color], SDPG_World, false, ViewIndex, Collector);
+				}
+			}
+		}
+	}
+}
+
 /** 
 * Draw the scene proxy as a dynamic element
 *
@@ -176,7 +273,7 @@ void FDebugRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,co
 * @param Color		Color of the line.
 * @param Mag		Size of the arrow.
 */
-void FDebugRenderSceneProxy::DrawLineArrow(FPrimitiveDrawInterface* PDI,const FVector &Start,const FVector &End,const FColor &Color,float Mag)
+void FDebugRenderSceneProxy::DrawLineArrow(FPrimitiveDrawInterface* PDI,const FVector &Start,const FVector &End,const FColor &Color,float Mag) const
 {
 	// draw a pretty arrow
 	FVector Dir = End - Start;

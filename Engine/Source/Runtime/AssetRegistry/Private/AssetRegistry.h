@@ -36,6 +36,7 @@ public:
 	virtual bool RemovePath(const FString& PathToRemove) override;
 	virtual void SearchAllAssets(bool bSynchronousSearch) override;
 	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) override;
+	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, int32 AssetCount) override;
 
@@ -74,10 +75,13 @@ public:
 
 	virtual void Tick (float DeltaTime) override;
 
+	/** True if world assets are enabled */
+	static bool IsUsingWorldAssets();
+
 private:
 
-	/** Called when the asset registry is done gathering files and directories */
-	void CompletedBackgroundFilenameSearch();
+	/** Internal handler for ScanPathsSynchronous */
+	void ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, bool bUseCache);
 
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void AssetSearchDataGathered(const double TickStartTime, TArray<FBackgroundAssetData*>& AssetResults);
@@ -104,7 +108,7 @@ private:
 	bool AddAssetPath(const FString& PathToAdd);
 
 	/** Removes a path to the cached paths tree. Returns true if successful. */
-	bool RemoveAssetPath(const FString& PathToAdd);
+	bool RemoveAssetPath(const FString& PathToAdd, bool bEvenIfAssetsStillExist = false);
 
 	/** Helper function to return the name of an object, given the objects export text path */
 	FString ExportTextPathToObjectName(const FString& InExportTextPath) const;
@@ -137,9 +141,19 @@ private:
 	 * Called by the engine core when a new content path is added dynamically at runtime.  This is wired to 
 	 * FPackageName's static delegate.
 	 *
-	 * @param	AssetPath	The new content root asset path that was added (e.g. "/MyPlugin/")
+	 * @param	AssetPath		The new content root asset path that was added (e.g. "/MyPlugin/")
+	 * @param	FileSystemPath	The filesystem path that the AssetPath is mapped to
 	 */
-	void OnContentPathMounted( const FString& AssetPath );
+	void OnContentPathMounted( const FString& AssetPath, const FString& FileSystemPath );
+
+	/**
+	 * Called by the engine core when a content path is removed dynamically at runtime.  This is wired to 
+	 * FPackageName's static delegate.
+	 *
+	 * @param	AssetPath		The new content root asset path that was added (e.g. "/MyPlugin/")
+	 * @param	FileSystemPath	The filesystem path that the AssetPath is mapped to
+	 */
+	void OnContentPathDismounted( const FString& AssetPath, const FString& FileSystemPath );
 
 	/** Checks a filter to make sure there are no illegal entries */
 	bool IsFilterValid(const FARFilter& Filter) const;

@@ -11,6 +11,7 @@ FSlateTexture2DRHIRef::FSlateTexture2DRHIRef( FTexture2DRHIRef InRef, uint32 InW
 	: TSlateTexture( InRef )
 	, Width( InWidth )
 	, Height( InHeight )
+	, PixelFormat( PF_Unknown )
 	, bCreateEmptyTexture( false )
 {
 
@@ -45,6 +46,8 @@ void FSlateTexture2DRHIRef::InitDynamicRHI()
 			FRHIResourceCreateInfo CreateInfo;
 			ShaderResource = RHICreateTexture2D( Width, Height, PixelFormat, 1, 1, TexCreateFlags, CreateInfo );
 			check( IsValidRef( ShaderResource ) );
+
+			INC_MEMORY_STAT_BY(STAT_SlateTextureGPUMemory, Width*Height*GPixelFormats[PixelFormat].BlockBytes);
 		}
 
 		if( TextureData.IsValid() && TextureData->GetRawBytes().Num() > 0 )
@@ -65,7 +68,14 @@ void FSlateTexture2DRHIRef::InitDynamicRHI()
 void FSlateTexture2DRHIRef::ReleaseDynamicRHI()
 {
 	check( IsInRenderingThread() );
+
+	if( IsValidRef(ShaderResource) )
+	{
+		DEC_MEMORY_STAT_BY(STAT_SlateTextureGPUMemory, Width*Height*GPixelFormats[PixelFormat].BlockBytes);
+	}
+
 	ShaderResource.SafeRelease();
+
 }
 
 void FSlateTexture2DRHIRef::Resize( uint32 InWidth, uint32 InHeight )
@@ -212,14 +222,17 @@ void FSlateTextureRenderTarget2DResource::ReleaseDynamicRHI()
 	RemoveFromDeferredUpdateList();
 }
 
-void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
+void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget/*=true*/)
 {
 	check(IsInRenderingThread());
 
 	// clear the target surface to green
-	SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
-	RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
-	RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
+	if (bClearRenderTarget)
+	{
+		SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
+		RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
+		RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
+	}
 
 	// copy surface to the texture for use
 	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());

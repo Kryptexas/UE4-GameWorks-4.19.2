@@ -5,6 +5,7 @@
 #include "UnrealEd.h"
 #include "ObjectTools.h"
 #include "AssetToolsModule.h"
+#include "EditorClassUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFactory, Log, All);
 
@@ -121,6 +122,16 @@ FText UFactory::GetToolTip() const
 	return GetSupportedClass()->GetToolTipText();
 }
 
+FString UFactory::GetToolTipDocumentationPage() const
+{
+	return FEditorClassUtils::GetDocumentationPage(GetSupportedClass());
+}
+
+FString UFactory::GetToolTipDocumentationExcerpt() const
+{
+	return FEditorClassUtils::GetDocumentationExcerpt(GetSupportedClass());
+}
+
 UClass* UFactory::GetSupportedClass() const
 {
 	return SupportedClass;
@@ -192,8 +203,11 @@ UObject* UFactory::StaticImportObject
 	if( InFactory )
 	{
 		// Use just the specified factory.
-		check( !InFactory->SupportedClass || Class->IsChildOf(InFactory->SupportedClass) );
-		Factories.Add( InFactory );
+		if (ensureMsgf( !InFactory->SupportedClass || Class->IsChildOf(InFactory->SupportedClass), 
+			TEXT("Factory is (%s), SupportedClass is (%s) and Class name is (%s)"), *InFactory->GetName(), (InFactory->SupportedClass)? *InFactory->SupportedClass->GetName() : TEXT("None"), *Class->GetName() ))
+		{
+			Factories.Add( InFactory );
+		}
 	}
 	else
 	{
@@ -255,18 +269,7 @@ UObject* UFactory::StaticImportObject
 				const int32 FileSize = IFileManager::Get().FileSize( Filename );
 				bool bValidFileSize = true;
 
-				// File size was found
-				if ( FileSize != INDEX_NONE )
-				{
-					if( ( MaxImportFileSize > 0 ) && ( FileSize > MaxImportFileSize ) )
-					{
-						// Prompt the user if they would like to proceed with large import, displaying the size of the file in MBs
-						// (File Size >> 20) is the same as dividing by (1024*1024) to convert to MBs
-						bValidFileSize = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo,
-							FText::Format( NSLOCTEXT("UnrealEd", "Warning_LargeFileImport", "Attempting to import a very large file, proceed?\nFile Size: {0} MB"), FText::AsNumber(FileSize >> 20) ) );
-					}
-				}
-				else
+				if ( FileSize == INDEX_NONE )
 				{
 					UE_LOG(LogFactory, Error,TEXT("File '%s' does not exist"), Filename );
 					bValidFileSize = false;

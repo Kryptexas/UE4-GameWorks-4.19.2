@@ -237,10 +237,10 @@ void UCheatManager::DestroyTarget()
 
 void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
 {
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<AActor> It(GetWorld(),aClass); It; ++It)
 	{
 		AActor* A = *It;
-		if (A && A->IsA(aClass) && !A->IsPendingKill())
+		if (!A->IsPendingKill())
 		{
 			APawn* Pawn = Cast<APawn>(A);
 			if (Pawn != NULL)
@@ -438,10 +438,10 @@ void UCheatManager::ViewClass( TSubclassOf<AActor> DesiredClass )
 {
 	bool bFound = false;
 	AActor* First = NULL;
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<AActor> It(GetWorld(), DesiredClass); It; ++It)
 	{
 		AActor* TestActor = *It;
-		if (TestActor && !TestActor->IsPendingKill() && (*TestActor->GetClass()).IsChildOf(*DesiredClass) )
+		if (!TestActor->IsPendingKill())
 		{
 			AActor* Other = TestActor;
 			if (bFound || (First == NULL))
@@ -486,7 +486,7 @@ void UCheatManager::SetLevelStreamingStatus(FName PackageName, bool bShouldBeLoa
 		{
 			for (int32 i = 0; i < GetWorld()->StreamingLevels.Num(); i++)
 			{
-				(*Iterator)->ClientUpdateLevelStreamingStatus(GetWorld()->StreamingLevels[i]->PackageName, bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
+				(*Iterator)->ClientUpdateLevelStreamingStatus(GetWorld()->StreamingLevels[i]->GetWorldAssetPackageFName(), bShouldBeLoaded, bShouldBeVisible, false, INDEX_NONE );
 			}
 		}
 	}
@@ -905,9 +905,10 @@ void UCheatManager::WidgetReflector()
 void UCheatManager::RebuildNavigation()
 {
 #if WITH_NAVIGATION_GENERATOR
-	if (GetWorld() && GetWorld()->GetNavigationSystem())
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys)
 	{
-		GetWorld()->GetNavigationSystem()->Build();
+		NavSys->Build();
 	}
 #endif // WITH_NAVIGATION_GENERATOR
 }
@@ -1078,7 +1079,7 @@ void UCheatManager::SetWorldOrigin()
 		ViewLocation = MyPlayerController->GetPawn()->GetActorLocation();
 	}
 	
-	FIntPoint NewOrigin = FIntPoint(ViewLocation.X, ViewLocation.Y) + World->GlobalOriginOffset;
+	FIntVector NewOrigin = FIntVector(ViewLocation.X, ViewLocation.Y, ViewLocation.Z) + World->OriginLocation;
 	World->RequestNewWorldOrigin(NewOrigin);
 }
 

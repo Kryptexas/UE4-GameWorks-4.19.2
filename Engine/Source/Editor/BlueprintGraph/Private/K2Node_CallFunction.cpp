@@ -6,6 +6,8 @@
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
 #include "K2Node_SwitchEnum.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -148,7 +150,7 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	if (UFunction* Function = GetTargetFunction())
 	{
 		RPCString = UK2Node_Event::GetLocalizedNetString(Function->FunctionFlags, true);
-		FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+		FunctionName = GetUserFacingFunctionName(Function);
 		ContextString = GetFunctionContextString();
 	}
 	else
@@ -386,7 +388,7 @@ void UK2Node_CallFunction::DetermineWantsEnumToExecExpansion(const UFunction* Fu
 	}
 }
 
-void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
+void UK2Node_CallFunction::GeneratePinTooltip(UEdGraphPin& Pin) const
 {
 	ensure(Pin.GetOwningNode() == this);
 
@@ -396,120 +398,20 @@ void UK2Node_CallFunction::GeneratePinHoverText(const UEdGraphPin& Pin, FString&
 
 	if (K2Schema == NULL)
 	{
-		Schema->ConstructBasicPinTooltip(Pin, TEXT(""), HoverTextOut);
+		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), Pin.PinToolTip);
 		return;
 	}
 	
-	// figure what tag we should be parsing for (is this a return-val pin, or a parameter?)
-	FString ParamName;
-	FString TagStr = TEXT("@param");
-	if (Pin.PinName == K2Schema->PN_ReturnValue)
-	{
-		TagStr = TEXT("@return");
-	}
-	else
-	{
-		ParamName = Pin.PinName.ToLower();
-	}
-
 	// get the class function object associated with this node
 	UFunction* Function = GetTargetFunction();
 	if (Function == NULL)
 	{
-		Schema->ConstructBasicPinTooltip(Pin, TEXT(""), HoverTextOut);
+		Schema->ConstructBasicPinTooltip(Pin, FText::GetEmpty(), Pin.PinToolTip);
 		return;
 	}
 
-	// grab the the function's comment block for us to parse
-	FString FunctionToolTipText = GetDefaultTooltipForFunction(Function);
 
-	
-	int32 CurStrPos = INDEX_NONE;
-	int32 FullToolTipLen = FunctionToolTipText.Len();
-	// parse the full function tooltip text, looking for tag lines
-	do 
-	{
-		CurStrPos = FunctionToolTipText.Find(TagStr, ESearchCase::IgnoreCase, ESearchDir::FromStart, CurStrPos);
-		if (CurStrPos == INDEX_NONE) // if the tag wasn't found
-		{
-			break;
-		}
-
-		// advance past the tag
-		CurStrPos += TagStr.Len();
-
-		// advance past whitespace
-		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-		{
-			++CurStrPos;
-		}
-
-		// if this is a parameter pin
-		if (!ParamName.IsEmpty())
-		{
-			FString TagParamName;
-
-			// copy the parameter name
-			while (CurStrPos < FullToolTipLen && !FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-			{
-				TagParamName.AppendChar(FunctionToolTipText[CurStrPos++]);
-			}
-
-			// if this @param tag doesn't match the param we're looking for
-			if (TagParamName != ParamName)
-			{
-				continue;
-			}
-		}
-
-		// advance past whitespace (get to the meat of the comment)
-		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-		{
-			++CurStrPos;
-		}
-
-
-		FString ParamDesc;
-		// collect the param/return-val description
-		while (CurStrPos < FullToolTipLen && FunctionToolTipText[CurStrPos] != TEXT('@'))
-		{
-			// advance past newline
-			while(CurStrPos < FullToolTipLen && FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
-			{
-				++CurStrPos;
-
-				// advance past whitespace at the start of a new line
-				while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
-				{
-					++CurStrPos;
-				}
-
-				// replace the newline with a single space
-				if(!FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
-				{
-					ParamDesc.AppendChar(TEXT(' '));
-				}
-			}
-
-			if (FunctionToolTipText[CurStrPos] != TEXT('@'))
-			{
-				ParamDesc.AppendChar(FunctionToolTipText[CurStrPos++]);
-			}
-		}
-
-		// trim any trailing whitespace from the descriptive text
-		ParamDesc.TrimTrailing();
-
-		// if we came up with a valid description for the param/return-val
-		if (!ParamDesc.IsEmpty())
-		{
-			HoverTextOut += FString(TEXT("\n")) + ParamDesc;
-			break; // we found a match, so there's no need to continue
-		}
-
-	} while (CurStrPos < FullToolTipLen);
-
-	Schema->ConstructBasicPinTooltip(Pin, HoverTextOut, HoverTextOut);
+	GeneratePinTooltipFromFunction(Pin, Function);
 }
 
 bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
@@ -532,22 +434,32 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	SelfPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 
 	// fill out the self-pin's default tool-tip
-	GeneratePinHoverText(*SelfPin, SelfPin->PinToolTip);
+	GeneratePinTooltip(*SelfPin);
 
 	const bool bIsProtectedFunc = Function->GetBoolMetaData(FBlueprintMetadata::MD_Protected);
 	const bool bIsStaticFunc = Function->HasAllFunctionFlags(FUNC_Static);
 
-	//@TODO: Can't strictly speaking always hide the self pin for pure and static functions; it'll still be needed if the function belongs to a class not in the blueprint's class hierarchy
-	SelfPin->bHidden = ((bIsPureFunc && !bIsConstFunc) || bIsProtectedFunc || bIsStaticFunc);
-
 	UBlueprint* BP = GetBlueprint();
 	ensure(BP);
-	if (bIsStaticFunc && BP)
+	if (BP != nullptr)
 	{
-		// Wire up the self to the CDO of the class if it's not us
-		if (!BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass))
+		const bool bIsFunctionCompatibleWithSelf = BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass);
+
+		if (bIsStaticFunc)
 		{
-			SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+			// For static methods, wire up the self to the CDO of the class if it's not us
+			if (!bIsFunctionCompatibleWithSelf)
+			{
+				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+			}
+
+			// Purity doesn't matter with a static function, we can always hide the self pin since we know how to call the method
+			SelfPin->bHidden = true;
+		}
+		else
+		{
+			// Hide the self pin if the function is compatible with the blueprint class and pure (the !bIsConstFunc portion should be going away soon too hopefully)
+			SelfPin->bHidden = bIsFunctionCompatibleWithSelf && (bIsPureFunc && !bIsConstFunc);
 		}
 	}
 
@@ -555,7 +467,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	TSet<FString> PinsToHide;
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(BP, Function, PinsToHide);
 
-	const bool bShowHiddenSelfPins = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins));
+	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
 	// Create the inputs and outputs
 	bool bAllPinsGood = true;
@@ -585,7 +497,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			K2Schema->SetPinDefaultValue(Pin, Function, Param);
 
 			// setup the default tool-tip text for this pin
-			GeneratePinHoverText(*Pin, Pin->PinToolTip);
+			GeneratePinTooltip(*Pin);
 			
 			if (PinsToHide.Contains(Pin->PinName))
 			{
@@ -593,7 +505,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 				FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 				bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
 
-				if (!bShowHiddenSelfPins || !bIsSelfPin)
+				if (!bShowWorldContextPin || !bIsSelfPin)
 				{
 					Pin->bHidden = true;
 					K2Schema->SetPinDefaultValueBasedOnType(Pin);
@@ -729,51 +641,207 @@ bool UK2Node_CallFunction::AllowMultipleSelfs(bool bInputAsArray) const
 {
 	if (UFunction* Function = GetTargetFunction())
 	{
-		const bool bHasReturnParams = (Function->GetReturnProperty() != NULL);
-		return !bHasReturnParams && !IsNodePure() && !IsLatentFunction();
+		return CanFunctionSupportMultipleTargets(Function);
 	}
 
 	return Super::AllowMultipleSelfs(bInputAsArray);
 }
 
-FLinearColor UK2Node_CallFunction::GetNodeTitleColor() const
+bool UK2Node_CallFunction::CanFunctionSupportMultipleTargets(UFunction const* Function)
 {
-	if (IsNodePure())
+	bool const bIsImpure = !Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
+	bool const bIsLatent = Function->HasMetaData(FBlueprintMetadata::MD_Latent);
+	bool const bHasReturnParam = (Function->GetReturnProperty() != nullptr);
+
+	return !bHasReturnParam && bIsImpure && !bIsLatent;
+}
+
+static FLinearColor GetPalletteIconColor(UFunction const* Function)
+{
+	bool const bIsPure = (Function != nullptr) && Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
+	if (bIsPure)
 	{
 		return GetDefault<UGraphEditorSettings>()->PureFunctionCallNodeTitleColor;
 	}
+	return GetDefault<UGraphEditorSettings>()->FunctionCallNodeTitleColor;
+}
 
-		return Super::GetNodeTitleColor();
-	}
-
-FString UK2Node_CallFunction::GetTooltip() const
+FName UK2Node_CallFunction::GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor)
 {
-	FString Tooltip;
+	static const FName NativeMakeFunc(TEXT("NativeMakeFunc"));
+	static const FName NativeBrakeFunc(TEXT("NativeBreakFunc"));
 
-	if (UFunction* Function = GetTargetFunction())
+	if (Function && Function->HasMetaData(NativeMakeFunc))
 	{
-		Tooltip = GetDefaultTooltipForFunction(Function);
-
-
-		FString ClientString;
-
-		if (Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
-		{
-			ClientString = NSLOCTEXT("K2Node", "ServerFunction", "\n\nAuthority Only. This function will only execute on the server.").ToString();
-		}
-		else if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic))
-		{
-			ClientString = NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.").ToString();
-		} 
-
-		Tooltip += ClientString;
+		return TEXT("GraphEditor.MakeStruct_16x");
+	}
+	else if (Function && Function->HasMetaData(NativeBrakeFunc))
+	{
+		return TEXT("GraphEditor.BreakStruct_16x");
+	}
+	// Check to see if the function is calling an function that could be an event, display the event icon instead.
+	else if (Function && UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
+	{
+		return TEXT("GraphEditor.Event_16x");
 	}
 	else
 	{
-		Tooltip = LOCTEXT("CallUnknownFunction", "Call unknown function ").ToString() + FunctionReference.GetMemberName().ToString();
+		OutColor = GetPalletteIconColor(Function);
+		return TEXT("Kismet.AllClasses.FunctionIcon");
+	}
+}
+
+FLinearColor UK2Node_CallFunction::GetNodeTitleColor() const
+{
+	return GetPalletteIconColor(GetTargetFunction());
+}
+
+FText UK2Node_CallFunction::GetTooltipText() const
+{
+	FText Tooltip;
+
+	UFunction* Function = GetTargetFunction();
+	if (Function == nullptr)
+	{
+		return FText::Format(LOCTEXT("CallUnknownFunction", "Call unknown function {0}"), FText::FromName(FunctionReference.GetMemberName()));
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		FText BaseTooltip = FText::FromString(GetDefaultTooltipForFunction(Function));
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DefaultTooltip"), BaseTooltip);
+
+		if (Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
+		{
+			Args.Add(
+				TEXT("ClientString"),
+				NSLOCTEXT("K2Node", "ServerFunction", "Authority Only. This function will only execute on the server.")
+			);
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedTooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
+		}
+		else if (Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic))
+		{
+			Args.Add(
+				TEXT("ClientString"),
+				NSLOCTEXT("K2Node", "ClientEvent", "Cosmetic. This event is only for cosmetic, non-gameplay actions.")
+			);
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedTooltip = FText::Format(LOCTEXT("CallFunction_SubtitledTooltip", "{DefaultTooltip}\n\n{ClientString}"), Args);
+		} 
+		else
+		{
+			CachedTooltip = BaseTooltip;
+		}
+	}
+	return CachedTooltip;
+}
+
+void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function)
+{
+	// figure what tag we should be parsing for (is this a return-val pin, or a parameter?)
+	FString ParamName;
+	FString TagStr = TEXT("@param");
+	if (Pin.PinName == UEdGraphSchema_K2::PN_ReturnValue)
+	{
+		TagStr = TEXT("@return");
+	}
+	else
+	{
+		ParamName = Pin.PinName.ToLower();
 	}
 
-	return Tooltip;
+	// grab the the function's comment block for us to parse
+	FString FunctionToolTipText = Function->GetToolTipText().ToString();
+	
+	int32 CurStrPos = INDEX_NONE;
+	int32 FullToolTipLen = FunctionToolTipText.Len();
+	// parse the full function tooltip text, looking for tag lines
+	do 
+	{
+		CurStrPos = FunctionToolTipText.Find(TagStr, ESearchCase::IgnoreCase, ESearchDir::FromStart, CurStrPos);
+		if (CurStrPos == INDEX_NONE) // if the tag wasn't found
+		{
+			break;
+		}
+
+		// advance past the tag
+		CurStrPos += TagStr.Len();
+
+		// advance past whitespace
+		while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+		{
+			++CurStrPos;
+		}
+
+		// if this is a parameter pin
+		if (!ParamName.IsEmpty())
+		{
+			FString TagParamName;
+
+			// copy the parameter name
+			while (CurStrPos < FullToolTipLen && !FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+			{
+				TagParamName.AppendChar(FunctionToolTipText[CurStrPos++]);
+			}
+
+			// if this @param tag doesn't match the param we're looking for
+			if (TagParamName != ParamName)
+			{
+				continue;
+			}
+		}
+
+		// advance past whitespace (get to the meat of the comment)
+		// since many doxygen style @param use the format "@param <param name> - <comment>" we also strip - if it is before we get to any other non-whitespace
+		while(CurStrPos < FullToolTipLen && (FChar::IsWhitespace(FunctionToolTipText[CurStrPos]) || FunctionToolTipText[CurStrPos] == '-'))
+		{
+			++CurStrPos;
+		}
+
+
+		FString ParamDesc;
+		// collect the param/return-val description
+		while (CurStrPos < FullToolTipLen && FunctionToolTipText[CurStrPos] != TEXT('@'))
+		{
+			// advance past newline
+			while(CurStrPos < FullToolTipLen && FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
+			{
+				++CurStrPos;
+
+				// advance past whitespace at the start of a new line
+				while(CurStrPos < FullToolTipLen && FChar::IsWhitespace(FunctionToolTipText[CurStrPos]))
+				{
+					++CurStrPos;
+				}
+
+				// replace the newline with a single space
+				if(!FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
+				{
+					ParamDesc.AppendChar(TEXT(' '));
+				}
+			}
+
+			if (FunctionToolTipText[CurStrPos] != TEXT('@'))
+			{
+				ParamDesc.AppendChar(FunctionToolTipText[CurStrPos++]);
+			}
+		}
+
+		// trim any trailing whitespace from the descriptive text
+		ParamDesc.TrimTrailing();
+
+		// if we came up with a valid description for the param/return-val
+		if (!ParamDesc.IsEmpty())
+		{
+			Pin.PinToolTip += ParamDesc;
+			break; // we found a match, so there's no need to continue
+		}
+
+	} while (CurStrPos < FullToolTipLen);
+
+	GetDefault<UEdGraphSchema_K2>()->ConstructBasicPinTooltip(Pin, FText::FromString(Pin.PinToolTip), Pin.PinToolTip);
 }
 
 FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)
@@ -794,10 +862,21 @@ FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Functio
 
 FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Function)
 {
-	const FString Tooltip = Function->GetToolTipText().ToString();
+	FString Tooltip = Function->GetToolTipText().ToString();
 
 	if (!Tooltip.IsEmpty())
 	{
+		// Strip off the doxygen nastiness
+		static const FString DoxygenParam(TEXT("@param"));
+		static const FString DoxygenReturn(TEXT("@return"));
+		static const FString DoxygenSee(TEXT("@see"));
+
+		Tooltip.Split(DoxygenParam, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Split(DoxygenReturn, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Split(DoxygenSee, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		Tooltip.Trim();
+		Tooltip.TrimTrailing();
+
 		return Tooltip;
 	}
 	else
@@ -1053,7 +1132,7 @@ void UK2Node_CallFunction::PostPasteNode()
 		TSet<FString> PinsToHide;
 		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetBlueprint(), Function, PinsToHide);
 
-		const bool bShowHiddenSelfPins = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins));
+		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
 		FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 		FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
@@ -1064,7 +1143,7 @@ void UK2Node_CallFunction::PostPasteNode()
 			UEdGraphPin* Pin = Pins[PinIndex];
 
 			bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
-			bool bPinShouldBeHidden = PinsToHide.Contains(Pin->PinName) && (!bShowHiddenSelfPins || !bIsSelfPin);
+			bool bPinShouldBeHidden = PinsToHide.Contains(Pin->PinName) && (!bShowWorldContextPin || !bIsSelfPin);
 
 			if (bPinShouldBeHidden && !Pin->bHidden)
 			{
@@ -1101,35 +1180,49 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 		MessageLog.Warning(*FString::Printf(*LOCTEXT("EnumToExecExpansionFailed", "Unable to find enum parameter with name '%s' to expand for @@").ToString(), *EnumParamName), this);
 	}
 
-	// enforce UnsafeDuringActorConstruction keyword
-	if (Function && Function->HasMetaData(FBlueprintMetadata::MD_UnsafeForConstructionScripts))
+	if (Function)
 	{
-		// emit warning if we are in a construction script
-		UEdGraph const* const Graph = GetGraph();
-		UEdGraphSchema_K2 const* const Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-		bool bNodeIsInConstructionScript = Schema && Schema->IsConstructionScript(Graph);
-
-		if (bNodeIsInConstructionScript == false)
+		// enforce UnsafeDuringActorConstruction keyword
+		if (Function->HasMetaData(FBlueprintMetadata::MD_UnsafeForConstructionScripts))
 		{
-			// IsConstructionScript() can return false if graph was cloned from the construction script
-			// in that case, check the function entry
-			TArray<const UK2Node_FunctionEntry*> EntryPoints;
-			Graph->GetNodesOfClass(EntryPoints);
+			// emit warning if we are in a construction script
+			UEdGraph const* const Graph = GetGraph();
+			UEdGraphSchema_K2 const* const Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
+			bool bNodeIsInConstructionScript = Schema && Schema->IsConstructionScript(Graph);
 
-			if (EntryPoints.Num() == 1)
+			if (bNodeIsInConstructionScript == false)
 			{
-				UK2Node_FunctionEntry const* const Node = EntryPoints[0];
-				if (Node)
+				// IsConstructionScript() can return false if graph was cloned from the construction script
+				// in that case, check the function entry
+				TArray<const UK2Node_FunctionEntry*> EntryPoints;
+				Graph->GetNodesOfClass(EntryPoints);
+
+				if (EntryPoints.Num() == 1)
 				{
-					UFunction* const SignatureFunction = FindField<UFunction>(Node->SignatureClass, Node->SignatureName);
-					bNodeIsInConstructionScript = SignatureFunction && (SignatureFunction->GetFName() == Schema->FN_UserConstructionScript);
+					UK2Node_FunctionEntry const* const Node = EntryPoints[0];
+					if (Node)
+					{
+						UFunction* const SignatureFunction = FindField<UFunction>(Node->SignatureClass, Node->SignatureName);
+						bNodeIsInConstructionScript = SignatureFunction && (SignatureFunction->GetFName() == Schema->FN_UserConstructionScript);
+					}
 				}
+			}
+
+			if ( bNodeIsInConstructionScript )
+			{
+				MessageLog.Warning(*LOCTEXT("FunctionUnsafeDuringConstruction", "Function '@@' is unsafe to call in a construction script.").ToString(), this);
 			}
 		}
 
-		if ( bNodeIsInConstructionScript )
+		// enforce WorldContext restrictions
+		else if (   Function->HasMetaData(FBlueprintMetadata::MD_WorldContext) 
+			     && !Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 		{
-			MessageLog.Warning(*LOCTEXT("FunctionUnsafeDuringConstruction", "Function '@@' is unsafe to call in a construction script.").ToString(), this);
+			UClass* ParentClass = GetBlueprint()->ParentClass;
+			if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+			{
+				MessageLog.Warning(*LOCTEXT("FunctionUnsafeInContext", "Function '@@' is unsafe to call from blueprints of class '@@'.").ToString(), this, ParentClass);
+			}
 		}
 	}
 }
@@ -1190,29 +1283,29 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 			TArray<UK2Node_FunctionEntry*> EntryPoints;
 			SourceGraph->GetNodesOfClass(EntryPoints);
 			if (1 != EntryPoints.Num())
-		{
+			{
 				CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
-		}
+			}
 			else if (auto BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
 			{
 				FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 				FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 				struct FStructConnectHelper
-	{
+				{
 					static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* InSchema, FCompilerResultsLog& MessageLog)
-		{
+					{
 						auto Pin = Node->FindPin(PinName);
 						if (!PinName.IsEmpty() && Pin && !Pin->LinkedTo.Num())
-	{
+						{
 							const bool bConnected = InSchema->TryCreateConnection(Pin, BetterSelf);
 							if (!bConnected)
-		{
+							{
 								MessageLog.Warning(*LOCTEXT("DefaultToSelfNotConnected", "DefaultToSelf pin @@ from node @@ cannot be connected to @@").ToString(), Pin, Node, BetterSelf);
-		}
-		}
-	}
-};
+							}
+						}
+					}
+				};
 				FStructConnectHelper::Connect(DefaultToSelfMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
 				FStructConnectHelper::Connect(WorldContextMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
 			}
@@ -1426,28 +1519,7 @@ FName UK2Node_CallFunction::GetCornerIcon() const
 
 FName UK2Node_CallFunction::GetPaletteIcon(FLinearColor& OutColor) const
 {
-	static const FName NativeMakeFunc(TEXT("NativeMakeFunc"));
-	static const FName NativeBrakeFunc(TEXT("NativeBreakFunc"));
-
-	auto Function = GetTargetFunction();
-	if (Function && Function->HasMetaData(NativeMakeFunc))
-	{
-		return TEXT("GraphEditor.MakeStruct_16x");
-	}
-	else if (Function && Function->HasMetaData(NativeBrakeFunc))
-	{
-		return TEXT("GraphEditor.BreakStruct_16x");
-	}
-	// Check to see if the function is calling an function that could be an event, display the event icon instead.
-	else if (Function && UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
-	{
-		return TEXT("GraphEditor.Event_16x");
-	}
-	else
-	{
-		OutColor = GetNodeTitleColor();
-		return TEXT("Kismet.AllClasses.FunctionIcon");
-	}
+	return GetPaletteIconForFunction(GetTargetFunction(), OutColor);
 }
 
 FText UK2Node_CallFunction::GetToolTipHeading() const
@@ -1520,9 +1592,50 @@ bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct
 	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
-UEdGraph* UK2Node_CallFunction::GetFunctionGraph() const
+UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNode) const
 {
-	return FindObject<UEdGraph>(GetBlueprint(), *(FunctionReference.GetMemberName().ToString()));
+	OutGraphNode = NULL;
+
+	// Search for the Blueprint owner of the function graph, climbing up through the Blueprint hierarchy
+	UClass* MemberParentClass = FunctionReference.GetMemberParentClass(this);
+	if(MemberParentClass != NULL)
+	{
+		UBlueprintGeneratedClass* ParentClass = Cast<UBlueprintGeneratedClass>(MemberParentClass);
+		if(ParentClass != NULL && ParentClass->ClassGeneratedBy != NULL)
+		{
+			UBlueprint* Blueprint = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
+			while(Blueprint != NULL)
+			{
+				UEdGraph* TargetGraph = FindObject<UEdGraph>(Blueprint, *(FunctionReference.GetMemberName().ToString()));
+				if((TargetGraph != NULL) && !TargetGraph->HasAnyFlags(RF_Transient))
+				{
+					// Found the function graph in a Blueprint, return that graph
+					return TargetGraph;
+				}
+				else
+				{
+					// Did not find the function call as a graph, it may be a custom event
+					UK2Node_CustomEvent* CustomEventNode = NULL;
+
+					TArray<UK2Node_CustomEvent*> CustomEventNodes;
+					FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, CustomEventNodes);
+
+					for (UK2Node_CustomEvent* CustomEvent : CustomEventNodes)
+					{
+						if(CustomEvent->CustomFunctionName == FunctionReference.GetMemberName())
+						{
+							OutGraphNode = CustomEvent;
+							return CustomEvent->GetGraph();
+						}
+					}
+				}
+
+				ParentClass = Cast<UBlueprintGeneratedClass>(Blueprint->ParentClass);
+				Blueprint = ParentClass != NULL ? Cast<UBlueprint>(ParentClass->ClassGeneratedBy) : NULL;
+			}
+		}
+	}
+	return NULL;
 }
 
 bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function, const FString& PropertyName)

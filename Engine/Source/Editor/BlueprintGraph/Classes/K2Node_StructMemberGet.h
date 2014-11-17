@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_StructOperation.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_StructMemberGet.generated.h"
 
 // Pure kismet node that gets one or more member variables of a struct
@@ -19,7 +20,7 @@ class UK2Node_StructMemberGet : public UK2Node_StructOperation
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
@@ -31,5 +32,10 @@ class UK2Node_StructMemberGet : public UK2Node_StructOperation
 
 	// AllocateDefaultPins with just one member set
 	BLUEPRINTGRAPH_API void AllocatePinsForSingleMemberGet(FName MemberName);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
+	FNodeTextCache CachedNodeTitle;
 };
 

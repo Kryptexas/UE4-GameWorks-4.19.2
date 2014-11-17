@@ -293,18 +293,30 @@ ELoginStatus::Type FOnlineIdentityAmazon::GetLoginStatus(int32 LocalUserNum) con
 	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);
-		if (UserAccount.IsValid() &&
-			UserAccount->GetUserId()->IsValid() &&
-			!UserAccount->GetAccessToken().IsEmpty())
-		{
-			return ELoginStatus::LoggedIn;
-		}
+		return GetLoginStatus(*UserId);
+	}
+	return ELoginStatus::NotLoggedIn;
+}
+
+ELoginStatus::Type FOnlineIdentityAmazon::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId);
+	if (UserAccount.IsValid() &&
+		UserAccount->GetUserId()->IsValid() &&
+		!UserAccount->GetAccessToken().IsEmpty())
+	{
+		return ELoginStatus::LoggedIn;
 	}
 	return ELoginStatus::NotLoggedIn;
 }
 
 FString FOnlineIdentityAmazon::GetPlayerNickname(int32 LocalUserNum) const
+{
+	//@todo - not implemented
+	return TEXT("AmazonUser");
+}
+
+FString FOnlineIdentityAmazon::GetPlayerNickname(const FUniqueNetId& UserId) const
 {
 	//@todo - not implemented
 	return TEXT("AmazonUser");
@@ -322,4 +334,23 @@ FString FOnlineIdentityAmazon::GetAuthToken(int32 LocalUserNum) const
 		}
 	}
 	return FString();
+}
+
+void FOnlineIdentityAmazon::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+}
+
+FPlatformUserId FOnlineIdentityAmazon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+{
+	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
+	{
+		auto CurrentUniqueId = GetUniquePlayerId(i);
+		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
+		{
+			return i;
+		}
+	}
+
+	return PLATFORMUSERID_NONE;
 }

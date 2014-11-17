@@ -65,6 +65,10 @@ class ENGINE_API UAnimNotify : public UObject
 	 */
 	virtual class UWorld* GetWorld() const override;
 
+	/** UObject Interface */
+	virtual void PostLoad();
+	/** End UObject Interface */
+
 private:
 	/* The mesh we're currently triggering a UAnimNotify for (so we can retrieve per instance information) */
 	class USkeletalMeshComponent* MeshContext;

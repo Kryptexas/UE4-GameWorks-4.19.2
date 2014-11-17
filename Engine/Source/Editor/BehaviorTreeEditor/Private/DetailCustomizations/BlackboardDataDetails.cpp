@@ -2,7 +2,7 @@
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardDataDetails.h"
-
+#include "Runtime/AIModule/Classes/BehaviorTree/BlackboardData.h"
 
 TSharedRef<IDetailCustomization> FBlackboardDataDetails::MakeInstance(FOnGetSelectedBlackboardItemIndex InOnGetSelectedBlackboardItemIndex)
 {
@@ -34,7 +34,24 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 			TSharedPtr<IPropertyHandle> KeyHandle = KeysHandle->GetChildHandle((uint32)CurrentSelection);
 
 			IDetailCategoryBuilder& DetailCategoryBuilder = DetailLayout.EditCategory("Key");
-			DetailCategoryBuilder.AddProperty(KeyHandle);
+			TSharedPtr<IPropertyHandle> EntryNameProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, EntryName));
+			DetailCategoryBuilder.AddCustomRow(TEXT("Entry Name"))
+			.NameContent()
+			[
+				EntryNameProperty->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			[
+				SNew(SHorizontalBox)
+				.IsEnabled(false)
+				+SHorizontalBox::Slot()
+				[
+					EntryNameProperty->CreatePropertyValueWidget()
+				]
+			];
+
+			TSharedPtr<IPropertyHandle> KeyTypeProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, KeyType));
+			DetailCategoryBuilder.AddProperty(KeyTypeProperty);
 		}	
 	}
 }

@@ -7,6 +7,7 @@
 
 #include "AndroidAudioDevice.h"
 #include "VorbisAudioInfo.h"
+#include "ADPCMAudioInfo.h"
 #include "AudioEffect.h"
 #include "Engine.h"
 
@@ -157,17 +158,44 @@ FSoundSource* FSLESAudioDevice::CreateSoundSource()
 bool FSLESAudioDevice::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 {
 #if WITH_OGGVORBIS
-	return true;
-#else
-	return false;
+	static FName NAME_OGG(TEXT("OGG"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_OGG)
+	{
+		return true;
+	}
 #endif
+	static FName NAME_ADPCM(TEXT("ADPCM"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_ADPCM)
+	{
+		return true;
+	}
+
+	return false;
+
 }
 
 class ICompressedAudioInfo* FSLESAudioDevice::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
 #if WITH_OGGVORBIS
-	return new FVorbisAudioInfo();
-#else
-	return NULL;
+	static FName NAME_OGG(TEXT("OGG"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_OGG)
+	{
+		return new FVorbisAudioInfo();
+	}
 #endif
+	static FName NAME_ADPCM(TEXT("ADPCM"));
+	if (SoundWave->CompressionName.IsValid() && SoundWave->CompressionName == NAME_ADPCM)
+	{
+		return new FADPCMAudioInfo();
+	}
+
+	return NULL;
+}
+
+/** Check if any background music or sound is playing through the audio device */
+bool FSLESAudioDevice::IsExernalBackgroundSoundActive()
+{
+	extern bool AndroidThunkCpp_IsMusicActive();
+	return AndroidThunkCpp_IsMusicActive();
+
 }

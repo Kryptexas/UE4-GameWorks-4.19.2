@@ -67,6 +67,40 @@ namespace EEarlyZPass
 }
 
 
+/** used by FPostProcessSettings Anti-aliasing */
+UENUM()
+namespace EAntiAliasingMethodUI
+{
+	enum Type
+	{
+		AAM_None UMETA(DisplayName = "None"),
+		AAM_FXAA UMETA(DisplayName = "FXAA"),
+		AAM_TemporalAA UMETA(DisplayName = "TemporalAA"),
+		AAM_MAX,
+	};
+}
+
+
+/** The Side to use when scaling the UI. */
+UENUM()
+namespace EUIScalingRule
+{
+	enum Type
+	{
+		/** Evaluates the scale curve based on the shortest side of the viewport */
+		ShortestSide,
+		/** Evaluates the scale curve based on the longest side of the viewport */
+		LongestSide,
+		/** Evaluates the scale curve based on the X axis of the viewport */
+		Horizontal,
+		/** Evaluates the scale curve based on the Y axis of the viewport */
+		Vertical,
+		/** Custom - Allows custom rule interpretation */
+		//Custom
+	};
+}
+
+
 /**
  * Implements project settings for the Rendering sub-system.
  */
@@ -122,9 +156,20 @@ class ENGINE_API URendererSettings
 	uint32 bAllowStaticLighting:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
-		ConsoleVariable="r.AllowMeshDistanceFieldRepresentations",
-		ToolTip="Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.  Enabling will increase mesh build times and memory usage.  Changing this setting requires restarting the editor."))
-	uint32 bAllowMeshDistanceFieldRepresentations:1;
+		ConsoleVariable="r.NormalMapsForStaticLighting",
+		ToolTip="Whether to allow any static lighting to use normal maps for lighting computations."))
+	uint32 bUseNormalMapsForStaticLighting:1;
+
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		ConsoleVariable="r.GBuffer",
+		ToolTip="1=Use GBuffer, 0=Don't use GBuffer (minimal limited renderer)."))
+		uint32 bGBuffer:1;
+
+
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		ConsoleVariable="r.GenerateMeshDistanceFields",
+		ToolTip="Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows, and ray traced distance field shadows on directional lights.  Enabling will increase mesh build times and memory usage.  Changing this setting requires restarting the editor."))
+	uint32 bGenerateMeshDistanceFields:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.Shadow.DistanceFieldPenumbraSize",
@@ -142,11 +187,41 @@ class ENGINE_API URendererSettings
 	uint32 bSeparateTranslucency:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Postprocessing, meta=(
-		ConsoleVariable="r.CustomDepth",DisplayName="Custom Depth",
+		ConsoleVariable="r.CustomDepth",DisplayName="Custom Depth Pass",
 		ToolTip="Whether the custom depth pass for tagging primitives for postprocessing passes is enabled. Enabling it on demand can save memory but may cause a hitch the first time the feature is used."))
 	TEnumAsByte<ECustomDepth::Type> CustomDepth;
 
-	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom",
+		ToolTip = "Whether the default for Bloom is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	uint32 bDefaultFeatureBloom : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.AmbientOcclusion", DisplayName = "Ambient Occlusion",
+		ToolTip = "Whether the default for AmbientOcclusion is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	uint32 bDefaultFeatureAmbientOcclusion : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.AutoExposure", DisplayName = "Auto Exposure",
+		ToolTip = "Whether the default for AutoExposure is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	uint32 bDefaultFeatureAutoExposure : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.MotionBlur", DisplayName = "Motion Blur",
+		ToolTip = "Whether the default for MotionBlur is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	uint32 bDefaultFeatureMotionBlur : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.LensFlare", DisplayName = "Lens Flares (Image based)",
+		ToolTip = "Whether the default for LensFlare is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	uint32 bDefaultFeatureLensFlare : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.AntiAliasing", DisplayName = "Anti-Aliasing Method",
+		ToolTip = "What anti-aliasing mode is used by default (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	TEnumAsByte<EAntiAliasingMethodUI::Type> DefaultFeatureAntiAliasing;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
 		ConsoleVariable="r.EarlyZPass",DisplayName="Early Z-pass",
 		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass."))
 	TEnumAsByte<EEarlyZPass::Type> EarlyZPass;
@@ -171,6 +246,16 @@ class ENGINE_API URendererSettings
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
 
+	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
+		DisplayName="DPI Scale Rule",
+		ToolTip="The rule used when trying to decide what scale to apply." ))
+	TEnumAsByte<EUIScalingRule::Type> UIScaleRule;
+
+	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
+		DisplayName="DPI Curve",
+		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule" ))
+	FRuntimeFloatCurve UIScaleCurve;
+
 public:
 
 	// Begin UObject interface
@@ -181,4 +266,7 @@ public:
 #endif
 
 	// End UObject interface
+
+	/** Gets the current scale of the UI based on the size */
+	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
 };

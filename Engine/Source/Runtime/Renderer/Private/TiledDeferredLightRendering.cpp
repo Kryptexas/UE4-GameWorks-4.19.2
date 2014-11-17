@@ -11,6 +11,7 @@
 #include "ShaderParameters.h"
 #include "LightRendering.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 /** 
  * Maximum number of lights that can be handled by tiled deferred in a single compute shader pass.
@@ -174,6 +175,14 @@ public:
 					LightData.LightColorAndFalloffExponent[LightIndex].W = 0;
 				}
 
+				// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
+				if (View.bIsReflectionCapture)
+				{
+					LightData.LightColorAndFalloffExponent[LightIndex].X *= LightSceneInfo->Proxy->GetIndirectLightingScale();
+					LightData.LightColorAndFalloffExponent[LightIndex].Y *= LightSceneInfo->Proxy->GetIndirectLightingScale();
+					LightData.LightColorAndFalloffExponent[LightIndex].Z *= LightSceneInfo->Proxy->GetIndirectLightingScale();
+				}
+
 				{
 					// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
 					float W = FMath::Max(0.0001f, MinRoughness) * ((LightSceneInfo->Proxy->GetLightType() == LightType_Spot) ? 1 : -1);
@@ -201,7 +210,7 @@ public:
 				int32 SimpleLightIndex = StartIndex + LightIndex - NumLightsToRenderInSortedLights;
 				const FSimpleLightEntry& SimpleLight = SimpleLights.InstanceData[SimpleLightIndex];
 				const FSimpleLightPerViewEntry& SimpleLightPerViewData = SimpleLights.GetViewDependentData(SimpleLightIndex, ViewIndex, NumViews);
-				LightData.LightPositionAndInvRadius[LightIndex] = FVector4(SimpleLightPerViewData.Position, 1.0f / SimpleLight.Radius);
+				LightData.LightPositionAndInvRadius[LightIndex] = FVector4(SimpleLightPerViewData.Position, 1.0f / FMath::Max(SimpleLight.Radius, KINDA_SMALL_NUMBER));
 				LightData.LightColorAndFalloffExponent[LightIndex] = FVector4(SimpleLight.Color, SimpleLight.Exponent);
 				LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(FVector(1, 0, 0), 0);
 				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(-2, 1, 0, 1);
@@ -282,7 +291,7 @@ bool FDeferredShadingSceneRenderer::ShouldUseTiledDeferred(int32 NumUnshadowedLi
 template <bool bVisualizeLightCulling>
 static void SetShaderTemplTiledLighting(
 	FRHICommandListImmediate& RHICmdList,
-	const FSceneView& View, 
+	const FViewInfo& View,
 	int32 ViewIndex,
 	int32 NumViews,
 	const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 
@@ -293,7 +302,7 @@ static void SetShaderTemplTiledLighting(
 	IPooledRenderTarget& InTexture,
 	IPooledRenderTarget& OutTexture)
 {
-	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(GetGlobalShaderMap());
+	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(View.ShaderMap);
 	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
 	ComputeShader->SetParameters(RHICmdList, View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InTexture, OutTexture);
@@ -342,7 +351,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListI
 			}
 
 			{
-				SCOPED_DRAW_EVENT(TiledDeferredLighting, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, TiledDeferredLighting, DEC_SCENE_ITEMS);
 
 				IPooledRenderTarget& InTexture = *GSceneRenderTargets.GetSceneColor();
 

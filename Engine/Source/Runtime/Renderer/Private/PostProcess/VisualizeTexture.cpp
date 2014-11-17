@@ -11,6 +11,7 @@
 #include "VisualizeTexture.h"
 #include "PostProcessing.h"
 #include "PostProcessWeightedSampleSum.h"
+#include "SceneUtils.h"
 
 
 /** A pixel shader which filters a texture. */
@@ -23,7 +24,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+		return true;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -151,8 +152,7 @@ class FVisualizeTexturePresentPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
-
+		return true;
 	}
 
 	/** Default constructor. */
@@ -191,15 +191,16 @@ public:
 IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT("PresentPS"),SF_Pixel);
 
 
-template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
+template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
-	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	PixelShader->SetParameters(RHICmdList, Data);
 
 	DrawRectangle(
@@ -220,7 +221,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList
 		EDRF_UseTriangleOptimization);
 }
 
-void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, const FVisualizeTextureData& Data)
+void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
 	if(Data.Desc.Is2DTexture())
 	{
@@ -228,30 +229,30 @@ void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, const FVisuali
 		if(Data.Desc.NumSamples > 1)
 		{
 			// MSAA
-			VisualizeTextureForTextureType<5>(RHICmdList, Data);
+			VisualizeTextureForTextureType<5>(RHICmdList, FeatureLevel, Data);
 		}
 		else
 		{
 			// non MSAA
-			VisualizeTextureForTextureType<2>(RHICmdList, Data);
+			VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
 	{
 		// Volume
-		VisualizeTextureForTextureType<3>(RHICmdList, Data);
+		VisualizeTextureForTextureType<3>(RHICmdList, FeatureLevel, Data);
 	}
 	else if(Data.Desc.IsCubemap())
 	{
 		if(Data.Desc.IsArray())
 		{
 			// Cube[]
-			VisualizeTextureForTextureType<4>(RHICmdList, Data);
+			VisualizeTextureForTextureType<4>(RHICmdList, FeatureLevel, Data);
 		}
 		else
 		{
 			// Cube
-			VisualizeTextureForTextureType<0>(RHICmdList, Data);
+			VisualizeTextureForTextureType<0>(RHICmdList, FeatureLevel, Data);
 		}
 	}
 }
@@ -416,11 +417,15 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	if(!(Desc.Flags & TexCreate_CPUReadback))		// We cannot make a texture lookup on such elements
 	{	
-		SCOPED_DRAW_EVENT(VisualizeTexture, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, VisualizeTexture, DEC_SCENE_ITEMS);
 		// continue rendering to HDR if necessary
-		RenderVisualizeTexture(RHICmdList, VisualizeTextureData);
+		RenderVisualizeTexture(RHICmdList, FeatureLevel, VisualizeTextureData);
 	}
-	RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, VisCopy, DEC_SCENE_ITEMS);
+		RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	}
 
 	VisualizeTextureDesc = Desc;
 
@@ -470,7 +475,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	}
 }
 
-void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
+void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	if(Mode != 0)
 	{
@@ -502,13 +507,14 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FVisualizeTexturePresentPS> PixelShader(GetGlobalShaderMap());
+	auto ShaderMap = View.ShaderMap;
+	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+	TShaderMapRef<FVisualizeTexturePresentPS> PixelShader(ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(RHICmdList, View);
 	PixelShader->SetParameters(RHICmdList, View, *VisualizeTextureContent);
@@ -517,17 +523,20 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 
 	FIntRect VisualizeTextureRect = ComputeVisualizeTextureRect(Desc.Extent);
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle(
-		RHICmdList,
-		VisualizeTextureRect.Min.X, VisualizeTextureRect.Min.Y,
-		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
-		0, 0,
-		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
-		FIntPoint(RenderTarget->GetSizeX(), RenderTarget->GetSizeY()),
-		VisualizeTextureRect.Size(),
-		*VertexShader,
-		EDRF_Default);
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, VisCopyToMain, DEC_SCENE_ITEMS);
+		// Draw a quad mapping scene color to the view's render target
+		DrawRectangle(
+			RHICmdList,
+			VisualizeTextureRect.Min.X, VisualizeTextureRect.Min.Y,
+			VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
+			0, 0,
+			VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
+			FIntPoint(RenderTarget->GetSizeX(), RenderTarget->GetSizeY()),
+			VisualizeTextureRect.Size(),
+			*VertexShader,
+			EDRF_Default);
+	}
 
 	// this is a helper class for FCanvas to be able to get screen size
 	class FRenderTargetTemp : public FRenderTarget
@@ -548,7 +557,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 		}
 	} TempRenderTarget(View);
 
-	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime);
+	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, View.GetFeatureLevel());
 
 	float X = 100 + View.ViewRect.Min.X;
 	float Y = 160 + View.ViewRect.Min.Y;
@@ -620,10 +629,11 @@ void FVisualizeTexture::SetObserveTarget(const FString& InObservedDebugName, uin
 	ObservedDebugNameReusedGoal = InObservedDebugNameReusedGoal;
 }
 
-void FVisualizeTexture::SetCheckPoint(FRHICommandListImmediate& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
+void FVisualizeTexture::SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
 {
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	check(IsInRenderingThread());
 	if (!PooledRenderTarget || !bEnabled)
 	{
 		// Don't checkpoint on ES2 to avoid TMap alloc/reallocations
@@ -648,7 +658,24 @@ void FVisualizeTexture::SetCheckPoint(FRHICommandListImmediate& RHICmdList, cons
 		// if multiple times reused during the frame, is that the one we want to look at?
 		if(*UsageCountPtr == ObservedDebugNameReusedGoal || ObservedDebugNameReusedGoal == 0xffffffff)
 		{
-			GenerateContent(RHICmdList, RenderTargetItem, Desc);
+			FRHICommandListImmediate& RHICmdListIm = FRHICommandListExecutor::GetImmediateCommandList();
+			if (RHICmdListIm.IsExecuting())
+			{
+				UE_LOG(LogConsoleResponse, Fatal, TEXT("We can't create a checkpoint because that requires the immediate commandlist, which is currently executing. You might try disabling parallel rendering."));
+			}
+			else
+			{
+				if (&RHICmdList != &RHICmdListIm)
+				{
+					UE_LOG(LogConsoleResponse, Warning, TEXT("Attempt to checkpoint a render target from a non-immediate command list. We will flush it and hope that works. If it doesn't you might try disabling parallel rendering."));
+					RHICmdList.Flush();
+				}
+				GenerateContent(RHICmdListIm, RenderTargetItem, Desc);
+				if (&RHICmdList != &RHICmdListIm)
+				{
+					RHICmdListIm.Flush();
+				}
+			}
 		}
 	}
 	// only needed for VisualizeTexture (todo: optimize out when possible)
@@ -880,7 +907,8 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
-	bEnabled = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	FeatureLevel = View.GetFeatureLevel();
+	bEnabled = true;
 	ViewRect = View.UnscaledViewRect;
 	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 

@@ -95,13 +95,13 @@ bool UPackageMap::SerializeName(FArchive& Ar, FName& Name)
 	}
 	else if (Ar.IsSaving())
 	{
-		uint8 bHardcoded = Name.GetIndex() <= MAX_NETWORKED_HARDCODED_NAME;
+		uint8 bHardcoded = Name.GetComparisonIndex() <= MAX_NETWORKED_HARDCODED_NAME;
 		Ar.SerializeBits(&bHardcoded, 1);
 		if (bHardcoded)
 		{
 			// send by hardcoded index
 			checkSlow(Name.GetNumber() <= 0); // hardcoded names should never have a Number
-			uint32 NameIndex = uint32(Name.GetIndex());
+			uint32 NameIndex = uint32(Name.GetComparisonIndex());
 			Ar.SerializeInt(NameIndex, MAX_NETWORKED_HARDCODED_NAME + 1);
 		}
 		else

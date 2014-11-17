@@ -10,6 +10,7 @@
 #include "GlobalShader.h"
 #include "TargetPlatform.h"
 #include "IConsoleManager.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
@@ -192,6 +193,15 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			}
 			else
 			{
+				// cache all the resources for this platform
+				for ( TObjectIterator<UObject> It; It; ++It )
+				{
+					for ( auto Platform : Platforms )
+					{
+						It->BeginCacheForCookedPlatformData( Platform );
+					}
+				}
+
 				bLastPackageWasMap = Package->ContainsMap();
 				NumProcessedSinceLastGC++;
 			}

@@ -10,8 +10,6 @@
 #include "KismetEditorUtilities.h"
 #include "EditorClassUtils.h"
 
-#include "STutorialWrapper.h"
-
 /**
  * These are the tab indexes, if the tabs are reorganized you need to adjust the
  * enum accordingly.
@@ -21,10 +19,10 @@ namespace EPlacementTab
 	enum Type
 	{
 		RecentlyPlaced = 0,
-		Geometry,
+		Basic,
 		Lights,
 		Visual,
-		Basic,
+		Geometry,
 		Volumes,
 		AllClasses,
 	};
@@ -106,22 +104,27 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 		AssetDisplayName = FText::FromName( AssetData.AssetName );
 	}
 
-	TSharedPtr<IToolTip> ToolTip;
 	FText ActorTypeDisplayName;
 	AActor* DefaultActor = nullptr;
 	if ( FactoryToUse != nullptr )
 	{
 		DefaultActor = FactoryToUse->GetDefaultActor( AssetData );
 		ActorTypeDisplayName = FactoryToUse->GetDisplayName();
-		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
 	}
 	else if ( IsClass && CastChecked<UClass>( AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
 	{
 		DefaultActor = CastChecked<AActor>( CastChecked<UClass>( AssetData.GetAsset() )->ClassDefaultObject );
 		ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
-		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
 	}
 	
+	UClass* DocClass = nullptr;
+	TSharedPtr<IToolTip> ToolTip;
+	if(DefaultActor != nullptr)
+	{
+		DocClass = DefaultActor->GetClass();
+		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
+	}
+
 	if ( InArgs._LabelOverride.IsEmpty() )
 	{
 		if (IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty())
@@ -145,6 +148,14 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 	HoverImage = &ButtonStyle.Hovered;
 	PressedImage = &ButtonStyle.Pressed; 
 
+	// Create doc link widget if there is a class to link to
+	TSharedRef<SWidget> DocWidget = SNew(SSpacer);
+	if(DocClass != NULL)
+	{
+		DocWidget = FEditorClassUtils::GetDocumentationLinkWidget(DocClass);
+		DocWidget->SetCursor( EMouseCursor::Default );
+	}
+
 	ChildSlot
 	[
 		SNew( SBorder )
@@ -160,7 +171,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 			[
 				// Drop shadow border
 				SNew( SBorder )
-				.Padding( 5 )
+				.Padding( 4 )
 				.BorderImage( FEditorStyle::GetBrush( "ContentBrowser.ThumbnailShadow" ) )
 				[
 					SNew( SBox )
@@ -186,6 +197,13 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 					.Text( AssetDisplayName )
 					.HighlightText(InArgs._HighlightText)
 				]
+			]
+
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				DocWidget
 			]
 		]
 	];
@@ -322,25 +340,29 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		.Padding( 0, 3, 0, 0 )
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMRecentlyPlaced") )
+			SNew( SBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMRecentlyPlaced")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::RecentlyPlaced, NSLOCTEXT( "PlacementMode", "RecentlyPlaced", "Recently Placed" ), true )
 			]
 		]
 
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMGeometry") )
+			SNew(SBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMBasic")))
 			[
-				CreatePlacementGroupTab( (int32)EPlacementTab::Geometry, NSLOCTEXT( "PlacementMode", "Geometry", "Geometry" ), false )
+				CreatePlacementGroupTab((int32)EPlacementTab::Basic, NSLOCTEXT("PlacementMode", "Basic", "Basic"), false)
 			]
 		]
 
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMLights") )
+			SNew( SBox )
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMLights")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Lights, NSLOCTEXT( "PlacementMode", "Lights", "Lights" ), false )
 			]
@@ -349,25 +371,29 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMVisual") )
+			SNew( SBox )
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMVisual")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "Visual", "Visual" ), false )
 			]
 		]
 
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMBasic") )
+			SNew(SBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMGeometry")))
 			[
-				CreatePlacementGroupTab( (int32)EPlacementTab::Basic, NSLOCTEXT( "PlacementMode", "Basic", "Basic" ), false )
+				CreatePlacementGroupTab((int32)EPlacementTab::Geometry, NSLOCTEXT("PlacementMode", "BSP", "BSP"), false)
 			]
 		]
 
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMVolumes") )
+			SNew( SBox )
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMVolumes")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::Volumes, NSLOCTEXT( "PlacementMode", "Volumes", "Volumes" ), false )
 			]
@@ -376,7 +402,8 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SNew( STutorialWrapper, TEXT("PMAllClasses") )
+			SNew( SBox )
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMAllClasses")))
 			[
 				CreatePlacementGroupTab( (int32)EPlacementTab::AllClasses, NSLOCTEXT( "PlacementMode", "AllClasses", "All Classes" ), true )
 			]
@@ -398,7 +425,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 			.BorderImage( FEditorStyle::GetBrush( "ToolPanel.DarkGroupBorder" ) )
 			[
 				SAssignNew( WidgetSwitcher, SWidgetSwitcher )
-				.WidgetIndex( (int32)EPlacementTab::Geometry )
+				.WidgetIndex( (int32)EPlacementTab::Basic )
 
 				// Recently Placed
 				+ SWidgetSwitcher::Slot()
@@ -411,10 +438,15 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 					]
 				]
 
-				// Geometry
+				// Basics
 				+ SWidgetSwitcher::Slot()
 				[
-					FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode").CreateBspModeWidget()
+					SNew(SScrollBox)
+
+					+ SScrollBox::Slot()
+					[
+						BuildBasicWidget()
+					]
 				]
 
 				// Lights
@@ -439,15 +471,10 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 					]
 				]
 
-				// Basics
-				+ SWidgetSwitcher::Slot()
+				// Geometry
+				+SWidgetSwitcher::Slot()
 				[
-					SNew( SScrollBox )
-
-					+ SScrollBox::Slot()
-					[
-						BuildBasicWidget()
-					]
+					FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode").CreateBspModeWidget()
 				]
 
 				// Volumes
@@ -649,6 +676,13 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 		BuildDraggableAssetWidget( UActorFactoryPlayerStart::StaticClass() )
 	]
 
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		BuildDraggableAssetWidget(UActorFactoryPointLight::StaticClass())
+	]
+
+
 	// Triggers
 	+ SVerticalBox::Slot()
 	.AutoHeight()
@@ -668,12 +702,6 @@ TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 		BuildDraggableAssetWidget( UActorFactoryTriggerCapsule::StaticClass() )
 	]
 
-	// Misc
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		BuildDraggableAssetWidget( UActorFactoryNote::StaticClass() )
-	]
 
 	+ SVerticalBox::Slot()
 	.AutoHeight()

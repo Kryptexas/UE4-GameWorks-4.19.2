@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "DistanceFieldLightingShared.h"
 
 void FLightSceneInfoCompact::Init(FLightSceneInfo* InLightSceneInfo)
 {
@@ -29,6 +30,8 @@ FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy, bool InbVisible)
 	: Proxy(InProxy)
 	, DynamicPrimitiveList(NULL)
 	, Id(INDEX_NONE)
+	, TileIntersectionResources(NULL)
+	, DistanceFieldObjectBuffers(NULL)
 	, bPrecomputedLightingIsValid(InProxy->GetLightComponent()->bPrecomputedLightingIsValid)
 	, bVisible(InbVisible)
 	, bEnableLightShaftBloom(InProxy->GetLightComponent()->bEnableLightShaftBloom)
@@ -189,6 +192,16 @@ void FLightSceneInfo::ReleaseRHI()
 				}
 			}
 		}
+	}
+
+	if (TileIntersectionResources)
+	{
+		TileIntersectionResources->Release();
+	}
+
+	if (DistanceFieldObjectBuffers)
+	{
+		DistanceFieldObjectBuffers->Release();
 	}
 }
 

@@ -109,15 +109,17 @@ public:
 	FVector GetUnitVector( ) const
 	{
 		FVector Result;
+		float L;
 
 		do
 		{
 			// Check random vectors in the unit sphere so result is statistically uniform.
-			Result.X = GetFraction() * 2 - 1;
-			Result.Y = GetFraction() * 2 - 1;
-			Result.Z = GetFraction() * 2 - 1;
+			Result.X = GetFraction() * 2.f - 1.f;
+			Result.Y = GetFraction() * 2.f - 1.f;
+			Result.Z = GetFraction() * 2.f - 1.f;
+			L = Result.SizeSquared();
 		}
-		while(Result.SizeSquared() > 1.f);
+		while(L > 1.f || L < KINDA_SMALL_NUMBER);
 
 		return Result.UnsafeNormal();
 	}
@@ -185,7 +187,7 @@ public:
 		return GetUnitVector();
 	}
 
-	/*
+	/**
 	 * Returns a random unit vector, uniformly distributed, within the specified cone.
 	 *
 	 * @param Dir The center direction of the cone
@@ -229,7 +231,7 @@ public:
 		}
 	}
 
-	/*
+	/**
 	 * Returns a random unit vector, uniformly distributed, within the specified cone.
 	 *
 	 * @param Dir The center direction of the cone

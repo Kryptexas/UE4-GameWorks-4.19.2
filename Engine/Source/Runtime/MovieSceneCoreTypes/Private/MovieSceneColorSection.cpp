@@ -90,13 +90,3 @@ void UMovieSceneColorSection::AddKeyToNamedCurve(float Time, const FColorKey& Ke
 		AddKeyToCurve(AlphaCurve, Time, Key.Value.A);
 	}
 }
-
-void UMovieSceneColorSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value )
-{
-	if( IsTimeWithinSection(Time) )
-	{
-		Modify();
-
-		InCurve.UpdateOrAddKey(Time, Value);
-	}
-}

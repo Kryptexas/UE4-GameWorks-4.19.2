@@ -10,6 +10,8 @@
 #include "SPropertyEditor.h"
 #include "ScopedTransaction.h"
 #include "SResetToDefaultPropertyEditor.h"
+#include "SColorPicker.h"
+
 
 class FSinglePropertyUtilities : public IPropertyUtilities
 {

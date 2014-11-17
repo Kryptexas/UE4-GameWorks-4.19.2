@@ -9,6 +9,8 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 static const FString OutputPinName = FString(TEXT("Array"));
 
@@ -296,9 +298,9 @@ void UK2Node_MakeArray::PostReconstructNode()
 	}
 }
 
-FString UK2Node_MakeArray::GetTooltip() const
+FText UK2Node_MakeArray::GetTooltipText() const
 {
-	return LOCTEXT("MakeArrayTooltip", "Create an array from a series of items.").ToString();
+	return LOCTEXT("MakeArrayTooltip", "Create an array from a series of items.");
 }
 
 void UK2Node_MakeArray::AddInputPin()
@@ -403,17 +405,39 @@ bool UK2Node_MakeArray::IsConnectionDisallowed(const UEdGraphPin* MyPin, const U
 	return false;
 }
 
-void UK2Node_MakeArray::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_MakeArray::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_MakeArray::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Array"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Array"));
+	}
+	return CachedCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

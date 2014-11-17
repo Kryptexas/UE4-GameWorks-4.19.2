@@ -24,7 +24,7 @@ void UPawnAction_Move::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
+UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
 {
 	if (GoalActor == NULL)
 	{
@@ -41,7 +41,7 @@ UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, class AActor* Go
 	return Action;
 }
 
-UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode)
+UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode)
 {
 	if (FAISystem::IsValidLocation(GoalLocation) == false)
 	{
@@ -141,9 +141,9 @@ void UPawnAction_Move::DeferredPerformMoveAction()
 	}
 }
 
-bool UPawnAction_Move::Pause()
+bool UPawnAction_Move::Pause(const UPawnAction* PausedBy)
 {
-	bool bResult = Super::Pause();
+	bool bResult = Super::Pause(PausedBy);
 	if (bResult)
 	{
 		AAIController* MyController = Cast<AAIController>(GetController());
@@ -216,6 +216,7 @@ void UPawnAction_Move::OnFinished(EPawnActionResult::Type WithResult)
 
 void UPawnAction_Move::ClearPath()
 {
+	ClearPendingRepath();
 	if (Path.IsValid())
 	{
 		Path->RemoveObserver(PathObserver);
@@ -230,6 +231,9 @@ void UPawnAction_Move::SetPath(FNavPathSharedRef InPath)
 		ClearPath();
 		Path = InPath;
 		Path->AddObserver(PathObserver);
+
+		// skip auto updates, it will be handled manually to include controller's ShouldPostponePathUpdates()
+		Path->EnableRecalculationOnInvalidation(false);
 	}
 }
 
@@ -241,6 +245,39 @@ void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent
 	{
 		UE_VLOG(GetController(), LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));
 		GetChildAction()->Abort(EAIForceParam::Force);
+	}
+
+	if (Event == ENavPathEvent::Invalidated)
+	{
+		TryToRepath();
+	}
+}
+
+void UPawnAction_Move::TryToRepath()
+{
+	if (Path.IsValid())
+	{
+		AAIController* MyController = Cast<AAIController>(GetController());
+		if (MyController == NULL || !MyController->ShouldPostponePathUpdates())
+		{
+			ANavigationData* NavData = Path->GetNavigationDataUsed();
+			if (NavData)
+			{
+				NavData->RequestRePath(Path, ENavPathUpdateType::NavigationChanged);
+			}
+		}
+		else if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().SetTimer(this, &UPawnAction_Move::TryToRepath, 0.25f);
+		}
+	}
+}
+
+void UPawnAction_Move::ClearPendingRepath()
+{
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(this, &UPawnAction_Move::TryToRepath);
 	}
 }
 

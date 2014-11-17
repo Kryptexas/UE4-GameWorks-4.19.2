@@ -20,7 +20,8 @@ public class Toolbox : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
-                "EditorStyle"
+                "EditorStyle",
+				"DesktopPlatform"
 			}
 		);
 

@@ -329,12 +329,12 @@ TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* World )
 		ULevelStreaming* LevelStreaming = World->StreamingLevels[LevelIndex];
 
 		if( LevelStreaming 
-			&&  LevelStreaming->PackageName != NAME_None 
-			&&	LevelStreaming->PackageName != World->GetOutermost()->GetFName() )
+			&&  !LevelStreaming->WorldAsset.IsNull()
+			&&	LevelStreaming->WorldAsset != World )
 		{
 			ULevel* Level = LevelStreaming->GetLoadedLevel();
 			FSubLevelStatus LevelStatus = {};
-			LevelStatus.PackageName = LevelStreaming->PackageName;
+			LevelStatus.PackageName = LevelStreaming->GetWorldAssetPackageFName();
 			LevelStatus.LODIndex	= LevelStreaming->LevelLODIndex;
 
 			if( Level != NULL )

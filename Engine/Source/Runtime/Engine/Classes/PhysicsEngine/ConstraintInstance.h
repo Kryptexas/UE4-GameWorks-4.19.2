@@ -353,7 +353,7 @@ struct ENGINE_API FConstraintInstance
 
 	/** Limit to the force the angular drive can apply. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
-	float AngularDriveForceLimit;    //	Due to the way the ConstraintInstance pooling works, this MUST BE LAST PROPERTY OF THE CLASS.
+	float AngularDriveForceLimit;
 
 	float AverageMass;
 

@@ -7,8 +7,7 @@
 #include "AndroidRuntimeSettings.h"
 #include <jni.h>
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements);
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz );
+#include "gpg/achievement_manager.h"
 
 /**
  *	IOnlineAchievements - Interface class for Achievements
@@ -23,37 +22,49 @@ private:
 	/** hide the default constructor, we need a reference to our OSS */
 	FOnlineAchievementsGooglePlay() {}
 
-	/** Android only supports loading achievements for local player. This is where they are cached. */
-	TArray< FOnlineAchievement > Achievements;
+	/** Our own cache of achievement data directly from Google Play */
+	gpg::AchievementManager::FetchAllResponse GoogleAchievements;
 
-	/** Cached achievement descriptions for an Id */
-	TMap< FString, FOnlineAchievementDesc > AchievementDescriptions;
+	/** Looks up the Google achievement id in the mapping and returns the corresponding cached Achievement object */
+	gpg::Achievement GetGoogleAchievementFromUnrealId(const FString& UnrealId) const;
 
-	/**
-	 * Hack to store context needed by the QueryAchievement callback to avoid round-tripping
-	 * this data through JNI and back.
-	 */
-	struct FPendingAchievementQuery
-	{
-		FOnlineAchievementsGooglePlay* AchievementsInterface;
-		FOnQueryAchievementsCompleteDelegate Delegate;
-		FUniqueNetIdString PlayerID;
-		bool IsQueryPending;
-	};
+	/** Uses the mapping to convert a Google achievement id to an Unreal achievement name */
+	static FString GetUnrealIdFromGoogleId(const UAndroidRuntimeSettings* Settings, const FString& GoogleId);
 
-	/** Instance of the query context data */
-	static FPendingAchievementQuery PendingAchievementQuery;
+	/** Convert the progress of a Google achievement to a double percentage 0.0 - 100.0 */
+	static double GetProgressFromGoogleAchievement(const gpg::Achievement& InAchievement);
 
 	/**
-	 * Native function called from Java when we get the achievement load result callback.
-	 * Converts the Google Play achievement IDs to the names specified by the game's mapping.
+	 * Convenience function to create an Unreal achievement from a Google achievement
 	 *
-	 * @param LocalJNIEnv the current JNI environment
-	 * @param LocalThiz instance of the Java GameActivity class
-	 * @param Achievements an array of JavaAchievement objects holding the data just queried from the backend
+	 * @param Settings the Android runtime settings containing the achievement id mapping
+	 * @param GoogleAchievement the Google achievement object to convert
 	 */
-	friend void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements);
-	friend void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz );
+	static FOnlineAchievement GetUnrealAchievementFromGoogleAchievement(
+		const UAndroidRuntimeSettings* Settings,
+		const gpg::Achievement& GoogleAchievement);
+
+	/**
+	 * Using the WriteObject, fires off achievement progress calls to the Google backend. Non-blocking.
+	 * The GoogleAchievements list should be valid before this is called.
+	 *
+	 * @param PlayerId the id of the player who's making progress
+	 * @param bWasSuccessful whether a previous QueryAchievements call was successful
+	 * @param WriteObject achievement write object provided by the user
+	 * @param Delegate delegate to execute when the write operation is finished
+	 */
+	void FinishAchievementWrite(
+		const FUniqueNetId& PlayerId,
+		const bool bWasSuccessful,
+		FOnlineAchievementsWriteRef WriteObject,
+		FOnAchievementsWrittenDelegate Delegate);
+	
+PACKAGE_SCOPE:
+	/** Clears the cache of Google achievements that was populated by a QueryAchievements() call. */
+	void ClearCache();
+
+	/** Called from the query achievements task to fill in the cache. */
+	void UpdateCache(const gpg::AchievementManager::FetchAllResponse& Results);
 
 public:
 

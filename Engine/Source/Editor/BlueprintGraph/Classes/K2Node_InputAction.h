@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_InputAction.generated.h"
 
 UCLASS(MinimalAPI)
@@ -33,16 +34,18 @@ class UK2Node_InputAction : public UK2Node
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Event_16x"); }
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End UK2Node interface
 
 	/** Get the 'pressed' input pin */
@@ -53,4 +56,8 @@ class UK2Node_InputAction : public UK2Node
 
 private:
 	void CreateInputActionEvent(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* InputActionPin, const EInputEvent InputKeyEvent);
+
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
+	FNodeTextCache CachedNodeTitle;
 };

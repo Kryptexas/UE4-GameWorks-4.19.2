@@ -111,7 +111,7 @@ static void GetAxisColors(FLinearColor Out[3], bool b3D)
 
 void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
-	if(LevelGridMaterial->IsCompilingOrHadCompileError() || LevelGridMaterial2->IsCompilingOrHadCompileError())
+	if (LevelGridMaterial->IsCompilingOrHadCompileError(View->GetFeatureLevel()) || LevelGridMaterial2->IsCompilingOrHadCompileError(View->GetFeatureLevel()))
 	{
 		// The material would appear to be black (because we don't use a MaterialDomain but a UsageFlag - we should change that).
 		// Here we rather want to hide it.
@@ -141,15 +141,20 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 	// to get a light grid in a black level but use a high opacity value to be able to see it in a bright level
 	static float Darken = 0.11f;
 
+	static FName GridColorName("GridColor");
+	static FName SnapColorName("SnapColor");
+	static FName ExponentName("Exponent");
+	static FName AlphaBiasName("AlphaBias");
+	
 	if(bIsPerspective)
 	{
-		MaterialInst->SetVectorParameterValue("GridColor", FLinearColor(0.6f * Darken, 0.6f * Darken, 0.6f * Darken, CVarEditor3DGridFade.GetValueOnGameThread()));
-		MaterialInst->SetVectorParameterValue("SnapColor", FLinearColor(0.5f, 0.0f, 0.0f, SnapAlphaMultiplier * CVarEditor3DSnapFade.GetValueOnGameThread()));
+		MaterialInst->SetVectorParameterValue(GridColorName, FLinearColor(0.6f * Darken, 0.6f * Darken, 0.6f * Darken, CVarEditor3DGridFade.GetValueOnGameThread()));
+		MaterialInst->SetVectorParameterValue(SnapColorName, FLinearColor(0.5f, 0.0f, 0.0f, SnapAlphaMultiplier * CVarEditor3DSnapFade.GetValueOnGameThread()));
 	}
 	else
 	{
-		MaterialInst->SetVectorParameterValue("GridColor", FLinearColor(0.6f * Darken, 0.6f * Darken, 0.6f * Darken, CVarEditor2DGridFade.GetValueOnGameThread()));
-		MaterialInst->SetVectorParameterValue("SnapColor", FLinearColor(0.5f, 0.0f, 0.0f, SnapAlphaMultiplier * CVarEditor2DSnapFade.GetValueOnGameThread()));
+		MaterialInst->SetVectorParameterValue(GridColorName, FLinearColor(0.6f * Darken, 0.6f * Darken, 0.6f * Darken, CVarEditor2DGridFade.GetValueOnGameThread()));
+		MaterialInst->SetVectorParameterValue(SnapColorName, FLinearColor(0.5f, 0.0f, 0.0f, SnapAlphaMultiplier * CVarEditor2DSnapFade.GetValueOnGameThread()));
 	}
 
 	// true:1m, false:1dm ios smallest grid size
@@ -158,10 +163,10 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 	const int Exponent = 10;
 
 	// 2 is the default so we need to set it
-	MaterialInst->SetScalarParameterValue("Exponent", (float)Exponent);
+	MaterialInst->SetScalarParameterValue(ExponentName, (float)Exponent);
 
 	// without MSAA we need the grid to be more see through so lines behind it can be recognized
-	MaterialInst->SetScalarParameterValue("AlphaBias", bMSAA ? 0.0f : 0.05f);
+	MaterialInst->SetScalarParameterValue(AlphaBiasName, bMSAA ? 0.0f : 0.05f);
 
 	// grid for size
 	float GridSplit = 0.5f;
@@ -547,7 +552,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	FLinearColor MajorColor = FMath::Lerp(Background, FLinearColor::White, 0.05f);
 	FLinearColor MinorColor = FMath::Lerp(Background, FLinearColor::White, 0.02f);
 
-	const FMatrix InvViewProjMatrix = View->ViewMatrices.ProjMatrix.Inverse() * View->ViewMatrices.ViewMatrix.Inverse();
+	const FMatrix InvViewProjMatrix = View->ViewMatrices.ProjMatrix.InverseFast() * View->ViewMatrices.ViewMatrix.InverseFast();
 	int32 FirstLine = FMath::TruncToInt(InvViewProjMatrix.TransformPosition(FVector(-1, -1, 0.5f)).Component(Axis) / ViewportGridY);
 	int32 LastLine = FMath::TruncToInt(InvViewProjMatrix.TransformPosition(FVector(+1, +1, 0.5f)).Component(Axis) / ViewportGridY);
 	if (FirstLine > LastLine)
@@ -601,7 +606,7 @@ void FEditorCommonDrawHelper::DrawOriginAxisLine(FVector* A,FVector* B,float* AX
 
 void FEditorCommonDrawHelper::DrawPivot(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
-	const FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.Inverse();
+	const FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
 
 	const FVector PivLoc = GLevelEditorModeTools().SnappedLocation;
 

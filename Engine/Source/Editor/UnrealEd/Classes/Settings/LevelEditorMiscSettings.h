@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LevelEditorMiscSettings.h: Declares the ULevelEditorMiscSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "LevelEditorMiscSettings.generated.h"
@@ -20,7 +16,9 @@ class UNREALED_API ULevelEditorMiscSettings
 
 public:
 
-	/** Whether to automatically save after a time interval */
+	/** If checked lighting will be automatically applied to the level after a static lighting build is complete.
+	 * Otherwise you will be prompted to apply it
+	 */
 	UPROPERTY(EditAnywhere, config, Category=Editing, meta=(DisplayName="Apply Lighting Automatically"))
 	uint32 bAutoApplyLightingEnable:1;
 
@@ -37,7 +35,7 @@ public:
 	uint32 bReplaceRespectsScale:1;
 
 public:
-
+	/** If checked audio playing in the editor will continue to play even if the editor is in the background */
 	UPROPERTY(EditAnywhere, config, Category=Sound)
 	uint32 bAllowBackgroundAudio:1;
 
@@ -61,9 +59,7 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 };

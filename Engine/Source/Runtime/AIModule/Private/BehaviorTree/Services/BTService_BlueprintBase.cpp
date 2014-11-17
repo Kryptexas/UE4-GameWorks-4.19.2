@@ -4,15 +4,17 @@
 #include "BlueprintNodeHelpers.h"
 #include "BehaviorTree/Services/BTService_BlueprintBase.h"
 
-UBTService_BlueprintBase::UBTService_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTService_BlueprintBase::UBTService_BlueprintBase(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
 	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
 	bImplementsReceiveActivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveActivation"), this, StopAtClass);
 	bImplementsReceiveDeactivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveDeactivation"), this, StopAtClass);
+	bImplementsReceiveSearchStart = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveSearchStart"), this, StopAtClass);
 
-	bNotifyBecomeRelevant = bImplementsReceiveActivation || bImplementsReceiveTick;
+	bNotifyBecomeRelevant = bImplementsReceiveActivation;
 	bNotifyCeaseRelevant = bNotifyBecomeRelevant;
+	bNotifyOnSearch = bImplementsReceiveTick || bImplementsReceiveSearchStart;
 	bNotifyTick = bImplementsReceiveTick;
 	bShowPropertyDetails = true;
 
@@ -31,7 +33,7 @@ void UBTService_BlueprintBase::PostInitProperties()
 	NodeName = BlueprintNodeHelpers::GetNodeName(this);
 }
 
-void UBTService_BlueprintBase::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
@@ -42,21 +44,48 @@ void UBTService_BlueprintBase::OnBecomeRelevant(class UBehaviorTreeComponent* Ow
 	}
 }
 
-void UBTService_BlueprintBase::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	// force dropping all pending latent actions associated with this blueprint
-	// we can't have those resuming activity when node is/was aborted
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
-
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
-	if (bImplementsReceiveDeactivation)
+	if (OwnerComp && !OwnerComp->HasAnyFlags(RF_BeginDestroyed) && OwnerComp->GetOwner())
 	{
-		ReceiveDeactivation(OwnerComp->GetOwner());
+		// force dropping all pending latent actions associated with this blueprint
+		// we can't have those resuming activity when node is/was aborted
+		BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+
+		if (bImplementsReceiveDeactivation)
+		{
+			ReceiveDeactivation(OwnerComp->GetOwner());
+		}
+	}
+	else
+	{
+		UE_LOG(LogBehaviorTree, Warning,
+			TEXT("OnCeaseRelevant called on Blueprint service %s with invalid owner.  OwnerComponent: %s, OwnerComponent Owner: %s.  %s"),
+			*GetNameSafe(this),
+			*GetNameSafe(OwnerComp),
+			OwnerComp ? *GetNameSafe(OwnerComp->GetOwner()) : TEXT("<None>"),
+			OwnerComp && OwnerComp->HasAnyFlags(RF_BeginDestroyed) ? TEXT("OwnerComponent has BeginDestroyed flag") : TEXT("")
+			  );
 	}
 }
 
-void UBTService_BlueprintBase::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService_BlueprintBase::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
+{
+	// skip flag, will be handled by bNotifyOnSearch
+
+	if (bImplementsReceiveSearchStart)
+	{
+		ReceiveSearchStart(SearchData.OwnerComp->GetOwner());
+	}
+	else
+	{
+		Super::OnSearchStart(SearchData);
+	}
+}
+
+void UBTService_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
@@ -91,7 +120,7 @@ FString UBTService_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTService_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTService_BlueprintBase* CDO = (UBTService_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -99,6 +128,12 @@ void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeCo
 		UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
 		BlueprintNodeHelpers::DescribeRuntimeValues(this, CDO->PropertyData, Values);
 	}
+}
+
+void UBTService_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+{
+	// force dropping all pending latent actions associated with this blueprint
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
 }
 
 #if WITH_EDITOR

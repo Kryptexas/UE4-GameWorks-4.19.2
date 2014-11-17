@@ -50,7 +50,7 @@ namespace EditorLevelUtils
 		// Deselect all actors
 		GEditor->Exec( World, TEXT("ACTOR SELECT NONE"));
 
-		const FString& NewLevelName = DestLevelStreaming->PackageName.ToString();
+		const FString& NewLevelName = DestLevelStreaming->GetWorldAssetPackageName();
 				
 		for( TArray< AActor* >::TIterator CurActorIt( ActorsToMove ); CurActorIt; ++CurActorIt )
 		{
@@ -60,7 +60,7 @@ namespace EditorLevelUtils
 			if( !FLevelUtils::IsLevelLocked( DestLevel ) && !FLevelUtils::IsLevelLocked( CurActor ) )
 			{
 				ULevelStreaming* ActorPrevLevel = FLevelUtils::FindStreamingLevel( CurActor->GetLevel() );
-				const FString& PrevLevelName = ActorPrevLevel != NULL ? ActorPrevLevel->PackageName.ToString() : CurActor->GetLevel()->GetName();
+				const FString& PrevLevelName = ActorPrevLevel != NULL ? ActorPrevLevel->GetWorldAssetPackageName() : CurActor->GetLevel()->GetName();
 				UE_LOG(LogLevelTools, Warning, TEXT( "AutoLevel: Moving %s from %s to %s" ), *CurActor->GetName(), *PrevLevelName, *NewLevelName );
 
 				// Select this actor
@@ -194,10 +194,10 @@ namespace EditorLevelUtils
 			ULevelStreaming* StreamingLevel = static_cast<ULevelStreaming*>( StaticConstructObject( LevelStreamingClass, InWorld, NAME_None, RF_NoFlags, NULL) );
 
 			// Associate a package name.
-			StreamingLevel->PackageName = LevelPackageName;
+			StreamingLevel->SetWorldAssetByPackageName(LevelPackageName);
 
 			// Seed the level's draw color.
-			StreamingLevel->DrawColor = FColor::MakeRandomColor();
+			StreamingLevel->LevelColor = FLinearColor::MakeRandomColor();
 
 			// Add the new level to world.
 			InWorld->StreamingLevels.Add( StreamingLevel );
@@ -244,7 +244,7 @@ namespace EditorLevelUtils
 		const FScopedBusyCursor BusyCursor;
 
 		// Cache off the package name, as it will be lost when unloading the level
-		const FName CachedPackageName = InLevel->PackageName;
+		const FName CachedPackageName = InLevel->GetWorldAssetPackageFName();
 
 		// First hide and remove the level if it exists
 		ULevel* Level = InLevel->GetLoadedLevel();
@@ -265,7 +265,7 @@ namespace EditorLevelUtils
 			NewStreamingLevel->LevelTransform = InLevel->LevelTransform;
 			NewStreamingLevel->EditorStreamingVolumes = InLevel->EditorStreamingVolumes;
 			NewStreamingLevel->MinTimeBetweenVolumeUnloadRequests = InLevel->MinTimeBetweenVolumeUnloadRequests;
-			NewStreamingLevel->DrawColor = InLevel->DrawColor;
+			NewStreamingLevel->LevelColor = InLevel->LevelColor;
 			NewStreamingLevel->Keywords = InLevel->Keywords;
 		}
 
@@ -334,7 +334,7 @@ namespace EditorLevelUtils
 				if ( LevelStreamingVolume )
 				{
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevelNames.Remove( InLevelStreaming->PackageName );
+					LevelStreamingVolume->StreamingLevelNames.Remove( InLevelStreaming->GetWorldAssetPackageFName() );
 				}
 			}
 
@@ -389,9 +389,6 @@ namespace EditorLevelUtils
 
 		GEditor->CloseEditedWorldAssets(CastChecked<UWorld>(InLevel->GetOuter()));
 
-		// Need to clean refs to a removed level 
-		GEditor->ResetTransaction( LOCTEXT("RemoveLevelTransReset", "Removing Levels from World") );
-				
 		UWorld* OwningWorld = InLevel->OwningWorld;
 		const FName LevelPackageName		= InLevel->GetOutermost()->GetFName();
 		const bool bRemovingCurrentLevel	= InLevel && InLevel->IsCurrentLevel();
@@ -423,21 +420,21 @@ namespace EditorLevelUtils
 			// refresh editor windows
 			FEditorDelegates::RefreshAllBrowsers.Broadcast();
 			
-			// Update selection for any selected actors that were in the level and are no longer valid
-			GEditor->NoteSelectionChange();
+			// Reset transaction buffer and run GC to clear out the destroyed level
+			GEditor->Cleanse(true, false, LOCTEXT("RemoveLevelTransReset", "Removing Levels from World"));
 
-			// Collect garbage to clear out the destroyed level
-			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-
-			// Ensure that level package were removed
+			// Ensure that world was removed
 			UPackage* LevelPackage = FindObjectFast<UPackage>(NULL, LevelPackageName);
 			if (LevelPackage != nullptr)
 			{
-				StaticExec(NULL, *FString::Printf(TEXT("OBJ REFS CLASS=%s NAME=%s shortest"),*LevelPackage->GetClass()->GetName(), *LevelPackage->GetPathName()));
-				TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( LevelPackage, true, GARBAGE_COLLECTION_KEEPFLAGS );
-				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, LevelPackage );
-			
-				UE_LOG(LogStreaming, Fatal, TEXT("%s didn't get garbage collected!") LINE_TERMINATOR TEXT("%s"), *LevelPackage->GetFullName(), *ErrorString );
+				UWorld* TheWorld = UWorld::FindWorldInPackage(LevelPackage->GetOutermost());								
+				if (TheWorld != nullptr)
+				{	
+					StaticExec(NULL, *FString::Printf(TEXT("OBJ REFS CLASS=%s NAME=%s shortest"),*TheWorld->GetClass()->GetName(), *TheWorld->GetPathName()));
+					TMap<UObject*,UProperty*>	Route		= FArchiveTraceRoute::FindShortestRootPath( TheWorld, true, GARBAGE_COLLECTION_KEEPFLAGS );
+					FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, TheWorld );
+					UE_LOG(LogStreaming, Fatal, TEXT("%s didn't get garbage collected!") LINE_TERMINATOR TEXT("%s"), *TheWorld->GetFullName(), *ErrorString );
+				}
 			}
 		}
 		return bRemoveSuccessful;
@@ -487,14 +484,7 @@ namespace EditorLevelUtils
 			check(Level->bIsVisible == false);
 		}
 
-		const bool bSuccess = EditorDestroyLevel(Level);
-		// Since we just removed all the actors from this package, we do not want it to be saved out now
-		// and the user was warned they would lose any changes from before removing, so we're good to clear
-		// the dirty flag
-		UPackage* LevelPackage = Level->GetOutermost();
-		LevelPackage->SetDirtyFlag(false);
-
-		return bSuccess;
+		return EditorDestroyLevel(Level);
 	}
 	
 	bool EditorDestroyLevel( ULevel* InLevel )
@@ -535,10 +525,6 @@ namespace EditorLevelUtils
 		InLevel->GetOuter()->MarkPendingKill();
 		InLevel->MarkPendingKill();		
 		InLevel->GetOuter()->ClearFlags(RF_Public|RF_Standalone);
-		if (InLevel->GetOutermost()->MetaData)
-		{
-			InLevel->GetOutermost()->MetaData->MarkPendingKill();
-		}
 
 		World->MarkPackageDirty();
 		World->BroadcastLevelsChanged();
@@ -552,7 +538,7 @@ namespace EditorLevelUtils
 		GLevelEditorModeTools().DeactivateAllModes();
 
 		UWorld* NewWorld = nullptr;
-		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		if (UEditorEngine::IsUsingWorldAssets())
 		{
 			// Create a new world
 			UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
@@ -581,7 +567,7 @@ namespace EditorLevelUtils
 			NewPackageName = NewWorld->GetOutermost()->GetName();
 		}
 
-		if (!FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		if (!UEditorEngine::IsUsingWorldAssets())
 		{
 			// Destroy the new world we created and collect the garbage
 			NewWorld->DestroyWorld( false );

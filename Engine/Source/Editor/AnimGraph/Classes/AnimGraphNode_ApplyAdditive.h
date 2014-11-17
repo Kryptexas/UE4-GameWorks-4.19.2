@@ -14,7 +14,7 @@ class UAnimGraphNode_ApplyAdditive : public UAnimGraphNode_Base
 	FAnimNode_ApplyAdditive Node;
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	// End of UEdGraphNode interface

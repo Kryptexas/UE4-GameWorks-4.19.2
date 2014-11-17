@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/Console.h"
@@ -32,6 +33,7 @@
 #include "PhysicsPublic.h"
 #include "AI/AISystemBase.h"
 #include "SceneInterface.h"
+#include "Camera/CameraActor.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -48,6 +50,9 @@
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "Runtime/Engine/Classes/Landscape/LandscapeComponent.h"
+#include "RendererInterface.h"
+#include "DataChannel.h"
+#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -72,7 +77,7 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 :	UObject(PCIP)
-,	FeatureLevel(GRHIFeatureLevel)
+,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
@@ -86,7 +91,7 @@ UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
 :	UObject(PCIP)
-,	FeatureLevel(GRHIFeatureLevel)
+,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	URL(InURL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
@@ -157,8 +162,8 @@ void UWorld::Serialize( FArchive& Ar )
 	// Serialize World composition for PIE
 	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 	{
-		Ar << GlobalOriginOffset;
-		Ar << RequestedGlobalOriginOffset;
+		Ar << OriginLocation;
+		Ar << RequestedOriginLocation;
 	}
 	
 	// UWorlds loaded/duplicated for PIE must lose RF_Public and RF_Standalone since they should not be referenced by objects in other packages and they should be GCed normally
@@ -519,7 +524,7 @@ void UWorld::PostLoad()
 			ULevelStreaming* const StreamingLevel = StreamingLevels[ LevelIndex ];
 			if( StreamingLevel != NULL )
 			{
-				if( StreamingLevel->PackageName == PersistentLevel->GetOutermost()->GetFName() || StreamingLevel->GetLoadedLevel() == PersistentLevel )
+				if( StreamingLevel->WorldAsset == this || StreamingLevel->GetLoadedLevel() == PersistentLevel )
 				{
 					// Remove this streaming level
 					StreamingLevels.RemoveAt( LevelIndex );
@@ -578,27 +583,22 @@ void UWorld::PostLoad()
 	// Initially set up the parameter collection list. This may be run again in UWorld::InitWorld.
 	SetupParameterCollectionInstances();
 
-	if ( GetLinkerUE4Version() < VER_UE4_WORLD_NAMED_AFTER_PACKAGE )
-	{
-		const FString ShortPackageName = FPackageName::GetLongPackageAssetName( GetOutermost()->GetName() );
-		if ( GetName() != ShortPackageName )
-		{
-			Rename(*ShortPackageName, NULL, REN_NonTransactional | REN_ForceNoResetLoaders);
-		}
-	}
-
-	if ( GetLinkerUE4Version() < VER_UE4_PUBLIC_WORLDS )
-	{
-		// Worlds are assets so they need RF_Public and RF_Standalone (for the editor)
-		if (!(GetOutermost()->PackageFlags & PKG_PlayInEditor))
-		{
-			SetFlags(RF_Public|RF_Standalone);
-		}
-	}
-
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
+		if (!(GetOutermost()->PackageFlags & PKG_PlayInEditor))
+		{
+			// Needed for VER_UE4_WORLD_NAMED_AFTER_PACKAGE. If this file was manually renamed outside of the editor, this is needed anyway
+			const FString ShortPackageName = FPackageName::GetLongPackageAssetName(GetOutermost()->GetName());
+			if (GetName() != ShortPackageName)
+			{
+				Rename(*ShortPackageName, NULL, REN_NonTransactional | REN_ForceNoResetLoaders);
+			}
+
+			// Worlds are assets so they need RF_Public and RF_Standalone (for the editor)
+			SetFlags(RF_Public | RF_Standalone);
+		}
+
 		// Ensure the DefaultBrush's model has the same outer as the default brush itself. Older packages erroneously stored this object as a top-level package
 		ABrush* DefaultBrush = PersistentLevel->Actors.Num() < 2 ? NULL : Cast<ABrush>(PersistentLevel->Actors[1]);
 		UModel* Model = DefaultBrush ? DefaultBrush->Brush : NULL;
@@ -629,10 +629,11 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPacka
 		if (StreamingLevel)
 		{
 			// Load package if found.
+			const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
 			FString PackageFilename;
-			if (FPackageName::DoesPackageExist(StreamingLevel->PackageName.ToString(), NULL, &PackageFilename))
+			if (FPackageName::DoesPackageExist(WorldAssetPackageName, NULL, &PackageFilename))
 			{
-				AdditionalPackagesToCook.Add(StreamingLevel->PackageName.ToString());
+				AdditionalPackagesToCook.Add(WorldAssetPackageName);
 			}
 		}
 	}
@@ -838,7 +839,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	{
 		// Move persistent level into world so the world object won't get garbage collected in the multi- level
 		// case as it is still referenced via the level's outer. This is required for multi- level editing to work.
-		PersistentLevel->Rename( *PersistentLevel->GetName(), this );
+		PersistentLevel->Rename( *PersistentLevel->GetName(), this, REN_ForceNoResetLoaders );
 	}
 
 	Levels.Empty(1);
@@ -856,7 +857,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		// Rename invalid WorldSettings to avoid name collisions
 		if (bNeedsDestroy)
 		{
-			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel);
+			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel, REN_ForceNoResetLoaders);
 		}
 		
 		FActorSpawnParameters SpawnInfo;
@@ -895,8 +896,9 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		DefaultPhysicsVolume->Priority = -1000000;
 	}
 
-	// update terminal velocity when world is restarted
+	// update default values when world is restarted
 	DefaultPhysicsVolume->TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
+	DefaultPhysicsVolume->FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
 
 	// Find gravity
 	if (GetPhysicsScene())
@@ -1670,18 +1672,19 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		// Make sure code thinks components are not currently attached.
 		Level->bAreComponentsCurrentlyRegistered = false;
 
+#if WITH_EDITOR
+			// Pretend here that we are loading package to avoid package dirtying during components registration
+		TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, (GIsEditor ? true : GIsEditorLoadingPackage));
+#endif
+		// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
+		// from disk rather than duplicated
+		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsPlayInEditor() && Level->bWasDuplicatedForPIE));
+		
 		// Incrementally update components.
 		int32 NumComponentsToUpdate = GEngine->LevelStreamingComponentsRegistrationGranularity;
 		do
 		{
-#if WITH_EDITOR
-			// Pretend here that we are loading package to avoid package dirtying during components registration
-			TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, (GIsEditor ? true : GIsEditorLoadingPackage));
-#endif
-			// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
-			// from disk rather than duplicated
-			const bool bRerunConstructionScript = !FPlatformProperties::RequiresCookedData() && (!IsPlayInEditor() || HasAnyFlags(RF_WasLoaded));
-			Level->IncrementalUpdateComponents( (GIsEditor || IsRunningCommandlet()) ? 0 : NumComponentsToUpdate, bRerunConstructionScript );
+			Level->IncrementalUpdateComponents( (!IsGameWorld() || IsRunningCommandlet()) ? 0 : NumComponentsToUpdate, bRerunConstructionScript );
 		}
 		while( (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("updating components"), StartTime, Level )) && !Level->bAreComponentsCurrentlyRegistered );
 
@@ -1830,7 +1833,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 			AActor* Actor = Level->Actors[ActorIdx];
 			if (Actor != NULL)
 			{
-				Actor->EndPlay(EEndPlayReason::RemovedFromWorld);
+				Actor->RouteEndPlay(EEndPlayReason::RemovedFromWorld);
+
 				if (NetDriver)
 				{
 					NetDriver->NotifyActorLevelUnloaded(Actor);
@@ -2075,6 +2079,23 @@ FString UWorld::ConvertToPIEPackageName(const FString& PackageName, int32 PIEIns
 	}
 }
 
+FString UWorld::StripPIEPrefixFromPackageName(const FString& PrefixedName, const FString& Prefix)
+{
+	FString ResultName;
+	FString ShortPrefixedName = FPackageName::GetLongPackageAssetName(PrefixedName);
+	if (ShortPrefixedName.StartsWith(Prefix))
+	{
+		FString NamePath = FPackageName::GetLongPackagePath(PrefixedName);
+		ResultName = NamePath + "/" + ShortPrefixedName.RightChop(Prefix.Len());
+	}
+	else
+	{
+		ResultName = PrefixedName;
+	}
+
+	return ResultName;
+}
+
 FString UWorld::BuildPIEPackagePrefix(int PIEInstanceID)
 {
 	check(PIEInstanceID != -1);
@@ -2095,7 +2116,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	if ( !EditorLevelWorld )
 	{
 		EditorLevelWorld = UWorld::FollowWorldRedirectorInPackage(EditorLevelPackage);
-		if ( EditorLevelPackage )
+		if ( EditorLevelWorld )
 		{
 			EditorLevelPackage = EditorLevelWorld->GetOutermost();
 		}
@@ -2115,6 +2136,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 #if WITH_EDITOR
 	PIELevelPackage->PIEInstanceID = WorldContext.PIEInstance;
 #endif
+	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
 
 	// Set up string asset reference fixups
 	TArray<FString> PackageNamesBeingDuplicatedForPIE;
@@ -2128,7 +2150,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 			ULevelStreaming* StreamingLevel = *LevelIt;
 			if (StreamingLevel)
 			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->PackageName.ToString(), WorldContext.PIEInstance);
+				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
 				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
 			}
 		}
@@ -2138,12 +2160,13 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, *EditorLevelWorld->GetName(), RF_AllFlags, NULL, SDO_DuplicateForPie));
-
+	
 	// Clean up string asset reference fixups
 	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 
-	// Clean up the world type list now that PostLoad has occurred
+	// Clean up the world type list and owning world list now that PostLoad has occurred
 	UWorld::WorldTypePreLoadMap.Remove(PrefixedLevelFName);
+	ULevel::StreamedLevelsOwningWorld.Remove(PIELevelPackage->GetFName());
 	
 	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(WorldContext.PIEInstance);
 	{
@@ -2170,8 +2193,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 		// Correct placement will occur during UWorld::AddToWorld
 		if (EditorLevel->OwningWorld->WorldComposition && EditorLevel->bIsVisible)
 		{
-			FIntPoint LevelOffset = FIntPoint::ZeroValue - EditorLevel->OwningWorld->WorldComposition->GetLevelOffset(EditorLevel);
-			PIELevel->ApplyWorldOffset(FVector(LevelOffset, 0), false);
+			FIntVector LevelOffset = FIntVector::ZeroValue - EditorLevel->OwningWorld->WorldComposition->GetLevelOffset(EditorLevel);
+			PIELevel->ApplyWorldOffset(FVector(LevelOffset), false);
 		}
 	}
 
@@ -2386,9 +2409,9 @@ void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
 		CentroidLocation/= ViewFamily.Views.Num();
 	
 		// Request to shift world in case current view is quite far from current origin
-		if (CentroidLocation.Size2D() > HALF_WORLD_MAX1*0.5f)
+		if (CentroidLocation.Size() > HALF_WORLD_MAX1*0.5f)
 		{
-			RequestNewWorldOrigin(FIntPoint(CentroidLocation.X, CentroidLocation.Y) + GlobalOriginOffset);
+			RequestNewWorldOrigin(FIntVector(CentroidLocation.X, CentroidLocation.Y, CentroidLocation.Z) + OriginLocation);
 		}
 	}
 }
@@ -2649,7 +2672,9 @@ bool UWorld::SetGameMode(const FURL& InURL)
 			FString MapNameNoPath = FPaths::GetBaseFilename(MapName);
 			if (MapNameNoPath.StartsWith(PLAYWORLD_PACKAGE_PREFIX))
 			{
-				const int32 PrefixLen = FString(PLAYWORLD_PACKAGE_PREFIX).Len();
+				FWorldContext WorldContext = GEngine->GetWorldContextFromWorldChecked(this);
+
+				const int32 PrefixLen = BuildPIEPackagePrefix(WorldContext.PIEInstance).Len();
 				MapNameNoPath = MapNameNoPath.Mid(PrefixLen);
 			}
 			
@@ -2691,7 +2716,7 @@ bool UWorld::SetGameMode(const FURL& InURL)
 		else
 		{
 			// Remove any directory path from the map for the purpose of setting the game type
-			GameClass = GameClass->GetDefaultObject<AGameMode>()->SetGameMode(FPaths::GetBaseFilename(InURL.Map), Options, *InURL.Portal);
+			GameClass = GameClass->GetDefaultObject<AGameMode>()->GetGameModeClass(FPaths::GetBaseFilename(InURL.Map), Options, *InURL.Portal);
 		}
 
 		// no matter how the game was specified, we can use it to load the PostLoadClass packages
@@ -2752,7 +2777,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	// Update world and the components of all levels.	
 	// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 	// from disk rather than duplicated
-	const bool bRerunConstructionScript = !FPlatformProperties::RequiresCookedData() && (!IsPlayInEditor() || HasAnyFlags(RF_WasLoaded));
+	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsPlayInEditor() && PersistentLevel->bWasDuplicatedForPIE));
 	UpdateWorldComponents( bRerunConstructionScript, true );
 
 	// Reset indices till we have a chance to rearrange actor list at the end of this function.
@@ -2896,7 +2921,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 
 	NetworkActors.Empty();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// If we're server traveling, we need to break the reference dependency here (caused by levelscript)
 	// to avoid a GC crash for not cleaning up the gameinfo referenced by levelscript
 	if( IsGameWorld() && !GIsEditor && !IsRunningCommandlet() && bSessionEnded && bCleanupResources )
@@ -2914,7 +2939,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			}
 		}
 	}
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR
 
 #if ENABLE_VISUAL_LOG
 	FVisualLog::Get().Cleanup();
@@ -3312,7 +3337,7 @@ const FString UWorld::GetMapName() const
 		// Use the name of the first found persistent level.
 		if( PersistentStreamingLevel )
 		{
-			MapName = PersistentStreamingLevel->PackageName.ToString();
+			MapName = PersistentStreamingLevel->GetWorldAssetPackageName();
 			break;
 		}
 	}
@@ -3894,14 +3919,14 @@ void UWorld::CommitMapChange()
 	}
 }
 
-void UWorld::RequestNewWorldOrigin(const FIntPoint& InNewOrigin)
+void UWorld::RequestNewWorldOrigin(FIntVector InNewOriginLocation)
 {
-	RequestedGlobalOriginOffset = InNewOrigin;
+	RequestedOriginLocation = InNewOriginLocation;
 }
 
-bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
+bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 {
-	if (GlobalOriginOffset == InNewOrigin) 
+	if (OriginLocation == InNewOriginLocation) 
 	{
 		return true;
 	}
@@ -3913,13 +3938,15 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		return false;
 	}
 	
-	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION BEGIN {%d, %d} -> {%d, %d}"), GlobalOriginOffset.X, GlobalOriginOffset.Y, InNewOrigin.X, InNewOrigin.Y);
+	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION BEGIN {%d, %d, %d} -> {%d, %d, %d}"), 
+		OriginLocation.X, OriginLocation.Y, OriginLocation.Z, InNewOriginLocation.X, InNewOriginLocation.Y, InNewOriginLocation.Z);
+
 	const double MoveStartTime = FPlatformTime::Seconds();
 
 	// Broadcast that we going to shift world to the new origin
-	FCoreDelegates::PreWorldOriginOffset.Broadcast(this, GlobalOriginOffset, InNewOrigin);
+	FCoreDelegates::PreWorldOriginOffset.Broadcast(this, OriginLocation, InNewOriginLocation);
 
-	FVector Offset(GlobalOriginOffset - InNewOrigin, 0);
+	FVector Offset(OriginLocation - InNewOriginLocation);
 
 	// Send offset command to rendering thread
 	Scene->ApplyWorldOffset(Offset);
@@ -3963,10 +3990,10 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		NavigationSystem->ApplyWorldOffset(Offset, true);
 	}
 
-	FIntPoint PreviosWorldOrigin = GlobalOriginOffset;
+	FIntVector PreviosWorldOriginLocation = OriginLocation;
 	// Set new world origin
-	GlobalOriginOffset = InNewOrigin;
-	RequestedGlobalOriginOffset = InNewOrigin;
+	OriginLocation = InNewOriginLocation;
+	RequestedOriginLocation = InNewOriginLocation;
 	
 	// Propagate event to a level blueprints
 	for(int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++)
@@ -3975,30 +4002,31 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		if (Level->bIsVisible && 
 			Level->LevelScriptActor)
 		{
-			Level->LevelScriptActor->WorldOriginChanged(PreviosWorldOrigin, GlobalOriginOffset);
+			Level->LevelScriptActor->WorldOriginLocationChanged(PreviosWorldOriginLocation, OriginLocation);
 		}
 	}
 
 	if (AISystem != NULL)
 	{
-		AISystem->WorldOriginChanged(PreviosWorldOrigin, GlobalOriginOffset);
+		AISystem->WorldOriginLocationChanged(PreviosWorldOriginLocation, OriginLocation);
 	}
 
 	// Broadcast that have finished world shifting
-	FCoreDelegates::PostWorldOriginOffset.Broadcast(this, PreviosWorldOrigin, GlobalOriginOffset);
+	FCoreDelegates::PostWorldOriginOffset.Broadcast(this, PreviosWorldOriginLocation, OriginLocation);
 
 	const double CurrentTime = FPlatformTime::Seconds();
 	const float TimeTaken = CurrentTime - MoveStartTime;
-	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION END {%d, %d} took %.4f"), GlobalOriginOffset.X, GlobalOriginOffset.Y, TimeTaken);
+	UE_LOG(LogLevel, Log, TEXT("WORLD TRANSLATION END {%d, %d, %d} took %.4f ms"),
+		OriginLocation.X, OriginLocation.Y, OriginLocation.Z, TimeTaken*1000);
 	
 	return true;
 }
 
-void UWorld::NavigateTo(FIntPoint InPosition)
+void UWorld::NavigateTo(FIntVector InLocation)
 {
 	check(WorldComposition != NULL);
 
-	SetNewWorldOrigin(InPosition);
+	SetNewWorldOrigin(InLocation);
 	WorldComposition->UpdateStreamingState(FVector::ZeroVector);
 	FlushLevelStreaming();
 }
@@ -4039,6 +4067,10 @@ void FSeamlessTravelHandler::SetHandlerLoadedData(UObject* InLevelPackage, UWorl
 /** callback sent to async loading code to inform us when the level package is complete */
 void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FString& PackageName, UPackage* LevelPackage)
 {
+	// make sure we remove the name, even if travel was cancelled.
+	const FName URLMapFName = FName(*PendingTravelURL.Map);
+	UWorld::WorldTypePreLoadMap.Remove(URLMapFName);
+
 	// defer until tick when it's safe to perform the transition
 	if (IsInTransition())
 	{
@@ -4132,6 +4164,9 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			}
 			else
 			{
+				// Set the world type in the static map, so that UWorld::PostLoad can set the world type
+				UWorld::WorldTypePreLoadMap.FindOrAdd(*TransitionMap) = CurrentWorld->WorldType;
+
 				// first, load the entry level package
 				LoadPackageAsync(TransitionMap, 
 					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback)
@@ -4204,6 +4239,10 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 				LoadPackageAsync(*LocalizedPackageName);
 			}
 		}
+
+		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
+		const FName URLMapFName = FName(*PendingTravelURL.Map);
+		UWorld::WorldTypePreLoadMap.FindOrAdd(URLMapFName) = CurrentWorld->WorldType;
 
 		LoadPackageAsync(PendingTravelURL.Map, 
 			FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback), 
@@ -4386,10 +4425,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 						UE_LOG(LogWorld, Warning, TEXT("Actor '%s' was indicated to be kept but exists in level '%s', not the persistent level.  Actor will not travel."), *TheActor->GetName(), *TheActor->GetLevel()->GetOutermost()->GetName());
 					}
 
-					if (TheActor->bActorInitialized)
-					{
-						TheActor->EndPlay(EEndPlayReason::LevelTransition);
-					}
+					TheActor->RouteEndPlay(EEndPlayReason::LevelTransition);
 
 					// otherwise, set to be deleted
 					KeepAnnotation.Clear(TheActor);
@@ -4412,7 +4448,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Stop all audio to remove references to old world
 			if (GEngine != NULL && GEngine->GetAudioDevice() != NULL)
 			{
-				GEngine->GetAudioDevice()->Flush(NULL);
+				GEngine->GetAudioDevice()->Flush(CurrentWorld);
 			}
 
 			// Copy the standby cheat status
@@ -4502,6 +4538,11 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			}
 
+			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
+
+			// Note that AI system will be created only if ai-system-creation conditions are met
+			LoadedWorld->CreateAISystem();
+
 			// call initialize functions on everything that wasn't carried over from the old world
 			LoadedWorld->InitializeActorsForPlay(PendingTravelURL, false);
 
@@ -4548,11 +4589,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
 				{
-					UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
-
-					// Note that AI system will be created only if ai-system-creation conditions are met
-					LoadedWorld->CreateAISystem();
-
 					// inform the new GameMode so it can handle players that persisted
 					GameMode->PostSeamlessTravel();					
 				}
@@ -4654,10 +4690,10 @@ void UWorld::UpdateConstraintActors()
 {
 	if( bAreConstraintsDirty )
 	{
-		for( FActorIterator It(this); It; ++It )
+		for( TActorIterator<APhysicsConstraintActor> It(this); It; ++It )
 		{
-			APhysicsConstraintActor* ConstraintActor = Cast<APhysicsConstraintActor>( *It );
-			if( ConstraintActor && ConstraintActor->ConstraintComp)
+			APhysicsConstraintActor* ConstraintActor = *It;
+			if( ConstraintActor->ConstraintComp)
 			{
 				ConstraintActor->ConstraintComp->UpdateConstraintFrames();
 			}
@@ -5116,15 +5152,34 @@ void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& O
 		ULandscapeComponent* LandscapeComponent = Cast<ULandscapeComponent>(ObjInLevel);
 		if (LandscapeComponent)
 		{
-			LandscapeComponent->GetAllReferencedTexturesAndMaterials(OutTexturesAndMaterials);
+			LandscapeComponent->GetGeneratedTexturesAndMaterialInstances(OutTexturesAndMaterials);
 		}
 	}
 }
 
-void UWorld::ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
+		FlushRenderingCommands();
+
+		FGlobalComponentReregisterContext RecreateComponents;
+		
+		// Decrement refcount on old feature level
+		UMaterialInterface::SetGlobalRequiredFeatureLevel(InFeatureLevel, true);
+
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+		GetGlobalShaderMap(InFeatureLevel, false);
+		GShaderCompilingManager->ProcessAsyncResults(false, true);
+
+		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
+		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
+		{
+			BeginUpdateResourceRHI(*It);
+		}
+
+		// try iterating over all worlds here
 		FeatureLevel = InFeatureLevel;
 
 		if (Scene)
@@ -5138,84 +5193,8 @@ void UWorld::ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 			FXSystem = FFXSystemInterface::Create(InFeatureLevel);
 			Scene->SetFXSystem(FXSystem);
 		}
-	}
-}
 
-void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	if (InFeatureLevel != FeatureLevel)
-	{
-		FlushRenderingCommands();
-
-		FGlobalComponentReregisterContext RecreateComponents;
-
-		GCurrentRHIFeatureLevel = InFeatureLevel;
-		GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
-
-		UMaterial::AllMaterialsCacheResourceShadersForRendering();
-		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-		GetGlobalShaderMap(GRHIShaderPlatform, false);
-		GShaderCompilingManager->ProcessAsyncResults(false, true);
-
-		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
-		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
-		{
-			BeginUpdateResourceRHI(*It);
-		}
-
-		// try iterating over all worlds here
-		ChangeWorldFeatureLevel(InFeatureLevel);
-
-		FOutputDeviceNull Ar;
-		RecompileShaders(TEXT("CHANGED"), Ar);
-	}
-}
-
-void UWorld::ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	bool bSomethingChanged = false;
-
-	// try iterating over all worlds here
-	for (TObjectIterator<UWorld> It; It; ++It)
-	{
-		UWorld* World = *It;
-
-		if (World->FeatureLevel != InFeatureLevel)
-		{
-			bSomethingChanged = true;
-		}
-	}
-
-	if (bSomethingChanged)
-	{
-		FlushRenderingCommands();
-
-		FGlobalComponentReregisterContext RecreateComponents;
-
-		GCurrentRHIFeatureLevel = InFeatureLevel;
-		GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
-
-		UMaterial::AllMaterialsCacheResourceShadersForRendering();
-		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-		GetGlobalShaderMap(GRHIShaderPlatform, false);
-		GShaderCompilingManager->ProcessAsyncResults(false, true);
-		
-		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
-		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
-		{
-			BeginUpdateResourceRHI(*It);
-		}
-
-		// try iterating over all worlds here
-		for (TObjectIterator<UWorld> It; It; ++It)
-		{
-			UWorld* World = *It;
-
-			if (World->FeatureLevel != InFeatureLevel)
-			{
-				World->ChangeWorldFeatureLevel(InFeatureLevel);
-			}
-		}
+		TriggerStreamingDataRebuild();
 
 		FOutputDeviceNull Ar;
 		RecompileShaders(TEXT("CHANGED"), Ar);

@@ -13,7 +13,7 @@ void FBspModeModule::StartupModule()
 
 	FEditorModeRegistry::Get().RegisterMode<FBspMode>(
 		FBuiltinEditorModes::EM_Bsp,
-		NSLOCTEXT("GeometryMode", "DisplayName", "Geometry"),
+		NSLOCTEXT("GeometryMode", "DisplayName", "Geometry Editing"),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.BspMode", "LevelEditor.BspMode.Small"),
 		false,		// Visible
 		100			// UI priority order

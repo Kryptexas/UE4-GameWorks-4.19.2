@@ -44,11 +44,14 @@ class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 
 	UPROPERTY(transient)
 	TArray<FName> PreviousSocketNames;
+	
+#endif
 
+#if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 
-	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
+	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float TotalDuration) override;
 	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime) override;
 	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
 

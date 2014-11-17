@@ -216,11 +216,11 @@ namespace OneSky
             }
         }
 
-        public static CreateProjectGroupResponse Create(OneSkyService service, string name, CultureInfo locale)
+        public static CreateProjectGroupResponse Create(OneSkyService service, string name, CultureInfo culture)
         {
             //https://github.com/onesky/api-documentation-platform/blob/master/resources/project_group.md
             string url = "https://platform.api.onesky.io/1/project-groups";
-            string parameters = service.GetAuthenticationParameters() + "&name=" + name + "&locale=" + locale.Name;
+            string parameters = service.GetAuthenticationParameters() + "&name=" + name + "&locale=" + LocaleCodeHelper.ConvertToLocaleCode(culture.Name);
 
             url += "?" + parameters;
 

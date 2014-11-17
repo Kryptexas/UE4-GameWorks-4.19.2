@@ -60,9 +60,10 @@ static bool CanFunctionBeDropped(TSharedPtr<FEdGraphSchemaAction> /*DropActionIn
  * @param  HoveredGraphIn	A pointer to the graph that the user currently has the item dragged over.
  * @param  ImpededReasonOut	If this returns false, this will be filled out with a reason to present the user with.
  * @param  MacroGraph		The macro graph that the node would be executing.
+ * @param  bInIsLatentMacro	True if the macro has latent functions in it
  * @return True is the dragged palette item can be dropped where it currently is, false if not.
  */
-static bool CanMacroBeDropped(TSharedPtr<FEdGraphSchemaAction> /*DropActionIn*/, UEdGraph* HoveredGraphIn, FText& ImpededReasonOut, UEdGraph* MacroGraph)
+static bool CanMacroBeDropped(TSharedPtr<FEdGraphSchemaAction> /*DropActionIn*/, UEdGraph* HoveredGraphIn, FText& ImpededReasonOut, UEdGraph* MacroGraph, bool bIsLatentMacro)
 {
 	bool bCanBePlaced = true;
 	if (HoveredGraphIn == NULL)
@@ -80,6 +81,12 @@ static bool CanMacroBeDropped(TSharedPtr<FEdGraphSchemaAction> /*DropActionIn*/,
 		bCanBePlaced = false;
 		ImpededReasonOut = LOCTEXT("CannotRecurseMacro", "Cannot place a macro instance in its own graph");
 	}
+	else if( bIsLatentMacro && HoveredGraphIn->GetSchema()->GetGraphType(HoveredGraphIn) == GT_Function)
+	{
+		bCanBePlaced = false;
+		ImpededReasonOut = LOCTEXT("CannotPlaceLatentMacros", "Cannot place a macro instance with latent functions in function graphs!");
+	}
+
 	return bCanBePlaced;
 }
 
@@ -292,7 +299,10 @@ TSharedRef<FKismetMacroDragDropAction> FKismetMacroDragDropAction::New(
 	Operation->Blueprint = InBlueprint;
 	Operation->AnalyticCallback = AnalyticCallback;
 
-	Operation->CanBeDroppedDelegate = FCanBeDroppedDelegate::CreateStatic(&CanMacroBeDropped, InMacro);
+	// Check to see if the macro has any latent functions in it, some graph types do not allow for latent functions
+	bool bIsLatentMacro = FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(Operation->Macro);
+
+	Operation->CanBeDroppedDelegate = FCanBeDroppedDelegate::CreateStatic(&CanMacroBeDropped, InMacro, bIsLatentMacro);
 
 	Operation->Construct();
 	return Operation;

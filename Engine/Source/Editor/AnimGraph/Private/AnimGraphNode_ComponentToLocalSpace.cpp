@@ -18,9 +18,9 @@ FLinearColor UAnimGraphNode_ComponentToLocalSpace::GetNodeTitleColor() const
 	return FLinearColor(0.7f, 0.7f, 0.7f);
 }
 
-FString UAnimGraphNode_ComponentToLocalSpace::GetTooltip() const
+FText UAnimGraphNode_ComponentToLocalSpace::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_ComponentToLocalSpace_Tooltip", "Convert Component Space Pose to Local Pose").ToString();
+	return LOCTEXT("AnimGraphNode_ComponentToLocalSpace_Tooltip", "Convert Component Space Pose to Local Pose");
 }
 
 FText UAnimGraphNode_ComponentToLocalSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const

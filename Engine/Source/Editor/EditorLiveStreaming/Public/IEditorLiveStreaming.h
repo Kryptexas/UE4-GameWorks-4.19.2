@@ -46,7 +46,9 @@ public:
 	 */
 	static inline IEditorLiveStreaming& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IEditorLiveStreaming >( "EditorLiveStreaming" );
+		static FName LiveStreamingModule("EditorLiveStreaming");
+
+		return FModuleManager::LoadModuleChecked< IEditorLiveStreaming >( LiveStreamingModule );
 	}
 
 };

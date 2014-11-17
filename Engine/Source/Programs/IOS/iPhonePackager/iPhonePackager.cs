@@ -46,15 +46,21 @@ namespace iPhonePackager
 		Error_FailedToCreateIPA = 31,
 		Error_FailedToCodeSign = 32,
 		Error_DeviceBackupFailed = 33,
-		Error_IPAUninstallFailed = 34,
-		Error_IPAInstallFailed = 35,
-		Error_IPANotFound = 36,
+		Error_AppUninstallFailed = 34,
+		Error_AppInstallFailed = 35,
+		Error_AppNotFound = 36,
 		Error_StubNotSignedCorrectly = 37,
 		Error_IPAMissingInfoPList = 38,
 		Error_DeleteFile = 39,
 		Error_DeleteDirectory = 40,
 		Error_CreateDirectory = 41,
 		Error_CopyFile = 42,
+        Error_OnlyOneObbFileSupported = 50,
+        Error_FailureGettingPackageInfo = 51,
+        Error_OnlyOneTargetConfigurationSupported = 52,
+        Error_ObbNotFound = 53,
+        Error_AndroidBuildToolsPathNotFound = 54,
+        Error_NoApkSuitableForArchitecture = 55,
 		Error_LauncherFailed = 100,
 		Error_UATLaunchFailure = 101,
 	};
@@ -91,6 +97,20 @@ namespace iPhonePackager
 		static public void Log(string Line, params object [] Args)
 		{
 			Log(String.Format(Line, Args));
+		}
+
+		static public void LogVerbose(string Line)
+		{
+			if (Config.bVerbose)
+			{
+				UpdateStatus(Line);
+				Console.WriteLine(Line);
+			}
+		}
+
+		static public void LogVerbose(string Line, params object[] Args)
+		{
+			LogVerbose(String.Format(Line, Args));
 		}
 
 		static public void Error( string Line, int Code = 1 )
@@ -175,9 +195,6 @@ namespace iPhonePackager
 						// Behavior switches
 						switch (Arg)
 						{
-							case "-interactive":
-								Config.bAllowInteractiveDialogsDuringNonInteractiveCommands = true;
-								break;
 							case "-verbose":
 								Config.bVerbose = true;
 								break;
@@ -323,25 +340,6 @@ namespace iPhonePackager
 				Error("-createstub and -distribution are mutually exclusive");
 				Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 				return false;
-			}
-
-			// If -sign was specified, check to see if the user has configured yet.  If not, we will pop up a configuration dialog
-			if (Config.bPerformResignWhenRepackaging && Config.bAllowInteractiveDialogsDuringNonInteractiveCommands)
-			{
-				string CWD = Directory.GetCurrentDirectory();
-				if (!CodeSignatureBuilder.DoRequiredFilesExist())
-				{
-					StartVisuals();
-
-					Form DisplayForm = new ToolsHub();
-					Application.Run(DisplayForm);
-					if (DisplayForm.DialogResult != DialogResult.OK)
-					{
-						Error("One or more files necessary for packaging are missing and configuration was cancelled");
-						return false;
-					}
-				}
-				Directory.SetCurrentDirectory(CWD);
 			}
 
 			return true;
@@ -600,7 +598,15 @@ namespace iPhonePackager
 				{
 					case "validate":
 						// check to see if iTunes is installed
-						string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+						string dllPath = "";
+						if (Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix)
+						{
+							dllPath = "/Applications/Xcode.app/Contents/MacOS/Xcode";
+						}
+						else
+						{
+							dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+						}
 						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
 						{
 							Error("iTunes Not Found!!", (int)ErrorCodes.Error_SDKNotFound);
@@ -611,7 +617,8 @@ namespace iPhonePackager
 							MobileProvision Provision;
 							X509Certificate2 Cert;
 							bool bHasOverrides;
-							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides);
+							bool bNameMatch;
+							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides, out bNameMatch);
 							if (!foundPlist)
 							{
 								Error("Could not find a valid plist file!!", (int)ErrorCodes.Error_InfoPListNotFound);

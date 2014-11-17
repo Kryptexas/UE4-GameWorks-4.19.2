@@ -73,6 +73,10 @@ class UMaterialGraph : public UEdGraph
 	/** Toggles the bCollapsed flag of a material expression and updates material editor */
 	FToggleExpressionCollapsed ToggleCollapsedDelegate;
 
+	/** The name of the material that we are editing */
+	UPROPERTY()
+	FString	OriginalMaterialFullName;
+
 public:
 	/**
 	 * Completely rebuild the graph from the material, removing all old nodes

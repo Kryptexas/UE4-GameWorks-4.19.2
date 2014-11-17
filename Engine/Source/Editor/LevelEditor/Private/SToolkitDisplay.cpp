@@ -98,7 +98,7 @@ void SLevelEditorActiveToolkit::Construct( const FArguments&, const TSharedPtr< 
 
 		ContentBox->AddSlot()
 			.AutoWidth()
-			.AspectRatio()
+			.VAlign(VAlign_Center)
 			.HAlign( HAlign_Right )
 			[
 				SNew( SComboButton )

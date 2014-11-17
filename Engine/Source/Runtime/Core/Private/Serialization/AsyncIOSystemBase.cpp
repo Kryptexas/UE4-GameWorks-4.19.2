@@ -793,5 +793,5 @@ void FIOSystem::Shutdown()
 
 bool FIOSystem::HasShutdown()
 {
-	return AsyncIOThread == (FRunnableThread*)-1;
+	return AsyncIOThread == nullptr || AsyncIOThread == (FRunnableThread*)-1;
 }

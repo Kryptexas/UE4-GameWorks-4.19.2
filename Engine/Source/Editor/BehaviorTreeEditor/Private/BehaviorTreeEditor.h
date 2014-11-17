@@ -181,6 +181,9 @@ public:
 	/** Delegate handler for determining whether to display the current state */
 	bool HandleGetDisplayCurrentState() const;
 
+	/** Delegate handler for when a blackboard key changes (added, removed, renamed) */
+	void HandleBlackboardKeyChanged(UBlackboardData* InBlackboardData, FBlackboardEntry* const InKey);
+
 	/** Get the currently selected blackboard entry */
 	void GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const;
 

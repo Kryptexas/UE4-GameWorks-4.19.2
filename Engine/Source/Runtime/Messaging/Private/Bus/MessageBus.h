@@ -19,9 +19,7 @@ public:
 	 */
 	FMessageBus( const IAuthorizeMessageRecipientsPtr& InRecipientAuthorizer );
 
-	/**
-	 * Destructor
-	 */
+	/** Destructor */
 	~FMessageBus( );
 
 public:
@@ -116,15 +114,15 @@ public:
 
 private:
 
-	// Holds the message router.
+	/** Holds the message router. */
 	FMessageRouter* Router;
 
-	// Holds the message router thread.
+	/** Holds the message router thread. */
 	FRunnableThread* RouterThread;
 
-	// Holds the recipient authorizer.
+	/** Holds the recipient authorizer. */
 	IAuthorizeMessageRecipientsPtr RecipientAuthorizer;
 
-	// Holds bus shutdown delegate.
+	/** Holds bus shutdown delegate. */
 	FOnMessageBusShutdown ShutdownDelegate;
 };

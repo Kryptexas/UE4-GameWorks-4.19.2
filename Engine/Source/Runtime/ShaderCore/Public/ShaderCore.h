@@ -15,7 +15,11 @@
  * Controls whether shader related logs are visible.  
  * Note: The runtime verbosity is driven by the console variable 'r.ShaderDevelopmentMode'
  */
+#if UE_BUILD_DEBUG && PLATFORM_LINUX
+SHADERCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogShaders, Log, All);
+#else
 SHADERCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogShaders, Error, All);
+#endif
 
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total Material Shader Compiling Time"),STAT_ShaderCompiling_MaterialShaders,STATGROUP_ShaderCompiling, SHADERCORE_API);
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total Global Shader Compiling Time"),STAT_ShaderCompiling_GlobalShaders,STATGROUP_ShaderCompiling, SHADERCORE_API);
@@ -104,7 +108,9 @@ enum ECompilerFlags
 	/** Disable shader validation */
 	CFLAG_SkipValidation,
 	/** Only allows standard optimizations, not the longest compile times. */
-	CFLAG_StandardOptimization
+	CFLAG_StandardOptimization,
+	/** Shader should use on chip memory instead of main memory ring buffer memory. */
+	CFLAG_OnChip
 };
 
 /**
@@ -411,7 +417,6 @@ struct FShaderCompilerInput
 	FString SourceFilePrefix;
 	FString SourceFilename;
 	FString EntryPointName;
-	//gilmerge, it isn't clear what the relationship is between these two and what the call sites are supposed to use. I might have botched the call sites.
 	FString DumpDebugInfoRootPath;	// Dump debug path (up to platform)
 	FString DumpDebugInfoPath;		// Dump debug path (platform/groupname)
 	FShaderCompilerEnvironment Environment;

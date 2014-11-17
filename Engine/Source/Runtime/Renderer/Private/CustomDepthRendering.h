@@ -18,16 +18,24 @@ public:
 	* @param ViewInfo - current view used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawPrims(FRHICommandListImmediate& RHICmdList, const class FViewInfo* ViewInfo, bool bInitializeOffsets);
+	bool DrawPrims(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
 
 	/**
 	* Add a new primitive to the list of prims
 	* @param PrimitiveSceneProxy - primitive info to add.
 	* @param ViewInfo - used to transform bounds to view space
 	*/
-	void AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy,const FViewInfo& ViewInfo)
+	void AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneProxy)
 	{
 		Prims.Add(PrimitiveSceneProxy);
+	}
+	/**
+	* Adds a new primitives to the list of distortion prims
+	* @param PrimitiveSceneProxies - primitive info to add.
+	*/
+	void Append(FPrimitiveSceneProxy** PrimitiveSceneProxies, int32 NumProxies)
+	{
+		Prims.Append(PrimitiveSceneProxies, NumProxies);
 	}
 
 	/** 
@@ -38,16 +46,7 @@ public:
 		return Prims.Num();
 	}
 
-	/** 
-	* @return a prim currently set to render
-	*/
-/*
-	const FPrimitiveSceneProxy* GetPrim(int32 i)const
-	{
-		return Prims[i];
-	}*/
-
 private:
 	/** list of prims added from the scene */
-	TArray<FPrimitiveSceneProxy*> Prims;
+	TArray<FPrimitiveSceneProxy*, SceneRenderingAllocator> Prims;
 };

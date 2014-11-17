@@ -29,19 +29,23 @@ TSharedRef< FAndroidInputInterface > FAndroidInputInterface::Create(  const TSha
 	return MakeShareable( new FAndroidInputInterface( InMessageHandler ) );
 }
 
+FAndroidInputInterface::~FAndroidInputInterface()
+{
+}
+
 FAndroidInputInterface::FAndroidInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 	: MessageHandler( InMessageHandler )
 {
-	ButtonMapping[ 0] = EControllerButtons::FaceButtonBottom;
-	ButtonMapping[ 1] = EControllerButtons::FaceButtonRight;
-	ButtonMapping[ 2] = EControllerButtons::FaceButtonLeft;
-	ButtonMapping[ 3] = EControllerButtons::FaceButtonTop;
-	ButtonMapping[ 4] = EControllerButtons::LeftShoulder;
-	ButtonMapping[ 5] = EControllerButtons::RightShoulder;
-	ButtonMapping[ 6] = EControllerButtons::SpecialRight;
-	ButtonMapping[ 7] = EControllerButtons::SpecialLeft;
-	ButtonMapping[ 8] = EControllerButtons::LeftThumb;
-	ButtonMapping[ 9] = EControllerButtons::RightThumb;
+	ButtonMapping[0] = EControllerButtons::FaceButtonBottom;
+	ButtonMapping[1] = EControllerButtons::FaceButtonRight;
+	ButtonMapping[2] = EControllerButtons::FaceButtonLeft;
+	ButtonMapping[3] = EControllerButtons::FaceButtonTop;
+	ButtonMapping[4] = EControllerButtons::LeftShoulder;
+	ButtonMapping[5] = EControllerButtons::RightShoulder;
+	ButtonMapping[6] = EControllerButtons::SpecialRight;
+	ButtonMapping[7] = EControllerButtons::SpecialLeft;
+	ButtonMapping[8] = EControllerButtons::LeftThumb;
+	ButtonMapping[9] = EControllerButtons::RightThumb;
 	ButtonMapping[10] = EControllerButtons::LeftTriggerThreshold;
 	ButtonMapping[11] = EControllerButtons::RightTriggerThreshold;
 	ButtonMapping[12] = EControllerButtons::DPadUp;
@@ -62,7 +66,544 @@ void FAndroidInputInterface::SetMessageHandler( const TSharedRef< FGenericApplic
 void FAndroidInputInterface::Tick(float DeltaTime)
 {
 
+
 }
+
+void FAndroidInputInterface::SetChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+{
+	// For now, force the device to 0
+	// Should use Java to enumerate number of controllers and assign device ID
+	// to controller number
+	ControllerId = 0;
+
+	// Note: only one motor on Android at the moment, but remember all the settings
+	// update will look at combination of all values to pick state
+
+	// Save a copy of the value for future comparison
+	switch (ChannelType)
+	{
+		case FF_CHANNEL_LEFT_LARGE:
+			NewControllerData[ControllerId].VibeValues.LeftLarge = Value;
+			break;
+
+		case FF_CHANNEL_LEFT_SMALL:
+			NewControllerData[ControllerId].VibeValues.LeftSmall = Value;
+			break;
+
+		case FF_CHANNEL_RIGHT_LARGE:
+			NewControllerData[ControllerId].VibeValues.RightLarge = Value;
+			break;
+
+		case FF_CHANNEL_RIGHT_SMALL:
+			NewControllerData[ControllerId].VibeValues.RightSmall = Value;
+			break;
+
+		default:
+			// Unknown channel, so ignore it
+			break;
+	}
+
+	// Update with the latest values (wait for SendControllerEvents later?)
+	UpdateVibeMotors(NewControllerData[ControllerId]);
+}
+
+void FAndroidInputInterface::SetChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
+{
+	// For now, force the device to 0
+	// Should use Java to enumerate number of controllers and assign device ID
+	// to controller number
+	ControllerId = 0;
+
+	// Note: only one motor on Android at the moment, but remember all the settings
+	// update will look at combination of all values to pick state
+
+	NewControllerData[ControllerId].VibeValues = Values;
+
+	// Update with the latest values (wait for SendControllerEvents later?)
+	UpdateVibeMotors(NewControllerData[ControllerId]);
+}
+
+extern void AndroidThunkCpp_Vibrate(int64_t Duration);
+
+void FAndroidInputInterface::UpdateVibeMotors(FAndroidControllerData &State)
+{
+	// Use largest vibration state as value
+	float MaxLeft = State.VibeValues.LeftLarge > State.VibeValues.LeftSmall ? State.VibeValues.LeftLarge : State.VibeValues.LeftSmall;
+	float MaxRight = State.VibeValues.RightLarge > State.VibeValues.RightSmall ? State.VibeValues.RightLarge : State.VibeValues.RightSmall;
+	float Value = MaxLeft > MaxRight ? MaxLeft : MaxRight;
+
+	if (State.VibeIsOn)
+	{
+		// Turn it off if below threshold
+		if (Value < 0.3f)
+		{
+			AndroidThunkCpp_Vibrate(0);
+			State.VibeIsOn = false;
+		}
+	}
+	else {
+		if (Value >= 0.3f)
+		{
+			// Turn it on for 10 seconds (or until below threshold)
+			AndroidThunkCpp_Vibrate(10000);
+			State.VibeIsOn = true;
+		}
+	}
+}
+
+static uint32 CharMap[] =
+{
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    L'0',
+    L'1',
+    L'2',
+    L'3',
+    L'4',
+    L'5',
+    L'6',
+    L'7',
+    L'8',
+    L'9',
+    L'*',
+	L'#',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    L'a',
+    L'b',
+    L'c',
+    L'd',
+    L'e',
+    L'f',
+    L'g',
+    L'h',
+    L'i',
+    L'j',
+    L'k',
+    L'l',
+    L'm',
+    L'n',
+    L'o',
+    L'p',
+    L'q',
+    L'r',
+    L's',
+    L't',
+    L'u',
+    L'v',
+    L'w',
+    L'x',
+    L'y',
+    L'z',
+    L',',
+    L'.',
+    0,
+    0,
+    0,
+    0,
+    L'\t',
+    L' ',
+    0,
+    0,
+    0,
+    L'\n',
+    0,
+    L'`',
+    L'-',
+    L'=',
+    L'[',
+    L']',
+    L'\\',
+    L';',
+    L'\'',
+    L'/',
+    L'@',
+    0,
+    0,
+    0,   // *Camera* focus
+    L'+',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    L'0',
+    L'1',
+    L'2',
+    L'3',
+    L'4',
+    L'5',
+    L'6',
+    L'7',
+    L'8',
+    L'9',
+    L'/',
+    L'*',
+    L'-',
+    L'+',
+    L'.',
+    L',',
+    L'\n',
+    L'=',
+    L'(',
+    L')',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+};
+
+static uint32 CharMapShift[] =
+{
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	L')',
+	L'!',
+	L'@',
+	L'#',
+	L'$',
+	L'%',
+	L'^',
+	L'&',
+	L'*',
+	L'(',
+	L'*',
+	L'#',
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	L'A',
+	L'B',
+	L'C',
+	L'D',
+	L'E',
+	L'F',
+	L'G',
+	L'H',
+	L'I',
+	L'J',
+	L'K',
+	L'L',
+	L'M',
+	L'N',
+	L'O',
+	L'P',
+	L'Q',
+	L'R',
+	L'S',
+	L'T',
+	L'U',
+	L'V',
+	L'W',
+	L'X',
+	L'Y',
+	L'Z',
+	L'<',
+	L'>',
+	0,
+	0,
+	0,
+	0,
+	L'\t',
+	L' ',
+	0,
+	0,
+	0,
+	L'\n',
+	0,
+	L'~',
+	L'_',
+	L'+',
+	L'{',
+	L'}',
+	L'|',
+	L':',
+	L'\"',
+	L'?',
+	L'@',
+	0,
+	0,
+	0,   // *Camera* focus
+	L'+',
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	L'0',
+	L'1',
+	L'2',
+	L'3',
+	L'4',
+	L'5',
+	L'6',
+	L'7',
+	L'8',
+	L'9',
+	L'/',
+	L'*',
+	L'-',
+	L'+',
+	L'.',
+	L',',
+	L'\n',
+	L'=',
+	L'(',
+	L')',
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0
+};
 
 void FAndroidInputInterface::SendControllerEvents()
 {
@@ -182,19 +723,20 @@ void FAndroidInputInterface::SendControllerEvents()
 	for (int32 MessageIndex = 0; MessageIndex < FMath::Min(DeferredMessageQueueLastEntryIndex, MAX_DEFERRED_MESSAGE_QUEUE_SIZE); ++MessageIndex)
 	{
 		const FDeferredAndroidMessage& DeferredMessage = DeferredMessages[MessageIndex];
+		const int32 Char = DeferredMessage.KeyEventData.modifier & AMETA_SHIFT_ON ? CharMapShift[DeferredMessage.KeyEventData.keyId] : CharMap[DeferredMessage.KeyEventData.keyId];
 		
 		switch (DeferredMessage.messageType)
 		{
 
 			case MessageType_KeyDown:
 
-				MessageHandler->OnKeyDown(DeferredMessage.KeyEventData.keyId, 0, DeferredMessage.KeyEventData.isRepeat);
-				MessageHandler->OnKeyChar(DeferredMessage.KeyEventData.unichar,  DeferredMessage.KeyEventData.isRepeat);
+				MessageHandler->OnKeyDown(DeferredMessage.KeyEventData.keyId, Char, DeferredMessage.KeyEventData.isRepeat);
+				MessageHandler->OnKeyChar(Char,  DeferredMessage.KeyEventData.isRepeat);
 				break;
 
 			case MessageType_KeyUp:
 
-				MessageHandler->OnKeyUp(DeferredMessage.KeyEventData.keyId, 0, false);
+				MessageHandler->OnKeyUp(DeferredMessage.KeyEventData.keyId, Char, false);
 				break;
 		} 
 	}
@@ -254,18 +796,18 @@ void FAndroidInputInterface::JoystickButtonEvent(int32 deviceId, int32 buttonId,
 	switch (buttonId)
 	{
 		case AKEYCODE_BUTTON_A:
-		case AKEYCODE_DPAD_CENTER:   NewControllerData[deviceId].ButtonStates[ 0] = buttonDown; break;
-		case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[ 1] = buttonDown; break;
-		case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[ 2] = buttonDown; break;
-		case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[ 3] = buttonDown; break;
-		case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[ 4] = buttonDown; break;
-		case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[ 5] = buttonDown; break;
+		case AKEYCODE_DPAD_CENTER:   NewControllerData[deviceId].ButtonStates[0] = buttonDown; break;
+		case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[1] = buttonDown; break;
+		case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[2] = buttonDown; break;
+		case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[3] = buttonDown; break;
+		case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[4] = buttonDown; break;
+		case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[5] = buttonDown; break;
 		case AKEYCODE_BUTTON_START:
-		case AKEYCODE_MENU:          NewControllerData[deviceId].ButtonStates[ 6] = buttonDown; break;
+		case AKEYCODE_MENU:          NewControllerData[deviceId].ButtonStates[6] = buttonDown; break;
 		case AKEYCODE_BUTTON_SELECT: 
 		case AKEYCODE_BACK:          NewControllerData[deviceId].ButtonStates[7] = buttonDown; NewControllerData[deviceId].ButtonStates[16] = buttonDown;  break;
-		case AKEYCODE_BUTTON_THUMBL: NewControllerData[deviceId].ButtonStates[ 8] = buttonDown; break;
-		case AKEYCODE_BUTTON_THUMBR: NewControllerData[deviceId].ButtonStates[ 9] = buttonDown; break;
+		case AKEYCODE_BUTTON_THUMBL: NewControllerData[deviceId].ButtonStates[8] = buttonDown; break;
+		case AKEYCODE_BUTTON_THUMBR: NewControllerData[deviceId].ButtonStates[9] = buttonDown; break;
 		case AKEYCODE_BUTTON_L2:     NewControllerData[deviceId].ButtonStates[10] = buttonDown; break;
 		case AKEYCODE_BUTTON_R2:     NewControllerData[deviceId].ButtonStates[11] = buttonDown; break;
 		case AKEYCODE_DPAD_UP:       NewControllerData[deviceId].ButtonStates[12] = buttonDown; break;

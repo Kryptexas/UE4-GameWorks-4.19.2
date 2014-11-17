@@ -3,9 +3,7 @@
 #include <windows.h>
 #include "../../Public/Modules/ModuleVersion.h"
 #include "ModuleVersionResource.h"
-
-#define XSTR(s) #s
-#define STRINGIFY(s) XSTR(s)
+#include "CoreMiscDefines.h"
 
 // Netral language
 LANGUAGE LANG_NEUTRAL,SUBLANG_NEUTRAL
@@ -14,6 +12,6 @@ LANGUAGE LANG_NEUTRAL,SUBLANG_NEUTRAL
 #if !IS_MONOLITHIC
 ID_MODULE_API_VERSION_RESOURCE RCDATA
 {
-	STRINGIFY(MODULE_API_VERSION) 0
+	PREPROCESSOR_TO_STRING(MODULE_API_VERSION) 0
 }
 #endif

@@ -65,4 +65,4 @@ clean:
 	$(RM_F) $(LIBFREETYPE)
 
 install: $(LIBFREETYPE)
-   xcopy  $(LIBFREETYPE) ..\Lib\Linux\ /F /R /Y /I
+   xcopy  $(LIBFREETYPE) ..\Lib\Linux\x86_64-unknown-linux-gnu\  /F /R /Y /I

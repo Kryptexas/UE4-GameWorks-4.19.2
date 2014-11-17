@@ -12,6 +12,8 @@ public:
 	{
 	}
 
+	virtual ~UObjectDataSource() {}
+
 	virtual TWeakObjectPtr< UObject > AsUObject() const override { return Object; }
 	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const override { return NULL; }
 
@@ -31,6 +33,8 @@ public:
 	{
 	}
 
+	virtual ~PropertyPathDataSource() {}
+
 	virtual TWeakObjectPtr< UObject > AsUObject() const override { return NULL; }
 	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const override { return Path; }
 
@@ -44,6 +48,8 @@ private:
 class NoDataSource : public IDataSource
 {
 public:
+
+	virtual ~NoDataSource() {}
 
 	virtual TWeakObjectPtr< UObject > AsUObject() const override { return NULL; }
 	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const override { return NULL; }

@@ -24,7 +24,6 @@ public:
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual void CreateStartingConnectors( void ) override;
 	virtual int32 GetMaxChildNodes() const override;
-	virtual FString GetUniqueString() const override;
 	// End USoundNode interface.
 };
 

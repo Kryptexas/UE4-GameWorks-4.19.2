@@ -15,7 +15,7 @@
  * - A type called ElementType representing the contained type.
  * - A method IndexType Num() const that returns the number of items in the container.
  * - A method bool IsValidIndex(IndexType index) which returns whether a given index is valid in the container.
- * - A method T& operator[](IndexType index) which returns a reference to a contained object by index.
+ * - A method T& operator\[\](IndexType index) which returns a reference to a contained object by index.
  */
 template< typename ContainerType, typename ElementType, typename IndexType>
 class TIndexedContainerIterator
@@ -461,7 +461,7 @@ public:
 	{
 		DestructItems(GetTypedData(), ArrayNum);
 
-		#if defined(_MSC_VER)
+		#if defined(_MSC_VER) && !defined(__clang__)	// Relies on MSVC-specific lazy template instantiation to support arrays of incomplete types
 			// ensure that DebugGet gets instantiated.
 			//@todo it would be nice if we had a cleaner solution for DebugGet
 			volatile const ElementType* Dummy = &DebugGet(0);
@@ -614,7 +614,9 @@ public:
 		for (const ElementType* RESTRICT Data = Start, * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Item)
-				return (int32)(Data - Start);
+			{
+				return static_cast<int32>(Data - Start);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -630,7 +632,9 @@ public:
 		{
 			--Data;
 			if (*Data == Item)
-				return (int32)(Data - DataStart);
+			{
+				return static_cast<int32>(Data - DataStart);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -645,7 +649,7 @@ public:
 		{
 			if( Matcher.Matches(*Data) )
 			{
-				return (int32)(Data - GetTypedData());
+				return static_cast<int32>(Data - GetTypedData());
 			}
 		}
 		return INDEX_NONE;
@@ -662,7 +666,9 @@ public:
 		for (const ElementType* RESTRICT Data = Start, * RESTRICT DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Key)
-				return (int32)(Data - Start);
+			{
+				return static_cast<int32>(Data - Start);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -678,7 +684,9 @@ public:
 		for (const ElementType* RESTRICT Data = Start, * RESTRICT DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (Pred(*Data))
-				return (int32)(Data - Start);
+			{
+				return static_cast<int32>(Data - Start);
+			}
 		}
 		return INDEX_NONE;
 	}
@@ -703,7 +711,9 @@ public:
 		for (ElementType* RESTRICT Data = GetTypedData(), * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Key)
+			{
 				return Data;
+			}
 		}
 
 		return NULL;
@@ -729,7 +739,9 @@ public:
 		for (ElementType* RESTRICT Data = GetTypedData(), * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (Pred(*Data))
+			{
 				return Data;
+			}
 		}
 
 		return NULL;
@@ -740,10 +752,10 @@ public:
 	 * @return      TArray with the same type as this object which contains the subset of elements for which the functor returns true.
 	 */
 	template <typename Predicate>
-	TArray<ElementType> FilterByPredicate(Predicate Pred)
+	TArray<ElementType> FilterByPredicate(Predicate Pred) const
 	{
 		TArray<ElementType> FilterResults;
-		for (ElementType* RESTRICT Data = GetTypedData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
+		for (const ElementType* RESTRICT Data = GetTypedData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (Pred(*Data))
 			{
@@ -760,7 +772,9 @@ public:
 		for (const ElementType* RESTRICT Data = GetTypedData(), * RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
 			if (*Data == Item)
+			{
 				return true;
+			}
 		}
 		return false;
 	}
@@ -956,10 +970,21 @@ public:
 		return Index;
 	}
 
+	/**
+	 * Checks that the specified address is not part of an element within the container.  Used for implementations
+	 * to check that reference arguments aren't going to be invalidated by possible reallocation.
+	 *
+	 * @param Addr The address to check.
+	 */
+	FORCEINLINE void CheckAddress(const ElementType* Addr) const
+	{
+		checkf(Addr < GetTypedData() || Addr >= (GetTypedData() + ArrayMax), TEXT("Attempting to add a container element (0x%08x) which already comes from the container (0x%08x, ArrayMax: %d)!"), Addr, GetTypedData(), ArrayMax);
+	}
+
 	int32 Insert( ElementType&& Item, int32 Index )
 	{
-		// It isn't valid to specify an Item that is in the array, since adding an item might resize the array, which would make the item invalid
-		check( ((&Item) < GetTypedData()) || ((&Item) >= GetTypedData()+ArrayMax) );
+		CheckAddress(&Item);
+
 		// construct a copy in place at Index (this new operator will insert at 
 		// Index, then construct that memory with Item)
 		InsertUninitialized(Index,1);
@@ -968,8 +993,8 @@ public:
 	}
 	int32 Insert( const ElementType& Item, int32 Index )
 	{
-		// It isn't valid to specify an Item that is in the array, since adding an item might resize the array, which would make the item invalid
-		check( ((&Item) < GetTypedData()) || ((&Item) >= GetTypedData()+ArrayMax) );
+		CheckAddress(&Item);
+
 		// construct a copy in place at Index (this new operator will insert at 
 		// Index, then construct that memory with Item)
 		InsertUninitialized(Index,1);
@@ -1238,8 +1263,8 @@ public:
 	 * @param Item	The item to add
 	 * @return		Index to the new item
 	 */
-	FORCEINLINE int32 Add(       ElementType&& Item ) { check( ((&Item) < GetTypedData()) || ((&Item) >= GetTypedData()+ArrayMax) ); return Emplace(MoveTemp(Item)); }
-	FORCEINLINE int32 Add( const ElementType&  Item ) { check( ((&Item) < GetTypedData()) || ((&Item) >= GetTypedData()+ArrayMax) ); return Emplace(         Item ); }
+	FORCEINLINE int32 Add(       ElementType&& Item ) { CheckAddress(&Item); return Emplace(MoveTemp(Item)); }
+	FORCEINLINE int32 Add( const ElementType&  Item ) { CheckAddress(&Item); return Emplace(         Item ); }
 
 	/** Caution, AddZeroed() will create elements without calling the constructor and this is not appropriate for element types that require a constructor to function properly. */
 	int32 AddZeroed( int32 Count=1 )
@@ -1302,40 +1327,45 @@ public:
 	 */
 	int32 RemoveSingle( const ElementType& Item )
 	{
-		// It isn't valid to specify an Item that is in the array, since removing that item will change Item's value.
-		check( ((&Item) < GetTypedData()) || ((&Item) >= GetTypedData()+ArrayMax) );
-
-		for( int32 Index=0; Index<ArrayNum; Index++ )
+		int32 Index = Find(Item);
+		if (Index == INDEX_NONE)
 		{
-			if( GetTypedData()[Index] == Item )
-			{
-				// Destruct items that match the specified Item.
-				DestructItems(GetTypedData() + Index, 1);
-				const int32 NextIndex = Index + 1;
-				if( NextIndex < ArrayNum )
-				{
-					const int32 NumElementsToMove = ArrayNum - NextIndex;
-					FMemory::Memmove(&GetTypedData()[Index],&GetTypedData()[NextIndex],sizeof(ElementType) * NumElementsToMove);
-				}
-
-				// Update the array count
-				--ArrayNum;
-
-				// Removed one item
-				return 1;
-			}
+			return 0;
 		}
 
-		// Specified item was not found.  Removed zero items.
-		return 0;
+		auto* RemovePtr = GetTypedData() + Index;
+
+		// Destruct items that match the specified Item.
+		DestructItems(RemovePtr, 1);
+		const int32 NextIndex = Index + 1;
+		MoveConstructItems(RemovePtr, RemovePtr + 1, ArrayNum - (Index + 1));
+
+		// Update the array count
+		--ArrayNum;
+
+		// Removed one item
+		return 1;
 	}
 
 	/** Removes as many instances of Item as there are in the array, maintaining order but not indices. */
-	int32 Remove( const ElementType& Item )
+	int32 Remove(const ElementType& Item)
 	{
-		// It isn't valid to specify an Item that is in the array, since removing that item will change Item's value.
-		check( ((&Item) < GetTypedData()) || ((&Item) >= GetTypedData()+ArrayMax) );
+		CheckAddress(&Item);
 
+		// Element is non-const to preserve compatibility with existing code with a non-const operator==() member function
+		return RemoveAll([&Item](ElementType& Element) { return Element == Item; });
+	}
+
+
+	/**
+	 * Remove all instances that match the predicate, maintaining order but not indices
+	 * Optimized to work with runs of matches/non-matches
+	 *
+	 * @param Predicate Predicate class instance
+	 */
+	template <class PREDICATE_CLASS>
+	int32 RemoveAll(const PREDICATE_CLASS& Predicate)
+	{
 		const int32 OriginalNum = ArrayNum;
 		if (!OriginalNum)
 		{
@@ -1344,11 +1374,11 @@ public:
 
 		int32 WriteIndex = 0;
 		int32 ReadIndex = 0;
-		bool NotMatch = !(GetTypedData()[ReadIndex] == Item); // use a ! to guarantee it can't be anything other than zero or one
+		bool NotMatch = !Predicate(GetTypedData()[ReadIndex]); // use a ! to guarantee it can't be anything other than zero or one
 		do
 		{
 			int32 RunStartIndex = ReadIndex++;
-			while (ReadIndex < OriginalNum && NotMatch == !(GetTypedData()[ReadIndex] == Item))
+			while (ReadIndex < OriginalNum && NotMatch == !Predicate(GetTypedData()[ReadIndex]))
 			{
 				ReadIndex++;
 			}
@@ -1359,7 +1389,7 @@ public:
 				// this was a non-matching run, we need to move it
 				if (WriteIndex != RunStartIndex)
 				{
-					FMemory::Memmove( &GetTypedData()[ WriteIndex ], &GetTypedData()[ RunStartIndex ], sizeof(ElementType) * RunLength );
+					FMemory::Memmove(&GetTypedData()[WriteIndex], &GetTypedData()[RunStartIndex], sizeof(ElementType) * RunLength);
 				}
 				WriteIndex += RunLength;
 			}
@@ -1373,28 +1403,6 @@ public:
 
 		ArrayNum = WriteIndex;
 		return OriginalNum - ArrayNum;
-	}
-
-
-	/**
-	 * Remove all instances that match the predicate
-	 *
-	 * @param Predicate Predicate class instance
-	 */
-	template <class PREDICATE_CLASS>
-	void RemoveAll( const PREDICATE_CLASS& Predicate )
-	{
-		for ( int32 ItemIndex=0; ItemIndex < Num(); )
-		{
-			if ( Predicate( (*this)[ItemIndex] ) )
-			{
-				RemoveAt(ItemIndex);
-			}
-			else
-			{
-				++ItemIndex;
-			}
-		}
 	}
 
 	/**
@@ -1428,26 +1436,23 @@ public:
 	 */
 	int32 RemoveSingleSwap( const ElementType& Item )
 	{
-		check( ((&Item) < (ElementType*)AllocatorInstance.GetAllocation()) || ((&Item) >= (ElementType*)AllocatorInstance.GetAllocation()+ArrayMax) );
-		for( int32 Index=0; Index<ArrayNum; Index++ )
+		int32 Index = Find(Item);
+		if (Index == INDEX_NONE)
 		{
-			if( (*this)[Index]==Item )
-			{
-				RemoveAtSwap(Index);
-
-				// Removed one item
-				return 1;
-			}
+			return 0;
 		}
 
-		// Specified item was not found.  Removed zero items.
-		return 0;
+		RemoveAtSwap(Index);
+
+		// Removed one item
+		return 1;
 	}
 
 	/** RemoveItemSwap, this version is much more efficient O(Count) instead of O(ArrayNum), but does not preserve the order */
 	int32 RemoveSwap( const ElementType& Item )
 	{
-		check( ((&Item) < (ElementType*)AllocatorInstance.GetAllocation()) || ((&Item) >= (ElementType*)AllocatorInstance.GetAllocation()+ArrayMax) );
+		CheckAddress(&Item);
+
 		const int32 OriginalNum=ArrayNum;
 		for( int32 Index=0; Index<ArrayNum; Index++ )
 		{
@@ -1569,7 +1574,7 @@ public:
 		::StableSort(GetTypedData(), Num(), Predicate);
 	}
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)	// Relies on MSVC-specific lazy template instantiation to support arrays of incomplete types
 private:
 	/**
 	* Helper function that can be used inside the debuggers watch window to debug TArrays. E.g. "*Class->Defaults.DebugGet(5)". 
@@ -2307,6 +2312,10 @@ public:
 		}
 		Array.RemoveAtSwap( Index, Count, AllowShrinking );
 	}
+	void Swap( int32 A, int32 B )
+	{
+		Array.Swap(A,B);
+	}
 	void Empty( int32 Slack=0 )
 	{
 		DestructAndFreeItems();
@@ -2560,7 +2569,8 @@ public:
 	}
 	int32 Remove( const T& Item )
 	{
-		check( ((&Item) < (T*)this->AllocatorInstance.GetAllocation()) || ((&Item) >= (T*)this->AllocatorInstance.GetAllocation()+this->ArrayMax) );
+		this->CheckAddress(&Item);
+
 		const int32 OriginalNum=this->ArrayNum;
 		for( int32 Index=0; Index<this->ArrayNum; Index++ )
 		{
@@ -2584,7 +2594,9 @@ public:
 	void ModifyItem( int32 Index )
 	{
 		if( GUndo )
+		{
 			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
+		}
 	}
 	void ModifyAllItems()
 	{

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #pragma once
-
+#include "VectorField/VectorField.h"
 #include "VectorFieldStatic.generated.h"
 
 UCLASS(hidecategories=VectorFieldBounds, MinimalAPI)

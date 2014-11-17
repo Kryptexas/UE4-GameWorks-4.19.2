@@ -50,19 +50,16 @@ public:
 	TArray< FTextRunParseResults > Runs;
 };
 
-struct SLATE_API FTextRunInfo
+struct SLATE_API FTextRunInfo : FRunInfo
 {
 	FTextRunInfo( FString InName, const FText& InContent )
-		: Name( InName )
+		: FRunInfo( MoveTemp(InName) )
 		, Content( InContent )
-		, MetaData()
 	{
 
 	}
 
-	FString Name;
 	FText Content;
-	TMap< FString, FString > MetaData;
 };
 
 class SLATE_API ITextDecorator
@@ -71,7 +68,7 @@ public:
 
 	virtual bool Supports( const FTextRunParseResults& RunInfo, const FString& Text ) const = 0;
 
-	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& ModelText, const ISlateStyle* Style ) = 0;
+	virtual TSharedRef< ISlateRun > Create(const TSharedRef<class FTextLayout>& TextLayout, const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& ModelText, const ISlateStyle* Style ) = 0;
 };
 
 #endif //WITH_FANCY_TEXT

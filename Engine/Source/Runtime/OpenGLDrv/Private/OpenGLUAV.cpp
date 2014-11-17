@@ -39,7 +39,7 @@ FOpenGLShaderResourceView::~FOpenGLShaderResourceView()
 	if (Resource && OwnsResource)
 	{
 		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
-		glDeleteTextures(1, &Resource);
+		FOpenGL::DeleteTextures(1, &Resource);
 	}
 }
 
@@ -101,7 +101,7 @@ FOpenGLVertexBufferUnorderedAccessView::~FOpenGLVertexBufferUnorderedAccessView(
 	if (Resource)
 	{
 		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
-		glDeleteTextures(1, &Resource);
+		FOpenGL::DeleteTextures(1, &Resource);
 	}
 }
 

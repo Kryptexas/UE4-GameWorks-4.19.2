@@ -5,25 +5,34 @@
 #include "Spacer.generated.h"
 
 /** A spacer widget; it does not have a visual representation, and just provides padding between other widgets. */
-UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API USpacer : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** The size of the spacer */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D Size;
+
+public:
 
 	/** Sets the size of the spacer */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetSize(FVector2D InSize);
 	
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

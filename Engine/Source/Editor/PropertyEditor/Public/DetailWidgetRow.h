@@ -8,11 +8,11 @@ class FDetailWidgetDecl
 public:
 	FDetailWidgetDecl( class FDetailWidgetRow& InParentDecl, float InMinWidth, float InMaxWidth, EHorizontalAlignment InHAlign, EVerticalAlignment InVAlign )
 		: Widget( SNullWidget::NullWidget )
-		, ParentDecl( InParentDecl )
 		, HorizontalAlignment( InHAlign )
 		, VerticalAlignment( InVAlign )
 		, MinWidth( InMinWidth )
 		, MaxWidth( InMaxWidth )
+		, ParentDecl( InParentDecl )
 	{
 	}
 

@@ -3,8 +3,10 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
+#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilityTask.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -18,7 +20,11 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 	CostGameplayEffect = NULL;
 	CooldownGameplayEffect = NULL;
 
-	
+	{
+		static FName FuncName = FName(TEXT("K2_ShouldAbilityRespondToEvent"));
+		UFunction* ShouldRespondFunction = GetClass()->FindFunctionByName(FuncName);
+		HasBlueprintShouldAbilityRespondToEvent = ShouldRespondFunction && ShouldRespondFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+	}
 	{
 		static FName FuncName = FName(TEXT("K2_CanActivateAbility"));
 		UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
@@ -43,6 +49,51 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 #endif
 }
 
+int32 UGameplayAbility::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
+{
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return FunctionCallspace::Local;
+	}
+	check(GetOuter() != NULL);
+	return GetOuter()->GetFunctionCallspace(Function, Parameters, Stack);
+}
+
+bool UGameplayAbility::CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack)
+{
+	check(!HasAnyFlags(RF_ClassDefaultObject));
+	check(GetOuter() != NULL);
+
+	AActor* Owner = CastChecked<AActor>(GetOuter());
+	UNetDriver* NetDriver = Owner->GetNetDriver();
+	if (NetDriver)
+	{
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, OutParms, Stack, this);
+		return true;
+	}
+
+	return false;
+}
+
+// TODO: polymorphic payload
+void UGameplayAbility::SendGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload)
+{
+	if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
+	{
+		Payload.PredictionKey = CurrentActivationInfo.GetPredictionKeyForNewAction();
+	}
+
+	AActor *OwnerActor = Cast<AActor>(GetOuter());
+	if (OwnerActor)
+	{
+		UAbilitySystemComponent* AbilitySystemComponent = OwnerActor->FindComponentByClass<UAbilitySystemComponent>();
+		if (ensure(AbilitySystemComponent))
+		{
+			AbilitySystemComponent->HandleGameplayEvent(EventTag, &Payload);
+		}
+	}
+}
+
 void UGameplayAbility::PostNetInit()
 {
 	/** We were dynamically spawned from replication - we need to init a currentactorinfo by looking at outer.
@@ -51,16 +102,28 @@ void UGameplayAbility::PostNetInit()
 	
 	if (CurrentActorInfo == NULL)
 	{
-		AActor *OwnerActor = Cast<AActor>(GetOuter());
+		AActor* OwnerActor = Cast<AActor>(GetOuter());
 		if (ensure(OwnerActor))
 		{
-			UAbilitySystemComponent* AbilitySystemComponent = OwnerActor->FindComponentByClass<UAbilitySystemComponent>();
+			UAbilitySystemComponent* AbilitySystemComponent = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerActor);
 			if (ensure(AbilitySystemComponent))
 			{
 				CurrentActorInfo = AbilitySystemComponent->AbilityActorInfo.Get();
 			}
 		}
 	}
+}
+
+bool UGameplayAbility::IsActive() const
+{
+	// Only Instanced-Per-Actor abilities persist between activations
+	if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
+	{
+		return bIsActive;
+	}
+
+	// Non-instanced and Instanced-Per-Execution abilities are by definition active unless they are pending kill
+	return !IsPendingKill();
 }
 
 bool UGameplayAbility::IsSupportedForNetworking() const
@@ -81,9 +144,9 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 	return Supported;
 }
 
-bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	SetCurrentActorInfo(ActorInfo);
+	SetCurrentActorInfo(Handle, ActorInfo);
 
 	if (ActorInfo->AbilitySystemComponent->GetUserAbilityActivationInhibited())
 	{
@@ -121,7 +184,21 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* Actor
 	return true;
 }
 
-bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+bool UGameplayAbility::ShouldAbilityRespondToEvent(FGameplayTag EventTag, const FGameplayEventData* Payload) const
+{
+	if (HasBlueprintShouldAbilityRespondToEvent)
+	{
+		if (K2_ShouldAbilityRespondToEvent(*Payload) == false)
+		{
+			ABILITY_LOG(Log, TEXT("ShouldAbilityRespondToEvent %s failed, blueprint refused"), *GetName());
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool UGameplayAbility::CommitAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	// Last chance to fail (maybe we no longer have resources to commit since we after we started this ability activation)
 	if (!CommitCheck(ActorInfo, ActivationInfo))
@@ -129,7 +206,7 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo,
 		return false;
 	}
 
-	CommitExecute(ActorInfo, ActivationInfo);
+	CommitExecute(Handle, ActorInfo, ActivationInfo);
 
 	// Fixme: Should we always call this or only if it is implemented? A noop may not hurt but could be bad for perf (storing a HasBlueprintCommit per instance isn't good either)
 	K2_CommitExecute();
@@ -163,99 +240,45 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, c
 	return true;
 }
 
-void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::CommitExecute(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!ActorInfo->AbilitySystemComponent->IsNetSimulating() || ActivationInfo.PredictionKey != 0)
-	{
-		ApplyCooldown(ActorInfo, ActivationInfo);
+	ApplyCooldown(Handle, ActorInfo, ActivationInfo);
 
-		ApplyCost(ActorInfo, ActivationInfo);
-	}
+	ApplyCost(Handle, ActorInfo, ActivationInfo);
 }
 
-bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, int32 PredictionKey, UGameplayAbility ** OutInstancedAbility)
-{	
-	// This should only come from button presses/local instigation
-	ENetRole NetMode = ActorInfo->Actor->Role;
-	ensure(NetMode != ROLE_SimulatedProxy);
-	
-	FGameplayAbilityActivationInfo	ActivationInfo(ActorInfo->Actor.Get(), PredictionKey);
-
-	// Always do a non instanced CanActivate check
-	if (!CanActivateAbility(ActorInfo))
-	{
-		return false;
-	}
-
-	// If we are the server or this is a client authorative 
-	if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Client || (NetMode == ROLE_Authority))
-	{
-		// Create instance of this ability if necessary
-		
-		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
-		{
-			UGameplayAbility * Ability = ActorInfo->AbilitySystemComponent->CreateNewInstanceOfAbility(this);
-			Ability->CallActivateAbility(ActorInfo, ActivationInfo);
-			if (OutInstancedAbility)
-			{
-				*OutInstancedAbility = Ability;
-			}
-		}
-		else
-		{
-			CallActivateAbility(ActorInfo, ActivationInfo);
-		}
-	}
-	else if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Server)
-	{
-		ServerTryActivateAbility(ActorInfo, ActivationInfo);
-	}
-	else if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
-	{
-		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
-		ActivationInfo.GeneratePredictionKey(ActorInfo->AbilitySystemComponent.Get());
-
-		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
-		{
-			// For now, only NonReplicated + InstancedPerExecution abilities can be Predictive.
-			// We lack the code to predict spawning an instance of the execution and then merge/combine
-			// with the server spawned version when it arrives.
-			
-			if(GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
-			{
-				UGameplayAbility * Ability = ActorInfo->AbilitySystemComponent->CreateNewInstanceOfAbility(this);
-				Ability->CallActivateAbility(ActorInfo, ActivationInfo);
-				if (OutInstancedAbility)
-				{
-					*OutInstancedAbility = Ability;
-				}
-			}
-			else
-			{
-				ensure(false);
-			}
-		}
-		else
-		{
-			CallActivateAbility(ActorInfo, ActivationInfo);
-		}
-		
-		ServerTryActivateAbility(ActorInfo, ActivationInfo);
-	}
-
-	return true;	
+void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	EndAbility(Handle, ActorInfo, ActivationInfo);
 }
 
-void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
+void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(this);
-	
-	// TODO: generic way of releasing all callbacks?
+	bIsActive = false;
+
+	// Tell all our tasks that we are finished and they should cleanup
+	for (TWeakObjectPtr<UAbilityTask> Task : ActiveTasks)
+	{
+		if (Task.IsValid())
+		{
+			Task.Get()->AbilityEnded();
+		}
+	}
+	ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
+
+	// Unblock ability tags we previously blocked
+	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		ActorInfo->AbilitySystemComponent->UnBlockAbilitiesWithTags(BlockAbilitiesWithTag);
+	}
+
+	// Tell owning AbilitySystemComponent that we ended so it can do stuff (including MarkPendingKill us)
+	ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this);
 }
 
-void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	SetCurrentInfo(ActorInfo, ActivationInfo);
+	SetCurrentInfo(Handle, ActorInfo, ActivationInfo);
 
 	if (HasBlueprintActivate)
 	{
@@ -268,58 +291,52 @@ void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInf
 
 		// Do stuff...
 
-		if (CommitAbility(ActorInfo, ActivationInfo))		// ..then commit the ability...
+		if (CommitAbility(Handle, ActorInfo, ActivationInfo))		// ..then commit the ability...
 		{			
 			//	Then do more stuff...
 		}
 	}
 }
 
-void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	UAbilitySystemComponent* Comp = ActorInfo->AbilitySystemComponent.Get();
 
-	Comp->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
+	Comp->CancelAbilitiesWithTags(CancelAbilitiesWithTag, Handle, ActorInfo, ActivationInfo, this);
+	Comp->BlockAbilitiesWithTags(BlockAbilitiesWithTag);
 
-	Comp->NotifyAbilityActivated(this);
-
-	// Become the 'Targeting Ability'
-	// These may need to be more robust - does every ability that activates become the targeting ability, or only certain ones?
-	Comp->SetTargetAbility(this);
+	bIsActive = true;
+	Comp->NotifyAbilityActivated(Handle, this);
 }
 
-void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::CallActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	PreActivate(ActorInfo, ActivationInfo);
-	ActivateAbility(ActorInfo, ActivationInfo);
+	PreActivate(Handle, ActorInfo, ActivationInfo);
+	ActivateAbility(Handle, ActorInfo, ActivationInfo);
 }
 
 void UGameplayAbility::ConfirmActivateSucceed()
 {
-	CurrentActivationInfo.SetActivationConfirmed();
+	// On instanced abilities, update CurrentActivationInfo and call any registered delegates.
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		PostNetInit();
+		check(CurrentActorInfo);
+		CurrentActivationInfo.SetActivationConfirmed();
 
-	OnConfirmDelegate.Broadcast(this);
-	OnConfirmDelegate.Clear();
+		OnConfirmDelegate.Broadcast(this);
+		OnConfirmDelegate.Clear();
+	}
 }
 
-void UGameplayAbility::ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo->AbilitySystemComponent->ServerTryActivateAbility(this, ActivationInfo.PredictionKey);
 }
 
-void UGameplayAbility::ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
-{ 
-	CallActivateAbility(ActorInfo, ActivationInfo);
-}
-
-void UGameplayAbility::InputPressed(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
+void UGameplayAbility::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	TryActivateAbility(ActorInfo);
-}
-
-void UGameplayAbility::InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
-{
-	ABILITY_LOG(Log, TEXT("InputReleased: %d"), InputID);
+	OnInputRelease.Broadcast(this);
+	OnInputRelease.Clear();
 }
 
 bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -327,7 +344,7 @@ bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo)
 	if (CooldownGameplayEffect)
 	{
 		check(ActorInfo->AbilitySystemComponent.IsValid());
-		if (ActorInfo->AbilitySystemComponent->HasAnyTags(CooldownGameplayEffect->OwnedTagsContainer))
+		if (ActorInfo->AbilitySystemComponent->HasAnyMatchingGameplayTags(CooldownGameplayEffect->OwnedTagsContainer))
 		{
 			return false;
 		}
@@ -335,12 +352,11 @@ bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo)
 	return true;
 }
 
-void UGameplayAbility::ApplyCooldown(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	if (CooldownGameplayEffect)
 	{
-		check(ActorInfo->AbilitySystemComponent.IsValid());
-		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
+		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CooldownGameplayEffect, 1.f);
 	}
 }
 
@@ -354,12 +370,11 @@ bool UGameplayAbility::CheckCost(const FGameplayAbilityActorInfo* ActorInfo) con
 	return true;
 }
 
-void UGameplayAbility::ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	check(ActorInfo->AbilitySystemComponent.IsValid());
 	if (CostGameplayEffect)
 	{
-		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
+		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CostGameplayEffect, 1.f);
 	}
 }
 
@@ -381,17 +396,35 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	return 0.f;
 }
 
-FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo()
+FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const
 {
 	check(CurrentActorInfo);
 	return *CurrentActorInfo;
 }
 
+/** Convenience method for abilities to get owning actor - useful for aiming abilities */
+AActor* UGameplayAbility::GetOwningActorFromActorInfo() const
+{
+	check(CurrentActorInfo);
+	return CurrentActorInfo->Actor.Get();
+}
+
+/** Convenience method for abilities to get skeletal mesh component - useful for aiming abilities */
+USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo() const
+{
+	check(CurrentActorInfo);
+	if (CurrentActorInfo->AnimInstance.IsValid())
+	{
+		return CurrentActorInfo->AnimInstance.Get()->GetOwningComponent();
+	}
+	return NULL;
+}
+
 /** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
-FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingSpec(UGameplayEffect* GameplayEffect) const
+FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingGameplayEffectSpec(UGameplayEffect* GameplayEffect, float Level) const
 {
 	check(CurrentActorInfo && CurrentActorInfo->AbilitySystemComponent.IsValid());
-	return CurrentActorInfo->AbilitySystemComponent->GetOutgoingSpec(GameplayEffect);
+	return CurrentActorInfo->AbilitySystemComponent->GetOutgoingSpec(GameplayEffect, Level);
 }
 
 /** Fixme: Naming is confusing here */
@@ -399,40 +432,14 @@ FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingSpec(UGameplayEffect* Gam
 bool UGameplayAbility::K2_CommitAbility()
 {
 	check(CurrentActorInfo);
-	return CommitAbility(CurrentActorInfo, CurrentActivationInfo);
+	return CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
 void UGameplayAbility::K2_EndAbility()
 {
 	check(CurrentActorInfo);
-	EndAbility(CurrentActorInfo);
-}
-
-
-int32 UGameplayAbility::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
-{
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		return FunctionCallspace::Local;
-	}
-	check(GetOuter() != NULL);
-	return GetOuter()->GetFunctionCallspace(Function, Parameters, Stack);
-}
-
-bool UGameplayAbility::CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack)
-{
-	check(!HasAnyFlags(RF_ClassDefaultObject));
-	check(GetOuter() != NULL);
-
-	AActor* Owner = CastChecked<AActor>(GetOuter());
-	UNetDriver* NetDriver = Owner->GetNetDriver();
-	if (NetDriver)
-	{
-		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, OutParms, Stack, this);
-		return true;
-	}
-
-	return false;
+	
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
 // --------------------------------------------------------------------
@@ -447,209 +454,193 @@ void UGameplayAbility::MontageBranchPoint_AbilityDecisionStart(const FGameplayAb
 
 }
 
-void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(int32 PredictionKey)
-{
-	PostNetInit();
+// --------------------------------------------------------------------
 
-	// Child classes can't override ClientActivateAbilitySucceed_Implementation, so just call ClientActivateAbilitySucceed_Internal
-	ClientActivateAbilitySucceed_Internal(PredictionKey);
+FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerActor()
+{
+	FGameplayAbilityTargetingLocationInfo ReturnLocation;
+	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::ActorTransform;
+	ReturnLocation.SourceActor = GetActorInfo().Actor.Get();
+	return ReturnLocation;
 }
 
-void UGameplayAbility::ClientActivateAbilitySucceed_Internal(int32 PredictionKey)
+FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName)
 {
-	check(CurrentActorInfo);
-	CurrentActivationInfo.SetActivationConfirmed();
-
-	CallActivateAbility(CurrentActorInfo, CurrentActivationInfo);
-}
-
-//----------------------------------------------------------------------
-
-void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
-{
-	check(InActor);
-	Actor = InActor;
-
-	UStruct * Struct = FGameplayAbilityActorInfo::StaticStruct();
-	UScriptStruct * ScriptStruct = FGameplayAbilityActorInfo::StaticStruct();
-
-	// Look for a player controller or pawn in the owner chain.
-	AActor *TestActor = InActor;
-	while(TestActor)
-	{
-		if (APlayerController * CastPC = Cast<APlayerController>(TestActor))
-		{
-			PlayerController = CastPC;
-			break;
-		}
-
-		if (APawn * Pawn = Cast<APawn>(TestActor))
-		{
-			PlayerController = Cast<APlayerController>(Pawn->GetController());
-			break;
-		}
-
-		TestActor = TestActor->GetOwner();
-	}
-
-	// Grab Components that we care about
-	USkeletalMeshComponent * SkelMeshComponent = InActor->FindComponentByClass<USkeletalMeshComponent>();
-	if (SkelMeshComponent)
-	{
-		this->AnimInstance = SkelMeshComponent->GetAnimInstance();
-	}
-
-	AbilitySystemComponent = InActor->FindComponentByClass<UAbilitySystemComponent>();
-
-	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
-}
-
-bool FGameplayAbilityActorInfo::IsLocallyControlled() const
-{
-	if (PlayerController.IsValid())
-	{
-		return PlayerController->IsLocalController();
-	}
-
-	return false;
-}
-
-bool FGameplayAbilityActorInfo::IsNetAuthority() const
-{
-	if (Actor.IsValid())
-	{
-		return (Actor->Role == ROLE_Authority);
-	}
-
-	// If we encounter issues with this being called before or after the owning actor is destroyed,
-	// we may need to cache off the authority (or look for it on some global/world state).
-
-	ensure(false);
-	return false;
-}
-
-void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAbilitySystemComponent * Component) const
-{
-	check(Component);
-	check(PredictionKey == 0);
-	check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
-
-	PredictionKey = Component->GetNextPredictionKey();
-	ActivationMode = EGameplayAbilityActivationMode::Predicting;
-}
-
-void FGameplayAbilityActivationInfo::SetPredictionKey(int32 InPredictionKey)
-{
-	PredictionKey = InPredictionKey;
-}
-
-void FGameplayAbilityActivationInfo::SetActivationConfirmed()
-{
-	//check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
-	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
+	FGameplayAbilityTargetingLocationInfo ReturnLocation;
+	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::SocketTransform;
+	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
+	ReturnLocation.SourceSocketName = SocketName;
+	return ReturnLocation;
 }
 
 //----------------------------------------------------------------------
 
-void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+void UGameplayAbility::TaskStarted(UAbilityTask* NewTask)
 {
-	// Improve relationship between InstigatorContext and 
-	
+	ActiveTasks.Add(NewTask);
+}
 
-	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset
-									InstigatorInfo.Actor.Get(),		// The actor who instigated this
-									1.f,							// FIXME: Leveling
-									NULL							// FIXME: CurveData override... should we just remove this?
-									);
-	if (HasHitResult())
+void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
+{
+	TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+	for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 	{
-		SpecToApply.InstigatorContext.AddHitResult(*GetHitResult());
-	}
-
-	TArray<AActor*> Actors = GetActors();
-	for (AActor * TargetActor : Actors)
-	{
-		check(TargetActor);
-		
-		UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-		if (TargetComponent)
+		if (NamedTasks[i].IsValid())
 		{
-			InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
+			UAbilityTask* CurrentTask = NamedTasks[i].Get();
+			CurrentTask->ExternalConfirm(bEndTask);
 		}
 	}
 }
 
-
-FString FGameplayAbilityTargetData::ToString() const
+void UGameplayAbility::EndOrCancelTasksByInstanceName()
 {
-	return TEXT("BASE CLASS");
-}
-
-
-bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-{
-
-	UScriptStruct * ScriptStruct = Data.IsValid() ? Data->GetScriptStruct() : NULL;
-	Ar << ScriptStruct;
-
-	if (ScriptStruct)
+	for (int32 j = 0; j < EndTaskInstanceNames.Num(); ++j)
 	{
-		if (Ar.IsLoading())
+		FName InstanceName = EndTaskInstanceNames[j];
+		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
-			// For now, just always reset/reallocate the data when loading.
-			// Longer term if we want to generalize this and use it for property replication, we should support
-			// only reallocating when necessary
-			check(!Data.IsValid());
-
-			FGameplayAbilityTargetData * NewData = (FGameplayAbilityTargetData*)FMemory::Malloc(ScriptStruct->GetCppStructOps()->GetSize());
-			ScriptStruct->InitializeScriptStruct(NewData);
-
-			Data = TSharedPtr<FGameplayAbilityTargetData>(NewData);
-		}
-
-		void* ContainerPtr = Data.Get();
-
-		if (ScriptStruct->StructFlags & STRUCT_NetSerializeNative)
-		{
-			ScriptStruct->GetCppStructOps()->NetSerialize(Ar, Map, bOutSuccess, Data.Get());
-		}
-		else
-		{
-			// This won't work since UStructProperty::NetSerializeItem is deprecrated.
-			//	1) we have to manually crawl through the topmost struct's fields since we don't have a UStructProperty for it (just the UScriptProperty)
-			//	2) if there are any UStructProperties in the topmost struct's fields, we will assert in UStructProperty::NetSerializeItem.
-			
-			ABILITY_LOG(Fatal, TEXT("FGameplayAbilityTargetDataHandle::NetSerialize called on data struct %s without a native NetSerilaize"), *ScriptStruct->GetName());
-
-			for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)
+			if (NamedTasks[i].IsValid())
 			{
-				if (It->PropertyFlags & CPF_RepSkip)
-				{
-					continue;
-				}
-
-				void * PropertyData = It->ContainerPtrToValuePtr<void*>(ContainerPtr);
-
-				It->NetSerializeItem(Ar, Map, PropertyData);
+				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				CurrentTask->EndTask();
 			}
 		}
 	}
-	
+	EndTaskInstanceNames.Empty();
 
-	ABILITY_LOG(Warning, TEXT("FGameplayAbilityTargetDataHandle Serialized: %s"), ScriptStruct ? *ScriptStruct->GetName() : TEXT("NULL") );
-
-	bOutSuccess = true;
-	return true;
+	for (int32 j = 0; j < CancelTaskInstanceNames.Num(); ++j)
+	{
+		FName InstanceName = CancelTaskInstanceNames[j];
+		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
+		{
+			if (NamedTasks[i].IsValid())
+			{
+				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				CurrentTask->ExternalCancel();
+			}
+		}
+	}
+	CancelTaskInstanceNames.Empty();
 }
 
-bool FGameplayAbilityTargetData_SingleTargetHit::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+void UGameplayAbility::EndTaskByInstanceName(FName InstanceName)
 {
-	Ar << HitResult.Actor;
-
-	HitResult.Location.NetSerialize(Ar, Map, bOutSuccess);
-	HitResult.Normal.NetSerialize(Ar, Map, bOutSuccess);
-
-	bOutSuccess = true;
-	return true;
+	//Avoid race condition by delaying for one frame
+	EndTaskInstanceNames.AddUnique(InstanceName);
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::EndOrCancelTasksByInstanceName);
 }
 
+void UGameplayAbility::CancelTaskByInstanceName(FName InstanceName)
+{
+	//Avoid race condition by delaying for one frame
+	CancelTaskInstanceNames.AddUnique(InstanceName);
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UGameplayAbility::EndOrCancelTasksByInstanceName);
+}
+
+void UGameplayAbility::TaskEnded(UAbilityTask* Task)
+{
+	ActiveTasks.Remove(Task);
+}
+
+/**
+ *	Helper methods for adding GaAmeplayCues without having to go through GameplayEffects.
+ *	For now, none of these will happen predictively. We can eventually build this out more to 
+ *	work with the PredictionKey system.
+ */
+
+void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag)
+{
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
+}
+
+void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag)
+{
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
+}
+
+void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
+{
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
+}
+
+int32 UGameplayAbility::GetAbilityLevel() const
+{
+	check(IsInstantiated()); // You should not call this on non instanced abilities.
+	check(CurrentActorInfo);
+	return GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo);
+}
+
+/** Returns current ability level for non instanced abilities. You m ust call this version in these contexts! */
+int32 UGameplayAbility::GetAbilityLevel(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+	check(Spec);
+
+	return Spec->Level;
+}
+
+FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
+{
+	check(IsInstantiated()); // You should not call this on non instanced abilities.
+	check(CurrentActorInfo);
+	return CurrentActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
+}
+
+bool UGameplayAbility::IsTriggered() const
+{
+	// Assume that if there is triggered data, then we are triggered. 
+	// If we need to support abilities that can be both, this will need to be expanded.
+	return AbilityTriggers.Num() > 0;
+}
+
+// -------------------------------------------------------
+
+FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToOwner(const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	check(CurrentActorInfo);
+	check(CurrentSpecHandle.IsValid());
+
+	//CurrentActivationInfo = GetCurrentAbilitySpec()->ActivationInfo;
+
+	return ApplyGameplayEffectToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, GameplayEffect, GameplayEffectLevel);
+}
+
+FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToOwner(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority || ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
+	{
+		return ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(GameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.GetPredictionKeyForNewAction()));
+	}
+
+	// We cannot apply GameplayEffects in this context. Return an empty handle.
+	return FActiveGameplayEffectHandle();
+}
+
+FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle Target, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	return ApplyGameplayEffectToTarget(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, Target, GameplayEffect, GameplayEffectLevel);
+}
+
+FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayAbilityTargetDataHandle Target, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel)
+{
+	FActiveGameplayEffectHandle EffectHandle;
+	for (auto Data : Target.Data)
+	{
+		TArray<FActiveGameplayEffectHandle> EffectHandles = Data->ApplyGameplayEffect(GameplayEffect, ActorInfo, (float)GameplayEffectLevel);
+		if (EffectHandles.Num() > 0)
+		{
+			EffectHandle = EffectHandles[0];
+			if (EffectHandles.Num() > 1)
+			{
+				ABILITY_LOG(Warning, TEXT("ApplyGameplayEffectToTargetData_Single called on TargetData with multiple actor targets. %s"), *GetName());
+			}
+		}
+	}
+	return EffectHandle;
+}

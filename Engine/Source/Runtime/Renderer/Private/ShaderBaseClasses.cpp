@@ -213,7 +213,7 @@ void FMaterialShader::SetParameters(
 
 	AtmosphericFogTextureParameters.Set(RHICmdList, ShaderRHI, View);
 
-	if (FeatureLevel >= ERHIFeatureLevel::SM3)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// for copied scene color
 		if(LightAttenuation.IsBound())

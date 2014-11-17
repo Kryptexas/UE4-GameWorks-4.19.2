@@ -6,6 +6,7 @@ Level.cpp: Level-related functions
 
 #include "EnginePrivate.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Engine/LevelScriptActor.h"
 #include "Engine/WorldComposition.h"
 #include "Sound/SoundNodeWave.h"
 #include "Net/UnrealNetwork.h"
@@ -16,6 +17,7 @@ Level.cpp: Level-related functions
 #include "TickTaskManagerInterface.h"
 #include "BlueprintUtilities.h"
 #include "DynamicMeshBuilder.h"
+#include "Engine/LevelBounds.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -24,6 +26,7 @@ Level.cpp: Level-related functions
 #include "LevelUtils.h"
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 DEFINE_LOG_CATEGORY(LogLevel);
 
@@ -476,12 +479,18 @@ void ULevel::Serialize( FArchive& Ar )
 
 void ULevel::SortActorList()
 {
+	if (Actors.Num() == 0)
+	{
+		// No need to sort an empty list
+		return;
+	}
+
 	int32 StartIndex = 0;
 	TArray<AActor*> NewActors;
 	NewActors.Reserve(Actors.Num());
 
 	// The WorldSettings has fixed actor index.
-	check(Actors.Num() && Actors[StartIndex] == GetWorldSettings());
+	check(Actors[StartIndex] == GetWorldSettings());
 	NewActors.Add(Actors[StartIndex++]);
 
 	// Static not net relevant actors.
@@ -632,6 +641,13 @@ void ULevel::PostLoad()
 #endif
 }
 
+void ULevel::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+
+	bWasDuplicatedForPIE = bDuplicateForPIE;
+}
+
 UWorld* ULevel::GetWorld() const
 {
 	return OwningWorld;
@@ -766,7 +782,7 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	if (NumComponentsToUpdate != 0)
 	{
 		// Only the game can use incremental update functionality.
-		checkf(!GIsEditor && OwningWorld->IsGameWorld(),TEXT("Cannot call IncrementalUpdateComponents with non 0 argument in the Editor/ commandlets."));
+		checkf(OwningWorld->IsGameWorld(), TEXT("Cannot call IncrementalUpdateComponents with non 0 argument in the Editor/ commandlets."));
 	}
 
 	// Do BSP on the first pass.
@@ -980,7 +996,7 @@ void ULevel::CreateModelComponents()
 
 				// fill out the NodeGroup/mapping, as UModelComponent::GetStaticLightingInfo did
 				SomeModelComponent->GetSurfaceLightMapResolution(SurfaceIndex, true, NodeGroup->SizeX, NodeGroup->SizeY, NodeGroup->WorldToMap, &NodeGroup->Nodes);
-				NodeGroup->MapToWorld = NodeGroup->WorldToMap.Inverse();
+				NodeGroup->MapToWorld = NodeGroup->WorldToMap.InverseFast();
 
 				// Cache the surface's vertices and triangles.
 				NodeGroup->BoundingBox.Init();
@@ -1338,10 +1354,11 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 			if ( !bIsClassDefaultObject && Primitive->IsRegistered() )
 			{
 				const AActor* const Owner				= Primitive->GetOwner();
-				const bool bIsStaticMeshComponent		= Primitive->IsA(UStaticMeshComponent::StaticClass());
-				const bool bIsSkeletalMeshComponent		= Primitive->IsA(USkeletalMeshComponent::StaticClass());
-				const bool bIsFoliage					= Owner && Owner->IsA(AInstancedFoliageActor::StaticClass()) && Primitive->IsA(UInstancedStaticMeshComponent::StaticClass());
-				const bool bIsStatic					= Owner == NULL || Primitive->Mobility == EComponentMobility::Static || bIsFoliage;
+				const bool bIsFoliage					= Owner && Owner->IsA(AInstancedFoliageActor::StaticClass()) && Primitive->IsA(UInstancedStaticMeshComponent::StaticClass()); 
+				const bool bIsStatic					= Owner == NULL 
+															|| Primitive->Mobility == EComponentMobility::Static 
+															|| Primitive->Mobility == EComponentMobility::Stationary
+															|| bIsFoliage; // treat Foliage components as static, regardless of mobility settings
 
 				TArray<FStreamingTexturePrimitiveInfo> PrimitiveStreamingTextures;
 
@@ -1389,33 +1406,14 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 
 					if(bShouldHandleTexture)
 					{
-						// Check if this is a world texture.
-						const bool bIsWorldTexture			= 
-							Texture2D->LODGroup == TEXTUREGROUP_World ||
-							Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap ||
-							Texture2D->LODGroup == TEXTUREGROUP_WorldSpecular ||
-							Texture2D->LODGroup == TEXTUREGROUP_Terrain_Heightmap ||
-							Texture2D->LODGroup == TEXTUREGROUP_Terrain_Weightmap ||
-							Texture2D->LODGroup == TEXTUREGROUP_Shadowmap ||
-							Texture2D->LODGroup == TEXTUREGROUP_Lightmap;
-
-						// Check if we should consider this a static mesh texture instance.
-						bool bIsStaticMeshTextureInstance = bIsWorldTexture && !bIsSkeletalMeshComponent;
-
-						// Treat non-static textures dynamically instead.
-						if ( !bIsStatic && bUseDynamicStreaming )
-						{
-							bIsStaticMeshTextureInstance = false;
-						}
-
 						// Is the primitive set to force its textures to be resident?
 						if ( Primitive->bForceMipStreaming )
 						{
 							// Add them to the ForceStreamTextures set.
 							ForceStreamTextures.Add(Texture2D,true);
 						}
-						// Is this a static mesh texture instance?
-						else if ( bIsStaticMeshTextureInstance && bCanBeStreamedByDistance )
+						// Is this texture used by a static object?
+						else if ( bIsStatic && bCanBeStreamedByDistance )
 						{
 							// Texture instance information.
 							FStreamableTextureInstance TextureInstance;
@@ -1852,12 +1850,23 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 	// Move precomputed light samples
 	if (PrecomputedLightVolume)
 	{
-		PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset, bWorldShift);
+		if (!PrecomputedLightVolume->IsAddedToScene())
+		{
+			PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+		}
+		// At world origin rebasing all registered volumes will be moved during FScene shifting
+		// Otherwise we need to send a command to move just this volume
+		else if (!bWorldShift) 
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 				ApplyWorldOffset_PLV,
+ 				FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
+ 				FVector, InWorldOffset, InWorldOffset,
+ 			{
+				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 			});
+		}
 	}
-
-	// Move precomputed visibility volume
-	// TODO: should probably move it to RT
-	PrecomputedVisibilityHandler.ApplyWorldOffset(InWorldOffset);
 
 	// Iterate over all actors in the level and move them
 	for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
@@ -1980,76 +1989,126 @@ class FLineBatcherSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 	FLineBatcherSceneProxy(const ULineBatchComponent* InComponent) :
-	  FPrimitiveSceneProxy(InComponent), Lines(InComponent->BatchedLines), 
-		  Points(InComponent->BatchedPoints), Meshes(InComponent->BatchedMeshes)
-	  {
-		  bWillEverBeLit = false;
-		  ViewRelevance.bDrawRelevance = true;
-		  ViewRelevance.bDynamicRelevance = true;
-		  ViewRelevance.bNormalTranslucencyRelevance = true;
-	  }
+		FPrimitiveSceneProxy(InComponent), Lines(InComponent->BatchedLines), 
+		Points(InComponent->BatchedPoints), Meshes(InComponent->BatchedMeshes)
+	{
+		bWillEverBeLit = false;
+		ViewRelevance.bDrawRelevance = true;
+		ViewRelevance.bDynamicRelevance = true;
+		ViewRelevance.bNormalTranslucencyRelevance = true;
+	}
 
-	  /** 
-	  * Draw the scene proxy as a dynamic element
-	  *
-	  * @param	PDI - draw interface to render to
-	  * @param	View - current view
-	  */
-	  virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-	  {
-		  QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_DrawDynamicElements );
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_GetDynamicMeshElements );
 
-		  for (int32 i = 0; i < Lines.Num(); i++)
-		  {
-			  PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, Lines[i].DepthPriority, Lines[i].Thickness);
-		  }
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 
-		  for (int32 i = 0; i < Points.Num(); i++)
-		  {
-			  PDI->DrawPoint(Points[i].Position, Points[i].Color, Points[i].PointSize, Points[i].DepthPriority);
-		  }
+				for (int32 i = 0; i < Lines.Num(); i++)
+				{
+					PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, Lines[i].DepthPriority, Lines[i].Thickness);
+				}
 
-		  for (int32 i = 0; i < Meshes.Num(); i++)
-		  {
-			  static FVector const PosX(1.f,0,0);
-			  static FVector const PosY(0,1.f,0);
-			  static FVector const PosZ(0,0,1.f);
+				for (int32 i = 0; i < Points.Num(); i++)
+				{
+					PDI->DrawPoint(Points[i].Position, Points[i].Color, Points[i].PointSize, Points[i].DepthPriority);
+				}
 
-			  FBatchedMesh const& M = Meshes[i];
+				for (int32 i = 0; i < Meshes.Num(); i++)
+				{
+					static FVector const PosX(1.f,0,0);
+					static FVector const PosY(0,1.f,0);
+					static FVector const PosZ(0,0,1.f);
 
-			  // this seems far from optimal in terms of perf, but it's for debugging
-			  FDynamicMeshBuilder MeshBuilder;
+					FBatchedMesh const& M = Meshes[i];
 
-			  // set up geometry
-			  for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)
-			  {
-				  MeshBuilder.AddVertex( M.MeshVerts[VertIdx], FVector2D::ZeroVector, PosX, PosY, PosZ, FColor::White );
-			  }
-			  //MeshBuilder.AddTriangles(M.MeshIndices);
-			  for (int32 Idx=0; Idx < M.MeshIndices.Num(); Idx+=3)
-			  {
-				  MeshBuilder.AddTriangle( M.MeshIndices[Idx], M.MeshIndices[Idx+1], M.MeshIndices[Idx+2] );
-			  }
+					// this seems far from optimal in terms of perf, but it's for debugging
+					FDynamicMeshBuilder MeshBuilder;
 
-			  FMaterialRenderProxy* const MaterialRenderProxy = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), M.Color);
-			  MeshBuilder.Draw(PDI, FMatrix::Identity, MaterialRenderProxy, M.DepthPriority);
-		  }
-	  }
+					// set up geometry
+					for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)
+					{
+						MeshBuilder.AddVertex( M.MeshVerts[VertIdx], FVector2D::ZeroVector, PosX, PosY, PosZ, FColor::White );
+					}
+					//MeshBuilder.AddTriangles(M.MeshIndices);
+					for (int32 Idx=0; Idx < M.MeshIndices.Num(); Idx+=3)
+					{
+						MeshBuilder.AddTriangle( M.MeshIndices[Idx], M.MeshIndices[Idx+1], M.MeshIndices[Idx+2] );
+					}
 
-	  /**
-	  *  Returns a struct that describes to the renderer when to draw this proxy.
-	  *	@param		Scene view to use to determine our relevence.
-	  *  @return		View relevance struct
-	  */
-	  virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
-	  {
-		  return ViewRelevance;
-	  }
-	  virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
-	  uint32 GetAllocatedSize( void ) const 
-	  { 
-		  return( FPrimitiveSceneProxy::GetAllocatedSize() + Lines.GetAllocatedSize() + Points.GetAllocatedSize() + Meshes.GetAllocatedSize() ); 
-	  }
+					FMaterialRenderProxy* const MaterialRenderProxy = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), M.Color);
+					MeshBuilder.GetMesh(FMatrix::Identity, MaterialRenderProxy, M.DepthPriority, false, false, ViewIndex, Collector);
+				}
+			}
+		}
+	}
+
+	/** 
+	* Draw the scene proxy as a dynamic element
+	*
+	* @param	PDI - draw interface to render to
+	* @param	View - current view
+	*/
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
+	{
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_DrawDynamicElements );
+
+		for (int32 i = 0; i < Lines.Num(); i++)
+		{
+			PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, Lines[i].DepthPriority, Lines[i].Thickness);
+		}
+
+		for (int32 i = 0; i < Points.Num(); i++)
+		{
+			PDI->DrawPoint(Points[i].Position, Points[i].Color, Points[i].PointSize, Points[i].DepthPriority);
+		}
+
+		for (int32 i = 0; i < Meshes.Num(); i++)
+		{
+			static FVector const PosX(1.f,0,0);
+			static FVector const PosY(0,1.f,0);
+			static FVector const PosZ(0,0,1.f);
+
+			FBatchedMesh const& M = Meshes[i];
+
+			// this seems far from optimal in terms of perf, but it's for debugging
+			FDynamicMeshBuilder MeshBuilder;
+
+			// set up geometry
+			for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)
+			{
+				MeshBuilder.AddVertex( M.MeshVerts[VertIdx], FVector2D::ZeroVector, PosX, PosY, PosZ, FColor::White );
+			}
+			//MeshBuilder.AddTriangles(M.MeshIndices);
+			for (int32 Idx=0; Idx < M.MeshIndices.Num(); Idx+=3)
+			{
+				MeshBuilder.AddTriangle( M.MeshIndices[Idx], M.MeshIndices[Idx+1], M.MeshIndices[Idx+2] );
+			}
+
+			FMaterialRenderProxy* const MaterialRenderProxy = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), M.Color);
+			MeshBuilder.Draw(PDI, FMatrix::Identity, MaterialRenderProxy, M.DepthPriority);
+		}
+	}
+
+	/**
+	*  Returns a struct that describes to the renderer when to draw this proxy.
+	*	@param		Scene view to use to determine our relevence.
+	*  @return		View relevance struct
+	*/
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	{
+		return ViewRelevance;
+	}
+	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
+	uint32 GetAllocatedSize( void ) const 
+	{ 
+		return( FPrimitiveSceneProxy::GetAllocatedSize() + Lines.GetAllocatedSize() + Points.GetAllocatedSize() + Meshes.GetAllocatedSize() ); 
+	}
 
 private:
 	TArray<FBatchedLine> Lines;

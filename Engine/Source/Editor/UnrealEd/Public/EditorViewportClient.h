@@ -357,7 +357,7 @@ public:
 		if( bRecalculateView )
 		{
 			FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
-			OrbitMatrix = OrbitMatrix.Inverse();
+			OrbitMatrix = OrbitMatrix.InverseFast();
 
 			ViewTransform.SetRotation( OrbitMatrix.Rotator() );
 			ViewTransform.SetLocation( OrbitMatrix.GetOrigin() );
@@ -398,6 +398,9 @@ public:
 
 	/** @return The number of units per pixel displayed in this viewport */
 	float GetOrthoUnitsPerPixel(const FViewport* Viewport) const;
+
+	/** Get a prettified string representation of the specified unreal units */
+	static FString UnrealUnitsToSiUnits(float UnrealUnits);
 
 	void RemoveCameraRoll()
 	{
@@ -607,6 +610,9 @@ public:
 	 * @return The new drag tool
 	 */
 	virtual TSharedPtr<class FDragTool> MakeDragTool( EDragTool::Type DragToolType );
+
+	/** @return true if a drag tool can be used */
+	bool CanUseDragTool() const;
 
 	/** @return Whether or not to orbit the camera */
 	virtual bool ShouldOrbitCamera() const ;
@@ -1339,6 +1345,13 @@ protected:
 	FVector DefaultOrbitZoom;
 	FVector DefaultOrbitLookAt;
 	
+public:
+	/* Default view mode for perspective viewports */
+	static const EViewModeIndex DefaultPerspectiveViewMode;
+
+	/* Default view mode for orthographic viewports */
+	static const EViewModeIndex DefaultOrthoViewMode;
+
 private:
 	/* View mode to set when this viewport is of type LVT_Perspective */
 	EViewModeIndex PerspViewModeIndex;

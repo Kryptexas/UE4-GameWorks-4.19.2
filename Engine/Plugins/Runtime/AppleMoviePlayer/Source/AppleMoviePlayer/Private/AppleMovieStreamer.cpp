@@ -68,7 +68,7 @@ void FAVPlayerMovieStreamer::ForceCompletion()
     TeardownPlayback();
 }
 
-void FAVPlayerMovieStreamer::Init(const TArray<FString>& MoviePaths)
+bool FAVPlayerMovieStreamer::Init(const TArray<FString>& MoviePaths)
 {
 	// 
 	// Initializes the streamer for audio and video playback of the given path(s).
@@ -79,7 +79,7 @@ void FAVPlayerMovieStreamer::Init(const TArray<FString>& MoviePaths)
 	MovieQueue.Append(MoviePaths);
 
 	// Play the next movie in the queue
-	StartNextMovie();
+	return StartNextMovie();
 }
 
 bool FAVPlayerMovieStreamer::Tick(float DeltaTime)

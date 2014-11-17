@@ -15,14 +15,14 @@ UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const class F
 	CustomVariableName = TEXT("NewLocalVar");
 }
 
-FString UDEPRECATED_K2Node_LocalVariable::GetTooltip() const
+FText UDEPRECATED_K2Node_LocalVariable::GetTooltipText() const
 {
 	if(VariableTooltip.IsEmpty())
 	{
-		return Super::GetTooltip();
+		return Super::GetTooltipText();
 	}
 
-	return VariableTooltip.ToString();
+	return VariableTooltip;
 }
 
 FText UDEPRECATED_K2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -31,7 +31,7 @@ FText UDEPRECATED_K2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleT
 	{
 		return FText::FromName(CustomVariableName);
 	}
-	else if(TitleType == ENodeTitleType::ListView)
+	else if(TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("TypeName"), UEdGraphSchema_K2::TypeToText(VariableType));
@@ -87,21 +87,10 @@ void UDEPRECATED_K2Node_LocalVariable::PostPasteNode()
 	CustomVariableName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprint(), CustomVariableName.GetPlainNameString());
 }
 
-bool UDEPRECATED_K2Node_LocalVariable::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UDEPRECATED_K2Node_LocalVariable::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
-	// Local variables can only be pasted into function graphs
-	if(Super::CanPasteHere(TargetGraph, Schema))
-	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
-		if(Blueprint)
-		{
-			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(Schema);
-			check(K2Schema);
-			return K2Schema->GetGraphType(TargetGraph) == GT_Function;
-		}
-	}
-
-	return false;
+	bool const bIsCompatible = (TargetGraph->GetSchema()->GetGraphType(TargetGraph) == GT_Function);
+	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()

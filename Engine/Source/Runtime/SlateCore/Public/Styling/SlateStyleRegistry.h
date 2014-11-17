@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateStyleRegistry.h: Declares the FSlateStyleRegistry class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -13,9 +9,11 @@
 class SLATECORE_API FSlateStyleRegistry
 {
 public:
+
 	/**
 	 * Add a slate style to the repository.
-	 * @param ISlateStyle - interface to a user-definable style to add.
+	 *
+	 * @param ISlateStyle interface to a user-definable style to add.
 	 */
 	static void RegisterSlateStyle( const ISlateStyle& InSlateStyle );
 
@@ -35,14 +33,16 @@ public:
 
 	/**
 	 * Find a slate style in the repository.
-	 * @param InSlateStyleName - The name of the slate style to find.
+	 *
+	 * @param InSlateStyleName The name of the slate style to find.
 	 * @return The slate style, or null if it couldn't be found
 	 */
 	static const ISlateStyle* FindSlateStyle( const FName& InSlateStyleName );
 
 	/**
 	 * Populate an array of slate brushes with all of the resources used by the registered styles.
-	 * @param OutResources - array of slate brushes to populate.
+	 *
+	 * @param OutResources Array of slate brushes to populate.
 	 */
 	static void GetAllResources( TArray<const FSlateBrush*>& OutResources );
 

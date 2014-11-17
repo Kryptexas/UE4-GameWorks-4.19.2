@@ -4,6 +4,11 @@
 #include "WindowsRegistry.h"
 #include "AllowWindowsPlatformTypes.h"
 
+#if WINVER == 0x0502
+	// Some registry functions are not available on windows XP, so we need the XP compat alternative
+	#include <Shlwapi.h>
+#endif
+
 ////////////////////////////////////////////////////////////////////
 
 FRegistryValue::FRegistryValue()
@@ -178,7 +183,12 @@ bool FRegistryKey::Write(HKEY hKey, bool bRemoveDifferences) const
 		// Remove any keys that don't exist any more
 		for (int32 Idx = 0; Idx < KeyNames.Num(); Idx++)
 		{
+#if WINVER == 0x0502
+			if (!Keys.Contains(KeyNames[Idx]) && SHDeleteKey(hKey, *KeyNames[Idx]) != ERROR_SUCCESS)
+#else
+
 			if (!Keys.Contains(KeyNames[Idx]) && RegDeleteTree(hKey, *KeyNames[Idx]) != ERROR_SUCCESS)
+#endif // WINVER == 0x0502
 			{
 				return false;
 			}

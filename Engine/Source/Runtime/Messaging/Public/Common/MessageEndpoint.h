@@ -13,7 +13,7 @@ typedef TSharedRef<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpoint
 /**
  * DEPRECATED: Delegate type for error notifications.
  *
- * The first parameter is the  context of the sent message.
+ * The first parameter is the context of the sent message.
  * The second parameter is the error string.
  */
 DECLARE_DELEGATE_TwoParams(FOnMessageEndpointError, const IMessageContextRef&, const FString&);
@@ -32,7 +32,7 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMessageEndpointReceiveMessage, const I
  *
  * This class provides a convenient implementation of the IRecieveMessages and ISendMessages interfaces,
  * which allow consumers to send and receive messages on a message bus. The endpoint allows for receiving
- * messages synchronously as they arrive, as well as asynchronously through an inbox that can be polled.
+ * messages asynchronously as they arrive, as well as synchronously through an inbox that can be polled.
  *
  * By default, messages are received synchronously on the thread that the endpoint was created on.
  * If the message consumer is thread-safe, a more efficient message dispatch can be enabled by calling
@@ -41,8 +41,6 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMessageEndpointReceiveMessage, const I
  * Endpoints that are destroyed or receive messages on non-Game threads should use the static function
  * FMessageEndpoint::SafeRelease() to dispose of the endpoint. This will ensure that there are no race
  * conditions between endpoint destruction and the receiving of messages.
- *
- * @todo gmp: Messaging reloadability; figure out how to auto-reconnect endpoints
  */
 class FMessageEndpoint
 	: public TSharedFromThis<FMessageEndpoint, ESPMode::ThreadSafe>
@@ -78,9 +76,7 @@ public:
 		, Name(InName)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageEndpoint( )
 	{
 		IMessageBusPtr Bus = BusPtr.Pin();
@@ -311,7 +307,6 @@ public:
 	 * Checks whether the inbox is empty.
 	 *
 	 * @return true if the inbox is empty, false otherwise.
-	 *
 	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	bool IsInboxEmpty( ) const
@@ -795,38 +790,38 @@ protected:
 
 private:
 
-	// Holds the endpoint's identifier.
+	/** Holds the endpoint's identifier. */
 	const FMessageAddress Address;
 
-	// Holds a weak pointer to the message bus.
+	/** Holds a weak pointer to the message bus. */
 	IMessageBusWeakPtr BusPtr;
 
-	// Hold a flag indicating whether this endpoint is active.
+	/** Hold a flag indicating whether this endpoint is active. */
 	bool Enabled;
 
-	// Holds the registered message handlers.
+	/** Holds the registered message handlers. */
 	TArray<IMessageHandlerPtr> Handlers;
 
-	// Holds the endpoint's unique identifier (for debugging purposes).
+	/** Holds the endpoint's unique identifier (for debugging purposes). */
 	const FGuid Id;
 
-	// Holds the endpoint's message inbox.
+	/** Holds the endpoint's message inbox. */
 	TQueue<IMessageContextPtr, EQueueMode::Mpsc> Inbox;
 
-	// Holds a flag indicating whether the inbox is enabled.
+	/** Holds a flag indicating whether the inbox is enabled. */
 	bool InboxEnabled;
 
-	// Holds the endpoint's name (for debugging purposes).
+	/** Holds the endpoint's name (for debugging purposes). */
 	const FName Name;
 
-	// Holds a delegate that is invoked when a message has been received.
+	/** Holds a delegate that is invoked when a message has been received. */
 	FOnMessageEndpointReceiveMessage ReceiveDelegate;
 
-	// Holds the name of the thread on which to receive messages.
+	/** Holds the name of the thread on which to receive messages. */
 	ENamedThreads::Type RecipientThread;
 
 private:
 
-	// Holds a delegate that is invoked in case of messaging errors.
+	/** Holds a delegate that is invoked in case of messaging errors. */
 	FOnMessageEndpointError ErrorDelegate;
 };

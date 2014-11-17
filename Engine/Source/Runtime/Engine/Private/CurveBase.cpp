@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "CsvParser.h"
 
 void FKeyHandleMap::Add( const FKeyHandle& InHandle, int32 InIndex )
 {
@@ -505,6 +506,13 @@ ERichCurveInterpMode FRichCurve::GetKeyInterpMode(FKeyHandle KeyHandle) const
 	return GetKey(KeyHandle).InterpMode;
 }
 
+ERichCurveTangentMode FRichCurve::GetKeyTangentMode(FKeyHandle KeyHandle) const
+{
+	if (!IsKeyHandleValid(KeyHandle)) { return RCTM_Auto; }
+
+	return GetKey(KeyHandle).TangentMode;
+}
+
 void FRichCurve::GetTimeRange(float& MinTime, float& MaxTime) const
 {
 	if(Keys.Num() == 0)
@@ -843,6 +851,11 @@ void UCurveBase::MakeTransactional()
 	SetFlags(GetFlags() | RF_Transactional);
 }
 
+void UCurveBase::OnCurveChanged()
+{
+
+}
+
 void UCurveBase::ResetCurve()
 {
 	TArray<FRichCurveEditInfo> Curves = GetCurves();
@@ -864,11 +877,10 @@ TArray<FString> UCurveBase::CreateCurveFromCSVString(const FString& InString)
 	TArray<FRichCurveEditInfo> Curves = GetCurves();
 	const int32 NumCurves = Curves.Num();
 
-	// Split one giant string into one string per row
-	TArray<FString> RowStrings;
-	InString.ParseIntoArray(&RowStrings, TEXT("\r\n"), true);
+	const FCsvParser Parser(InString);
+	const FCsvParser::FRows& Rows = Parser.GetRows();
 
-	if(RowStrings.Num() == 0)
+	if(Rows.Num() == 0)
 	{
 		OutProblems.Add(FString(TEXT("No data.")));
 		return OutProblems;
@@ -878,11 +890,10 @@ TArray<FString> UCurveBase::CreateCurveFromCSVString(const FString& InString)
 	ResetCurve();
 
 	// Each row represents a point
-	for(int32 RowIdx=0; RowIdx<RowStrings.Num(); RowIdx++)
+	for(int32 RowIdx=0; RowIdx<Rows.Num(); RowIdx++)
 	{
-		TArray<FString> CellStrings;
-		RowStrings[RowIdx].ParseIntoArray(&CellStrings, TEXT(","), false);
-		const int32 NumCells = CellStrings.Num();
+		const TArray<const TCHAR*>& Cells = Rows[RowIdx];
+		const int32 NumCells = Cells.Num();
 
 		// Need at least two cell, Time and one Value
 		if(NumCells < 2)
@@ -891,13 +902,13 @@ TArray<FString> UCurveBase::CreateCurveFromCSVString(const FString& InString)
 			continue;
 		}
 
-		float Time = FCString::Atof(*CellStrings[0]);
+		float Time = FCString::Atof(Cells[0]);
 		for(int32 CellIdx=1; CellIdx<NumCells && CellIdx<(NumCurves+1); CellIdx++)
 		{
 			FRichCurve* Curve = Curves[CellIdx-1].CurveToEdit;
 			if(Curve != NULL)
 			{
-				FKeyHandle KeyHandle = Curve->AddKey(Time, FCString::Atof(*CellStrings[CellIdx]));
+				FKeyHandle KeyHandle = Curve->AddKey(Time, FCString::Atof(Cells[CellIdx]));
 				Curve->SetKeyInterpMode(KeyHandle, RCIM_Linear);
 			}
 		}

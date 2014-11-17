@@ -7,9 +7,9 @@
 #include "DetailItemNode.h"
 
 FDetailGroup::FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName )
-	: LocalizedDisplayName( InLocalizedDisplayName ) 
+	: ParentCategory( InParentCategory )
+	, LocalizedDisplayName( InLocalizedDisplayName )
 	, GroupName( InGroupName )
-	, ParentCategory( InParentCategory )
 {
 
 }

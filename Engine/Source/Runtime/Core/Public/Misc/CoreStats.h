@@ -61,7 +61,7 @@ DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Game thread additional wait time"),STAT_
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Game TaskGraph Tasks"),STAT_TaskGraph_GameTasks,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Game TaskGraph Stalls"),STAT_TaskGraph_GameStalls,STATGROUP_Threading, CORE_API);
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Render TaskGraph Stalls"),STAT_TaskGraph_RenderStalls,STATGROUP_Threading, CORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Render Local Queue Stalls"),STAT_TaskGraph_RenderStalls,STATGROUP_Threading, CORE_API);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Other TaskGraph Tasks"),STAT_TaskGraph_OtherTasks,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Other TaskGraph Stalls"),STAT_TaskGraph_OtherStalls,STATGROUP_Threading, CORE_API);

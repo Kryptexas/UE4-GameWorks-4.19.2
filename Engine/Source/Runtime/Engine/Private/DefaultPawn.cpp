@@ -31,6 +31,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 
 	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
+	CollisionComponent->bCanEverAffectNavigation = false;
 
 	RootComponent = CollisionComponent;
 
@@ -62,6 +63,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 		const float Scale = CollisionComponent->GetUnscaledSphereRadius() / 160.f; // @TODO: hardcoding known size of EngineMeshes.Sphere. Should use a unit sphere instead.
 		MeshComponent->SetRelativeScale3D(FVector(Scale));
 		MeshComponent->bGenerateOverlapEvents = false;
+		MeshComponent->bCanEverAffectNavigation = false;
 	}
 
 	// This is the default pawn class, we want to have it be able to move out of the box.
@@ -88,6 +90,9 @@ void InitializeDefaultPawnInputBindings()
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveRight", EKeys::D, 1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveRight", EKeys::Gamepad_LeftX, 1.f));
 
+		// HACK: Android controller bindings in ini files seem to not work
+		//  Direct overrides here some to work
+#if !PLATFORM_ANDROID
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::Gamepad_LeftThumbstick, 1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::Gamepad_RightThumbstick, -1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::Gamepad_FaceButton_Bottom, 1.f));
@@ -96,6 +101,10 @@ void InitializeDefaultPawnInputBindings()
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::C, -1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::E, 1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::Q, -1.f));
+#else
+		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::Gamepad_LeftTriggerAxis, -0.5f));
+		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_MoveUp", EKeys::Gamepad_RightTriggerAxis, 0.5f));
+#endif
 
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_TurnRate", EKeys::Gamepad_RightX, 1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_TurnRate", EKeys::Left, -1.f));
@@ -125,6 +134,10 @@ void ADefaultPawn::SetupPlayerInputComponent(UInputComponent* InputComponent)
 	}
 }
 
+void ADefaultPawn::UpdateNavigationRelevance()
+{
+	CollisionComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
+}
 
 void ADefaultPawn::MoveRight(float Val)
 {

@@ -1,16 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsNoEditorTargetPlatformModule.cpp: Implements the FWindowsNoEditorTargetPlatformModule class.
-=============================================================================*/
-
 #include "WindowsNoEditorTargetPlatformPrivatePCH.h"
 
 
-/**
- * Holds the target platform singleton.
- */
-static ITargetPlatform* Singleton = NULL;
+/** Holds the target platform singleton. */
+static ITargetPlatform* Singleton = nullptr;
 
 
 /**
@@ -23,12 +17,12 @@ public:
 
 	virtual ~FWindowsNoEditorTargetPlatformModule( )
 	{
-		Singleton = NULL;
+		Singleton = nullptr;
 	}
 
 	virtual ITargetPlatform* GetTargetPlatform( )
 	{
-		if (Singleton == NULL)
+		if (Singleton == nullptr)
 		{
 			Singleton = new TGenericWindowsTargetPlatform<false, false, false>();
 		}

@@ -108,6 +108,19 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)
 	bool bLowerHemisphereIsBlack;
 
+	/** 
+	 * Max distance that the occlusion of one point will affect another.
+	 * Higher values increase the cost of Distance Field AO exponentially.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldAmbientOcclusion, meta=(UIMin = "200", UIMax = "1500"))
+	float OcclusionMaxDistance;
+
+	/** 
+	 * Contrast S-curve applied to the computed AO.  A value of 0 means no contrast increase, 1 is a significant contrast increase.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldAmbientOcclusion, meta=(UIMin = "0", UIMax = "1"))
+	float Contrast;
+
 	class FSkyLightSceneProxy* CreateSceneProxy() const;
 
 	// Begin UObject Interface
@@ -134,11 +147,15 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	void CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
-	void SetBrightness(float NewBrightness);
+	void SetIntensity(float NewIntensity);
 
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetLightColor(FLinearColor NewLightColor);
+
+	/** Sets the cubemap used when SourceType is set to SpecifiedCubemap, and causes a skylight update on the next tick. */
+	UFUNCTION(BlueprintCallable, Category="SkyLight")
+	void SetCubemap(UTextureCube* NewCubemap);
 
 	/** Indicates that the capture needs to recapture the scene, adds it to the recapture queue. */
 	void SetCaptureIsDirty();

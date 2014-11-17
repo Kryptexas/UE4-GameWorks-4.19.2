@@ -212,10 +212,13 @@ namespace BlueprintNodeHelpers
 		return bFound;
 	}
 
-	void AbortLatentActions(AActor* OwningActor, const UObject* Ob)
+	void AbortLatentActions(UActorComponent* OwnerOb, const UObject* Ob)
 	{
-		UWorld* MyWorld = OwningActor->GetWorld();
-		MyWorld->GetLatentActionManager().RemoveActionsForObject(Ob);
-		MyWorld->GetTimerManager().ClearAllTimersForObject(Ob);
+		if (OwnerOb && !OwnerOb->HasAnyFlags(RF_BeginDestroyed) && OwnerOb->GetOwner())
+		{
+			UWorld* MyWorld = OwnerOb->GetOwner()->GetWorld();
+			MyWorld->GetLatentActionManager().RemoveActionsForObject(Ob);
+			MyWorld->GetTimerManager().ClearAllTimersForObject(Ob);
+		}
 	}
 }

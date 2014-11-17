@@ -160,6 +160,9 @@ public:
 	/** Sets the project packaging build configuration. */
 	static void PackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration );
 
+	/** Determines if the packaging build configuration can be used. */
+	static bool CanPackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration );
+
 	/** Determines whether the specified build configuration option is checked. */
 	static bool PackageBuildConfigurationIsChecked( EProjectPackagingBuildConfigurations BuildConfiguration );
 

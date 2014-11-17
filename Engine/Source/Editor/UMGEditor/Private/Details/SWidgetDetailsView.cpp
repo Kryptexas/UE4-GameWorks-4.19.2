@@ -8,6 +8,15 @@
 #include "Kismet2NameValidators.h"
 #include "ISequencer.h"
 #include "Animation/UMGDetailKeyframeHandler.h"
+#include "EditorClassUtils.h"
+
+#include "Customizations/SlateBrushCustomization.h"
+
+#include "CanvasSlotCustomization.h"
+#include "HorizontalAlignmentCustomization.h"
+#include "VerticalAlignmentCustomization.h"
+#include "SlateChildSizeCustomization.h"
+#include "TextJustifyCustomization.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -71,12 +80,22 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 			.AutoWidth()
 			[
 				SNew(SCheckBox)
+				//.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
 				.IsChecked(this, &SWidgetDetailsView::GetIsVariable)
 				.OnCheckStateChanged(this, &SWidgetDetailsView::HandleIsVariableChanged)
+				.Padding(FMargin(3,1,3,1))
 				[
 					SNew(STextBlock)
+					//.Font(FEditorStyle::GetFontStyle("BoldFont"))
 					.Text(LOCTEXT("IsVariable", "Is Variable"))
 				]
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(15,0,0,0)
+			[
+				SAssignNew(ClassLinkArea, SBox)
 			]
 		]
 
@@ -100,20 +119,32 @@ SWidgetDetailsView::~SWidgetDetailsView()
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanging.RemoveAll(this);
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
 	}
+
+	// Unregister the property type layouts
+	static FName PropertyEditor("PropertyEditor");
+	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("PanelSlot"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("SlateBrush"), nullptr, PropertyView);
+	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("ETextJustify"), nullptr, PropertyView);
 }
 
 void SWidgetDetailsView::RegisterCustomizations()
 {
-	FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef(), BlueprintEditor.Pin()->GetBlueprintObj());
-	PropertyView->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), LayoutDelegateDetails);
+	PropertyView->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, BlueprintEditor.Pin().ToSharedRef(), BlueprintEditor.Pin()->GetBlueprintObj()));
 
 	static FName PropertyEditor("PropertyEditor");
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
 
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("PanelSlot"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, BlueprintEditor.Pin()->GetBlueprintObj()));
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FHorizontalAlignmentCustomization::MakeInstance));
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVerticalAlignmentCustomization::MakeInstance));
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateChildSizeCustomization::MakeInstance));
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("PanelSlot"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, BlueprintEditor.Pin()->GetBlueprintObj()), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EHorizontalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FHorizontalAlignmentCustomization::MakeInstance), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("EVerticalAlignment"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVerticalAlignmentCustomization::MakeInstance), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateChildSize"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateChildSizeCustomization::MakeInstance), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("SlateBrush"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance, false), nullptr, PropertyView);
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("ETextJustify"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTextJustifyCustomization::MakeInstance), nullptr, PropertyView);
 }
 
 void SWidgetDetailsView::OnEditorSelectionChanging()
@@ -123,12 +154,34 @@ void SWidgetDetailsView::OnEditorSelectionChanging()
 
 void SWidgetDetailsView::OnEditorSelectionChanged()
 {
-	TSet< FWidgetReference > SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
-
 	SelectedObjects.Empty();
-	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	PropertyView->SetObjects(SelectedObjects);
+
+	TSet< FWidgetReference > SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	if ( SelectedWidgets.Num() > 0 )
 	{
-		SelectedObjects.Add(WidgetRef.GetPreview());
+		for ( FWidgetReference& WidgetRef : SelectedWidgets )
+		{
+			SelectedObjects.Add(WidgetRef.GetPreview());
+		}
+	}
+
+	TSet< TWeakObjectPtr<UObject> > Selection = BlueprintEditor.Pin()->GetSelectedObjects();
+	for ( TWeakObjectPtr<UObject> Selected : Selection )
+	{
+		if ( UObject* S = Selected.Get() )
+		{
+			SelectedObjects.Add(S);
+		}
+	}
+
+	if ( SelectedObjects.Num() == 1 && SelectedObjects[0].IsValid() )
+	{
+		ClassLinkArea->SetContent(FEditorClassUtils::GetSourceLink(SelectedObjects[0]->GetClass(), TWeakObjectPtr<UObject>()));
+	}
+	else
+	{
+		ClassLinkArea->SetContent(SNullWidget::NullWidget);
 	}
 
 	const bool bForceRefresh = false;
@@ -155,7 +208,11 @@ EVisibility SWidgetDetailsView::GetNameAreaVisibility() const
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
-		return EVisibility::Visible;
+		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
+		if ( Widget && !Widget->HasAnyFlags(RF_ClassDefaultObject) )
+		{
+			return EVisibility::Visible;
+		}
 	}
 	
 	return EVisibility::Collapsed;
@@ -182,13 +239,12 @@ FText SWidgetDetailsView::GetNameText() const
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		if ( Widget )
 		{
-			return FText::FromString(Widget->GetLabel());
+			return FText::FromName(Widget->GetFName());
 		}
 	}
 	
 	return FText::GetEmpty();
 }
-
 
 void SWidgetDetailsView::HandleNameTextChanged(const FText& Text)
 {
@@ -217,7 +273,7 @@ bool SWidgetDetailsView::HandleVerifyNameTextChanged(const FText& InText, FText&
 		bool bIsSameWidget = false;
 		if ( TemplateWidget != NULL )
 		{
-			if ( FWidgetReference::FromTemplate(BlueprintEditor.Pin(), TemplateWidget).GetPreview() != PreviewWidget )
+			if ( BlueprintEditor.Pin()->GetReferenceFromTemplate( TemplateWidget ).GetPreview() != PreviewWidget )
 			{
 				OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
 				return false;
@@ -289,7 +345,7 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		
-		FWidgetReference WidgetRef = FWidgetReference::FromTemplate(BPEditor, Blueprint->WidgetTree->FindWidget(Widget->GetName()));
+		FWidgetReference WidgetRef = BPEditor->GetReferenceFromTemplate(Blueprint->WidgetTree->FindWidget(Widget->GetName()));
 		if ( WidgetRef.IsValid() )
 		{
 			UWidget* Template = WidgetRef.GetTemplate();
@@ -321,12 +377,21 @@ void SWidgetDetailsView::NotifyPreChange(FEditPropertyChain* PropertyAboutToChan
 
 void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
 {
+	const static FName DesignerRebuildName("DesignerRebuild");
+
 	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && !BlueprintEditor.Pin()->GetSequencer()->IsAutoKeyEnabled() )
 	{
 		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 
 		const bool bIsModify = false;
 		Editor->MigrateFromChain(PropertyThatChanged, bIsModify);
+	}
+
+	// If the property that changed is marked as "DesignerRebuild" we invalidate
+	// the preview.
+	if ( PropertyChangedEvent.Property->GetBoolMetaData(DesignerRebuildName) )
+	{
+		BlueprintEditor.Pin()->InvalidatePreview();
 	}
 }
 

@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "SceneUtils.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarFogStartDistance(
@@ -70,7 +71,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FHeightFogVS( )	{ }
@@ -131,7 +132,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FExponentialHeightFogPS( )	{ }
@@ -279,10 +280,10 @@ void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& 
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
-		TShaderMapRef<FHeightFogVS> VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FExponentialHeightFogPS> ExponentialHeightFogPixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FHeightFogVS> VertexShader(View.ShaderMap);
+		TShaderMapRef<FExponentialHeightFogPS> ExponentialHeightFogPixelShader(View.ShaderMap);
 
-		SetGlobalBoundShaderState(RHICmdList, ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), ExponentialBoundShaderState, GFogVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ExponentialHeightFogPixelShader);
 		VertexShader->SetParameters(RHICmdList, View);
 		ExponentialHeightFogPixelShader->SetParameters(RHICmdList, View, LightShaftsOutput);
 	}
@@ -292,7 +293,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
-		SCOPED_DRAW_EVENT(Fog, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Fog, DEC_SCENE_ITEMS);
 
 		static const FVector2D Vertices[4] =
 		{

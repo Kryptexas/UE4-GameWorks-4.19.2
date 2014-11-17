@@ -300,7 +300,9 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 
 		BestCluster->ClusterComponent->AttachTo(InIFA->GetRootComponent());
 		BestCluster->ClusterComponent->RegisterComponent();
-		BestCluster->ClusterComponent->SetWorldTransform(InstanceToWorld);
+		
+		// Use only instance translation as a component transform
+		BestCluster->ClusterComponent->SetWorldTransform(FTransform(InstanceToWorld.GetTranslation()));
 	}
 	else
 	{
@@ -422,11 +424,6 @@ void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArr
 		{
 			//!! need to update bounds for this cluster
 			ClusterComponent->RegisterComponent();
-
-			if (ClusterComponent->IsCollisionEnabled() && ClusterComponent->GetWorld()->GetNavigationSystem() != nullptr)
-			{
-				ClusterComponent->GetWorld()->GetNavigationSystem()->UpdateNavOctree(ClusterComponent);
-			}
 			bRemoved = true;
 		}
 	}
@@ -719,6 +716,7 @@ AInstancedFoliageActor::AInstancedFoliageActor(const FPostConstructInitializePro
 #if WITH_EDITORONLY_DATA
 	bListedInSceneOutliner = false;
 #endif // WITH_EDITORONLY_DATA
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 #if WITH_EDITOR
@@ -962,16 +960,23 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorCompo
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		UFoliageType* FoliageType = MeshPair.Key;
 
+		// Duplicate the foliage type if it's not shared
+		if (FoliageType->GetOutermost() == GetOutermost())
+		{
+			FoliageType = (UFoliageType*)StaticDuplicateObject(FoliageType, NewIFA, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
+		}
+		
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InComponent);
 		if (ComponentHashInfo)
 		{
-			FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(MeshPair.Key);
+			FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(FoliageType);
 
 			// Add the foliage to the new level
 			for (int32 InstanceIndex : ComponentHashInfo->Instances)
 			{
-				NewMeshInfo->AddInstance(NewIFA, MeshPair.Key, MeshInfo.Instances[InstanceIndex]);
+				NewMeshInfo->AddInstance(NewIFA, FoliageType, MeshInfo.Instances[InstanceIndex]);
 			}
 
 			// Remove from old level
@@ -992,6 +997,13 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* In
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		UFoliageType* FoliageType = MeshPair.Key;
+
+		// Duplicate the foliage type if it's not shared
+		if (FoliageType->GetOutermost() == GetOutermost())
+		{
+			FoliageType = (UFoliageType*)StaticDuplicateObject(FoliageType, NewIFA, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
+		}
 
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InOldComponent);
 		if (ComponentHashInfo)
@@ -1014,7 +1026,7 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* In
 			}
 			else
 			{
-				FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(MeshPair.Key);
+				FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(FoliageType);
 
 				// Add the foliage to the new level
 				for (int32 InstanceIndex : ComponentHashInfo->Instances)
@@ -1022,7 +1034,7 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* In
 					FFoliageInstance NewInstance = MeshInfo.Instances[InstanceIndex];
 					NewInstance.Base = InNewComponent;
 					NewInstance.ClusterIndex = INDEX_NONE;
-					NewMeshInfo->AddInstance(NewIFA, MeshPair.Key, NewInstance);
+					NewMeshInfo->AddInstance(NewIFA, FoliageType, NewInstance);
 				}
 
 				// Remove from old level

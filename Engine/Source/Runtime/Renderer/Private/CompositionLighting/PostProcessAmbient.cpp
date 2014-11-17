@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "PostProcessAmbient.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing ambient pixel shader. */
 class FPostProcessAmbientPS : public FGlobalShader
@@ -17,7 +18,7 @@ class FPostProcessAmbientPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -70,7 +71,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessAmbientPS,TEXT("PostProcessAmbient"),TEXT("Ma
 
 void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessAmbient, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessAmbient, DEC_SCENE_ITEMS);
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -91,7 +92,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	FScene* Scene = ViewFamily.Scene->GetRenderScene();
 	check(Scene);
@@ -99,7 +100,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	
 	// Ambient cubemap specular will be applied in the reflection environment pass if it is enabled
 	const bool bApplySpecular = View.Family->EngineShowFlags.ReflectionEnvironment == 0 || NumReflectionCaptures == 0;
-	TShaderMapRef<FPostProcessAmbientPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessAmbientPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
@@ -110,7 +111,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 		if(i == 0)
 		{
 			// call it once after setting up the shader data to avoid the warnings in the function
-			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		}
 
 		

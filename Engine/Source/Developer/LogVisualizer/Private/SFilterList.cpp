@@ -88,7 +88,7 @@ public:
 		/** Constructs this widget with InArgs */
 		void Construct(const FArguments& InArgs)
 		{
-			bEnabled = false;
+			bEnabled = true;
 			OnFilterChanged = InArgs._OnFilterChanged;
 			OnRequestRemove = InArgs._OnRequestRemove;
 			OnRequestEnableOnly = InArgs._OnRequestEnableOnly;

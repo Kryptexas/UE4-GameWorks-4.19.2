@@ -40,14 +40,27 @@ class IBlendableInterface
 
 struct FPostProcessMaterialNode
 {
-	FPostProcessMaterialNode(UMaterialInstanceDynamic* InMID, EBlendableLocation InLocation, int32 InPriority)
-		:MID(InMID), Location(InLocation), Priority(InPriority)
+	// default constructor
+	FPostProcessMaterialNode()
+		: MaterialInterface(0), bIsMID(false), Location(BL_MAX), Priority(0)
 	{
 	}
 
-	UMaterialInstanceDynamic* MID;
-	EBlendableLocation Location;
-	int32 Priority;
+	// constructor
+	FPostProcessMaterialNode(UMaterialInterface* InMaterialInterface, EBlendableLocation InLocation, int32 InPriority)
+		: MaterialInterface(InMaterialInterface), bIsMID(false), Location(InLocation), Priority(InPriority)
+	{
+	}
+
+	// constructor
+	FPostProcessMaterialNode(UMaterialInstanceDynamic* InMID, EBlendableLocation InLocation, int32 InPriority)
+		: MaterialInterface((UMaterialInterface*)InMID), bIsMID(true), Location(InLocation), Priority(InPriority)
+	{
+	}
+
+	UMaterialInterface* GetMaterialInterface() const { return MaterialInterface; }
+	// only call if you are sure it's an MID
+	UMaterialInstanceDynamic* GetMID() const { check(bIsMID); return (UMaterialInstanceDynamic*)MaterialInterface; }
 
 	// for type safety in FBlendableManager
 	static const FName& GetFName()
@@ -70,6 +83,19 @@ struct FPostProcessMaterialNode
 			return false;
 		}
 	};
+
+	EBlendableLocation GetLocation() const { return Location; }
+	int32 GetPriority() const { return Priority; }
+
+private:
+	UMaterialInterface* MaterialInterface;
+
+	// if MaterialInterface is an MID, needed for GetMID()
+	bool bIsMID;
+	// e.g. BL_BeforeTonemapping
+	EBlendableLocation Location;
+	// default 0
+	int32 Priority;
 };
 
 

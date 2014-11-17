@@ -9,34 +9,9 @@
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
 
+#include "Shared/AnimationRecorder.h"
 //////////////////////////////////////////////////////////////////////////
 // FPersona
-
-// records the mesh pose to animation input
-struct FAnimationRecorder
-{
-private:
-	int32 SampleRate;
-	float Duration;
-	int32 LastFrame;
-	float TimePassed;
-	UAnimSequence * AnimationObject;
-	TArray<FTransform> PreviousSpacesBases;
-	
-public:
-	FAnimationRecorder();
-	~FAnimationRecorder();
-
-	void StartRecord(USkeletalMeshComponent * Component, UAnimSequence * InAnimationObject, float InDuration);
-	void StopRecord();
-	// return false if nothing to update
-	// return true if it has properly updated
-	bool UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime);
-	const UAnimSequence * GetAnimationObject() const { return AnimationObject; }
-
-private:
-	void Record( USkeletalMeshComponent * Component, TArray<FTransform> SpacesBases, int32 FrameToAdd );
-};
 
 /**
  * Persona asset editor (extends Blueprint editor)
@@ -194,6 +169,7 @@ public:
 
 public:
 	// IToolkit interface
+	virtual FName GetToolkitContextFName() const override;
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FText GetToolkitName() const override;
@@ -330,6 +306,8 @@ private:
 	DECLARE_MULTICAST_DELEGATE( FOnChangeSkeletonTree )
 	// Called when the notifies of the current animation are changed
 	DECLARE_MULTICAST_DELEGATE( FOnChangeAnimNotifies )
+	// Called when the curve panel is changed / updated
+	DECLARE_MULTICAST_DELEGATE( FOnChangeCurves )
 	// Called when the preview viewport is created
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
 	// Called when generic delete happens
@@ -459,6 +437,24 @@ public:
 	/** Delegate for when the skeletons animation notifies have been changed */
 	FOnChangeAnimNotifies OnAnimNotifiesChanged;
 
+	// Curve changed
+	typedef FOnChangeCurves::FDelegate FOnCurvesChanged;
+
+	/** Registers delegate for changing / updating of curves panel */
+	void RegisterOnChangeCurves(const FOnCurvesChanged& Delegate)
+	{
+		OnCurvesChanged.Add(Delegate);
+	}
+
+	/** Unregisters delegate for changing / updating of curves panel */
+	void UnregisterOnChangeCurves(SWidget* Widget)
+	{
+		OnCurvesChanged.RemoveAll(Widget);
+	}
+
+	/** Delegate for changing / updating of curves panel */
+	FOnChangeCurves OnCurvesChanged;
+
 	// Viewport Created
 	typedef FOnCreateViewport::FDelegate FOnViewportCreated;
 
@@ -565,7 +561,7 @@ private:
 
 	// tool bar actions
 	void OnAnimNotifyWindow();
-	void OnRetargetSourceMgr();
+	void OnRetargetManager();
 	void OnReimportMesh();
 	void OnImportAsset(enum EFBXImportType DefaultImportType);
 	void OnReimportAnimation();
@@ -574,6 +570,8 @@ private:
 
 	/** Extend menu and toolbar */
 	void ExtendMenu();
+	/** update skeleton ref pose based on current preview mesh */
+	void UpdateSkeletonRefPose();
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;

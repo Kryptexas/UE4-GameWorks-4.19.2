@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformTime.cpp: Windows implementations of time functions
-=============================================================================*/
-
 #include "Core.h"
 
+
 float FWindowsPlatformTime::CPUTimePctRelative = 0.0f;
+
 
 double FWindowsPlatformTime::InitTiming(void)
 {
@@ -24,6 +22,7 @@ double FWindowsPlatformTime::InitTiming(void)
 	return FPlatformTime::Seconds();
 }
 
+
 void FWindowsPlatformTime::SystemTime( int32& Year, int32& Month, int32& DayOfWeek, int32& Day, int32& Hour, int32& Min, int32& Sec, int32& MSec )
 {
 	SYSTEMTIME st;
@@ -39,6 +38,7 @@ void FWindowsPlatformTime::SystemTime( int32& Year, int32& Month, int32& DayOfWe
 	MSec		= st.wMilliseconds;
 }
 
+
 void FWindowsPlatformTime::UtcTime( int32& Year, int32& Month, int32& DayOfWeek, int32& Day, int32& Hour, int32& Min, int32& Sec, int32& MSec )
 {
 	SYSTEMTIME st;
@@ -53,6 +53,7 @@ void FWindowsPlatformTime::UtcTime( int32& Year, int32& Month, int32& DayOfWeek,
 	Sec			= st.wSecond;
 	MSec		= st.wMilliseconds;
 }
+
 
 /** Holds Windows filetime misc functions. */
 struct FFiletimeMisc
@@ -74,6 +75,7 @@ struct FFiletimeMisc
 		return double(TicksFromFileTime( Filetime ))/double(ETimespan::TicksPerSecond);
 	}
 };
+
 
 bool FWindowsPlatformTime::UpdateCPUTime( float /*DeltaTime*/ )
 {
@@ -107,6 +109,7 @@ bool FWindowsPlatformTime::UpdateCPUTime( float /*DeltaTime*/ )
 
 	return true;
 }
+
 
 FCPUTime FWindowsPlatformTime::GetCPUTime()
 {

@@ -219,26 +219,31 @@ namespace APIDocTool
 			get { return APIMember.ConvertToMarkdown(Node.SelectSingleNode("type")); }
 		}
 
-		public string GetAbbreviatedTypeText()
+		public string TypeText
 		{
-			string TypeText = Type;
-			if (TypeText.StartsWith("class "))
+			get { return Node.SelectSingleNode("type").InnerText; }
+		}
+
+		public string GetAbbreviatedDefinition()
+		{
+			string Text = Definition;
+			if (Text.StartsWith("class "))
 			{
-				TypeText = TypeText.Substring(6);
+				Text = Text.Substring(6);
 			}
-			else if (TypeText.StartsWith("const class "))
+			else if (Text.StartsWith("const class "))
 			{
-				TypeText = "const " + TypeText.Substring(12);
+				Text = "const " + Text.Substring(12);
 			}
-			else if (TypeText.StartsWith("struct "))
+			else if (Text.StartsWith("struct "))
 			{
-				TypeText = TypeText.Substring(7);
+				Text = Text.Substring(7);
 			}
-			else if (TypeText.StartsWith("const struct "))
+			else if (Text.StartsWith("const struct "))
 			{
-				TypeText = "const " + TypeText.Substring(13);
+				Text = "const " + Text.Substring(13);
 			}
-			return TypeText;
+			return Text;
 		}
 
 		public string Definition
@@ -265,7 +270,7 @@ namespace APIDocTool
 			}
 
 			XmlNode DescriptionNode = Node.SelectSingleNode("parameterdescription");
-			Description = DescriptionNode.InnerText;
+			Description = DescriptionNode.InnerText.TrimStart('-', ' ');
 		}
 
 		public UdnListItem GetListItem()
@@ -286,6 +291,7 @@ namespace APIDocTool
 		public string BriefDescription = "";
 		public string FullDescription = "";
 		public string ReturnDescription = "";
+		public List<string> SeeAlso = new List<string>();
 
 		public APIEventParameters EventParameters;
 
@@ -342,6 +348,26 @@ namespace APIDocTool
 			get { APIFunctionGroup ParentFunctionGroup = Parent as APIFunctionGroup; return (ParentFunctionGroup != null) ? ParentFunctionGroup.FullName : base.FullName; }
 		}
 
+		public APIFunction GetBaseImplementation()
+		{
+			APIFunction BaseFunction = this;
+			while(BaseFunction.Reimplements.Count > 0)
+			{
+				BaseFunction = BaseFunction.Reimplements[0];
+			}
+			return BaseFunction;
+		}
+
+		public bool IsDeprecated()
+		{
+			return Name.EndsWith("_DEPRECATED");
+		}
+
+		public bool IsExecFunction()
+		{
+			return Name.Length >= 5 && Name.StartsWith("exec") && Char.IsUpper(Name[4]);
+		}
+
 		public override void AddToManifest(UdnManifest Manifest)
 		{
 			if (FunctionType != APIFunctionType.UnaryOperator && FunctionType != APIFunctionType.BinaryOperator)
@@ -372,6 +398,9 @@ namespace APIDocTool
 					}
 				}
 			}
+
+			// Get the @see directives
+			ParseSeeAlso(Node, SeeAlso);
 
 			// Get the modifiers
 			IsVirtual = Node.Attributes.GetNamedItem("virt").InnerText == "virtual";
@@ -520,7 +549,7 @@ namespace APIDocTool
 			List<string> Lines = new List<string>();
 			if(MetadataDirective != null)
 			{
-				Lines.Add(MetadataDirective.ToMarkdown());
+				Lines.AddRange(MetadataDirective.ToMarkdown());
 			}
 			if (!Utility.IsNullOrWhitespace(TemplateSignature))
 			{
@@ -553,18 +582,6 @@ namespace APIDocTool
 				Lines.Add(Keywords + ReturnType + " " + Utility.EscapeText(Name + "()"));
 			}
 			WriteNestedSimpleCode(Writer, Lines);
-		}
-
-		private void WriteSource(UdnWriter Writer)
-		{
-			Writer.EnterTag("[REGION:simplecode_api]");
-			foreach (string SourceLine in SourceLines)
-			{
-				string EscapedLine = Utility.EscapeText(SourceLine);
-				EscapedLine = EscapedLine.Replace(" ", UdnWriter.Space);
-				Writer.WriteLine(EscapedLine + "  ");
-			}
-			Writer.LeaveTag("[/REGION]");
 		}
 
 		private void WriteSourceSection(UdnWriter Writer)
@@ -645,18 +662,8 @@ namespace APIDocTool
 			using (UdnWriter Writer = new UdnWriter(OutputPath))
 			{
 				Writer.WritePageHeader(FullName, PageCrumbs, BriefDescription);
-				Writer.EnterTag("[OBJECT:Function]");
-
-				// Write the brief description
-				Writer.EnterTag("[PARAM:briefdesc]");
-				if (!Utility.IsNullOrWhitespace(BriefDescription) && BriefDescription != FullDescription)
-				{
-					Writer.WriteLine(BriefDescription);
-				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the warnings
-				Writer.EnterTag("[PARAM:warnings]");
 				if (Warnings.Count > 0)
 				{
 					Writer.EnterTag("[REGION:warning]");
@@ -667,10 +674,8 @@ namespace APIDocTool
 					}
 					Writer.LeaveTag("[/REGION]");
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the virtual hierarchy
-				Writer.EnterTag("[PARAM:overrides]");
 				if (HierarchyNode != null)
 				{
 					Writer.EnterSection("overrides", "Override Hierarchy");
@@ -679,63 +684,49 @@ namespace APIDocTool
 					Writer.LeaveTag("[/REGION]");
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the syntax
-				Writer.EnterTag("[PARAM:syntax]");
 				Writer.EnterSection("syntax", "Syntax");
 				WriteSyntax(Writer);
 				Writer.LeaveSection();
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write the return type
-				Writer.EnterTag("[PARAM:returns]");
-				if(!Utility.IsNullOrWhitespace(ReturnDescription))
-				{
-					Writer.EnterSection("returns", "Returns");
-					Writer.WriteLine(ReturnDescription);
-					Writer.LeaveSection();
-				}
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write the parameters
-				Writer.EnterTag("[PARAM:params]");
-				if (ParameterSummaries.Count > 0)
-				{
-					Writer.WriteListSection("params", "Parameters", "Parameter", "Description", ParameterSummaries.Select(x => x.GetListItem()));
-				}
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write the metadata
-				Writer.EnterTag("[PARAM:meta]");
-				if (MetadataDirective != null)
-				{
-					MetadataDirective.WriteListSection(Writer, "metadata", "Metadata", MetadataLookup.FunctionTags);
-				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the description
-				Writer.EnterTag("[PARAM:description]");
 				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
 					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
+
+				// Enter the body
+				Writer.EnterRegion("syntax");
+
+				// Write the return type
+				if(!Utility.IsNullOrWhitespace(ReturnDescription))
+				{
+					Writer.EnterSection("returns", "Returns");
+					Writer.WriteLine(ReturnDescription);
+					Writer.LeaveSection();
+				}
+
+				// Write the parameters
+				if (ParameterSummaries.Count > 0)
+				{
+					Writer.WriteListSection("params", "Parameters", "Parameter", "Description", ParameterSummaries.Select(x => x.GetListItem()));
+				}
+
+				// Leave the body
+				Writer.LeaveRegion();
 
 				// Write the marshalling struct
-				Writer.EnterTag("[PARAM:marshalling]");
 				if (EventParameters != null)
 				{
 					Writer.EnterSection("marshalling", "Marshalling");
 					Writer.WriteLine("May be called as an event using [{0}]({1}) as parameter frame.", EventParameters.Name, EventParameters.LinkPath);
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the template specializations
-				Writer.EnterTag("[PARAM:specializations]");
 				if(TemplateSpecializations.Count > 0)
 				{
 					Writer.EnterSection("specializations", "Specializations");
@@ -745,27 +736,15 @@ namespace APIDocTool
 					}
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the source
-				Writer.EnterTag("[PARAM:source]");
 				WriteSourceSection(Writer);
-/*
 
-				if (SourceLines != null)
-				{
-					Writer.EnterSection("source", "Source");
-					WriteSource(Writer);
-					Writer.LeaveSection();
-				}
-*/				Writer.LeaveTag("[/PARAM]");
+				// Write the @see directives
+				WriteSeeAlsoSection(Writer, SeeAlso);
 
 				// Write the reference info
-				Writer.EnterTag("[PARAM:references]");
 				WriteReferencesSection(Writer, Entity);
-				Writer.LeaveTag("[/PARAM]");
-
-				Writer.LeaveTag("[/OBJECT]");
 			}
         }
 
@@ -803,7 +782,8 @@ namespace APIDocTool
 				for (int Idx = 0; Idx < Parameters.Count; Idx++)
 				{
 					string Separator = (Idx + 1 == Parameters.Count) ? "" : ",";
-					Writer.WriteLine(UdnWriter.TabSpaces + Parameters[Idx].GetAbbreviatedTypeText() + Separator + "  ");
+					string Definition = Markdown.Truncate(Parameters[Idx].GetAbbreviatedDefinition(), 35, "...");
+					Writer.WriteLine(UdnWriter.TabSpaces + Definition + Separator + "  ");
 				}
 				Writer.WriteEscapedLine(")  ");
 			}
@@ -832,7 +812,7 @@ namespace APIDocTool
 			if (FunctionArray.Length > 0)
 			{
 				Writer.EnterSection(SectionId, SectionTitle);
-				WriteList(Writer, FunctionArray);
+				WriteList(Writer, Functions);
 				Writer.LeaveSection();
 				return true;
 			}

@@ -18,6 +18,7 @@ DECLARE_DELEGATE( FRefreshOffsetsRequest )
 DECLARE_DELEGATE( FDeleteNotify )
 DECLARE_DELEGATE( FDeselectAllNotifies )
 DECLARE_DELEGATE( FCopyNotifies )
+DECLARE_DELEGATE_OneParam( FOnGetBlueprintNotifyData, TArray<FAssetData>& )
 
 class SAnimNotifyNode;
 class SAnimNotifyTrack;
@@ -50,6 +51,70 @@ namespace ENotifyStateHandleHit
 		None
 	};
 }
+
+struct FNotifyMarqueeOperation
+{
+	FNotifyMarqueeOperation()
+		: Operation(Add)
+		, bActive(false)
+	{
+	}
+
+	enum Type
+	{
+		/** Holding down Ctrl removes nodes */
+		Remove,
+		/** Holding down Shift adds to the selection */
+		Add,
+		/** When nothing is pressed, marquee replaces selection */
+		Replace
+	} Operation;
+
+	bool IsValid() const
+	{
+		return Rect.IsValid() && bActive;
+	}
+
+	void Start(const FVector2D& InStartLocation, FNotifyMarqueeOperation::Type InOperationType, TArray<TSharedPtr<SAnimNotifyNode>>& InOriginalSelection)
+	{
+		Rect = FMarqueeRect(InStartLocation);
+		Operation = InOperationType;
+		OriginalSelection = InOriginalSelection;
+	}
+
+	void End()
+	{
+		Rect = FMarqueeRect();
+	}
+
+
+	/** Given a mouse event, figure out what the marquee selection should do based on the state of Shift and Ctrl keys */
+	static FNotifyMarqueeOperation::Type OperationTypeFromMouseEvent(const FPointerEvent& MouseEvent)
+	{
+		if(MouseEvent.IsControlDown())
+		{
+			return FNotifyMarqueeOperation::Remove;
+		}
+		else if(MouseEvent.IsShiftDown())
+		{
+			return FNotifyMarqueeOperation::Add;
+		}
+		else
+		{
+			return FNotifyMarqueeOperation::Replace;
+		}
+	}
+
+public:
+	/** The marquee rectangle being dragged by the user */
+	FMarqueeRect Rect;
+
+	/** Whether the marquee has been activated, usually by a drag */
+	bool bActive;
+
+	/** The original selection state before the marquee selection */
+	TArray<TSharedPtr<SAnimNotifyNode>> OriginalSelection;
+};
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimNotifyPanel
@@ -129,8 +194,17 @@ public:
 	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 	void OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent);
 
-	/** Handler for key press events */
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent);
+	/** SWidget Interface */
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent);	
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnKeyboardFocusLost(const FKeyboardFocusEvent& InKeyboardFocusEvent);
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	/** End SWidget Interface */
+
+	void RefreshMarqueeSelectedNodes(const FGeometry& PanelGeo);
 
 private:
 	TSharedPtr<SBorder> PanelArea;
@@ -139,6 +213,9 @@ private:
 	TAttribute<float> CurrentPosition;
 	FOnSelectionChanged OnSelectionChanged;
 	FOnGetScrubValue OnGetScrubValue;
+	
+	/** Manager for mouse controlled marquee selection */
+	FNotifyMarqueeOperation Marquee;
 
 	/** Delegate to request a refresh of the offsets calculated for notifies */
 	FRefreshOffsetsRequest OnRequestRefreshOffsets;
@@ -175,6 +252,18 @@ private:
 	// Binds the UI commands for this widget to delegates
 	void BindCommands();
 
+	/** Populates the given class array with all classes deriving from those originally present
+	 * @param InAssetsToSearch Assets to search to detect child classes
+	 * @param InOutAllowedClassNames Classes to allow, this will be expanded to cover all derived classes of those originally present
+	 */
+	void PopulateNotifyBlueprintClasses(TArray<FString>& InOutAllowedClasses);
+
+	/** Find blueprints matching allowed classes and all derived blueprints 
+	 * @param OutNotifyData Asset data matching allowed classes and their children
+	 * @param InOutAllowedClassNames Classes to allow, this will be expanded to cover all derived classes of those originally present
+	 */
+	void OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyData, TArray<FString>* InOutAllowedClassNames);
+
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;
 
@@ -183,4 +272,10 @@ private:
 
 	/** UI commands for this widget */
 	TSharedPtr<FUICommandList> UICommandList;
+
+	/** Classes that are known to be derived from blueprint notifies */
+	TArray<FString> NotifyClassNames;
+
+	/** Classes that are known to be derived from blueprint state notifies */
+	TArray<FString> NotifyStateClassNames;
 };

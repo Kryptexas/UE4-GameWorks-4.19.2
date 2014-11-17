@@ -818,6 +818,21 @@ static int ProcessPackedImages(int UniformIndex, void* ctx, _mesa_glsl_parse_sta
 		var->name = ralloc_asprintf(var, "%si%d",
 			glsl_variable_tag_from_parser_target(ParseState->target),
 			NumElements);
+		
+		if (ParseState->bGenerateLayoutLocations)
+		{
+			if (ParseState->target == compute_shader)
+			{
+				var->explicit_location = true;
+				var->location = NumElements;
+			}
+			else
+			{
+				// easy for compute shaders, since all the bindings start at 0, harder for a set of graphics shaders
+				_mesa_glsl_error(ParseState, "assigning explicit locations to UAVs/images is currently only implemented for compute shaders");
+			}
+		}
+
 		NumElements += PackedSampler.num_components;
 	}
 
@@ -1044,6 +1059,7 @@ bool ExtractSamplerStatesNameInformation(exec_list* Instructions, _mesa_glsl_par
 	return true;
 }
 
+// Removes redundant casts (A->B->A), except for the case of a truncation (float->int->float)
 struct FFixRedundantCastsVisitor : public ir_rvalue_visitor
 {
 	FFixRedundantCastsVisitor() {}
@@ -1074,7 +1090,15 @@ struct FFixRedundantCastsVisitor : public ir_rvalue_visitor
 			{
 				if (Expression->type == OperandExpr->operands[0]->type)
 				{
-					*RValuePtr = OperandExpr->operands[0];
+					if (Expression->type->is_float() && OperandExpr->type->is_integer())
+					{
+						// Skip
+					}
+					else
+					{
+						// Remove the conversion
+						*RValuePtr = OperandExpr->operands[0];
+					}
 				}
 			}
 		}

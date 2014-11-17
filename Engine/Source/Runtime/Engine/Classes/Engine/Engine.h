@@ -14,6 +14,7 @@ class FViewport;
 class FCommonViewportClient;
 class FCanvas;
 
+
 UENUM()
 enum EFullyLoadPackageType
 {
@@ -1069,6 +1070,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Settings)
 	float NearClipPlane;
 
+	/** Can the editor report usage analytics (types of assets being spawned, etc...) back to Epic in order for us to improve the editor user experience?  Note: The editor must be restarted for changes to take effect. */
+	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
+	uint32 bEditorAnalyticsEnabled:1;
+
+	/** Can a runtime game/application report anonymous hardware survey statistics (such as display resolution and GPU model) back to Epic? */
+	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
+	uint32 bHardwareSurveyEnabled:1;
+
 	/** Flag for completely disabling subtitles for localized sounds. */
 	UPROPERTY(EditAnywhere, config, Category=Subtitles)
 	uint32 bSubtitlesEnabled:1;
@@ -1104,7 +1113,11 @@ public:
 	/** Batching granularity used to register actor components during level streaming */
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
 	int32 LevelStreamingComponentsRegistrationGranularity;
-	
+
+	/** Script maximum loop iteration count used as a threshold to warn users about script execution runaway */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints)
+	int32 MaximumLoopIterationCount;
+
 	/** @todo document */
 	UPROPERTY(config)
 	uint32 bEnableEditorPSysRealtimeLOD:1;
@@ -1352,10 +1365,6 @@ private:
 
 public:
 
-	/** Enables normal map sampling when Lightmass is generating 'simple' light maps.  This increases lighting build time, but may improve quality when normal maps are used to represent curvature over a large surface area.  When this setting is disabled, 'simple' light maps will not take normal maps into account. */
-	UPROPERTY(globalconfig)
-	uint32 bUseNormalMapsForSimpleLightMaps:1;
-
 	/** determines if we should start the matinee capture as soon as the game loads */
 	UPROPERTY(transient)
 	uint32 bStartWithMatineeCapture:1;
@@ -1419,7 +1428,7 @@ public:
 	void RegisterEndStreamingPauseRenderingDelegate( FEndStreamingPauseDelegate* InDelegate );
 	FEndStreamingPauseDelegate* EndStreamingPauseDelegate;
 
-	/* 
+	/** 
 	 * Error message event relating to server travel failures 
 	 * 
 	 * @param Type type of travel failure
@@ -1428,7 +1437,7 @@ public:
 	DECLARE_EVENT_ThreeParams(UEngine, FOnTravelFailure, UWorld*, ETravelFailure::Type, const FString&);
 	FOnTravelFailure TravelFailureEvent;
 
-	/* 
+	/** 
 	 * Error message event relating to network failures 
 	 * 
 	 * @param Type type of network failure
@@ -1606,7 +1615,6 @@ public:
 	 * Exec command handlers
 	 */
 	bool HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1625,7 +1633,9 @@ public:
 
 	// Compile in Debug or Development
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WITH_HOT_RELOAD
 	bool HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+#endif
 	bool HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpAvailableResolutionsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1636,6 +1646,7 @@ public:
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
 	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
 	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileGlobalShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpShaderStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1954,7 +1965,7 @@ private:
 
 protected:
 
-	/*
+	/**
 	 * Handles freezing/unfreezing of rendering 
 	 * 
 	 * @param InWorld	World context
@@ -1997,7 +2008,7 @@ public:
 	 */
 	void AddTextureStreamingSlaveLoc(FVector InLoc, float BoostFactor, bool bOverrideLocation, float OverrideDuration);
 
-	/* 
+	/** 
 	 * Obtain a world object pointer from an object with has a world context.
 	 * This should be be overridden to cater for game specific object types that do not derive from the Actor class.
 	 *
@@ -2370,12 +2381,14 @@ public:
 	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
+	FWorldContext* GetWorldContextFromPIEInstance(const int32 PIEInstance);
 
 	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
 	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
+	FWorldContext& GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance);
 
 	const TIndirectArray<FWorldContext>& GetWorldContexts() { return WorldList;	}
 

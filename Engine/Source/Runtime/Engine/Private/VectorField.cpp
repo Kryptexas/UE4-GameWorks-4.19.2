@@ -14,6 +14,10 @@
 #include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
+#include "VectorField/VectorField.h"
+#include "VectorField/VectorFieldAnimated.h"
+#include "VectorField/VectorFieldStatic.h"
+#include "SceneUtils.h"
 
 #define MAX_GLOBAL_VECTOR_FIELDS (16)
 DEFINE_LOG_CATEGORY(LogVectorField)
@@ -74,7 +78,7 @@ void FVectorFieldInstance::UpdateTransforms(const FMatrix& LocalToWorld)
 	VolumeToWorldNoScale = LocalToWorld.GetMatrixWithoutScale().RemoveTranslation();
 	VolumeToWorld = FScaleMatrix(VolumeScale) * FTranslationMatrix(VolumeOffset)
 		* LocalToWorld;
-	WorldToVolume = VolumeToWorld.Inverse();
+	WorldToVolume = VolumeToWorld.InverseFast();
 }
 
 /*------------------------------------------------------------------------------
@@ -320,6 +324,17 @@ void UVectorFieldStatic::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 }
 #endif // WITH_EDITOR
 
+class FVectorFieldCollectorResources : public FOneFrameResource
+{
+public:
+	FVectorFieldVisualizationVertexFactory VisualizationVertexFactory;
+
+	virtual ~FVectorFieldCollectorResources()
+	{
+		VisualizationVertexFactory.ReleaseResource();
+	}
+};
+
 /*------------------------------------------------------------------------------
 	Scene proxy for visualizing vector fields.
 ------------------------------------------------------------------------------*/
@@ -352,6 +367,30 @@ public:
 	virtual void CreateRenderThreadResources() override
 	{
 		VisualizationVertexFactory.InitResource();
+	}
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{	
+		QUICK_SCOPE_CYCLE_COUNTER( STAT_VectorFieldSceneProxy_GetDynamicMeshElements );
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+				DrawVectorFieldBounds(PDI, View, VectorFieldInstance);
+
+				// Draw a visualization of the vectors contained in the field when selected.
+				if (IsSelected() || View->Family->EngineShowFlags.VectorFields)
+				{
+					FVectorFieldCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FVectorFieldCollectorResources>();
+					CollectorResources.VisualizationVertexFactory.InitResource();
+
+					GetVectorFieldMesh(&CollectorResources.VisualizationVertexFactory, VectorFieldInstance, ViewIndex, Collector);
+				}
+			}
+		}
 	}
 
 	/**
@@ -761,7 +800,7 @@ public:
 
 		if (GetFeatureLevel() == ERHIFeatureLevel::SM5 && AnimatedVectorField && AnimatedVectorField->Texture && AnimatedVectorField->Texture->Resource)
 		{
-			SCOPED_DRAW_EVENT(AnimateVectorField, DEC_PARTICLE);
+			SCOPED_DRAW_EVENT(RHICmdList, AnimateVectorField, DEC_PARTICLE);
 
 			// Move frame time forward.
 			FrameTime += AnimatedVectorField->FramesPerSecond * DeltaSeconds;
@@ -804,7 +843,7 @@ public:
 			FCompositeAnimatedVectorFieldUniformBufferRef UniformBuffer = 
 				FCompositeAnimatedVectorFieldUniformBufferRef::CreateUniformBufferImmediate(Parameters, UniformBuffer_SingleDraw);
 
-			TShaderMapRef<FCompositeAnimatedVectorFieldCS> CompositeCS(GetGlobalShaderMap());
+			TShaderMapRef<FCompositeAnimatedVectorFieldCS> CompositeCS(GetGlobalShaderMap(GetFeatureLevel()));
 			FTextureRHIParamRef NoiseVolumeTextureRHI = GBlackVolumeTexture->TextureRHI;
 			if (AnimatedVectorField->NoiseField && AnimatedVectorField->NoiseField->Resource)
 			{

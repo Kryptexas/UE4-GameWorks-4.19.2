@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /** Holds generic memory stats, internally implemented as a map. */
 struct FGenericMemoryStats
 {

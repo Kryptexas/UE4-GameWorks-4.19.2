@@ -318,7 +318,6 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
 		FString Filename;
 		if (GenerateNextBitmapFilename(Pattern, Filename, FileManager))
 		{
-			Filename += TEXT(".bmp");
 			FCString::Strcpy(File, *Filename);
 			if ( OutFilename )
 			{
@@ -558,17 +557,24 @@ const TCHAR* FCommandLine::Get()
 	return CmdLine;
 }
 
-void FCommandLine::Set(const TCHAR* NewCommandLine)
-{	
+bool FCommandLine::Set(const TCHAR* NewCommandLine)
+{		
 	FCString::Strncpy( CmdLine, NewCommandLine, ARRAY_COUNT(CmdLine) );
+	bIsInitialized = true;
 
-	// Detect dashes (0x2013) and report an error if they're found
+	// Check for the '-' that normal ones get converted to in Outlook. It's important to do it AFTER the command line is initialized
 	if (StringHasBadDashes(NewCommandLine))
 	{
-		UE_LOG(LogInit, Fatal, TEXT("Illegal character detected in the command line. Replace dash (0x2013) with a hyphen."));
+		FText ErrorMessage = FText::Format(NSLOCTEXT("Engine", "ComdLineHasInvalidChar", "Error: Command-line contains an invalid '-' character, likely pasted from an email.\nCmdline = {0}"), FText::FromString(NewCommandLine));
+#if !UE_BUILD_SHIPPING
+		FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
+		return false;
+#else
+		UE_LOG(LogInit, Fatal, TEXT("%s"), *ErrorMessage.ToString());
+#endif
 	}
 
-	bIsInitialized = true;
+	return true;
 }
 
 void FCommandLine::Append(const TCHAR* AppendString)
@@ -950,6 +956,12 @@ void GenerateConvenientWindowedResolutions(const FDisplayMetrics& InDisplayMetri
 				OutResolutions.Add(FIntPoint(TargetWidth, TargetHeight));
 			}
 		}
+	}
+	
+	// if no convenient resolutions have been found, add a minimum one (if it fits)
+	if (OutResolutions.Num() == 0 && InDisplayMetrics.PrimaryDisplayHeight > MinHeight && InDisplayMetrics.PrimaryDisplayWidth > MinWidth)
+	{
+		OutResolutions.Add(FIntPoint(MinWidth, MinHeight));
 	}
 }
 

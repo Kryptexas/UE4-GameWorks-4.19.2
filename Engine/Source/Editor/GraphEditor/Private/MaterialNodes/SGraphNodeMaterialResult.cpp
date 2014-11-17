@@ -2,6 +2,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeMaterialResult.h"
+#include "TutorialMetaData.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeMaterialResult
@@ -58,3 +59,19 @@ void SGraphNodeMaterialResult::MoveTo(const FVector2D& NewPosition, FNodeSet& No
 	RootNode->Material->MaterialGraph->MaterialDirtyDelegate.ExecuteIfBound();
 }
 
+
+void SGraphNodeMaterialResult::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
+{
+	if( (GraphNode != nullptr) && (RootNode != nullptr) )
+	{		
+		UMaterialGraph* OuterGraph = RootNode->GetTypedOuter<UMaterialGraph>();
+		if (OuterGraph != nullptr)
+		{
+			TagMeta->OuterName = OuterGraph->OriginalMaterialFullName;
+			// There is only one root node - so we dont need a guid. 
+			TagMeta->Tag = FName(*FString::Printf(TEXT("MaterialResNode_%s"), *TagMeta->OuterName));
+			TagMeta->GUID.Invalidate();
+			TagMeta->FriendlyName = FString::Printf(TEXT("Material Result node in %s"), *TagMeta->OuterName);
+ 		}		
+	}
+}

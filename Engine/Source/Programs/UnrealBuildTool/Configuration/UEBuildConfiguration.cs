@@ -15,6 +15,10 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileAPEX;
 
+        /** Whether to allow runtime cooking of physics */
+        [XmlConfig]
+        public static bool bRuntimePhysicsCooking;
+
 		/** Whether to include Box2D support */
 		[XmlConfig]
 		public static bool bCompileBox2D;
@@ -156,10 +160,6 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
-		/** True if plugins should be excluded when building target. */
-		[XmlConfig]
-		public static bool bExcludePlugins;
-
         /** True if we need to package up Android with the OBB in the APK file */
 		[XmlConfig]
         public static bool bOBBinAPK;
@@ -176,6 +176,16 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileForSize;
 
+		/** True if hot-reload from IDE is allowed */
+		[XmlConfig]
+		public static bool bAllowHotReloadFromIDE;
+
+		/** True if performing hot-reload from IDE */
+		public static bool bHotReloadFromIDE;
+
+		/** When true, the targets won't execute their link actions if there was nothing to compile */
+		public static bool bSkipLinkingWhenNothingToCompile;
+
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
@@ -185,6 +195,7 @@ namespace UnrealBuildTool
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
 			bCompilePhysX = true;
 			bCompileAPEX = true;
+            bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
 			bBuildDedicatedServer = false;
 			bBuildEditor = true;
@@ -212,6 +223,9 @@ namespace UnrealBuildTool
 			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
+			bHotReloadFromIDE = false;
+			bAllowHotReloadFromIDE = true;
+			bSkipLinkingWhenNothingToCompile = false;
 		}
 
 		/// <summary>
@@ -220,7 +234,7 @@ namespace UnrealBuildTool
 		public static void PostReset()
 		{
 			// Configuration overrides.
-			string SteamVersion = "Steamv129a";
+			string SteamVersion = "Steamv130";
 			bCompileSteamOSS = bCompileSteamOSS
 			   && Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 

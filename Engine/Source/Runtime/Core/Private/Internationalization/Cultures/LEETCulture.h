@@ -8,10 +8,10 @@
 class FLEETCulture
 {
 public:
-	static TSharedRef<FCulture, ESPMode::ThreadSafe> Create()
+	static FCultureRef Create()
 	{
 #if UE_ENABLE_ICU
-		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture( FString() ) );
+		FCultureRef Culture = MakeShareable( new FCulture( FString() ) );
 #else
 		TArray<FString> InNativeDigits;
 
@@ -135,7 +135,7 @@ public:
 			);
 
 
-		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture(
+		FCultureRef Culture = MakeShareable( new FCulture(
 			  LOCTEXT("LEETCultureDisplayName", "LEET Language (LEET Country)")		//const FText DisplayName
 			, FString(TEXT("LEET Language (LEET Country)"))			//const FString EnglishName
 			, 1033												//const int KeyboardLayoutId

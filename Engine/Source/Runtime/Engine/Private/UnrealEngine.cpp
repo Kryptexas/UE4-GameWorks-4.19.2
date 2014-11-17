@@ -47,6 +47,7 @@
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
@@ -78,8 +79,12 @@
 #include "UnrealExporter.h"
 #include "ComponentReregisterContext.h"
 #include "ContentStreaming.h"
+#include "BufferVisualizationData.h"
 
 #include "Engine/GameInstance.h"
+#include "HotReloadInterface.h"
+#include "STestSuite.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -137,9 +142,10 @@ static TAutoConsoleVariable<int32> CVarAllowOneFrameThreadLag(
 static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("r.SetRes"),
 	TEXT("1280x720w"),
-	TEXT("Set the display resolution for the current game view. Has no effect in the editor.")
-	TEXT("  Format e.g. 1280x720w")
-	TEXT("  	   e.g. 1920x1080f")
+	TEXT("Set the display resolution for the current game view. Has no effect in the editor.\n")
+	TEXT("e.g. 1280x720w for windowed\n")
+	TEXT("     1920x1080f for fullscreen\n")
+	TEXT("     1920x1080wf for windowed fullscreen")
 	);
 
 static TAutoConsoleVariable<float> CVarDepthOfFieldNearBlurSizeThreshold(
@@ -310,7 +316,6 @@ void SystemResolutionSinkCallback()
 	{
 		EWindowMode::Type WindowMode = EWindowMode::ConvertIntToWindowMode(WindowModeInt);
 
-		// TODO: This isn't correct, as we also need to compare the required fullscreen mode to the existing one.
 		if( GSystemResolution.ResX != ResX ||
 			GSystemResolution.ResY != ResY ||
 			GSystemResolution.WindowMode != WindowMode)
@@ -327,7 +332,7 @@ void SystemResolutionSinkCallback()
 	}
 }
 
-/*
+/**
  * if we need to update the sample states
 */
 void RefreshSamplerStatesCallback()
@@ -375,13 +380,19 @@ void RefreshSamplerStatesCallback()
 	}
 }
 
-ENGINE_API void InitializeRenderingCVarsCaching()
+void RefreshEngineSettings()
 {
 	extern void FreeSkeletalMeshBuffersSinkCallback();
-	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&RefreshSamplerStatesCallback));
-	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&ScalabilityCVarsSinkCallback));
-	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&FreeSkeletalMeshBuffersSinkCallback));
-	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&SystemResolutionSinkCallback));
+
+	RefreshSamplerStatesCallback();
+	ScalabilityCVarsSinkCallback();
+	FreeSkeletalMeshBuffersSinkCallback();
+	SystemResolutionSinkCallback();
+}
+
+ENGINE_API void InitializeRenderingCVarsCaching()
+{
+	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&RefreshEngineSettings));
 
 	// Initialise this to invalid
 	GCachedScalabilityCVars.MaterialQualityLevel = EMaterialQualityLevel::Num;
@@ -393,11 +404,7 @@ ENGINE_API void InitializeRenderingCVarsCaching()
 
 void ShutdownRenderingCVarsCaching()
 {
-	extern void FreeSkeletalMeshBuffersSinkCallback();
-	IConsoleManager::Get().UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&RefreshSamplerStatesCallback));
-	IConsoleManager::Get().UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&ScalabilityCVarsSinkCallback));
-	IConsoleManager::Get().UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&FreeSkeletalMeshBuffersSinkCallback));
-	IConsoleManager::Get().UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&SystemResolutionSinkCallback));
+	IConsoleManager::Get().UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&RefreshEngineSettings));
 }
 
 namespace
@@ -707,6 +714,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 		GConfig->GetBool(TEXT("DevOptions.Debug"), TEXT("ShowSelectedLightmap"), GShowDebugSelectedLightmap, GEngineIni);
 	}
+
+	// Update Script Maximum loop iteration count
+	FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( GEngine->MaximumLoopIterationCount );
 
 	GNearClippingPlane = NearClipPlane;
 
@@ -1031,8 +1041,12 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
 		{
+#if PLATFORM_ANDROID
+			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
+#else
 			// AMD dual-core systems are a known issue that require AMD CPU drivers to be installed. Installer will take care of this for shipping.
-			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html"));
+			UE_LOG(LogEngine, Fatal, TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html"));
+#endif
 			FApp::SetDeltaTime(0.01);
 		}
 		LastTime			= FApp::GetCurrentTime();
@@ -1188,7 +1202,7 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
 		// to set the bit
 		else if (!Material->bUsedAsSpecialEngineMaterial && bCheckUsage) 
 		{
-#if !WITH_EDITORONLY_DATA
+#if !WITH_EDITOR
 			// consoles must have the flag set properly in the editor
 			UE_LOG(LogEngine, Fatal,TEXT("The special material (%s) was not marked with bUsedAsSpecialEngineMaterial. Make sure this flag is set in the editor, save the package, and compile shaders for this platform"), *MaterialName);
 #else
@@ -2122,10 +2136,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleFlushLogCommand( Cmd, Ar );
 	}
-	else if( FParse::Command(&Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
-	{
-		return HandleExitCommand( Cmd, Ar );
-	}
 	else if( FParse::Command(&Cmd, TEXT("GAMEVER")) ||  FParse::Command(&Cmd, TEXT("GAMEVERSION")))
 	{
 		return HandleGameVerCommand( Cmd, Ar );
@@ -2207,10 +2217,12 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WITH_HOT_RELOAD
 	else if( FParse::Command(&Cmd,TEXT("HotReload")) )
 	{
 		return HandleHotReloadCommand( Cmd, Ar );
 	}
+#endif // WITH_HOT_RELOAD
 	else if (FParse::Command(&Cmd, TEXT("DumpConsoleCommands")))
 	{
 		return HandleDumpConsoleCommandsCommand( Cmd, Ar, InWorld );
@@ -2250,6 +2262,10 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
+	}
+	else if( FParse::Command(&Cmd,TEXT("ToggleRHIThread")) )
+	{
+		return HandleToggleRHIThreadCommand( Cmd, Ar );
 	}
 	else if( FParse::Command(&Cmd,TEXT("RecompileShaders")) )				    
 	{
@@ -2635,6 +2651,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WITH_HOT_RELOAD
 bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString Module(FParse::Token(Cmd, 0));
@@ -2650,10 +2667,12 @@ bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		TArray< UPackage*> PackagesToRebind;
 		PackagesToRebind.Add( Package );
 		const bool bWaitForCompletion = true;	// Always wait when hotreload is initiated from the console
-		RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
 	}
-	return 1;
+	return true;
 }
+#endif // WITH_HOT_RELOAD
 
 bool UEngine::HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
@@ -2812,7 +2831,7 @@ bool UEngine::HandleViewnamesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		for (int32 NameIndex = FMath::Max<int32>(FName::GetMaxNames() - NumNames, 0); NameIndex < FName::GetMaxNames(); NameIndex++)
 		{
-			Ar.Logf(TEXT("%d->%s"), NameIndex, *FName::SafeString(EName(NameIndex)));
+			Ar.Logf(TEXT("%d->%s"), NameIndex, *FName::SafeString(NameIndex));
 		}
 	}
 	return true;
@@ -2908,6 +2927,28 @@ bool UEngine::HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevic
 		StartRenderingThread();
 	}
 	Ar.Logf( TEXT("RenderThread is now in %s threaded mode."), GUseThreadedRendering ? TEXT("multi") : TEXT("single"));
+	return true;
+}
+
+bool UEngine::HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	if (!GIsThreadedRendering)
+	{
+		check(!GRHIThread);
+		Ar.Logf( TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
+	}
+	else
+	{
+		bool bWasRHIThread = !!GRHIThread;
+		StopRenderingThread();
+		GUseRHIThread = !bWasRHIThread;
+		StartRenderingThread();
+	}
+	Ar.Logf( TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
+#else
+	Ar.Logf( TEXT("This platform does not support the RHI thread."));
+#endif
 	return true;
 }
 
@@ -3225,7 +3266,7 @@ bool UEngine::HandleRemoteTextureStatsCommand( const TCHAR* Cmd, FOutputDevice& 
 			if( UsedMaterials[ MatIndex ] )
 			{
 				UsedTextures.Reset();
-				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false );
+				UsedMaterials[ MatIndex ]->GetUsedTextures( UsedTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false );
 
 				// Increase usage count for all referenced textures
 				for( int32 TextureIndex=0; TextureIndex<UsedTextures.Num(); TextureIndex++ )
@@ -3966,15 +4007,15 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	if( FParse::Command(&Cmd,TEXT("RENDERCHECK")) )
 	{
-		struct FFatal
+		struct FRender
 		{
-			static void Crash()
+			static void Check()
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
 				check(!"Crashing the renderthread via check(0) at your request");
 			}
 		};			
-		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, { FFatal::Crash();});
+		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, { FRender::Check();});
 		return true;
 	}
 	if( FParse::Command(&Cmd,TEXT("RENDERGPF")) )
@@ -3982,9 +4023,18 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, {UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") ); *(int32 *)3 = 123;} );
 		return true;
 	}
+	if( FParse::Command( &Cmd, TEXT( "RENDERFATAL" ) ) )
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, 
+		{
+			UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
+			LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) ); 
+		} );
+		return true;
+	}
 	if( FParse::Command(&Cmd,TEXT("THREADCRASH")) )
 	{
-		struct FFatal
+		struct FThread
 		{
 			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
 			{
@@ -3992,33 +4042,112 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request") );
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(FFatal::Crash), TEXT("Crash")), ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Crash"),
+			STAT_FDelegateGraphTask_FThread__Crash,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Crash),
+				GET_STATID(STAT_FDelegateGraphTask_FThread__Crash)
+			),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	if( FParse::Command(&Cmd,TEXT("THREADCHECK")) )
 	{
-		struct FFatal
+		struct FThread
 		{
-			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
+			static void Check(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
 				check(!"Crashing a worker thread via check(0) at your request");
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(FFatal::Crash), TEXT("Crash")), ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Check"),
+			STAT_FDelegateGraphTask_FThread__Check,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Check),
+				GET_STATID(STAT_FDelegateGraphTask_FThread__Check)
+			),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	if( FParse::Command(&Cmd,TEXT("THREADGPF")) )
 	{
-		struct FFatal
+		struct FThread
 		{
-			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
+			static void GPF(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
 				*(int32 *)3 = 123;
 			}
 		};
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateStatic(FFatal::Crash), TEXT("Crash")), ENamedThreads::GameThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::GPF"),
+			STAT_FDelegateGraphTask_FThread__GPF,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::GPF),
+				GET_STATID(STAT_FDelegateGraphTask_FThread__GPF)
+			),
+			ENamedThreads::GameThread
+		);
+		return true;
+	}
+	else if( FParse::Command( &Cmd, TEXT( "THREADENSURE" ) ) )
+	{
+		struct FThread
+		{
+			static void Ensure( ENamedThreads::Type, const FGraphEventRef& )
+			{
+				UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
+				ensure( 0 );
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::Ensure"),
+			STAT_FThread__Ensure,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Ensure),
+				GET_STATID(STAT_FThread__Ensure)),
+			ENamedThreads::GameThread
+		);
+		return true;
+	}
+	else if( FParse::Command( &Cmd, TEXT( "THREADFATAL" ) ) )
+	{
+		struct FThread
+		{
+			static void Fatal( ENamedThreads::Type, const FGraphEventRef& )
+			{
+				UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
+				LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) );
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::Fatal"),
+			STAT_FThread__Fatal,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Fatal),
+				GET_STATID(STAT_FThread__Fatal)),
+			ENamedThreads::GameThread
+		);
 		return true;
 	}
 	else if( FParse::Command(&Cmd,TEXT("CRASH")) )
@@ -4041,12 +4170,6 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		*(int32 *)3 = 123;
 		return true;
 	}
-	else if( FParse::Command( &Cmd, TEXT("ASSERT") ) )
-	{
-		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-		check(0);
-		return true;
-	}
 	else if( FParse::Command( &Cmd, TEXT("ENSURE") ) )
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
@@ -4054,6 +4177,12 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		{
 			return true;
 		}
+	}
+	else if( FParse::Command( &Cmd, TEXT( "FATAL" ) ) )
+	{
+		UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
+		LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) );
+		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT("RESETLOADERS") ) )
 	{
@@ -4749,7 +4878,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				for ( TFieldIterator<UProperty> It(Obj->GetClass()); It; ++It )
 				{
 					Value.Empty();
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 					if ( HiddenCategories.Num() )
 					{
 						const FString Category = FObjectEditorUtils::GetCategory(*It);
@@ -4794,7 +4923,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 							continue;
 						}
 					}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 					if ( LastOwnerClass != It->GetOwnerClass() )
 					{
 						LastOwnerClass = It->GetOwnerClass();
@@ -5131,17 +5260,6 @@ bool UEngine::HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-bool UEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	// Ignore these commands when running the editor
-	if( !GIsEditor )
-	{
-		Ar.Log( TEXT("Closing by request") );
-		FPlatformMisc::RequestExit( 0 );
-	}
-	return true;
-}
-
 bool UEngine::HandleDumpTicksCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// Handle optional parameters, will dump all tick functions by default.
@@ -5274,24 +5392,24 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 
 void UEngine::InitHardwareSurvey()
 {
-	if (GConfig)
-	{
-		bool bEnabled = false;
-
-		// The hardware survey costs time and we don't want to slow down debug builds.
-		// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
-#if UE_BUILD_DEBUG == 0
-		GConfig->GetBool(TEXT("Engine.HardwareSurvey"), TEXT("bEnableHardwareSurvey"), bEnabled, GEngineIni);
+	bool bEnabled = true;
+#if !WITH_EDITORONLY_DATA
+	bEnabled = bHardwareSurveyEnabled;
 #endif
 
-		if (bEnabled)
+	// The hardware survey costs time and we don't want to slow down debug builds.
+	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
+#if UE_BUILD_DEBUG
+	bEnabled = false;
+#endif
+
+	if (bEnabled)
+	{
+		if (IsHardwareSurveyRequired())
 		{
-			if (IsHardwareSurveyRequired())
-			{
-				bPendingHardwareSurveyResults = true;
-			}
-		}	
-	}
+			bPendingHardwareSurveyResults = true;
+		}
+	}	
 }
 
 void UEngine::TickHardwareSurvey()
@@ -5322,47 +5440,31 @@ void UEngine::TickHardwareSurvey()
 bool UEngine::IsHardwareSurveyRequired()
 {
 	// Analytics must have been initialized FIRST.
-	if (!FEngineAnalytics::IsAvailable())
+	if (!FEngineAnalytics::IsAvailable() || IsRunningDedicatedServer())
 	{
 		return false;
 	}
 
-#if PLATFORM_IOS
-	// look up to see if how long ago the last survey was, if ever
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-	NSDate* SurveyDateTime = [UserSettings objectForKey:@"HardwareSurveyDateTime"];
-
-	// if we never did one, do it now
-	if (SurveyDateTime == nil)
-	{
-		return true;
-	}
-
-	// how long has it been (negate since the past is negative)
-	NSTimeInterval SecondsBeforeNow = -[SurveyDateTime timeIntervalSinceNow];
-	
-	// survey again after a 30 days (TimeDiff is in seconds)
-	return SecondsBeforeNow > (30.0 * 24.0 * 60.0 * 60.0);
-
-#elif PLATFORM_DESKTOP
-
+#if PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_DESKTOP
 	bool bSurveyDone = false;
-	GConfig->GetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), bSurveyDone, GEditorGameAgnosticIni);
-
 	bool bSurveyExpired = false;
-	if (bSurveyDone)
-	{
-		bSurveyExpired = true;
-		FString SurveyDateTimeString;
-		if (GConfig->GetString(TEXT("Engine.HardwareSurvey"), TEXT("HardwareSurveyDateTime"), SurveyDateTimeString, GEditorGameAgnosticIni))
-		{
-			FDateTime SurveyDateTime;
-			if (FDateTime::Parse(SurveyDateTimeString, SurveyDateTime))
-			{
-				FDateTime Now = FDateTime::UtcNow();
-				int MonthsDelta = 12 * (Now.GetYear() - SurveyDateTime.GetYear()) + Now.GetMonth() - SurveyDateTime.GetMonth();
 
-				bSurveyExpired = MonthsDelta > 1 || (MonthsDelta == 1 && Now.GetDay() >= SurveyDateTime.GetDay());
+	// platform agnostic code to get the last time we did a survey
+	FString LastRecordedTimeString;
+	if (FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Hardware Survey"), TEXT("HardwareSurveyDateTime"), LastRecordedTimeString))
+	{
+		// attempt to convert to FDateTime
+		FDateTime LastRecordedTime;
+		if (FDateTime::Parse(LastRecordedTimeString, LastRecordedTime))
+		{
+			bSurveyDone = true;
+
+			// make sure it was a month ago
+			FTimespan Diff = FDateTime::UtcNow() - LastRecordedTime;
+
+			if (Diff.GetTotalDays() > 30)
+			{
+				bSurveyExpired = true;
 			}
 		}
 	}
@@ -5370,7 +5472,7 @@ bool UEngine::IsHardwareSurveyRequired()
 	return !bSurveyDone || bSurveyExpired;
 #else
 	return false;
-#endif		// PLATFORM_DESKTOP
+#endif
 }
 
 FString UEngine::HardwareSurveyBucketRAM(uint32 MemoryMB)
@@ -5485,12 +5587,15 @@ FString UEngine::HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight)
 
 void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResults)
 {
-#if PLATFORM_IOS
+#if PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_DESKTOP
 	if (FEngineAnalytics::IsAvailable())
 	{
-		// mark now as last survey time
-		NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-		[UserSettings setObject:[NSDate date] forKey:@"HardwareSurveyDateTime"];
+		IAnalyticsProvider& Analytics = FEngineAnalytics::GetProvider();
+
+		// remember last time we did a survey
+		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Hardware Survey"), TEXT("HardwareSurveyDateTime"), FDateTime::UtcNow().ToString());
+
+#if PLATFORM_IOS || PLATFORM_ANDROID
 
 		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
 		// copy from what IOSPlatformSurvey has filled out
@@ -5505,19 +5610,13 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("DisplayResolution"), DisplayResolution));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("ViewResolution"), ViewResolution));
 	
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("IOSHardwareStats"), HardwareStatsAttribs);
-	}
+#if PLATFORM_ANDROID
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("GPUModel"), SurveyResults.Displays[0].GPUCardName));
+#endif
+
+		Analytics.RecordEvent(*FString::Printf(TEXT("%sHardwareStats"), FPlatformProperties::IniPlatformName()), HardwareStatsAttribs);
 
 #elif PLATFORM_DESKTOP
-	if (GConfig)
-	{
-		GConfig->SetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), true, GEditorGameAgnosticIni);
-		GConfig->SetString(TEXT("Engine.HardwareSurvey"), TEXT("HardwareSurveyDateTime"), *FDateTime::UtcNow().ToString(), GEditorGameAgnosticIni);
-	}
-
-	if (FEngineAnalytics::IsAvailable())
-	{
-		IAnalyticsProvider& Analytics = FEngineAnalytics::GetProvider();
 
 		TArray<FAnalyticsEventAttribute> HardwareWEIAttribs;
 		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.CPUPerformanceIndex )));
@@ -5618,8 +5717,9 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.WEI.Detail" ), SurveyResults.LastPerformanceIndexErrorDetail));
 
 		Analytics.RecordEvent(TEXT( "HardwareStatErrors.1" ), HardwareStatErrorsAttribs);
+#endif // PLATFORM_DESKTOP
 	}
-#endif		// PLATFORM_DESKTOP
+#endif
 }
 
 static TAutoConsoleVariable<float> CVarMaxFPS(
@@ -7171,13 +7271,13 @@ void UEngine::ShutdownAllNetDrivers()
 	{
 		TArray<FNamedNetDriver> & ActiveNetDrivers = It->ActiveNetDrivers;
 
-	for (int32 Index = 0; Index < ActiveNetDrivers.Num(); Index++)
-	{
-		FNamedNetDriver& NamedNetDriver = ActiveNetDrivers[Index];
-		UNetDriver* NetDriver = NamedNetDriver.NetDriver;
-		if (NetDriver)
+		for (int32 Index = 0; Index < ActiveNetDrivers.Num(); Index++)
 		{
-			UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
+			FNamedNetDriver& NamedNetDriver = ActiveNetDrivers[Index];
+			UNetDriver* NetDriver = NamedNetDriver.NetDriver;
+			if (NetDriver)
+			{
+				UE_LOG(LogNet, Log, TEXT("World NetDriver shutdown %s [%s]"), *NetDriver->GetName(), *NetDriver->NetDriverName.ToString());
 				UWorld * World = NetDriver->GetWorld();
 				if (World)
 				{
@@ -7185,11 +7285,11 @@ void UEngine::ShutdownAllNetDrivers()
 				}
 				NetDriver->SetWorld(NULL);
 				DestroyNamedNetDriver(It->World(), NetDriver->NetDriverName);
+			}
 		}
-	}
 
-	ActiveNetDrivers.Empty();
-}
+		ActiveNetDrivers.Empty();
+	}
 }
 
 UNetDriver* FindNamedNetDriver_Local(const TArray<FNamedNetDriver>& ActiveNetDrivers, FName NetDriverName)
@@ -7329,8 +7429,10 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 	if (InWorld)
 	{
 		ULocalPlayer* const LP = GEngine->GetFirstGamePlayer(InWorld);
-		check(LP);
-		LP->HandleDisconnect(InWorld, NetDriver);
+		if(ensure(LP))
+		{
+			LP->HandleDisconnect(InWorld, NetDriver);
+		}
 	}
 	else if(NetDriver && NetDriver->NetDriverName == NAME_PendingNetDriver)
 	{
@@ -7339,8 +7441,10 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 		check(Context.OwningGameInstance != NULL && Context.OwningGameInstance->GetFirstGamePlayer() != NULL);
 
 		ULocalPlayer* const LP = Context.OwningGameInstance->GetFirstGamePlayer();
-		check(LP);
-		LP->HandleDisconnect(InWorld, NetDriver);
+		if(ensure(LP))
+		{
+			LP->HandleDisconnect(InWorld, NetDriver);
+		}
 	}
 	else
 	{
@@ -8281,10 +8385,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 		for (FActorIterator ActorIt(WorldContext.World()); ActorIt; ++ActorIt)
 		{
-			if (ActorIt->bActorInitialized)
-			{
-				ActorIt->EndPlay(EEndPlayReason::LevelTransition);
-			}
+			ActorIt->RouteEndPlay(EEndPlayReason::LevelTransition);
 		}
 
 		// Do this after destroying pawns/playercontrollers, in case that spawns new things (e.g. dropped weapons)
@@ -8308,7 +8409,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Stop all audio to remove references to current level.
 	if( GEngine && GEngine->GetAudioDevice() )
 	{
-		GEngine->GetAudioDevice()->Flush( NULL );
+		GEngine->GetAudioDevice()->Flush( WorldContext.World() );
 		// reset transient volume
 		GEngine->GetAudioDevice()->TransientMasterVolume = 1.0;
 	}
@@ -8614,7 +8715,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	if (WorldContext.World()->WorldComposition)
 	{
 		// Set initial world origin and stream in levels
-		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
+		WorldContext.World()->NavigateTo(FIntVector::ZeroValue);
 	}
 	else
 	{
@@ -8627,7 +8728,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	WorldContext.World()->CreateAISystem();
 
 	// Initialize gameplay for the level.
-	WorldContext.World()->InitializeActorsForPlay(URL);
+	WorldContext.World()->InitializeActorsForPlay(URL);		
 
 	// Remember the URL. Put this before spawning player controllers so that
 	// a player controller can get the map name during initialization and
@@ -9008,6 +9109,27 @@ FWorldContext& UEngine::GetWorldContextFromPendingNetGameNetDriverChecked(const 
 	return HandleInvalidWorldContext();
 }
 
+FWorldContext* UEngine::GetWorldContextFromPIEInstance(const int32 PIEInstance)
+{
+	for (FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.WorldType == EWorldType::PIE && WorldContext.PIEInstance == PIEInstance)
+		{
+			return &WorldContext;
+		}
+	}
+	return NULL;
+}
+
+FWorldContext& UEngine::GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance)
+{
+	if (FWorldContext* WorldContext = GetWorldContextFromPIEInstance(PIEInstance))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
+}
+
 UPendingNetGame* UEngine::PendingNetGameFromWorld( UWorld* InWorld )
 {
 	return GetWorldContextFromWorldChecked(InWorld).PendingNetGame;
@@ -9269,7 +9391,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 				ULevelStreamingPersistent* PersistentLevel = Cast<ULevelStreamingPersistent>(Context.World()->StreamingLevels[LevelIndex]);
 				if (PersistentLevel)
 				{
-					PreviousMapName = PersistentLevel->PackageName.ToString();
+					PreviousMapName = PersistentLevel->GetWorldAssetPackageName();
 					// only one persistent level
 					break;
 				}
@@ -9345,7 +9467,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 		// Propagate level and name to streaming object.
 		LevelStreamingPersistent->SetLoadedLevel(FakePersistentLevel);
-		LevelStreamingPersistent->PackageName	= FakePersistentLevelName;
+		LevelStreamingPersistent->SetWorldAssetByPackageName(FakePersistentLevelName);
 		// And add it to the world info's list of levels.
 		Context.World()->StreamingLevels.Add( LevelStreamingPersistent );
 
@@ -9365,7 +9487,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 				// was this one of the packages we wanted to load?
 				for (int32 LoadLevelIndex = 0; LoadLevelIndex < Context.LevelsToLoadForPendingMapChange.Num(); LoadLevelIndex++)
 				{
-					if (Context.LevelsToLoadForPendingMapChange[LoadLevelIndex] == StreamingLevel->PackageName)
+					if (Context.LevelsToLoadForPendingMapChange[LoadLevelIndex] == StreamingLevel->GetWorldAssetPackageFName())
 					{
 						bWasFound = true;
 						break;
@@ -9419,7 +9541,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 				ULevelStreaming* LevelStreamingObject = NULL;
 				for (int32 j = 0; j < Context.World()->StreamingLevels.Num(); j++)
 				{
-					if (Context.World()->StreamingLevels[j] != NULL && Context.World()->StreamingLevels[j]->PackageName == Context.PendingLevelStreamingStatusUpdates[i].PackageName)
+					if (Context.World()->StreamingLevels[j] != NULL && Context.World()->StreamingLevels[j]->GetWorldAssetPackageFName() == Context.PendingLevelStreamingStatusUpdates[i].PackageName)
 					{
 						LevelStreamingObject = Context.World()->StreamingLevels[j];
 						if (LevelStreamingObject != NULL)
@@ -9543,6 +9665,79 @@ static TAutoConsoleVariable<int32> CVarDumpCopyPropertiesForUnrelatedObjects(
 	0,
 	TEXT("Dump the objects that are cross class copied")
 	);
+
+struct FFindInstancedReferenceSubobjectHelper
+{
+	template<typename T>
+	static void Get(const UStruct* Struct, const uint8* ContainerAddress, T& OutObjects)
+	{
+		check(ContainerAddress);
+		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
+		{
+			if (Prop->HasAnyPropertyFlags(CPF_InstancedReference))
+			{
+				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
+				if (ObjectProperty)
+				{
+					for (int32 ArrayIdx = 0; ArrayIdx < Prop->ArrayDim; ++ArrayIdx)
+					{
+						auto ObjectValue = ObjectProperty->GetObjectPropertyValue_InContainer(ContainerAddress, ArrayIdx);
+						if (ObjectValue)
+						{
+							OutObjects.Add(ObjectValue);
+						}
+					}
+				}
+				else
+				{
+					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
+					auto InnerObjectProperty = ArrayProperty ? Cast<const UObjectProperty>(ArrayProperty->Inner) : NULL;
+					if (InnerObjectProperty)
+					{
+						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+						{
+							UObject** ObjectValuePtr = reinterpret_cast<UObject**>(ArrayHelper.GetRawPtr(ElementIndex));
+							if (ObjectValuePtr && *ObjectValuePtr)
+							{
+								OutObjects.Add(*ObjectValuePtr);
+							}
+						}
+					}
+				}
+			}
+			else if (Prop->HasAnyPropertyFlags(CPF_ContainsInstancedReference))
+			{
+				auto StructProperty = Cast<const UStructProperty>(Prop);
+				if (StructProperty && StructProperty->Struct)
+				{
+					for (int32 ArrayIdx = 0; ArrayIdx < Prop->ArrayDim; ++ArrayIdx)
+					{
+						const uint8* ValueAddress = StructProperty->ContainerPtrToValuePtr<uint8>(ContainerAddress, ArrayIdx);
+						Get(StructProperty->Struct, ValueAddress, OutObjects);
+					}
+				}
+				else
+				{
+					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
+					auto InnerStructProperty = ArrayProperty ? Cast<const UStructProperty>(ArrayProperty->Inner) : NULL;
+					if (InnerStructProperty && InnerStructProperty->Struct)
+					{
+						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+						{
+							const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
+							if (ValueAddress)
+							{
+								Get(InnerStructProperty->Struct, ValueAddress, OutObjects);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+};
 
 void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, FCopyPropertiesForUnrelatedObjectsParams Params)
 {
@@ -9679,6 +9874,35 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			}
 		}
 	}
+
+	if (OldObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) &&
+		NewObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference))
+	{
+		TSet<UObject*> OldEditInlineObjects;
+		FFindInstancedReferenceSubobjectHelper::Get(OldObject->GetClass(), reinterpret_cast<uint8*>(OldObject), OldEditInlineObjects);
+		if (OldEditInlineObjects.Num())
+		{
+			TSet<UObject*> NewEditInlineObjects;
+			FFindInstancedReferenceSubobjectHelper::Get(NewObject->GetClass(), reinterpret_cast<uint8*>(NewObject), NewEditInlineObjects);
+			for (auto Obj : NewEditInlineObjects)
+			{
+				const bool bProperOuter = (Obj->GetOuter() == OldObject);
+				const bool bEditInlineNew = Obj->GetClass()->HasAnyClassFlags(CLASS_EditInlineNew | CLASS_DefaultToInstanced);
+				if (bProperOuter && bEditInlineNew)
+				{
+					const bool bKeptByOld = OldEditInlineObjects.Contains(Obj);
+					const bool bNotHandledYet = !ReferenceReplacementMap.Contains(Obj);
+					if (bKeptByOld && bNotHandledYet)
+					{
+						UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject, NULL);
+						ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
+					}
+				}
+			}
+		}
+	}
+	
+
 
 	// Replace anything with an outer of the old object with NULL, unless it already has a replacement
 	TArray<UObject*> ObjectsInOuter;
@@ -9822,8 +10046,9 @@ static TAutoConsoleVariable<int32> CVarAllowHighQualityLightMaps(
 bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 {
 	return FPlatformProperties::SupportsHighQualityLightmaps()
-		&& (FeatureLevel > ERHIFeatureLevel::ES2)
-		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0);
+		&& (FeatureLevel > ERHIFeatureLevel::ES3_1)
+		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0)
+		&& !IsMobilePlatform(GShaderPlatformForFeatureLevel[FeatureLevel]);
 }
 
 bool AllowHighQualityLightmaps()

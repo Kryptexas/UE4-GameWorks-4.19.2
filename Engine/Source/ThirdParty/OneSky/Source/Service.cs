@@ -41,18 +41,18 @@ namespace OneSky
             Success
         }
 
-        public Task<ExportTranslationState> ExportTranslation(CultureInfo locale, Stream destinationStream)
+        public Task<ExportTranslationState> ExportTranslation(CultureInfo culture, Stream destinationStream)
         {
             return Task.Factory.StartNew(() =>
             {
-                var export = TranslationApi.Export(Connection, OwningProject.Id, Filename, locale, destinationStream);
+                var export = TranslationApi.Export(Connection, OwningProject.Id, Filename, culture, destinationStream);
 
                 while (export == TranslationExport.Accepted) //Began exporting translations
                 {
-                    Task statusTask = TranslationApi.Status(Connection, OwningProject.Id, Filename, locale);
+                    Task statusTask = TranslationApi.Status(Connection, OwningProject.Id, Filename, culture);
                     statusTask.Wait();
 
-                    export = TranslationApi.Export(Connection, OwningProject.Id, Filename, locale, destinationStream);
+                    export = TranslationApi.Export(Connection, OwningProject.Id, Filename, culture, destinationStream);
                 }
 
                 if (export == TranslationExport.Completed)
@@ -208,7 +208,7 @@ namespace OneSky
             }
         }
 
-        public Task<UploadedFile> Upload(string filename, Stream stream, CultureInfo locale)
+        public Task<UploadedFile> Upload(string filename, Stream stream, CultureInfo culture)
         {
             return Task.Factory.StartNew(() =>
             {
@@ -217,7 +217,7 @@ namespace OneSky
                     return null;
                 }
 
-                var response = FileApi.Upload(Connection, Id, filename, stream, locale).Result;
+                var response = FileApi.Upload(Connection, Id, filename, stream, culture).Result;
 
                 if (response != null && response.Meta.Status == 201)
                 {
@@ -315,13 +315,13 @@ namespace OneSky
                 if (_cultures == null)
                 {
                     var response = ProjectGroupApi.ListEnabledLanguages(Connection, Id);
-                    _cultures = response.Data.Select(l => new CultureInfo(l.Code));
+                    _cultures = response.Data.Select(c => new CultureInfo(LocaleCodeHelper.ConvertFromLocaleCode(c.Code)));
 
-                    var baseLanguage = response.Data.FirstOrDefault(l => l.IsBaseLanguage);
+                    var baseLanguage = response.Data.FirstOrDefault(c => c.IsBaseLanguage);
 
                     if (baseLanguage != null)
                     {
-                        BaseCulture = new CultureInfo(baseLanguage.Code);
+                        BaseCulture = new CultureInfo(LocaleCodeHelper.ConvertFromLocaleCode(baseLanguage.Code));
                     }
                 }
 
@@ -605,7 +605,7 @@ namespace OneSky
                     yield return new ProjectGroup
                     {
                         Id = projectGroupInfo.Id,
-                        Name = projectGroupInfo.Name,
+                        Name = new string(projectGroupInfo.Name.TakeWhile(c => c != '\0').ToArray()),
                         Connection = this
                     };
                 }

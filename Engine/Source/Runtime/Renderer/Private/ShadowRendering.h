@@ -283,12 +283,28 @@ template <bool bRenderingReflectiveShadowMaps> class TShadowDepthBasePS;
 class FShadowStaticMeshElement;
 
 /**
+ * The shadow depth drawing policy's context data.
+ */
+struct FShadowDepthDrawingPolicyContext : FMeshDrawingPolicy::ContextDataType
+{
+	/** The projected shadow info for which we are rendering shadow depths. */
+	const FProjectedShadowInfo* ShadowInfo;
+
+	/** Initialization constructor. */
+	explicit FShadowDepthDrawingPolicyContext(const FProjectedShadowInfo* InShadowInfo)
+		: ShadowInfo(InShadowInfo)
+	{}
+};
+
+/**
  * Outputs no color, but can be used to write the mesh's depth values to the depth buffer.
  */
 template <bool bRenderingReflectiveShadowMaps>
 class FShadowDepthDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
+	typedef FShadowDepthDrawingPolicyContext ContextDataType;
+
 	FShadowDepthDrawingPolicy(
 		const FMaterial* InMaterialResource,
 		bool bInDirectionalLight,
@@ -333,7 +349,7 @@ public:
 			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
 			&& bPreShadow == Other.bPreShadow;
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/** 
 	 * Create bound shader state using the vertex decl from the mesh draw policy
@@ -349,19 +365,12 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 		) const;
-
-	void UnSetMeshRenderState() const;
 
 	template<bool T2>
 	friend int32 CompareDrawingPolicy(const FShadowDepthDrawingPolicy<T2>& A,const FShadowDepthDrawingPolicy<T2>& B);
-
-	/** 
-	 * Shadow currently being rendered by a FShadowDepthDrawingPolicy.  
-	 * This is global so that different shadows can be used with the same static draw list. 
-	 */
-	static const FProjectedShadowInfo* PolicyShadowInfo;
 
 	bool IsReversingCulling() const
 	{
@@ -384,13 +393,6 @@ public:
 	uint32 bUsePositionOnlyVS:1;
 	uint32 bPreShadow:1;
 };
-
-/** 
- * Shadow currently being rendered by a FShadowDepthDrawingPolicy.  
- * This is global so that different shadows can be used with the same static draw list. 
- */
-extern const FProjectedShadowInfo* GShadowInfo;
-
 
 /**
  * A drawing policy factory for the shadow depth drawing policy.
@@ -602,6 +604,9 @@ public:
 	/** Whether the shadow is a preshadow or not.  A preshadow is a per object shadow that handles the static environment casting on a dynamic receiver. */
 	uint32 bPreShadow : 1;
 
+	/** Whether the shadow is a directional light cascade that should be computed by ray tracing mesh distance fields. */
+	uint32 bRayTracedDistanceFieldShadow : 1;
+
 	uint32 bValidTransform : 1;
 
 	TBitArray<SceneRenderingBitArrayAllocator> StaticMeshWholeSceneShadowDepthMap;
@@ -662,17 +667,20 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	/** Renders shadow maps for translucent primitives. */
-	void RenderTranslucencyDepths(FRHICommandListImmediate& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
+	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer);
 
 	/**
 	 * Projects the shadow onto the scene for a particular view.
 	 */
 	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View) const;
+
+	/** Renders ray traced distance field shadows. */
+	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View) const;
 
 	/** Render one pass point light shadow projections. */
 	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View) const;
@@ -741,9 +749,23 @@ public:
 
 private:
 
+	/**
+	* Renders the shadow subject depth, to a particular hacked view
+	*/
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+
+	/**
+	* Renders the dynamic shadow subject depth, to a particular hacked view
+	*/
+	friend class FRenderDepthDynamicThreadTask;
+	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
 	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);
+
+	/** Updates object buffers needed by ray traced distance field shadows. */
+	int32 UpdateShadowCastingObjectBuffers() const;
 };
 
 /** Shader parameters for rendering the depth of a mesh for shadowing. */
@@ -985,8 +1007,6 @@ public:
 		ShadowBufferSize.Bind(ParameterMap,TEXT("ShadowBufferSize"));
 		ShadowDepthTexture.Bind(ParameterMap,TEXT("ShadowDepthTexture"));
 		ShadowDepthTextureSampler.Bind(ParameterMap,TEXT("ShadowDepthTextureSampler"));
-		ShadowDepthTextureObject.Bind(ParameterMap,TEXT("ShadowDepthTextureObject"));
-		ShadowDepthSampler.Bind(ParameterMap,TEXT("ShadowDepthSampler"));
 		ProjectionDepthBias.Bind(ParameterMap,TEXT("ProjectionDepthBiasParameters"));
 		FadePlaneOffset.Bind(ParameterMap,TEXT("FadePlaneOffset"));
 		InvFadePlaneLength.Bind(ParameterMap,TEXT("InvFadePlaneLength"));
@@ -1022,14 +1042,13 @@ public:
 		FTexture2DRHIRef ShadowDepthTextureValue = GSceneRenderTargets.GetShadowDepthZTexture(ShadowInfo->bAllocatedInPreshadowCache);
 		FSamplerStateRHIParamRef DepthSamplerState = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
-		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);
-		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTextureObject, ShadowDepthTextureValue);
+		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);		
 
-		if (ShadowDepthSampler.IsBound())
+		if (ShadowDepthTextureSampler.IsBound())
 		{
 			RHICmdList.SetShaderSampler(
 				ShaderRHI, 
-				ShadowDepthSampler.GetBaseIndex(), 
+				ShadowDepthTextureSampler.GetBaseIndex(),
 				DepthSamplerState
 				);
 		}
@@ -1053,8 +1072,6 @@ public:
 		Ar << P.ShadowBufferSize;
 		Ar << P.ShadowDepthTexture;
 		Ar << P.ShadowDepthTextureSampler;
-		Ar << P.ShadowDepthTextureObject;
-		Ar << P.ShadowDepthSampler;
 		Ar << P.ProjectionDepthBias;
 		Ar << P.FadePlaneOffset;
 		Ar << P.InvFadePlaneLength;
@@ -1069,8 +1086,6 @@ private:
 	FShaderParameter ShadowBufferSize;
 	FShaderResourceParameter ShadowDepthTexture;
 	FShaderResourceParameter ShadowDepthTextureSampler;
-	FShaderResourceParameter ShadowDepthTextureObject;
-	FShaderResourceParameter ShadowDepthSampler;
 	FShaderParameter ProjectionDepthBias;
 	FShaderParameter FadePlaneOffset;
 	FShaderParameter InvFadePlaneLength;
@@ -1105,7 +1120,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/**

@@ -6,6 +6,7 @@
 #include "ScopedTransaction.h"
 #include "Landscape/Landscape.h"
 #include "Landscape/LandscapeEdit.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeSplineProxies.h"
@@ -17,21 +18,20 @@
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
-class FLandscapeToolStrokeSelect : FLandscapeStrokeBase<const FLandscapeToolTarget>
+class FLandscapeToolStrokeSelect : public FLandscapeToolStrokeBase
 {
 	bool bInitializedComponentInvert;
 	bool bComponentInvert;
 
 public:
 	FLandscapeToolStrokeSelect(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: FLandscapeStrokeBase<const FLandscapeToolTarget>(InTarget)
+		: bInitializedComponentInvert(false)
 		, LandscapeInfo(InTarget.LandscapeInfo.Get())
 		, Cache(InTarget)
-		, bInitializedComponentInvert(false)
 	{
 	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (LandscapeInfo)
 		{
@@ -166,7 +166,8 @@ class FLandscapeToolSelect : public FLandscapeToolBase<TStrokeClass>
 public:
 	FLandscapeToolSelect(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<TStrokeClass>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Select"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Selection", "Component Selection"); };
@@ -182,7 +183,8 @@ class FLandscapeToolMask : public FLandscapeToolSelect<TStrokeClass>
 public:
 	FLandscapeToolMask(FEdModeLandscape* InEdMode)
 		: FLandscapeToolSelect<TStrokeClass>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Mask"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Mask", "Region Selection"); };
@@ -190,15 +192,18 @@ public:
 	virtual bool SupportsMask() override { return true; }
 };
 
-class FLandscapeToolStrokeVisibility
+class FLandscapeToolStrokeVisibility : public FLandscapeToolStrokeBase
 {
 public:
+	enum { UseContinuousApply = false };
+
 	FLandscapeToolStrokeVisibility(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
 		, Cache(InTarget)
-	{}
+	{
+	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (LandscapeInfo)
 		{
@@ -265,7 +270,8 @@ class FLandscapeToolVisibility : public FLandscapeToolBase<FLandscapeToolStrokeV
 public:
 	FLandscapeToolVisibility(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeVisibility>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Visibility"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Visibility", "Visibility"); };
@@ -282,11 +288,14 @@ public:
 class FLandscapeToolStrokeMoveToLevel
 {
 public:
+	enum { UseContinuousApply = false };
+
 	FLandscapeToolStrokeMoveToLevel(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
-	{}
+	{
+	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		ALandscape* Landscape = LandscapeInfo ? LandscapeInfo->LandscapeActor.Get() : NULL;
 
@@ -729,7 +738,8 @@ class FLandscapeToolMoveToLevel : public FLandscapeToolBase<FLandscapeToolStroke
 public:
 	FLandscapeToolMoveToLevel(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeMoveToLevel>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("MoveToLevel"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_MoveToLevel", "Move to Streaming Level"); };
@@ -739,7 +749,7 @@ public:
 };
 
 
-class FLandscapeToolStrokeAddComponent
+class FLandscapeToolStrokeAddComponent : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeAddComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
@@ -747,7 +757,8 @@ public:
 		,	LandscapeInfo(InTarget.LandscapeInfo.Get())
 		,	HeightCache(InTarget)
 		,	XYOffsetCache(InTarget)
-	{}
+	{
+	}
 
 	virtual ~FLandscapeToolStrokeAddComponent()
 	{
@@ -840,11 +851,9 @@ public:
 				XYOffsetCache.SetCachedData(X1, Y1, X2, Y2, XYOffsetData);
 				XYOffsetCache.Flush();
 			}
-			else
-			{
-			HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
-			HeightCache.Flush();
-			}
+
+				HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
+				HeightCache.Flush();
 
 			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
 			{
@@ -905,7 +914,8 @@ class FLandscapeToolAddComponent : public FLandscapeToolBase<FLandscapeToolStrok
 public:
 	FLandscapeToolAddComponent(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeAddComponent>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("AddComponent"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_AddComponent", "Add New Landscape Component"); };
@@ -921,14 +931,15 @@ public:
 	}
 };
 
-class FLandscapeToolStrokeDeleteComponent
+class FLandscapeToolStrokeDeleteComponent : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeDeleteComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 		: LandscapeInfo(InTarget.LandscapeInfo.Get())
-	{}
+	{
+	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		if (LandscapeInfo)
 		{
@@ -1114,7 +1125,8 @@ class FLandscapeToolDeleteComponent : public FLandscapeToolBase<FLandscapeToolSt
 public:
 	FLandscapeToolDeleteComponent(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeDeleteComponent>(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("DeleteComponent"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_DeleteComponent", "Delete Landscape Components"); };
@@ -1124,7 +1136,7 @@ public:
 };
 
 template<class ToolTarget>
-class FLandscapeToolStrokeCopy
+class FLandscapeToolStrokeCopy : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeCopy(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
@@ -1133,7 +1145,8 @@ public:
 		, Cache(InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
-	{}
+	{
+	}
 
 	struct FGizmoPreData
 	{
@@ -1141,7 +1154,7 @@ public:
 		float Data;
 	};
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		//ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo;
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -1208,7 +1221,7 @@ public:
 			const float W = (Width - ScaleXY) / (2 * ScaleXY);
 			const float H = (Height - ScaleXY) / (2 * ScaleXY);
 
-			FMatrix WToL = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale().Inverse();
+			FMatrix WToL = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale().InverseFast();
 			//FMatrix LToW = Landscape->LocalToWorld();
 
 			FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
@@ -1434,7 +1447,8 @@ class FLandscapeToolCopy : public FLandscapeToolBase<FLandscapeToolStrokeCopy<To
 public:
 	FLandscapeToolCopy(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeCopy<ToolTarget> >(InEdMode)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Copy"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Copy", "Copy"); };
@@ -1454,7 +1468,7 @@ public:
 	{
 		check(this->MousePositions.Num() == 0);
 		this->bToolActive = true;
-		this->ToolStroke = new FLandscapeToolStrokeCopy<ToolTarget>(this->EdMode, InTarget);
+		this->ToolStroke.Emplace(this->EdMode, InTarget);
 
 		this->EdMode->GizmoBrush->Tick(ViewportClient, 0.1f);
 		this->EdMode->GizmoBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
@@ -1473,8 +1487,7 @@ public:
 			this->MousePositions.Empty();
 		}
 
-		delete this->ToolStroke;
-		this->ToolStroke = NULL;
+		this->ToolStroke.Reset();
 		this->bToolActive = false;
 		this->EdMode->GizmoBrush->EndStroke();
 	}
@@ -1487,7 +1500,7 @@ public:
 };
 
 template<class ToolTarget>
-class FLandscapeToolStrokePaste
+class FLandscapeToolStrokePaste : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokePaste(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
@@ -1496,9 +1509,10 @@ public:
 		, Cache(InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
-	{}
+	{
+	}
 
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
 		//ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo;
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -1568,12 +1582,12 @@ public:
 			const float ScaleX = Gizmo->CachedWidth / Width * ScaleXY / Gizmo->CachedScaleXY;
 			const float ScaleY = Gizmo->CachedHeight / Height * ScaleXY / Gizmo->CachedScaleXY;
 
-			FMatrix WToL = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale().Inverse();
+			FMatrix WToL = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale().InverseFast();
 			//FMatrix LToW = Landscape->LocalToWorld();
 			FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
 			//FMatrix LandscapeLocalToGizmo = FRotationTranslationMatrix(FRotator(0, Gizmo->Rotation.Yaw, 0), FVector(BaseLocation.X - W + 0.5, BaseLocation.Y - H + 0.5, 0));
 			FMatrix LandscapeToGizmoLocal =
-				(FTranslationMatrix(FVector((-W + 0.5)*SignX, (-H + 0.5)*SignY, 0)) * FScaleRotationTranslationMatrix(FVector(SignX, SignY, 1.f), FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0))).Inverse();
+				(FTranslationMatrix(FVector((-W + 0.5)*SignX, (-H + 0.5)*SignY, 0)) * FScaleRotationTranslationMatrix(FVector(SignX, SignY, 1.f), FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0))).InverseFast();
 
 			for (auto It = BrushInfo.CreateIterator(); It; ++It)
 			{
@@ -1732,7 +1746,8 @@ public:
 	FLandscapeToolPaste(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget> >(InEdMode)
 		, bUseGizmoRegion(false)
-	{}
+	{
+	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Paste"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Region", "Region Copy/Paste"); };
@@ -1756,7 +1771,7 @@ public:
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		this->bToolActive = true;
-		this->ToolStroke = new FLandscapeToolStrokePaste<ToolTarget>(this->EdMode, InTarget);
+		this->ToolStroke.Emplace(this->EdMode, InTarget);
 
 		this->EdMode->GizmoBrush->Tick(ViewportClient, 0.1f);
 		if (bUseGizmoRegion)
@@ -1782,8 +1797,7 @@ public:
 			this->MousePositions.Empty();
 		}
 
-		delete this->ToolStroke;
-		this->ToolStroke = NULL;
+		this->ToolStroke.Reset();
 		this->bToolActive = false;
 		if (bUseGizmoRegion)
 		{
@@ -1826,8 +1840,8 @@ public:
 	// Copy tool doesn't use any view information, so just do it as one function
 	void Copy()
 	{
-		CopyTool->BeginTool(nullptr, this->EdMode->CurrentToolTarget, FVector::ZeroVector);
-		CopyTool->EndTool(nullptr);
+		CopyTool.BeginTool(nullptr, this->EdMode->CurrentToolTarget, FVector::ZeroVector);
+		CopyTool.EndTool(nullptr);
 	}
 
 	void Paste()
@@ -1839,7 +1853,7 @@ public:
 	}
 
 protected:
-	TUniqueObj<FLandscapeToolCopy<ToolTarget>> CopyTool;
+	FLandscapeToolCopy<ToolTarget> CopyTool;
 };
 
 void FEdModeLandscape::CopyDataToGizmo()

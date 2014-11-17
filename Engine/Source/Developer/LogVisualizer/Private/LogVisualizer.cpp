@@ -2,6 +2,7 @@
 
 #include "LogVisualizerPCH.h"
 #include "CollisionDebugDrawingPublic.h"
+#include "LogVisualizerDebugActor.h"
 
 #if ENABLE_VISUAL_LOG
 //////////////////////////////////////////////////////////////////////////
@@ -52,6 +53,8 @@ void FLogVisualizer::CloseUI(UWorld* InWorld)
 	{
 		if (LogWindow.IsValid() && (World.IsValid() == false || World == InWorld))
 		{
+			DebugActor = NULL;
+
 			CleanUp();
 			FSlateApplication::Get().RequestDestroyWindow(LogWindow.Pin().ToSharedRef());
 		}
@@ -77,7 +80,31 @@ void FLogVisualizer::CleanUp()
 	FVisualLog::Get().ClearNewLogsObserver();
 }
 
-void FLogVisualizer::PullDataFromVisualLog(FVisualLog& VisualLog)
+class AActor* FLogVisualizer::GetHelperActor(class UWorld* InWorld)
+{
+	UWorld* ActorWorld = DebugActor.IsValid() ? DebugActor->GetWorld() : NULL;
+	if (DebugActor.IsValid() && ActorWorld == InWorld)
+	{
+		return DebugActor.Get();
+	}
+
+	for (TActorIterator<ALogVisualizerDebugActor> It(InWorld); It; ++It)
+	{
+		ALogVisualizerDebugActor* LogVisualizerDebugActor = *It;
+
+		DebugActor = LogVisualizerDebugActor;
+		return LogVisualizerDebugActor;
+	}
+
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.Name = *FString::Printf(TEXT("LogVisualizerDebugActor"));
+	DebugActor = InWorld->SpawnActor<ALogVisualizerDebugActor>(SpawnInfo);
+
+	return DebugActor.Get();
+}
+
+void FLogVisualizer::PullDataFromVisualLog(const FVisualLog& VisualLog)
 {
 	Logs.Reset();
 	const FVisualLog::FLogsMap* LogsMap = VisualLog.GetLogs();

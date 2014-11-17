@@ -17,6 +17,7 @@ namespace UnrealBuildTool.Rules
 					"UnrealEd",
 					"EditorStyle",
 					"PropertyEditor",
+					"DesktopPlatform",
 				}
 			);
 

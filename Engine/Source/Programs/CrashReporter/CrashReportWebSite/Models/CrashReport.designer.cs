@@ -180,8 +180,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _Pattern;
 		
-		private string _Type;
-		
 		private System.Nullable<int> _NumberOfCrashes;
 		
 		private System.Nullable<int> _NumberOfUsers;
@@ -199,6 +197,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		private string _ReproSteps;
 		
 		private string _Game;
+		
+		private string _BuildVersion;
+		
+		private System.Nullable<short> _CrashType;
 		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
@@ -218,8 +220,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnPriorityChanged();
     partial void OnPatternChanging(string value);
     partial void OnPatternChanged();
-    partial void OnTypeChanging(string value);
-    partial void OnTypeChanged();
     partial void OnNumberOfCrashesChanging(System.Nullable<int> value);
     partial void OnNumberOfCrashesChanged();
     partial void OnNumberOfUsersChanging(System.Nullable<int> value);
@@ -238,6 +238,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnReproStepsChanged();
     partial void OnGameChanging(string value);
     partial void OnGameChanged();
+    partial void OnBuildVersionChanging(string value);
+    partial void OnBuildVersionChanged();
+    partial void OnCrashTypeChanging(System.Nullable<short> value);
+    partial void OnCrashTypeChanged();
     #endregion
 		
 		public Bugg()
@@ -306,7 +310,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Summary", DbType="VarChar(250)")]
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="SummaryV2", Storage="_Summary", DbType="VarChar(512)")]
 		public string Summary
 		{
 			get
@@ -362,26 +366,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._Pattern = value;
 					this.SendPropertyChanged("Pattern");
 					this.OnPatternChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Type", DbType="VarChar(50)")]
-		public string Type
-		{
-			get
-			{
-				return this._Type;
-			}
-			set
-			{
-				if ((this._Type != value))
-				{
-					this.OnTypeChanging(value);
-					this.SendPropertyChanging();
-					this._Type = value;
-					this.SendPropertyChanged("Type");
-					this.OnTypeChanged();
 				}
 			}
 		}
@@ -562,6 +546,46 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._Game = value;
 					this.SendPropertyChanged("Game");
 					this.OnGameChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_BuildVersion", DbType="VarChar(128)")]
+		public string BuildVersion
+		{
+			get
+			{
+				return this._BuildVersion;
+			}
+			set
+			{
+				if ((this._BuildVersion != value))
+				{
+					this.OnBuildVersionChanging(value);
+					this.SendPropertyChanging();
+					this._BuildVersion = value;
+					this.SendPropertyChanged("BuildVersion");
+					this.OnBuildVersionChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_CrashType", DbType="SmallInt")]
+		public System.Nullable<short> CrashType
+		{
+			get
+			{
+				return this._CrashType;
+			}
+			set
+			{
+				if ((this._CrashType != value))
+				{
+					this.OnCrashTypeChanging(value);
+					this.SendPropertyChanging();
+					this._CrashType = value;
+					this.SendPropertyChanged("CrashType");
+					this.OnCrashTypeChanged();
 				}
 			}
 		}
@@ -1434,6 +1458,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _SourceContext;
 		
+		private string _EpicAccountId;
+		
+		private string _EngineVersion;
+		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
 		private EntitySet<Crash_FunctionCall> _Crash_FunctionCalls;
@@ -1516,6 +1544,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void OnHasMetaDataChanged();
     partial void OnSourceContextChanging(string value);
     partial void OnSourceContextChanged();
+    partial void OnEpicAccountIdChanging(string value);
+    partial void OnEpicAccountIdChanged();
+    partial void OnEngineVersionChanging(string value);
+    partial void OnEngineVersionChanged();
     #endregion
 		
 		public Crash()
@@ -2231,6 +2263,46 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._SourceContext = value;
 					this.SendPropertyChanged("SourceContext");
 					this.OnSourceContextChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_EpicAccountId", DbType="varchar(64)")]
+		public string EpicAccountId
+		{
+			get
+			{
+				return this._EpicAccountId;
+			}
+			set
+			{
+				if ((this._EpicAccountId != value))
+				{
+					this.OnEpicAccountIdChanging(value);
+					this.SendPropertyChanging();
+					this._EpicAccountId = value;
+					this.SendPropertyChanged("EpicAccountId");
+					this.OnEpicAccountIdChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_EngineVersion", DbType="varchar(64)")]
+		public string EngineVersion
+		{
+			get
+			{
+				return this._EngineVersion;
+			}
+			set
+			{
+				if ((this._EngineVersion != value))
+				{
+					this.OnEngineVersionChanging(value);
+					this.SendPropertyChanging();
+					this._EngineVersion = value;
+					this.SendPropertyChanged("EngineVersion");
+					this.OnEngineVersionChanged();
 				}
 			}
 		}

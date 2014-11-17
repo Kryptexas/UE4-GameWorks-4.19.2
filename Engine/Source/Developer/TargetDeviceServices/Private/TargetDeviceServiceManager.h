@@ -27,79 +27,93 @@ public:
 
 	// ITargetDeviceServiceManager interface
 
-	virtual bool AddStartupService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName ) override;
-	virtual int32 GetServices( TArray<ITargetDeviceServicePtr>& OutServices ) override;
+	virtual bool AddStartupService(const FString& DeviceName) override;
+	virtual int32 GetServices(TArray<ITargetDeviceServicePtr>& OutServices) override;
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceServiceManager, ITargetDeviceServiceManager::FOnTargetDeviceServiceAdded, FOnTargetDeviceServiceAdded);
-	virtual FOnTargetDeviceServiceAdded& OnServiceAdded( ) override
+	virtual FOnTargetDeviceServiceAdded& OnServiceAdded() override
 	{
 		return ServiceAddedDelegate;
 	}
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceServiceManager, ITargetDeviceServiceManager::FOnTargetDeviceServiceRemoved, FOnTargetDeviceServiceRemoved);
-	virtual FOnTargetDeviceServiceRemoved& OnServiceRemoved( ) override
+	virtual FOnTargetDeviceServiceRemoved& OnServiceRemoved() override
 	{
 		return ServiceRemovedDelegate;
 	}
 
-	virtual void RemoveStartupService( const FTargetDeviceId& DeviceId ) override;
+	virtual void RemoveStartupService(const FString& DeviceName) override;
 
 protected:
 
 	/**
-	 * Adds a device service for the given target device.
+	 * Adds a device service for the given device.
 	 *
-	 * @param DeviceId The identifier of the device to add a service for.
-	 * @param PreliminaryDeviceName The preliminary name to assign to this device.
-	 * @return true if the service was created, false otherwise.
+	 * @param DeviceName The name to of the device to add.
+	 * @return the created or preexisting service, nullptr if creation failed.
 	 */
-	bool AddService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName );
+	ITargetDeviceServicePtr AddService(const FString& DeviceName);
+
+	/**
+	 * Adds a target device, a device service will be created if needed
+	 *
+	 * @param InDevice The target device to add
+	 * @return true if the device was added to the device service, false if the service failed to create.
+	 */
+	bool AddTargetDevice(ITargetDevicePtr InDevice);
 
 	/**
 	 * Initializes target platforms callbacks.
 	 *
 	 * @see ShutdownTargetPlatforms
 	 */
-	void InitializeTargetPlatforms( );
+	void InitializeTargetPlatforms();
 
 	/**
 	 * Loads all settings from disk.
 	 *
 	 * @see SaveSettings
 	 */
-	void LoadSettings( );
+	void LoadSettings();
 
 	/**
 	 * Removes the device service for the given target device.
 	 *
-	 * @param DeviceId The identifier of the device to remove the service for.
+	 * @param DeviceName The name of the device to remove the service for.
 	 */
-	void RemoveService( const FTargetDeviceId& DeviceId );
+	void RemoveService(const FString& DeviceName);
+
+	/**
+	 * Removes the given target device, if that is the last target device in the device service the entire service is removed.
+	 *
+	 * @param InDevice The target device to remove.
+	 */
+	void RemoveTargetDevice(ITargetDevicePtr InDevice);
 
 	/**
 	 * Saves all settings to disk.
 	 *
 	 * @see LoadSettings
 	 */
-	void SaveSettings( );
+	void SaveSettings();
 
 	/**
 	 * Shuts down target platforms callbacks.
 	 *
 	 * @see InitializeTargetPlatforms
 	 */
-	void ShutdownTargetPlatforms( );
+	void ShutdownTargetPlatforms();
 
 private:
 
 	// Callback for handling message bus shutdowns.
-	void HandleMessageBusShutdown( );
+	void HandleMessageBusShutdown();
 
 	// Callback for discovered target devices.
-	void HandleTargetPlatformDeviceDiscovered( const ITargetDeviceRef& DiscoveredDevice );
+	void HandleTargetPlatformDeviceDiscovered(ITargetDeviceRef DiscoveredDevice);
 
 	// Callback for lost target devices.
-	void HandleTargetPlatformDeviceLost( const ITargetDeviceRef& LostDevice );
+	void HandleTargetPlatformDeviceLost(ITargetDeviceRef LostDevice);
 
 private:
 
@@ -107,13 +121,13 @@ private:
 	FCriticalSection CriticalSection;
 
 	// Holds the list of locally managed device services.
-	TMap<FTargetDeviceId, ITargetDeviceServicePtr> DeviceServices;
+	TMap<FString, ITargetDeviceServicePtr> DeviceServices;
 
 	// Holds a weak pointer to the message bus.
 	IMessageBusWeakPtr MessageBusPtr;
 
 	// Holds the collection of identifiers for devices that start automatically (shared/unshared).
-	TMap<FTargetDeviceId, bool> StartupServices;
+	TMap<FString, bool> StartupServices;
 
 private:
 

@@ -8,8 +8,6 @@
 #include "UMemoryDefines.h"
 #include "CompressedGrowableBuffer.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogProfilingDebugging, Log, All);
-
 
 #if USE_MALLOC_PROFILER
 

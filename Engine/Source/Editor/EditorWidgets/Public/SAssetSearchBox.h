@@ -2,7 +2,7 @@
 
 #pragma once
 
-/*
+/**
  * A widget to provide a search box with a filtered dropdown menu.
  */
 

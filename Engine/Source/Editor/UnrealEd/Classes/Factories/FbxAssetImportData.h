@@ -8,7 +8,16 @@
  * Base class for import data and options used when importing any asset from FBX
  */
 UCLASS(config=EditorUserSettings, HideCategories=Object, abstract)
-class UFbxAssetImportData : public UAssetImportData
+class UNREALED_API UFbxAssetImportData : public UAssetImportData
 {
 	GENERATED_UCLASS_BODY()
+
+	UPROPERTY()
+	FVector ImportTranslation;
+
+	UPROPERTY()
+	FRotator ImportRotation;
+
+	UPROPERTY()
+	float ImportUniformScale;
 };

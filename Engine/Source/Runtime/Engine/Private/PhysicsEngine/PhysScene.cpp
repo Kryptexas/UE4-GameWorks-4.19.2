@@ -350,7 +350,15 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 		//we have valid scene and subtime so enqueue task
 		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, PScene->getTaskManager());
 		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
-		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FSimpleDelegateGraphTask::FDelegate::CreateRaw(PhysSubSteppers[SceneType], &FPhysSubstepTask::StepSimulation, Task), TEXT("SubstepSimulationImp"), NULL, NamedThread);
+
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SubstepSimulationImp"),
+			STAT_FSimpleDelegateGraphTask_SubstepSimulationImp,
+			STATGROUP_TaskGraphTasks);
+
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(PhysSubSteppers[SceneType], &FPhysSubstepTask::StepSimulation, Task),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_SubstepSimulationImp), NULL, NamedThread
+		);
 		return true;
 	}
 #endif
@@ -842,7 +850,18 @@ void FPhysScene::StartFrame()
 		if (PhysicsSubsceneCompletion[PST_Sync].GetReference())
 		{
 			MainScenePrerequisites.Add(PhysicsSubsceneCompletion[PST_Sync]);
-			new (FinishPrerequisites)FGraphEventRef(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Sync), TEXT("ProcessPhysScene_Sync"), &MainScenePrerequisites, ENamedThreads::GameThread, ENamedThreads::GameThread));
+
+			DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Sync"),
+				STAT_FDelegateGraphTask_ProcessPhysScene_Sync,
+				STATGROUP_TaskGraphTasks);
+
+			new (FinishPrerequisites)FGraphEventRef(
+				FDelegateGraphTask::CreateAndDispatchWhenReady(
+					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Sync),
+					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Sync), &MainScenePrerequisites,
+					ENamedThreads::GameThread, ENamedThreads::GameThread
+				)
+			);
 		}
 	}
 
@@ -851,7 +870,17 @@ void FPhysScene::StartFrame()
 		TickPhysScene(PST_Async, PhysicsSubsceneCompletion[PST_Async]);
 		if (PhysicsSubsceneCompletion[PST_Async].GetReference())
 		{
-			new (FinishPrerequisites)FGraphEventRef(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Async), TEXT("ProcessPhysScene_Async"), PhysicsSubsceneCompletion[PST_Async], ENamedThreads::GameThread, ENamedThreads::GameThread));
+			DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Async"),
+				STAT_FDelegateGraphTask_ProcessPhysScene_Async,
+				STATGROUP_TaskGraphTasks);
+
+			new (FinishPrerequisites)FGraphEventRef(
+				FDelegateGraphTask::CreateAndDispatchWhenReady(
+					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Async),
+					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Async), PhysicsSubsceneCompletion[PST_Async],
+					ENamedThreads::GameThread, ENamedThreads::GameThread
+				)
+			);
 		}
 	}
 
@@ -860,8 +889,12 @@ void FPhysScene::StartFrame()
 	{
 		if (FinishPrerequisites.Num() > 1)  // we don't need to create a new task if we only have one prerequisite
 		{
-			PhysicsSceneCompletion = TGraphTask<FNullGraphTask>::CreateTask(&FinishPrerequisites, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(TEXT("ProcessPhysScene_Join"),
-				PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread);
+			DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.ProcessPhysScene_Join"),
+				STAT_FNullGraphTask_ProcessPhysScene_Join,
+				STATGROUP_TaskGraphTasks);
+
+			PhysicsSceneCompletion = TGraphTask<FNullGraphTask>::CreateTask(&FinishPrerequisites, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+				GET_STATID(STAT_FNullGraphTask_ProcessPhysScene_Join), PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread);
 		}
 		else
 		{
@@ -880,7 +913,17 @@ void FPhysScene::StartCloth()
 	{
 		if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
 		{
-			new (FinishPrerequisites)FGraphEventRef(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth), TEXT("ProcessPhysScene_Cloth"), PhysicsSubsceneCompletion[PST_Cloth], ENamedThreads::GameThread, ENamedThreads::GameThread));
+			DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Cloth"),
+				STAT_FDelegateGraphTask_ProcessPhysScene_Cloth,
+				STATGROUP_TaskGraphTasks);
+
+			new (FinishPrerequisites)FGraphEventRef(
+				FDelegateGraphTask::CreateAndDispatchWhenReady(
+					FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth),
+					GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Cloth), PhysicsSubsceneCompletion[PST_Cloth],
+					ENamedThreads::GameThread, ENamedThreads::GameThread
+				)
+			);
 		}
 	}
 
@@ -890,7 +933,15 @@ void FPhysScene::StartCloth()
 		TickPhysScene(PST_Async, PhysicsSubsceneCompletion[PST_Async]);
 		if (PhysicsSubsceneCompletion[PST_Async].GetReference())
 		{
-			FrameLaggedPhysicsSubsceneCompletion[PST_Async] = FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Async), TEXT("ProcessPhysScene_Async"), PhysicsSubsceneCompletion[PST_Async], ENamedThreads::GameThread, ENamedThreads::GameThread);
+			DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.ProcessPhysScene_Async"),
+				STAT_FDelegateGraphTask_ProcessPhysScene_Async,
+				STATGROUP_TaskGraphTasks);
+
+			FrameLaggedPhysicsSubsceneCompletion[PST_Async] = FDelegateGraphTask::CreateAndDispatchWhenReady(
+				FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Async),
+				GET_STATID(STAT_FDelegateGraphTask_ProcessPhysScene_Async), PhysicsSubsceneCompletion[PST_Async],
+				ENamedThreads::GameThread, ENamedThreads::GameThread
+			);
 		}
 	}
 }

@@ -13,6 +13,7 @@
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "../GPUSort.h"
+#include "SceneUtils.h"
 
 /*------------------------------------------------------------------------------
 	Shaders used to generate particle sort keys.
@@ -71,8 +72,6 @@ public:
 		InParticleIndices.Bind( Initializer.ParameterMap, TEXT("InParticleIndices") );
 		PositionTexture.Bind( Initializer.ParameterMap, TEXT("PositionTexture") );
 		PositionTextureSampler.Bind( Initializer.ParameterMap, TEXT("PositionTextureSampler") );
-		PositionZWTexture.Bind( Initializer.ParameterMap, TEXT("PositionZWTexture") );
-		PositionZWTextureSampler.Bind( Initializer.ParameterMap, TEXT("PositionZWTextureSampler") );
 		OutKeys.Bind( Initializer.ParameterMap, TEXT("OutKeys") );
 		OutParticleIndices.Bind( Initializer.ParameterMap, TEXT("OutParticleIndices") );
 	}
@@ -84,8 +83,6 @@ public:
 		Ar << InParticleIndices;
 		Ar << PositionTexture;
 		Ar << PositionTextureSampler;
-		Ar << PositionZWTexture;
-		Ar << PositionZWTextureSampler;
 		Ar << OutKeys;
 		Ar << OutParticleIndices;
 		return bShaderHasOutdatedParameters;
@@ -127,16 +124,12 @@ public:
 	/**
 	 * Set the texture from which particle positions can be read.
 	 */
-	void SetPositionTextures(FRHICommandList& RHICmdList, FTexture2DRHIParamRef PositionTextureRHI, FTexture2DRHIParamRef PositionZWTextureRHI)
+	void SetPositionTextures(FRHICommandList& RHICmdList, FTexture2DRHIParamRef PositionTextureRHI)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if (PositionTexture.IsBound())
 		{
 			RHICmdList.SetShaderTexture(ComputeShaderRHI, PositionTexture.GetBaseIndex(), PositionTextureRHI);
-		}
-		if (PositionZWTexture.IsBound())
-		{
-			RHICmdList.SetShaderTexture(ComputeShaderRHI, PositionZWTexture.GetBaseIndex(), PositionZWTextureRHI);
 		}
 	}
 
@@ -167,8 +160,6 @@ private:
 	/** Texture containing particle positions. */
 	FShaderResourceParameter PositionTexture;
 	FShaderResourceParameter PositionTextureSampler;
-	FShaderResourceParameter PositionZWTexture;
-	FShaderResourceParameter PositionZWTextureSampler;
 	/** Output key buffer. */
 	FShaderResourceParameter OutKeys;
 	/** Output indices buffer. */
@@ -189,13 +180,15 @@ static int32 GenerateParticleSortKeys(
 	FUnorderedAccessViewRHIParamRef KeyBufferUAV,
 	FUnorderedAccessViewRHIParamRef SortedVertexBufferUAV,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	FTexture2DRHIParamRef PositionZWTextureRHI,
 	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
 	)
 {
-	SCOPED_DRAW_EVENT(ParticleSortKeyGen, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ParticleSortKeyGen, DEC_PARTICLE);
 
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	// MOBILEPREVIEWTODO: Proper value for this
+	const auto FeatureLevel = GRHIFeatureLevel;
+
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
 	FParticleKeyGenParameters KeyGenParameters;
 	FParticleKeyGenUniformBufferRef KeyGenUniformBuffer;
@@ -203,10 +196,10 @@ static int32 GenerateParticleSortKeys(
 	int32 TotalParticleCount = 0;
 
 	// Grab the shader, set output.
-	TShaderMapRef<FParticleSortKeyGenCS> KeyGenCS(GetGlobalShaderMap());
+	TShaderMapRef<FParticleSortKeyGenCS> KeyGenCS(GetGlobalShaderMap(FeatureLevel));
 	RHICmdList.SetComputeShader(KeyGenCS->GetComputeShader());
 	KeyGenCS->SetOutput(RHICmdList, KeyBufferUAV, SortedVertexBufferUAV);
-	KeyGenCS->SetPositionTextures(RHICmdList, PositionTextureRHI, PositionZWTextureRHI);
+	KeyGenCS->SetPositionTextures(RHICmdList, PositionTextureRHI);
 
 	// For each simulation, generate keys and store them in the sorting buffers.
 	const int32 SimulationCount = SimulationsToSort.Num();
@@ -321,11 +314,10 @@ int32 SortParticlesGPU(
 	FRHICommandListImmediate& RHICmdList,
 	FParticleSortBuffers& ParticleSortBuffers,
 	FTexture2DRHIParamRef PositionTextureRHI,
-	FTexture2DRHIParamRef PositionZWTextureRHI,
 	const TArray<FParticleSimulationSortInfo>& SimulationsToSort
 	)
 {
-	SCOPED_DRAW_EVENTF(ParticleSort, DEC_PARTICLE, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
+	SCOPED_DRAW_EVENTF(RHICmdList, ParticleSort, DEC_PARTICLE, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
 
 	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 
@@ -346,7 +338,6 @@ int32 SortParticlesGPU(
 		ParticleSortBuffers.GetKeyBufferUAV(),
 		ParticleSortBuffers.GetVertexBufferUAV(),
 		PositionTextureRHI,
-		PositionZWTextureRHI,
 		SimulationsToSort
 		);
 

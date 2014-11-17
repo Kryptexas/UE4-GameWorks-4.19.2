@@ -1,14 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DateTime.h: Declares the FDateTime class.
-=============================================================================*/
-
 #pragma once
 
 
-class UObject;
+class FArchive;
 class FOutputDevice;
+class UObject;
 
 
 namespace EDayOfWeek
@@ -74,7 +71,7 @@ namespace EMonthOfYear
  * @see FDateRange
  * @see FTimespan
  */
-class FDateTime
+struct FDateTime
 {
 public:
 
@@ -234,6 +231,19 @@ public:
 	}
 
 public:
+
+	/**
+	 * Exports the date and time value to a string.
+	 *
+	 * @param ValueStr Will hold the string value.
+	 * @param DefaultValue The default value.
+	 * @param Parent Not used.
+	 * @param PortFlags Not used.
+	 * @param ExportRootScope Not used.
+	 * @return true on success, false otherwise.
+	 * @see ImportTextItem
+	 */
+	CORE_API bool ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const;
 
 	/**
 	 * Gets the date part of this date.
@@ -410,6 +420,18 @@ public:
 	CORE_API int32 GetYear( ) const;
 
 	/**
+	 * Imports a date and time value from a text buffer.
+	 *
+	 * @param Buffer The text buffer to import from.
+	 * @param PortFlags Not used.
+	 * @param Parent Not used.
+	 * @param ErrorText The output device for error logging.
+	 * @return true on success, false otherwise.
+	 * @see ExportTextItem
+	 */
+	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText );
+
+	/**
 	 * Gets whether this date's time is in the afternoon.
 	 *
 	 * @param true if it is in the afternoon, false otherwise.
@@ -430,6 +452,14 @@ public:
 	{
 		return (GetHour() < 12);
 	}
+
+	/**
+	 * Serializes this date and time from or into the specified archive.
+	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @return true on success, false otherwise.
+	 */
+	CORE_API bool Serialize( FArchive& Ar );
 
 	/**
 	 * Returns the ISO-8601 string representation of the FDateTime.
@@ -634,31 +664,6 @@ public:
 		return GetTypeHash(DateTime.Ticks);
 	}
 
-	/**
-	 * Exports the DateTime value to a string.
-	 *
-	 * @param ValueStr Will hold the string value.
-	 * @param DefaultValue The default value.
-	 * @param Parent Not used.
-	 * @param PortFlags Not used.
-	 * @param ExportRootScope Not used.
-	 * @return true on success, false otherwise.
-	 * @see ImportTextItem
-	 */
-	CORE_API bool ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const;
-
-	/**
-	 * Imports the DateTime value from a text buffer.
-	 *
-	 * @param Buffer The text buffer to import from.
-	 * @param PortFlags Not used.
-	 * @param Parent Not used.
-	 * @param ErrorText The output device for error logging.
-	 * @return true on success, false otherwise.
-	 * @see ExportTextItem
-	 */
-	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
-
 protected:
 
 	/**
@@ -671,8 +676,8 @@ protected:
 	 */
 	static const int32 DaysToMonth[];
 
-public:
+private:
 
-	// Holds the ticks in 100 nanoseconds resolution since January 1, 0001 A.D.
+	/** Holds the ticks in 100 nanoseconds resolution since January 1, 0001 A.D. */
 	int64 Ticks;
 };

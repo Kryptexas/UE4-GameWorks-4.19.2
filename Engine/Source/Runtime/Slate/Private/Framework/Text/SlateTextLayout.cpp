@@ -6,16 +6,17 @@
 
 #include "SlateTextLayout.h"
 
-TSharedRef< FSlateTextLayout > FSlateTextLayout::Create()
+TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaultTextStyle)
 {
-	TSharedRef< FSlateTextLayout > Layout = MakeShareable( new FSlateTextLayout() );
+	TSharedRef< FSlateTextLayout > Layout = MakeShareable( new FSlateTextLayout(MoveTemp(InDefaultTextStyle)) );
 	Layout->AggregateChildren();
 
 	return Layout;
 }
 
-FSlateTextLayout::FSlateTextLayout()
+FSlateTextLayout::FSlateTextLayout(FTextBlockStyle InDefaultTextStyle)
 	: Children()
+	, DefaultTextStyle(MoveTemp(InDefaultTextStyle))
 {
 
 }
@@ -27,11 +28,11 @@ FChildren* FSlateTextLayout::GetChildren()
 
 void FSlateTextLayout::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	for (int LineIndex = 0; LineIndex < LineViews.Num(); LineIndex++)
+	for (int32 LineIndex = 0; LineIndex < LineViews.Num(); LineIndex++)
 	{
 		const FTextLayout::FLineView& LineView = LineViews[ LineIndex ];
 
-		for (int BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
+		for (int32 BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
 		{
 			const TSharedRef< ILayoutBlock > Block = LineView.Blocks[ BlockIndex ];
 			const TSharedRef< ISlateRun > Run = StaticCastSharedRef< ISlateRun >( Block->GetRun() );
@@ -40,7 +41,7 @@ void FSlateTextLayout::ArrangeChildren( const FGeometry& AllottedGeometry, FArra
 	}
 }
 
-int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FTextBlockStyle& DefaultTextStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
 	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -51,6 +52,14 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FTextBlockStyle& 
 
 	for (const FTextLayout::FLineView& LineView : LineViews)
 	{
+		// Is this line visible?
+		const FSlateRect LineViewRect(AllottedGeometry.AbsolutePosition + LineView.Offset, AllottedGeometry.AbsolutePosition + LineView.Offset + LineView.Size);
+		const FSlateRect VisibleLineView = ClippingRect.IntersectionWith(LineViewRect);
+		if (VisibleLineView.IsEmpty())
+		{
+			continue;
+		}
+
 		// Render any underlays for this line
 		const int32 HighestUnderlayLayerId = OnPaintHighlights( Args, LineView, LineView.UnderlayHighlights, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
@@ -65,10 +74,13 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FTextBlockStyle& 
 			{
 				BlockHue.R += 50.0f;
 
+				// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+				const float InverseScale = Inverse(AllottedGeometry.Scale);
+
 				FSlateDrawElement::MakeBox(
 					OutDrawElements, 
 					BlockDebugLayer,
-					FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset(), Block->GetSize(), AllottedGeometry.Scale ),
+					AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset()))),
 					&DefaultTextStyle.HighlightShape,
 					ClippingRect,
 					DrawEffects,
@@ -122,27 +134,41 @@ void FSlateTextLayout::EndLayout()
 	AggregateChildren();
 }
 
+void FSlateTextLayout::SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle)
+{
+	DefaultTextStyle = MoveTemp(InDefaultTextStyle);
+}
+
+const FTextBlockStyle& FSlateTextLayout::GetDefaultTextStyle() const
+{
+	return DefaultTextStyle;
+}
+
 void FSlateTextLayout::AggregateChildren()
 {
 	Children.Empty();
 	const TArray< FLineModel >& LineModels = GetLineModels();
-	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
+	for (int32 LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		const FLineModel& LineModel = LineModels[ LineModelIndex ];
-		for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
+		for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 		{
 			const FRunModel& LineRun = LineModel.Runs[ RunIndex ];
 			const TSharedRef< ISlateRun > SlateRun = StaticCastSharedRef< ISlateRun >( LineRun.GetRun() );
 
-			FChildren* RunChildren = SlateRun->GetChildren();
-			for (int ChildIndex = 0; ChildIndex < RunChildren->Num(); ChildIndex++)
+			const TArray< TSharedRef<SWidget> >& RunChildren = SlateRun->GetChildren();
+			for (int32 ChildIndex = 0; ChildIndex < RunChildren.Num(); ChildIndex++)
 			{
-				const TSharedRef< SWidget >& Child = RunChildren->GetChildAt( ChildIndex );
+				const TSharedRef< SWidget >& Child = RunChildren[ ChildIndex ];
 				Children.Add( Child );
 			}
 		}
 	}
 }
 
+TSharedRef<IRun> FSlateTextLayout::CreateDefaultTextRun(const TSharedRef<FString>& NewText, const FTextRange& NewRange) const
+{
+	return FSlateTextRun::Create(FRunInfo(), NewText, DefaultTextStyle, NewRange);
+}
 
 #endif //WITH_FANCY_TEXT

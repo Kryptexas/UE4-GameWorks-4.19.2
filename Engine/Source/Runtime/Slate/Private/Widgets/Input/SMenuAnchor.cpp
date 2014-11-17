@@ -10,9 +10,11 @@
  */
 void SMenuAnchor::Construct( const FArguments& InArgs )
 {
-	PopupLayerSlot = NULL;
+	Children.Add( new FSimpleSlot() );
+	Children.Add( new FSimpleSlot() );
+	
 
-	this->ChildSlot
+	Children[0]
 	.Padding(0)
 	[
 		InArgs._Content.Widget
@@ -24,21 +26,129 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	Method = InArgs._Method;
 }
 
-void SMenuAnchor::ComputeMenuPlacement( const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, FVector2D& NewWindowSize, FVector2D& NewPosition )
-{
-	const EMenuPlacement PlacementMode = Placement.Get();
 
-	if ( PlacementMode == MenuPlacement_ComboBox )
+void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	SPanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	TSharedPtr<SWindow> PopupWindow = PopupWindowPtr.Pin();
+	if ( PopupWindow.IsValid() && Method == CreateNewWindow )
 	{
-		NewWindowSize = FVector2D( FMath::Max(AllottedGeometry.Size.X, PopupDesiredSize.X), PopupDesiredSize.Y );
-		NewWindowSize *= AllottedGeometry.Scale;
+		// Figure out where our attached pop-up window should be placed.				
+		const FVector2D PopupContentDesiredSize = PopupWindow->GetContent()->GetDesiredSize();
+		FGeometry PopupGeometry = ComputeMenuPlacement( AllottedGeometry, PopupContentDesiredSize, Placement.Get( ) );
+		const FVector2D NewPosition = PopupGeometry.AbsolutePosition;
+		const FVector2D NewSize = PopupGeometry.GetDrawSize( );
+
+		const FSlateRect NewShape = FSlateRect( NewPosition.X, NewPosition.Y, NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
+
+		// We made a window for showing the popup.
+		// Update the window's position!
+		if( PopupWindow->IsMorphing() )
+		{
+			if( NewShape != PopupWindow->GetMorphTargetShape() )
+			{
+				// Update the target shape
+				PopupWindow->UpdateMorphTargetShape( NewShape );
+				// Set size immediately if not morphing size
+				if(!PopupWindow->IsMorphingSize())
+				{
+					PopupWindow->ReshapeWindow( PopupWindow->GetPositionInScreen(), NewSize );
+				}
+			}
+		}
+		else
+		{
+			const FVector2D WindowPosition = PopupWindow->GetPositionInScreen();
+			const FVector2D WindowSize = PopupWindow->GetSizeInScreen();
+			if ( NewPosition != WindowPosition || NewSize != WindowSize )
+			{
+#if PLATFORM_LINUX
+				// @FIXME: for some reason, popups reshaped here do not trigger OnWindowMoved() callback,
+				// so we manually set cached position to where we expect it to be. Note the order of operations - (before Reshape) - 
+				// still giving the callback a chance to change it.
+				// This needs to be investigated (tracked as TTP #347674).
+				PopupWindow->SetCachedScreenPosition( NewPosition );
+#endif // PLATFORM_LINUX
+				PopupWindow->ReshapeWindow( NewShape );
+			}
+		}
 	}
 
-	const float AbsoluteX = AllottedGeometry.AbsolutePosition.X;
-	const float AbsoluteY = AllottedGeometry.AbsolutePosition.Y;
-	FSlateRect Anchor(AbsoluteX, AbsoluteY, AbsoluteX + AllottedGeometry.Size.X*AllottedGeometry.Scale, AbsoluteY + AllottedGeometry.Size.Y*AllottedGeometry.Scale);
-	EOrientation Orientation = (PlacementMode == MenuPlacement_MenuRight) ? Orient_Horizontal : Orient_Vertical;
-	NewPosition = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, NewWindowSize, Orientation );
+	/** The tick is ending, so the window was not dismissed this tick. */
+	bDismissedThisTick = false;
+}
+
+void SMenuAnchor::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+{
+	ArrangeSingleChild( AllottedGeometry, ArrangedChildren, Children[0], FVector2D::UnitVector);
+	if ( IsOpen() )
+	{
+		// @todo umg na AllottedGeometry here is in Window-Space when computed via OnPaint.
+		//           The incorrect geometry causes the popup to fail workspace-edge tests.
+		const FGeometry PopupGeometry = ComputeMenuPlacement( AllottedGeometry, Children[1].GetWidget()->GetDesiredSize(), Placement.Get() );
+		ArrangedChildren.AddWidget( FArrangedWidget( Children[1].GetWidget(), PopupGeometry ) );
+	}
+}
+
+FVector2D SMenuAnchor::ComputeDesiredSize() const
+{
+	return Children[0].GetWidget()->GetDesiredSize();
+}
+
+FChildren* SMenuAnchor::GetChildren()
+{
+	return &Children;
+}
+
+int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+{
+	FArrangedChildren ArrangedChildren( EVisibility::Visible );
+	ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	
+	// There may be zero elements in this array if our child collapsed/hidden
+	if ( ArrangedChildren.Num() > 0 )
+	{
+		FArrangedWidget& TheChild = ArrangedChildren[0];
+
+		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
+
+		LayerId = TheChild.Widget->Paint( Args.WithNewParent( this ), TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+
+		if ( IsOpen( ) && ArrangedChildren.Num( ) > 1 && !ChildClippingRect.IsEmpty() )
+		{
+			OutDrawElements.QueueDeferredPainting(
+				FSlateWindowElementList::FDeferredPaint( ArrangedChildren[1].Widget, Args, ArrangedChildren[1].Geometry, MyClippingRect, InWidgetStyle, bParentEnabled ) );
+		}
+	}
+
+	return LayerId;
+}
+
+FGeometry SMenuAnchor::ComputeMenuPlacement( const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, EMenuPlacement PlacementMode )
+{
+	// Compute the popup size, offset, and anchor rect  in local space
+	const FVector2D PopupSizeLocalSpace = (PlacementMode == MenuPlacement_ComboBox || PlacementMode == MenuPlacement_ComboBoxRight)
+		? FVector2D( FMath::Max( AllottedGeometry.Size.X, PopupDesiredSize.X ), PopupDesiredSize.Y )
+		: PopupDesiredSize;
+	const FVector2D OffsetLocalSpace = (PlacementMode == MenuPlacement_AboveAnchor)
+		? FVector2D( 0.0f, -AllottedGeometry.GetLocalSize().Y - PopupSizeLocalSpace.Y )
+		: (PlacementMode == MenuPlacement_ComboBoxRight) 
+			? FVector2D(AllottedGeometry.GetLocalSize().X - PopupSizeLocalSpace.X, 0.0f) 
+			: FVector2D::ZeroVector;
+	const FSlateRect AnchorLocalSpace = FSlateRect::FromPointAndExtent(OffsetLocalSpace, AllottedGeometry.Size);
+	const EOrientation Orientation = (PlacementMode == MenuPlacement_MenuRight) ? Orient_Horizontal : Orient_Vertical;
+	
+	// ask the application to compute the proper desktop offset for the anchor. This requires the offsets to be in desktop space.
+	const FVector2D NewPositionDesktopSpace = FSlateApplication::Get().CalculatePopupWindowPosition( 
+		TransformRect(AllottedGeometry.GetAccumulatedLayoutTransform(), AnchorLocalSpace), 
+		TransformVector(AllottedGeometry.GetAccumulatedLayoutTransform(), PopupSizeLocalSpace), 
+		Orientation );
+
+	// transform the desktop offset into local space and use that as the layout transform for the child content.
+	return AllottedGeometry.MakeChild(
+		PopupSizeLocalSpace,
+		FSlateLayoutTransform(TransformPoint(Inverse(AllottedGeometry.GetAccumulatedLayoutTransform()), NewPositionDesktopSpace)));
 }
 
 void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindow )
@@ -57,82 +167,22 @@ void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindo
 
 void SMenuAnchor::OnClickedOutsidePopup()
 {
-	bDismissedThisTick = true;
-	if (ensure(Method == UseCurrentWindow))
-	{
-		FSlateApplication::Get().GetPopupSupport().UnregisterClickNotification( FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
-		SetIsOpen(false);	
-	}
-}
-
-void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	TSharedPtr<SWindow> PopupWindow = PopupWindowPtr.Pin();
-	if ( PopupWindow.IsValid() )
-	{
-		// Figure out where our attached pop-up window should be placed.				
-		if (Method == CreateNewWindow)
+		bDismissedThisTick = true;
+		if (ensure(Method == UseCurrentWindow))
 		{
-			FVector2D NewPosition = FVector2D::ZeroVector;
-			FVector2D NewSize = PopupWindow->GetSizeInScreen();
-			ComputeMenuPlacement( AllottedGeometry, PopupWindow->GetContent()->GetDesiredSize(), NewSize, NewPosition );
-
-			// We made a window for showing the popup.
-			// Update the window's position!
-			if( PopupWindow->IsMorphing() )
-			{
-				FSlateRect NewShape = FSlateRect(NewPosition.X, NewPosition.Y, NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y);
-				if( NewShape != PopupWindow->GetMorphTargetShape() )
-				{
-					// Update the target shape
-					PopupWindow->UpdateMorphTargetShape( NewShape );
-					// Set size immediately if not morphing size
-					if(!PopupWindow->IsMorphingSize())
-					{
-						PopupWindow->ReshapeWindow( PopupWindow->GetPositionInScreen(), NewSize );
-					}
-				}
-			}
-			else
-			{
-				if( NewPosition != PopupWindow->GetPositionInScreen() || NewSize != PopupWindow->GetSizeInScreen() )
-				{
-					PopupWindow->ReshapeWindow( NewPosition, NewSize );
-				}
-			}
-		}
-		else
-		{
-			// Using the PopupLayer to show this popup instead of a window.
-			// Update the Popup's position so it appears anchored to the menu anchor.
-			if (ensure(PopupLayerSlot != NULL))
-			{
-				FVector2D NewPosition = FVector2D::ZeroVector;
-				FVector2D NewSize = PopupLayerSlot->GetWidget()->GetDesiredSize();
-
-				ComputeMenuPlacement( AllottedGeometry, PopupLayerSlot->GetWidget()->GetDesiredSize(), NewSize, NewPosition );
-			
-				(*PopupLayerSlot)
-					.DesktopPosition( NewPosition )
-					.WidthOverride( NewSize.X )
-					.Scale(AllottedGeometry.Scale);
-			}
+			FSlateApplication::Get().GetPopupSupport().UnregisterClickNotification( FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
+			SetIsOpen(false);	
 		}
 	}
 
-	/** The tick is ending, so the window was not dismissed this tick. */
-	bDismissedThisTick = false;
-}
 
 void SMenuAnchor::SetContent(TSharedRef<SWidget> InContent)
 {
-	ChildSlot
-		.Padding(0)
-		[
-			InContent
-		];
+	Children[0]
+	.Padding(0)
+	[
+		InContent
+	];
 }
 
 void SMenuAnchor::SetMenuContent(TSharedRef<SWidget> InMenuContent)
@@ -170,23 +220,25 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 			FSlateApplication::Get().GeneratePathToWidgetChecked( AsShared(), MyWidgetPath );
 			const FGeometry& MyGeometry = MyWidgetPath.Widgets.Last().Geometry;
 
+			// @todo Slate: This code does not properly propagate the layout scale of the widget we are creating the popup for.
+			// The popup instead has a scale of one, but a computed size as if the contents were scaled. This code should ideally
+			// wrap the contents with an SFxWidget that applies the necessary layout scale. This is a very rare case right now.
+			
 			// Figure out how big the content widget is so we can set the window's initial size properly
 			TSharedRef< SWidget > MenuContentRef = MenuContentPtr.ToSharedRef();
 			MenuContentRef->SlatePrepass();
-
 
 			// Combo-boxes never size down smaller than the widget that spawned them, but all
 			// other pop-up menus are currently auto-sized
 			const FVector2D DesiredContentSize = MenuContentRef->GetDesiredSize();  // @todo: This is ignoring any window border size!
 			const EMenuPlacement PlacementMode = Placement.Get();
-			bool bShouldAutoSize = PlacementMode != MenuPlacement_ComboBox;
 
 			const FVector2D NewPosition = MyGeometry.AbsolutePosition;
 			FVector2D NewWindowSize = DesiredContentSize;
 			const FVector2D SummonLocationSize = MyGeometry.Size;
 
 			FPopupTransitionEffect TransitionEffect( FPopupTransitionEffect::None );
-			if( PlacementMode == MenuPlacement_ComboBox )
+			if( PlacementMode == MenuPlacement_ComboBox || PlacementMode == MenuPlacement_ComboBoxRight )
 			{
 				TransitionEffect = FPopupTransitionEffect( FPopupTransitionEffect::ComboButton );
 				NewWindowSize = FVector2D( FMath::Max(MyGeometry.Size.X, DesiredContentSize.X), DesiredContentSize.Y );
@@ -203,7 +255,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 			if (Method == CreateNewWindow)
 			{
 				// Open the pop-up
-				TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu( AsShared(), MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, bShouldAutoSize, NewWindowSize, SummonLocationSize );
+				TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu( AsShared(), MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, false, NewWindowSize, SummonLocationSize );
 				PopupWindow->SetRequestDestroyWindowOverride( FRequestDestroyWindowOverride::CreateSP(this, &SMenuAnchor::RequestClosePopupWindow) );
 				PopupWindowPtr = PopupWindow;
 			}
@@ -212,23 +264,13 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 				// We are re-using the current window instead of creating a new one.
 				// The popup will be presented via an overlay service.
 				ensure(Method==UseCurrentWindow);
-				TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-				PopupWindowPtr = PopupWindow;
-				
-				TSharedPtr<SWeakWidget> PopupWrapperPtr;
-				PopupLayerSlot = &PopupWindow->AddPopupLayerSlot()
-				.DesktopPosition(NewPosition)
-				.WidthOverride(NewWindowSize.X)
+				Children[1]
 				[
-					SAssignNew( PopupWrapperPtr, SWeakWidget )
-					.PossiblyNullContent
-					(
-						MenuContentRef
-					)
+					MenuContentRef
 				];
 
 				// We want to support dismissing the popup widget when the user clicks outside it.
-				FSlateApplication::Get().GetPopupSupport().RegisterClickNotification( PopupWrapperPtr.ToSharedRef(), FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
+				FSlateApplication::Get( ).GetPopupSupport( ).RegisterClickNotification( MenuContentRef, FOnClickedOutside::CreateSP( this, &SMenuAnchor::OnClickedOutsidePopup ) );
 			}
 
 			if(bFocusMenu)
@@ -254,12 +296,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 			{
 				// Close the popup overlay
 				ensure(Method==UseCurrentWindow);
-				check(PopupWindowPtr.IsValid());
-				check(PopupLayerSlot != NULL);
-				PopupWindowPtr.Pin()->RemovePopupLayerSlot(PopupLayerSlot->GetWidget());
-				// We no longer have a popup open, so reset all the tracking state associated.
-				PopupLayerSlot = NULL;
-				PopupWindowPtr.Reset();
+				Children[1].DetachWidget();
 			}
 
 			if (OnMenuOpenChanged.IsBound())
@@ -272,7 +309,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 bool SMenuAnchor::IsOpen() const
 {
-	return PopupWindowPtr.Pin().IsValid();
+	return PopupWindowPtr.Pin().IsValid() || Children[1].GetWidget() != SNullWidget::NullWidget;
 }
 
 bool SMenuAnchor::ShouldOpenDueToClick() const
@@ -319,14 +356,8 @@ SMenuAnchor::~SMenuAnchor()
 			// Request that the popup be closed.
 			PopupWindow->RequestDestroyWindow();
 		}
-		// Close the popup overlay
-		else if (Method == UseCurrentWindow && PopupLayerSlot != NULL)
-		{
-			PopupWindow->RemovePopupLayerSlot(PopupLayerSlot->GetWidget());
-		}
 		
 		// We no longer have a popup open, so reset all the tracking state associated.
 		PopupWindowPtr.Reset();
-		PopupLayerSlot = NULL;
 	}
 }

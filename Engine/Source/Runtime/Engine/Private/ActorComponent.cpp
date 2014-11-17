@@ -283,6 +283,12 @@ FString UActorComponent::GetReadableName() const
 
 void UActorComponent::BeginDestroy()
 {
+	// Ensure that we call UninitializeComponent before we destroy this component
+	if (bHasBeenInitialized)
+	{
+		UninitializeComponent();
+	}
+
 	// Ensure that we call OnComponentDestroyed before we destroy this component
 	if(bHasBeenCreated)
 	{
@@ -437,13 +443,19 @@ void UActorComponent::OnRegister()
 void UActorComponent::OnUnregister()
 {
 	check(bRegistered);
-
 	bRegistered = false;
 }
 
 void UActorComponent::InitializeComponent()
 {
 	check(bRegistered);
+	bHasBeenInitialized = true;
+}
+
+void UActorComponent::UninitializeComponent()
+{
+	check(bHasBeenInitialized);
+	bHasBeenInitialized = false;
 }
 
 void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -487,12 +499,14 @@ void UActorComponent::SetComponentTickEnabledAsync(bool bEnabled)
 {
 	if (!IsTemplate() && PrimaryComponentTick.bCanEverTick)
 	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SetComponentTickEnabledAsync"),
+			STAT_FSimpleDelegateGraphTask_SetComponentTickEnabledAsync,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UActorComponent::SetComponentTickEnabled, bEnabled)
-			, TEXT("SetComponentTickEnabledAsync")
-			, NULL
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UActorComponent::SetComponentTickEnabled, bEnabled),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_SetComponentTickEnabledAsync), NULL, ENamedThreads::GameThread
+		);
 	}
 }
 
@@ -864,6 +878,39 @@ void UActorComponent::ConditionalTickComponent(float DeltaTime, enum ELevelTick 
 void UActorComponent::SetTickGroup(ETickingGroup NewTickGroup)
 {
 	PrimaryComponentTick.TickGroup = NewTickGroup;
+}
+
+
+void UActorComponent::AddTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrimaryComponentTick.bCanEverTick && PrerequisiteActor && PrerequisiteActor->PrimaryActorTick.bCanEverTick)
+	{
+		PrimaryComponentTick.AddPrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void UActorComponent::AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrimaryComponentTick.bCanEverTick && PrerequisiteComponent && PrerequisiteComponent->PrimaryComponentTick.bCanEverTick)
+	{
+		PrimaryComponentTick.AddPrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
+	}
+}
+
+void UActorComponent::RemoveTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrerequisiteActor)
+	{
+		PrimaryComponentTick.RemovePrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void UActorComponent::RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrerequisiteComponent)
+	{
+		PrimaryComponentTick.RemovePrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
+	}
 }
 
 void UActorComponent::DoDeferredRenderUpdates_Concurrent()

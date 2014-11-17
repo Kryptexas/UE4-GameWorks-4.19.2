@@ -9,8 +9,11 @@
 #include "ImageUtils.h"
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
+
+#define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
 
 namespace ContentBrowserUtils
 {
@@ -635,7 +638,7 @@ bool ContentBrowserUtils::SavePackages(const TArray<UPackage*>& Packages)
 bool ContentBrowserUtils::SaveDirtyPackages()
 {
 	const bool bPromptUserToSave = true;
-	const bool bSaveMapPackages = false;
+	const bool bSaveMapPackages = true;
 	const bool bSaveContentPackages = true;
 	return FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages );
 }
@@ -1276,6 +1279,177 @@ FText ContentBrowserUtils::GetExploreFolderText()
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
 	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
+}
+
+bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, FText& OutErrorMessage, bool bAllowExistingAsset)
+{
+	const FString ObjectName = FPackageName::ObjectPathToObjectName(ObjectPath);
+
+	// Make sure the name is not already a class or otherwise invalid for saving
+	if ( !FEditorFileUtils::IsFilenameValidForSaving(ObjectName, OutErrorMessage) )
+	{
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Make sure the new name only contains valid characters
+	if ( !FName(*ObjectName).IsValidXName( INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &OutErrorMessage ) )
+	{
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Make sure we are not creating an FName that is too large
+	if ( ObjectPath.Len() > NAME_SIZE )
+	{
+		// This asset already exists at this location, inform the user and continue
+		OutErrorMessage = LOCTEXT("AssetNameTooLong", "This asset name is too long. Please choose a shorter name.");
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	const FString PackageName = FPackageName::ObjectPathToPackageName(ObjectPath);
+
+	if (!IsValidPackageForCooking(PackageName, OutErrorMessage))
+	{
+		return false;
+	}
+
+	// Make sure we are not creating an path that is too long for the OS
+	const FString RelativePathFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());	// full relative path with name + extension
+	const FString FullPath = FPaths::ConvertRelativePathToFull(RelativePathFilename);	// path to file on disk
+	if ( ObjectPath.Len() > (PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH) || FullPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH )
+	{
+		// The full path for the asset is too long
+		OutErrorMessage = FText::Format( LOCTEXT("AssetPathTooLong", 
+			"The full path for the asset is too deep, the maximum is '{0}'. \nPlease choose a shorter name for the asset or create it in a shallower folder structure."), 
+			FText::AsNumber(PLATFORM_MAX_FILEPATH_LENGTH) );
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
+	// Check for an existing asset, unless it we were asked not to.
+	if ( !bAllowExistingAsset )
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		FAssetData ExistingAsset = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*ObjectPath));
+		if (ExistingAsset.IsValid())
+		{
+			// This asset already exists at this location, inform the user and continue
+			OutErrorMessage = FText::Format( LOCTEXT("RenameAssetAlreadyExists", "An asset already exists at this location with the name '{0}'."), FText::FromString( ObjectName ) );
+
+			// Return false to indicate that the user should enter a new name
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath, const FString& NewFolderName, FText& OutErrorMessage)
+{
+	if (!ContentBrowserUtils::IsValidFolderName(NewFolderName, OutErrorMessage))
+	{
+		return false;
+	}
+
+	const FString NewFolderPath = InFolderPath / NewFolderName;
+
+	if (ContentBrowserUtils::DoesFolderExist(NewFolderPath))
+	{
+		OutErrorMessage = LOCTEXT("RenameFolderAlreadyExists", "A folder already exists at this location with this name.");
+		return false;
+	}
+
+	// Make sure we are not creating a folder path that is too long
+	if (NewFolderPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH)
+	{
+		// The full path for the folder is too long
+		OutErrorMessage = FText::Format(LOCTEXT("RenameFolderPathTooLong",
+			"The full path for the folder is too deep, the maximum is '{0}'. Please choose a shorter name for the folder or create it in a shallower folder structure."),
+			FText::AsNumber(PLATFORM_MAX_FILEPATH_LENGTH));
+		// Return false to indicate that the user should enter a new name for the folder
+		return false;
+	}
+
+	return true;
+}
+
+bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, FText& OutErrorMessage)
+{
+	// We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
+	// 260 characters is the limit on Windows, which is the shortest max path of any platforms that support cooking
+	static const int32 MaxGameNameLen = 20;
+	static const int32 MaxPathLen = 260;
+
+	// Pad out the game name to the maximum allowed
+	const FString GameName = FApp::GetGameName();
+	FString GameNamePadded = GameName;
+	while (GameNamePadded.Len() < MaxGameNameLen)
+	{
+		GameNamePadded += TEXT(" ");
+	}
+
+	// We use "WindowsNoEditor" below as it's the longest platform name, so will also prove that any shorter platform names will validate correctly
+	const FString AbsoluteRootPath = FPaths::ConvertRelativePathToFull(FPaths::RootDir());
+	const FString AbsoluteGamePath = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+	const FString AbsoluteCookPath = AbsoluteGamePath / TEXT("Saved") / TEXT("Cooked") / TEXT("WindowsNoEditor") / GameName;
+
+	const FString RelativePathToAsset = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+	const FString AbsolutePathToAsset = FPaths::ConvertRelativePathToFull(RelativePathToAsset);
+
+	FString AssetPathWithinCookDir = AbsolutePathToAsset;
+	FPaths::RemoveDuplicateSlashes(AssetPathWithinCookDir);
+	AssetPathWithinCookDir.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+
+	// Test that the package can be cooked based on the current project path
+	{
+		FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
+		AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+		if (AbsoluteCookPathToAsset.Len() > MaxPathLen)
+		{
+			// The projected length of the path for cooking is too long
+			OutErrorMessage = LOCTEXT("AssetCookingPathTooLong", "The path to the asset is too long for cooking\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names.");
+			// Return false to indicate that the user should enter a new name
+			return false;
+		}
+	}
+
+	// See TTP# 332328:
+	// The following checks are done mostly to prevent / alleviate the problems that "long" paths are causing with the BuildFarm and cooked builds.
+	// The BuildFarm uses a verbose path to encode extra information to provide more information when things fail, however this makes the path limitation a problem.
+	//	- We assume a base path of D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10/
+	//	- We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
+	//	- We calculate the cooked game path relative to the game root (eg, Showcases/Infiltrator/Saved/Cooked/WindowsNoEditor/Infiltrator)
+	//	- We calculate the asset path relative to (and including) the Content directory (eg, Content/Environment/Infil1/Infil1_Underground/Infrastructure/Model/SM_Infil1_Tunnel_Ceiling_Pipes_1xEntryCurveOuter_Double.uasset)
+	if (FEngineBuildSettings::IsInternalBuild())
+	{
+		// We assume a constant size for the build machine base path, so strip either the root or game path from the start
+		// (depending on whether the project is part of the main UE4 source tree or located elsewhere)
+		FString CookDirWithoutBasePath = AbsoluteCookPath;
+		if (CookDirWithoutBasePath.StartsWith(AbsoluteRootPath, ESearchCase::CaseSensitive))
+		{
+			CookDirWithoutBasePath.RemoveFromStart(AbsoluteRootPath, ESearchCase::CaseSensitive);
+		}
+		else
+		{
+			CookDirWithoutBasePath.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+		}
+
+		FString AbsoluteBuildMachineCookPathToAsset = FString(TEXT("D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10")) / CookDirWithoutBasePath / AssetPathWithinCookDir;
+		AbsoluteBuildMachineCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+		if (AbsoluteBuildMachineCookPathToAsset.Len() > MaxPathLen)
+		{
+			// The projected length of the path for cooking is too long
+			OutErrorMessage = LOCTEXT("AssetCookingPathTooLongForBuildMachine", "The path to the asset is too long for cooking by the build machines\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names.");
+			// Return false to indicate that the user should enter a new name
+			return false;
+		}
+	}
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

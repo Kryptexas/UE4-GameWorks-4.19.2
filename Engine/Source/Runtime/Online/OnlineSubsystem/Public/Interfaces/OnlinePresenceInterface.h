@@ -13,6 +13,9 @@ typedef FOnlineKeyValuePairs<FPresenceKey, FVariantData> FPresenceProperties;
 /** The default key that will update presence text in the platform's UI */
 const FString DefaultPresenceKey = "RichPresence";
 
+/** Custom presence data that is not seen by users but can be polled */
+const FString CustomPresenceDataKey = "CustomData";
+
 /**
  * Presence info for an online user returned via IOnlinePresence interface
  */
@@ -48,21 +51,16 @@ public:
 class IOnlinePresence
 {
 public:
+	/** Virtual destructor to force proper child cleanup */
+	virtual ~IOnlinePresence() {}
+
 	/**
 	 * Delegate executed when setting presence for a user has completed.
 	 *
 	 * @param User The unique id of the user whose presence was set.
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error.
 	 */
-	DECLARE_DELEGATE_TwoParams(FOnSetCompleteDelegate, const class FUniqueNetId&, const bool);
-
-	/**
-	 * Delegate executed when the presence query request has completed.
-	 *
-	 * @param Users The unique ids of the users whose presence was requested.
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error.
-	 */
-	DECLARE_DELEGATE_TwoParams(FOnQueryCompleteDelegate, const TArray<TSharedRef<FUniqueNetId>>&, const bool);
+	DECLARE_DELEGATE_TwoParams(FOnPresenceTaskCompleteDelegate, const class FUniqueNetId&, const bool);
 
 	/**
 	 * Starts an async task that sets presence information for the user.
@@ -71,7 +69,7 @@ public:
 	 * @param Presence The collection of key/value pairs to set as the user's presence data.
 	 * @param Delegate The delegate to be executed when the potentially asynchronous set operation completes.
 	 */
-	virtual void SetPresence(const FUniqueNetId& User, const FPresenceProperties& Presence, const FOnSetCompleteDelegate& Delegate = FOnSetCompleteDelegate()) = 0;
+	virtual void SetPresence(const FUniqueNetId& User, const FPresenceProperties& Presence, const FOnPresenceTaskCompleteDelegate& Delegate = FOnPresenceTaskCompleteDelegate()) = 0;
 
 	/**
 	 * Starts an async operation that will update the cache with presence data from all users in the Users array.
@@ -80,7 +78,7 @@ public:
 	 * @param Users The list of unique ids of the users to query for presence information.
 	 * @param Delegate The delegate to be executed when the potentially asynchronous query operation completes.
 	 */
-	virtual void QueryPresence(const TArray<TSharedRef<FUniqueNetId>>& Users, const FOnQueryCompleteDelegate& Delegate = FOnQueryCompleteDelegate()) = 0;
+	virtual void QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate = FOnPresenceTaskCompleteDelegate()) = 0;
 
 	/**
 	 * Gets the cached presence information for a user.

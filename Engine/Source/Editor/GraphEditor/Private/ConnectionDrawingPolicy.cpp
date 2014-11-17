@@ -14,6 +14,7 @@
 #include "AnimGraphNode_Base.h"
 #include "Sound/SoundNode.h"
 #include "K2Node_Knot.h"
+#include "BlueprintEditorSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 
@@ -189,6 +190,7 @@ FKismetNodeInfoContext::FKismetNodeInfoContext(UEdGraph* SourceGraph)
 FConnectionDrawingPolicy::FConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements)
 	: WireLayerID(InBackLayerID)
 	, ArrowLayerID(InFrontLayerID)
+	, Settings(GetDefault<UGraphEditorSettings>())
 	, ZoomFactor(InZoomFactor)
 	, ClippingRect(InClippingRect)
 	, DrawElementsList(InDrawElements)
@@ -231,8 +233,12 @@ void FConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartPoint, 
 
 void FConnectionDrawingPolicy::DrawSplineWithArrow(FGeometry& StartGeom, FGeometry& EndGeom, const FLinearColor& WireColor, float WireThickness, bool bDrawBubbles, bool Bidirectional)
 {
-	const FVector2D StartPoint = FGeometryHelper::VerticalMiddleRightOf( StartGeom );
-	const FVector2D EndPoint = FGeometryHelper::VerticalMiddleLeftOf( EndGeom ) - FVector2D(ArrowRadius.X, 0);
+	//@TODO: These values should be pushed into the Slate style, they are compensating for a bit of
+	// empty space inside of the pin brush images.
+	const float StartFudgeX = 4.0f;
+	const float EndFudgeX = 4.0f;
+	const FVector2D StartPoint = FGeometryHelper::VerticalMiddleRightOf(StartGeom) - FVector2D(StartFudgeX, 0.0f);
+	const FVector2D EndPoint = FGeometryHelper::VerticalMiddleLeftOf(EndGeom) - FVector2D(ArrowRadius.X - EndFudgeX, 0);
 
 	DrawSplineWithArrow(StartPoint, EndPoint, WireColor, WireThickness, bDrawBubbles, Bidirectional);
 }
@@ -325,8 +331,7 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 	const FVector2D& P0 = Start;
 	const FVector2D& P1 = End;
 
-	const int32 Tension  = FMath::Abs<int32>(Start.X - End.X);
-	const FVector2D P0Tangent = Tension * FVector2D(1.0f, 0);
+	const FVector2D P0Tangent = Settings->ComputeSplineTangent(P0, P1);
 	const FVector2D P1Tangent = P0Tangent;
 
 	// Draw the spline itself
@@ -530,14 +535,12 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	: FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements)
 	, GraphObj(InGraphObj)
 {
-	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
-
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
 	ArrowRadius = FVector2D::ZeroVector;
 
 	// But we do want to draw midpoint arrowheads
-	if (GetDefault<UEditorExperimentalSettings>()->bDrawMidpointArrowsInBlueprints)
+	if (GetDefault<UBlueprintEditorSettings>()->bDrawMidpointArrowsInBlueprints)
 	{
 		MidpointImage = FEditorStyle::GetBrush( TEXT("Graph.Arrow") );
 		MidpointRadius = MidpointImage->ImageSize * ZoomFactor * 0.5f;
@@ -1011,7 +1014,7 @@ void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
 
 		UAnimStateNodeBase* State = CastChecked<UAnimStateNodeBase>(InputPin->GetOwningNode());
 		int32 StateIndex = NodeWidgetMap.FindChecked(State);
-		EndWidgetGeometry = &(ArrangedNodes(StateIndex));
+		EndWidgetGeometry = &(ArrangedNodes[StateIndex]);
 	}
 	else if (UAnimStateTransitionNode* TransNode = Cast<UAnimStateTransitionNode>(InputPin->GetOwningNode()))
 	{
@@ -1023,8 +1026,8 @@ void FStateMachineConnectionDrawingPolicy::DetermineLinkGeometry(
 			int32* NextNodeIndex = NodeWidgetMap.Find(NextState);
 			if ((PrevNodeIndex != NULL) && (NextNodeIndex != NULL))
 			{
-				StartWidgetGeometry = &(ArrangedNodes(*PrevNodeIndex));
-				EndWidgetGeometry = &(ArrangedNodes(*NextNodeIndex));
+				StartWidgetGeometry = &(ArrangedNodes[*PrevNodeIndex]);
+				EndWidgetGeometry = &(ArrangedNodes[*NextNodeIndex]);
 			}
 		}
 	}
@@ -1046,7 +1049,7 @@ void FStateMachineConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArran
 	NodeWidgetMap.Empty();
 	for (int32 NodeIndex = 0; NodeIndex < ArrangedNodes.Num(); ++NodeIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedNodes(NodeIndex);
+		FArrangedWidget& CurWidget = ArrangedNodes[NodeIndex];
 		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 		NodeWidgetMap.Add(ChildNode->GetNodeObj(), NodeIndex);
 	}
@@ -1244,8 +1247,6 @@ FSoundCueGraphConnectionDrawingPolicy::FSoundCueGraphConnectionDrawingPolicy(int
 	, GraphObj(InGraphObj)
 {
 	// Cache off the editor options
-	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
-
 	ActiveColor = Settings->TraceAttackColor;
 	InactiveColor = Settings->TraceReleaseColor;
 

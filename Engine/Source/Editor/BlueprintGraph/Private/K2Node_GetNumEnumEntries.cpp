@@ -5,8 +5,9 @@
 #include "KismetCompiler.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
 #include "K2Node_GetNumEnumEntries.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 UK2Node_GetNumEnumEntries::UK2Node_GetNumEnumEntries(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -23,20 +24,33 @@ void UK2Node_GetNumEnumEntries::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_GetNumEnumEntries::GetTooltip() const
+FText UK2Node_GetNumEnumEntries::GetTooltipText() const
 {
-	const FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
-
-	return FString::Printf(*NSLOCTEXT("K2Node", "GetNumEnumEntries_Tooltip", "Returns %s_MAX value").ToString(), *EnumName);
+	if (Enum == nullptr)
+	{
+		return NSLOCTEXT("K2Node", "GetNumEnumEntries_BadTooltip", "Returns (bad enum)_MAX value");
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "GetNumEnumEntries_Tooltip", "Returns {0}_MAX value"), FText::FromName(Enum->GetFName()));
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_GetNumEnumEntries::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText EnumName = (Enum != NULL) ? FText::FromString(Enum->GetName()) : NSLOCTEXT("K2Node", "BadEnum", "(bad enum)");
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("EnumName"), EnumName);
-	return FText::Format(NSLOCTEXT("K2Node", "GetNumEnumEntries_Title", "Get number of entries in {EnumName}"), Args);
+	if (Enum == nullptr)
+	{
+		return NSLOCTEXT("K2Node", "GetNumEnumEntries_BadEnumTitle", "Get number of entries in (bad enum)");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(Enum->GetName()));
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "GetNumEnumEntries_Title", "Get number of entries in {EnumName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -82,38 +96,40 @@ void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& Compile
 	}
 }
 
-void UK2Node_GetNumEnumEntries::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GetNumEnumEntries::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	auto SetNodeEnumLambda = [](UEdGraphNode* NewNode, UField const* /*EnumField*/, TWeakObjectPtr<UEnum> NonConstEnumPtr)
+	{
+		UK2Node_GetNumEnumEntries* EnumNode = CastChecked<UK2Node_GetNumEnumEntries>(NewNode);
+		EnumNode->Enum = NonConstEnumPtr.Get();
+	};
+
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
 		UEnum const* Enum = (*EnumIt);
-		// we only want to add global "standalone" enums here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any enums that were changed).
-		//
-		// @TODO: don't love how this code is essentially duplicated in BlueprintActionDatabase.cpp, for class enums
-		bool bIsStandaloneEnum = Enum->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneEnum || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
 		{
 			continue;
 		}
 
-		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Enum))
 		{
-			UK2Node_GetNumEnumEntries* EnumNode = CastChecked<UK2Node_GetNumEnumEntries>(NewNode);
-			if (EnumPtr.IsValid())
-			{
-				EnumNode->Enum = EnumPtr.Get();
-			}
-		};
+			continue;
+		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Enum);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = Enum;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeEnumLambda, NonConstEnumPtr);
 
-		TWeakObjectPtr<UEnum> EnumPtr = Enum;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+		// this enum could belong to a class, or is a user defined enum (asset), 
+		// that's why we want to make sure to register it along with the action 
+		// (so the action can be refreshed when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Enum, NodeSpawner);
 	}
 }
 

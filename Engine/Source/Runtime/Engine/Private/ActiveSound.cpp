@@ -75,20 +75,16 @@ FArchive& operator<<( FArchive& Ar, FActiveSound* ActiveSound )
 
 void FActiveSound::AddReferencedObjects( FReferenceCollector& Collector)
 {
-#if WITH_EDITOR
-	if( GIsEditor )
+	for (auto WaveInstanceIt(WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
 	{
-		for (auto WaveInstanceIt(WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
+		FWaveInstance* WaveInstance = WaveInstanceIt.Value();
+		// Avoid recursing back to the wave instance that sourced this active sound
+		if( WaveInstance )
 		{
-			FWaveInstance* WaveInstance = WaveInstanceIt.Value();
-			// Avoid recursing back to the wave instance that sourced this active sound
-			if( WaveInstance )
-			{
-				WaveInstance->AddReferencedObjects( Collector );
-			}
+			WaveInstance->AddReferencedObjects( Collector );
 		}
 	}
-#endif
+
 	Collector.AddReferencedObject(Sound);
 	Collector.AddReferencedObject(LastReverbVolume);
 	Collector.AddReferencedObject(SoundClassOverride);
@@ -190,13 +186,16 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 	}
 
 	// for velocity-based effects like doppler
-	ParseParams.Velocity = (DeltaTime <= 0.0f) ? FVector::ZeroVector : ((ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime);
-	LastLocation = ParseParams.Transform.GetTranslation();
+	if (DeltaTime > 0.f)
+	{
+		ParseParams.Velocity = (ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime;
+		LastLocation = ParseParams.Transform.GetTranslation();
+	}
 
 	// if the closest listener is not the primary one, transform CurrentLocation
 	if( ClosestListenerIndex != 0 )
 	{
-		ParseParams.Transform = ParseParams.Transform * ClosestListener.Transform.InverseSafe() * Listener.Transform;
+		ParseParams.Transform = ParseParams.Transform * ClosestListener.Transform.Inverse() * Listener.Transform;
 	}
 
 	// Recurse nodes, have SoundWave's create new wave instances and update bFinished unless we finished fading out.

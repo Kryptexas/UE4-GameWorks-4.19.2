@@ -8,12 +8,6 @@ public class LinuxTargetPlatform : ModuleRules
 	{
         BinariesSubFolder = "Linux";
 
-		PublicIncludePaths.AddRange(
-			new string[] {
-				"Runtime/Core/Public/Linux"
-			}
-		);
-		
 		PrivateDependencyModuleNames.AddRange(
             new string[] {
 				"Core",

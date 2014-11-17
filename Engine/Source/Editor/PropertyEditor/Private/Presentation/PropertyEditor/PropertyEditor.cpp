@@ -11,6 +11,9 @@
 
 #include "DelegateFilter.h"
 
+#include "EditorClassUtils.h"
+#include "KismetEditorUtilities.h"
+
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 TSharedRef< FPropertyEditor > FPropertyEditor::Create( const TSharedRef< class FPropertyNode >& InPropertyNode, const TSharedRef<class IPropertyUtilities >& InPropertyUtilities )
@@ -208,6 +211,25 @@ void FPropertyEditor::OnClearItem()
 	PropertyHandle->SetValueFromFormattedString( None );
 }
 
+void FPropertyEditor::MakeNewBlueprint()
+{
+	UProperty* NodeProperty = PropertyNode->GetProperty();
+	UClassProperty* ClassProp = Cast<UClassProperty>(NodeProperty);
+	UClass* Class = (ClassProp ? ClassProp->MetaClass : FEditorClassUtils::GetClassFromString(NodeProperty->GetMetaData("MetaClass")));
+
+	if (Class)
+	{
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(LOCTEXT("CreateNewBlueprint", "Create New Blueprint"), Class, FString::Printf(TEXT("New%s"),*Class->GetName()));
+
+		if(Blueprint != NULL && Blueprint->GeneratedClass)
+		{
+			PropertyHandle->SetValueFromFormattedString(Blueprint->GeneratedClass->GetPathName());
+
+			FAssetEditorManager::Get().OpenEditorForAsset(Blueprint);
+		}
+	}
+}
+
 void FPropertyEditor::InsertItem()
 {
 	// This action must be deferred until next tick so that we avoid accessing invalid data before we have a chance to tick
@@ -393,6 +415,11 @@ bool FPropertyEditor::IsPropertyEditingEnabled() const
 		(EditConditionProperty == NULL || IsEditConditionMet( EditConditionProperty, PropertyEditConditions ));
 }
 
+void FPropertyEditor::RequestRefresh()
+{
+	PropertyUtilities->RequestRefresh();
+}
+
 bool FPropertyEditor::HasEditCondition() const 
 { 
 	return EditConditionProperty != NULL; 
@@ -487,7 +514,7 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 {
 	bool bResult = false;
 	bool bNegate = false;
-	UBoolProperty* EditConditionProperty = GetEditConditionProperty( InPropertyNode.GetProperty(), bNegate);
+	UBoolProperty* EditConditionProperty = PropertyCustomizationHelpers::GetEditConditionProperty(InPropertyNode.GetProperty(), bNegate);
 	if ( EditConditionProperty != NULL )
 	{
 		FPropertyNode* ParentNode = InPropertyNode.GetParentNode();
@@ -547,7 +574,7 @@ bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty )
 	if (!InProperty->HasMetaData(TEXT("HideEditConditionToggle")))
 	{
 		bool bNegateValue = false;
-		UBoolProperty* ConditionalProperty = GetEditConditionProperty( InProperty, bNegateValue );
+		UBoolProperty* ConditionalProperty = PropertyCustomizationHelpers::GetEditConditionProperty( InProperty, bNegateValue );
 		if( ConditionalProperty != NULL )
 		{
 			bShowEditConditionToggle = true;
@@ -562,35 +589,6 @@ bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty )
 	}
 
 	return bShowEditConditionToggle;
-}
-
-UBoolProperty* FPropertyEditor::GetEditConditionProperty( const UProperty* InProperty, bool& bNegate ) 
-{
-	UBoolProperty* EditConditionProperty = NULL;
-	bNegate = false;
-
-	if ( InProperty != NULL )
-	{
-		// find the name of the property that should be used to determine whether this property should be editable
-		FString ConditionPropertyName = InProperty->GetMetaData(TEXT("EditCondition"));
-
-		// Support negated edit conditions whose syntax is !BoolProperty
-		if (ConditionPropertyName.StartsWith(FString(TEXT("!"))))
-		{
-			bNegate = true;
-			// Chop off the negation from the property name
-			ConditionPropertyName = ConditionPropertyName.Right(ConditionPropertyName.Len() - 1);
-		}
-
-		// for now, only support boolean conditions, and only allow use of another property within the same struct as the conditional property
-		if ( ConditionPropertyName.Len() > 0 && !ConditionPropertyName.Contains(TEXT(".")) )
-		{
-			UStruct* Scope = InProperty->GetOwnerStruct();
-			EditConditionProperty = FindField<UBoolProperty>(Scope, *ConditionPropertyName);
-		}
-	}
-
-	return EditConditionProperty;
 }
 
 void FPropertyEditor::SyncToObjectsInNode( const TWeakPtr< FPropertyNode >& WeakPropertyNode )

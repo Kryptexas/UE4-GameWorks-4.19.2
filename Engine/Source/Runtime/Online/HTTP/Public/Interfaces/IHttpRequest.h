@@ -157,6 +157,13 @@ public:
 	virtual EHttpRequestStatus::Type GetStatus() = 0;
 
 	/**
+	 * Get the associated Response
+	 *
+	 * @return the response
+	 */
+	virtual const FHttpResponsePtr GetResponse() const = 0;
+
+	/**
 	 * Used to tick the request
 	 *
 	 * @param DeltaSeconds - seconds since last ticked

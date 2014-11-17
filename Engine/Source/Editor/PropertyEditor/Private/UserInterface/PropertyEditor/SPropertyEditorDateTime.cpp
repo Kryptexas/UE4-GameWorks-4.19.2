@@ -17,6 +17,10 @@ void SPropertyEditorDateTime::Construct( const FArguments& InArgs, const TShared
 		SAssignNew( PrimaryWidget, SEditableTextBox )
 		.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
 		.Font( InArgs._Font )
+		.SelectAllTextWhenFocused(true)
+		.ClearKeyboardFocusOnCommit(false)
+		.OnTextCommitted(this, &SPropertyEditorDateTime::HandleTextCommitted)
+		.SelectAllTextOnCommit(true)
 		.IsReadOnly(InPropertyEditor->IsEditConst())
 	];
 
@@ -26,6 +30,7 @@ void SPropertyEditorDateTime::Construct( const FArguments& InArgs, const TShared
 		PrimaryWidget->SetToolTipText( TAttribute<FString>( InPropertyEditor, &FPropertyEditor::GetValueAsString ) );
 	}
 }
+
 
 bool SPropertyEditorDateTime::Supports( const TSharedRef< FPropertyEditor >& InPropertyEditor )
 {
@@ -43,4 +48,13 @@ bool SPropertyEditorDateTime::Supports( const TSharedRef< FPropertyEditor >& InP
 	}
 
 	return false;
+}
+
+
+void SPropertyEditorDateTime::HandleTextCommitted( const FText& NewText, ETextCommit::Type /*CommitInfo*/ )
+{
+	const TSharedRef<FPropertyNode> PropertyNode = PropertyEditor->GetPropertyNode();
+	const TSharedRef<IPropertyHandle> PropertyHandle = PropertyEditor->GetPropertyHandle();
+
+	PropertyHandle->SetValueFromFormattedString(NewText.ToString());
 }

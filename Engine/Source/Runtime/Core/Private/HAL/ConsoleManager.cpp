@@ -16,7 +16,7 @@ static inline bool IsWhiteSpace(TCHAR Value) { return Value == TCHAR(' '); }
 class FConsoleVariableBase : public IConsoleVariable
 {
 public:
-	/*
+	/**
 	 * Constructor
 	 * @param InHelp must not be 0, must not be empty
 	 */
@@ -114,7 +114,7 @@ protected: // -----------------------------------------
 class FConsoleCommandBase : public IConsoleCommand
 {
 public:
-	/*
+	/**
 	 * Constructor
 	 * @param InHelp must not be 0, must not be empty
 	 */
@@ -909,7 +909,7 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 		// An existing console object was found that has the same name as the object being registered.
 		// In most cases this is not allowed, but if there is a variable with the same name and is
 		// in an 'unregistered' state or we're hot reloading dlls, we may be able to replace or update that variable.
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 		const bool bCanUpdateOrReplaceObj = (ExistingObj->AsVariable()||ExistingObj->AsCommand()) && (GIsHotReload || ExistingObj->TestFlags(ECVF_Unregistered));
 #else
 		const bool bCanUpdateOrReplaceObj = ExistingObj->AsVariable() && ExistingObj->TestFlags(ECVF_Unregistered);
@@ -1394,7 +1394,7 @@ static TAutoConsoleVariable<int32> CVarMobileHDR(
 	1,
 	TEXT("0: Mobile renders in LDR gamma space. (suggested for unlit games targeting low-end phones)\n")
 	TEXT("1: Mobile renders in HDR linear space. (default)"),
-	ECVF_RenderThreadSafe);
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarMobileHDR32bpp(
 	TEXT("r.MobileHDR32bpp"),
@@ -1464,14 +1464,6 @@ static TAutoConsoleVariable<float> CVarAmbientOcclusionStaticFraction(TEXT("r.Am
 	TEXT(" 0: no effect on static lighting, 0 is free meaning no extra rendering pass\n")
 	TEXT(" 1: AO affects the stat lighting"),
 	ECVF_Default);
-
-static TAutoConsoleVariable<int32> CVarAtmosphereRender(
-	TEXT("r.AtmosphereRender"),
-	1,
-	TEXT("Defines atmosphere will render or not. Only changed by r.Atmosphere console command\n")
-	TEXT(" 0: off\n")
-	TEXT(" 1: on"),
-	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarShadowQuality(
 	TEXT("r.ShadowQuality"),
@@ -1575,8 +1567,21 @@ static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
 	TEXT("Games that only use dynamic lighting should set this to 0 to save some static lighting overhead."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarNormalMaps(
+	TEXT("r.NormalMapsForStaticLighting"),
+	0,
+	TEXT("Whether to allow any static lighting to use normal maps for lighting computations."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
+	TEXT("r.NumBufferedOcclusionQueries"),
+	1,
+	TEXT("Number of frames to buffer occlusion queries (including the current renderthread frame).\n")
+	TEXT("More frames reduces the chance of stalling the CPU waiting for results, but increases out of date query artifacts."),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarDistField(
-	TEXT("r.AllowMeshDistanceFieldRepresentations"),
+	TEXT("r.GenerateMeshDistanceFields"),
 	0,	
 	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
 	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
@@ -1802,22 +1807,12 @@ static TAutoConsoleVariable<int32> CVarRefractionQuality(
 	TEXT("  3: high quality (e.g. color fringe, not yet implemented)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-
-
-
-static TAutoConsoleVariable<float> CVarUIBlurRadius(
-	TEXT("UI.BlurRadius"),
-	1.2f,
-	TEXT("Gaussian blur radius for post process UIBlur operation\n")
-	TEXT("as a percent of screen width\n")
-	TEXT("0 to turn off gaussian blur. (Default 1.2)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("r.DBuffer"),
 	0,
 	TEXT("Experimental DBuffer feature: Generating deferred decals before the BasePass.\n")
-	TEXT("Allows decals to be correctly lit by baked lighting.\n")
+	TEXT("Allows decals to be correctly lit by baked lighting. Receivers need to be rendered in the early zpass.\n")
+	TEXT("At the moment only can be ensures by full enablng this pass: r.EarlyZPassMovable=1 r.EarlyZPass=2\n")
 	TEXT(" 0: off\n")
 	TEXT(" 1: on (needs early pass rendering on all decal receivers and base pass lookups into the DBuffer, costs GPU memory, allows GBuffer compression)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
@@ -1859,3 +1854,18 @@ static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
 	0,
 	TEXT("If 1 the quick settings menu will contain an option to enable feature level preview modes"),
 	ECVF_RenderThreadSafe);
+
+
+static TAutoConsoleVariable<int32> CVarGBuffer(
+	TEXT("r.GBuffer"),
+	1,
+	TEXT("0=Do not use GBuffer (fast minimal rendering path), 1=Use GBuffer [default]."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarVerifyPeer(
+	TEXT("n.VerifyPeer"),
+	1,
+	TEXT("Sets libcurl's CURL_OPT_SSL_VERIFYPEER option to verify authenticity of the peer's certificate.\n")
+	TEXT("  0 = disable (allows self-signed certificates)\n")
+	TEXT("  1 = enable [default]"),
+	ECVF_ReadOnly);

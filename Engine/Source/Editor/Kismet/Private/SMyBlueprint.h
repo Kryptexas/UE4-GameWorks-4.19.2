@@ -14,10 +14,12 @@ namespace NodeSectionID
 		INTERFACE,				// Interface
 		MACRO,					// Macros
 		VARIABLE,				// Variables
+		COMPONENT,				// Components
 		DELEGATE,				// Delegate/Event
 		USER_ENUM,				// User defined enums
 		LOCAL_VARIABLE,			// Local variables
 		USER_STRUCT,			// User defined structs
+		USER_SORTED				// User sorted categories
 	};
 };
 
@@ -109,7 +111,7 @@ public:
 	void OnResetItemFilter();
 
 	/** Selects an item by name in either the main graph action menu or the local one */
-	void SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct);
+	void SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
 	/** Clears the selection in the graph action menus */
 	void ClearGraphActionMenuSelection();
@@ -119,6 +121,9 @@ public:
 
 	/** Expands any category with the associated name */
 	void ExpandCategory(const FString& CategoryName);
+
+	/** Move the category before the target category */
+	bool MoveCategoryBeforeCategory( const FString& CategoryToMove, const FString& TargetCategory );
 
 private:
 	/** Creates widgets for the graph schema actions */

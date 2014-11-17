@@ -180,6 +180,26 @@ public:
 		return bReadyToBuild;
 	}
 
+	virtual bool SupportsVariants() const override
+	{
+		return false;
+	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return FText();
+	}
+
+	virtual FText GetVariantTitle() const override
+	{
+		return FText();
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.0f;
+	}
+
 	// End ITargetPlatform interface
 
 protected:

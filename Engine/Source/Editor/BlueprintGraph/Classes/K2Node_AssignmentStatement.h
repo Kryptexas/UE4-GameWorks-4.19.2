@@ -17,16 +17,16 @@ class UK2Node_AssignmentStatement : public UK2Node
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual bool CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const override;
+	virtual bool IsCompatibleWithGraph(UEdGraph const* TargetGraph) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
 	virtual void PostReconstructNode() override;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	// End UK2Node interface

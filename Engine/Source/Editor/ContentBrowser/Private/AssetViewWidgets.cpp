@@ -9,6 +9,7 @@
 #include "SThumbnailEditModeTools.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
+#include "BreakIterator.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -962,6 +963,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		SNew(SBorder)
 		.BorderImage(this, &SAssetViewItem::GetBorderImage)
 		.Padding(0)
+		.AddMetaData<FTagMetaData>(FTagMetaData(AssetItem->GetType() == EAssetItemType::Normal ? StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.ObjectPath : NAME_None))
 		[
 			SNew(SHorizontalBox)
 
@@ -971,12 +973,13 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 			.VAlign(VAlign_Center)
 			[
 				SNew( SBox )
+				.Padding(ThumbnailPadding - 4.f)
 				.WidthOverride( this, &SAssetListItem::GetThumbnailBoxSize )
 				.HeightOverride( this, &SAssetListItem::GetThumbnailBoxSize )
 				[
 					// Drop shadow border
 					SNew(SBorder)
-					.Padding(ThumbnailPadding)
+					.Padding(4.f)
 					.BorderImage( IsFolder() ? FEditorStyle::GetBrush("NoBorder") : FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
 					[
 						SNew(SOverlay)
@@ -1173,22 +1176,24 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		SNew(SBorder)
 		.BorderImage(this, &SAssetViewItem::GetBorderImage)
 		.Padding(0)
+		.AddMetaData<FTagMetaData>(FTagMetaData(AssetItem->GetType() == EAssetItemType::Normal ? StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.ObjectPath : NAME_None))
 		[
 			SNew(SVerticalBox)
 
 			// Thumbnail
 			+SVerticalBox::Slot()
 			.AutoHeight()
+			.HAlign(HAlign_Center)
 			[
-				// Use ItemWidth for both the width and height to make it square.
 				// The remainder of the space is reserved for the name.
 				SNew(SBox)
+				.Padding(ThumbnailPadding - 4.f)
 				.WidthOverride( this, &SAssetTileItem::GetThumbnailBoxSize )
 				.HeightOverride( this, &SAssetTileItem::GetThumbnailBoxSize )
 				[
 					// Drop shadow border
 					SNew(SBorder)
-					.Padding(ThumbnailPadding)
+					.Padding(4.f)
 					.BorderImage(IsFolder() ? FEditorStyle::GetBrush("NoBorder") : FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
 					[
 						SNew(SOverlay)
@@ -1257,13 +1262,13 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 			]
 
 			+SVerticalBox::Slot()
-			.Padding(FMargin(ThumbnailPadding, 0, ThumbnailPadding, ThumbnailPadding))
+			.Padding(FMargin(1.f, 0))
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.FillHeight(1.f)
 			[
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
-					.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetTileViewNameFont"))
+					.Font( this, &SAssetTileItem::GetThumbnailFont )
 					.Text( GetNameText() )
 					.OnBeginTextEdit(this, &SAssetTileItem::HandleBeginNameChange)
 					.OnTextCommitted(this, &SAssetTileItem::HandleNameCommitted)
@@ -1272,6 +1277,8 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 					.IsSelected(InArgs._IsSelected)
 					.IsReadOnly(ThumbnailEditMode)
 					.WrapTextAt(this, &SAssetTileItem::GetNameTextWrapWidth)
+					.Justification(ETextJustify::Center)
+					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 			]
 		]
 	
@@ -1308,9 +1315,27 @@ FOptionalSize SAssetTileItem::GetSCCImageSize() const
 	return GetThumbnailBoxSize().Get() * 0.2;
 }
 
+FSlateFontInfo SAssetTileItem::GetThumbnailFont() const
+{
+	FOptionalSize ThumbSize = GetThumbnailBoxSize();
+	if ( ThumbSize.IsSet() )
+	{
+		float Size = ThumbSize.Get();
+		if ( Size < 85 )
+		{
+			static FName SmallFontName("ContentBrowser.AssetTileViewNameFontSmall");
+			return FEditorStyle::GetFontStyle(SmallFontName);
+		}
+	}
+
+	static FName RegularFont("ContentBrowser.AssetTileViewNameFont");
+	return FEditorStyle::GetFontStyle(RegularFont);
+}
+
 float SAssetTileItem::GetNameTextWrapWidth() const
 {
-	return ItemWidth.Get() - ThumbnailPadding * 2.f;
+	// Wrap to the entire size of the tile, minus some padding
+	return LastGeometry.Size.X - 2.f;
 }
 
 ///////////////////////////////
@@ -1364,6 +1389,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		const float IconOverlaySize = IconBrush->ImageSize.X * 0.6f;
 
 		Content = SNew(SHorizontalBox)
+			.AddMetaData<FTagMetaData>(FTagMetaData(AssetItem->GetType() == EAssetItemType::Normal ? StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.ObjectPath : NAME_None))
 			// Icon
 			+SHorizontalBox::Slot()
 			.AutoWidth()

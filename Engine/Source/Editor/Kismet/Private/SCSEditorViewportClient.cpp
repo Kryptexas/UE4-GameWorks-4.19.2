@@ -256,7 +256,7 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 			{
 				FSCSEditorTreeNodePtrType SelectedNode = SelectedNodes[SelectionIndex];
 
-				UActorComponent* Comp = Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor, true));
+				UActorComponent* Comp = SelectedNode->FindComponentInstanceInActor(PreviewActor, true);
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
@@ -339,10 +339,15 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 				{
 					USceneComponent* CompInstance = *CompIt;
 					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(CompInstance);
-					if(CompInstance == ActorProxy->PrimComponent)
+					if (Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
+					{
+						break;
+					}
+
+					if (CompInstance == ActorProxy->PrimComponent)
 					{
 						const bool bIsCtrlKeyDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-						if(BlueprintEditorPtr.IsValid())
+						if (BlueprintEditorPtr.IsValid())
 						{
 							// Note: This will find and select any node associated with the component instance that's attached to the proxy (including visualizers)
 							BlueprintEditorPtr.Pin()->FindAndSelectSCSEditorTreeNode(CompInstance, bIsCtrlKeyDown);
@@ -405,12 +410,12 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 								if(!SceneComp->bAbsoluteLocation)
 								{
-									Drag = ParentToWorldSpace.InverseSafe().TransformVector(Drag);
+									Drag = ParentToWorldSpace.Inverse().TransformVector(Drag);
 								}
 								
 								if(!SceneComp->bAbsoluteRotation)
 								{
-									Rot = (ParentToWorldSpace.InverseSafe().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
+									Rot = (ParentToWorldSpace.Inverse().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
 								}
 							}
 
@@ -632,15 +637,17 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 	if( GetWidgetCoordSystemSpace() == COORD_Local )
 	{
 		AActor* PreviewActor = GetPreviewActor();
-		if(PreviewActor)
+		auto BlueprintEditor = BlueprintEditorPtr.Pin();
+		if (PreviewActor && BlueprintEditor.IsValid())
 		{
-			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
+			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditor->GetSelectedSCSEditorTreeNodes();
 			if(SelectedNodes.Num() > 0)
 			{
-				USceneComponent* SceneComp = Cast<USceneComponent>(SelectedNodes.Last().Get()->FindComponentInstanceInActor(PreviewActor, true));
+				const auto SelectedNode = SelectedNodes.Last();
+				USceneComponent* SceneComp = SelectedNode.IsValid() ? Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor, true)) : NULL;
 				if( SceneComp )
 				{
-					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(SceneComp);
+					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditor->CustomizeSCSEditor(SceneComp);
 					FMatrix CustomTransform;
 					if(Customization.IsValid() && Customization->HandleGetWidgetTransform(SceneComp, CustomTransform))
 					{
@@ -761,6 +768,9 @@ bool FSCSEditorViewportClient::GetIsSimulateEnabled()
 
 void FSCSEditorViewportClient::ToggleIsSimulateEnabled() 
 {
+	// Must destroy existing actors before we toggle the world state
+	DestroyPreview();
+
 	bIsSimulateEnabled = !bIsSimulateEnabled;
 	PreviewScene->GetWorld()->bBegunPlay = bIsSimulateEnabled;
 	PreviewScene->GetWorld()->bShouldSimulatePhysics = bIsSimulateEnabled;
@@ -870,7 +880,7 @@ void FSCSEditorViewportClient::EndTransaction()
 AActor* FSCSEditorViewportClient::GetPreviewActor() const
 {
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if(PreviewActorPtr.IsStale(true))
+	if(PreviewActorPtr.IsStale(true) && PreviewBlueprint)
 	{
 		UWorld* PreviewWorld = PreviewScene->GetWorld();
 		for(TActorIterator<AActor> It(PreviewWorld); It; ++It)

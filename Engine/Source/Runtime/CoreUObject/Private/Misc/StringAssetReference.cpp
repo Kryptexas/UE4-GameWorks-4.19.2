@@ -5,7 +5,7 @@
 #include "StringAssetReference.h"
 #include "PropertyTag.h"
 
-FStringAssetReference::FStringAssetReference(const class UObject* InObject)
+FStringAssetReference::FStringAssetReference(const UObject* InObject)
 {
 	if (InObject)
 	{

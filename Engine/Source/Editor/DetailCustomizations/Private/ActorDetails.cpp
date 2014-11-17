@@ -28,6 +28,7 @@
 #include "Runtime/Engine/Classes/Engine/BrushShape.h"
 #include "ActorDetailsDelegates.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/DocumentationActor.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 
@@ -95,17 +96,26 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			DetailLayout.HideProperty( GET_MEMBER_NAME_CHECKED(AActor, SpriteScale) );
 		}
 
-		AddExperimentalWarningCategory( DetailLayout );
-
-		AddTransformCategory( DetailLayout );
-
-		AddMaterialCategory( DetailLayout );
-
-		AddActorCategory( DetailLayout, ActorsPerLevelCount );
+		AddExperimentalWarningCategory(DetailLayout);
 
 		// Get the list of hidden categories
 		TArray<FString> HideCategories;
-		FEditorCategoryUtils::GetClassHideCategories(DetailLayout.GetDetailsView().GetBaseClass(), HideCategories);
+		FEditorCategoryUtils::GetClassHideCategories(DetailLayout.GetDetailsView().GetBaseClass(), HideCategories); 
+
+		if (!HideCategories.Contains(TEXT("Transform")))
+		{
+			AddTransformCategory(DetailLayout);
+		}
+
+		if (!HideCategories.Contains(TEXT("Materials")))
+		{
+			AddMaterialCategory(DetailLayout);
+		}
+		
+		if (!HideCategories.Contains(TEXT("Actor")))
+		{
+			AddActorCategory(DetailLayout, ActorsPerLevelCount);
+		}
 
 		// Add Blueprint category, if not being hidden
 		if (!HideCategories.Contains(TEXT("Blueprint")))
@@ -116,10 +126,10 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 		OnExtendActorDetails.Broadcast(DetailLayout, FGetSelectedActors::CreateSP(this, &FActorDetails::GetSelectedActors));
 
-		if (!HideCategories.Contains(TEXT("Layers")))
+		/*if (!HideCategories.Contains(TEXT("Layers")))
 		{
 			AddLayersCategory(DetailLayout);
-		}
+		}*/
 
 		//AddComponentsCategory( DetailLayout );
 	}

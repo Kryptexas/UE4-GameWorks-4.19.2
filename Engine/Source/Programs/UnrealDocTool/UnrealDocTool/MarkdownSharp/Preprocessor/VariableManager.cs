@@ -15,7 +15,7 @@ namespace MarkdownSharp.Preprocessor
 
     public class VariableManager
     {
-        public static readonly Regex InLineVariableOrMetadata = new Regex(@"(?<=^[ ]{0,3}(\S.*)?)((\%(?<pathWithColon>(?<path>[^%: \s]*?):)?(?<variableName>([_ \(\):a-zA-Z0-9\<\>*;]+?))\%))", RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline | RegexOptions.Compiled);
+        public static readonly Regex InLineVariableOrMetadata = new Regex(@"(?<=^[ ]{0,3}(\S.*)?)(?<!http://[^) ]+)((\%(?<pathWithColon>(?<path>[^%: \s]*?):)?(?<variableName>([_ \(\):a-zA-Z0-9\<\>*;]+?))\%))", RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline | RegexOptions.Compiled);
         private static readonly Regex VariableDefinitionPattern = new Regex(@"
                 (
                     ^\[VAR:(?<variableName>[_a-zA-Z0-9]+?)\]$\n
@@ -225,18 +225,20 @@ namespace MarkdownSharp.Preprocessor
 
                 if (!data.ProcessedDocumentCache.TryGetLinkedFileVariable(currentFile, variableName, out outString))
                 {
-                    //error
-                    errorId = data.ErrorList.Count;
-                    data.ErrorList.Add(
-                        Markdown.GenerateError(
-                            Language.Message("VariableOrMetadataNotFoundInFile", variableName, currentFile.FullName),
-                            MessageClass.Error,
-                            OnErrorStringToUseForMatch,
-                            errorId,
-                            data));
+					if (doc.PerformStrictConversion())
+					{
+						//error
+						errorId = data.ErrorList.Count;
+						data.ErrorList.Add(
+							Markdown.GenerateError(
+								Language.Message("VariableOrMetadataNotFoundInFile", variableName, currentFile.FullName),
+								MessageClass.Error,
+								OnErrorStringToUseForMatch,
+								errorId,
+								data));
 
-                    isProblem = true;
-
+						isProblem = true;
+					}
                     outString = OnErrorStringToUseForMatch.Replace("%", "&#37;");
                 }
                 else

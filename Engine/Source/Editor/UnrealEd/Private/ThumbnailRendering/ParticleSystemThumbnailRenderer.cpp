@@ -7,6 +7,7 @@
 
 #include "Particles/ParticleSystem.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 UParticleSystemThumbnailRenderer::UParticleSystemThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

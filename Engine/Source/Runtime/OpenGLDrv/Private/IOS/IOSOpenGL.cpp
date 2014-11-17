@@ -115,8 +115,23 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 	return (void*)Context->Context;
 }
 
+
+// Event for coordinating pausing of render thread to keep inline with the ios display link.
+static FEvent* FrameReadyEvent = NULL;
+
 bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
+    if( FIOSPlatformRHIFramePacer::IsEnabled() )
+    {
+        if( FrameReadyEvent == NULL )
+        {
+            FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+            FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent, 1 );
+        }
+    
+        FrameReadyEvent->Wait();
+    }
+    
 	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
 
 	// @todo-mobile
@@ -196,7 +211,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 	FIOSView* GLView = AppDelegate.IOSView;
 
 	uint32 Flags = TexCreate_RenderTargetable;
-	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, GLView.OnScreenColorRenderBuffer, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags);
+	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, GLView.OnScreenColorRenderBuffer, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr);
 	OpenGLTextureAllocated(Texture2D, Flags);
 
 	return Texture2D;

@@ -32,6 +32,7 @@ public class TextureEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
                 "InputCore",

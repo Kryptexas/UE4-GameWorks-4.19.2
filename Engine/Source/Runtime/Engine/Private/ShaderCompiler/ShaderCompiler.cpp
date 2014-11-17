@@ -11,6 +11,8 @@
 #include "TargetPlatform.h"
 #include "DerivedDataCacheInterface.h"
 #include "EngineModule.h"
+#include "ShaderCompiler.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -307,8 +309,8 @@ struct FPipeWorkerInfo
 /** Information tracked for each shader compile worker process instance. */
 struct FShaderCompileWorkerInfo
 {
-	/** Process Id of the worker app once launched.  0 is reserved to indicate no process. */
-	uint32 WorkerAppId;
+	/** Process handle of the worker app once launched.  Invalid handle means no process. */
+	FProcHandle WorkerProcess;
 
 	/** Tracks whether tasks have been issued to the worker. */
 	bool bIssuedTasksToWorker;	
@@ -333,7 +335,6 @@ struct FShaderCompileWorkerInfo
 	TArray<FShaderCompileJob*> QueuedJobs;
 
 	FShaderCompileWorkerInfo() :
-		WorkerAppId(0),
 		bIssuedTasksToWorker(false),		
 		bLaunchedWorker(false),
 		bComplete(false),
@@ -342,6 +343,12 @@ struct FShaderCompileWorkerInfo
 #endif
 		StartTime(0)
 	{
+	}
+
+	// warning: not virtual
+	~FShaderCompileWorkerInfo()
+	{
+		check(!WorkerProcess.IsValid() || !FPlatformProcess::IsProcRunning(WorkerProcess));
 	}
 
 	void CreatePipeAndNewTask(uint32 WorkerIndex, uint32 ProcessId)
@@ -358,7 +365,7 @@ struct FShaderCompileWorkerInfo
 			if (bWorkerForPipeWasLaunched)
 			{
 				// Make sure it's alive
-				if (!FShaderCompilingManager::IsShaderCompilerWorkerRunning(WorkerAppId))
+				if (!FShaderCompilingManager::IsShaderCompilerWorkerRunning(WorkerProcess))
 				{
 					bAllocNameForPipe = true;
 					bWorkerForPipeWasLaunched = false;
@@ -630,7 +637,7 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 
 			const FString WorkingDirectory = Manager->AbsoluteShaderBaseWorkingDirectory + FString::FromInt(WorkerIndex);
 
-#if PLATFORM_MAC			
+#if PLATFORM_MAC || PLATFORM_LINUX
 			// To make sure that the process waiting for input file won't try to read it until it's ready
 			// we use a temp file name during writing.
 			FString TransferFileName;
@@ -678,7 +685,7 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 				DoWriteTasks(CurrentWorkerInfo.QueuedJobs, *TransferFile);
 				delete TransferFile;
 
-#if PLATFORM_MAC			
+#if PLATFORM_MAC || PLATFORM_LINUX
 				// Change the transfer file name to proper one
 				FString ProperTransferFileName = WorkingDirectory / TEXT("WorkerInputOnly.in");
 				IFileManager::Get().Move(*ProperTransferFileName, *TransferFileName);
@@ -708,11 +715,15 @@ void FShaderCompileThreadRunnable::LaunchWorkerIfNeeded(FShaderCompileWorkerInfo
 			LastCheckForWorkersTime = CurrentTime;
 		}
 
-		if (bCheckForWorkerRunning && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerAppId))
+		if (bCheckForWorkerRunning && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerProcess))
 		{
 			// Worker died, so clear this pipe and make a new one
 			CurrentWorkerInfo.PipeWorker.DestroyPipe();
 			CurrentWorkerInfo.bWorkerForPipeWasLaunched = false;
+
+			// clean up the proc handle
+			FPlatformProcess::CloseProc(CurrentWorkerInfo.WorkerProcess);
+			CurrentWorkerInfo.WorkerProcess = FProcHandle();
 
 			check(GShaderPipeConfig.bUseNamedPipes && !GShaderPipeConfig.bSingleJobPerNamedPipeProcess);
 			CurrentWorkerInfo.CreatePipeAndNewTask(WorkerIndex, GShaderCompilingManager->ProcessId);
@@ -725,7 +736,9 @@ void FShaderCompileThreadRunnable::LaunchWorkerIfNeeded(FShaderCompileWorkerInfo
 
 		// Store the Id with this thread so that we will know not to launch it again
 		const FString& PipeName = CurrentWorkerInfo.PipeWorker.NamedPipe.GetName();
-		CurrentWorkerInfo.WorkerAppId = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, PipeName, PipeName, true, !GShaderPipeConfig.bReuseNamedPipeAndProcess);		
+		// make sure we don't overwrite a running process
+		check(!CurrentWorkerInfo.WorkerProcess.IsValid());
+		CurrentWorkerInfo.WorkerProcess = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, PipeName, PipeName, true, !GShaderPipeConfig.bReuseNamedPipeAndProcess);		
 		CurrentWorkerInfo.bLaunchedWorker = true;
 		CurrentWorkerInfo.bWorkerForPipeWasLaunched = true;
 	}
@@ -752,6 +765,12 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 		if (CurrentWorkerInfo.QueuedJobs.Num() == 0 )
 		{
 			// Skip if nothing to do
+			// Also, use the opportunity to free OS resources by cleaning up handles of no more running processes
+			if (CurrentWorkerInfo.WorkerProcess.IsValid() && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerProcess))
+			{
+				FPlatformProcess::CloseProc(CurrentWorkerInfo.WorkerProcess);
+				CurrentWorkerInfo.WorkerProcess = FProcHandle();
+			}
 			continue;
 		}
 
@@ -763,32 +782,37 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 		else
 #endif	// PLATFORM_SUPPORTS_NAMED_PIPES
 		{
-			if (CurrentWorkerInfo.WorkerAppId == 0 || (bCheckForWorkerRunning && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerAppId)))
+			if (!CurrentWorkerInfo.WorkerProcess.IsValid() || (bCheckForWorkerRunning && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerProcess)))
 			{
+				// @TODO: dubious design - worker should not be launched unless we know there's more work to do.
 				bool bLaunchAgain = true;
 
 				// Detect when the worker has exited due to fatal error
 				// bLaunchedWorker check here is necessary to distinguish between 'process isn't running because it crashed' and 'process isn't running because it exited cleanly and the outputfile was already consumed'
-				if (CurrentWorkerInfo.WorkerAppId != 0 && CurrentWorkerInfo.bLaunchedWorker)
+				if (CurrentWorkerInfo.WorkerProcess.IsValid())
 				{
-					const FString WorkingDirectory = Manager->AbsoluteShaderBaseWorkingDirectory + FString::FromInt(WorkerIndex) + TEXT("/");
-					const FString OutputFileNameAndPath = WorkingDirectory + TEXT("WorkerOutputOnly.out");
-
-					if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*OutputFileNameAndPath))
-					{
-						// If the worker is no longer running but it successfully wrote out the output, no need to assert
-						bLaunchAgain = false;						
-					}
-					else
-					{
-						UE_LOG(LogShaderCompilers, Error, TEXT("ShaderCompileWorker terminated unexpectedly!  Falling back to directly compiling which will be very slow.  Thread %u."), WorkerIndex);
-
-						bAbandonWorkers = true;
-						break;
-					}
-
 					// shader compiler exited one way or another, so clear out the stale PID.
-					CurrentWorkerInfo.WorkerAppId = 0;
+					FPlatformProcess::CloseProc(CurrentWorkerInfo.WorkerProcess);
+					CurrentWorkerInfo.WorkerProcess = FProcHandle();
+
+					if (CurrentWorkerInfo.bLaunchedWorker)
+					{
+						const FString WorkingDirectory = Manager->AbsoluteShaderBaseWorkingDirectory + FString::FromInt(WorkerIndex) + TEXT("/");
+						const FString OutputFileNameAndPath = WorkingDirectory + TEXT("WorkerOutputOnly.out");
+
+						if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*OutputFileNameAndPath))
+						{
+							// If the worker is no longer running but it successfully wrote out the output, no need to assert
+							bLaunchAgain = false;
+						}
+						else
+						{
+							UE_LOG(LogShaderCompilers, Error, TEXT("ShaderCompileWorker terminated unexpectedly!  Falling back to directly compiling which will be very slow.  Thread %u."), WorkerIndex);
+
+							bAbandonWorkers = true;
+							break;
+						}
+					}
 				}
 
 				if (bLaunchAgain)
@@ -797,8 +821,8 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 					FString InputFileName(TEXT("WorkerInputOnly.in"));
 					FString OutputFileName(TEXT("WorkerOutputOnly.out"));
 
-					// Store the Id with this thread so that we will know not to launch it again
-					CurrentWorkerInfo.WorkerAppId = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, InputFileName, OutputFileName, false, false);					
+					// Store the handle with this thread so that we will know not to launch it again
+					CurrentWorkerInfo.WorkerProcess = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, InputFileName, OutputFileName, false, false);					
 					CurrentWorkerInfo.bLaunchedWorker = true;
 				}
 			}
@@ -934,6 +958,8 @@ int32 FShaderCompileThreadRunnable::CompilingLoop()
 	if (NumActiveThreads == 0 && Manager->bAllowAsynchronousShaderCompiling)
 	{
 		// Yield while there's nothing to do
+		// Note: sleep-looping is bad threading practice, wait on an event instead!
+		// The shader worker thread does it because it needs to communicate with other processes through the file system
 		FPlatformProcess::Sleep(.010f);
 	}
 
@@ -988,6 +1014,8 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	NumOutstandingJobs(0),
 #if PLATFORM_MAC
 	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Mac/ShaderCompileWorker"))
+#elif PLATFORM_LINUX
+	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Linux/ShaderCompileWorker"))
 #else
 	ShaderCompileWorkerName(TEXT("../../../Engine/Binaries/Win64/ShaderCompileWorker.exe"))
 #endif
@@ -1125,8 +1153,8 @@ void FShaderCompilingManager::AddJobs(TArray<FShaderCompileJob*>& NewJobs, bool 
 	}
 }
 
-/** Launches the worker, returns the launched Process Id. */
-uint32 FShaderCompilingManager::LaunchWorker(const FString& WorkingDirectory, uint32 InProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe)
+/** Launches the worker, returns the launched process handle. */
+FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirectory, uint32 InProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe)
 {
 	// Setup the parameters that the worker application needs
 	// Surround the working directory with double quotes because it may contain a space 
@@ -1157,21 +1185,20 @@ uint32 FShaderCompilingManager::LaunchWorker(const FString& WorkingDirectory, ui
 	// Note: Set breakpoint here and launch the shadercompileworker with WorkerParameters a cmd-line
 	const TCHAR* WorkerParametersText = *WorkerParameters;
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
-	return 17;
+	return FProcHandle(17);
 #else
-//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
+#if UE_BUILD_DEBUG && PLATFORM_LINUX
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker:\n\t%s\n"), *WorkerParameters);
+#endif
 	uint32 WorkerId = 0;
 	FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ShaderCompileWorkerName, *WorkerParameters, true, false, false, &WorkerId, PriorityModifier, NULL, NULL);
 	if( !WorkerHandle.IsValid() )
 	{
 		// If this doesn't error, the app will hang waiting for jobs that can never be completed
-		UE_LOG(LogShaderCompilers, Fatal, TEXT( "Couldn't launch %s! Make sure the exe is in your binaries folder." ), *ShaderCompileWorkerName );
+		UE_LOG(LogShaderCompilers, Fatal, TEXT( "Couldn't launch %s! Make sure the file is in your binaries folder." ), *ShaderCompileWorkerName );
 	}
 
-	// Close the handle as we no longer need it.
-	WorkerHandle.Close();
-
-	return WorkerId;
+	return WorkerHandle;
 #endif
 }
 
@@ -1957,17 +1984,9 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 	}
 }
 
-bool FShaderCompilingManager::IsShaderCompilerWorkerRunning(uint32 ProcessId)
+bool FShaderCompilingManager::IsShaderCompilerWorkerRunning(FProcHandle & WorkerHandle)
 {
-	bool bRunning = false;
-	// make sure the PID we're inspecting is actually a shader compiler worker.
-	FString ProcessName = FPlatformProcess::GetApplicationName(ProcessId);
-
-	if (ProcessName.Find(FString(TEXT("ShaderCompileWorker"))) != -1)
-	{
-		bRunning = FPlatformProcess::IsApplicationRunning(ProcessId);
-	}
-	return bRunning;
+	return FPlatformProcess::IsProcRunning(WorkerHandle);
 }
 
 /** Enqueues a shader compile job with GShaderCompilingManager. */
@@ -1988,11 +2007,10 @@ void GlobalBeginCompileShader(
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
 	Input.SourceFilename = SourceFilename;
 	Input.EntryPointName = FunctionName;
-	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory();
+	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
 
 	if (GDumpShaderDebugInfo != 0)
 	{
-		Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
 		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / DebugGroupName;
 
 		if (VFType)
@@ -2045,6 +2063,15 @@ void GlobalBeginCompileShader(
 #endif
 
 	{
+		FString ShaderPDBRoot;
+		GConfig->GetString(TEXT("DevOptions.Shaders"), TEXT("ShaderPDBRoot"), ShaderPDBRoot, GEngineIni);
+		if ( !ShaderPDBRoot.IsEmpty() )
+		{
+			Input.Environment.SetDefine(TEXT("SHADER_PDB_ROOT"), *ShaderPDBRoot);
+		}
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.UseDXT5NormalMaps"));
 		Input.Environment.SetDefine(TEXT("DXT5_NORMALMAPS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
@@ -2063,6 +2090,11 @@ void GlobalBeginCompileShader(
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		Input.Environment.SetDefine(TEXT("ALLOW_STATIC_LIGHTING"), CVar ? (CVar->GetValueOnGameThread() != 0) : 1);
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
+		Input.Environment.SetDefine(TEXT("NO_GBUFFER"), CVar ? (CVar->GetValueOnGameThread() == 0) : 0);
 	}
 
 	{
@@ -2271,7 +2303,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 
 				// Kick off global shader recompiles
 				BeginRecompileGlobalShaders(OutdatedShaderTypes);
-				UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes);
+				UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, GRHIShaderPlatform);
 
 				GWarn->StatusUpdate(0, 1, NSLOCTEXT("ShaderCompilingManager", "CompilingGlobalShaderStatus", "Compiling global shaders..."));
 
@@ -2345,7 +2377,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 				TArray<const FVertexFactoryType*> FactoryTypes;
 
 				BeginRecompileGlobalShaders(ShaderTypes);
-				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes);
+				UMaterial::UpdateMaterialShaders(ShaderTypes, FactoryTypes, GRHIShaderPlatform);
 				FinishRecompileGlobalShaders();
 			}
 		}

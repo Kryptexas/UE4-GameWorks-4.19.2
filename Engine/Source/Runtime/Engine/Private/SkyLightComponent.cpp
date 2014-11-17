@@ -8,17 +8,19 @@
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
+#include "Engine/SkyLight.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Net/UnrealNetwork.h"
 #include "MapErrors.h"
 #include "ComponentInstanceDataCache.h"
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 
 void FSkyTextureCubeResource::InitRHI()
 {
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM3)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, CreateInfo);
@@ -77,6 +79,8 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
+	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
+	, Contrast(InLightComponent->Contrast)
 {
 }
 
@@ -102,6 +106,7 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 	bCaptureDirty = false;
 	bLowerHemisphereIsBlack = true;
 	bSavedConstructionScriptValuesValid = true;
+	OcclusionMaxDistance = 600;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -237,6 +242,13 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 		if (FCString::Strcmp(*PropertyName, TEXT("Cubemap")) == 0)
 		{
 			return SourceType == SLS_SpecifiedCubemap;
+		}
+
+		if (FCString::Strcmp(*PropertyName, TEXT("Contrast")) == 0
+			|| FCString::Strcmp(*PropertyName, TEXT("OcclusionMaxDistance")) == 0)
+		{
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+			return Mobility == EComponentMobility::Movable && CastShadows && CVar->GetValueOnGameThread() != 0;
 		}
 	}
 
@@ -413,13 +425,13 @@ void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& 
 }
 
 /** Set brightness of the light */
-void USkyLightComponent::SetBrightness(float NewBrightness)
+void USkyLightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
 	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
-		&& Intensity != NewBrightness)
+		&& Intensity != NewIntensity)
 	{
-		Intensity = NewBrightness;
+		Intensity = NewIntensity;
 		MarkRenderStateDirty();
 	}
 }
@@ -433,8 +445,20 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
 		&& LightColor != NewColor)
 	{
-		LightColor	= NewColor;
+		LightColor = NewColor;
 		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
+{
+	// Can't set color on a static light
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& Cubemap != NewCubemap)
+	{
+		Cubemap = NewCubemap;
+		MarkRenderStateDirty();
+		SetCaptureIsDirty();
 	}
 }
 

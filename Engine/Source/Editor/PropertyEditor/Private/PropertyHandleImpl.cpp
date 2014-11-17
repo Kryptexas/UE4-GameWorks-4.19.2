@@ -16,8 +16,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogPropertyView, Log, All);
 
 FPropertyValueImpl::FPropertyValueImpl( TSharedPtr<FPropertyNode> InPropertyNode, FNotifyHook* InNotifyHook, TSharedPtr<IPropertyUtilities> InPropertyUtilities )
 	: PropertyNode( InPropertyNode )
-	, NotifyHook( InNotifyHook )
 	, PropertyUtilities( InPropertyUtilities )
+	, NotifyHook( InNotifyHook )
 	, bInteractiveChangeInProgress( false )
 {
 
@@ -100,7 +100,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 	FReadAddressList ReadAddresses;
 	bool bAllValuesTheSame = InPropertyNode->GetReadAddress( !!InPropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses, false, true );
 
-	if( ReadAddresses.Num() > 0 && bAllValuesTheSame || ReadAddresses.Num() == 1 ) 
+	if( ReadAddresses.Num() > 0 && InPropertyNode->GetProperty() != nullptr && (bAllValuesTheSame || ReadAddresses.Num() == 1) ) 
 	{
 		ValueAddress = ReadAddresses.GetAddress(0);
 
@@ -381,21 +381,23 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			// Remove quotes from the original value because FName properties  
 			// are wrapped in quotes before getting here. This causes the 
 			// string comparison to fail even when the name is unchanged. 
-			if ( !bNotifiedPreChange && ( InValues[ObjectIndex].TrimQuotes() != PreviousValue || ( bFinished && bInteractiveChangeInProgress ) ) )
+			if ( !bNotifiedPreChange && ( FCString::Strcmp(*InValues[ObjectIndex].TrimQuotes(), *PreviousValue) != 0 || ( bFinished && bInteractiveChangeInProgress ) ) )
 			{
 				bNotifiedPreChange = true;
 				NotifiedObj = Cur.Object;
 
-				// Begin a transaction only if we need to call PreChange
-				if( GEditor && bTransactable )
+				if (!bInteractiveChangeInProgress)
 				{
-					GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString( InPropertyNode->GetDisplayName() ) ), NodeProperty );
+					// Begin a transaction only if we need to call PreChange
+					if (GEditor && bTransactable)
+					{
+						GEditor->BeginTransaction(TEXT("PropertyEditor"), FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString(InPropertyNode->GetDisplayName())), NodeProperty);
+					}
 				}
-				
-				InPropertyNode->NotifyPreChange( NodeProperty, NotifyHook );
+
+				InPropertyNode->NotifyPreChange(NodeProperty, NotifyHook);
 
 				bInteractiveChangeInProgress = (Flags & EPropertyValueSetFlags::InteractiveChange) != 0;
-
 			}
 
 			// Set the new value.
@@ -440,12 +442,12 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			if (bFinished)
 			{
 				bInteractiveChangeInProgress = false;
-			}
 
-			if( bTransactable )
-			{
-				// End the transaction if we called PreChange
-				GEditor->EndTransaction();
+				if (bTransactable)
+				{
+					// End the transaction if we called PreChange
+					GEditor->EndTransaction();
+				}
 			}
 		}
 
@@ -698,7 +700,8 @@ FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InV
 
 		FString PreviousValue;
 		GetValueAsString( PreviousValue );
-		if (ParentNode && (ParentNode->GetInstancesNum() == 1 || (Value.Len() && PreviousValue != Value)))
+
+		if (ParentNode && (ParentNode->GetInstancesNum() == 1 || (Value.Len() && FCString::Strcmp(*PreviousValue, *Value) != 0)))
 		{
 			ImportText( Value, PropertyNodePin.Get(), Flags );
 		}
@@ -1909,7 +1912,7 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 				TSharedPtr< FString > EnumStr( new FString( EnumValueName ) );
 				OutOptionStrings.Add( EnumStr );
 
-				FString EnumValueToolTip = bIsRestricted ? RestrictionTooltip.ToString() : Enum->GetMetaData(TEXT("ToolTip"), EnumIndex);
+				FString EnumValueToolTip = bIsRestricted ? RestrictionTooltip.ToString() : Enum->GetToolTipText(EnumIndex).ToString();
 				TSharedPtr< FString > ToolTipStr( new FString( EnumValueToolTip ) );
 				OutToolTips.Add( ToolTipStr );
 			}
@@ -1926,16 +1929,21 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 
 		const bool bAllowAbstract = Property->GetOwnerProperty()->HasMetaData(TEXT("AllowAbstract"));
 		const bool bBlueprintBaseOnly = Property->GetOwnerProperty()->HasMetaData(TEXT("BlueprintBaseOnly"));
+		const bool bAllowOnlyPlaceable = Property->GetOwnerProperty()->HasMetaData(TEXT("OnlyPlaceable"));
 		UClass* InterfaceThatMustBeImplemented = Property->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement"));
 
-		for( TObjectIterator<UClass> It ; It ; ++It )
+		if (!bAllowOnlyPlaceable || MetaClass->IsChildOf<AActor>())
 		{
-			if ( It->IsChildOf(MetaClass) && 
-				PropertyEditorHelpers::IsEditInlineClassAllowed(*It, bAllowAbstract) &&
-				(!bBlueprintBaseOnly || FKismetEditorUtilities::CanCreateBlueprintOfClass(*It)) &&
-				(!InterfaceThatMustBeImplemented || It->ImplementsInterface(InterfaceThatMustBeImplemented)) )
+			for (TObjectIterator<UClass> It; It; ++It)
 			{
-				OutOptionStrings.Add( TSharedPtr< FString >( new FString( It->GetName() ) ) );
+				if (It->IsChildOf(MetaClass)
+					&& PropertyEditorHelpers::IsEditInlineClassAllowed(*It, bAllowAbstract)
+					&& (!bBlueprintBaseOnly || FKismetEditorUtilities::CanCreateBlueprintOfClass(*It))
+					&& (!InterfaceThatMustBeImplemented || It->ImplementsInterface(InterfaceThatMustBeImplemented))
+					&& (!bAllowOnlyPlaceable || !It->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable)))
+				{
+					OutOptionStrings.Add(TSharedPtr< FString >(new FString(It->GetName())));
+				}
 			}
 		}
 	}
@@ -2111,7 +2119,7 @@ FPropertyAccess::Result FPropertyHandleFloat::SetValue( const float& NewValue, E
 	// Clamp the value from any meta data ranges stored on the property value
 	float FinalValue = Implementation->ClampFloatValueFromMetaData( NewValue );
 
-	const FString ValueStr = FString::Printf( TEXT("%.9g"), FinalValue );
+	const FString ValueStr = FString::Printf( TEXT("%f"), FinalValue );
 	Res = Implementation->ImportText( ValueStr, Flags );
 
 	return Res;

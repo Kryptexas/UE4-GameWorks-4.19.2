@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ScrollyZoomy.h: Declares the IScrollableZoomable interface and FScrollyZoomy class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,8 +13,7 @@ public:
 	/**
 	 * Override this to scroll your widget's content.
 	 *
-	 * @param Offset - The 2D offset to scroll by.
-	 *
+	 * @param Offset The 2D offset to scroll by.
 	 * @return True if anything was scrolled.
 	 */
 	virtual bool ScrollBy( const FVector2D& Offset ) = 0;
@@ -26,8 +21,7 @@ public:
 	/**
 	 * Override this to zoom your widget's content.
 	 *
-	 * @param Amount - The amount to zoom by.
-	 *
+	 * @param Amount The amount to zoom by.
 	 * @return True if anything was zoomed.
 	 */
 	virtual bool ZoomBy( const float Amount ) = 0;
@@ -57,7 +51,6 @@ public:
 	 * Should be called when a mouse button is pressed
 	 *
 	 * @param	MouseEvent	The mouse event passed to a widget's OnMouseButtonDown() function
-	 *
 	 * @return	If FReply::Handled is returned, that should be passed as the result of the calling function
 	 */
 	FReply OnMouseButtonDown( const FPointerEvent& MouseEvent );
@@ -68,7 +61,6 @@ public:
 	 * @param	MyWidget	Pointer to the widget that owns this object
 	 * @param	MyGeometry	Geometry of the widget we're scrolling
 	 * @param	MouseEvent	The mouse event passed to a widget's OnMouseButtonUp() function
-	 *
 	 * @return	If FReply::Handled is returned, that should be passed as the result of the calling function
 	 */
 	FReply OnMouseButtonUp( const TSharedRef<SWidget> MyWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -80,7 +72,6 @@ public:
 	 * @param	ScrollableZoomable	Interface to the widget to scroll/zoom
 	 * @param	MyGeometry	Geometry of the widget we're scrolling
 	 * @param	MouseEvent	The mouse event passed to a widget's OnMouseMove() function
-	 *
 	 * @return	If FReply::Handled is returned, that should be passed as the result of the calling function
 	 */
 	FReply OnMouseMove( const TSharedRef<SWidget> MyWidget, IScrollableZoomable& ScrollableZoomable, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -98,7 +89,6 @@ public:
 	 *
 	 * @param	MouseEvent	The event passed to your widget's OnMouseWheel function
 	 * @param	ScrollableZoomable	Interface to the widget to scroll/zoom
-	 *
 	 * @return	If FReply::Handled is returned, that should be passed as the result of the calling function
 	 */
 	FReply OnMouseWheel( const FPointerEvent& MouseEvent, IScrollableZoomable& ScrollableZoomable );
@@ -126,7 +116,6 @@ public:
 	 * @param	MyClippingRect			Widget clipping rect passed into OnPaint()
 	 * @param	OutDrawElements			The draw element list
 	 * @param	LayerId					Layer Id
-	 *
 	 * @return	New layer Id
 	 */
 	int32 PaintSoftwareCursorIfNeeded( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;

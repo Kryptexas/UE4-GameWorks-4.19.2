@@ -25,7 +25,7 @@ private:
 	 */
 	void*		InterfacePointer;
 
-	/*
+	/**
 	 * Serialize ScriptInterface
 	 */
 	FArchive& Serialize(FArchive& Ar, class UClass* InterfaceType);

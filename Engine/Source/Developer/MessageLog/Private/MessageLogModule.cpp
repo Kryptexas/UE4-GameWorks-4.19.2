@@ -14,7 +14,7 @@
 
 IMPLEMENT_MODULE( FMessageLogModule, MessageLog );
 
-TSharedRef<SDockTab> SpawnMessageLog( const FSpawnTabArgs& Args, TSharedPtr<FMessageLogViewModel> MessageLogViewModel )
+TSharedRef<SDockTab> SpawnMessageLog( const FSpawnTabArgs& Args, TSharedRef<FMessageLogViewModel> MessageLogViewModel )
 {
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
@@ -40,7 +40,7 @@ void FMessageLogModule::StartupModule()
 	MessageLogViewModel->Initialize();
 
 #if WITH_EDITOR
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("MessageLog", FOnSpawnTab::CreateStatic( &SpawnMessageLog, MessageLogViewModel ))
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("MessageLog", FOnSpawnTab::CreateStatic( &SpawnMessageLog, MessageLogViewModel.ToSharedRef() ))
 		.SetDisplayName(NSLOCTEXT("UnrealEditor", "MessageLogTab", "Message Log"))
 		.SetTooltipText(NSLOCTEXT("UnrealEditor", "MessageLogTooltipText", "Open the Message Log tab."))
 		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() )

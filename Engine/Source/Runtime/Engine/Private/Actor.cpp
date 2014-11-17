@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/InputDelegateBinding.h"
 #include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
 #include "Sound/SoundCue.h"
@@ -13,7 +14,6 @@
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "AI/Navigation/NavRelevantComponent.h"
 #include "VisualLog.h"
 #include "Animation/AnimInstance.h"
 
@@ -32,13 +32,13 @@ DEFINE_STAT(STAT_GetComponentsTime);
 
 FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(&AActor::MakeNoiseImpl);
 
+#if !UE_BUILD_SHIPPING
+FOnProcessEvent AActor::ProcessEventDelegate;
+#endif
+
 AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-#if ENABLE_VISUAL_LOG
-	VLogRedirection = this;
-#endif // ENABLE_VISUAL_LOG
-
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
 	PrimaryActorTick.bCanEverTick = false;
@@ -65,7 +65,6 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	NetDriverName = NAME_GameNetDriver;
 	NetDormancy = DORM_Awake;
 	// will be updated in PostInitProperties
-	bNavigationRelevant = false;
 	bActorEnableCollision = true;
 	bActorSeamlessTraveled = false;
 	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
@@ -80,107 +79,15 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 // Global counter to spread SkinnedMeshComponent tick updates.
 static uint32 SkinnedMeshUpdateRateGroupCount = 0;
 
-void AActor::AnimUpdateRateTick()
+uint32 AActor::GetAnimUpdateRateShiftTag()
 {
 	// If hasn't been initialized yet, pick a unique ID, to spread population over frames.
-	if( AnimUpdateRateShiftTag == 0 )
+	if (AnimUpdateRateShiftTag == 0)
 	{
 		AnimUpdateRateShiftTag = ++SkinnedMeshUpdateRateGroupCount;
 	}
 
-	// Go through components and figure out if they've been recently rendered, and the biggest MaxDistanceFactor
-	bool bRecentlyRendered = false;
-	bool bPlayingRootMotion = false;
-	float MaxDistanceFactor = 0.f;
-
-	// Gather Actor's components
-	TArray<USceneComponent *> ComponentStack;
-	USceneComponent const * CurrentComponent = GetRootComponent();
-
-	while( CurrentComponent )
-	{
-		// push children on the stack so they get tested later
-		ComponentStack.Append(CurrentComponent->AttachChildren);
-
-		if( CurrentComponent->IsRegistered() )
-		{
-			USkeletalMeshComponent const * SkelMeshComp = Cast<USkeletalMeshComponent>(CurrentComponent);
-			if( SkelMeshComp )
-			{
-				bRecentlyRendered = bRecentlyRendered || (SkelMeshComp->LastRenderTime > (GetWorld()->TimeSeconds - 1.f));
-				MaxDistanceFactor = FMath::Max(MaxDistanceFactor, SkelMeshComp->MaxDistanceFactor);
-				bPlayingRootMotion = bPlayingRootMotion || (SkelMeshComp->AnimScriptInstance ? (SkelMeshComp->AnimScriptInstance->GetRootMotionMontageInstance() != NULL) : false);
-			}
-			else
-			{
-				USkinnedMeshComponent const * SkinMeshComp = Cast<USkinnedMeshComponent>(CurrentComponent);
-				if( SkinMeshComp )
-				{
-					bRecentlyRendered = bRecentlyRendered || (SkinMeshComp->LastRenderTime > (GetWorld()->TimeSeconds - 1.f));
-					MaxDistanceFactor = FMath::Max(MaxDistanceFactor, SkinMeshComp->MaxDistanceFactor);
-				}
-			}
-		}
-
-		CurrentComponent = (ComponentStack.Num() > 0) ? ComponentStack.Pop() : NULL;
-	}
-
-	// Figure out which update rate should be used.
-	AnimUpdateRateSetParams(bRecentlyRendered, MaxDistanceFactor, bPlayingRootMotion);
-}
-
-void AActor::AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion)
-{
-	// default rules for setting update rates
-
-	// Human controlled characters should be ticked always fully to minimize latency w/ game play events triggered by animation.
-	AController * Controller = GetInstigatorController();
-	const bool bHumanControlled = Controller && (Cast<APlayerController>(Controller) != NULL);
-
-	// Not rendered, including dedicated servers. we can skip the Evaluation part.
-	if( !bRecentlyRendered )
-	{
-		AnimUpdateRateParams.Set(*this, (bHumanControlled ?  1 : 4), 4, false);
-	}
-	// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
-	else  if( bHumanControlled || bPlayingRootMotion )
-	{
-		AnimUpdateRateParams.Set(*this, 1, 1, false);
-	}
-	else
-	{
-		// For visible meshes, figure out how often bones should be evaluated VS interpolated to previous evaluation.
-		// This is based on screen size and makes sense for a 3D FPS game, different games or Actors can implement different rules.
-		int32 DesiredEvaluationRate;
-		if( MaxDistanceFactor > 0.4f )
-		{
-			DesiredEvaluationRate = 1;
-		}
-		else if( MaxDistanceFactor > .2f )
-		{
-			DesiredEvaluationRate = 2;
-		}
-		else 
-		{
-			DesiredEvaluationRate = 3;
-		}
-
-		AnimUpdateRateParams.Set(*this, DesiredEvaluationRate, DesiredEvaluationRate, true);
-	}
-}
-
-void FAnimUpdateRateParameters::Set(const class AActor & Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames)
-{
-	UpdateRate = FMath::Max(NewUpdateRate, 1);
-	// Make sure EvaluationRate is a multiple of UpdateRate.
-	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);
-	bInterpolateSkippedFrames = bNewInterpSkippedFrames;	
-
-	// Make sure we don't overflow. we don't need very large numbers.
-	const uint32 Counter = (GFrameCounter % MAX_uint8) + (Owner.AnimUpdateRateShiftTag % MAX_uint8);
-
-	bSkipUpdate = ((Counter % UpdateRate) > 0);
-	bSkipEvaluation = ((Counter % EvaluationRate) > 0);
+	return AnimUpdateRateShiftTag;
 }
 
 void FActorTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -197,13 +104,12 @@ FString FActorTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[TickActor]");
 }
 
-bool AActor::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+bool AActor::CheckDefaultSubobjectsInternal()
 {
-	bool Result = true;
-	if (CanCheckDefaultSubObjects(bForceCheck, Result))
+	bool Result = Super::CheckDefaultSubobjectsInternal();
+	if (Result)
 	{
-		Result = Super::CheckDefaultSubobjects(bForceCheck);
-		Result = Result && CheckActorComponents();
+		Result = CheckActorComponents();
 	}
 	return Result;
 }
@@ -424,19 +330,40 @@ bool AActor::K2_TeleportTo( FVector DestLocation, FRotator DestRotation )
 	return TeleportTo(DestLocation, DestRotation, false, false);
 }
 
-void AActor::SetTickPrerequisite(AActor * DependentActor)
+void AActor::SetTickPrerequisite(AActor* PrerequisiteActor)
 {
-	if (DependentActor)
+	AddTickPrerequisiteActor(PrerequisiteActor);
+}
+
+void AActor::AddTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrimaryActorTick.bCanEverTick && PrerequisiteActor && PrerequisiteActor->PrimaryActorTick.bCanEverTick)
 	{
-		PrimaryActorTick.AddPrerequisite(DependentActor, DependentActor->PrimaryActorTick);
-		// We can't just rely on rootcomponent. If one of chain is invalid tick, it will invalidate the remaining chains
-		// so here I manually set prerequisite to be the current actor, so it ticks after this actor ticks
-		TArray<UActorComponent*> Components;
-		GetComponents(Components);
-		for (int32 Index = 0; Index < Components.Num(); ++Index)
-		{
-			Components[Index]->PrimaryComponentTick.AddPrerequisite(this, PrimaryActorTick);
-		}
+		PrimaryActorTick.AddPrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void AActor::AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrimaryActorTick.bCanEverTick && PrerequisiteComponent && PrerequisiteComponent->PrimaryComponentTick.bCanEverTick)
+	{
+		PrimaryActorTick.AddPrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
+	}
+}
+
+void AActor::RemoveTickPrerequisiteActor(AActor* PrerequisiteActor)
+{
+	if (PrerequisiteActor)
+	{
+		PrimaryActorTick.RemovePrerequisite(PrerequisiteActor, PrerequisiteActor->PrimaryActorTick);
+	}
+}
+
+void AActor::RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent)
+{
+	if (PrerequisiteComponent)
+	{
+		PrimaryActorTick.RemovePrerequisite(PrerequisiteComponent, PrerequisiteComponent->PrimaryComponentTick);
 	}
 }
 
@@ -549,21 +476,6 @@ void AActor::PostLoad()
 		{
 			UE_LOG(LogActor, Log,  TEXT("Loaded Actor (%s) with IsPendingKill() == true"), *GetName() );
 		}
-
-		// Move the old layers information into the new layers system
-		TArray< FString > OldLayerNames; 
-		Layer_DEPRECATED.ToString().ParseIntoArray( &OldLayerNames, TEXT(","), 0 );
-
-		for( int NameIndex = 0; NameIndex < OldLayerNames.Num(); ++NameIndex )
-		{
-			const FString& Name = OldLayerNames[ NameIndex ];
-			if( Name != TEXT( "None" ) )
-			{
-				Layers.AddUnique( FName( *Name ) );
-			}
-		}
-
-		Layer_DEPRECATED = FName( NAME_None ); 
 #endif // WITH_EDITORONLY_DATA
 	}
 }
@@ -616,7 +528,14 @@ void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 	#endif
 	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || bAllowScriptExecution)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
 	{
+#if !UE_BUILD_SHIPPING
+		if (!ProcessEventDelegate.IsBound() || !ProcessEventDelegate.Execute(this, Function, Parameters))
+		{
+			Super::ProcessEvent(Function, Parameters);
+		}
+#else
 		Super::ProcessEvent(Function, Parameters);
+#endif
 	}
 }
 
@@ -673,11 +592,11 @@ void AActor::RegisterAllActorTickFunctions(bool bRegister, bool bDoComponents)
 
 			for (int32 Index = 0; Index < Components.Num(); Index++)
 			{
-					Components[Index]->RegisterAllComponentTickFunctions(bRegister);
-				}
+				Components[Index]->RegisterAllComponentTickFunctions(bRegister);
 			}
 		}
 	}
+}
 
 void AActor::SetActorTickEnabled(bool bEnabled)
 {
@@ -740,7 +659,8 @@ void AActor::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunct
 	const bool bShouldTick = ((TickType!=LEVELTICK_ViewportsOnly) || ShouldTickIfViewportsOnly());
 	if(bShouldTick)
 	{
-		if (!IsPendingKill())
+		// If an Actor has been Destroyed or its level has been unloaded don't execute any queued ticks
+		if (!IsPendingKill() && GetWorld())
 		{
 			Tick(DeltaSeconds);	// perform any tick functions unique to an actor subclass
 		}
@@ -1177,15 +1097,22 @@ bool AActor::HasNetOwner() const
 	return TopOwner->HasNetOwner();
 }
 
-void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
+void AActor::K2_AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
+{
+	AttachRootComponentTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+}
+
+void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
 {
 	if(RootComponent && InParent)
 	{
-		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType );
+		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+
 
 		AttachmentReplication.AttachParent = InParent->GetAttachmentRootActor();
 		AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 		AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
+		AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
 		AttachmentReplication.AttachSocket = InSocketName;
 		AttachmentReplication.AttachComponent = InParent;
 	}
@@ -1206,17 +1133,13 @@ void AActor::OnRep_AttachmentReplication()
 
 			if (ParentComponent)
 			{
-				// Calculate scale before attachment as ComponentToWorld will be modified after AttachTo()
-				FTransform ParentToWorld = ParentComponent->GetSocketTransform(AttachmentReplication.AttachSocket);
-				FTransform RelativeTM = RootComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
-				FVector RelativeScale3D = RelativeTM.GetScale3D();
-
 				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
-				RootComponent->RelativeScale3D = RelativeScale3D;
+				RootComponent->RelativeScale3D = AttachmentReplication.RelativeScale3D;
 
 				RootComponent->UpdateComponentToWorld();
+
 			}
 		}
 	}
@@ -1226,18 +1149,25 @@ void AActor::OnRep_AttachmentReplication()
 	}
 }
 
-void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
+void AActor::K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
+{
+	AttachRootComponentToActor(InParentActor, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+}
+
+void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
 {
 	if (RootComponent && InParentActor)
 	{
 		USceneComponent* ParentRootComponent = InParentActor->GetRootComponent();
 		if (ParentRootComponent)
 		{
-			RootComponent->AttachTo(ParentRootComponent, InSocketName, AttachLocationType );
+			RootComponent->AttachTo(ParentRootComponent, InSocketName, AttachLocationType, bWeldSimulatedBodies );
+
 
 			AttachmentReplication.AttachParent = InParentActor;
 			AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 			AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
+			AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
 			AttachmentReplication.AttachSocket = InSocketName;
 			AttachmentReplication.AttachComponent = NULL;
 		}
@@ -1260,6 +1190,9 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 {
 	if(RootComponent)
 	{
+		USceneComponent * RootComponent = GetRootComponent();
+
+
 		GetRootComponent()->DetachFromParent(bMaintainWorldPosition);
 
 		AttachmentReplication.AttachParent = NULL;
@@ -1464,7 +1397,7 @@ void AActor::ForceNetUpdate()
 
 void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 {
-	if (Role < ROLE_Authority)
+	if (GetNetMode() == NM_Client)
 	{
 		return;
 	}
@@ -1472,14 +1405,6 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 	UNetDriver* NetDriver = GEngine->FindNamedNetDriver(GetWorld(), NetDriverName);
 	if (NetDriver)
 	{
-		// This is being hit in playtests, which implies something on the client
-		// is ROLE_Authority or higher. Adding logs to find out more.
-		if (NetDriver->ServerConnection != NULL)
-		{
-			UE_LOG(LogActor, Warning, TEXT("SetNetDormancy went through on client. Actor: %s with Role %d. bTearOff: %d"), *GetName(), (int32)Role, bTearOff );
-			return;
-		}
-
 		NetDormancy = NewDormancy;
 
 		// If not dormant, flush actor from NetDriver's dormant list
@@ -1496,7 +1421,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 /** Removes the actor from the NetDriver's dormancy list: forcing at least one more update. */
 void AActor::FlushNetDormancy()
 {
-	if (Role < ROLE_Authority || NetDormancy <= DORM_Awake)
+	if (GetNetMode() == NM_Client || NetDormancy <= DORM_Awake)
 	{
 		return;
 	}
@@ -1507,20 +1432,18 @@ void AActor::FlushNetDormancy()
 		NetDormancy = DORM_DormantAll;
 	}
 
+	// Don't proceed with network operations if not actually set to replicate
+	if (!bReplicates)
+	{
+		return;
+	}
+
 	// Add to network actors list if needed
 	GetWorld()->AddNetworkActor( this );
 	
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
-		// This is being hit in playtests, which implies something on the client
-		// is ROLE_Authority or higher. Adding logs to find out more.
-		if (NetDriver->ServerConnection != NULL)
-		{
-			UE_LOG(LogActor, Warning, TEXT("FlushNetDormancy went through on client. Actor: %s with Role %d. bTearOff: %d"), *GetName(), (int32)Role, bTearOff );
-			return;
-		}
-
 		NetDriver->FlushActorDormancy(this);
 	}
 }
@@ -1554,6 +1477,19 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 
 void AActor::OnRep_Instigator() {}
 
+void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (bActorInitialized)
+	{
+		UninitializeComponents();
+
+		UWorld* World = GetWorld();
+		if (World && World->HasBegunPlay())
+		{
+			EndPlay(EndPlayReason);
+		}
+	}
+}
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -1565,9 +1501,10 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
 	{
 		bActorInitialized = false;
-		SetNavigationRelevancy(false);
 		GetWorld()->RemoveNetworkActor(this);
 	}
+
+	UNavigationSystem::OnActorUnregistered(this);
 }
 
 FVector AActor::GetPlacementExtent() const
@@ -1621,10 +1558,8 @@ FTransform AActor::GetTransform() const
 
 void AActor::Destroyed()
 {
-	if (bActorInitialized)
-	{
-		EndPlay(EEndPlayReason::ActorDestroyed);
-	}
+	RouteEndPlay(EEndPlayReason::ActorDestroyed);
+
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast();
 	GetWorld()->RemoveNetworkActor(this);
@@ -2109,72 +2044,6 @@ void AActor::DisableComponentsSimulatePhysics()
 
 void AActor::PostRegisterAllComponents() 
 {
-	if (bNavigationRelevant == true && GetWorld()->GetNavigationSystem() != NULL)
-	{
-		// force re-adding to navoctree if already added, in case it has already 
-		// been added (possibly with not all components that could affect navigation
-		// not registered yet
-		GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-	}
-}
-
-bool AActor::UpdateNavigationRelevancy()
-{
-	// iterate through all scene components. It's enough to have at least one navigation relevant component
-	bool bNewRelevancy = false;
-
-	TArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 CompIdx = 0; CompIdx < Components.Num() && bNewRelevancy == false; ++CompIdx)
-	{
-		USceneComponent* Comp = Cast<USceneComponent>(Components[CompIdx]);
-		if (Comp)
-		{
-			bNewRelevancy = Comp->IsRegistered() && Comp->IsNavigationRelevant();
-		}
-		else
-		{
-			UNavRelevantComponent* NavComp = Cast<UNavRelevantComponent>(Components[CompIdx]);
-			if (NavComp)
-			{
-				bNewRelevancy = NavComp->IsRegistered() && NavComp->IsNavigationRelevant();
-			}
-		}
-	}
-
-	SetNavigationRelevancy(bNewRelevancy);
-
-	return bNewRelevancy;
-}
-
-void AActor::SetNavigationRelevancy(const bool bNewRelevancy)
-{
-	if (bNavigationRelevant != bNewRelevancy)
-	{
-		// @TODO if this starts failing I'll remodel the way things get registered 
-		// with NavOctree.
-		if(IsInGameThread() == false)
-		{
-			UE_LOG(LogNavigation, Fatal, TEXT("AActor::SetNavigationRelevancy called outside of GameThread for %s"), *GetFullName());
-		}
-		
-		bNavigationRelevant = bNewRelevancy;
-		UWorld* MyWorld = GetWorld();
-		if (MyWorld != NULL && MyWorld->GetNavigationSystem() != NULL)
-		{
-			if (bNewRelevancy == true)
-			{
-				UE_LOG(LogNavigation, Verbose, TEXT("AActor::SetNavigationRelevancy registering new relevant actor %s"), *GetFullName());
-
-				MyWorld->GetNavigationSystem()->RegisterNavigationRelevantActor(this);
-			}
-			else
-			{
-				MyWorld->GetNavigationSystem()->UnregisterNavigationRelevantActor(this);
-			}
-		}
-	}
 }
 
 /** Util to call OnComponentCreated on components */
@@ -2254,8 +2123,18 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	if (!bDeferConstruction)
 	{
 		// Preserve original root component scale
-		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector::ZeroVector;
-		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation, SpawnScale), NULL );
+		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
+		FinishSpawning(FTransform(SpawnRotation, SpawnLocation, SpawnScale), true);
+	}
+}
+
+void AActor::FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform)
+{
+	if (ensure(!bHasFinishedSpawning))
+	{
+		bHasFinishedSpawning = true;
+
+		ExecuteConstruction(Transform, nullptr, bIsDefaultTransform);
 		PostActorConstruction();
 	}
 }
@@ -2385,15 +2264,10 @@ void AActor::ExchangeNetRoles(bool bRemoteOwned)
 
 void AActor::BeginPlay()
 {
+	SetLifeSpan( InitialLifeSpan );
+
 	ReceiveBeginPlay();
 }
-
-#if ENABLE_VISUAL_LOG
-void AActor::RedirectToVisualLog(const AActor* NewRedir)
-{ 
-	FVisualLog::Get().Redirect(this, NewRedir);
-}
-#endif // ENABLE_VISUAL_LOG
 
 void AActor::EnableInput(APlayerController* PlayerController)
 {
@@ -2402,20 +2276,23 @@ void AActor::EnableInput(APlayerController* PlayerController)
 		// If it doesn't exist create it and bind delegates
 		if (!InputComponent)
 		{
+			InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
+			InputComponent->RegisterComponent();
+			InputComponent->bBlockInput = bBlockInput;
+
 			// Only do this if this actor is of a blueprint class
 			UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
 			if(BGClass != NULL)
 			{
-				InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
-				InputComponent->RegisterComponent();
-				InputComponent->bBlockInput = bBlockInput;
-
 				UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
 			}
 		}
+		else
+		{
+			// Make sure we only have one instance of the InputComponent on the stack
+			PlayerController->PopInputComponent(InputComponent);
+		}
 
-		// Make sure we only have one instance of the InputComponent on the stack
-		PlayerController->PopInputComponent(InputComponent);
 		PlayerController->PushInputComponent(InputComponent);
 	}
 }
@@ -2529,6 +2406,32 @@ FVector AActor::GetActorScale3D() const
 	return FVector(1,1,1);
 }
 
+void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldOffset(DeltaLocation, bSweep);
+	}
+}
+
+void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldRotation(DeltaRotation, bSweep);
+	}	
+}
+
+void AActor::AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldTransform(DeltaTransform, bSweep);
+	}	
+}
+
+
+
 bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
@@ -2625,7 +2528,6 @@ void AActor::SetActorHiddenInGame( bool bNewHidden )
 	if (bHidden != bNewHidden)
 	{
 		bHidden = bNewHidden;
-		UpdateNavigationRelevancy();
 		MarkComponentsRenderStateDirty();
 	}
 }
@@ -2644,8 +2546,6 @@ void AActor::SetActorEnableCollision(bool bNewActorEnableCollision)
 		{
 			Components[CompIdx]->OnActorEnableCollisionChanged();
 		}
-
-		UpdateNavigationRelevancy();
 	}
 }
 
@@ -2744,7 +2644,8 @@ void AActor::GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVec
 
 AWorldSettings * AActor::GetWorldSettings() const
 {
-	return GetWorld()->GetWorldSettings();
+	UWorld* World = GetWorld();
+	return (World ? World->GetWorldSettings() : nullptr);
 }
 
 void AActor::PlaySoundOnActor(USoundCue* InSoundCue, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
@@ -3095,7 +2996,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 	int32 NumRegisteredComponentsThisRun = 0;
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
-
+	
 	for (int32 CompIdx = 0; CompIdx < Components.Num() && NumRegisteredComponentsThisRun < NumComponentsToRegister; CompIdx++)
 	{
 		UActorComponent* Component = Components[CompIdx];
@@ -3201,9 +3102,8 @@ void AActor::InitializeComponents()
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
 
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	for (UActorComponent* ActorComp : Components)
 	{
-		UActorComponent* ActorComp = Components[Idx];
 		if (ActorComp->bWantsInitializeComponent && ActorComp->IsRegistered())
 		{
 			ActorComp->InitializeComponent();
@@ -3211,6 +3111,19 @@ void AActor::InitializeComponents()
 	}
 }
 
+void AActor::UninitializeComponents()
+{
+	TArray<UActorComponent*> Components;
+	GetComponents(Components);
+
+	for (UActorComponent* ActorComp : Components)
+	{
+		if (ActorComp->bHasBeenInitialized)
+		{
+			ActorComp->UninitializeComponent();
+		}
+	}
+}
 
 void AActor::DrawDebugComponents(FColor const& BaseColor) const
 {
@@ -3377,9 +3290,8 @@ void AActor::PostInitializeComponents()
 	{
 		bActorInitialized = true;
 
-		UpdateNavigationRelevancy();
+		UNavigationSystem::OnActorRegistered(this);
 	}
-	SetLifeSpan( InitialLifeSpan );
 }
 
 void AActor::PreInitializeComponents()
@@ -3446,7 +3358,7 @@ float AActor::GetDotProductTo(AActor* OtherActor)
 		FVector Dir = GetActorForwardVector();
 		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
 		Offset = Offset.SafeNormal();
-		return Dir.DotProduct(Dir, Offset);
+		return FVector::DotProduct(Dir, Offset);
 	}
 	return -2.0;
 }
@@ -3458,7 +3370,7 @@ float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
 		FVector Dir = GetActorForwardVector();
 		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
 		Offset = Offset.SafeNormal2D();
-		return Dir.DotProduct(Dir, Offset);
+		return FVector::DotProduct(Dir, Offset);
 	}
 	return -2.0;
 }

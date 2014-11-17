@@ -12,7 +12,7 @@
 struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
-    static void PlatformPostInit(bool IsMoviePlaying = false);
+    static void PlatformPostInit(bool ShowSplashScreen = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
@@ -64,7 +64,13 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void LoadPreInitModules();
 	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context));
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
+	static FString GetDefaultLocale();
+	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
+	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
+	static TArray<uint8> GetSystemFontBytes();
 
+	static class IPlatformChunkInstall* GetPlatformChunkInstall();
+    
 	//////// Platform specific
 	static void* CreateAutoreleasePool();
 	static void ReleaseAutoreleasePool(void *Pool);
@@ -80,7 +86,6 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPhone4S,
 		IOS_IPhone5, // also the IPhone5C
 		IOS_IPhone5S,
-		IOS_IPodTouch4,
 		IOS_IPodTouch5,
 		IOS_IPad2,
 		IOS_IPad3,
@@ -88,6 +93,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPadMini,
 		IOS_IPadMini2,
 		IOS_IPadAir,
+		IOS_IPhone6,
+		IOS_IPhone6Plus,
 		IOS_Unknown,
 	};
 
@@ -101,7 +108,6 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPhone4S",
 			L"IPhone5",
 			L"IPhone5S",
-			L"IPodTouch4",
 			L"IPodTouch5",
 			L"IPad2",
 			L"IPad3",
@@ -109,6 +115,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPadMini",
 			L"IPadMini2",
 			L"IPadAir",
+			L"IPhone6",
+			L"IPhone6Plus",
 			L"Unknown",
 		};
 		static_assert((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), "Mismatched IOSDeviceNames and EIOSDevice.");

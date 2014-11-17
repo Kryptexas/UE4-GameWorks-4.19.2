@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.IO;
+using System.Diagnostics;
 
 namespace UnrealBuildTool.IOS
 {
@@ -20,7 +21,7 @@ namespace UnrealBuildTool.IOS
 			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.IOS, this);
 		}
 
-		private static void CopyFileWithReplacements(string SourceFilename, string DestFilename, Dictionary<string, string> Replacements)
+		private static void CopyFileWithReplacements(string SourceFilename, string DestFilename, Dictionary<string, string> Replacements, List<string> AdditionalLines)
 		{
 			if (!File.Exists(SourceFilename))
 			{
@@ -44,16 +45,48 @@ namespace UnrealBuildTool.IOS
 			string Ext = Path.GetExtension(SourceFilename);
 			if (Ext == ".plist")
 			{
-				string Contents = File.ReadAllText(SourceFilename);
+				string[] Contents = File.ReadAllLines(SourceFilename);
+				StringBuilder NewContents = new StringBuilder();
 
-				// replace some varaibles
-				foreach (var Pair in Replacements)
+				int LastDictLine = 0;
+				for (int LineIndex = Contents.Length - 1; LineIndex >= 0; LineIndex--)
 				{
-					Contents = Contents.Replace(Pair.Key, Pair.Value);
+					if (Contents[LineIndex].Trim() == "</dict>")
+					{
+						LastDictLine = LineIndex;
+						break;
+					}
 				}
 
-				// write out file
-				File.WriteAllText(DestFilename, Contents);
+				// replace some varaibles
+				for (int LineIndex = 0; LineIndex < Contents.Length; LineIndex++)
+				{
+					string Line = Contents[LineIndex];
+
+					// inject before the last line
+					if (LineIndex == LastDictLine)
+					{
+						foreach (string ExtraLine in AdditionalLines)
+						{
+							string FixedLine = ExtraLine;
+							foreach (var Pair in Replacements)
+							{
+								FixedLine = FixedLine.Replace(Pair.Key, Pair.Value);
+							}
+							NewContents.Append(FixedLine + Environment.NewLine);
+						}
+					}
+
+					foreach (var Pair in Replacements)
+					{
+						Line = Line.Replace(Pair.Key, Pair.Value);
+					}
+
+					NewContents.Append(Line + Environment.NewLine);
+
+				}
+
+				File.WriteAllText(DestFilename, NewContents.ToString());
 			}
 			else
 			{
@@ -65,8 +98,14 @@ namespace UnrealBuildTool.IOS
 			}
 		}
 
+
 		public override bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor)
 		{
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
+				throw new BuildException("UEDeployIOS.PrepForUATPackageOrDeploy only supports running on the Mac");
+			}
+
 			bool bIsUE4Game = InExecutablePath.Contains ("UE4Game");
 			string BinaryPath = Path.GetDirectoryName (InExecutablePath);
 			string GameExeName = Path.GetFileName (InExecutablePath);
@@ -215,18 +254,89 @@ namespace UnrealBuildTool.IOS
 				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 			}
 
+			// compile the launch .xib
+			string LaunchXib = InEngineDir + "/Build/IOS/Resources/Interface/LaunchScreen.xib";
+			if (File.Exists(BuildDirectory + "/Resources/Interface/LaunchScreen.xib"))
+			{
+				LaunchXib = BuildDirectory + "/Resources/Interface/LaunchScreen.xib";
+			}
+
+			List<string> PListAdditionalLines = new List<string>();
+			Dictionary<string, string> Replacements = new Dictionary<string, string>();
+
+			bool bSkipDefaultPNGs = false;
+			if (File.Exists(LaunchXib))
+			{
+				string CommandLine = string.Format("--target-device iphone --target-device ipad --errors --warnings --notices --module {0} --minimum-deployment-target 8.0 --auto-activate-custom-fonts --output-format human-readable-text --compile {1}/LaunchScreen.nib {2}", InProjectName, Path.GetFullPath(AppDirectory), Path.GetFileName(LaunchXib));
+
+				// now we need to zipalign the apk to the final destination (to 4 bytes, must be 4)
+				ProcessStartInfo IBToolStartInfo = new ProcessStartInfo();
+				IBToolStartInfo.WorkingDirectory = Path.GetDirectoryName(LaunchXib);
+				IBToolStartInfo.FileName = "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtool";
+				IBToolStartInfo.Arguments = CommandLine;
+				IBToolStartInfo.UseShellExecute = false;
+				Process CallIBTool = new Process();
+				CallIBTool.StartInfo = IBToolStartInfo;
+				CallIBTool.Start();
+				CallIBTool.WaitForExit();
+
+				PListAdditionalLines.Add("\t<key>UILaunchStoryboardName</key>");
+				PListAdditionalLines.Add("\t<string>LaunchScreen</string>");
+
+				bSkipDefaultPNGs = true;
+			}
+			else
+			{
+				// this is a temp way to inject the iphone 6 images without needing to upgrade everyone's plist
+				// eventually we want to generate this based on what the user has set in the project settings
+				string[] IPhoneConfigs =  
+				{ 
+					"Default-IPhone6", "Landscape", "{375, 667}", 
+					"Default-IPhone6", "Portrait", "{375, 667}", 
+					"Default-IPhone6Plus-Landscape", "Landscape", "{414, 736}", 
+					"Default-IPhone6Plus-Portrait", "Portrait", "{414, 736}", 
+					"Default", "Landscape", "{320, 480}",
+					"Default", "Portrait", "{320, 480}",
+					"Default-568h", "Landscape", "{320, 568}",
+					"Default-568h", "Portrait", "{320, 568}",
+				};
+
+				StringBuilder NewLaunchImagesString = new StringBuilder("<key>UILaunchImages~iphone</key>\n\t\t<array>\n");
+				for (int ConfigIndex = 0; ConfigIndex < IPhoneConfigs.Length; ConfigIndex += 3)
+				{
+					NewLaunchImagesString.Append("\t\t\t<dict>\n");
+					NewLaunchImagesString.Append("\t\t\t\t<key>UILaunchImageMinimumOSVersion</key>\n");
+					NewLaunchImagesString.Append("\t\t\t\t<string>8.0</string>\n");
+					NewLaunchImagesString.Append("\t\t\t\t<key>UILaunchImageName</key>\n");
+					NewLaunchImagesString.AppendFormat("\t\t\t\t<string>{0}</string>\n", IPhoneConfigs[ConfigIndex + 0]);
+					NewLaunchImagesString.Append("\t\t\t\t<key>UILaunchImageOrientation</key>\n");
+					NewLaunchImagesString.AppendFormat("\t\t\t\t<string>{0}</string>\n", IPhoneConfigs[ConfigIndex + 1]);
+					NewLaunchImagesString.Append("\t\t\t\t<key>UILaunchImageSize</key>\n");
+					NewLaunchImagesString.AppendFormat("\t\t\t\t<string>{0}</string>\n", IPhoneConfigs[ConfigIndex + 2]);
+					NewLaunchImagesString.Append("\t\t\t</dict>\n");
+				}
+
+				// close it out
+				NewLaunchImagesString.Append("\t\t\t</array>\n\t\t<key>UILaunchImages~ipad</key>");
+				Replacements.Add("<key>UILaunchImages~ipad</key>", NewLaunchImagesString.ToString());
+			}
+
 			// copy plist file
 			string PListFile = InEngineDir + "/Build/IOS/UE4Game-Info.plist";
-			if (File.Exists(BuildDirectory + "/" + InProjectName + "-Info.plist"))
+			if (File.Exists(BuildDirectory + "/Info.plist"))
+			{
+				PListFile = BuildDirectory + "/Info.plist";
+			}
+			else if (File.Exists(BuildDirectory + "/" + InProjectName + "-Info.plist"))
 			{
 				PListFile = BuildDirectory + "/" + InProjectName + "-Info.plist";
 			}
 
-			Dictionary<string, string> Replacements = new Dictionary<string, string>();
+			// plist replacements
 			Replacements.Add("${EXECUTABLE_NAME}", GameName);
 			Replacements.Add("${BUNDLE_IDENTIFIER}", InProjectName.Replace("_", ""));
-			CopyFileWithReplacements(PListFile, AppDirectory + "/Info.plist", Replacements);
-			CopyFileWithReplacements(PListFile, IntermediateDirectory + "/" + GameName + "-Info.plist", Replacements);
+			CopyFileWithReplacements(PListFile, AppDirectory + "/Info.plist", Replacements, PListAdditionalLines);
+			CopyFileWithReplacements(PListFile, IntermediateDirectory + "/" + GameName + "-Info.plist", Replacements, PListAdditionalLines);
 
 			// ensure the destination is writable
 			if (File.Exists(AppDirectory + "/" + GameName))
@@ -239,7 +349,15 @@ namespace UnrealBuildTool.IOS
 			File.Copy(BinaryPath + "/" + GameExeName, AppDirectory + "/" + GameName, true);
 
 			// copy engine assets in
-			CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "*.png", true);
+			if (bSkipDefaultPNGs)
+			{
+				// we still want default icons
+				CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Icon*.png", true);
+			}
+			else
+			{
+				CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "*.png", true);
+			}
 			// merge game assets on top
 			if (Directory.Exists(BuildDirectory + "/Resources/Graphics"))
 			{
@@ -272,7 +390,7 @@ namespace UnrealBuildTool.IOS
 			string BuildPath = InTarget.ProjectDirectory + "/Binaries/IOS";
 			string ProjectDirectory = InTarget.ProjectDirectory;
 
-			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
 				string DecoratedGameName;
 				if (InTarget.Configuration == UnrealTargetConfiguration.Development)
@@ -298,9 +416,9 @@ namespace UnrealBuildTool.IOS
 					try
 					{
 						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
-						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.Rules.Type != TargetRules.TargetType.Game)
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.TargetType != TargetRules.TargetType.Game)
 						{
-							BinaryDir = BinaryDir.Replace(InTarget.Rules.Type.ToString(), "Game");
+							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
 						}
 
 						// Get the app bundle's name

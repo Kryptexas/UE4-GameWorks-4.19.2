@@ -14,8 +14,11 @@
 #include "Editor/UnrealEd/Public/SEditorViewportToolBarMenu.h"
 #include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
 #include "SEditorViewportViewMenu.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
+
 
 //Class definition which represents widget to modify viewport's background color.
 class SBackgroundColorSettings : public SCompoundWidget
@@ -454,6 +457,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			ShowMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
 			{
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowReferencePose );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowRetargetBasePose );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowBound );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowPreviewMesh );
 			}

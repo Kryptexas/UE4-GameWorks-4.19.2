@@ -51,6 +51,16 @@ public:
 	{
 		return ExtensionsString.Contains(TEXT("GL_OES_compressed_ETC1_RGB8_texture"));
 	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return LOCTEXT("Android_ETC1_ShortName", "ETC1");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.1f;
+	}
 };
 
 

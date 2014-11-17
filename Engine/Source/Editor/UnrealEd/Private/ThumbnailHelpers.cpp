@@ -539,7 +539,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 
 				PreviewActor->SkeletalMeshComponent->PlayAnimation(InAnimation,false);
 				PreviewActor->SkeletalMeshComponent->Stop();
-				PreviewActor->SkeletalMeshComponent->SetPosition(AnimPosition);
+				PreviewActor->SkeletalMeshComponent->SetPosition(AnimPosition, false);
 
 				UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->SkeletalMeshComponent->GetSingleNodeInstance();
 				if (SingleNodeInstance)
@@ -565,6 +565,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 	if(!bSetSucessfully)
 	{
 		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
+		PreviewActor->SkeletalMeshComponent->SetAnimation(NULL);
 		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
 	}
 
@@ -690,6 +691,7 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 	if (!bSetSucessfully)
 	{
 		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
+		PreviewActor->SkeletalMeshComponent->SetAnimation(NULL);
 		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
 	}
 
@@ -801,6 +803,7 @@ bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlue
 	{
 		CleanupComponentChildren(PreviewActor->SkeletalMeshComponent);
 		PreviewActor->SkeletalMeshComponent->SetSkeletalMesh(nullptr);
+		PreviewActor->SkeletalMeshComponent->SetAnimInstanceClass(nullptr);
 	}
 
 	return bSetSucessfully;

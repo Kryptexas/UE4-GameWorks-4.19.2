@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
+#include "HTML5Win32PrivatePCH.h"
 #include "WinHttp.h"
 #include "curl/curl.h"
 
@@ -36,7 +36,7 @@ static size_t
 static char GURL[1024];
 void HTML5Win32::NFSHttp::Init(char* URL)
 {
-	 strcpy(GURL,URL); 
+	 strcpy_s(GURL,URL); 
 	 curl_global_init(CURL_GLOBAL_ALL); 
 	 curl = curl_easy_init();
 }

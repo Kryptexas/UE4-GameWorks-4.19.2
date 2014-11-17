@@ -17,6 +17,10 @@ public:
 	/** Applies all current user settings to the game and saves to permanent storage (e.g. file). */
 	DEPRECATED(4.4, "ApplySettings() is deprecated, use ApplySettings(bool) instead.")
 	virtual void ApplySettings();
+	
+	void ApplyNonResolutionSettings();
+	void ApplyResolutionSettings(bool bCheckForCommandLineOverrides);
+	void ConditionallyOverrideResolutionSettings();
 
 	/** Returns the user setting for game screen resolution, in pixels. */
 	FIntPoint GetScreenResolution() const;
@@ -96,8 +100,8 @@ public:
 	/** Loads the user .ini settings into GConfig */
 	static void LoadConfigIni( bool bForceReload=false );
 
-	/** Apply any runtime overrides to the settings */
-	static void RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bConditionallyOverride);
+	/** Request a change to the specified resolution and window mode. Optionally apply cmd line overrides. */
+	static void RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bInDoOverrides = true);
 
 	/** Whether to use VSync or not. (public to allow UI to connect to it) */
 	UPROPERTY(config)

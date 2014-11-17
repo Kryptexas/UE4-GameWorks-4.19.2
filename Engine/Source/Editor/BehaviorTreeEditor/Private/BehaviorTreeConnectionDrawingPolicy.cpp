@@ -43,7 +43,7 @@ void FBehaviorTreeConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* Out
 			{
 				UBehaviorTreeGraphNode* TestNode = ToNode->Decorators[i];
 				if (TestNode->DebuggerSearchPathIndex != INDEX_NONE &&
-					(TestNode->bDebuggerMarkSearchSucceeded || TestNode->bDebuggerMarkSearchFailed || TestNode->bDebuggerMarkSearchOptional))
+					(TestNode->bDebuggerMarkSearchSucceeded || TestNode->bDebuggerMarkSearchFailed))
 				{
 					if (TestNode->DebuggerSearchPathIndex < FirstPathIdx || FirstPathIdx == INDEX_NONE)
 					{
@@ -53,12 +53,10 @@ void FBehaviorTreeConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* Out
 				}
 			}
 
-			const bool bOptional = ToNode->bDebuggerMarkSearchOptional || FirstToNode->bDebuggerMarkSearchOptional;
-			if (FirstToNode->bDebuggerMarkSearchSucceeded || FirstToNode->bDebuggerMarkSearchFailed || bOptional)
+			if (FirstToNode->bDebuggerMarkSearchSucceeded || FirstToNode->bDebuggerMarkSearchFailed)
 			{
 				Thickness = 5.0f;
-				WireColor = bOptional ? BehaviorTreeColors::Debugger::SearchOptional :
-					FirstToNode->bDebuggerMarkSearchSucceeded ? BehaviorTreeColors::Debugger::SearchSucceeded :
+				WireColor = FirstToNode->bDebuggerMarkSearchSucceeded ? BehaviorTreeColors::Debugger::SearchSucceeded :
 					BehaviorTreeColors::Debugger::SearchFailed;
 
 				// hacky: use bBidirectional flag to reverse direction of connection (used by debugger)
@@ -74,7 +72,7 @@ void FBehaviorTreeConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArran
 	NodeWidgetMap.Empty();
 	for (int32 NodeIndex = 0; NodeIndex < ArrangedNodes.Num(); ++NodeIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedNodes(NodeIndex);
+		FArrangedWidget& CurWidget = ArrangedNodes[NodeIndex];
 		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 		NodeWidgetMap.Add(ChildNode->GetNodeObj(), NodeIndex);
 	}

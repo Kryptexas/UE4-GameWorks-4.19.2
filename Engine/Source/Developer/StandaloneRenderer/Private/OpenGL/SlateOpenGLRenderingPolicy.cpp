@@ -188,8 +188,6 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		}
 #endif
 
-		ElementProgram.SetVertexShaderParams( RenderBatch.ShaderParams.VertexParams );
-
 		ElementProgram.SetShaderType( RenderBatch.ShaderType );
 		ElementProgram.SetMarginUVs( RenderBatch.ShaderParams.PixelParams );
 		ElementProgram.SetDrawEffects( RenderBatch.DrawEffects );
@@ -244,16 +242,27 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
 
 		glEnableVertexAttribArray(1);
-		Offset = STRUCT_OFFSET( FSlateVertex, ClipCoords );
-		glVertexAttribPointer( 1, 4, GL_UNSIGNED_SHORT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
+		Offset = STRUCT_OFFSET( FSlateVertex, Position );
+		glVertexAttribPointer( 1, 2, GL_SHORT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
+
+		bool bUseFloat16 =
+#if SLATE_USE_FLOAT16
+			true;
+#else
+			false;
+#endif
 
 		glEnableVertexAttribArray(2);
-		Offset = STRUCT_OFFSET( FSlateVertex, Position );
-		glVertexAttribPointer( 2, 2, GL_SHORT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
+		Offset = STRUCT_OFFSET( FSlateVertex, ClipRect );
+		glVertexAttribPointer( 2, 2, bUseFloat16 ? GL_HALF_FLOAT : GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
 
 		glEnableVertexAttribArray(3);
+		Offset = STRUCT_OFFSET( FSlateVertex, ClipRect ) + STRUCT_OFFSET( FSlateRotatedClipRectType, ExtentX );
+		glVertexAttribPointer( 3, 4, bUseFloat16 ? GL_HALF_FLOAT : GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
+
+		glEnableVertexAttribArray(4);
 		Offset = STRUCT_OFFSET( FSlateVertex, Color );
-		glVertexAttribPointer( 3, 4, GL_UNSIGNED_BYTE, GL_TRUE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
+		glVertexAttribPointer( 4, 4, GL_UNSIGNED_BYTE, GL_TRUE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
 
 
 		

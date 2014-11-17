@@ -47,10 +47,15 @@
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
+#include "EngineBuildSettings.h"
+#include "HotReloadInterface.h"
+#include "ISourceControlModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
 #define LOCTEXT_NAMESPACE "LevelEditorActions"
+
+const FName HotReloadModule("HotReload");
 
 namespace LevelEditorActionsHelpers
 {
@@ -451,8 +456,7 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	UWorld::ChangeAllWorldFeatureLevels(InPreviewFeatureLevel);
-//	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel); // The ultimate goal, but needs removal of the global feature level first!
+	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel);
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
@@ -864,23 +868,9 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
-	// Ask the module manager for a list of currently-loaded gameplay modules
-	TArray< FModuleStatus > ModuleStatuses;
-	FModuleManager::Get().QueryModules( ModuleStatuses );
-
-	for( auto ModuleStatusIt = ModuleStatuses.CreateConstIterator(); ModuleStatusIt; ++ModuleStatusIt )
-	{
-		const FModuleStatus& ModuleStatus = *ModuleStatusIt;
-
-		// We only care about game modules that are currently loaded
-		if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )
-		{
-			// There is at least one loaded game module. Source code actions should be available.
-			return true;
-		}
-	}
-
-	return false;
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
+	// If there is at least one loaded game module, source code actions should be available.
+	return HotReloadSupport.IsAnyGameModuleLoaded();
 }
 
 void FLevelEditorActionCallbacks::RecompileLevelEditor_Clicked()
@@ -896,70 +886,26 @@ void FLevelEditorActionCallbacks::ReloadLevelEditor_Clicked()
 void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 {
 	// Don't allow a recompile while already compiling!
-	if( !FModuleManager::Get().IsCurrentlyCompiling() )
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
+	if( !HotReloadSupport.IsCurrentlyCompiling() )
 	{
-		TArray< FString > GameModuleNames;
-		{
-			// Ask the module manager for a list of currently-loaded gameplay modules
-			TArray< FModuleStatus > ModuleStatuses;
-			FModuleManager::Get().QueryModules( ModuleStatuses );
-
-			for( TArray< FModuleStatus >::TConstIterator ModuleStatusIt( ModuleStatuses ); ModuleStatusIt; ++ModuleStatusIt )
-			{
-				const FModuleStatus& ModuleStatus = *ModuleStatusIt;
-
-				// We only care about game modules that are currently loaded
-				if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )
-				{
-					GameModuleNames.AddUnique( ModuleStatus.Name );
-				}
-			}
-		}
-
-		if( GameModuleNames.Num() > 0 )
-		{
-			TArray< UPackage*> PackagesToRebind;
-			// Packages that rely on packages with UObject, but don't contain UObjects.
-			TArray< FName > DependentModules;
-
-			for( int32 CurModuleIndex = 0; CurModuleIndex < GameModuleNames.Num(); ++CurModuleIndex )
-			{
-				const FString& GameModuleName = *GameModuleNames[ CurModuleIndex ];
-				FString PackagePath( FString( TEXT( "/Script/" ) ) + GameModuleName );
-
-				UPackage* Package = FindPackage(NULL, *PackagePath);
-				if( Package != NULL )
-				{
-					PackagesToRebind.Add( Package );
-				}
-				else
-				{
-					DependentModules.Add( *GameModuleName );
-				}
-			}
-
-			GWarn->BeginSlowTask( LOCTEXT("CompilingGameCode", "Compiling Game Code"), true );
-
-			const bool bWaitForCompletion = false;	// Don't wait -- we want compiling to happen asynchronously
-			RebindPackages( PackagesToRebind, DependentModules, bWaitForCompletion, *GLog );
-
-			GWarn->EndSlowTask();
-
-			GEditor->BroadcastHotReload();
-		}
+		HotReloadSupport.DoHotReloadFromEditor();
 	}
 }
 
 bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 {
 	// We're not able to recompile if a compile is already in progress!
-	return !FModuleManager::Get().IsCurrentlyCompiling();
+
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
+	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
 
 bool FLevelEditorActionCallbacks::Reload_CanExecute()
 {
 	// We're not able to reload if a compile is already in progress!
-	return !FModuleManager::Get().IsCurrentlyCompiling();
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
+	return !HotReloadSupport.IsCurrentlyCompiling();
 }
 
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
@@ -1436,13 +1382,9 @@ void FLevelEditorActionCallbacks::OnSelectAllLights()
 {
 	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	// Select all light actors.
-	for( FActorIterator It(GetWorld()); It; ++It )
+	for( TActorIterator<ALight> It(GetWorld()); It; ++It )
 	{
-		ALight* Light = Cast<ALight>(*It);
-		if( Light )
-		{
-			GUnrealEd->SelectActor( Light, true, false, false );
-		}
+		GUnrealEd->SelectActor( *It, true, false, false );
 	}
 
 	GEditor->GetSelectedActors()->EndBatchSelectOperation();
@@ -1753,9 +1695,25 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 	}
 }
 
-bool FLevelEditorActionCallbacks::CanEditGameInfoBlueprints( TWeakPtr< SLevelEditor > LevelEditor)
+bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
 {
-	return LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode && LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode->ClassGeneratedBy;
+	bool bCheckOutNeeded = false;
+
+	FString ConfigFilePath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefaultEngine.ini"), *FPaths::SourceConfigDir()));
+	if(ISourceControlModule::Get().IsEnabled())
+	{
+		// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
+		//ISourceControlModule::Get().QueueStatusUpdate(ConfigFilePath);
+
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilePath, EStateCacheUsage::Use);
+		bCheckOutNeeded = SourceControlState.IsValid() && SourceControlState->CanCheckout();
+	}
+	else
+	{
+		bCheckOutNeeded = (FPaths::FileExists(ConfigFilePath) && IFileManager::Get().IsReadOnly(*ConfigFilePath));
+	}
+	return !bCheckOutNeeded;
 }
 
 void FLevelEditorActionCallbacks::OpenLevelBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
@@ -1802,132 +1760,16 @@ void FLevelEditorActionCallbacks::CreateClassBlueprint()
 	}
 }
 
-void FLevelEditorActionCallbacks::OpenGameModeBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
+void FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig( )
 {
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
+	FString ConfigFilePath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%sDefaultEngine.ini"), *FPaths::SourceConfigDir()));
+	if(ISourceControlModule::Get().IsEnabled())
 	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		UClass* ParentBlueprintClass = NULL;
-
-		if(ActiveGameMode)
-		{
-			ParentBlueprintClass = ActiveGameMode;
-		}
-		else
-		{
-			ParentBlueprintClass = AGameMode::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewGameMode"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameModeBlueprint_Title", "Create GameMode Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode = Cast<UClass>(Blueprint->GeneratedClass);
-		}
+		SourceControlHelpers::CheckOutFile(ConfigFilePath);
 	}
-}
-
-void FLevelEditorActionCallbacks::OpenGameStateBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
+	else
 	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->GameStateClass)
-		{
-			ParentBlueprintClass = GameMode->GameStateClass;
-		}
-		else
-		{
-			ParentBlueprintClass = AGameState::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewGameState"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateGameStateBlueprint_Title", "Create GameState Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->GameStateClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenDefaultPawnBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
-	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->DefaultPawnClass)
-		{
-			ParentBlueprintClass = GameMode->DefaultPawnClass;
-		}
-		else
-		{
-			ParentBlueprintClass = APawn::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewPawn"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateDefaultPawnBlueprint_Title", "Create DefaultPawn Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->DefaultPawnClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenHUDBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
-	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->HUDClass)
-		{
-			ParentBlueprintClass = GameMode->HUDClass;
-		}
-		else
-		{
-			ParentBlueprintClass = AHUD::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewHUD"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateHUDBlueprint_Title", "Create HUD Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->HUDClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenPlayerControllerBlueprint( TWeakPtr< SLevelEditor > LevelEditor )
-{
-	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
-	{
-		TSubclassOf<class AGameMode> ActiveGameMode = LevelEditor.Pin()->GetWorld()->GetWorldSettings()->DefaultGameMode;
-		AGameMode* GameMode = Cast<AGameMode>(ActiveGameMode->GetDefaultObject());
-
-		UClass* ParentBlueprintClass = NULL;
-		if(GameMode->PlayerControllerClass)
-		{
-			ParentBlueprintClass = GameMode->PlayerControllerClass;
-		}
-		else
-		{
-			ParentBlueprintClass = APlayerController::StaticClass();
-		}
-
-		const FString NewBPName(TEXT("NewPC"));
-		UBlueprint* Blueprint = LevelEditorActionsHelpers::OpenOrCreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreatePlayerControllerBlueprint_Title", "Create PlayerController Blueprint"), ParentBlueprintClass, LevelEditor, NewBPName);
-		if(Blueprint)
-		{
-			GameMode->PlayerControllerClass = Cast<UClass>(Blueprint->GeneratedClass);
-		}
+		FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ConfigFilePath, false);
 	}
 }
 
@@ -1984,6 +1826,18 @@ void FLevelEditorActionCallbacks::OnToggleStrictBoxSelect()
 bool FLevelEditorActionCallbacks::OnIsStrictBoxSelectEnabled() 
 {
 	return GetDefault<ULevelEditorViewportSettings>()->bStrictBoxSelection;
+}
+
+void FLevelEditorActionCallbacks::OnToggleTransparentBoxSelect()
+{
+	ULevelEditorViewportSettings* ViewportSettings = GetMutableDefault<ULevelEditorViewportSettings>();
+	ViewportSettings->bTransparentBoxSelection = !ViewportSettings->bTransparentBoxSelection;
+	ViewportSettings->PostEditChange();
+}
+
+bool FLevelEditorActionCallbacks::OnIsTransparentBoxSelectEnabled() 
+{
+	return GetDefault<ULevelEditorViewportSettings>()->bTransparentBoxSelection;
 }
 
 void FLevelEditorActionCallbacks::OnDrawBrushMarkerPolys()
@@ -2469,7 +2323,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 
 		// Need the transform between builder brush space and static mesh actor space.
 		const FMatrix BrushL2W = BuildBrush->ActorToWorld().ToMatrixWithScale();
-		const FMatrix MeshW2L = MeshToWorld.Inverse();
+		const FMatrix MeshW2L = MeshToWorld.InverseFast();
 		const FMatrix SMToBB = BrushL2W * MeshW2L;
 		const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
 
@@ -2763,7 +2617,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SurfSelectOr, "Surface Selection OR", "Replace the current selection with only the surfaces which are both currently selected and contained within the saved selection in memory", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift, EKeys::O) ); 
 	UI_COMMAND( SurfSelectAnd, "Surface Selection AND", "Add the selection of surfaces saved in memory to the current selection", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift, EKeys::A) ); 
 	UI_COMMAND( SurfSelectXor, "Surace Selection XOR", " Replace the current selection with only the surfaces that are not in both the current selection and the selection saved in memory", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift, EKeys::X) ); 
-	UI_COMMAND( SurfUnalign, "Align Surface Default", "Default surface alignmment", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( SurfUnalign, "Align Surface Default", "Default surface alignment", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SurfAlignPlanarAuto, "Align Surface Planar", "Planar surface alignment", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SurfAlignPlanarWall, "Align Surface Planar Wall", "Planar wall surface alignment", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SurfAlignPlanarFloor, "Align Surface Planar Floor", "Planar floor surface alignment", EUserInterfaceActionType::Button, FInputGesture() );
@@ -2793,25 +2647,22 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( FindActorInLevelScript, "Find in Level Blueprint", "Finds any references to the selected actor in its level's blueprint", EUserInterfaceActionType::Button, FInputGesture() );
 
-	UI_COMMAND( WorldProperties, "World Properties", "Displays the world properties", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( WorldProperties, "World Settings", "Displays the world settings", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( OpenContentBrowser, "Open Content Browser", "Opens the Content Browser", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control|EModifierKey::Shift, EKeys::F) );
 	UI_COMMAND( OpenMarketplace, "Open Marketplace", "Opens the Marketplace", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AddMatinee, "Add Matinee", "Creates a new matinee actor to edit", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameModeBlueprint, "Open/Create Game Mode Blueprint", "Opens or create the active GameMode blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameStateBlueprint, "Open/Create Game State Blueprint", "Open or create the GameState blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenDefaultPawnBlueprint, "Open/Create Default Pawn Blueprint", "Open or create the Pawn blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenHUDBlueprint, "Open/Create HUD Blueprint", "Open or create the HUD blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenPlayerControllerBlueprint, "Open/Create Player Controller Blueprint", "Open or create the Player Controller blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( CheckOutProjectSettingsConfig, "Check Out", "Checks out the project settings config file so the game mode can be set.", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CreateClassBlueprint, "New Class Blueprint...", "Create a new Class Blueprint", EUserInterfaceActionType::Button, FInputGesture());
 
 	UI_COMMAND( ShowTransformWidget, "Show Transform Widget", "Toggles the visibility of the transform widgets", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( AllowTranslucentSelection, "Allow Translucent Selection", "Allows translucent objects to be selected", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::T) );
 	UI_COMMAND( AllowGroupSelection, "Allow Group Selection", "Allows actor groups to be selected", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control|EModifierKey::Shift, EKeys::G) );
 	UI_COMMAND( StrictBoxSelect, "Strict Box Selection", "When enabled an object must be entirely encompassed by the selection box when marquee box selecting", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-	UI_COMMAND( DrawBrushMarkerPolys, "Draw Brush Marker Polys", "Draws semi-transparent polygons around a brush when selected", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND( TransparentBoxSelect, "Transparent Box Selection", "When enabled, marquee box select operations will also select objects that are occluded by other objects.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND( DrawBrushMarkerPolys, "Draw Brush Polys", "Draws semi-transparent polygons around a brush when selected", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( OnlyLoadVisibleInPIE, "Only Load Visible Levels in Game Preview", "If enabled, when game preview starts, only visible levels will be loaded", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( ToggleSocketSnapping, "Enable Socket Snapping", "Enables or disables snapping to sockets", EUserInterfaceActionType::ToggleButton, FInputGesture() ); 
 	UI_COMMAND( ToggleParticleSystemLOD, "Enable Particle System LOD Switching", "If enabled particle systems will use distance LOD switching in perspective viewports", EUserInterfaceActionType::ToggleButton, FInputGesture() );

@@ -5,11 +5,6 @@
 DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
 
-int32 SWidget::bUseLegacyHittest = false;
-FAutoConsoleVariableRef SWidget::CVarUseLegacyHittest(
-	TEXT("Slate.UseLegacyHittest"),
-	SWidget::bUseLegacyHittest,
-	TEXT("Should slate fall-back to using the legacy hittest path that does not support child widgets outside their parents' bounds.") );
 
 SWidget::SWidget()
 	: CreatedInFile( TEXT("") )
@@ -17,6 +12,8 @@ SWidget::SWidget()
 	, Cursor( TOptional<EMouseCursor::Type>() )
 	, EnabledState( true )
 	, Visibility( EVisibility::Visible )
+	, RenderTransform( )
+	, RenderTransformPivot( FVector2D::ZeroVector )
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
 	, bToolTipForceFieldEnabled( false )
@@ -26,12 +23,15 @@ SWidget::SWidget()
 }
 
 void SWidget::Construct(
-	const TAttribute<FString> & InToolTipText ,
+	const TAttribute<FText> & InToolTipText ,
 	const TSharedPtr<IToolTip> & InToolTip ,
 	const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 	const TAttribute<bool> & InEnabledState ,
 	const TAttribute<EVisibility> & InVisibility,
-	const FName& InTag
+	const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
+	const TAttribute<FVector2D>& InTransformPivot,
+	const FName& InTag,
+	const TArray<TSharedRef<ISlateMetaData>>& InMetaData
 )
 {
 	if ( InToolTip.IsValid() )
@@ -53,6 +53,10 @@ void SWidget::Construct(
 	Cursor = InCursor;
 	EnabledState = InEnabledState;
 	Visibility = InVisibility;
+	RenderTransform = InTransform;
+	RenderTransformPivot = InTransformPivot;
+	Tag = InTag;
+	MetaData = InMetaData;
 }
 
 
@@ -61,6 +65,13 @@ FReply SWidget::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 	return FReply::Unhandled();
 }
 
+void SWidget::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+{
+}
+
+void SWidget::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
+{
+}
 
 FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
@@ -231,12 +242,9 @@ EWindowZone::Type SWidget::GetWindowZoneOverride() const
 	return EWindowZone::Unspecified;
 }
 
-
-bool SWidget::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition )
+void SWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	return true;
 }
-
 
 void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -249,10 +257,10 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	FArrangedChildren ArrangedChildren(EVisibility::All);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
-	// Recurse!
+	// Recur!
 	for(int32 ChildIndex=0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
+		FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
 		SomeChild.Widget->TickWidgetsRecursively( SomeChild.Geometry, InCurrentTime, InDeltaTime );
 	}
 }
@@ -312,7 +320,7 @@ bool SWidget::HasFocusedDescendants() const
 
 bool SWidget::HasMouseCapture() const
 {
-	return (FSlateApplicationBase::Get().GetMouseCaptor().Get() == this);
+	return FSlateApplicationBase::Get().HasMouseCapture(SharedThis(this));
 }
 
 
@@ -340,7 +348,7 @@ void SWidget::FindChildGeometries_Helper( const FGeometry& MyGeometry, const TSe
 	// See if we found any of the widgets on this level.
 	for(int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 	{
-		const FArrangedWidget& CurChild = ArrangedChildren( ChildIndex );
+		const FArrangedWidget& CurChild = ArrangedChildren[ ChildIndex ];
 		
 		if ( WidgetsToFind.Contains(CurChild.Widget) )
 		{
@@ -355,7 +363,7 @@ void SWidget::FindChildGeometries_Helper( const FGeometry& MyGeometry, const TSe
 		// Look for widgets among the children.
 		for( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 		{
-			const FArrangedWidget& CurChild = ArrangedChildren( ChildIndex );
+			const FArrangedWidget& CurChild = ArrangedChildren[ ChildIndex ];
 			CurChild.Widget->FindChildGeometries_Helper( CurChild.Geometry, WidgetsToFind, OutResult );
 		}	
 	}	
@@ -383,12 +391,10 @@ int32 SWidget::FindChildUnderMouse( const FArrangedChildren& Children, const FPo
 	const int32 NumChildren = Children.Num();
 	for( int32 ChildIndex=NumChildren-1; ChildIndex >= 0; --ChildIndex )
 	{
-		const FArrangedWidget& Candidate = Children(ChildIndex);
+		const FArrangedWidget& Candidate = Children[ChildIndex];
 		const bool bCandidateUnderCursor = 
 			// Candidate is physically under the cursor
-			Candidate.Geometry.IsUnderLocation( AbsoluteCursorLocation ) && 
-			// Candidate actually considers itself hit by this test
-			(Candidate.Widget->OnHitTest( Candidate.Geometry, AbsoluteCursorLocation ));
+			Candidate.Geometry.IsUnderLocation( AbsoluteCursorLocation );
 
 		if (bCandidateUnderCursor)
 		{
@@ -436,6 +442,12 @@ int32 SWidget::GetCreatedInLineNumber() const
 }
 
 
+FName SWidget::GetTag() const
+{
+	return this->Tag;
+}
+
+
 FSlateColor SWidget::GetForegroundColor() const
 {
 	static FSlateColor NoColor = FSlateColor::UseForeground();
@@ -472,6 +484,9 @@ TSharedPtr<IToolTip> SWidget::GetToolTip()
 	return ToolTip;
 }
 
+void SWidget::OnToolTipClosing()
+{
+}
 
 void SWidget::EnableToolTipForceField( const bool bEnableForceField )
 {
@@ -496,27 +511,13 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateOnPaint);
-	if ( !bUseLegacyHittest )
-	{
-		FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
-		return OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	}
-	else
-	{
-		return OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	}
 
-	
+	FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
+	return OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateArrangeChildren);
 	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
-}
-
-
-bool SWidget::UseLegacyHittest()
-{
-	return bUseLegacyHittest != 0;
 }

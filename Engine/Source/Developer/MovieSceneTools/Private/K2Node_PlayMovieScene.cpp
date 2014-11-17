@@ -77,14 +77,22 @@ FLinearColor UK2Node_PlayMovieScene::GetNodeTitleColor() const
 
 FText UK2Node_PlayMovieScene::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	UMovieScene* MovieScene = MovieSceneBindings != NULL ? MovieSceneBindings->GetRootMovieScene() : NULL;
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SceneName"), FText::FromString(MovieScene->GetName()));
-
-	return MovieScene != NULL ?
-		( FText::Format(NSLOCTEXT("PlayMovieSceneNode", "NodeTitle", "Play Movie Scene: {SceneName}"), Args) ) :
-		NSLOCTEXT("PlayMovieSceneNode", "NodeTitleWithNoMovieScene", "Play Movie Scene (No Asset)");
+	UMovieScene* MovieScene = (MovieSceneBindings != nullptr) ? MovieSceneBindings->GetRootMovieScene() : nullptr;
+	if (MovieScene == nullptr)
+	{
+		return NSLOCTEXT("PlayMovieSceneNode", "NodeTitleWithNoMovieScene", "Play Movie Scene (No Asset)");
+	}
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the MovieScene won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SceneName"), FText::FromString(MovieScene->GetName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("PlayMovieSceneNode", "NodeTitle", "Play Movie Scene: {SceneName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 UEdGraphPin* UK2Node_PlayMovieScene::GetPlayPin() const
@@ -187,6 +195,7 @@ void UK2Node_PlayMovieScene::CreateBindingsIfNeeded()
 		check( NewMovieSceneBindings != NULL );
 
 		MovieSceneBindings = NewMovieSceneBindings;
+		CachedNodeTitle.MarkDirty();
 	}
 }
 

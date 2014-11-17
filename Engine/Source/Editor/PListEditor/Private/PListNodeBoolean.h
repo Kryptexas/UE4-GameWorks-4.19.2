@@ -12,7 +12,7 @@ class FPListNodeBoolean : public IPListNode
 {
 public:
 	FPListNodeBoolean(SPListEditorPanel* InEditorWidget)
-		: IPListNode(InEditorWidget), bFiltered(false), bValue(false), bArrayMember(false), ArrayIndex(-1), bKeyValid(false)
+		: IPListNode(InEditorWidget), bValue(false), ArrayIndex(-1), bFiltered(false), bArrayMember(false), bKeyValid(false)
 	{}
 
 public:

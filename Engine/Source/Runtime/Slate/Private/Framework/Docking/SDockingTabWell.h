@@ -25,13 +25,15 @@ public:
 		SLATE_ATTRIBUTE( TSharedPtr<SDockingTabStack>, ParentStackNode )
 	SLATE_END_ARGS()
 
+	SDockingTabWell();
+
 	void Construct( const FArguments& InArgs );
 
 	/** @return How many tabs there are. */
 	int32 GetNumTabs() const;
 
 	/** @return All child tabs in this node */
-	const TArray< TSharedRef<SDockTab> >& GetTabs() const;
+	const TSlotlessChildren<SDockTab>& GetTabs() const;
 
 	/**
 	 * Add a new tab (InTab) to the TabWell at location (AtIndex).
@@ -93,6 +95,8 @@ public:
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual EWindowZone::Type GetWindowZoneOverride() const override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	// End of SWidget interface
 
 private:
@@ -108,6 +112,12 @@ private:
 	 */
 	float ComputeDraggedTabOffset( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, const FVector2D& TabGrabOffsetFraction ) const;
 
+	/**
+	 * The user is dropping a tab on this TabWell, and the TabWell's geometry is currently MyGeometry.
+	 * @return the index of the slot into which the tab shoudl go.
+	 */
+	int32 ComputeChildDropIndex(const FGeometry& MyGeometry, const TSharedRef<SDockTab>& TabBeingDragged);
+
 	/** The tabs in this TabWell */
 	TSlotlessChildren< SDockTab > Tabs;
 
@@ -115,7 +125,7 @@ private:
 	TWeakPtr<class SDockingTabStack> ParentTabStackPtr;
 
 	/** The Tab being dragged through the TabWell, if there is one */
-	TWeakPtr<SDockTab> TabBeingDraggedPtr;
+	TSharedPtr<SDockTab> TabBeingDraggedPtr;
 
 	/** The offset of the Tab being dragged through this panel */
 	float ChildBeingDraggedOffset;

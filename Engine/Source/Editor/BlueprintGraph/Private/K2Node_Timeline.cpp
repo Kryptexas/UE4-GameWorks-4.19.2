@@ -2,10 +2,13 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintEditorUtils.h"
+#include "BlueprintNodeSpawner.h"
 #include "Editor/GraphEditor/Public/DiffResults.h"
 #include "Kismet2NameValidators.h"
 #include "KismetCompiler.h"
-#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Timeline"
 
@@ -205,23 +208,23 @@ void UK2Node_Timeline::PostPasteNode()
 	}
 }
 
-bool UK2Node_Timeline::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+bool UK2Node_Timeline::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
-	if(Super::CanPasteHere(TargetGraph, Schema))
+	if(Super::IsCompatibleWithGraph(TargetGraph))
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
 		if(Blueprint)
 		{
-			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(Schema);
+			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(TargetGraph->GetSchema());
 			check(K2Schema);
 
 			const bool bSupportsEventGraphs = FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint);
-			const bool bAllowEvents = K2Schema->GetGraphType(TargetGraph) == GT_Ubergraph && bSupportsEventGraphs &&
-				Blueprint->BlueprintType != BPTYPE_MacroLibrary;
+			const bool bAllowEvents = (K2Schema->GetGraphType(TargetGraph) == GT_Ubergraph) && bSupportsEventGraphs &&
+				(Blueprint->BlueprintType != BPTYPE_MacroLibrary);
 
 			if(bAllowEvents)
 			{
-				return true;
+				return FBlueprintEditorUtils::DoesSupportTimelines(Blueprint);
 			}
 			else
 			{
@@ -234,7 +237,7 @@ bool UK2Node_Timeline::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphS
 					{
 						if (UK2Node_Composite* Composite = Cast<UK2Node_Composite>(TargetGraph->GetOuter()))
 						{
-							TargetGraph =  Cast<UEdGraph>(Composite->GetOuter());
+							TargetGraph = Cast<UEdGraph>(Composite->GetOuter());
 						}
 						else if (K2Schema->GetGraphType(TargetGraph) == GT_Ubergraph)
 						{
@@ -247,7 +250,7 @@ bool UK2Node_Timeline::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphS
 						}
 					}
 				}
-				return bCompositeOfUbberGraph;
+				return bCompositeOfUbberGraph ? FBlueprintEditorUtils::DoesSupportTimelines(Blueprint) : false;
 			}
 		}
 	}
@@ -549,9 +552,9 @@ void UK2Node_Timeline::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGr
 	}
 }
 
-FString UK2Node_Timeline::GetTooltip() const
+FText UK2Node_Timeline::GetTooltipText() const
 {
-	return LOCTEXT("TimelineTooltip", "Timeline node allows values to be keyframed over time.\nDouble click to open timeline editor.").ToString();
+	return LOCTEXT("TimelineTooltip", "Timeline node allows values to be keyframed over time.\nDouble click to open timeline editor.");
 }
 
 FString UK2Node_Timeline::GetDocumentationExcerptName() const
@@ -566,30 +569,42 @@ void UK2Node_Timeline::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
 }
 
-void UK2Node_Timeline::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_Timeline::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
-
-	auto CustomizeTimelineNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
 	{
-		UK2Node_Timeline* TimelineNode = CastChecked<UK2Node_Timeline>(NewNode);
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-		UBlueprint* Blueprint = TimelineNode->GetBlueprint();
-		if (Blueprint != nullptr)
+		auto CustomizeTimelineNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
 		{
-			TimelineNode->TimelineName = FBlueprintEditorUtils::FindUniqueTimelineName(Blueprint);
-			if (!bIsTemplateNode && FBlueprintEditorUtils::AddNewTimeline(Blueprint, TimelineNode->TimelineName))
-			{
-				// clear off any existing error message now that the timeline has been added
-				TimelineNode->ErrorMsg.Empty();
-				TimelineNode->bHasCompilerMessage = false;
-			}
-		}
-	};
+			UK2Node_Timeline* TimelineNode = CastChecked<UK2Node_Timeline>(NewNode);
 
-	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeTimelineNodeLambda);
-	ActionListOut.Add(NodeSpawner);
+			UBlueprint* Blueprint = TimelineNode->GetBlueprint();
+			if (Blueprint != nullptr)
+			{
+				TimelineNode->TimelineName = FBlueprintEditorUtils::FindUniqueTimelineName(Blueprint);
+				if (!bIsTemplateNode && FBlueprintEditorUtils::AddNewTimeline(Blueprint, TimelineNode->TimelineName))
+				{
+					// clear off any existing error message now that the timeline has been added
+					TimelineNode->ErrorMsg.Empty();
+					TimelineNode->bHasCompilerMessage = false;
+				}
+			}
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeTimelineNodeLambda);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

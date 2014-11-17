@@ -30,7 +30,7 @@ public:
 	void CascadeTickComponent(float DeltaTime, enum ELevelTick TickType);
 
 	// Collision Handling...
-	virtual bool ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent);
+	virtual bool ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent, const FCollisionObjectQueryParams&);
 protected:
 	virtual void UpdateLODInformation();
 };

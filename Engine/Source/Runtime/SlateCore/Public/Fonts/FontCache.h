@@ -217,7 +217,7 @@ private:
 	mutable uint16 Baseline;
 };
 
-/*
+/**
  * Font caching implementation
  * Caches characters into textures as needed
  */

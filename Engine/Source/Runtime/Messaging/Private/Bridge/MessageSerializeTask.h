@@ -79,12 +79,12 @@ public:
 
 private:
 
-	// Holds the context of the message to serialize.
+	/** Holds the context of the message to serialize. */
 	IMessageContextRef MessageContext;
 
-	// Holds a reference to the message data.
+	/** Holds a reference to the message data. */
 	FMessageDataRef MessageData;
 
-	// Holds a reference to the serializer to use.
+	/** Holds a reference to the serializer to use. */
 	TWeakPtr<ISerializeMessages, ESPMode::ThreadSafe> SerializerPtr;
 };

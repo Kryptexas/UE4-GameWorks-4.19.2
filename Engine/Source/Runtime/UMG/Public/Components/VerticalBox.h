@@ -8,18 +8,21 @@
  * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
  * vertically.
  */
-UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UVerticalBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
-	UVerticalBoxSlot* Add(UWidget* Content);
+	UFUNCTION(BlueprintCallable, Category="Panel")
+	UVerticalBoxSlot* AddChildVerticalBox(UWidget* Content);
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 #endif
 
@@ -31,7 +34,7 @@ protected:
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 protected:
 

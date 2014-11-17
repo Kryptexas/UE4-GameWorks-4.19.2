@@ -31,7 +31,8 @@
 #include "EngineAnalytics.h"
 #include "Engine/GameInstance.h"
 #include "EditorAnalytics.h"
-
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "SScissorRectBox.h"
 #include "Online.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
@@ -167,8 +168,6 @@ void UEditorEngine::EndPlayMap()
 		// Clear out viewport index
 		PlayInEditorViewportIndex = -1; 
 
-		// The undo system may have a reference to a SIE/PIE object that is about to be destroyed, so clear the transactions
-		ResetTransaction( NSLOCTEXT("UnrealEd", "EndPlayMap", "End Play Map") );
 
 		// We could have been toggling back and forth between simulate and pie before ending the play map
 		// Make sure the property windows are cleared of any pie actors
@@ -305,48 +304,51 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 		CleanupGameViewport();
 	
 		// Clean up the slate PIE viewport if we have one
-		if (SlatePlayInEditorSession && SlatePlayInEditorSession->DestinationSlateViewport.IsValid())
+		if (SlatePlayInEditorSession)
 		{
-			TSharedPtr<ILevelViewport> Viewport = SlatePlayInEditorSession->DestinationSlateViewport.Pin();
-
-			if( !bIsSimulatingInEditor)
+			if (SlatePlayInEditorSession->DestinationSlateViewport.IsValid())
 			{
-				// Set the editor viewport location to match that of Play in Viewport if we aren't simulating in the editor, we have a valid player to get the location from 
-				if (SlatePlayInEditorSession->EditorPlayer.IsValid() && SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController)
-				{
-					FVector ViewLocation;
-					FRotator ViewRotation;
-					SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
-					Viewport->GetLevelViewportClient().SetViewLocation( ViewLocation );
+				TSharedPtr<ILevelViewport> Viewport = SlatePlayInEditorSession->DestinationSlateViewport.Pin();
 
-					if( Viewport->GetLevelViewportClient().IsPerspective() )
+				if( !bIsSimulatingInEditor)
+				{
+					// Set the editor viewport location to match that of Play in Viewport if we aren't simulating in the editor, we have a valid player to get the location from 
+					if (SlatePlayInEditorSession->EditorPlayer.IsValid() && SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController)
 					{
-						// Rotation only matters for perspective viewports not orthographic
-						Viewport->GetLevelViewportClient().SetViewRotation( ViewRotation );
+						FVector ViewLocation;
+						FRotator ViewRotation;
+						SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
+						Viewport->GetLevelViewportClient().SetViewLocation( ViewLocation );
+
+						if( Viewport->GetLevelViewportClient().IsPerspective() )
+						{
+							// Rotation only matters for perspective viewports not orthographic
+							Viewport->GetLevelViewportClient().SetViewRotation( ViewRotation );
+						}
 					}
 				}
+
+				// No longer simulating in the viewport
+				Viewport->GetLevelViewportClient().SetIsSimulateInEditorViewport( false );
+
+				// Clear out the hit proxies before GC'ing
+				Viewport->GetLevelViewportClient().Viewport->InvalidateHitProxy();
 			}
-
-			// No longer simulating in the viewport
-			Viewport->GetLevelViewportClient().SetIsSimulateInEditorViewport( false );
-
-			// Clear out the hit proxies before GC'ing
-			Viewport->GetLevelViewportClient().Viewport->InvalidateHitProxy();
-		}
-		else if (SlatePlayInEditorSession->SlatePlayInEditorWindow.IsValid())
-		{
-			// Unregister the game viewport from slate.  This sends a final message to the viewport
-			// so it can have a chance to release mouse capture, mouse lock, etc.		
-			FSlateApplication::Get().UnregisterGameViewport();
-
-			// Viewport client is cleaned up.  Make sure its not being accessed
-			SlatePlayInEditorSession->SlatePlayInEditorWindowViewport->SetViewportClient(NULL);
-
-			// The window may have already been destroyed in the case that the PIE window close box was pressed 
-			if (SlatePlayInEditorSession->SlatePlayInEditorWindow.IsValid())
+			else if (SlatePlayInEditorSession->SlatePlayInEditorWindow.IsValid())
 			{
-				// Destroy the SWindow
-				FSlateApplication::Get().DestroyWindowImmediately(SlatePlayInEditorSession->SlatePlayInEditorWindow.Pin().ToSharedRef());
+				// Unregister the game viewport from slate.  This sends a final message to the viewport
+				// so it can have a chance to release mouse capture, mouse lock, etc.		
+				FSlateApplication::Get().UnregisterGameViewport();
+
+				// Viewport client is cleaned up.  Make sure its not being accessed
+				SlatePlayInEditorSession->SlatePlayInEditorWindowViewport->SetViewportClient(NULL);
+
+				// The window may have already been destroyed in the case that the PIE window close box was pressed 
+				if (SlatePlayInEditorSession->SlatePlayInEditorWindow.IsValid())
+				{
+					// Destroy the SWindow
+					FSlateApplication::Get().DestroyWindowImmediately(SlatePlayInEditorSession->SlatePlayInEditorWindow.Pin().ToSharedRef());
+				}
 			}
 		}
 	
@@ -443,8 +445,10 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	// Go through and let all the PlayWorld Actor's know they are being destroyed
 	for (FActorIterator ActorIt(PlayWorld); ActorIt; ++ActorIt)
 	{
-		ActorIt->EndPlay(EEndPlayReason::EndPlayInEditor);
+		ActorIt->RouteEndPlay(EEndPlayReason::EndPlayInEditor);
 	}
+
+	PieWorldContext.OwningGameInstance->Shutdown();
 
 	// Move blueprint debugging pointers back to the objects in the editor world
 	PlayWorld->TransferBlueprintDebugReferences(EditorWorld);
@@ -678,15 +682,15 @@ void GetWindowSizeForInstanceType(FIntPoint &WindowSize, const ULevelEditorPlayS
 	}
 }
 
-/* 
+/** 
  * Generate the command line for pie instance. Window position, size etc. 
  *
  * @param	WinX			Window X position. This will contain the X position to use for the next window. (Not changed for dedicated server window).
  * @param	WinY			Window Y position. This will contain the X position to use for the next window. (Not changed for dedicated server window).
  * @param	InstanceNum		PIE instance index.
- * @param	IsServer		Is this instance a dedicated server. true if so else false.
+ * @param	bIsDedicatedServer	Is this instance a dedicate server. true if so else false.
  */
-FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &InstanceNum, bool IsServer)
+FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &InstanceNum, bool bIsDedicatedServer)
 {
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	// Get GameSettings INI override
@@ -696,9 +700,9 @@ FString GenerateCmdLineForNextPieInstance(int32 &WinX, int32 &WinY, int32 &Insta
 	//	-Override GameUserSettings.ini
 	//	-Force no steam
 	//	-Allow saving of config files (since we are giving them an override INI)
-	FString CmdLine = FString::Printf(TEXT("GameUserSettingsINI=%s -MultiprocessSaveConfig %s "), *GameUserSettingsOverride, *PlayInSettings->AdditionalLaunchOptions);
+	FString CmdLine = FString::Printf(TEXT("GameUserSettingsINI=\"%s\" -MultiprocessSaveConfig %s -MultiprocessOSS "), *GameUserSettingsOverride, *PlayInSettings->AdditionalLaunchOptions);
 
-	if (IsServer && PlayInSettings->PlayNetDedicated)
+	if (bIsDedicatedServer)
 	{
 		// Append dedicated server options
 		CmdLine += TEXT("-server -log ");
@@ -772,8 +776,8 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		FIntPoint WinPosition((int32)PreferredWorkArea.Right, (int32)PreferredWorkArea.Top);
 		AdvanceWindowPositionsForNextPIEWindow(WinPosition.X, WinPosition.Y, FIntPoint(0,0));
 
-		// Do we need to spawn a server?
-		if (PlayInSettings->PlayNetMode == PIE_Client)
+		// We'll need to spawn a server if we're playing outside the editor or the editor wants to run as a client
+		if (bPlayOnLocalPcSession || PlayInSettings->PlayNetMode == PIE_Client)
 		{			
 			PlayStandaloneLocalPc(TEXT(""), &WinPosition, NumClients, true);
 			
@@ -784,21 +788,8 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			}
 		}
 		
-		if (!bPlayOnLocalPcSession && !bStartMovieCapture && PlayInSettings->PlayNetMode == PIE_Client)
-		{
-			// Editor counts as a client
-			NumClients++;
-		}
-
-		if (bPlayOnLocalPcSession)
-		{
-			// Spawn number of clients
-			for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
-			{
-				PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, NumClients + 1, false);
-			}
-		}
-		else 
+		// If we're playing in the editor
+		if (!bPlayOnLocalPcSession)
 		{
 			if (bStartMovieCapture)
 			{
@@ -808,7 +799,16 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			else
 			{
 				PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
+
+				// Editor counts as a client
+				NumClients++;
 			}
+		}
+
+		// Spawn number of clients
+		for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
+		{
+			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, i, false);
 		}
 	}
 	else
@@ -852,9 +852,11 @@ public:
 				ULevelStreaming* StreamingLevel = InWorld->StreamingLevels[LevelIndex];
 				if ( StreamingLevel )
 				{
-					PreviousStreamingPackageNames.Add( StreamingLevel->PackageName );
-					const FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( StreamingLevel->PackageName.ToString() ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( StreamingLevel->PackageName.ToString() ));
-					StreamingLevel->PackageName = FName(*StreamingLevelPackageName);
+					const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
+					const FName WorldAssetPackageFName = StreamingLevel->GetWorldAssetPackageFName();
+					PreviousStreamingPackageNames.Add( WorldAssetPackageFName );
+					const FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( WorldAssetPackageName ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( WorldAssetPackageName ));
+					StreamingLevel->SetWorldAssetByPackageName(FName(*StreamingLevelPackageName));
 				}
 			}
 		}
@@ -873,7 +875,7 @@ public:
 				ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 				if ( StreamingLevel )
 				{
-					StreamingLevel->PackageName = PreviousStreamingPackageNames[LevelIndex];
+					StreamingLevel->SetWorldAssetByPackageName(PreviousStreamingPackageNames[LevelIndex]);
 				}
 			}
 		}
@@ -977,18 +979,15 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 {
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	//const ULevelEditorPlaySettings* PlayInSettings = InPlaySettings != NULL ? InPlaySettings : GetDefault<ULevelEditorPlaySettings>();
+
 	FString CmdLine;
-	if (WindowPos != NULL)
+	if (WindowPos != NULL)	// If WindowPos == NULL, we're just launching one instance
 	{
-		CmdLine = GenerateCmdLineForNextPieInstance(WindowPos->X, WindowPos->Y, PIENum, bIsServer);
+		CmdLine = GenerateCmdLineForNextPieInstance(WindowPos->X, WindowPos->Y, PIENum, bIsServer && PlayInSettings->PlayNetDedicated);
 	}
 	
-	FString URLParms;		
-	if (bIsServer == true)
-	{
-		URLParms = bIsServer == true ? TEXT("?Listen") : FString();
-	}
-	
+	const FString URLParms = bIsServer && !PlayInSettings->PlayNetDedicated ? TEXT("?Listen") : FString();
+
 	// select map to play
 	TArray<FString> SavedMapNames;
 	if (MapNameOverride.IsEmpty())
@@ -1037,6 +1036,10 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	// apply additional settings
 	if (bPlayUsingMobilePreview)
 	{
+		if (IsOpenGLPlatform(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]))
+		{
+			AdditionalParameters += TEXT(" -opengl");
+		}
 		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
 	}
 
@@ -1252,18 +1255,14 @@ void UEditorEngine::PlayUsingLauncher()
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
 
+		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
 		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
-		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
+		LauncherProfile->SetCookMode(CanCookByTheBookInEditor() ? ELauncherProfileCookModes::ByTheBookInEditor : ELauncherProfileCookModes::ByTheBook);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
-		LauncherProfile->SetForceClose(true);
-		LauncherProfile->SetTimeout(60);
-		LauncherProfile->SetCookConfiguration(FApp::GetBuildConfiguration());
-		LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Development);
-		LauncherProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::CopyToDevice);
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
-		LauncherProfile->SetHideFileServerWindow(false);
 		LauncherProfile->SetEditorExe(FUnrealEdMisc::Get().GetExecutableForCommandlets());
+
 		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
 		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) != TEXT("IOS") || !PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
 		{
@@ -1272,9 +1271,10 @@ void UEditorEngine::PlayUsingLauncher()
 
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
-		if (EditorContext.World()->WorldComposition)
+		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) )
 		{
 			// Open world composition from original folder
+			// Or if using by book in editor don't need to resave the package just cook it by the book 
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
 			MapNames.Add(MapName);
 		}
@@ -1294,6 +1294,35 @@ void UEditorEngine::PlayUsingLauncher()
 		for (const FString& MapName : MapNames)
 		{
 			LauncherProfile->AddCookedMap(MapName);
+		}
+
+
+		if ( LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor )
+		{
+			// check( GEditor != NULL );
+
+			TArray<ITargetPlatform*> TargetPlatforms;
+			for ( const auto &PlatformName : LauncherProfile->GetCookedPlatforms() )
+			{
+				ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
+				// todo pass in all the target platforms instead of just the single platform
+				// crashes if two requests are inflight but we can support having multiple platforms cooking at once
+				TargetPlatforms.Add( TargetPlatform ); 
+			}
+
+
+			const TArray<FString> &CookedMaps = LauncherProfile->GetCookedMaps();
+
+			// const TArray<FString>& CookedMaps = ChainState.Profile->GetCookedMaps();
+			TArray<FString> CookDirectories;
+			TArray<FString> CookCultures;
+			TArray<FString> IniMapSections;
+
+			StartCookByTheBookInEditor(TargetPlatforms, CookedMaps, CookDirectories, CookCultures, IniMapSections );
+
+			FIsCookFinishedDelegate &CookerFinishedDelegate = LauncherProfile->OnIsCookFinished();
+
+			CookerFinishedDelegate.BindUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);   // AddUObject(this, &UEditorEngine::IsCookByTheBookInEditorFinished);
 		}
 
 		ILauncherPtr Launcher = LauncherServicesModule.CreateLauncher();
@@ -1876,6 +1905,24 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	bool bAnyBlueprintErrors = ErrorBlueprintList.Num()? true : false;
 	bool bStartInSpectatorMode = false;
+	bool bSupportsOnlinePIE = false;
+
+	if (SupportsOnlinePIE())
+	{
+		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
+
+		if (bHasRequiredLogins)
+		{
+			// If we support online PIE use it even if we're standalone
+			bSupportsOnlinePIE = true;
+		}
+		else
+		{
+			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
+			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
+			FMessageLog("PIE").Warning(ErrorMsg);
+		}
+	}
 
 	FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
 	if (bInSimulateInEditor || KeysState.IsControlDown())
@@ -1884,27 +1931,19 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		bStartInSpectatorMode = true;
 	}
 
-	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone) || !PlayInSettings->RunUnderOneProcess)
+	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !PlayInSettings->RunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process
-		UGameInstance* const GameInstance = CreatePIEGameInstance(0, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, PIEStartTime);
+		UGameInstance* const GameInstance = CreatePIEGameInstance(0, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
 
 		if (bInSimulateInEditor)
 		{
-			ToggleBetweenPIEandSIE();
+			ToggleBetweenPIEandSIE( true );
 		}
 	}
 	else
 	{
-		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
-		if (!bHasRequiredLogins)
-		{
-			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
-			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
-			FMessageLog("PIE").Warning(ErrorMsg);
-		}
-
-		if (SupportsOnlinePIE() && bHasRequiredLogins)
+		if (bSupportsOnlinePIE)
 		{
 			// Make sure all instances of PIE are logged in before creating/launching worlds
 			LoginPIEInstances(bAnyBlueprintErrors, bStartInSpectatorMode, PIEStartTime);
@@ -1993,7 +2032,7 @@ void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	// Set window position
 	GetMultipleInstancePositions(DataStruct.SettingsIndex, DataStruct.NextX, DataStruct.NextY);
 	
-	UGameInstance* const GameInstance = CreatePIEGameInstance(0, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, DataStruct.PIEStartTime);
+	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayNetMode == EPlayNetMode::PIE_Client ? false : PlayInSettings->PlayNetDedicated, DataStruct.PIEStartTime);
 	
 	// Restore window settings
 	GetMultipleInstancePositions(0, DataStruct.NextX, DataStruct.NextY);	// restore cached settings
@@ -2063,7 +2102,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 		// Update login struct parameters
 		DataStruct.WorldContextHandle = PieWorldContext.ContextHandle;
-		DataStruct.bIsServer = true;
+		DataStruct.NetMode = PlayInSettings->PlayNetMode;
 
 		// Always get the interface (it will create the subsystem regardless)
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
@@ -2117,7 +2156,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.NextX = NextX;
 		DataStruct.NextY = NextY;
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
-		DataStruct.bIsServer = false;
+		DataStruct.NetMode = EPlayNetMode::PIE_Client;
 
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
@@ -2156,12 +2195,12 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	IdentityInt->ClearOnLoginCompleteDelegate(0, Delegate);
 
 	// Create the new world
-	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.bIsServer ? EPlayNetMode::PIE_ListenServer : EPlayNetMode::PIE_Client, DataStruct);
+	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.NetMode, DataStruct);
 
 	// Logging after the create so a new MessageLog Page is created
 	if (bWasSuccessful)
 	{
-		if (DataStruct.bIsServer)
+		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 		{
 			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
 		}
@@ -2172,7 +2211,7 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	}
 	else
 	{
-		if (DataStruct.bIsServer)
+		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 		{
 			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
 		}
@@ -2245,7 +2284,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("GameName"), FText::FromString( FString( FApp::GetGameName() ) ) );
 	Args.Add( TEXT("PlatformBits"), FText::FromString( PlatformBitsString ) );
-	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GRHIShaderPlatform ) ) );
+	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel] ) ) );
 
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	if (PlayInSettings->PlayNetMode == PIE_Client)
@@ -2382,14 +2421,24 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 				FSlateApplication::Get().AddWindow( PieWindow );
 
+				TSharedPtr<SDPIScaler> PIEDPIScaler;
+
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew( SOverlay );
 				PieViewportWidget = 
 					SNew( SViewport )
 						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 						.EnableGammaCorrection( false )// Gamma correction in the game is handled in post processing in the scene renderer
 						[
-							ViewportOverlayWidgetRef
+							SNew(SScissorRectBox)
+							[
+								SAssignNew(PIEDPIScaler, SDPIScaler)
+								[
+									ViewportOverlayWidgetRef
+								]
+							]
 						];
+
+				PIEDPIScaler->SetDPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UEditorEngine::GetGameViewportDPIScale, ViewportClient)));
 
 				// Create a viewport widget for the game to render in.
 				PieWindow->SetContent( PieViewportWidget.ToSharedRef() );
@@ -2407,7 +2456,6 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 						{
 							// Save off the window position
 							const FVector2D PIEWindowPos = WindowBeingClosed->GetPositionInScreen();
-							const FVector2D PIEWindowClientSize = WindowBeingClosed->GetClientSizeInScreen();
 
 							ULevelEditorPlaySettings* LevelEditorPlaySettings = ULevelEditorPlaySettings::StaticClass()->GetDefaultObject<ULevelEditorPlaySettings>();
 
@@ -2509,6 +2557,13 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	return GameInstance;
 }
 
+float UEditorEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const
+{
+	FVector2D ViewportSize;
+	ViewportClient->GetViewportSize(ViewportSize);
+	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+}
+
 FViewport* UEditorEngine::GetActiveViewport()
 {
 	// Get the Level editor module and request the Active Viewport.
@@ -2538,10 +2593,12 @@ FViewport* UEditorEngine::GetPIEViewport()
 			FWorldContext &WorldContext = *It;
 			if (WorldContext.WorldType == EWorldType::PIE)
 			{
-				FSlatePlayInEditorInfo &SlatePlayInEditorSession = SlatePlayInEditorMap.FindChecked(WorldContext.ContextHandle);
-				if (SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.IsValid() )
+				// We can't use FindChecked here because when using the dedicated server option we don't initialize this map 
+				//	(we don't use a viewport for the PIE context in this case)
+				FSlatePlayInEditorInfo * SlatePlayInEditorSessionPtr = SlatePlayInEditorMap.Find(WorldContext.ContextHandle);
+				if (SlatePlayInEditorSessionPtr != NULL && SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.IsValid() )
 				{
-					return SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.Get();
+					return SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.Get();
 				}
 			}
 		}
@@ -2550,7 +2607,7 @@ FViewport* UEditorEngine::GetPIEViewport()
 	return NULL;
 }
 
-void UEditorEngine::ToggleBetweenPIEandSIE()
+void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 {
 	bIsToggleBetweenPIEandSIEQueued = false;
 
@@ -2570,6 +2627,13 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 	if (!SlateInfoPtr)
 	{
 		return;
+	}
+
+	if( FEngineAnalytics::IsAvailable() && !bNewSession )
+	{
+		FString ToggleType = bIsSimulatingInEditor ? TEXT("SIEtoPIE") : TEXT("PIEtoSIE");
+
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PIE"), TEXT("ToggleBetweenPIEandSIE"), ToggleType );
 	}
 
 	FSlatePlayInEditorInfo & SlatePlayInEditorSession = *SlateInfoPtr;
@@ -2830,6 +2894,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	PlayWorldPackage->PackageFlags |= PKG_PlayInEditor;
 	PlayWorldPackage->PIEInstanceID = WorldContext.PIEInstance;
 	PlayWorldPackage->FileName = InPackage->FileName;
+	PlayWorldPackage->SetGuid( InPackage->GetGuid() );
 
 	check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
 	GPlayInEditorID = WorldContext.PIEInstance;
@@ -2848,7 +2913,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			ULevelStreaming* StreamingLevel = *LevelIt;
 			if ( StreamingLevel )
 			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->PackageName.ToString(), WorldContext.PIEInstance);
+				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
 				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
 			}
 		}

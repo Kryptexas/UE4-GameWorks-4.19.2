@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_MakeStruct.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_SetFieldsInStruct.generated.h"
 
 // Pure kismet node that creates a struct with specified values for each member
@@ -12,7 +13,7 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End  UEdGraphNode interface
@@ -33,4 +34,9 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	BLUEPRINTGRAPH_API void RemoveFieldPins(const UEdGraphPin* InGraphPin, EPinsToRemove Selection);
 	BLUEPRINTGRAPH_API bool AllPinsAreShown() const;
 	BLUEPRINTGRAPH_API void RestoreAllPins();
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
+	FNodeTextCache CachedNodeTitle;
 };

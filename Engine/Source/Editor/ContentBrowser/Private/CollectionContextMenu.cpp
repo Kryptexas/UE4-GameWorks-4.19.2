@@ -5,8 +5,11 @@
 #include "CollectionContextMenu.h"
 #include "ISourceControlModule.h"
 #include "ContentBrowserModule.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
+
 
 FCollectionContextMenu::FCollectionContextMenu(const TWeakPtr<SCollectionView>& InCollectionView)
 	: CollectionView(InCollectionView)

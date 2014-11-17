@@ -154,6 +154,8 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	TSharedRef< SWidget > ButtonContent =
 
 		SNew(SHorizontalBox)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TutorialHighlightName))
+
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
 		.VAlign(VAlign_Center)
@@ -185,18 +187,6 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 			]
 		];
 
-	// Add a tutorial highlight wrapper if desired
-	if(TutorialHighlightName != NAME_None)
-	{
-		TSharedRef<SWidget> Wrapper = 
-			SNew(STutorialWrapper, TutorialHighlightName)
-			[
-				ButtonContent
-			];
-
-		ButtonContent = Wrapper;
-	}
-
 	EMultiBlockLocation::Type BlockLocation = GetMultiBlockLocation();
 	
 	// What type of UI should we create for this block?
@@ -210,8 +200,8 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	if( UserInterfaceType == EUserInterfaceActionType::Button )
 	{
 		FName BlockStyle = EMultiBlockLocation::ToName(ISlateStyle::Join( StyleName, ".Button" ), BlockLocation);
-		ChildSlot.Widget =
-
+		ChildSlot
+		[
 			// Create a button
 			SNew( SButton )
 				.ContentPadding(0)
@@ -230,16 +220,16 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				.OnClicked( this, &SToolBarButtonBlock::OnClicked )
 
 				// Pass along the block's tool-tip string
-				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, NULL, Action.Pin() ) )
-			;
+				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, nullptr, Action.Pin() ) )
+		];
 	}
 	else if( ensure( UserInterfaceType == EUserInterfaceActionType::ToggleButton || UserInterfaceType == EUserInterfaceActionType::RadioButton ) )
 	{
 		FName BlockStyle = EMultiBlockLocation::ToName(ISlateStyle::Join( StyleName, ".ToggleButton" ), BlockLocation);
 		FName CheckboxStyle = ISlateStyle::Join( StyleName, ".SToolBarButtonBlock.CheckBox.Padding" );
 
-		ChildSlot.Widget =
-
+		ChildSlot
+		[
 			// Create a check box
 			SNew( SCheckBox )
 
@@ -250,7 +240,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				.IsFocusable( bIsFocusable )
 
 				// Pass along the block's tool-tip string
-				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, NULL, Action.Pin() ) )
+				.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ActualToolTip, nullptr, Action.Pin() ) )
 				[
 					ButtonContent
 				]
@@ -261,8 +251,8 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				// Bind the check box's "checked" state to our user interface action
 				.IsChecked( this, &SToolBarButtonBlock::OnIsChecked )
 
-				.Padding( StyleSet->GetMargin(CheckboxStyle) );
-			;
+				.Padding( StyleSet->GetMargin(CheckboxStyle) )
+		];
 	}
 	
 	ChildSlot.Padding(StyleSet->GetMargin(ISlateStyle::Join( StyleName, ".SToolBarButtonBlock.Padding" )));

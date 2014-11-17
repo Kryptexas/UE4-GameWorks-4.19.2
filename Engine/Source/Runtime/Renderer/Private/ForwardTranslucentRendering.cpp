@@ -8,7 +8,7 @@
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
-
+#include "SceneUtils.h"
 
 /** Pixel shader used to copy scene color into another texture so that materials can read from scene color with a node. */
 class FForwardCopySceneAlphaPS : public FGlobalShader
@@ -45,9 +45,9 @@ IMPLEMENT_SHADER_TYPE(,FForwardCopySceneAlphaPS,TEXT("TranslucentLightingShaders
 
 FGlobalBoundShaderState ForwardCopySceneAlphaBoundShaderState;
 
-void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
+void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
-	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneAlpha"));
+	SCOPED_DRAW_EVENTF(RHICmdList, EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneAlpha"));
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -61,9 +61,9 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHIC
 
 	RHICmdList.SetViewport(0, 0, 0.0f, X, Y, 1.0f);
 
-	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FForwardCopySceneAlphaPS> PixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(RHICmdList, ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+	TShaderMapRef<FForwardCopySceneAlphaPS> PixelShader(View.ShaderMap);
+	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
 	PixelShader->SetParameters(RHICmdList, View);
 
@@ -128,6 +128,7 @@ public:
 		) const
 	{
 		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
+		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
 		TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
@@ -136,11 +137,13 @@ public:
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.TextureMode,
-			View.Family->EngineShowFlags.ShaderComplexity
+			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
+			View.Family->EngineShowFlags.ShaderComplexity,
+			View.GetFeatureLevel()
 			);
 
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View);
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ContextDataType());
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
@@ -151,7 +154,8 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
-				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
+				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
+				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
 			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
@@ -177,6 +181,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 
 	// Determine the mesh's material and blend mode.
 	const auto FeatureLevel = View.GetFeatureLevel();
+	const auto ShaderPlatform = View.GetShaderPlatform();
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
@@ -242,6 +247,8 @@ FTranslucentPrimSet
 
 void FTranslucentPrimSet::DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FSceneRenderer& Renderer) const
 {
+	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+
 	// Draw sorted scene prims
 	for (int32 PrimIdx = 0; PrimIdx < SortedPrims.Num(); PrimIdx++)
 	{
@@ -249,60 +256,72 @@ void FTranslucentPrimSet::DrawPrimitivesForForwardShading(FRHICommandListImmedia
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
-		RenderPrimitiveForForwardShading(RHICmdList, View, PrimitiveSceneInfo, ViewRelevance);
-	}
-}
+		checkSlow(ViewRelevance.HasTranslucency());
 
-void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
-	FRHICommandListImmediate& RHICmdList,
-	const FViewInfo& View, 
-	FPrimitiveSceneInfo* PrimitiveSceneInfo, 
-	const FPrimitiveViewRelevance& ViewRelevance) const
-{
-	checkSlow(ViewRelevance.HasTranslucency());
-
-	if(ViewRelevance.bDrawRelevance)
-	{
-		// Render dynamic scene prim
-		if( ViewRelevance.bDynamicRelevance )
+		if(ViewRelevance.bDrawRelevance)
 		{
-			TDynamicPrimitiveDrawer<FTranslucencyForwardShadingDrawingPolicyFactory> TranslucencyDrawer(
-				RHICmdList,
-				&View,
-				FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
-				false
-				);
-
-			TranslucencyDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-			PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-				&TranslucencyDrawer,
-				&View
-				);
-		}
-
-		// Render static scene prim
-		if( ViewRelevance.bStaticRelevance )
-		{
-			// Render static meshes from static scene prim
-			for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++ )
+			if (bUseGetMeshElements)
 			{
-				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
-				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
-					// Only render static mesh elements using translucent materials
-					&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
+				FTranslucencyForwardShadingDrawingPolicyFactory::ContextType Context;
+
+				//@todo parallelrendering - come up with a better way to filter these by primitive
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 				{
-					FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
-						RHICmdList, 
-						View,
-						FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
-						StaticMesh,
-						false,
-						PrimitiveSceneInfo->Proxy,
-						StaticMesh.HitProxyId
-						);
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
+					{
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+					}
+				}
+			}
+			// Render dynamic scene prim
+			else if( ViewRelevance.bDynamicRelevance )
+			{
+				TDynamicPrimitiveDrawer<FTranslucencyForwardShadingDrawingPolicyFactory> TranslucencyDrawer(
+					RHICmdList,
+					&View,
+					FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
+					false
+					);
+
+				TranslucencyDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+					&TranslucencyDrawer,
+					&View
+					);
+			}
+
+			// Render static scene prim
+			if( ViewRelevance.bStaticRelevance )
+			{
+				// Render static meshes from static scene prim
+				for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++ )
+				{
+					FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
+					if (View.StaticMeshVisibilityMap[StaticMesh.Id]
+						// Only render static mesh elements using translucent materials
+						&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
+					{
+						FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
+							RHICmdList, 
+							View,
+							FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
+							StaticMesh,
+							false,
+							PrimitiveSceneInfo->Proxy,
+							StaticMesh.BatchHitProxyId
+							);
+					}
 				}
 			}
 		}
+	}
+
+	if (bUseGetMeshElements)
+	{
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
 	}
 }
 
@@ -313,11 +332,11 @@ void FForwardShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& 
 		const bool bGammaSpace = !IsMobileHDR();
 		const bool bLinearHDR64 = !bGammaSpace && !IsMobileHDR32bpp();
 
-		SCOPED_DRAW_EVENT(Translucency, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, Translucency, DEC_SCENE_ITEMS);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
 			const FViewInfo& View = Views[ViewIndex];
 

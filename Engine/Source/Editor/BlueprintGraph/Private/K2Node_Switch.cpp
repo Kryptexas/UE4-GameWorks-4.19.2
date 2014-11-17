@@ -6,6 +6,7 @@
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "K2Node_SwitchEnum.h"
 #include "EditorCategoryUtils.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 #define LOCTEXT_NAMESPACE "K2Node_Switch"
 
@@ -24,9 +25,8 @@ protected:
 	TMap<UEdGraphNode*, FBPTerminal*> BoolTermMap;
 
 public:
-	FKCHandler_Switch(FKismetCompilerContext& InCompilerContext, const FString& InConnectionPinType)
+	FKCHandler_Switch(FKismetCompilerContext& InCompilerContext)
 		: FNodeHandlingFunctor(InCompilerContext)
-		, ConnectionPinType(InConnectionPinType)
 	{
 	}
 
@@ -50,9 +50,12 @@ public:
 	{
 		UK2Node_Switch* SwitchNode = CastChecked<UK2Node_Switch>(Node);
 
+		FEdGraphPinType ExpectedExecPinType;
+		ExpectedExecPinType.PinCategory = UEdGraphSchema_K2::PC_Exec;
+
 		// Make sure that the input pin is connected and valid for this block
-		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(SwitchNode, CompilerContext.GetSchema()->PN_Execute, EGPD_Input);
-		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, CompilerContext.GetSchema()->PC_Exec))
+		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(SwitchNode, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
+		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedExecPinType))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, ExecTriggeringPin);
 			return;
@@ -60,7 +63,7 @@ public:
 
 		// Make sure that the selection pin is connected and valid for this block
 		UEdGraphPin* SelectionPin = SwitchNode->GetSelectionPin();
-		if ((SelectionPin == NULL) || !Context.ValidatePinType(SelectionPin, ConnectionPinType))
+		if ((SelectionPin == NULL) || !Context.ValidatePinType(SelectionPin, SwitchNode->GetPinType()))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidSelectionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, SelectionPin);
 			return;
@@ -85,13 +88,6 @@ public:
 			UFunction* FunctionPtr = FindField<UFunction>(FuncClass, *FuncPin->PinName);
 			check(FunctionPtr);
 
-			// Find the enum object for the switch node if it's an enum switch
-			UEnum* SelectionEnum = NULL;
-			if (UK2Node_SwitchEnum* SwitchNodeEnum = Cast<UK2Node_SwitchEnum>(SwitchNode))
-			{
-				SelectionEnum = SwitchNodeEnum->Enum;
-			}
-
 			// Run thru all the output pins except for the default label
 			for (auto PinIt = SwitchNode->Pins.CreateIterator(); PinIt; ++PinIt)
 			{
@@ -101,7 +97,7 @@ public:
 				{
 					// Create a term for the switch case value
 					FBPTerminal* CaseValueTerm = new (Context.Literals) FBPTerminal();
-					CaseValueTerm->Name = (SelectionEnum != NULL) ? FString::FromInt(SelectionEnum->FindEnumIndex(*(Pin->PinName))) : Pin->PinName;
+					CaseValueTerm->Name = Pin->PinName;
 					CaseValueTerm->Type = SelectionPin->PinType;
 					CaseValueTerm->Source = Pin;
 					CaseValueTerm->bIsLiteral = true;
@@ -136,7 +132,7 @@ public:
 	}
 
 private:
-	FString ConnectionPinType;
+	FEdGraphPinType ExpectedSelectionPinType;
 };
 
 UK2Node_Switch::UK2Node_Switch(const class FPostConstructInitializeProperties& PCIP)
@@ -152,16 +148,8 @@ void UK2Node_Switch::PostEditChangeProperty(struct FPropertyChangedEvent& Proper
 	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 	if (PropertyName == TEXT("bHasDefaultPin"))
 	{
-		// Disallow enabling the default pin on enums
-		if (IsA(UK2Node_SwitchEnum::StaticClass()))
-		{
-			bHasDefaultPin = false;
-		}
-		else
-		{
-			// Signal to the reconstruction logic that the default pin value has changed
-			bHasDefaultPinValueChanged = true;
-		}
+		// Signal to the reconstruction logic that the default pin value has changed
+		bHasDefaultPinValueChanged = true;
 		
 		if (!bHasDefaultPin)
 		{
@@ -323,12 +311,18 @@ UEdGraphPin* UK2Node_Switch::GetDefaultPin()
 
 FNodeHandlingFunctor* UK2Node_Switch::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
-	return new FKCHandler_Switch(CompilerContext, GetPinType(CompilerContext.GetSchema()));
+	return new FKCHandler_Switch(CompilerContext);
 }
 
 FText UK2Node_Switch::GetMenuCategory() const
 {
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::FlowControl, LOCTEXT("ActionMenuCategory", "Switch"));
+	static FNodeTextCache CachedCategory;
+	if (CachedCategory.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::FlowControl, LOCTEXT("ActionMenuCategory", "Switch"));
+	}
+	return CachedCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

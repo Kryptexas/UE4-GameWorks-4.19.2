@@ -2,11 +2,13 @@
 
 #pragma once
 
+
 /**
  * Interface class for an item in the event message list.
  * Real implementation is found in SEventMessageItemImpl
  */
-class SLATE_API SNotificationItem : public SCompoundWidget
+class SLATE_API SNotificationItem
+	: public SCompoundWidget
 {
 public:
 	enum ECompletionState
@@ -39,9 +41,10 @@ public:
 	virtual void Fadeout() = 0;
 };
 
+
 /**
-	* Setup class to initialize buttons on a notification
-	*/
+ * Setup class to initialize buttons on a notification
+ */
 struct FNotificationButtonInfo
 {
 	FNotificationButtonInfo( const FText& InText, const FText& InToolTip, FSimpleDelegate InCallback, SNotificationItem::ECompletionState VisibleInState = SNotificationItem::CS_Pending )
@@ -52,7 +55,7 @@ struct FNotificationButtonInfo
 		, VisibilityOnPending( VisibleInState == SNotificationItem::CS_Pending ? EVisibility::Visible : EVisibility::Collapsed )
 		, VisibilityOnSuccess( VisibleInState == SNotificationItem::CS_Success ? EVisibility::Visible : EVisibility::Collapsed )
 		, VisibilityOnFail( VisibleInState == SNotificationItem::CS_Fail ? EVisibility::Visible : EVisibility::Collapsed )
-	{}
+	{ }
 
 	/** Message on the button */
 	FText Text;
@@ -71,6 +74,7 @@ struct FNotificationButtonInfo
 	EVisibility VisibilityOnFail;
 };
 
+
 /**
  * Setup class to initialize a notification.
  */
@@ -84,7 +88,7 @@ struct FNotificationInfo
 	FNotificationInfo( const FText& InText )
 		: Text(InText),
 		ButtonDetails(),
-		Image(NULL),
+		Image(nullptr),
 		FadeInDuration(0.5f),
 		FadeOutDuration(2.0f),
 		ExpireDuration(1.0f),
@@ -99,8 +103,7 @@ struct FNotificationInfo
 		Hyperlink(),
 		HyperlinkText( NSLOCTEXT("EditorNotification", "DefaultHyperlinkText", "Show Log") ),
 		bAllowThrottleWhenFrameRateIsLow(true)
-	{
-	};
+	{ };
 
 	/** The text displayed in this text block */
 	FText Text;
@@ -154,33 +157,38 @@ struct FNotificationInfo
 	bool bAllowThrottleWhenFrameRateIsLow;
 };
 
+
 /**
- * A list of non-intrusive messages about the status of currently active work
+ * A list of non-intrusive messages about the status of currently active work.
  */
-class SLATE_API SNotificationList : public SCompoundWidget
+class SLATE_API SNotificationList
+	: public SCompoundWidget
 {
 	friend class SNotificationExtendable;
 	friend class FSlateNotificationManager;
 
 public:
+
 	SLATE_BEGIN_ARGS( SNotificationList ){}
 
 	SLATE_END_ARGS()
 	
 	/**
-	 * Constructs this widget
+	 * Constructs this widget.
 	 *
-	 * @param InArgs    Declaration from which to construct the widget
+	 * @param InArgs    Declaration from which to construct the widget.
 	 */
 	void Construct( const FArguments& InArgs );
 
 	/**
-	 * Adds a floating notification
-	 *@param Info 		Contains various settings used to initialize the notification
+	 * Adds a floating notification.
+	 *
+	 * @param Info 		Contains various settings used to initialize the notification.
 	 */
 	virtual TSharedRef<SNotificationItem> AddNotification(const FNotificationInfo& Info);
 
 protected:
+
 	/**
 	 * Invoked when a notification item has finished fading out. Called by the faded item.
 	 *
@@ -189,12 +197,13 @@ protected:
 	virtual void NotificationItemFadedOut (const TSharedRef<SNotificationItem>& NotificationItem);
 
 protected:
-	/** The vertical box containing the list of message items */
+
+	/** The vertical box containing the list of message items. */
 	TSharedPtr<SVerticalBox> MessageItemBoxPtr;
 
-	/** The parent window of this list */
+	/** The parent window of this list. */
 	TWeakPtr<SWindow> ParentWindowPtr;
 
-	/** Flag to auto-destroy this list */
+	/** Flag to auto-destroy this list. */
 	bool bDone;
 };

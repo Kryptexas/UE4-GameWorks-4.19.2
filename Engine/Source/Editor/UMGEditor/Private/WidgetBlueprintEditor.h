@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Editor/Kismet/Public/BlueprintEditor.h"
-
+#include "ISequencer.h"
 #include "PreviewScene.h"
 
 class ISequencer;
@@ -26,7 +26,10 @@ public:
 
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
+	/** FBlueprintEditor interface */
 	virtual void Tick(float DeltaTime) override;
+	virtual void PostUndo(bool bSuccessful) override;
+	virtual void PostRedo(bool bSuccessful) override;
 
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -37,17 +40,41 @@ public:
 	/** @return The preview widget. */
 	UUserWidget* GetPreview() const;
 
+	/** Causes the preview to be destroyed and a new one to be created next tick */
+	void InvalidatePreview();
+
+	/** Immediately rebuilds the preview widget. */
+	void RefreshPreview();
+
+	/** Creates a widget reference using the template. */
+	FWidgetReference GetReferenceFromTemplate(UWidget* TemplateWidget);
+
+	/** Creates a widget reference using the preview.  Which is used to lookup the stable template pointer. */
+	FWidgetReference GetReferenceFromPreview(UWidget* PreviewWidget);
+
 	/** @return The sequencer used to create widget animations */
 	TSharedPtr<ISequencer>& GetSequencer();
 
+	/** Changes the currently viewed animation in Sequencer to the new one*/
+	void ChangeViewedAnimation( UWidgetAnimation& InAnimationToView );
+
+	/** Updates the current animation if it is invalid */
+	const UWidgetAnimation* RefreshCurrentAnimation();
+
 	/** Sets the currently selected set of widgets */
 	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
+
+	/** Sets the currently selected set of objects */
+	void SelectObjects(const TSet<UObject*>& Objects);
 
 	/** Removes removed widgets from the selection set. */
 	void CleanSelection();
 
 	/** @return The selected set of widgets */
 	const TSet<FWidgetReference>& GetSelectedWidgets() const;
+
+	/** @return The selected set of Objects */
+	const TSet< TWeakObjectPtr<UObject> >& GetSelectedObjects() const;
 
 	/** @return Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
@@ -57,6 +84,13 @@ public:
 	/** Migrate a property change from the preview GUI to the template GUI. */
 	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
 
+	/** Event called when an undo/redo transaction occurs */
+	DECLARE_EVENT(FWidgetBlueprintEditor, FOnWidgetBlueprintTransaction)
+	FOnWidgetBlueprintTransaction& GetOnWidgetBlueprintTransaction() { return OnWidgetBlueprintTransaction; }
+
+	/** Creates a sequencer widget */
+	TSharedRef<SWidget> CreateSequencerWidget();
+
 public:
 	/** Fires whenever the selected set of widgets changing */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
@@ -65,7 +99,7 @@ public:
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
 
 	/** Command list for handling widget actions in the WidgetBlueprintEditor */
-	TSharedPtr< FUICommandList > WidgetCommandList;
+	TSharedPtr< FUICommandList > DesignerCommandList;
 
 	/** Paste Metadata */
 	FVector2D PasteDropLocation;
@@ -101,12 +135,6 @@ private:
 
 	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
-	
-	/**
-	 * Gets the default movie scene which is used when there is no 
-	 * animation data present on the widget blueprint
-	 */
-	UMovieScene* GetDefaultMovieScene();
 
 private:
 	/** The preview scene that owns the preview GUI */
@@ -114,6 +142,9 @@ private:
 
 	/** Sequencer for creating and previewing widget animations */
 	TSharedPtr<ISequencer> Sequencer;
+
+	/** Overlay used to display UI on top of sequencer */
+	TWeakPtr<SOverlay> SequencerOverlay;
 
 	/** Manager for handling bindings to sequence animations */
 	TSharedPtr<class FUMGSequencerObjectBindingManager> SequencerObjectBindingManager;
@@ -124,12 +155,24 @@ private:
 	/** The currently selected preview widgets in the preview GUI */
 	TSet<FWidgetReference> SelectedWidgets;
 
+	/** The currently selected objects in the designer */
+	TSet< TWeakObjectPtr<UObject> > SelectedObjects;
+
 	/** The preview GUI object */
-	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
+	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetPtr;
 
 	/** Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
 
+	/** Delegate called when a undo/redo transaction happens */
+	FOnWidgetBlueprintTransaction OnWidgetBlueprintTransaction;
+
 	/** The toolbar builder associated with this editor */
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> WidgetToolbar;
+
+	/** The widget references out in the ether that may need to be updated after being issued. */
+	TArray< TWeakPtr<FWidgetHandle> > WidgetHandlePool;
+
+	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
+	bool bPreviewInvalidated;
 };

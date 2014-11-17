@@ -2,10 +2,36 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintNodeTemplateCache.h"
+
+/*******************************************************************************
+ * Static UBlueprintNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace BlueprintNodeSpawnerImpl
+{
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	FBlueprintNodeTemplateCache* GetSharedTemplateCache(bool const bNoInit = false);
+}
+
+//------------------------------------------------------------------------------
+FBlueprintNodeTemplateCache* BlueprintNodeSpawnerImpl::GetSharedTemplateCache(bool const bNoInit)
+{
+	static FBlueprintNodeTemplateCache* NodeTemplateManager = nullptr;
+	if (!bNoInit && (NodeTemplateManager == nullptr))
+	{
+		NodeTemplateManager = new FBlueprintNodeTemplateCache();
+	}
+	return NodeTemplateManager;
+}
 
 /*******************************************************************************
  * UBlueprintNodeSpawner
-*******************************************************************************/
+ ******************************************************************************/
 
 //------------------------------------------------------------------------------
 UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> const NodeClass, UObject* Outer/* = nullptr*/, FCustomizeNodeDelegate CustomizeNodeDelegate/* = FCustomizeNodeDelegate()*/)
@@ -28,37 +54,76 @@ UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> c
 //------------------------------------------------------------------------------
 UBlueprintNodeSpawner::UBlueprintNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
 	: Super(PCIP)
-	, CachedNodeTemplate(nullptr)
 {
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UBlueprintNodeSpawner::~UBlueprintNodeSpawner()
 {
-	UEdGraphNode* NewNode = nullptr;	
-	if (NodeClass != nullptr)
+	// @TODO: What if, on shutdown, the "SharedTemplateCache" is destroyed 
+	//        first? Then we'd be working with a bad pointer here
+	if (FBlueprintNodeTemplateCache* TemplateCache = BlueprintNodeSpawnerImpl::GetSharedTemplateCache(/*bNoInit =*/true))
 	{
-		NewNode = NewObject<UEdGraphNode>(ParentGraph, NodeClass);
-		check(NewNode != nullptr);
+		TemplateCache->ClearCachedTemplate(this);
+	}
+}
 
-		bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);		
-		if (CustomizeNodeDelegate.IsBound())
+//------------------------------------------------------------------------------
+void UBlueprintNodeSpawner::Prime()
+{
+	if (UEdGraphNode* CachedTemplateNode = GetTemplateNode())
+	{
+		// since we're priming incrementally, someone could have already
+		// requested this template, and allocated its pins (don't need to do 
+		// redundant work)
+		if (CachedTemplateNode->Pins.Num() == 0)
 		{
-			CustomizeNodeDelegate.Execute(NewNode, bIsTemplateNode);
+			// in certain scenarios we need pin information from the 
+			// spawner (to help filter by pin context)
+			CachedTemplateNode->AllocateDefaultPins();
 		}
 
-		if (!bIsTemplateNode)
+		//
+		// let the node cache any FText::Format() operations that may be used...
+		if (UK2Node* K2NodeTemplate = Cast<UK2Node>(CachedTemplateNode))
 		{
-			NewNode->SetFlags(RF_Transactional);
-			NewNode->AllocateDefaultPins();
+			K2NodeTemplate->GetMenuCategory();
 		}
+		CachedTemplateNode->GetTooltipText();
+		CachedTemplateNode->GetNodeTitle(ENodeTitleType::MenuTitle);
 	}
 
-	return NewNode;
+	// in case any of these cache FText::Format() operations
+	FBindingSet EmptyContext;
+	GetDefaultMenuName(EmptyContext);
+	GetDefaultMenuCategory();
+	GetDefaultMenuTooltip();
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultMenuName() const
+FBlueprintNodeSignature UBlueprintNodeSpawner::GetSpawnerSignature() const
+{
+	FBlueprintNodeSignature SpawnerSignature;
+	if (UK2Node const* NodeTemplate = Cast<UK2Node>(GetTemplateNode()))
+	{
+		SpawnerSignature = NodeTemplate->GetSignature();
+	}
+
+	if (!SpawnerSignature.IsValid())
+	{
+		SpawnerSignature.SetNodeClass(NodeClass);
+	}
+	return SpawnerSignature;
+}
+
+//------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
+{
+	return Invoke(ParentGraph, Bindings, Location, CustomizeNodeDelegate);
+}
+
+//------------------------------------------------------------------------------
+FText UBlueprintNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {
 	// DO NOT make a template node and query it here (the separate ui building
 	// code can do that if it likes)... this is meant to be an overridable
@@ -85,16 +150,16 @@ FText UBlueprintNodeSpawner::GetDefaultMenuTooltip() const
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
+FString UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
 {
 	// DO NOT make a template node and query it here (the separate ui building
 	// code can do that if it likes)... this is meant to be an overridable
 	// alternative to that (for perf reasons)
-	return FText::GetEmpty();
+	return FString();
 }
 
 //------------------------------------------------------------------------------
-FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
+FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
 {
 	ColorOut = FLinearColor::White;
 	// DO NOT make a template node and query it here (the separate ui building
@@ -104,24 +169,52 @@ FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintNodeSpawner::MakeTemplateNode(UEdGraph* Outer) const
+UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(UEdGraph* Outer, FBindingSet const& Bindings) const 
+{       
+	UEdGraphNode* TemplateNode = BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, Outer);
+
+	if (TemplateNode && Bindings.Num() > 0) 
+	{ 
+		UEdGraphNode* BoundTemplateNode = DuplicateObject(TemplateNode, TemplateNode->GetOuter()); 
+		ApplyBindings(BoundTemplateNode, Bindings); 
+		return BoundTemplateNode; 
+	} 
+	return TemplateNode; 
+}
+
+//------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintNodeSpawner::GetTemplateNode(ENoInit) const
 {
-	check(Outer != nullptr);
-	check(Outer->HasAnyFlags(RF_Transient));
-	
-	// @TODO: Do we need to respawn when the outers don't match? If not, this'll
-	//        save time for subsequent menu generation... if the old outer gets
-	//        destroyed then CachedNodeTemplate should be nulled (so we should
-	//        be covered on that front)... maybe we should just check the
-	//        graph's class type (and graph type)
-	if (CachedNodeTemplate == nullptr)// || (CachedNodeTemplate->GetOuter() != Outer))
+	return BlueprintNodeSpawnerImpl::GetSharedTemplateCache()->GetNodeTemplate(this, NoInit);
+}
+
+//------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location, FCustomizeNodeDelegate PostSpawnDelegate) const
+{
+	UEdGraphNode* NewNode = nullptr;
+	if (NodeClass != nullptr)
 	{
-		CachedNodeTemplate = Invoke(Outer);
-		if (CachedNodeTemplate != nullptr)
+		NewNode = NewObject<UEdGraphNode>(ParentGraph, NodeClass);
+		check(NewNode != nullptr);
+		NewNode->CreateNewGuid();
+
+		// position the node before invoking PostSpawnDelegate (in case it 
+		// wishes to modify this positioning)
+		NewNode->NodePosX = Location.X;
+		NewNode->NodePosY = Location.Y;
+
+		bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
+		PostSpawnDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+
+		if (!bIsTemplateNode)
 		{
-			CachedNodeTemplate->SetFlags(RF_Transient | RF_ArchetypeObject);
+			NewNode->SetFlags(RF_Transactional);
+			NewNode->AllocateDefaultPins();
+			NewNode->PostPlacedNewNode();
 		}
+
+		ApplyBindings(NewNode, Bindings);
 	}
-	
-	return CachedNodeTemplate;
+
+	return NewNode;
 }

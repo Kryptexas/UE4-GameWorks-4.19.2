@@ -5,6 +5,7 @@
 #define __SSkeletonWidget_h__
 
 #include "Slate.h"
+#include "PreviewScene.h"
 
 class UAnimSet;
 
@@ -249,11 +250,50 @@ private:
 };
 
 
+//////////////////////////
+class SBasePoseViewport: public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SBasePoseViewport)
+	{}
+
+	SLATE_ARGUMENT(FString, Title)
+	SLATE_ARGUMENT(USkeleton*, Skeleton)
+SLATE_END_ARGS()
+
+public:
+	SBasePoseViewport();
+	virtual ~SBasePoseViewport();
+
+	void Construct(const FArguments& InArgs);
+	void SetSkeleton(USkeleton * Skeleton);
+private:
+	TSharedPtr<FEditorViewportClient> LevelViewportClient;
+
+	/** Slate viewport for rendering and I/O */
+	TSharedPtr<SViewport> ViewportWidget;
+
+	TSharedPtr<class FSceneViewport> SceneViewport;
+
+	/** Skeleton */
+	USkeleton* TargetSkeleton;
+
+	FPreviewScene PreviewScene;
+
+	class UDebugSkelMeshComponent* PreviewComponent;
+
+	bool IsVisible() const;
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+};
 
 /////////////////////////////////////////////
 /** 
  * Slate panel for choose Skeleton for assets to relink
  */
+
+DECLARE_DELEGATE_FourParams(FOnRetargetAnimation, USkeleton* /*OldSkeleton*/, USkeleton* /*NewSkeleton*/, bool /*bRemapReferencedAssets*/, bool /*bConvertSpaces*/)
+
 class SAnimationRemapSkeleton : public SCompoundWidget
 {
 public:
@@ -270,7 +310,9 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
 		SLATE_ARGUMENT( FText, WarningMessage )
 		SLATE_ARGUMENT( bool, ShowRemapOption )
-
+		SLATE_ARGUMENT( bool, ShowConvertSpacesOption )
+		SLATE_ARGUMENT( bool, ShowCompatibleDisplayOption )
+		SLATE_EVENT(FOnRetargetAnimation, OnRetargetDelegate)
 	SLATE_END_ARGS()	
 
 	/**
@@ -290,16 +332,46 @@ public:
 	 */
 	USkeleton *NewSkeleton;
 
+private:
 	/**
 	 * Whether we are remapping assets that are referenced by the assets the user selects to remap
 	 */
 	bool bRemapReferencedAssets;
 
+	/**
+	 * Whether we are remapping assets that are referenced by the assets the user selects to remap
+	 */
+	bool bConvertSpaces;
+
+	/**
+	 * Whether to show skeletons with the same rig set up
+	*/
+	bool bShowOnlyCompatibleSkeletons;
+
+	TSharedPtr<SBasePoseViewport> SourceViewport;
+	TSharedPtr<SBasePoseViewport> TargetViewport;
+
+	TSharedPtr<SBox> AssetPickerBox;
+
 	TWeakPtr<SWindow> WidgetWindow;
+
+	FOnRetargetAnimation OnRetargetAnimationDelegate;
 
 	/** Handlers for check box for remapping assets option */
 	ESlateCheckBoxState::Type IsRemappingReferencedAssets() const;
 	void OnRemappingReferencedAssetsChanged(ESlateCheckBoxState::Type InNewRadioState);
+
+	/** Handlers for check box for converting spaces*/
+	ESlateCheckBoxState::Type IsConvertSpacesChecked() const;
+	void OnConvertSpacesCheckChanged(ESlateCheckBoxState::Type InNewRadioState);
+
+	/** Handlers for check box for converting spaces*/
+	ESlateCheckBoxState::Type IsShowOnlyCompatibleSkeletonsChecked() const;
+	bool IsShowOnlyCompatibleSkeletonsEnabled() const;
+	void OnShowOnlyCompatibleSkeletonsCheckChanged(ESlateCheckBoxState::Type InNewRadioState);
+
+	/** should filter asset */
+	bool OnShouldFilterAsset(const class FAssetData& AssetData);
 
 	/**
 	 * return true if it can apply 
@@ -316,15 +388,20 @@ public:
 	 */
 	void OnAssetSelectedFromPicker(const FAssetData& AssetData);
 
+	/*
+	* Refreshes asset picker - call when asset picker option changes
+	*/
+	void UpdateAssetPicker();
+public:
+
 	/**
-	 *  Show Modal window
+	 *  Show window
 	 *
 	 * @param OldSkeleton		Old Skeleton to change from
-	 * @param NewSkeleton(out)	New Selected Skeleton
 	 *
 	 * @return true if successfully selected new skeleton
 	 */
-	static UNREALED_API bool ShowModal(USkeleton * OldSkeleton, USkeleton * & NewSkeleton, const FText& WarningMessage, bool * bRemapReferencedAssets=NULL);
+	static UNREALED_API void ShowWindow(USkeleton * OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate);
 };
 
 ////////////////////////////////////////////////////

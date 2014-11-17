@@ -44,12 +44,6 @@ struct FLocalKismetCallbacks
 		FAssetEditorManager::Get().CloseAllAssetEditors();
 		GEngine->DeferredCommands.Add( TEXT( "Module Recompile Persona" ) );
 	}
-
-	static bool CanRecompileModules()
-	{
-		// We're not able to recompile if a compile is already in progress!
-		return !FModuleManager::Get().IsCurrentlyCompiling();
-	}
 };
 
 /////////////////////////////////////////////////////
@@ -121,8 +115,8 @@ public:
 	 */
 	FGraphTabHistory(TSharedPtr<FDocumentTabFactory> InFactory, TSharedPtr<FTabPayload> InPayload)
 		: FGenericTabHistory(InFactory, InPayload)
-		, SavedZoomAmount(INDEX_NONE)
 		, SavedLocation(FVector2D::ZeroVector)
+		, SavedZoomAmount(INDEX_NONE)
 	{
 
 	}

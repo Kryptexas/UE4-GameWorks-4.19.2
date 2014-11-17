@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateIcon.h: Declares the FSlateIcon structure.
-=============================================================================*/
-
 #pragma once
 
+
 struct FSlateBrush;
+
 
 /**
  * Struct used to represent an icon in Slate
@@ -41,7 +39,6 @@ public:
 	 * Gets the resolved icon.
 	 *
 	 * @return Icon brush, or FStyleDefaults::GetNoBrush() if the icon wasn't found.
-	 *
 	 * @see GetSmallIcon
 	 */
 	const FSlateBrush* GetIcon( ) const;
@@ -50,7 +47,6 @@ public:
 	 * Gets the resolved small icon.
 	 *
 	 * @return Icon brush, or FStyleDefaults::GetNoBrush() if the icon wasn't found.
-	 *
 	 * @see GetIcon
 	 */
 	const FSlateBrush* GetSmallIcon( ) const;
@@ -59,10 +55,7 @@ public:
 	 * Gets the name of the style for the icon.
 	 *
 	 * @return Style name.
-	 *
-	 * @see GetStyleName
-	 * @see GetStyleSet
-	 * @see GetStyleSetName
+	 * @see GetStyleName, GetStyleSet, GetStyleSetName
 	 */
 	const FName& GetSmallStyleName( ) const
 	{
@@ -73,10 +66,7 @@ public:
 	 * Gets the name of the style for the icon.
 	 *
 	 * @return Style name.
-	 *
-	 * @see GetSmallStyleName
-	 * @see GetStyleSet
-	 * @see GetStyleSetName
+	 * @see GetSmallStyleName, GetStyleSet, GetStyleSetName
 	 */
 	const FName& GetStyleName( ) const
 	{
@@ -87,10 +77,7 @@ public:
 	 * Gets the resolved style set.
 	 *
 	 * @return Style set, or nullptr if the style set wasn't found.
-	 *
-	 * @see GetSmallStyleName
-	 * @see GetStyleName
-	 * @see GetStyleSetName
+	 * @see GetSmallStyleName, GetStyleName, GetStyleSetName
 	 */
 	const class ISlateStyle* GetStyleSet( ) const;
 
@@ -98,10 +85,7 @@ public:
 	 * Gets the name of the style set the icon can be found in.
 	 *
 	 * @return Style name.
-	 *
-	 * @see GetSmallStyleName
-	 * @see GetStyleName
-	 * @see GetStyleSet
+	 * @see GetSmallStyleName, GetStyleName, GetStyleSet
 	 */
 	const FName& GetStyleSetName( ) const
 	{

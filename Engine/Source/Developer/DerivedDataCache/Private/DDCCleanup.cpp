@@ -158,10 +158,10 @@ bool FDDCCleanup::CleanupFilesystemDirectory( TSharedPtr< FFilesystemInfo > File
 				}
 			}
 
-			if( ++NumFilesChecked > FilesystemInfo->MaxContinuousFileChecks && FilesystemInfo->MaxContinuousFileChecks > 0 && ShouldStop() == false )
+			if( ++NumFilesChecked >= FilesystemInfo->MaxContinuousFileChecks && FilesystemInfo->MaxContinuousFileChecks > 0 && ShouldStop() == false )
 			{
 				NumFilesChecked = 0;
-				Wait( 2.0f );
+				Wait( 1.0f );
 			}
 			else
 			{

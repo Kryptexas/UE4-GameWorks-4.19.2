@@ -6,6 +6,8 @@
 #include "Particles/EmitterCameraLensEffectBase.h"
 #include "IHeadMountedDisplay.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
+#include "Camera/CameraActor.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
 
@@ -24,12 +26,12 @@ APlayerCameraManager::APlayerCameraManager(const class FPostConstructInitializeP
 	bReplicates = false;
 	FreeCamDistance = 256.0f;
 	bDebugClientSideCamera = false;
-	ViewPitchMin = -89.9f;
-	ViewPitchMax = 89.9f;
+	ViewPitchMin = -89.99f;
+	ViewPitchMax = 89.99f;
 	ViewYawMin = 0.f;
 	ViewYawMax = 359.999f;
-	ViewRollMin = -89.9f;
-	ViewRollMax = 89.9f;
+	ViewRollMin = -89.99f;
+	ViewRollMax = 89.99f;
 	CameraShakeCamModClass = UCameraModifier_CameraShake::StaticClass();
 	bUseClientSideCameraUpdates = true;
 	CameraStyle = NAME_Default;
@@ -277,7 +279,7 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 
 	// move animated cam actor to initial-relative position
 	FTransform const AnimatedCamToWorld = AnimatedCamActor->GetTransform();
-	FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.InverseSafe();
+	FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.Inverse();
 	ACameraActor* const MutableCamActor = const_cast<ACameraActor*>(AnimatedCamActor);
 	MutableCamActor->SetActorTransform(AnimatedCamToInitialCam);		// set it back because that's what the code below expects
 
@@ -306,11 +308,11 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 
 		// rot
 		// find transform from camera to the "play space"
-		FMatrix const CameraToPlaySpace = CameraToWorld * PlaySpaceToWorld.InverseSafe();	// CameraToWorld * WorldToPlaySpace
+		FMatrix const CameraToPlaySpace = CameraToWorld * PlaySpaceToWorld.Inverse();	// CameraToWorld * WorldToPlaySpace
 
 		// find transform from anim (applied in playspace) back to camera
 		FRotationMatrix const AnimToPlaySpace(AnimatedCamActor->GetActorRotation()*Scale);
-		FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.InverseSafe();			// AnimToPlaySpace * PlaySpaceToCamera
+		FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.Inverse();			// AnimToPlaySpace * PlaySpaceToCamera
 
 		// RCS = rotated camera space, meaning camera space after it's been animated
 		// this is what we're looking for, the diff between rotated cam space and regular cam space.
@@ -527,14 +529,14 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 			{
 				Rotator = PCOwner->GetControlRotation();
 			}
-			Loc += FRotationMatrix(Rotator).TransformVector(FreeCamOffset);
 
-			FVector Pos = Loc - Rotator.Vector() * FreeCamDistance;
+			FVector Pos = Loc + FRotationMatrix(Rotator).TransformVector(FreeCamOffset) - Rotator.Vector() * FreeCamDistance;
 			FCollisionQueryParams BoxParams(NAME_FreeCam, false, this);
+			BoxParams.AddIgnoredActor(OutVT.Target);
 			FHitResult Result;
 
 			GetWorld()->SweepSingle(Result, Loc, Pos, FQuat::Identity, ECC_Camera, FCollisionShape::MakeBox(FVector(12.f)), BoxParams);
-			OutVT.POV.Location = (Result.GetActor() == NULL) ? Pos : Result.Location;
+			OutVT.POV.Location = !Result.bBlockingHit ? Pos : Result.Location;
 			OutVT.POV.Rotation = Rotator;
 
 			// don't apply modifiers when using this debug camera mode
@@ -570,6 +572,20 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 
 	// Synchronize the actor with the view target results
 	SetActorLocationAndRotation(OutVT.POV.Location, OutVT.POV.Rotation, false);
+
+	UpdateCameraLensEffects(OutVT);
+}
+
+
+void APlayerCameraManager::UpdateCameraLensEffects(const FTViewTarget& OutVT)
+{
+	for (int32 Idx=0; Idx<CameraLensEffects.Num(); ++Idx)
+	{
+		if (CameraLensEffects[Idx] != NULL)
+		{
+			CameraLensEffects[Idx]->UpdateLocation(OutVT.POV.Location, OutVT.POV.Rotation, OutVT.POV.FOV);
+		}
+	}
 }
 
 
@@ -932,7 +948,7 @@ void APlayerCameraManager::DisplayDebug(class UCanvas* Canvas, const FDebugDispl
 	Canvas->SetDrawColor(255,255,255);
 
 	UFont* RenderFont = GEngine->GetSmallFont();
-	Canvas->DrawText(RenderFont, FString::Printf(TEXT("	Camera Style:%s main ViewTarget:%s"), *CameraStyle.ToString(), *ViewTarget.Target->GetName()), 4.0f, YPos );
+	Canvas->DrawText(RenderFont, FString::Printf(TEXT("   Camera Style:%s main ViewTarget:%s"), *CameraStyle.ToString(), *ViewTarget.Target->GetName()), 4.0f, YPos );
 	YPos += YL;
 
 	//@TODO: Print out more information

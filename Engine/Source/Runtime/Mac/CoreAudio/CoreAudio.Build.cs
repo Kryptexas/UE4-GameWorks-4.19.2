@@ -23,5 +23,7 @@ public class CoreAudio : ModuleRules
 			);
 
 		PublicFrameworks.AddRange(new string[] { "CoreAudio", "AudioToolbox", "AudioUnit" });
+
+		AdditionalBundleResources.Add(new UEBuildBundleResource("ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component"));
 	}
 }

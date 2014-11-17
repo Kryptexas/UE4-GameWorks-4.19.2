@@ -8,6 +8,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "KismetNodeInfoContext.h"
 #include "IDocumentation.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNodeK2Base"
 
@@ -39,10 +40,14 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	LeftNodeBox.Reset();
 
  	TSharedPtr< SToolTip > NodeToolTip = SNew( SToolTip );
-	if ( !GraphNode->GetTooltip().IsEmpty() )
+	if (!GraphNode->GetTooltipText().IsEmpty())
 	{
 		NodeToolTip = IDocumentation::Get()->CreateToolTip( TAttribute< FText >( this, &SGraphNode::GetNodeTooltip ), NULL, GraphNode->GetDocumentationLink(), GraphNode->GetDocumentationExcerptName() );
 	}
+
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
+	PopulateMetaTag(&TagMeta);
 
 	//
 	//             ______________________
@@ -70,7 +75,9 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			// NODE CONTENT AREA
 			SNew(SOverlay)
 			.ToolTip( NodeToolTip.ToSharedRef() )
+			.AddMetaData<FGraphNodeMetaData>(TagMeta)
 			+SOverlay::Slot()
+			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush("Graph.CompactNode.Body") )
@@ -78,6 +85,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
+			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
 				// MIDDLE
 				SNew(STextBlock)
@@ -113,14 +121,20 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	CreatePinWidgets();
 
 	// Hide pin labels
-	for (int32 PinIndex=0; PinIndex < this->InputPins.Num(); ++PinIndex)
+	for (auto InputPin: this->InputPins)
 	{
-		InputPins[PinIndex]->SetShowLabel(false);
+		if (InputPin->GetPinObj()->ParentPin == nullptr)
+		{
+			InputPin->SetShowLabel(false);
+		}
 	}
 
-	for (int32 PinIndex = 0; PinIndex < this->OutputPins.Num(); ++PinIndex)
+	for (auto OutputPin : this->OutputPins)
 	{
-		OutputPins[PinIndex]->SetShowLabel(false);
+		if (OutputPin->GetPinObj()->ParentPin == nullptr)
+		{
+			OutputPin->SetShowLabel(false);
+		}
 	}
 
 	CreateInputSideAddButton(LeftNodeBox);
@@ -185,7 +199,7 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 		+SVerticalBox::Slot()
 			.AutoHeight()
 		[
-			DefaultToolTip->GetContent()
+			DefaultToolTip->GetContentWidget()
 		]
 	];
 
@@ -421,7 +435,7 @@ void SGraphNodeK2Base::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGrap
 						PinnedWatchText += TEXT("\n");
 					}
 
-					FString PinName = UEdGraphSchema_K2::TypeToString(WatchPin->PinType);
+					FString PinName = UEdGraphSchema_K2::TypeToText(WatchPin->PinType).ToString();
 					PinName += TEXT(" ");
 					PinName += Schema->GetPinDisplayName(WatchPin);
 
@@ -509,5 +523,7 @@ void SGraphNodeK2Base::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<
 	const float Height = 0.0f;
 	PositionThisNodeBetweenOtherNodes(NodeToWidgetLookup, PrevNodes, NextNodes, Height);
 }
+
+
 
 #undef LOCTEXT_NAMESPACE

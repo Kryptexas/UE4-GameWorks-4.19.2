@@ -4,6 +4,9 @@
 
 UFbxAssetImportData::UFbxAssetImportData(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, ImportTranslation(0)
+	, ImportRotation(0)
+	, ImportUniformScale(1.0f)
 {
 	
 }

@@ -98,7 +98,7 @@ bool UTrueTypeFontFactory::ConfigureProperties()
 			SetupFontImportOptions();
 		}
 
-		EFontImportFlags::Type FontFlags;
+		EFontImportFlags FontFlags;
 		bFontSelected = DesktopPlatform->OpenFontDialog(
 			ParentWindowWindowHandle,
 			ImportOptions->Data.FontName,
@@ -108,15 +108,15 @@ bool UTrueTypeFontFactory::ConfigureProperties()
 
 		if ( bFontSelected )
 		{
-			if( FontFlags & EFontImportFlags::EnableUnderline )
+			if( !!(FontFlags & EFontImportFlags::EnableUnderline) )
 			{
 				ImportOptions->Data.bEnableUnderline = true;
 			}
-			if( FontFlags & EFontImportFlags::EnableItalic )
+			if( !!(FontFlags & EFontImportFlags::EnableItalic) )
 			{
 				ImportOptions->Data.bEnableItalic = true;
 			}
-			if( FontFlags & EFontImportFlags::EnableBold )
+			if( !!(FontFlags & EFontImportFlags::EnableBold) )
 			{
 				ImportOptions->Data.bEnableBold = true;
 			}
@@ -1190,7 +1190,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 			// like TrueType and OpenType; it won't work for raster fonts!
 			bool bUsingGlyphOutlines = false;
 			GLYPHMETRICS WinGlyphMetrics;
-			const MAT2 WinIdentityMatrix2x2 = { 0,1, 0,0, 0,0, 0,1 };
+			const MAT2 WinIdentityMatrix2x2 = { { 0, 1 }, { 0, 0 }, { 0, 0 }, { 0, 1 } };
 			int32 VerticalOffset = 0;
 			uint32 GGODataSize = 0;
 			if( !ImportOptions->Data.bEnableLegacyMode && ImportOptions->Data.bEnableAntialiasing )    // We only bother using GetGlyphOutline for AntiAliased fonts!

@@ -2,13 +2,14 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "Kismet/KismetStringLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "GraphEditor.h"
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "SKismetInspector.h"
 #include "SKismetLinearExpression.h"
-#include "STutorialWrapper.h"
 
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 
@@ -36,7 +37,6 @@ public:
 TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
 	TSharedRef< SVerticalBox > ContextualEditingWidget = SNew( SVerticalBox );
-	TSharedPtr<SMyBlueprint> MyBlueprintWidget = Kismet2Ptr.Pin()->GetMyBlueprintWidget();
 
 	if(bShowTitleArea)
 	{
@@ -210,7 +210,7 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	PropertyView->SetIsPropertyEditingEnabledDelegate(InArgs._IsPropertyEditingEnabledDelegate);
 	PropertyView->OnFinishedChangingProperties().Add( InArgs._OnFinishedChangingProperties );
 	
-	if (Kismet2->IsEditingSingleBlueprint())
+	if (Kismet2.IsValid() && Kismet2->IsEditingSingleBlueprint())
 	{
 		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDelegateActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
 		PropertyView->RegisterInstancedCustomPropertyLayout(UMulticastDelegateProperty::StaticClass(), LayoutDelegateDetails);
@@ -232,6 +232,9 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 		FOnGetDetailCustomizationInstance LayoutFormatTextDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FFormatTextDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_FormatText::StaticClass(), LayoutFormatTextDetails);
 
+		FOnGetDetailCustomizationInstance LayoutDocumentationDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDocumentationDetails::MakeInstance, Kismet2Ptr);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode_Documentation::StaticClass(), LayoutDocumentationDetails);
+
 		FOnGetDetailCustomizationInstance GraphNodeDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphNodeDetails::MakeInstance, Kismet2Ptr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode::StaticClass(), GraphNodeDetails);
 
@@ -242,17 +245,14 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	// Create the border that all of the content will get stuffed into
 	ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("BlueprintInspector") )
+		SNew(SVerticalBox)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("BlueprintInspector")))
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
 		[
-			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			[
-				SAssignNew( ContextualEditingBorderWidget, SBorder )
-				.Padding(0)
-				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-			]
+			SAssignNew( ContextualEditingBorderWidget, SBorder )
+			.Padding(0)
+			.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		]
 	];
 

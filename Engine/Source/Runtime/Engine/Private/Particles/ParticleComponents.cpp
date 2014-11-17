@@ -277,11 +277,9 @@ void AEmitter::CheckForErrors()
 	{
 		if ( !ParticleSystemComponent.IsValid() )
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("EmitterName"), FText::FromString(GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_ParticleSystemComponentNull", "{EmitterName} : Emitter actor has NULL ParticleSystemComponent property - please delete" ), Arguments ) ))
+				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_ParticleSystemComponentNull", "Emitter actor has NULL ParticleSystemComponent property - please delete")))
 				->AddToken(FMapErrorToken::Create(FMapErrors::ParticleSystemComponentNull));
 		}
 	}
@@ -469,31 +467,6 @@ bool AEmitter::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 	return true;
 }
 #endif
-
-
-
-//----------------------------------------------------------------------------
-
-/**
- * Try to find a level color for the specified particle system component.
- */
-static FColor* GetLevelColor(UParticleSystemComponent* Component)
-{
-	FColor* LevelColor = NULL;
-
-	AActor* Owner = Component->GetOwner();
-	if ( Owner )
-	{
-		ULevel* Level = Owner->GetLevel();
-		ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
-		if ( LevelStreaming )
-		{
-			LevelColor = &LevelStreaming->DrawColor;
-		}
-	}
-
-	return LevelColor;
-}
 
 /*-----------------------------------------------------------------------------
 	UParticleLODLevel implementation.
@@ -824,7 +797,7 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 
 void UParticleLODLevel::ConvertToSpawnModule()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Move the required module SpawnRate and Burst information to a new SpawnModule.
 	if (SpawnModule)
 	{
@@ -858,7 +831,7 @@ void UParticleLODLevel::ConvertToSpawnModule()
 	}
 
 	MarkPackageDirty();
-#endif	//#if WITH_EDITORONLY_DATA
+#endif	//#if WITH_EDITOR
 }
 
 
@@ -2935,6 +2908,7 @@ UParticleSystemComponent::UParticleSystemComponent(const class FPostConstructIni
 	bIsViewRelevanceDirty = true;
 	CustomTimeDilation = 1.0f;
 	bAllowConcurrentTick = true;
+	bWasActive = false;
 #if WITH_EDITORONLY_DATA
 	EditorDetailMode = -1;
 #endif // WITH_EDITORONLY_DATA
@@ -3059,21 +3033,22 @@ SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 }
 
 
-bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent)
+bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams& ObjectParams)
 {
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	check(GetWorld());
 	static FName NAME_ParticleCollision = FName(TEXT("ParticleCollision"));
+
 	if ( HalfExtent.IsZero() )
 	{
-		return GetWorld()->LineTraceSingle(Hit, Start, End, FCollisionQueryParams(NAME_ParticleCollision, true, SourceActor), FCollisionObjectQueryParams(ECC_WorldStatic));
+		return GetWorld()->LineTraceSingle(Hit, Start, End, FCollisionQueryParams(NAME_ParticleCollision, true, SourceActor), ObjectParams);
 	}
 	else
 	{
 		FCollisionQueryParams BoxParams(false);
 		BoxParams.TraceTag = NAME_ParticleCollision;
 		BoxParams.AddIgnoredActor(SourceActor);
-		return GetWorld()->SweepSingle(Hit, Start, End, FQuat::Identity, FCollisionShape::MakeBox(HalfExtent), BoxParams, FCollisionObjectQueryParams(ECC_WorldStatic));
+		return GetWorld()->SweepSingle(Hit, Start, End, FQuat::Identity, FCollisionShape::MakeBox(HalfExtent), BoxParams, ObjectParams);
 	}
 }
 
@@ -3089,6 +3064,12 @@ void UParticleSystemComponent::OnRegister()
 	}
 
 	Super::OnRegister();
+
+	// If we were active before but are not now, activate us
+	if (bWasActive && !bIsActive)
+	{
+		Activate(true);
+	}
 
 	UE_LOG(LogParticles,Verbose,
 		TEXT("OnRegister %s Component=0x%p Scene=0x%p FXSystem=0x%p"),
@@ -3107,6 +3088,8 @@ void UParticleSystemComponent::OnUnregister()
 	UE_LOG(LogParticles,Verbose,
 		TEXT("OnUnregister %s Component=0x%p Scene=0x%p FXSystem=0x%p"),
 		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, World->Scene, FXSystem);
+
+	bWasActive = bIsActive;
 
 	ResetParticles(true);
 	FXSystem = NULL;
@@ -3914,18 +3897,24 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	else
 	{
 		// set up async task and the game thread task to finalize the results.
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.AsyncParticleTick"),
+			STAT_FSimpleDelegateGraphTask_AsyncParticleTick,
+			STATGROUP_TaskGraphTasks);
+
 		AsyncWork = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::ComputeTickComponent_Concurrent)
-			, TEXT("AsyncParticleTick")
-			, NULL
-			, ENamedThreads::AnyThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::ComputeTickComponent_Concurrent),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_AsyncParticleTick), NULL, ENamedThreads::AnyThread
+		);
+
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.FinalizeParticleTick"),
+			STAT_FSimpleDelegateGraphTask_FinalizeParticleTick,
+			STATGROUP_TaskGraphTasks);
+
 		FGraphEventRef Finalize = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::FinalizeTickComponent)
-			, TEXT("FinalizeParticleTick")
-			, AsyncWork
-			, ENamedThreads::GameThread
-			);
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UParticleSystemComponent::FinalizeTickComponent),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_FinalizeParticleTick), AsyncWork, ENamedThreads::GameThread
+		);
+
 		ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(Finalize);
 	}
 }
@@ -4391,7 +4380,7 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		bool bIsTemplate = IsTemplate();
 		bWasCompleted = false;
 		// remember if we were active and therefore should restart after setting up the new template
-		bool bWasActive = bIsActive && !bWasDeactivated; 
+		bWasActive = bIsActive && !bWasDeactivated; 
 		bool bResetInstances = false;
 		if (NewTemplate != Template)
 		{
@@ -4484,21 +4473,6 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
-		// Force an LOD update
-		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
-		{
-			FVector EffectPosition = GetComponentLocation();
-			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
-			if (DesiredLODLevel != LODLevel)
-			{
-				SetLODLevel(DesiredLODLevel);
-			}
-		}
-		else
-		{
-			bForceLODUpdateFromRenderer = true;
-		}
-
 		if (bFlagAsJustAttached)
 		{
 			bJustRegistered = true;
@@ -4512,6 +4486,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		bWasCompleted = false;
 		bWasDeactivated = false;
 		bIsActive = true;
+		bWasActive = false; // Set to false now, it may get set to true when it's deactivated due to unregister
 		SetComponentTickEnabled(true);
 
 		// if no instances, or recycling
@@ -4531,6 +4506,23 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				}
 			}
 		}
+
+
+		// Force an LOD update
+		if ((bIsGameWorld || (GIsEditor && GEngine->bEnableEditorPSysRealtimeLOD)) && (GbEnableGameThreadLODCalculation == true))
+		{
+			FVector EffectPosition = GetComponentLocation();
+			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
+			if (DesiredLODLevel != LODLevel)
+			{
+				SetLODLevel(DesiredLODLevel);
+			}
+		}
+		else
+		{
+			bForceLODUpdateFromRenderer = true;
+		}
+
 
 		// Flag the system as having been activated at least once
 		bHasBeenActivated = true;
@@ -5050,7 +5042,8 @@ void UParticleSystemComponent::CacheViewRelevanceFlags(UParticleSystem* Template
 
 				if (EmitterLODLevel->bEnabled == true)
 				{
-					EmitterInst->GatherMaterialRelevance(&LODViewRel, EmitterLODLevel);
+					auto World = GetWorld();
+					EmitterInst->GatherMaterialRelevance(&LODViewRel, EmitterLODLevel, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
 				}
 			}
 		}
@@ -6033,8 +6026,7 @@ void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const F
 
 	//UE_LOG(LogParticles, Warning, TEXT("DistAdjustedForFOV: %f  BaseFOV: %f  CamFOVDeg: %f"), DistAdjustedForFOV, BaseFOV, CamFOVDeg );
 
-	SetActorLocation( CamLoc + X * DistAdjustedForFOV, false );
-	SetActorRotation( NewRot );
+	SetActorLocationAndRotation( CamLoc + X * DistAdjustedForFOV, NewRot, false );
 }
 
 void AEmitterCameraLensEffectBase::Destroyed()

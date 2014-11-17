@@ -85,10 +85,10 @@ uint32 FSharedPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 FBoneBufferTypeRef FBoneBufferPoolPolicy::CreateResource(CreationArguments Args)
 {
 	uint32 BufferSize = GetPoolBucketSize(GetPoolBucketIndex(Args));
-    FBoneBuffer Buffer;
+	FBoneBuffer Buffer;
 	FRHIResourceCreateInfo CreateInfo;
-    Buffer.VertexBufferRHI = RHICreateVertexBuffer( BufferSize, (BUF_Dynamic | BUF_ShaderResource), CreateInfo );
-    Buffer.VertexBufferSRV = RHICreateShaderResourceView( Buffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
+	Buffer.VertexBufferRHI = RHICreateVertexBuffer( BufferSize, (BUF_Dynamic | BUF_ShaderResource), CreateInfo );
+	Buffer.VertexBufferSRV = RHICreateShaderResourceView( Buffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 	return Buffer;
 }
 
@@ -134,10 +134,20 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 		}
 		if(NumBones)
 		{
-			float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
-			checkSlow(Data);
-			FMemory::Memcpy(Data, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
-			RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+#if PLATFORM_SUPPORTS_RHI_THREAD
+			check(VectorArraySize == NumBones * sizeof(BoneMatrices[0]));
+			if (GRHIThread)
+			{
+				GRHICommandList.GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+			}
+			else
+#endif
+			{
+				float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
+				checkSlow(Data);
+				FMemory::Memcpy(Data, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
+				RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+			}
 		}
 	}
 	else
@@ -155,25 +165,31 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 
 FBoneDataVertexBuffer::FBoneDataVertexBuffer()
 	: SizeX(80 * 1024)		// todo: we will replace this fixed size using FGlobalDynamicVertexBuffer
+	, AllocSize(0)
+	, AllocBlock(nullptr)
 {
 }
 
 float* FBoneDataVertexBuffer::LockData()
 {
-	checkSlow(IsInRenderingThread());
-	checkSlow(GetSizeX());
-	checkSlow(IsValidRef(BoneBuffer));
-
-	float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, ComputeMemorySize(), RLM_WriteOnly);
-	checkSlow(Data);
-
+	check(IsInRenderingThread() && GetSizeX() && IsValidRef(BoneBuffer));
+	check(!AllocSize && !AllocBlock);
+	AllocSize = ComputeMemorySize();
+	AllocBlock = FMemory::Malloc(AllocSize + 15, 16);
+	float* Data = (float*)AllocBlock;
+	check(AllocSize && AllocBlock);
+	check(Data);
 	return Data;
 }
 
 void FBoneDataVertexBuffer::UnlockData()
 {
-	checkSlow(IsValidRef(BoneBuffer));
-	RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+	check(IsValidRef(BoneBuffer));
+	check(IsInRenderingThread() && AllocBlock && AllocSize);
+	FRHICommandListExecutor::GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, AllocBlock, AllocSize);
+	FMemory::Free(AllocBlock);
+	AllocBlock = nullptr;
+	AllocSize = 0;
 }
 
 uint32 FBoneDataVertexBuffer::GetSizeX() const
@@ -196,7 +212,7 @@ template <bool bExtraBoneInfluencesT>
 bool TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
 {
 	// Skip trying to use extra bone influences on < SM4
-	if (bExtraBoneInfluencesT && GetMaxSupportedFeatureLevel(Platform) < ERHIFeatureLevel::SM4)
+	if (bExtraBoneInfluencesT && GetMaxSupportedFeatureLevel(Platform) < ERHIFeatureLevel::ES3_1)
 	{
 		return false;
 	}
@@ -428,7 +444,7 @@ public:
 					const FGPUBaseSkinVertexFactory* GPUVertexFactory = (const FGPUBaseSkinVertexFactory*)VertexFactory;
 
 					// copy the bone data and tell the instance where it can pick it up next frame
-
+					check(IsInRenderingThread());
 					// append data to a buffer we bind next frame to read old matrix data for motion blur
 					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetTypedData(), ShaderData.BoneMatrices.Num());
 					GPUVertexFactory->SetOldBoneDataStartIndex(View.FrameNumber, OldBoneDataStartIndex);
@@ -513,29 +529,26 @@ private:
 };
 
 /*-----------------------------------------------------------------------------
-TGPUSkinPassthroughVertexFactory
+FGPUSkinPassthroughVertexFactory
 -----------------------------------------------------------------------------*/
-template <bool bExtraBoneInfluencesT>
-void TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
+void FGPUSkinPassthroughVertexFactory::ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
 {
 	Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	OutEnvironment.SetDefine(TEXT("GPUSKIN_PASS_THROUGH"),TEXT("1"));
 }
 
-template <bool bExtraBoneInfluencesT>
-bool TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FGPUSkinPassthroughVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	// Passhrough is only valid on platforms with Compute Shader support
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCache(Platform, Material, ShaderType);
+	return GEnableGPUSkinCache && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Super::ShouldCache(Platform, Material, ShaderType);
 }
 
-template <bool bExtraBoneInfluencesT>
-FVertexFactoryShaderParameters* TGPUSkinPassthroughVertexFactory<bExtraBoneInfluencesT>::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
+FVertexFactoryShaderParameters* FGPUSkinPassthroughVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
 	return (ShaderFrequency == SF_Vertex) ? new FGPUSkinVertexPassthroughFactoryShaderParameters() : nullptr;
 }
 
-IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinPassthroughVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSkinPassthroughVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
 
 /*-----------------------------------------------------------------------------
 TGPUSkinMorphVertexFactory
@@ -762,7 +775,7 @@ void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnv
 template <bool bExtraBoneInfluencesT>
 bool TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
-	return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM3
+	return GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM4
 		&& (Material->IsUsedWithAPEXCloth() || Material->IsSpecialEngineMaterial()) 
 		&& Super::ShouldCache(Platform, Material, ShaderType);
 }

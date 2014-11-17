@@ -92,6 +92,12 @@ public:
 	// Accessors.
 	FORCEINLINE bool IsInitialized() const { return bInitialized; }
 
+	// For those situations when the default ctor had to be used
+	inline void SetFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		FeatureLevel = InFeatureLevel;
+	}
+
 protected:
 	// This is used during mobile editor preview refactor, this will eventually be replaced with a parameter to InitRHI() etc..
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }
@@ -317,6 +323,11 @@ public:
 	 */
 	bool				bIgnoreGammaConversions;
 
+	/** 
+	 * Is the pixel data in this texture sRGB?
+	 **/
+	bool				bSRGB;
+
 	/** Default constructor. */
 	FTexture()
 	: TextureRHI(NULL)
@@ -325,6 +336,7 @@ public:
 	, LastRenderTime(-FLT_MAX)
 	, bGreyScaleFormat(false)
 	, bIgnoreGammaConversions(false)
+	, bSRGB(false)
 	{}
 
 	// Destructor
@@ -496,7 +508,7 @@ public:
 	 * @param SizeInBytes - The amount of memory to allocate in bytes.
 	 * @returns An FAllocation with information regarding the allocated memory.
 	 */
-	FAllocation Allocate(uint32 SizeInBytes);
+	FAllocation Allocate(uint32 SizeInBytes, bool bDeferLock = false);
 
 	/**
 	 * Commits allocated memory to the GPU.

@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 	{
         public GameplayAbilities(TargetInfo Target)
 		{
-            PrivateIncludePaths.Add("../../Engine/Source/Runtime/GameplayAbilities/Private");
+            PrivateIncludePaths.Add("Runtime/GameplayAbilities/Private");
             
 			PublicIncludePaths.AddRange(
 				new string[] {

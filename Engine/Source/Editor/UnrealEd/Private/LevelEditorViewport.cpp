@@ -42,6 +42,7 @@
 #include "BrushBuilderDragDropOp.h"
 #include "AssetRegistryModule.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
+#include "InstancedFoliage.h"
 
 #include "Editor/ActorPositioning.h"
 
@@ -607,7 +608,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 		// block anything else than just anim sequence
 		if( DroppedObjAsAnimationAsset != NULL )
 		{
-			if( ! DroppedObjAsAnimationAsset->IsA(UAnimSequence::StaticClass()) )
+			if( ! DroppedObjAsAnimationAsset->IsA(UAnimSequenceBase::StaticClass()) )
 			{
 				DroppedObjAsAnimationAsset = NULL;
 			}
@@ -1010,7 +1011,14 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	for (AActor* Actor : DraggingActors)
 	{
 		const UActorFactory* ActorFactory = FactoryToUse ? FactoryToUse : GEditor->FindActorFactoryForActorClass(Actor->GetClass());
-		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(this, ActorFactory, TraceResult.Location, TraceResult.SurfaceNormal, Actor->GetPlacementExtent());
+
+		const FSnappedPositioningData PositioningData = FSnappedPositioningData(this, TraceResult.Location, TraceResult.SurfaceNormal)
+			.DrawSnapHelpers(true)
+			.UseFactory(ActorFactory)
+			.UseStartTransform(PreDragActorTransforms.FindRef(Actor))
+			.UsePlacementExtent(Actor->GetPlacementExtent());
+
+		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
 
 		Actor->SetActorTransform(ActorTransform);
 		Actor->SetIsTemporarilyHiddenInEditor(false);
@@ -1215,6 +1223,9 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 				{
 					AActor* NewActor = *ActorIt;
 					DropPreviewActors.Add(NewActor);
+					
+					PreDragActorTransforms.Add(NewActor, NewActor->GetTransform());
+
 					NewActor->SetActorEnableCollision(false);
 
 					// Deselect if selected
@@ -1670,6 +1681,10 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		{
 			ClickHandlers::ClickActor(this,((HActor*)HitProxy)->Actor,Click,true);
 		}
+		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
+		{
+			ClickHandlers::ClickActor(this, ((HInstancedStaticMeshInstance*)HitProxy)->Component->GetOwner(), Click, true);
+		}
 		else if (HitProxy->IsA(HBSPBrushVert::StaticGetType()) && ((HBSPBrushVert*)HitProxy)->Brush.IsValid())
 		{
 			ClickHandlers::ClickBrushVertex(this,((HBSPBrushVert*)HitProxy)->Brush.Get(),((HBSPBrushVert*)HitProxy)->Vertex,Click);
@@ -1990,8 +2005,13 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			check(PreDragActorTransform);
 
 			// Compute the surface aligned transform. Note we do not use the snapped version here as our DragDelta is already snapped
-			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(Factory,
-				TraceResult.Location, TraceResult.SurfaceNormal, Actor->GetPlacementExtent(), *PreDragActorTransform);
+
+			const FPositioningData PositioningData = FPositioningData(TraceResult.Location, TraceResult.SurfaceNormal)
+				.UseStartTransform(*PreDragActorTransform)
+				.UsePlacementExtent(Actor->GetPlacementExtent())
+				.UseFactory(Factory);
+
+			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(PositioningData);
 			
 			ActorTransform.SetScale3D(Actor->GetActorScale3D());
 			if (auto* RootComponent = Actor->GetRootComponent())
@@ -2253,7 +2273,9 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 	if ( InputState.IsAnyMouseButtonDown() )
 	{
 		const FViewportCursorLocation Cursor(View, this, HitX, HitY);
-		GEditor->ClickLocation = FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View).Location;
+		const FActorPositionTraceResult TraceResult = FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View);
+		GEditor->ClickLocation = TraceResult.Location;
+		GEditor->ClickPlane = FPlane(TraceResult.Location, TraceResult.SurfaceNormal);
 
 		// Snap the new location if snapping is enabled
 		FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
@@ -2570,6 +2592,8 @@ void FLevelEditorViewportClient::TrackingStopped()
 
 		GEditor->RedrawLevelEditingViewports();
 	}
+
+	PreDragActorTransforms.Empty();
 }
 
 void FLevelEditorViewportClient::HandleViewportSettingChanged(FName PropertyName)
@@ -3034,7 +3058,7 @@ bool FLevelEditorViewportClient::IsVolumeVisibleInViewport( const AActor& Volume
 
 void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMode )
 {
-	if( !GLevelEditorModeTools().IsTracking() )
+	if( !GLevelEditorModeTools().IsTracking() && !IsFlightCameraActive() )
 	{
 		GLevelEditorModeTools().SetWidgetMode( ActivatedMode );
 
@@ -3365,7 +3389,7 @@ static bool OptionallyPreserveNonUniformScale(const FVector& InCurrentScale, con
 	if(ViewportSettings->SnapScaleEnabled && ViewportSettings->PreserveNonUniformScale)
 	{
 		// when using 'auto-precision', we take the max component & snap its scale, then proportionally scale the other components
-		float MaxComponentSum = 0.0f;
+		float MaxComponentSum = -1.0f;
 		int32 MaxAxisIndex = -1;
 		for( int Axis = 0; Axis < 3; ++Axis )
 		{
@@ -3382,7 +3406,7 @@ static bool OptionallyPreserveNonUniformScale(const FVector& InCurrentScale, con
 
 		check(MaxAxisIndex != -1);
 
-		float AbsoluteScaleValue = FMath::GridSnap( InCurrentScale[MaxAxisIndex] + InOutScaleDelta[MaxAxisIndex], GEditor->GetScaleGridSize() );;
+		float AbsoluteScaleValue = FMath::GridSnap( InCurrentScale[MaxAxisIndex] + InOutScaleDelta[MaxAxisIndex], GEditor->GetScaleGridSize() );
 		float ScaleRatioMax = InCurrentScale[MaxAxisIndex] == 0.0f ? 1.0f : AbsoluteScaleValue / InCurrentScale[MaxAxisIndex];
 		for( int Axis = 0; Axis < 3; ++Axis )
 		{
@@ -3782,7 +3806,7 @@ static void RenderViewFrustum( FPrimitiveDrawInterface* PDI,
 
 	for( int32 x = 0 ; x < 8 ; ++x )
 	{
-		Verts[x] = InViewMatrix.Inverse().TransformPosition( Verts[x] );
+		Verts[x] = InViewMatrix.InverseFast().TransformPosition( Verts[x] );
 	}
 
 	const uint8 PrimitiveDPG = SDPG_Foreground;
@@ -3944,7 +3968,7 @@ void FLevelEditorViewportClient::UpdateAudioListener( const FSceneView& View )
 
 			class AReverbVolume* ReverbVolume = GetWorld()->GetAudioSettings( ViewLocation, &ReverbSettings, &InteriorSettings );
 
-			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.Inverse();
+			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.InverseFast();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
 			FVector ProjRight = CameraToWorld.TransformVector(FVector(1000, 0, 0));
 

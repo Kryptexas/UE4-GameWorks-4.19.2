@@ -3,6 +3,7 @@
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "Animation/BoneControllers/AnimNode_TwoBoneIK.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_TwoBoneIK.generated.h"
 
 UCLASS(MinimalAPI)
@@ -16,7 +17,7 @@ class UAnimGraphNode_TwoBoneIK : public UAnimGraphNode_SkeletalControlBase
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_SkeletalControlBase interface
@@ -31,4 +32,8 @@ protected:
 	// local conversion function for drawing
 	void ConvertToComponentSpaceTransform(USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, const FTransform & InTransform, FTransform & OutCSTransform, int32 BoneIndex, uint8 Space) const;
 	void DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, uint8 SpaceBase, FName SpaceBoneName, const FVector & TargetLocation, const FColor & TargetColor, const FColor & BoneColor) const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTitleTextTable CachedNodeTitles;
 };

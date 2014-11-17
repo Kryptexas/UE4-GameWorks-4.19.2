@@ -15,9 +15,111 @@
 #include "Crc.h"
 #include "MessageLog.h"
 #include "Editor/UnrealEd/Classes/Settings/EditorLoadingSavingSettings.h"
+#include "BlueprintEditorUtils.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
+
+//////////////////////////////////////////////////////////////////////////
+// Static Helpers
+
+/**
+ * Updates the blueprint's OwnedComponents, such that they reflect changes made 
+ * natively since the blueprint was last saved (a change in AttachParents, etc.)
+ * 
+ * @param  Blueprint	The blueprint whose components you wish to vet.
+ */
+static void ConformNativeComponents(UBlueprint* Blueprint)
+{
+#if WITH_EDITOR
+	if (UClass* const BlueprintClass = Blueprint->GeneratedClass)
+	{
+		if (AActor* BlueprintCDO = Cast<AActor>(BlueprintClass->ClassDefaultObject))
+		{
+			TArray<UActorComponent*> OldNativeComponents;
+			// collect the native components that this blueprint was serialized out 
+			// with (the native components it had last time it was saved)
+			BlueprintCDO->GetComponents(OldNativeComponents);
+
+			UClass* const NativeSuperClass = FBlueprintEditorUtils::FindFirstNativeClass(BlueprintClass);
+			AActor* NativeCDO = CastChecked<AActor>(NativeSuperClass->ClassDefaultObject);
+			// collect the more up to date native components (directly from the 
+			// native super-class)
+			TArray<UActorComponent*> NewNativeComponents;
+			NativeCDO->GetComponents(NewNativeComponents);
+
+			// utility lambda for finding named components in a supplied list
+			auto FindNamedComponentLambda = [](FName const ComponentName, TArray<UActorComponent*> const& ComponentList)->UActorComponent*
+			{
+				UActorComponent* FoundComponent = nullptr;
+				for (UActorComponent* Component : ComponentList)
+				{
+					if (Component->GetFName() == ComponentName)
+					{
+						FoundComponent = Component;
+						break;
+					}
+				}
+				return FoundComponent;
+			};
+
+			// utility lambda for finding matching components in the NewNativeComponents list
+			auto FindNativeComponentLambda = [&NewNativeComponents, &FindNamedComponentLambda](UActorComponent* BlueprintComponent)->UActorComponent*
+			{
+				UActorComponent* MatchingComponent = nullptr;
+				if (BlueprintComponent != nullptr)
+				{
+					FName const ComponentName = BlueprintComponent->GetFName();
+					MatchingComponent = FindNamedComponentLambda(ComponentName, NewNativeComponents);
+				}
+				return MatchingComponent;
+			};
+
+			// loop through all components that this blueprint thinks come from its
+			// native super-class (last time it was saved)
+			for (UActorComponent* Component : OldNativeComponents)
+			{
+				// if we found this component also listed for the native class
+				if (UActorComponent* NativeComponent = FindNativeComponentLambda(Component))
+				{
+					USceneComponent* BlueprintSceneComponent = Cast<USceneComponent>(Component);
+					if (BlueprintSceneComponent == nullptr)
+					{
+						// if this isn't a scene-component, then we don't care
+						// (we're looking to fixup scene-component parents)
+						continue;
+					}
+					UActorComponent* OldNativeParent = FindNativeComponentLambda(BlueprintSceneComponent->AttachParent);
+
+					USceneComponent* NativeSceneComponent = CastChecked<USceneComponent>(NativeComponent);
+					// if this native component has since been reparented, we need
+					// to make sure that this blueprint reflects that change
+					if (OldNativeParent != NativeSceneComponent->AttachParent)
+					{
+						USceneComponent* NewParent = nullptr;
+						if (NativeSceneComponent->AttachParent != nullptr)
+						{
+							NewParent = CastChecked<USceneComponent>(FindNamedComponentLambda(NativeSceneComponent->AttachParent->GetFName(), OldNativeComponents));
+						}
+						BlueprintSceneComponent->AttachParent = NewParent;
+					}
+				}
+				else // the component has been removed from the native class
+				{
+					// @TODO: I think we already handle removed native components elsewhere, so maybe we should error here?
+// 				BlueprintCDO->RemoveOwnedComponent(Component);
+// 
+// 				USimpleConstructionScript* BlueprintSCS = Blueprint->SimpleConstructionScript;
+// 				USCS_Node* ComponentNode = BlueprintSCS->CreateNode(Component, Component->GetFName());
+// 
+// 				BlueprintSCS->AddNode(ComponentNode);
+				}
+			}
+		}
+	}
+#endif // #if WITH_EDITOR
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // FBPVariableDescription
@@ -130,6 +232,7 @@ void UBlueprintCore::Serialize(FArchive& Ar)
 	}
 }
 
+#if WITH_EDITORONLY_DATA
 void UBlueprintCore::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	Super::GetAssetRegistryTags(OutTags);
@@ -146,6 +249,7 @@ void UBlueprintCore::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) co
 
 	OutTags.Add( FAssetRegistryTag("GeneratedClass", GeneratedClassVal, FAssetRegistryTag::TT_Hidden) );
 }
+#endif
 
 void UBlueprintCore::GenerateDeterministicGuid()
 {
@@ -164,12 +268,14 @@ void UBlueprintCore::GenerateDeterministicGuid()
 
 UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-{
-
 #if WITH_EDITOR
-	bRunConstructionScriptOnDrag = true;
-	bGenerateConstClass = false;
+	, bRunConstructionScriptOnDrag(true)
+	, bGenerateConstClass(false)
 #endif
+#if WITH_EDITORONLY_DATA
+	, bCachedDependenciesUpToDate(false)
+#endif
+{
 }
 
 void UBlueprint::Serialize(FArchive& Ar)
@@ -591,6 +697,11 @@ FString UBlueprint::GetFriendlyName() const
 }
 
 bool UBlueprint::AllowsDynamicBinding() const
+{
+	return FBlueprintEditorUtils::IsActorBased(this);
+}
+
+bool UBlueprint::SupportsInputEvents() const
 {
 	return FBlueprintEditorUtils::IsActorBased(this);
 }
@@ -1034,16 +1145,19 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 
 		if (bMigratedOwner)
 		{
-			// alert the user that blueprints gave been migrated and require re-saving to enable them to locate and fix them without nagging them.
-			FMessageLog("BlueprintLog").Warning( FText::Format( NSLOCTEXT( "Blueprint", "MigrationWarning", "Blueprint {0} has been migrated and requires re-saving to avoid import errors" ), FText::FromString( *GetName() )));
-
-			if( GetDefault<UEditorLoadingSavingSettings>()->bDirtyMigratedBlueprints )
+			if( !HasAnyFlags( RF_Transient ))
 			{
-				UPackage* BPPackage = GetOutermost();
+				// alert the user that blueprints gave been migrated and require re-saving to enable them to locate and fix them without nagging them.
+				FMessageLog("BlueprintLog").Warning( FText::Format( NSLOCTEXT( "Blueprint", "MigrationWarning", "Blueprint {0} has been migrated and requires re-saving to avoid import errors" ), FText::FromString( *GetName() )));
 
-				if( BPPackage )
+				if( GetDefault<UEditorLoadingSavingSettings>()->bDirtyMigratedBlueprints )
 				{
-					BPPackage->SetDirtyFlag( true );
+					UPackage* BPPackage = GetOutermost();
+
+					if( BPPackage )
+					{
+						BPPackage->SetDirtyFlag( true );
+					}
 				}
 			}
 
@@ -1064,11 +1178,19 @@ void UBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 	ChangeOwnerOfTemplates();
+
+	ConformNativeComponents(this);
+}
+
+bool UBlueprint::Modify(bool bAlwaysMarkDirty)
+{
+	bCachedDependenciesUpToDate = false;
+	return Super::Modify(bAlwaysMarkDirty);
 }
 
 #endif
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {
@@ -1080,4 +1202,4 @@ bool UBlueprint::GetFunctionGuidFromClassByFieldName(const UClass* InClass, cons
 	return FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
 
-#endif //WITH_EDITORONLY_DATA
+#endif //WITH_EDITOR

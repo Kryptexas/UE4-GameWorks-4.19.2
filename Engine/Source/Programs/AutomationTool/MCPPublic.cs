@@ -244,6 +244,18 @@ namespace EpicGames.MCP.Automation
         public class PatchGenerationOptions
         {
             /// <summary>
+            /// By default, we will only consider data modified within 12 days to be reusable
+            /// </summary>
+            public const int DEFAULT_DATA_AGE_THRESHOLD = 12;
+
+            public PatchGenerationOptions()
+            {
+				// @todo Richard.Fawcett temporary work-around for build system issues.
+				// Hack to add 10,000 days should not remain beyond 2014-09-30!
+				DataAgeThreshold = DEFAULT_DATA_AGE_THRESHOLD + 10000;
+            }
+
+            /// <summary>
             /// Staging information
             /// </summary>
             public BuildPatchToolStagingInfo StagingInfo;
@@ -271,18 +283,26 @@ namespace EpicGames.MCP.Automation
             /// Matches the corresponding BuildPatchTool command line argument.
             /// </summary>
             public MCPPlatform Platform;
-        }
-
-		public class CompactifyOptions
-		{
             /// <summary>
-            /// If specified, BuildPatchTool will run a compactify on this directory.
+            /// When identifying existing patch data to reuse in this build, only
+            /// files modified within this number of days will be considered for reuse.
+            /// IMPORTANT: This should always be smaller than the data age threshold for any compactify process which will run on the directory, to ensure
+            /// that we do not reuse any files which could be deleted by a concurrently running compactify. It is recommended that this number be at least
+            /// two days less than the compactify data age threshold.
             /// </summary>
-            public string CompactifyDirectory;
-            /// <summary>
-            /// Corresponds to the -preview parameter
-            /// </summary>
-            public bool bPreviewCompactify;
+            public int DataAgeThreshold;
+			/// <summary>
+			/// Contains a list of custom string arguments to be embedded in the generated manifest file.
+			/// </summary>
+			public List<KeyValuePair<string, string>> CustomStringArgs;
+			/// <summary>
+			/// Contains a list of custom integer arguments to be embedded in the generated manifest file.
+			/// </summary>
+			public List<KeyValuePair<string, int>> CustomIntArgs;
+			/// <summary>
+			/// Contains a list of custom float arguments to be embedded in the generated manifest file.
+			/// </summary>
+			public List<KeyValuePair<string, float>> CustomFloatArgs;
 		}
 
         static BuildPatchToolBase Handler = null;
@@ -318,11 +338,6 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
 		public abstract void Execute(PatchGenerationOptions Opts);
 
-		/// <summary>
-		/// Runs the Build Patch Tool executable to compactify a cloud directory using the supplied parameters.
-		/// </summary>
-		/// <param name="Opts">Parameters which will be passed to the compactify process</param>
-		public abstract void Execute(CompactifyOptions Opts);
     }
 
 
@@ -611,7 +626,7 @@ namespace EpicGames.MCP.Config
 		}
 		protected virtual bool UseV2BuildInfoService
 		{
-			get { return false; }
+			get { return true; }
 		}
     }
 

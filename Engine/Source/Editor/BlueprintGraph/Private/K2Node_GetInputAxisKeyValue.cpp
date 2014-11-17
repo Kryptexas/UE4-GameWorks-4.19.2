@@ -5,6 +5,10 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/InputAxisKeyDelegateBinding.h"
+#include "BlueprintEditorUtils.h"
+#include "EdGraphSchema_K2.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetInputAxisKeyValue"
 
@@ -26,26 +30,48 @@ void UK2Node_GetInputAxisKeyValue::Initialize(const FKey AxisKey)
 {
 	InputAxisKey = AxisKey;
 	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputAxisKeyValue")));
+	
+	CachedTooltip.MarkDirty();
+	CachedNodeTitle.MarkDirty();
 }
 
 FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
-	
-	FText TitleFormat = NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}");
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
-		TitleFormat = NSLOCTEXT("K2Node", "GetInputAxisKey_ListTitle", "{AxisKey}");
+		return InputAxisKey.GetDisplayName();
 	}
-	return FText::Format(TitleFormat, Args);
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}"), Args);
+	}
+
+	return CachedNodeTitle;
 }
 
-FString UK2Node_GetInputAxisKeyValue::GetTooltip() const
+FText UK2Node_GetInputAxisKeyValue::GetTooltipText() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
-	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be 0."), Args).ToString();
+	if (CachedTooltip.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be 0."), Args);
+	}
+	return CachedTooltip;
+}
+
+bool UK2Node_GetInputAxisKeyValue::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+
+	UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
+	bool const bIsConstructionScript = (K2Schema != nullptr) ? K2Schema->IsConstructionScript(Graph) : false;
+
+	return (Blueprint != nullptr) && Blueprint->SupportsInputEvents() && !bIsConstructionScript && Super::IsCompatibleWithGraph(Graph);
 }
 
 void UK2Node_GetInputAxisKeyValue::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
@@ -100,14 +126,35 @@ FName UK2Node_GetInputAxisKeyValue::GetPaletteIcon(FLinearColor& OutColor) const
 }
 
 
-void UK2Node_GetInputAxisKeyValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GetInputAxisKeyValue::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	TArray<FKey> AllKeys;
 	EKeys::GetAllKeys(AllKeys);
-	
+
+	auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
+	{
+		UK2Node_GetInputAxisKeyValue* InputNode = CastChecked<UK2Node_GetInputAxisKeyValue>(NewNode);
+		InputNode->Initialize(Key);
+	};
+
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+
 	for (FKey const Key : AllKeys)
 	{
 		if (!Key.IsBindableInBlueprints() || !Key.IsFloatAxis())
+		{
+			continue;
+		}
+
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
 		{
 			continue;
 		}
@@ -115,34 +162,55 @@ void UK2Node_GetInputAxisKeyValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(NodeSpawner != nullptr);
 		
-		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
-		{
-			UK2Node_GetInputAxisKeyValue* InputNode = CastChecked<UK2Node_GetInputAxisKeyValue>(NewNode);
-			InputNode->Initialize(Key);
-		};
-		
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 
 FText UK2Node_GetInputAxisKeyValue::GetMenuCategory() const
 {
+	enum EAxisKeyCategory
+	{
+		GamepadKeyCategory,
+		MouseButtonCategory,
+		KeyValueCategory,
+		AxisKeyCategory_MAX,
+	};
+	static FNodeTextCache CachedCategories[AxisKeyCategory_MAX];
+
 	FText SubCategory;
+	EAxisKeyCategory CategoryIndex = AxisKeyCategory_MAX;
+
 	if (InputAxisKey.IsGamepadKey())
 	{
 		SubCategory = LOCTEXT("GamepadSubCategory", "Gamepad Values");
+		CategoryIndex = GamepadKeyCategory;
 	}
 	else if (InputAxisKey.IsMouseButton())
 	{
 		SubCategory = LOCTEXT("MouseSubCategory", "Mouse Values");
+		CategoryIndex = MouseButtonCategory;
 	}
 	else
 	{
 		SubCategory = LOCTEXT("KeySubCategory", "Key Values");
+		CategoryIndex = KeyValueCategory;
 	}
-	
-	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+
+	if (CachedCategories[CategoryIndex].IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+	}
+	return CachedCategories[CategoryIndex];
+}
+
+FBlueprintNodeSignature UK2Node_GetInputAxisKeyValue::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddKeyValue(InputAxisKey.ToString());
+
+	return NodeSignature;
 }
 
 #undef LOCTEXT_NAMESPACE

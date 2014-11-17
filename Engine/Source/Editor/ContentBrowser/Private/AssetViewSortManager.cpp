@@ -9,6 +9,8 @@ public:
 	/** Default constructor */
 	FCompareFAssetItemBase(bool bInAscending, const FName& InTag) : bAscending(bInAscending), Tag(InTag) {}
 
+	virtual ~FCompareFAssetItemBase() {}
+
 	/** Sort function */
 	FORCEINLINE bool operator()(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const
 	{
@@ -102,6 +104,7 @@ struct FCompareFAssetItemByName : public FCompareFAssetItemBase
 {
 public:
 	FCompareFAssetItemByName(bool bInAscending, const FName& InTag) : FCompareFAssetItemBase(bInAscending, InTag) {}
+	virtual ~FCompareFAssetItemByName() {}
 
 protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override
@@ -125,6 +128,7 @@ struct FCompareFAssetItemByClass : public FCompareFAssetItemBase
 {
 public:
 	FCompareFAssetItemByClass(bool bInAscending, const FName& InTag) : FCompareFAssetItemBase(bInAscending, InTag) {}
+	virtual ~FCompareFAssetItemByClass() {}
 
 protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override
@@ -148,6 +152,7 @@ struct FCompareFAssetItemByPath : public FCompareFAssetItemBase
 {
 public:
 	FCompareFAssetItemByPath(bool bInAscending, const FName& InTag) : FCompareFAssetItemBase(bInAscending, InTag) {}
+	virtual ~FCompareFAssetItemByPath() {}
 
 protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override
@@ -171,6 +176,7 @@ struct FCompareFAssetItemByTag : public FCompareFAssetItemBase
 {
 public:
 	FCompareFAssetItemByTag(bool bInAscending, const FName& InTag) : FCompareFAssetItemBase(bInAscending, InTag) {}
+	virtual ~FCompareFAssetItemByTag() {}
 
 protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override
@@ -205,6 +211,7 @@ struct FCompareFAssetItemByTagNumerical : public FCompareFAssetItemBase
 {
 public:
 	FCompareFAssetItemByTagNumerical(bool bInAscending, const FName& InTag) : FCompareFAssetItemBase(bInAscending, InTag) {}
+	virtual ~FCompareFAssetItemByTagNumerical() {}
 
 protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override
@@ -240,6 +247,7 @@ struct FCompareFAssetItemByTagDimensional : public FCompareFAssetItemBase
 {
 public:
 	FCompareFAssetItemByTagDimensional(bool bInAscending, const FName& InTag) : FCompareFAssetItemBase(bInAscending, InTag) {}
+	virtual ~FCompareFAssetItemByTagDimensional() {}
 
 protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override

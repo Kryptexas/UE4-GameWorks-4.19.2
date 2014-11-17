@@ -325,7 +325,6 @@ void FBehaviorTreeDebugger::SetNodeFlags(const struct FBehaviorTreeDebuggerInsta
 	Node->bDebuggerMarkFlashActive = bIsNodeActivePath && bIsTaskNode && IsPlaySessionRunning();
 	Node->bDebuggerMarkSearchTrigger = false;
 	Node->bDebuggerMarkSearchFailedTrigger = false;
-	Node->bDebuggerMarkSearchOptional = false;
 
 	Node->bDebuggerMarkBreakpointTrigger = NodeInstance->GetExecutionIndex() == StoppedOnBreakpointExecutionIndex;
 	if (Node->bDebuggerMarkBreakpointTrigger)
@@ -362,8 +361,7 @@ void FBehaviorTreeDebugger::SetNodeFlags(const struct FBehaviorTreeDebuggerInsta
 	}
 
 	Node->bDebuggerMarkSearchSucceeded = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bPassed;
-	Node->bDebuggerMarkSearchOptional = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bOptional;
-	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed && !Data.PathFromPrevious[SearchPathIdx].bOptional;
+	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed;
 	Node->DebuggerSearchPathIndex = bTriggerOnly ? 0 : FMath::Max(-1, SearchPathIdx - NumTriggers);
 	Node->DebuggerSearchPathSize = Data.PathFromPrevious.Num() - NumTriggers;
 }
@@ -414,8 +412,7 @@ void FBehaviorTreeDebugger::SetCompositeDecoratorFlags(const struct FBehaviorTre
 	}
 
 	Node->bDebuggerMarkSearchSucceeded = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bPassed;
-	Node->bDebuggerMarkSearchOptional = (SearchPathIdx != INDEX_NONE) && Data.PathFromPrevious[SearchPathIdx].bOptional;
-	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed && !Data.PathFromPrevious[SearchPathIdx].bOptional;
+	Node->bDebuggerMarkSearchFailed = (SearchPathIdx != INDEX_NONE) && !Data.PathFromPrevious[SearchPathIdx].bPassed;
 	Node->DebuggerSearchPathIndex = bTriggerOnly ? 0 : FMath::Max(-1, SearchPathIdx - NumTriggers);
 	Node->DebuggerSearchPathSize = Data.PathFromPrevious.Num() - NumTriggers;
 }
@@ -659,18 +656,17 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
 		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
-		for (FActorIterator It(World); It; ++It)
+		for (TActorIterator<AGameplayDebuggingReplicator> It(World); It; ++It)
 		{
-			AActor* A = *It;
-			if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+			AGameplayDebuggingReplicator* A = *It;
+			if (!A->IsPendingKill())
 			{
-				DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
+				DebuggingReplicator = A;
 				break;
 			}
 		}
 
-		UGameplayDebuggingComponent* DebuggingComponent = DebuggingReplicator != NULL ? DebuggingReplicator->GetDebugComponent() : NULL;
-		const APawn* LockedPawn = DebuggingComponent != NULL ? Cast<APawn>(DebuggingComponent->GetSelectedActor()) : NULL;
+		const APawn* LockedPawn = DebuggingReplicator != NULL ? Cast<APawn>(DebuggingReplicator->GetSelectedActorToDebug()) : NULL;
 		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
 		if (TestInstance)
 		{
@@ -1048,19 +1044,19 @@ FText FBehaviorTreeDebugger::FindValueForKey(const FName& InKeyName, bool bUseCu
 	if (IsDebuggerRunning() &&
 		TreeInstance.IsValid())
 	{
-		FBehaviorTreeExecutionStep* ShowStep = nullptr;
-		if(bUseCurrentState && TreeInstance->DebuggerSteps.Num() > 0)
+		const TMap<FName, FString>* MapToQuery = nullptr;
+		if(bUseCurrentState)
 		{
-			ShowStep = &TreeInstance->DebuggerSteps[TreeInstance->DebuggerSteps.Num() - 1];
+			MapToQuery = &CurrentValues;
 		}
 		else if(TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex))
 		{
-			ShowStep = &TreeInstance->DebuggerSteps[ActiveStepIndex];
+			MapToQuery = &TreeInstance->DebuggerSteps[ActiveStepIndex].BlackboardValues;
 		}
 
-		if(ShowStep != nullptr)
+		if(MapToQuery != nullptr)
 		{
-			const FString* FindValue = ShowStep->BlackboardValues.Find(InKeyName);
+			const FString* FindValue = MapToQuery->Find(InKeyName);
 			if(FindValue != nullptr)
 			{
 				return FText::FromString(*FindValue);
@@ -1122,6 +1118,7 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComp
 			{
 				SelectedActors = GEditor->GetSelectedActors();
 				SelectedActors->Select(Pawn);
+				AGameplayDebuggingReplicator::OnSelectionChangedDelegate.Broadcast(Pawn);
 			}
 		}
 

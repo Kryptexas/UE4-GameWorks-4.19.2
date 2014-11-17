@@ -2,10 +2,12 @@
 
 #pragma once
 
+
 /**
  * This is the PThreads version of FEvent.
  */
-class FPThreadEvent : public FEvent
+class FPThreadEvent
+	: public FEvent
 {
 	// This is a little complicated, in an attempt to match Win32 Event semantics...
     typedef enum
@@ -34,7 +36,7 @@ class FPThreadEvent : public FEvent
 		check(rc == 0);
 	}
 	
-	static inline void SubtractTimevals(const struct timeval *FromThis, struct timeval *SubThis, struct timeval *Difference)
+	static inline void SubtractTimevals( const struct timeval *FromThis, struct timeval *SubThis, struct timeval *Difference )
 	{
 		if (FromThis->tv_usec < SubThis->tv_usec)
 		{
@@ -91,16 +93,16 @@ public:
 		}
 	}
 
-	virtual bool Create(bool _bIsManualReset = false) override
+	virtual bool Create( bool _bIsManualReset = false ) override
 	{
 		check(!bInitialized);
 		bool RetVal = false;
 		Triggered = TRIGGERED_NONE;
 		bIsManualReset = _bIsManualReset;
 
-		if (pthread_mutex_init(&Mutex, NULL) == 0)
+		if (pthread_mutex_init(&Mutex, nullptr) == 0)
 		{
-			if (pthread_cond_init(&Condition, NULL) == 0)
+			if (pthread_cond_init(&Condition, nullptr) == 0)
 			{
 				bInitialized = true;
 				RetVal = true;
@@ -146,7 +148,5 @@ public:
 		UnlockEventMutex();
 	}
 
-	virtual bool Wait(uint32 WaitTime = (uint32)-1, const bool bIgnoreThreadIdleStats = false) override;
-
+	virtual bool Wait( uint32 WaitTime = (uint32)-1, const bool bIgnoreThreadIdleStats = false ) override;
 };
-

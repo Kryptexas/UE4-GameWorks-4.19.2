@@ -23,5 +23,8 @@ private:
 	void ExecuteFindSkeleton(TArray<TWeakObjectPtr<UAnimBlueprint>> Objects);
 
 	/** Context menu item handler for changing the supplied assets skeletons */ 
-	void RetargetAssets(const TArray<UObject*> InAnimBlueprints, bool bDuplicateAssets);
+	void RetargetAssets(TArray<UObject*> InAnimBlueprints, bool bDuplicateAssets);
+
+	/** Handler for retargeting */
+	void RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, bool bDuplicateAssets, TArray<TWeakObjectPtr<UObject>> AnimBlueprints);
 };

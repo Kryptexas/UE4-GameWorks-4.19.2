@@ -26,10 +26,13 @@ void SGraphNodeSoundBase::CreateOutputSideAddButton(TSharedPtr<SVerticalBox> Out
 		NSLOCTEXT("SoundNode", "SoundNodeAddPinButton_Tooltip", "Adds an input to the sound node")
 	);
 
+	FMargin AddPinPadding = Settings->GetOutputPinPadding();
+	AddPinPadding.Top += 6.0f;
+
 	OutputBox->AddSlot()
 	.AutoHeight()
 	.VAlign(VAlign_Center)
-	.Padding(10,10,10,4)
+	.Padding(AddPinPadding)
 	[
 		AddPinButton
 	];

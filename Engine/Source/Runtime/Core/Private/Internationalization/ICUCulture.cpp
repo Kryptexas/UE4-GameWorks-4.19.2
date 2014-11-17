@@ -107,6 +107,14 @@ FString FCulture::FICUCultureImplementation::GetName() const
 	return ICULocale.getName();
 }
 
+FString FCulture::FICUCultureImplementation::GetParentName(const FString& CultureName)
+{
+	char Parent[32];
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	int32_t ParentLength = uloc_getParent(TCHAR_TO_ANSI(*CultureName), Parent, 32, &ICUStatus);
+	return FString(Parent);
+}
+
 FString FCulture::FICUCultureImplementation::GetNativeName() const
 {
 	icu::UnicodeString ICUResult;
@@ -231,10 +239,11 @@ TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetDec
 	}
 }
 
-TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetCurrencyFormatter(const FNumberFormattingOptions* const Options) const
+TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetCurrencyFormatter(const FString& CurrencyCode, const FNumberFormattingOptions* const Options) const
 {
-	const bool bIsDefault = Options == NULL;
+	const bool bIsDefault = Options == NULL && CurrencyCode.IsEmpty();
 	const TSharedRef<const icu::DecimalFormat> DefaultFormatter( ICUCurrencyFormat );
+
 	if(bIsDefault)
 	{
 		return DefaultFormatter;
@@ -242,6 +251,14 @@ TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetCur
 	else
 	{
 		const TSharedRef<icu::DecimalFormat> Formatter( static_cast<icu::DecimalFormat*>(DefaultFormatter->clone()) );
+		
+		if (!CurrencyCode.IsEmpty())
+		{
+			icu::UnicodeString ICUCurrencyCode;
+			ICUUtilities::ConvertString(CurrencyCode, ICUCurrencyCode);
+			Formatter->setCurrency(ICUCurrencyCode.getBuffer());
+		}
+
 		if(Options)
 		{
 			Formatter->setGroupingUsed(Options->UseGrouping);
@@ -251,6 +268,7 @@ TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetCur
 			Formatter->setMinimumFractionDigits(Options->MinimumFractionalDigits);
 			Formatter->setMaximumFractionDigits(Options->MaximumFractionalDigits);
 		}
+
 		return Formatter;
 	}
 }

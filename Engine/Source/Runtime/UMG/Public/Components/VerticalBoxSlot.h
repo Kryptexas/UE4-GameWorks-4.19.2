@@ -11,40 +11,46 @@ UCLASS()
 class UMG_API UVerticalBoxSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
 	FSlateChildSize Size;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (Vertical Box Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetPadding(FMargin InPadding);
+public:
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetSize(FSlateChildSize InSize);
+	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
+		void SetPadding(FMargin InPadding);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
+		void SetSize(FSlateChildSize InSize);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
+		void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+	UFUNCTION(BlueprintCallable, Category="Layout (Vertical Box Slot)")
+		void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+
+public:
 
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SVerticalBox> InVerticalBox);

@@ -7,9 +7,9 @@ FArrangedWidget FWidgetPath::FindArrangedWidget( TSharedRef<const SWidget> Widge
 {
 	for(int32 WidgetIndex = 0; WidgetIndex < Widgets.Num(); ++WidgetIndex)
 	{
-		if ( Widgets(WidgetIndex).Widget == WidgetToFind )
+		if ( Widgets[WidgetIndex].Widget == WidgetToFind )
 		{
-			return Widgets(WidgetIndex);
+			return Widgets[WidgetIndex];
 		}
 	}
 
@@ -64,29 +64,29 @@ bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirec
 	
 		// Arrange the children so we can iterate through them regardless of widget type.
 		FArrangedChildren ArrangedChildren(EVisibility::Visible);
-		Widgets(PathLevel).Widget->ArrangeChildren( Widgets(PathLevel).Geometry, ArrangedChildren );
+		Widgets[PathLevel].Widget->ArrangeChildren( Widgets[PathLevel].Geometry, ArrangedChildren );
 
 		// Find the currently focused child among the children.
-		int32 FocusedChildIndex = ArrangedChildren.FindItemIndex( Widgets(PathLevel+1) );
+		int32 FocusedChildIndex = ArrangedChildren.FindItemIndex( Widgets[PathLevel+1] );
 		FocusedChildIndex = (FocusedChildIndex) % ArrangedChildren.Num() + MoveDirectionAsInt;
 
 		// Now actually search for the widget.
 		for( ; FocusedChildIndex < ArrangedChildren.Num() && FocusedChildIndex >= 0; FocusedChildIndex += MoveDirectionAsInt )
 		{
 			// Neither disabled widgets nor their children can be focused.
-			if ( ArrangedChildren(FocusedChildIndex).Widget->IsEnabled() )
+			if ( ArrangedChildren[FocusedChildIndex].Widget->IsEnabled() )
 			{
 				// Look for a focusable descendant.
-				FArrangedChildren PathToFocusableChild = GeneratePathToWidget( FFocusableWidgetMatcher(), ArrangedChildren(FocusedChildIndex), MoveDirection );
+				FArrangedChildren PathToFocusableChild = GeneratePathToWidget( FFocusableWidgetMatcher(), ArrangedChildren[FocusedChildIndex], MoveDirection );
 				// Either we found a focusable descendant, or an immediate child that is focusable.
-				const bool bFoundNextFocusable = ( PathToFocusableChild.Num() > 0 ) || ArrangedChildren(FocusedChildIndex).Widget->SupportsKeyboardFocus();
+				const bool bFoundNextFocusable = ( PathToFocusableChild.Num() > 0 ) || ArrangedChildren[FocusedChildIndex].Widget->SupportsKeyboardFocus();
 				if ( bFoundNextFocusable )
 				{
 					// We found the next focusable widget, so make this path point at the new widget by:
 					// First, truncating the FocusPath up to the current level (i.e. PathLevel).
 					Widgets.Remove( PathLevel+1, Widgets.Num()-PathLevel-1 );
 					// Second, add the immediate child that is focus or whose descendant is focused.
-					Widgets.AddWidget( ArrangedChildren(FocusedChildIndex) );
+					Widgets.AddWidget( ArrangedChildren[FocusedChildIndex] );
 					// Add path to focused descendants if any.
 					Widgets.Append( PathToFocusableChild );
 					// We successfully moved focus!
@@ -106,7 +106,7 @@ FWeakWidgetPath::FWeakWidgetPath( const FWidgetPath& InWidgetPath )
 {
 	for( int32 WidgetIndex = 0; WidgetIndex < InWidgetPath.Widgets.Num(); ++WidgetIndex )
 	{
-		Widgets.Add( TWeakPtr<SWidget>( InWidgetPath.Widgets(WidgetIndex).Widget ) );
+		Widgets.Add( TWeakPtr<SWidget>( InWidgetPath.Widgets[WidgetIndex].Widget ) );
 	}
 }
 
@@ -158,13 +158,13 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 				// Find the next widget in the path among the arranged children.
 				for( int32 SearchIndex = 0; !bFoundChild && SearchIndex < ArrangedChildren.Num(); ++SearchIndex )
 				{						
-					if ( ArrangedChildren(SearchIndex).Widget == WidgetPtrs[WidgetIndex+1] )
+					if ( ArrangedChildren[SearchIndex].Widget == WidgetPtrs[WidgetIndex+1] )
 					{
 						bFoundChild = true;
 						// Remember the widget and the associated geometry.
-						PathWithGeometries.AddWidget( ArrangedChildren(SearchIndex) );
+						PathWithGeometries.AddWidget( ArrangedChildren[SearchIndex] );
 						// The next child in the vertical slice will be arranged with respect to its parent's geometry.
-						ParentGeometry = ArrangedChildren(SearchIndex).Geometry;
+						ParentGeometry = ArrangedChildren[SearchIndex].Geometry;
 					}
 				}
 			}

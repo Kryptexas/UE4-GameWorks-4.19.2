@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SEditableComboBox.h: Declares the SEditableComboBox class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -32,7 +28,7 @@ public:
 		: _ButtonStyle( &FCoreStyle::Get().GetWidgetStyle< FButtonStyle >( "Button" ) )
 		, _Content()
 		, _ContentPadding(FMargin(4.0, 2.0))
-		, _InitiallySelectedItem(NULL)
+		, _InitiallySelectedItem(nullptr)
 		, _MaxListHeight(450.0f)
 		, _IsRenameVisible(EVisibility::Visible)
 		, _OnGetEditableText()
@@ -79,9 +75,7 @@ public:
 
 public:
 
-	/**
-	 * Clears the combo box selection.
-	 */
+	/** Clears the combo box selection. */
 	void ClearSelection( )
 	{
 		ComboBox->ClearSelection();
@@ -90,7 +84,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
+	 * @param InArgs The Slate argument list.
 	 */
 	void Construct( const FArguments& InArgs )
 	{
@@ -235,7 +229,7 @@ public:
 	/**
 	 * Gets the item that is currently selected in the combo box.
 	 *
-	 * @return The selected item, or NULL if no item is selected.
+	 * @return The selected item, or nullptr if no item is selected.
 	 */
 	OptionType GetSelectedItem( ) 
 	{
@@ -259,7 +253,7 @@ public:
 	/**
 	 * Sets the item that is selected in the combo box.
 	 *
-	 * @param InSelectedItem - The item to select.
+	 * @param InSelectedItem The item to select.
 	 */
 	void SetSelectedItem( OptionType InSelectedItem )
 	{
@@ -267,7 +261,6 @@ public:
 
 		ComboBox->SetSelectedItem(InSelectedItem);
 	}
-
 
 private:
 
@@ -328,7 +321,6 @@ private:
 		}
 	}
 
-
 private:
 
 	// Holds the combo box.
@@ -339,7 +331,6 @@ private:
 
 	// Holds the text box.
 	TSharedPtr<SEditableTextBox> TextBox;
-
 
 private:
 

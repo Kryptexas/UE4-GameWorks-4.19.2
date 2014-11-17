@@ -57,6 +57,12 @@ namespace APIDocTool
 			// Get the description
 			ParseBriefAndFullDescription(Node, out BriefDescription, out FullDescription);
 
+			// If there isn't one and we're in a namespace, use that instead
+			if(String.IsNullOrEmpty(BriefDescription) && String.IsNullOrEmpty(FullDescription) && Entity.NamespaceNode != null)
+			{
+				ParseBriefAndFullDescription(Entity.NamespaceNode, out BriefDescription, out FullDescription);
+			}
+
 			// Link all the values
 			foreach (APIEnumValue Value in Values)
 			{
@@ -95,51 +101,21 @@ namespace APIDocTool
 			{
 				Writer.WritePageHeader(AnnotateAnonymousNames(Name), PageCrumbs, BriefDescription);
 
-				Writer.EnterTag("[OBJECT:Enum]");
-
-				Writer.EnterTag("[PARAM:briefdesc]");
-				if (!Utility.IsNullOrWhitespace(BriefDescription))
-				{
-					Writer.WriteLine(BriefDescription);
-				}
-				Writer.LeaveTag("[/PARAM]");
-
 				// Write the syntax
-				Writer.EnterTag("[PARAM:syntax]");
 				Writer.EnterSection("syntax", "Syntax");
 				WriteDefinition(Writer);
 				Writer.LeaveSection();
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write the metadata
-				Writer.EnterTag("[PARAM:meta]");
-				if (MetadataDirective != null)
-				{
-					MetadataDirective.WriteListSection(Writer, "metadata", "Metadata", MetadataLookup.EnumTags);
-				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the enum values
-				Writer.EnterTag("[PARAM:values]");
-				Writer.WriteListSection("values", "Values", "Name", "Description", Values.Select(x => x.GetListItem()));
-				Writer.LeaveTag("[/PARAM]");
-
-				// Write the description
-				Writer.EnterTag("[PARAM:description]");
-				if (!Utility.IsNullOrWhitespace(FullDescription) && FullDescription != BriefDescription)
+				if (!Utility.IsNullOrWhitespace(FullDescription))
 				{
 					Writer.EnterSection("description", "Remarks");
 					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
-				Writer.LeaveTag("[/PARAM]");
 
 				// Write the references
-				Writer.EnterTag("[PARAM:references]");
 				WriteReferencesSection(Writer, Entity);
-				Writer.LeaveTag("[/PARAM]");
-
-				Writer.LeaveTag("[/OBJECT]");
 			}
         }
 

@@ -15,8 +15,13 @@ struct FBlackboardEntry
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	FName EntryName;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, Category=Blackboard, Meta=(ToolTip="Optional description to explain what this blackboard entry does."))
+	FString EntryDescription;
+#endif // WITH_EDITORONLY_DATA
+
 	/** key type and additional properties */
-	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard, meta=(UseDisplayNames="true"))
+	UPROPERTY(EditAnywhere, Instanced, Category=Blackboard)
 	UBlackboardKeyType* KeyType;
 };
 
@@ -37,7 +42,7 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 #endif
 
 	/** blackboard keys */
-	UPROPERTY(EditAnywhere, EditInLine, Category=Blackboard)
+	UPROPERTY(EditAnywhere, Category=Blackboard)
 	TArray<FBlackboardEntry> Keys;
 
 	/** @return key ID from name */
@@ -115,4 +120,7 @@ protected:
 
 	/** updates parent key cache for editor */
 	void UpdateParentKeys();
+
+	/** check if parent chain contains given blackboard data */
+	bool HasParent(const UBlackboardData* TestParent) const;
 };

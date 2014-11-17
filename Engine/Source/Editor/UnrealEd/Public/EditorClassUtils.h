@@ -34,12 +34,27 @@ namespace FEditorClassUtils
 	UNREALED_API TSharedRef<SToolTip> GetTooltip(const UClass* Class);
 
 	/**
+	 * Gets the tooltip to display for a given class with specified text for the tooltip
+	 *
+	 * @param	InClass			Class we want to build a tooltip for
+	 * @param	OverrideText	The text to display on the standard tooltip
+	 * @return					Shared reference to the constructed tooltip
+	 */
+	UNREALED_API TSharedRef<SToolTip> GetTooltip(const UClass* Class, const TAttribute<FText>& OverrideText);
+
+	/**
 	 * Returns the link path to the documentation for a given class
 	 *
 	 * @param	Class		Class we want to build a link for
 	 * @return				The path to the documentation for the class
 	 */
-	UNREALED_API FString GetDocumentationLink(const UClass* Class);
+	UNREALED_API FString GetDocumentationLink(const UClass* Class, const FString& OverrideExcerpt = FString());
+
+
+	/**
+	 * Return link path from a specified excerpt
+	 */
+	UNREALED_API FString GetDocumentationLinkFromExcerpt(const FString& DocLink, const FString DocExcerpt);
 
 	/**
 	 * Creates a link widget to the documentation for a given class
@@ -57,4 +72,12 @@ namespace FEditorClassUtils
 	 * @return					Shared pointer to the constructed tooltip
 	 */
 	UNREALED_API TSharedRef<SWidget> GetSourceLink(const UClass* Class, const TWeakObjectPtr<UObject> ObjectWeakPtr);
+
+	/**
+	 * Fetches a UClass from the string name of the class
+	 *
+	 * @param	ClassName		Name of the class we want the UClass for
+	 * @return					UClass pointer if it exists
+	 */
+	UNREALED_API UClass* GetClassFromString(const FString& ClassName);
 };

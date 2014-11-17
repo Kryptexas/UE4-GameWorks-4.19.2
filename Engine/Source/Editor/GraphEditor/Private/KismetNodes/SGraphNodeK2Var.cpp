@@ -7,6 +7,8 @@
 #include "SGraphNodeK2Var.h"
 #include "ClassIconFinder.h"
 #include "IDocumentation.h"
+#include "BlueprintEditorUtils.h"
+#include "TutorialMetaData.h"
 
 void SGraphNodeK2Var::Construct( const FArguments& InArgs, UK2Node* InNode )
 {
@@ -99,7 +101,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 			SubTitleText = FText::Format(NSLOCTEXT("GraphEditor", "ActorRef", "from {0}"), LevelName);
 		}
 
-		TitleText = GraphNode->GetNodeTitle(ENodeTitleType::ListView);
+		TitleText = GraphNode->GetNodeTitle(ENodeTitleType::FullTitle);
 
 		TitleHAlign = HAlign_Left;
 		TitleMargin = FMargin(12.0f, VerticalTitleMargin, 32.0f, 2.0f);
@@ -158,6 +160,10 @@ void SGraphNodeK2Var::UpdateGraphNode()
 
 	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
 
+	// Setup a meta tag for this node
+	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
+	PopulateMetaTag(&TagMeta);
+
 	//             ________________
 	//            | (>) L |  R (>) |
 	//            | (>) E |  I (>) |
@@ -182,6 +188,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		+SVerticalBox::Slot()
 		[
 			SNew(SOverlay)
+			.AddMetaData<FGraphNodeMetaData>(TagMeta)
 			+ SOverlay::Slot()
 			[
 				SNew(SImage)

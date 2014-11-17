@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_CallFunction.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_GetInputAxisValue.generated.h"
 
 UCLASS(MinimalAPI)
@@ -23,7 +24,8 @@ class UK2Node_GetInputAxisValue : public UK2Node_CallFunction
 	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	// End EdGraphNode interface
 
 	// Begin UK2Node interface
@@ -31,9 +33,15 @@ class UK2Node_GetInputAxisValue : public UK2Node_CallFunction
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual UClass* GetDynamicBindingClass() const override;
 	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End UK2Node interface
 	
 	void Initialize(const FName AxisName);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
+	FNodeTextCache CachedNodeTitle;
 };

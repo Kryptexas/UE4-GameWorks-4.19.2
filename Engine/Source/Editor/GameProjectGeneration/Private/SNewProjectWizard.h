@@ -2,8 +2,8 @@
 
 #pragma once
 
-
 struct FTemplateItem;
+struct FTemplateCategory;
 
 
 /**
@@ -25,20 +25,28 @@ public:
 
 private:
 
-	/** Construct the folder diagram */
-	TSharedRef<SWidget> ConstructDiagram();
-
-	/** Gets the image to display for the specified template */
-	const FSlateBrush* GetTemplateItemImage(TWeakPtr<FTemplateItem> TemplateItem) const;
+	/** Build the set of template category tabs */
+	TSharedRef<SWidget> BuildCategoryTabs();
 
 	/** Accessor for the currently selected template item */
 	TSharedPtr<FTemplateItem> GetSelectedTemplateItem() const;
 
+	/** Helper function to allow direct lookup of the selected item's properties on a delegate */
+	/** TRet should be defaulted but VS2012 doesn't allow default template arguments on non-class templates */
+	template<typename T>
+	T GetSelectedTemplateProperty(T FTemplateItem::*Prop) const
+	{
+		TSharedPtr<FTemplateItem> SelectedItem = GetSelectedTemplateItem();
+		if ( SelectedItem.IsValid() )
+		{
+			return (*SelectedItem).*Prop;
+		}
+
+		return T();
+	}
+
 	/** Accessor for the project name text */
 	FText GetCurrentProjectFileName() const;
-
-	/** Accessor for the project name string */
-	FString GetCurrentProjectFileNameString() const;
 
 	/** Accessor for the project filename string with the extension */
 	FString GetCurrentProjectFileNameStringWithExtension() const;
@@ -60,6 +68,13 @@ private:
 
 	/** Accessor for the label to show the currently selected template */
 	FText GetSelectedTemplateName() const;
+
+	/** Get the images for the selected template preview and category */
+	const FSlateBrush* GetSelectedTemplatePreviewImage() const;
+	const FSlateBrush* GetSelectedTemplateTypeImage() const;
+
+	/** Get the visibility for the selected template preview image */
+	EVisibility GetSelectedTemplatePreviewVisibility() const;
 
 	/** Gets the assembled project filename with path */
 	FString GetProjectFilenameWithPath() const;
@@ -98,13 +113,25 @@ private:
 	FText GetNameAndLocationErrorLabelText() const;
 
 	/** Handler for when the "copy starter content" checkbox changes state */
-	void OnCopyStarterContentChanged(ESlateCheckBoxState::Type InNewState);
+	void OnSetCopyStarterContent(int32 InCopyStarterContent);
 
-	/** Returns true if the "copy starter content" checkbox should be checked. */
-	ESlateCheckBoxState::Type IsCopyStarterContentChecked() const;
+	/** Get whether we are copying starter content or not */
+	int32 GetCopyStarterContentIndex() const { return bCopyStarterContent ? 1 : 0; };
 
-	/** Gets the visibility of the copy starter content option */
-	EVisibility GetCopyStarterContentCheckboxVisibility() const;
+	/** Returns the visibility of the starter content warning */
+	EVisibility GetStarterContentWarningVisibility() const;
+
+	/** Returns the tooltip text (actual warning) of the starter content warning */
+	FText GetStarterContentWarningTooltip() const;
+private:
+
+	EHardwareClass::Type SelectedHardwareClassTarget;
+	void SetHardwareClassTarget(EHardwareClass::Type InHardwareClass);
+	EHardwareClass::Type GetHardwareClassTarget() const { return SelectedHardwareClassTarget; }
+
+	EGraphicsPreset::Type SelectedGraphicsPreset;
+	void SetGraphicsPreset(EGraphicsPreset::Type InGraphicsPreset);
+	EGraphicsPreset::Type GetGraphicsPreset() const { return SelectedGraphicsPreset; }
 
 private:
 
@@ -149,32 +176,22 @@ private:
 	/** Handler for when the Create button is clicked */
 	void HandleCreateProjectWizardFinished( );
 
-	/** Creates a row in the template list */
-	TSharedRef<ITableRow> HandleTemplateListViewGenerateRow( TSharedPtr<FTemplateItem> TemplateItem, const TSharedRef<STableViewBase>& OwnerTable );
-
 	/** Called when a user double-clicks a template item in the template project list. */
 	void HandleTemplateListViewDoubleClick( TSharedPtr<FTemplateItem> TemplateItem );
 
 	/** Handler for when the selection changes in the template list */
 	void HandleTemplateListViewSelectionChanged( TSharedPtr<FTemplateItem> TemplateItem, ESelectInfo::Type SelectInfo );
 
-private:
-	/* @return Whether the expanded items are currently visible, based on the current expander state */
-	EVisibility GetExpandedItemsVisibility() const;
+	/** Handle choosing a different category tab */
+	void HandleCategoryChanged(ESlateCheckBoxState::Type Checked, FName Category);
 
-	/* @return The scale to apply to the expanded items, based on the rollout curve value */
-	FVector2D GetExpandedItemsScale() const;
-
-	/* @return The brush to use for the expander icon, based on the current expander state */
-	const FSlateBrush* GetExpanderIcon() const;
-
-	/* Handle the expander button being clicked (toggles the expansion state) */
-	FReply OnExpanderClicked();
+	/** Get the check state for the specified categories tab */
+	ESlateCheckBoxState::Type GetCategoryTabCheckState(FName Category) const;
 
 private:
 
 	/** The wizard widget */
-	TSharedPtr<SWizard> MainWizard;
+	TSharedPtr<class SWizard> MainWizard;
 
 	FString LastBrowsePath;
 	FString CurrentProjectFileName;
@@ -202,24 +219,23 @@ private:
 	/** True if the last NameAndLocation validity check returned that the project path is valid for creation */
 	bool bLastNameAndLocationValidityCheckSuccessful;
 
-	/** True if the items are currently expanded */
-	bool bItemsAreExpanded;
-
-	/** Curved used to simulate a rollout of the section */
-	FCurveSequence ExpanderRolloutCurve;
-
 	/** The name of the page that is currently in view */
 	FName CurrentPageName;
 
 	/** True if user has selected to copy starter content. */
 	bool bCopyStarterContent;
 
-	/** True if starter content is available to be copied into new projects. */
-	bool bStarterContentIsAvailable;
+	/** Name of the currently selected category */
+	FName ActiveCategory;
 
-	/** Template items */
-	TArray<TSharedPtr<FTemplateItem> > TemplateList;
-	TSharedPtr<SListView<TSharedPtr<FTemplateItem> > > TemplateListView;
+	/** A map of category name to array of templates available for that category */
+	TMap<FName, TArray<TSharedPtr<FTemplateItem>> > Templates;
+
+	/** The filtered array of templates we are currently showing */
+	TArray<TSharedPtr<FTemplateItem> > FilteredTemplateList;
+
+	/** The slate widget representing the list of templates */
+	TSharedPtr<STileView<TSharedPtr<FTemplateItem> > > TemplateListView;
 
 	/** Names for pages */
 	static FName TemplatePageName;

@@ -1,5 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "Styling/StyleDefaults.h"
+
+struct FMargin;
+struct FSlateColor;
+struct FSlateFontInfo;
+struct FSlateSound;
+struct FSlateWidgetStyle;
 
 /**
  * 

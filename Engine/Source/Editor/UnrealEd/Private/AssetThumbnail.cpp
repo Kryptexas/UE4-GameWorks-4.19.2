@@ -149,10 +149,8 @@ public:
 			OverlayWidget->AddSlot()
 			[
 				SNew(SBorder)
-				.Padding(2)
-				.BorderImage(FEditorStyle::GetBrush(Style, ".Border"))
-				//.BorderImage(FEditorStyle::GetBrush("NoBrush"))
-				.BorderBackgroundColor(this, &SAssetThumbnail::GetViewportBorderColorAndOpacity)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("NoBrush"))
 				.ColorAndOpacity(this, &SAssetThumbnail::GetViewportColorAndOpacity)
 				.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
 				[
@@ -182,6 +180,18 @@ public:
 				.WrapTextAt(this, &SAssetThumbnail::GetTextWrapWidth)
 				.HighlightText( HighlightedText )
 			]
+		];
+
+		// The asset color strip, only visible when the rendered viewport is
+		OverlayWidget->AddSlot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(AssetColor)
+			.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
+			.Padding(this, &SAssetThumbnail::GetAssetColorStripPadding)
 		];
 
 		ChildSlot
@@ -330,6 +340,13 @@ private:
 	EVisibility GetViewportVisibility() const
 	{
 		return bHasRenderedThumbnail ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	FMargin GetAssetColorStripPadding() const
+	{
+		// The strip is 2.5% the height of the thumbnail
+		const float Height = FMath::CeilToFloat(WidthLastFrame*0.025f);
+		return FMargin(0,Height,0,0);
 	}
 
 	const FSlateBrush* GetClassThumbnailBrush() const

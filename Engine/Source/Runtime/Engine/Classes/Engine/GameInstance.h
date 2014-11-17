@@ -25,6 +25,8 @@ namespace GameInstanceState
 	extern ENGINE_API const FName Playing;			// We are playing the game
 }
 
+class FOnlineSessionSearchResult;
+
 
 UCLASS(config=Game, transient, BlueprintType, Blueprintable)
 class ENGINE_API UGameInstance : public UObject, public FExec
@@ -56,6 +58,9 @@ public:
 	/** Gives GameInstance an opportunity to set up what it needs */
 	virtual void Init();
 
+	/** virtual function to allow custom GameInstances an opportunity to do cleanup when shutting down */
+	virtual void Shutdown();
+
 #if WITH_EDITOR
 	virtual bool InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance);
 
@@ -69,6 +74,8 @@ public:
 
 	/** Starts the GameInstance state machine running */
 	virtual void StartGameInstance();
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults) { return false; }
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult & SearchResult) { return false; }
 
 	/** Local player access */
 
@@ -118,6 +125,7 @@ public:
 	APlayerController*		GetFirstLocalPlayerController() const;
 	ULocalPlayer*			FindLocalPlayerFromControllerId(int32 ControllerId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr< FUniqueNetId > UniqueNetId) const;
+	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
 	ULocalPlayer*			GetFirstGamePlayer() const;
 
 	void					CleanupGameViewport();

@@ -95,6 +95,22 @@ FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 			bWillEverBeLit = false;
 		}
 
+		virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+		{
+			QUICK_SCOPE_CYCLE_COUNTER( STAT_BoxSceneProxy_GetDynamicMeshElements );
+
+			const FMatrix& LocalToWorld = GetLocalToWorld();
+			const FColor DrawColor = GetSelectionColor(BoxColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
+
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+					DrawOrientedWireBox(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), BoxExtents, DrawColor, SDPG_World);
+				}
+			}
+		}
 
 		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 		{

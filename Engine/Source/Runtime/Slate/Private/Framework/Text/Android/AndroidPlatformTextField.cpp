@@ -17,13 +17,13 @@
 #define TYPE_TEXT_FLAG_NO_SUGGESTIONS		0x00080000
 
 
-void FAndroidPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget)
+void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
 {
 	if(bShow)
 	{
 		// Set the EditBox inputType based on keyboard type
 		int32 InputType;
-		switch (TextEntryWidget->GetKeyboardType())
+		switch (TextEntryWidget->GetVirtualKeyboardType())
 		{
 		case EKeyboardType::Keyboard_Number:
 			InputType = TYPE_CLASS_NUMBER | TYPE_TEXT_VARIATION_NORMAL;
@@ -47,7 +47,7 @@ void FAndroidPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyb
 		InputType |= TYPE_TEXT_FLAG_NO_SUGGESTIONS;
 
 		// Show alert for input
-		extern void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<SVirtualKeyboardEntry>, int32, const FString&, const FString&);
+		extern void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry>, int32, const FString&, const FString&);
 		AndroidThunkCpp_ShowVirtualKeyboardInput(TextEntryWidget, InputType, TextEntryWidget->GetHintText().ToString(), TextEntryWidget->GetText().ToString());
 	}
 }

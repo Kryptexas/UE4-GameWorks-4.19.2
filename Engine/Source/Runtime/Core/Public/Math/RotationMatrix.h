@@ -12,6 +12,15 @@ public:
 	 */
 	FRotationMatrix(const FRotator& Rot) : FRotationTranslationMatrix(Rot, FVector::ZeroVector)	{}
 
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static FMatrix Make(FRotator const& Rot)
+	{
+		return FRotationMatrix(Rot);
+	}
+
+	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
+	static CORE_API FMatrix Make(FQuat const& Rot);
+
 	/** Builds a rotation matrix given only a XAxis. Y and Z are unspecified but will be orthonormal. XAxis need not be normalized. */
 	static CORE_API FMatrix MakeFromX(FVector const& XAxis);
 

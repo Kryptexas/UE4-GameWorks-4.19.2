@@ -11,8 +11,6 @@
 
 UEnvQueryGenerator_PathingGrid::UEnvQueryGenerator_PathingGrid(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_PathingGrid::GenerateItems);
-
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
 	MaxPathDistance.Value = 100.0f;
@@ -20,7 +18,7 @@ UEnvQueryGenerator_PathingGrid::UEnvQueryGenerator_PathingGrid(const class FPost
 	PathFromContext.Value = true;
 }
 
-void UEnvQueryGenerator_PathingGrid::GenerateItems(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryGenerator_PathingGrid::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
 #if WITH_RECAST
 	const ARecastNavMesh* NavMesh = FEQSHelpers::FindNavMeshForQuery(QueryInstance);
@@ -129,8 +127,8 @@ void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARec
 		}
 	}
 #else
-	TSharedPtr<FNavigationQueryFilter> NavFilterInstance = NavigationFilter != NULL 
-		? UNavigationQueryFilter::GetQueryFilter<URecastFilter_UseDefaultArea>(NavMesh)->GetCopy()
+	TSharedPtr<FNavigationQueryFilter> NavFilterInstance = NavigationFilter != NULL
+		? UNavigationQueryFilter::GetQueryFilter(NavMesh, NavigationFilter)->GetCopy()
 		: NavMesh->GetDefaultQueryFilter()->GetCopy();
 
 	NavFilterInstance->SetBacktrackingEnabled(!bPathFromContext);

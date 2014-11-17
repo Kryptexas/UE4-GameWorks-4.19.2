@@ -19,11 +19,13 @@ public:
 	FPropertyTableObjectNameColumn( const TSharedRef< IPropertyTable >& InTable )
 		: Table( InTable )
 		, Cells()
-		, bIsHidden( false )
 		, Width( 2.0f )
+		, bIsHidden( false )
 	{
 
 	}
+
+	virtual ~FPropertyTableObjectNameColumn() {}
 
 	//  Begin IPropertyTable Interface
 

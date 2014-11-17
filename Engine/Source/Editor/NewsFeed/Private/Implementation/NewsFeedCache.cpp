@@ -13,8 +13,8 @@ const FString FeedFilename(TEXT("newsfeed.json"));
  *****************************************************************************/
 
 FNewsFeedCache::FNewsFeedCache( )
-	: CurrentCultureSpec(ENewsFeedCultureSpec::Full)
-	, LoaderState(ENewsFeedState::NotStarted)
+	: LoaderState(ENewsFeedState::NotStarted)
+	, CurrentCultureSpec(ENewsFeedCultureSpec::Full)
 {
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FNewsFeedCache::HandleTicker);
 }
@@ -89,7 +89,7 @@ void FNewsFeedCache::LoadTitleFile( )
 	FString CultureString;
 
 	// get current culture
-	TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = FInternationalization::Get().GetCurrentCulture();
+	FCultureRef Culture = FInternationalization::Get().GetCurrentCulture();
 
 	if (CurrentCultureSpec == ENewsFeedCultureSpec::Full)
 	{

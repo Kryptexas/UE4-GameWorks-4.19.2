@@ -61,7 +61,9 @@ namespace UnrealBuildTool
 
         /// True if we are using "clang-cl" to compile instead of MSVC on Windows platform
         public static readonly bool bCompileWithClang = false;
-            // !UnrealBuildTool.CommandLineContains( "UnrealHeaderTool" );	// @todo clang: Avoid using Clang to compile UHT because 64-bit toolchain is not ready yet
+
+		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
+		public static readonly bool bAllowClangLinker = false;
 
         /// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
         /// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -73,6 +75,12 @@ namespace UnrealBuildTool
         {
             get
             {
+				// @todo clang: DTE #import doesn't work with Clang compiler
+				if( bCompileWithClang )
+				{
+					return false;
+				}
+
                 try
                 {
                     // Interrogate the Win32 registry
@@ -324,7 +332,7 @@ namespace UnrealBuildTool
          */
         public override void ValidateUEBuildConfiguration()
         {
-            UEBuildConfiguration.bCompileICU &= !bCompileWithClang;	// @todo clang: ICU causes STL link errors when using Clang on Windows.  Needs debugging.
+            UEBuildConfiguration.bCompileICU = true;
         }
 
         public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
@@ -426,7 +434,7 @@ namespace UnrealBuildTool
                 // that is set by the modules the target includes to allow for easier tracking.
                 // Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
                 if (InBuildTarget.ShouldCompileMonolithic() && (InBuildTarget.Rules != null) &&
-                    (TargetRules.IsGameType(InBuildTarget.Rules.Type)) && (TargetRules.IsEditorType(InBuildTarget.Rules.Type) == false))
+                    (TargetRules.IsGameType(InBuildTarget.TargetType)) && (TargetRules.IsEditorType(InBuildTarget.TargetType) == false))
                 {
                     InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("atl");
                     InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("atls");

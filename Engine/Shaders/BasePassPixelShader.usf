@@ -61,42 +61,55 @@ float4 PointSkyBentNormal;
 #if TRANSLUCENCY_LIGHTING_SURFACE
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-/** Prenormalized capture of the scene that's closest to the object being rendered, used for reflection environment on translucency. */
-TextureCubeArray ReflectionCubemap;
-SamplerState ReflectionCubemapSampler;
-int CubemapArrayIndex;
+	/** Prenormalized capture of the scene that's closest to the object being rendered, used for reflection environment on translucency. */
+	TextureCubeArray ReflectionCubemap;
+	SamplerState ReflectionCubemapSampler;
+	int CubemapArrayIndex;
+#else
+	TextureCube ReflectionCubemap;
+	SamplerState ReflectionCubemapSampler;
 #endif
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half IndirectIrradiance)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
+#else
+	float4 SpecularIBL = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, AbsoluteSpecularMip);
+#endif
+
+	FLATTEN
+	if (View.UseLightmaps > 0)
+	{
+		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
+		SpecularIBL.rgb *= IndirectIrradiance;
+	}
 
 #if ENABLE_SKY_LIGHT
 	BRANCH
-	if (SkyLightParameters.y > 0 && SpecularIBL.a < .001f)
+	if (SkyLightParameters.y > 0 && SpecularIBL.a < .999f)
 	{
-		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, View.UseLightmaps);
+		// Normalize for static skylight types which mix with lightmaps
+		bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps;
+		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, bNormalize);
+
+		FLATTEN
+		if (bNormalize)
+		{
+			SkyLighting *= IndirectIrradiance;
+		}
+
 		// Add in sky wherever reflection captures don't have coverage
 		SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
 	}
 #endif
 	
-	BRANCH
-	if( View.UseLightmaps > 0 )
-	{
-		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
-		SpecularIBL.rgb *= IndirectIrradiance;
-	}
-	
 	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
 	return SpecularIBL.rgb * SpecularColor;
-#else
-	return 0;
-#endif
 }
 
 #endif
@@ -156,11 +169,16 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		float4 OuterLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
 
 		// Lerp between cascades
+		float4 Vector0 = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
+		
 		// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
-		float4 TranslucentLighting = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
+		FOneBandSHVectorRGB TranslucentLighting;
+		TranslucentLighting.R.V.x = Vector0.r;
+		TranslucentLighting.G.V.x = Vector0.g;
+		TranslucentLighting.B.V.x = Vector0.b;
 
-		float DiffuseTransfer = PI * 0.282095f;
-		float4 VolumeLighting = float4( TranslucentLighting.rgb * DiffuseTransfer, TranslucentLighting.a );
+		FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
+		float4 VolumeLighting = float4( DotSH1(TranslucentLighting, DiffuseTransferSH), Vector0.a );
 
 		// Determine lighting if no self shadowing is applied
 		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
@@ -201,8 +219,11 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 				// Setup a pow lobe to approximate anisotropic in-scattering near to the light direction
 				float InScattering = pow(saturate(dot(View.DirectionalLightDirection, MaterialParameters.CameraVector)), InScatterPower);
 
+				float4 SSData = GetMaterialSubsurfaceData(MaterialParameters);
+				float3 SubsurfaceColor = SSData.rgb;
+
 				BackscatteredLighting = 
-					GetMaterialSubsurfaceColor(MaterialParameters) 
+					SubsurfaceColor
 					* InScattering 
 					* View.DirectionalLightColor.rgb
 					// Energy normalization, tighter lobes should be brighter
@@ -221,31 +242,6 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 			InterpolatedLighting = (BackscatteredLighting + DiffuseColor * max(VolumeLighting.rgb - SelfShadowingCorrection, 0));
 		}
 
-	#endif
-
-	#if CACHED_POINT_INDIRECT_LIGHTING 
-		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
-
-			FTwoBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0];
-			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1];
-			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2];
-
-			// Compute diffuse lighting which takes the normal into account
-			float3 DiffuseGI = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
-			IndirectIrradiance += Luminance(DiffuseGI);
-
-			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
-
-		#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
-
-			float3 PointIndirectLighting = float3(IndirectLightingSHCoefficients[0].x, IndirectLightingSHCoefficients[1].x, IndirectLightingSHCoefficients[2].x);
-			float3 DiffuseGI = PointIndirectLighting * DiffuseTransfer;
-			IndirectIrradiance += Luminance(DiffuseGI);
-
-			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
-
-		#endif
 	#endif
 
 	#if TRANSLUCENCY_LIGHTING_SURFACE
@@ -278,7 +274,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 
 #if ENABLE_SKY_LIGHT
 
-	float SkyOcclusion = 1;
+	float SkyVisibility = 1;
 	float3 SkyLightingNormal = WorldNormal;
 	
 	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
@@ -291,13 +287,13 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 				float4 WorldSkyBentNormalAndOcclusion = GetSkyBentNormalAndOcclusion(LightmapUV * float2(1, 2));
 				// Renormalize as vector was quantized and compressed
 				float3 NormalizedBentNormal = normalize(WorldSkyBentNormalAndOcclusion.xyz);
-				SkyOcclusion = WorldSkyBentNormalAndOcclusion.w;
+				SkyVisibility = WorldSkyBentNormalAndOcclusion.w;
 
 			#elif CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
 
 				// Bent normal from the indirect lighting cache - one value for the whole object
 				float3 NormalizedBentNormal = PointSkyBentNormal.xyz;
-				SkyOcclusion = PointSkyBentNormal.w;
+				SkyVisibility = PointSkyBentNormal.w;
 
 			#endif
 
@@ -307,7 +303,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 			#else
 				
 				// Weight toward the material normal to increase directionality
-				float BentNormalWeightFactor = 1 - (1 - SkyOcclusion) * (1 - SkyOcclusion);
+				float BentNormalWeightFactor = 1 - (1 - SkyVisibility) * (1 - SkyVisibility);
 
 				// We are lerping between the inputs of two lighting scenarios based on occlusion
 				// In the mostly unoccluded case, evaluate sky lighting with the material normal, because it has higher detail
@@ -317,7 +313,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 
 				float DotProductFactor = lerp(saturate(dot(NormalizedBentNormal, WorldNormal)), 1, BentNormalWeightFactor);
 				// Account for darkening due to the geometry term
-				SkyOcclusion *= DotProductFactor;
+				SkyVisibility *= DotProductFactor;
 			#endif
 		}
 	#endif
@@ -326,13 +322,13 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
 
 	// Apply AO to the sky diffuse
-	Lighting += DiffuseLookup * SkyOcclusion;
+	Lighting += DiffuseLookup * SkyVisibility;
 #endif
 
 	return Lighting;
 }
 
-/** Calculates indirect lighting contribution on this object. */
+/** Calculates indirect lighting contribution on this object from precomputed data. */
 float3 GetPrecomputedIndirectLighting(
 	FMaterialPixelParameters MaterialParameters, 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
@@ -343,8 +339,7 @@ float3 GetPrecomputedIndirectLighting(
 	float3 Lighting = 0;
 	float2 SkyOcclusionUV = 0;
 
-	#define AMBIENTONLY 0
-
+	// Method for movable components which want to use a volume texture of interpolated SH samples
 	#if CACHED_VOLUME_INDIRECT_LIGHTING
 	
 		// Compute volume teture UVs from world position
@@ -354,6 +349,8 @@ float3 GetPrecomputedIndirectLighting(
 		VolumeUVs = clamp(VolumeUVs, IndirectlightingCacheMinUV, IndirectlightingCacheMaxUV);
 		float4 Vector0 = Texture3DSample(IndirectLightingCacheTexture0, IndirectLightingCacheTextureSampler0, VolumeUVs);
 
+		// For debugging
+		#define AMBIENTONLY 0
 		#if AMBIENTONLY
 
 			Lighting = Vector0.rgb / SHAmbientFunction() / PI;
@@ -375,6 +372,32 @@ float3 GetPrecomputedIndirectLighting(
 
 		#endif
 
+	// Method for movable components which want to use a single interpolated SH sample
+	#elif CACHED_POINT_INDIRECT_LIGHTING 
+		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
+
+			FOneBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0].x;
+			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1].x;
+			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
+
+			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
+			Lighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
+
+		#else
+
+			FTwoBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0];
+			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1];
+			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2];
+
+			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
+			// Compute diffuse lighting which takes the normal into account
+			Lighting = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+
+		#endif
+
+	// High quality texture lightmaps
 	#elif HQ_TEXTURE_LIGHTMAP
 
 		float2 LightmapUV0, LightmapUV1;
@@ -382,6 +405,7 @@ float3 GetPrecomputedIndirectLighting(
 		SkyOcclusionUV = LightmapUV0;
 		Lighting = GetLightMapColorHQ(LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal).rgb;
 
+	// Low quality texture lightmaps
 	#elif LQ_TEXTURE_LIGHTMAP
 
 		float2 LightmapUV0, LightmapUV1;
@@ -487,7 +511,7 @@ void Main(
 #endif
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
 	,out float4 OutGBufferA : SV_Target1 
 	,out float4 OutGBufferB : SV_Target2
 	,out float4 OutGBufferC : SV_Target3
@@ -564,10 +588,20 @@ void Main(
 	float MaterialAO = GetMaterialAmbientOcclusion(MaterialParameters);
 	float Roughness = GetMaterialRoughness(MaterialParameters);
 
+	// 0..1, SubsurfaceProfileId = int(x * 255)
+	float SubsurfaceProfile = 0;
+
 	// If we don't use this shading model the color should be black (don't generate shader code for unused data, don't do indirectlighting cache lighting with this color).
 	float3 SubsurfaceColor = 0;
+#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+	{
+		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
+
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
-	SubsurfaceColor = GetMaterialSubsurfaceColor(MaterialParameters);
+		SubsurfaceColor = SubsurfaceData.rgb;
+#endif
+		SubsurfaceProfile = SubsurfaceData.a;
+	}
 #endif
 
 #if MATERIAL_FULLY_ROUGH
@@ -585,9 +619,9 @@ void Main(
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
 
 		// the material can disable the DBuffer effects for beter performance or control
-		if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.Color = 0; DBufferData.ColorOpacity = 1; }
-		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.WorldNormal = 0; DBufferData.NormalOpacity = 1; }
-		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.Roughness = 0; DBufferData.RoughnessOpacity = 1; }
+		if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.PreMulColor = 0; DBufferData.ColorOpacity = 1; }
+		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.PreMulWorldNormal = 0; DBufferData.NormalOpacity = 1; }
+		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.PreMulRoughness = 0; DBufferData.RoughnessOpacity = 1; }
 
 #if DIFFUSE_SPEC_INPUTS
 		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, DiffuseColor, SpecularColor);
@@ -604,7 +638,7 @@ void Main(
 #endif
 
 // todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
+#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		DiffuseColor = DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
@@ -654,7 +688,7 @@ void Main(
 	half3 Emissive = GetMaterialEmissive(MaterialParameters);
 
 // todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
+#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 	#if SM5_PROFILE || SM4_PROFILE
 		BRANCH
@@ -695,7 +729,7 @@ void Main(
 
 	float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
 
-	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
+	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
 
 		FGBufferData GBuffer = (FGBufferData)0;
 
@@ -722,10 +756,13 @@ void Main(
 			GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 		#elif MATERIAL_SHADINGMODEL_SUBSURFACE
 			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE;
-			GBuffer.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
+			GBuffer.CustomData = EncodeSubsurfaceColor(SubsurfaceColor);
 		#elif MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
 			GBuffer.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
-			GBuffer.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
+			GBuffer.CustomData = EncodeSubsurfaceColor(SubsurfaceColor);
+		#elif MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE_PROFILE;
+			GBuffer.CustomData = EncodeSubsurfaceProfile(SubsurfaceProfile);
 		#elif MATERIAL_SHADINGMODEL_CLEAR_COAT
 			GBuffer.ShadingModelID = SHADINGMODELID_CLEAR_COAT;
 

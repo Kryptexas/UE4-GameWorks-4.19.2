@@ -4,8 +4,8 @@
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
-#include "MovieSceneTransformTrack.h"
-#include "MovieSceneTransformSection.h"
+#include "MovieScene3DTransformTrack.h"
+#include "MovieScene3DTransformSection.h"
 #include "ISequencerObjectChangeListener.h"
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
@@ -17,10 +17,10 @@
 /**
  * Class that draws a transform section in the sequencer
  */
-class FTransformSection : public ISequencerSection
+class F3DTransformSection : public ISequencerSection
 {
 public:
-	FTransformSection( UMovieSceneSection& InSection )
+	F3DTransformSection( UMovieSceneSection& InSection )
 		: Section( InSection )
 	{
 	}
@@ -40,7 +40,7 @@ public:
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
-		UMovieSceneTransformSection* TransformSection = Cast<UMovieSceneTransformSection>( &Section );
+		UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>( &Section );
 
 		// This generates the tree structure for the transform section
 		LayoutBuilder.PushCategory( "Location", NSLOCTEXT("FTransformSection", "LocationArea", "Location") );
@@ -81,42 +81,42 @@ private:
 	UMovieSceneSection& Section;
 };
 
-FTransformTrackEditor::FTransformTrackEditor( TSharedRef<ISequencer> InSequencer )
+F3DTransformTrackEditor::F3DTransformTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
 	// Listen for actor/component movement
-	GEditor->OnBeginObjectMovement().AddRaw( this, &FTransformTrackEditor::OnPreTransformChanged );
-	GEditor->OnEndObjectMovement().AddRaw( this, &FTransformTrackEditor::OnTransformChanged );
+	GEditor->OnBeginObjectMovement().AddRaw( this, &F3DTransformTrackEditor::OnPreTransformChanged );
+	GEditor->OnEndObjectMovement().AddRaw( this, &F3DTransformTrackEditor::OnTransformChanged );
 }
 
-FTransformTrackEditor::~FTransformTrackEditor()
+F3DTransformTrackEditor::~F3DTransformTrackEditor()
 {
 	GEditor->OnBeginObjectMovement().RemoveAll( this );
 	GEditor->OnEndObjectMovement().RemoveAll( this );
 }
 
-TSharedRef<FMovieSceneTrackEditor> FTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<FMovieSceneTrackEditor> F3DTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
-	return MakeShareable( new FTransformTrackEditor( InSequencer ) );
+	return MakeShareable( new F3DTransformTrackEditor( InSequencer ) );
 }
 
-bool FTransformTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
+bool F3DTransformTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	// We support animatable transforms
-	return Type == UMovieSceneTransformTrack::StaticClass();
+	return Type == UMovieScene3DTransformTrack::StaticClass();
 }
 
-TSharedRef<ISequencerSection> FTransformTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
+TSharedRef<ISequencerSection> F3DTransformTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 
-	TSharedRef<ISequencerSection> NewSection( new FTransformSection( SectionObject ) );
+	TSharedRef<ISequencerSection> NewSection( new F3DTransformSection( SectionObject ) );
 
 	return NewSection;
 }
 
 
-void FTransformTrackEditor::OnPreTransformChanged( UObject& InObject )
+void F3DTransformTrackEditor::OnPreTransformChanged( UObject& InObject )
 {
 	UMovieScene* MovieScene = GetMovieScene();
 	float AutoKeyTime = GetTimeForKey( MovieScene );
@@ -160,7 +160,7 @@ struct FTransformDataPair
 	FTransformData LastTransformData;
 };
 
-void FTransformTrackEditor::OnTransformChanged( UObject& InObject )
+void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 {
 	const TSharedPtr<ISequencer> Sequencer = GetSequencer();
 
@@ -202,12 +202,12 @@ void FTransformTrackEditor::OnTransformChanged( UObject& InObject )
 
 		FTransformDataPair TransformPair(NewTransformData, ExistingTransform);
 
-		AnimatablePropertyChanged(UMovieSceneTransformTrack::StaticClass(), true,
-			FOnKeyProperty::CreateRaw(this, &FTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, true));
+		AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(), true,
+			FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, true));
 	}
 }
 
-void FTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
+void F3DTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
 {
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
@@ -240,13 +240,13 @@ void FTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalA
 
 			FTransformDataPair TransformPair(CurrentTransform, FTransformData());
 
-			AnimatablePropertyChanged(UMovieSceneTransformTrack::StaticClass(), false,
-				FOnKeyProperty::CreateRaw(this, &FTransformTrackEditor::OnTransformChangedInternals, Object, ObjectHandle, TransformPair, false));
+			AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(), false,
+				FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, Object, ObjectHandle, TransformPair, false));
 		}
 	}
 }
 
-void FTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, FTransformDataPair TransformPair, bool bAutoKeying)
+void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, FTransformDataPair TransformPair, bool bAutoKeying)
 {
 	// Only unwind rotation if we're generating keys while recording (scene is actively playing back)
 	const bool bUnwindRotation = GetSequencer()->IsRecordingLive();
@@ -254,8 +254,8 @@ void FTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* 
 	FName Transform("Transform");
 	if (ObjectHandle.IsValid())
 	{
-		UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneTransformTrack::StaticClass(), Transform );
-		UMovieSceneTransformTrack* TransformTrack = CastChecked<UMovieSceneTransformTrack>( Track );
+		UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DTransformTrack::StaticClass(), Transform );
+		UMovieScene3DTransformTrack* TransformTrack = CastChecked<UMovieScene3DTransformTrack>( Track );
 		// Transform name and path are the same
 		TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
 	

@@ -23,7 +23,7 @@ public:
 	bool IsAssetContained(const FName& PackageName) const;
 
 	/** Is the pending deleted object referenced in memory by something other than the undo stack; INCLUDES PENDING DELETES */
-	bool IsReferencedInMemory() const { return bIsReferencedInMemory; }
+	bool IsReferencedInMemoryByNonUndo() const { return bIsReferencedInMemoryByNonUndo; }
 
 	/** Is the pending deleted object referenced in memory by the undo stack; INCLUDES PENDING DELETES */
 	bool IsReferencedInMemoryByUndo() const { return bIsReferencedInMemoryByUndo; }
@@ -40,7 +40,7 @@ public:
 	/** The on disk references to this object */
 	TArray<FName> DiskReferences;
 
-	/** In memory references to this object */
+	/** In memory references to this object (*excluding* the undo buffer) */
 	FReferencerInformationList MemoryReferences;
 
 	/** The remaining disk references; EXCLUDES PENDING DELETES */
@@ -58,8 +58,8 @@ private:
 	/** A flag indicating that references have been checked, so don't check again. */
 	bool bReferencesChecked;
 
-	/** flag indicating if this object is referenced in memory by the engine. */
-	bool bIsReferencedInMemory;
+	/** flag indicating if this object is referenced in memory by the engine (excluding the undo buffer). */
+	bool bIsReferencedInMemoryByNonUndo;
 
 	/** flag indicating if this object is referenced in memory by the undo stack. */
 	bool bIsReferencedInMemoryByUndo;
@@ -152,7 +152,7 @@ public:
 	FText GetProgressText() const;
 
 	/** Is any of the pending deleted assets being referenced in memory. */
-	bool IsAnythingReferencedInMemory() const { return bIsAnythingReferencedInMemory; }
+	bool IsAnythingReferencedInMemoryByNonUndo() const { return bIsAnythingReferencedInMemoryByNonUndo; }
 
 	/** Is any of the pending deleted assets being referenced in the undo stack. */
 	bool IsAnythingReferencedInMemoryByUndo() const { return bIsAnythingReferencedInMemoryByUndo; }
@@ -197,7 +197,7 @@ private:
 	bool bPendingObjectsCanBeReplaced;
 
 	/** Is any of the pending deleted assets being referenced in memory. */
-	bool bIsAnythingReferencedInMemory;
+	bool bIsAnythingReferencedInMemoryByNonUndo;
 
 	/** Is any of the pending deleted assets being referenced in the undo stack. */
 	bool bIsAnythingReferencedInMemoryByUndo;

@@ -34,12 +34,12 @@ TSharedRef< FEpicSurvey > FEpicSurvey::Create()
 FEpicSurvey::FEpicSurvey( const TSharedRef< FUICommandList >& InActionList ) 
 	: InitializationState( EContentInitializationState::NotStarted )
 	, ActionList( InActionList )
-	, bIsShowingToolbarNotification( false )
-	, SurveyNotificationDuration(5.0f)
-	, SurveyPulseDuration(5)
-	, SurveyPulseTimeInterval(5)
 	, SurveyNotificationDelayTime(0)
+	, SurveyNotificationDuration(5.0f)
+	, SurveyPulseTimeInterval(5)
+	, SurveyPulseDuration(5)
 	, bSurveyIconPulsing(false)
+	, bIsShowingToolbarNotification( false )
 	, CurrentCulture(ECultureSpecification::Full)
 {
 	
@@ -154,7 +154,7 @@ void FEpicSurvey::Initialize()
 
 void FEpicSurvey::InitializeTitleCloud()
 {
-	TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = FInternationalization::Get().GetCurrentCulture();
+	FCultureRef Culture = FInternationalization::Get().GetCurrentCulture();
 
 	FString CultureString;
 	switch (CurrentCulture)

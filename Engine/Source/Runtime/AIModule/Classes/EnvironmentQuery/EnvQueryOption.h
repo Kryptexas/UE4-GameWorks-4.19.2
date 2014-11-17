@@ -3,16 +3,19 @@
 #pragma once
 #include "EnvQueryOption.generated.h"
 
+class UEnvQueryGenerator;
+class UEnvQueryTest;
+
 UCLASS()
 class AIMODULE_API UEnvQueryOption : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	class UEnvQueryGenerator* Generator;
+	UEnvQueryGenerator* Generator;
 
 	UPROPERTY()
-	TArray<class UEnvQueryTest*> Tests;
+	TArray<UEnvQueryTest*> Tests;
 
 	FText GetDescriptionTitle() const;
 	FText GetDescriptionDetails() const;

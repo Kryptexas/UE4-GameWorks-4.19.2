@@ -33,6 +33,9 @@ TSharedRef<SWidget> SPlatformSetupMessage::MakeRow(FName IconName, FText Message
 		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
+			.ColorAndOpacity(FLinearColor::White)
+			.ShadowColorAndOpacity(FLinearColor::Black)
+			.ShadowOffset(FVector2D::UnitVector)
 			.Text(Message)
 		];
 
@@ -82,7 +85,7 @@ void SPlatformSetupMessage::Construct(const FArguments& InArgs, const FString& I
 	[
 		SNew(SBorder)
 		.BorderBackgroundColor(this, &SPlatformSetupMessage::GetBorderColor)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder"))
 		.Padding(8.0f)
 		[
 			SNew(SWidgetSwitcher)

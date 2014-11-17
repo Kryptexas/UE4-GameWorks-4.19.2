@@ -4,10 +4,12 @@
 
 #include "CanvasPanel.generated.h"
 
-UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UCanvasPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	/** Gets the underlying native canvas widget if it has been constructed */
 	TSharedPtr<class SConstraintCanvas> GetCanvasWidget() const;
@@ -18,15 +20,19 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	/** Computes the geometry for a particular slot based on the current geometry of the canvas. */
 	bool GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const;
 
-	// UWidget interface
-	virtual void SyncronizeProperties() override;
-	// End of UWidget interface
-
-	void ReleaseNativeWidget() override;
+	void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
+	// End UWidget interface
+
+	// UWidget interface
+	virtual bool LockToPanelOnDrag() const override
+	{
+		return true;
+	}
 	// End UWidget interface
 #endif
 

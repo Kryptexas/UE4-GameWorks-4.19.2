@@ -8,6 +8,7 @@
 #include "BehaviorTree/Tasks/BTTask_BlueprintBase.h"
 #include "BehaviorTree/Decorators/BTDecorator_BlueprintBase.h"
 #include "BehaviorTree/Services/BTService_BlueprintBase.h"
+#include "HotReloadInterface.h"
 
 const FString UBehaviorTreeEditorTypes::PinCategory_MultipleNodes("MultipleNodes");
 const FString UBehaviorTreeEditorTypes::PinCategory_SingleComposite("SingleComposite");
@@ -143,8 +144,11 @@ FClassBrowseHelper::FClassBrowseHelper()
 	AssetRegistryModule.Get().OnAssetAdded().AddRaw( this, &FClassBrowseHelper::OnAssetAdded);
 	AssetRegistryModule.Get().OnAssetRemoved().AddRaw( this, &FClassBrowseHelper::OnAssetRemoved );
 
-	// Register to have Populate called when doing a Hot Reload or when a Blueprint is compiled.
-	GEditor->OnHotReload().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
+	// Register to have Populate called when doing a Hot Reload.
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddRaw(this, &FClassBrowseHelper::OnHotReload);
+
+	// Register to have Populate called when a Blueprint is compiled.
 	GEditor->OnBlueprintCompiled().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
 	GEditor->OnClassPackageLoadedOrUnloaded().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
 
@@ -161,10 +165,20 @@ FClassBrowseHelper::~FClassBrowseHelper()
 		AssetRegistryModule.Get().OnAssetAdded().RemoveAll(this);
 		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
 
-		// Unregister to have Populate called when doing a Hot Reload or when a Blueprint is compiled.
-		GEditor->OnHotReload().RemoveAll(this);
-		GEditor->OnBlueprintCompiled().RemoveAll(this);
-		GEditor->OnClassPackageLoadedOrUnloaded().RemoveAll(this);
+		// Unregister to have Populate called when doing a Hot Reload.
+		if (FModuleManager::Get().IsModuleLoaded(TEXT("HotReload")))
+		{
+			IHotReloadInterface& HotReloadSupport = FModuleManager::GetModuleChecked<IHotReloadInterface>("HotReload");
+			HotReloadSupport.OnHotReload().RemoveAll(this);
+		}
+	
+		// Unregister to have Populate called when a Blueprint is compiled.
+		if ( UObjectInitialized() )
+		{
+			// GEditor can't have been destructed before we call this or we'll crash.
+			GEditor->OnBlueprintCompiled().RemoveAll(this);
+			GEditor->OnClassPackageLoadedOrUnloaded().RemoveAll(this);
+		}
 	}
 }
 
@@ -295,6 +309,11 @@ void FClassBrowseHelper::InvalidateCache()
 	RootNode.Reset();
 
 	UpdateAvailableNodeClasses();
+}
+
+void FClassBrowseHelper::OnHotReload( bool bWasTriggeredAutomatically )
+{
+	InvalidateCache();
 }
 
 TSharedPtr<FClassDataNode> FClassBrowseHelper::CreateClassDataNode(const class FAssetData& AssetData)

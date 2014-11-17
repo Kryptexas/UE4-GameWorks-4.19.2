@@ -33,6 +33,7 @@ FCoreDelegates::FOnActorLabelChanged FCoreDelegates::OnActorLabelChanged;
 #if WITH_EDITOR
 	FCoreDelegates::FOnObjectModified  FCoreDelegates::OnObjectModified;
 	FCoreDelegates::FOnAssetLoaded FCoreDelegates::OnAssetLoaded;
+	FCoreDelegates::FOnObjectSaved FCoreDelegates::OnObjectSaved;
 	FSimpleMulticastDelegate FCoreDelegates::PreModal;
 	FSimpleMulticastDelegate FCoreDelegates::PostModal;
 #endif	//WITH_EDITOR
@@ -51,6 +52,7 @@ FSimpleMulticastDelegate FCoreDelegates::PostLoadMap;
 FSimpleMulticastDelegate FCoreDelegates::ColorPickerChanged;
 FCoreDelegates::FOnModalMessageBox FCoreDelegates::ModalErrorMessage;
 FCoreDelegates::FOnLoadObjectsOnTop FCoreDelegates::ShouldLoadOnTop;
+FCoreDelegates::FOnInviteAccepted FCoreDelegates::OnInviteAccepted;
 FCoreDelegates::FStringAssetReferenceLoaded FCoreDelegates::StringAssetReferenceLoaded;
 FCoreDelegates::FStringAssetReferenceSaving FCoreDelegates::StringAssetReferenceSaving;
 FCoreDelegates::FPackageCreatedForLoad FCoreDelegates::PackageCreatedForLoad;
@@ -68,3 +70,5 @@ FCoreDelegates::FStatCheckEnabled FCoreDelegates::StatCheckEnabled;
 FCoreDelegates::FStatEnabled FCoreDelegates::StatEnabled;
 FCoreDelegates::FStatDisabled FCoreDelegates::StatDisabled;
 FCoreDelegates::FStatDisableAll FCoreDelegates::StatDisableAll;
+
+FCoreDelegates::FApplicationLicenseChange FCoreDelegates::ApplicationLicenseChange;

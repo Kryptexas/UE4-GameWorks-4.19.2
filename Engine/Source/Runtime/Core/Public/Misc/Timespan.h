@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Timespan.h: Declares the FTimespan class.
-=============================================================================*/
-
 #pragma once
+
+
+class FArchive;
+class FOutputDevice;
+class UObject;
 
 
 namespace ETimespan
@@ -252,6 +253,19 @@ public:
 public:
 
 	/**
+	 * Exports this time span value to a string.
+	 *
+	 * @param ValueStr Will hold the string value.
+	 * @param DefaultValue The default value.
+	 * @param Parent Not used.
+	 * @param PortFlags Not used.
+	 * @param ExportRootScope Not used.
+	 * @return true on success, false otherwise.
+	 * @see ImportTextItem
+	 */
+	CORE_API bool ExportTextItem( FString& ValueStr, FTimespan const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const;
+
+	/**
 	 * Gets the days component of this time span.
 	 *
 	 * @return Days component.
@@ -384,6 +398,27 @@ public:
 	}
 
 	/**
+	 * Imports a time span value from a text buffer.
+	 *
+	 * @param Buffer The text buffer to import from.
+	 * @param PortFlags Not used.
+	 * @param Parent Not used.
+	 * @param ErrorText The output device for error logging.
+	 * @return true on success, false otherwise.
+	 * @see ExportTextItem
+	 */
+	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText );
+
+
+	/**
+	 * Serializes this time span from or into the specified archive.
+	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @return true on success, false otherwise.
+	 */
+	CORE_API bool Serialize( FArchive& Ar );
+
+	/**
 	 * Returns the string representation of this time span using a default format.
 	 *
 	 * The returned string has the following format:
@@ -405,11 +440,11 @@ public:
 	 *		%m - prints the time span's minutes part (0..59)
 	 *		%s - prints the time span's seconds part (0..59)
 	 *		%f - prints the time span's milliseconds part (0..999)
-	 *		%D - prints the total number of days
-	 *		%H - prints the total number of hours (0..23)
-	 *		%M - prints the total number of minutes (0..59)
-	 *		%S - prints the total number of seconds (0..59)
-	 *		%F - prints the total number of milliseconds (0..999)
+	 *		%D - prints the total number of days (without minus sign)
+	 *		%H - prints the total number of hours (without minus sign)
+	 *		%M - prints the total number of minutes (without minus sign)
+	 *		%S - prints the total number of seconds (without minus sign)
+	 *		%F - prints the total number of milliseconds (without minus sign)
 	 *
 	 * @param Format - The format of the returned string.
 	 * @return String representation.
@@ -518,6 +553,8 @@ public:
 
 public:
 
+	friend class UObject;
+
 	/**
 	 * Serializes the given time span from or into the specified archive.
 	 *
@@ -527,7 +564,7 @@ public:
 	 *
 	 * @todo gmp: Figure out better include order in Core.h so this can be inlined.
 	 */
-	friend CORE_API class FArchive& operator<<( class FArchive& Ar, FTimespan& Timespan );
+	friend CORE_API FArchive& operator<<( FArchive& Ar, FTimespan& Timespan );
 
 	/**
 	 * Gets the hash for the specified time span.
@@ -555,7 +592,7 @@ protected:
 
 private:
 
-	// Holds the time span in 100 nanoseconds resolution.
+	/** Holds the time span in 100 nanoseconds resolution. */
 	int64 Ticks;
 };
 

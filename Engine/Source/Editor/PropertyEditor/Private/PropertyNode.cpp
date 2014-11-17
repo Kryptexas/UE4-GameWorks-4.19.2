@@ -46,6 +46,7 @@ FPropertyNode::FPropertyNode(void)
 	, MaxChildDepthAllowed(FPropertyNodeConstants::NoDepthRestrictions)
 	, PropertyNodeFlags (EPropertyNodeFlags::NoFlags)
 	, bRebuildChildrenRequested( false )
+	, bIsHighlighted( false )
 {
 }
 
@@ -554,6 +555,20 @@ bool FPropertyNode::IsEditConst() const
 						bIsEditConst = true;
 						break;
 					}
+					/*else
+					{
+						// If 
+						if ( const FPropertyNode* ObjectParentNode = ObjectPropertyNode->GetParentNode() )
+						{
+							if ( const UProperty* ParentProperty = ObjectParentNode->GetProperty() )
+							{
+								if ( ParentProperty->PropertyFlags & CPF_EditInline )
+								{
+									return ObjectParentNode->IsEditConst();
+								}
+							}
+						}
+					}*/
 				}
 			}
 		}
@@ -1591,7 +1606,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 	}
 }
 
-/*
+/**
  * Helper function to obtain the display name for an enum property
  * @param InEnum		The enum whose metadata to pull from
  * @param DisplayName	The name of the enum value to adjust

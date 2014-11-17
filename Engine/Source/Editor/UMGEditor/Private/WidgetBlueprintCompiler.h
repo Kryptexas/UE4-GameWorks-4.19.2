@@ -7,12 +7,17 @@
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintCompiler
 
+DECLARE_MULTICAST_DELEGATE_OneParam( FOnWidgetBlueprintCompiled, UBlueprint* )
+
 class FWidgetBlueprintCompiler : public FKismetCompilerContext
 {
 protected:
 	typedef FKismetCompilerContext Super;
 
 public:
+	/** Delegate called when a widget blueprint is compiled */
+	static FOnWidgetBlueprintCompiled OnWidgetBlueprintCompiled;
+
 	FWidgetBlueprintCompiler(UWidgetBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
 	virtual ~FWidgetBlueprintCompiler();
 
@@ -27,7 +32,6 @@ protected:
 
 	// FKismetCompilerContext
 	//virtual UEdGraphSchema_K2* CreateSchema() override;
-	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) override;

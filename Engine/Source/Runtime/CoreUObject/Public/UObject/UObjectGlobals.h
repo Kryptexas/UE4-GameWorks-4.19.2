@@ -51,11 +51,6 @@ extern int32						GForcedExportCount;
 /** Objects that might need preloading.									*/
 extern TArray<UObject*>			GObjLoaded;
 
-#if !IS_MONOLITHIC
-	/** Adds and entry for the UFunction native pointer remap table */
-	COREUOBJECT_API void	AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer);
-#endif
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 /** Used to verify that the Super::Serialize chain is intact.			*/
 extern TArray<UObject*,TInlineAllocator<16> >		DebugSerialize;
@@ -235,7 +230,7 @@ COREUOBJECT_API UObject* StaticDuplicateObjectEx( struct FObjectDuplicationParam
  * Performs UObject system pre-initialization. Depracated, do not use.
  */
 COREUOBJECT_API void PreInitUObject();
-/* 
+/** 
  *   Iterate over all objects considered part of the root to setup GC optimizations
  */
 COREUOBJECT_API void MarkObjectsToDisregardForGC();
@@ -426,15 +421,6 @@ COREUOBJECT_API UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageN
 
 void StaticShutdownAfterError();
 void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, bool bNotifyObjectOfChange );
-
-/**
- * HotReload: Reloads the DLLs for given packages. 
- * @param	Package				Packages to reload.
- * @param	DependentModules	Additional modules that don't contain UObjects, but rely on them
- * @param	bWaitForCompletion	True if RebindPackages should not return until the recompile and reload has completed
- * @param	Ar					Output device for logging compilation status
-*/
-COREUOBJECT_API void RebindPackages( TArray< UPackage* > Packages, TArray< FName > DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar );
 
 /**
  * Call back into the async loading code to inform of the creation of a new object
@@ -1532,11 +1518,27 @@ protected:
 DECLARE_DELEGATE_RetVal_TwoParams( bool, FCheckForAutoAddDelegate, UPackage*, const FString& );
 DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* );
 
-/** Delegate type for making auto backup of package */
-DECLARE_DELEGATE_RetVal_OneParam( bool, FAutoPackageBackupDelegate, const UPackage& );
+/**
+ * Global CoreUObject delegates
+ */
+struct COREUOBJECT_API FCoreUObjectDelegates
+{
+	/** Delegate type for making auto backup of package */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
 
-/** Delegate used by SavePackage() to create the package backup */
-extern COREUOBJECT_API FAutoPackageBackupDelegate GAutoPackageBackupDelegate;
+	/** Delegate used by SavePackage() to create the package backup */
+	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
+
+	/** Delegate type for saving check */
+	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FIsPackageOKToSaveDelegate, UPackage*, const FString&, FOutputDevice*);
+
+	/** Delegate used by SavePackage() to check whether a package should be saved */
+	static FIsPackageOKToSaveDelegate IsPackageOKToSaveDelegate;
+
+	/** Delegate for replacing hot-reloaded classes that changed after hot-reload */
+	DECLARE_DELEGATE_TwoParams(FReplaceHotReloadClassDelegate, UClass*, UClass*);
+	static FReplaceHotReloadClassDelegate ReplaceHotReloadClassDelegate;
+};
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */
 extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;

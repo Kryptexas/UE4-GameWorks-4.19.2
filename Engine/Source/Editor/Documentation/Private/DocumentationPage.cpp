@@ -23,6 +23,7 @@ bool FDocumentationPage::GetExcerptContent( FExcerpt& Excerpt )
 		{
 			Parser->GetExcerptContent( Link, StoredExcerpts[ Index ] );
 			Excerpt.Content = StoredExcerpts[ Index ].Content;
+			Excerpt.RichText = StoredExcerpts[ Index ].RichText;
 			return true;
 		}
 	}
@@ -73,6 +74,11 @@ void FDocumentationPage::Reload()
 	StoredExcerpts.Empty();
 	StoredMetadata = FUDNPageMetadata();
 	Parser->Parse( Link, StoredExcerpts, StoredMetadata );
+}
+
+void FDocumentationPage::SetTextWrapAt( TAttribute<float> WrapAt )
+{
+	Parser->SetWrapAt( WrapAt );
 }
 
 FDocumentationPage::FDocumentationPage( const FString& InLink, const TSharedRef< FUDNParser >& InParser ) 

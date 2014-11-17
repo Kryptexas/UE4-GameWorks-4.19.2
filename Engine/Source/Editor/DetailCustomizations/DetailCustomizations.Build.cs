@@ -10,8 +10,10 @@ public class DetailCustomizations : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
+				"DesktopWidgets",
 				"Engine",
                 "InputCore",
 				"Slate",
@@ -35,7 +37,11 @@ public class DetailCustomizations : ModuleRules
 				"SourceControl",
                 "InternationalizationSettings",
 				"SourceCodeAccess",
-				"RHI"
+				"RHI",
+                "Media",
+                "MediaAssets",
+                "HardwareTargeting",
+				"SharedSettingsWidgets"
 			}
 		);
 

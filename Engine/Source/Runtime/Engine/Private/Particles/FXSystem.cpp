@@ -13,6 +13,7 @@
 #include "../VectorField.h"
 #include "../GPUSort.h"
 #include "ParticleCurveTexture.h"
+#include "VectorField/VectorField.h"
 
 /*-----------------------------------------------------------------------------
 	External FX system interface.
@@ -141,10 +142,10 @@ namespace FXConsoleVariables
 
 FFXSystem::FFXSystem(ERHIFeatureLevel::Type InFeatureLevel)
 	: ParticleSimulationResources(NULL)
+	, FeatureLevel(InFeatureLevel)
 #if WITH_EDITOR
 	, bSuspended(false)
 #endif // #if WITH_EDITOR
-	, FeatureLevel(InFeatureLevel)
 {
 	InitGPUSimulation();
 }
@@ -309,8 +310,7 @@ void FFXSystem::PreInitViews()
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		ResetSimulationPhases();
-		ResetSortedGPUParticles();
+		AdvanceGPUParticleFrame();
 	}
 }
 

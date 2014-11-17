@@ -82,7 +82,7 @@ protected:
 	 * @param  ToolTip		A tooltip you want displayed when the user hovers over the heading.
 	 * @return A reference to the newly created vertical slate box containing the header.
 	 */
-	virtual TSharedRef<SVerticalBox> ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTip);
+	virtual TSharedRef<SVerticalBox> ConstructHeadingWidget(FSlateBrush const* const Icon, FText const& TitleText, FText const& ToolTip);
 
 	/**
 	 * An overridable method, that fills out the provided menu-builder with 
@@ -96,6 +96,9 @@ protected:
 	/** Delegate to call to request a refresh */
 	void RequestRefreshActionsList();
 
+	/** Pointer back to the blueprint editor that owns us */
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
+
 private:
 	/**
 	 * Constructs a slate widget for the right-click context menu in this 
@@ -105,9 +108,6 @@ private:
 	 * @return A pointer to the newly created menu widget.
 	 */
 	TSharedPtr<SWidget> ConstructContextMenuWidget() const;
-
-	/** Pointer back to the blueprint editor that owns us */
-	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
 
 	/** Pointer to the command list created for this (so multiple sub-palettes can have their own bindings)*/
 	TSharedPtr<FUICommandList> CommandList;

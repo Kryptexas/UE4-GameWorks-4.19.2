@@ -5,7 +5,13 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvQueryTypes.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
+class UEnvQueryTest;
+class UEnvQueryGenerator;
+class UEnvQueryItemType_VectorBase;
+class UEnvQueryItemType_ActorBase;
+struct FEnvQueryInstance;
+
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 
 // If set, execution details will be processed by debugger
 #define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -258,13 +264,13 @@ struct AIMODULE_API FEnvNamedValue
 {
 	GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(EditAnywhere, Category=Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	FName ParamName;
 
-	UPROPERTY(EditAnywhere, Category=Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
 	TEnumAsByte<EEnvQueryParam::Type> ParamType;
 
-	UPROPERTY(EditAnywhere, Category=Param)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
 	float Value;
 };
 
@@ -401,8 +407,8 @@ struct AIMODULE_API FEnvQueryItem
 			return !IsValid();
 		}
 
-		// sort by score
-		return Score < Other.Score;
+		// sort by score if not equal. As last resort sort by DataOffset to achieve stable sort.
+		return Score != Other.Score ? Score < Other.Score : DataOffset < Other.DataOffset;
 	}
 
 	FEnvQueryItem() : Score(0.0f), DataOffset(-1), bIsDiscarded(false) {}
@@ -416,7 +422,7 @@ struct AIMODULE_API FEnvQueryResult
 	TArray<FEnvQueryItem> Items;
 
 	/** type of generated items */
-	TSubclassOf<class UEnvQueryItemType> ItemType;
+	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	/** query status */
 	TEnumAsByte<EEnvQueryStatus::Type> Status;
@@ -448,8 +454,6 @@ struct AIMODULE_API FEnvQueryResult
 // Runtime processing structures
 
 DECLARE_DELEGATE_OneParam(FQueryFinishedSignature, TSharedPtr<struct FEnvQueryResult>);
-DECLARE_DELEGATE_OneParam(FGenerateItemsSignature, struct FEnvQueryInstance&);
-DECLARE_DELEGATE_OneParam(FExecuteTestSignature, struct FEnvQueryInstance&);
 
 struct AIMODULE_API FEnvQuerySpatialData
 {
@@ -469,6 +473,7 @@ struct AIMODULE_API FEnvQueryItemDetails
 
 	int32 FailedTestIndex;
 	int32 ItemIndex;
+	FString FailedDescription;
 #endif // USE_EQS_DEBUGGER
 
 	FEnvQueryItemDetails() {}
@@ -495,7 +500,7 @@ struct AIMODULE_API FEnvQueryItemDetails
 struct AIMODULE_API FEnvQueryContextData
 {
 	/** type of context values */
-	TSubclassOf<class UEnvQueryItemType> ValueType;
+	TSubclassOf<UEnvQueryItemType> ValueType;
 
 	/** number of stored values */
 	int32 NumValues;
@@ -513,18 +518,20 @@ struct AIMODULE_API FEnvQueryContextData
 struct AIMODULE_API FEnvQueryOptionInstance
 {
 	/** generator's delegate */
-	FGenerateItemsSignature GenerateDelegate;
+	TWeakObjectPtr<UEnvQueryGenerator> Generator;
 
 	/** tests' delegates */
-	TArray<FExecuteTestSignature> TestDelegates;
+	TArray<TWeakObjectPtr<UEnvQueryTest> > TestsToPerform;
 
 	/** type of generated items */
-	TSubclassOf<class UEnvQueryItemType> ItemType;
+	TSubclassOf<UEnvQueryItemType> ItemType;
 
-	/** is set, items will be shuffled after tests */
+	/** if set, items will be shuffled after tests */
 	bool bShuffleItems;
 
-	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + TestDelegates.GetAllocatedSize(); }
+	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + TestsToPerform.GetAllocatedSize(); }
+
+	UEnvQueryTest* GetTestObject(int32 TestIndex) { check(TestsToPerform.IsValidIndex(TestIndex)); return TestsToPerform[TestIndex].Get(); }
 };
 
 #if NO_LOGGING
@@ -539,6 +546,8 @@ struct FEQSQueryDebugData
 	TArray<FEnvQueryItemDetails> DebugItemDetails;
 	TArray<uint8> RawData;
 	TArray<FString> PerformedTestNames;
+	// indicates the query was run in a single-item mode and that it has been found
+	uint32 bSingleItemResult : 1;
 
 	void Store(const FEnvQueryInstance* QueryInstance);
 	void Reset()
@@ -547,6 +556,7 @@ struct FEQSQueryDebugData
 		DebugItemDetails.Reset();
 		RawData.Reset();
 		PerformedTestNames.Reset();
+		bSingleItemResult = false;
 	}
 };
 
@@ -591,9 +601,11 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	/** used to breaking from item iterator loops */
 	uint8 bFoundSingleResult : 1;
 
+private:
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
+public:
 #if USE_EQS_DEBUGGER
 	/** set to true to store additional debug info */
 	uint8 bStoreDebugInfo : 1;
@@ -603,15 +615,15 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	TEnumAsByte<EEnvQueryRunMode::Type> Mode;
 
 	/** item type's CDO for location tests */
-	class UEnvQueryItemType_VectorBase* ItemTypeVectorCDO;
+	UEnvQueryItemType_VectorBase* ItemTypeVectorCDO;
 
 	/** item type's CDO for actor tests */
-	class UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
+	UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
 
 	/** if > 0 then it's how much time query has for performing current step */
 	double TimeLimit;
 
-	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false)
+	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false)
 #if USE_EQS_DEBUGGER
 		, bStoreDebugInfo(bDebuggingInfoEnabled) 
 #endif // USE_EQS_DEBUGGER
@@ -631,6 +643,10 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	bool PrepareContext(UClass* Context, TArray<FRotator>& Data);
 	/** helpers for reading actor data from context */
 	bool PrepareContext(UClass* Context, TArray<AActor*>& Data);
+	
+	bool IsInSingleItemFinalSearch() const { return !!bPassOnSingleResult; }
+	/** check if current test can batch its calculations */
+	bool CanBatchTest() const { return !IsInSingleItemFinalSearch(); }
 
 	/** access named params */
 	template<typename TEQSParam>
@@ -691,9 +707,6 @@ protected:
 	/** pick one of items with highest score */
 	void PickBestItem();
 
-	/** prepare items on reaching final condition in SingleResult mode */
-	void OnFinalCondition();
-
 	/** discard all items but one */
 	void PickSingleItem(int32 ItemIndex);
 
@@ -727,11 +740,23 @@ public:
 #if !NO_LOGGING
 	void Log(const FString Msg) const;
 #endif // #if !NO_LOGGING
+	
+#if USE_EQS_DEBUGGER
+#	define  UE_EQS_DBGMSG(Format, ...) \
+					Instance->ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__)
+
+#	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) \
+					UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
+					UE_EQS_DBGMSG(Format, ##__VA_ARGS__); 
+#else
+#	define UE_EQS_DBGMSG(Format, ...)
+#	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); 
+#endif
 
 #if CPP || UE_BUILD_DOCS
 	struct AIMODULE_API ItemIterator
 	{
-		ItemIterator(class UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance);
+		ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE);
 
 		~ItemIterator()
 		{
@@ -749,6 +774,7 @@ public:
 					case EEnvTestFilterType::Maximum:
 						if (Score > Max)
 						{
+							UE_EQS_DBGMSG(TEXT("Value %f is above maximum value set to %f"), Score, Max);
 							bPassedTest = false;
 						}
 						break;
@@ -756,6 +782,7 @@ public:
 					case EEnvTestFilterType::Minimum:
 						if (Score < Min)
 						{
+							UE_EQS_DBGMSG(TEXT("Value %f is below minimum value set to %f"), Score, Min);
 							bPassedTest = false;
 						}
 						break;
@@ -763,17 +790,18 @@ public:
 					case EEnvTestFilterType::Range:
 						if ((Score < Min) || (Score > Max))
 						{
+							UE_EQS_DBGMSG(TEXT("Value %f is out of range set to (%f, %f)"), Score, Min, Max);
 							bPassedTest = false;
 						}
 						break;
 
 					case EEnvTestFilterType::Match:
-						UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
+						UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
 						bPassedTest = false;
 						break;
 
 					default:
-						UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
+						UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
 						bPassedTest = false;
 						break;
 				}
@@ -796,29 +824,32 @@ public:
 			switch (FilterType)
 			{
 				case EEnvTestFilterType::Match:
-					if (bScore != bExpected)
+					bPassedTest = (bScore == bExpected);
+#if USE_EQS_DEBUGGER
+					if (!bPassedTest)
 					{
-						bPassedTest = false;
+						UE_EQS_DBGMSG(TEXT("Boolean score don't mach (expected %s and got %s)"), bExpected ? TEXT("TRUE") : TEXT("FALSE"), bScore ? TEXT("TRUE") : TEXT("FALSE"));
 					}
+#endif
 					break;
 
 				case EEnvTestFilterType::Maximum:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Maximum' for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Maximum' for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 
 				case EEnvTestFilterType::Minimum:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Minimum' for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Minimum' for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 
 				case EEnvTestFilterType::Range:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Range' for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Range' for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 
 				default:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for boolean test.  Will consider test as failed in all cases."));
+					UE_EQS_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for boolean test.  Will consider test as failed in all cases."));
 					bPassedTest = false;
 					break;
 			}
@@ -873,14 +904,14 @@ public:
 			if (!Instance->bFoundSingleResult)
 			{
 				InitItemScore();
-				for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++) ;
+				FindNextValidIndex();
 			}
 		}
 
 	protected:
 
 		FEnvQueryInstance* Instance;
-		UEnvQueryTest* Test;
+		//UEnvQueryTest* Test;
 		int32 CurrentItem;
 		int32 NumPartialScores;
 		double Deadline;
@@ -897,14 +928,25 @@ public:
 			bSkipped = false;
 		}
 
+		void HandleFailedTestResult();
 		void StoreTestResult();
+
+		FORCEINLINE void FindNextValidIndex()
+		{
+			for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++)
+				;
+		}
 	};
 #endif
+
+#undef UE_EQS_LOG
+#undef UE_EQS_DBGMSG
 
 #if USE_EQS_DEBUGGER
 	FEQSQueryDebugData DebugData;
 	static bool bDebuggingInfoEnabled;
 #endif // USE_EQS_DEBUGGER
+
 	FBox GetBoundingBox() const;
 };
 

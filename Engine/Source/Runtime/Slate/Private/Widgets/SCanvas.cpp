@@ -1,11 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SCanvas.cpp: Implements the SCanvas class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
+
+
+/* SCanvas structors
+ *****************************************************************************/
+
+SCanvas::SCanvas()
+	: Children()
+{ }
 
 
 /* SCanvas interface
@@ -31,7 +35,7 @@ int32 SCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
-		if (SlotWidget == Children[SlotIdx].Widget)
+		if (SlotWidget == Children[SlotIdx].GetWidget())
 		{
 			Children.RemoveAt(SlotIdx);
 			return SlotIdx;
@@ -81,7 +85,7 @@ void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChi
 			// Add the information about this child to the output list (ArrangedChildren)
 			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 				// The child widget being arranged
-				CurChild.Widget,
+				CurChild.GetWidget(),
 				// Child's local position (i.e. position within parent)
 				CurChild.PositionAttr.Get() + Offset,
 				// Child's size
@@ -103,7 +107,7 @@ int32 SCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect());
 		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 

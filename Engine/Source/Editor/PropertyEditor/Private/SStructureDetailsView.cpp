@@ -10,8 +10,11 @@
 #include "SResetToDefaultPropertyEditor.h"
 #include "SStructureDetailsView.h"
 #include "StructurePropertyNode.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "SStructureDetailsView"
+
 
 SStructureDetailsView::~SStructureDetailsView()
 {

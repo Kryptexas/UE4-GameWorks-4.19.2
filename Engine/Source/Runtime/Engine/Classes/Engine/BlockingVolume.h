@@ -1,20 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
-// BlockingVolume:  a bounding volume
-// used to block certain classes of actors
-// primary use is to provide collision for non-zero extent traces around static meshes
-//=============================================================================
 
 #pragma once
 #include "BlockingVolume.generated.h"
 
+/** An invisible volume used to block other actors */
 UCLASS(MinimalAPI)
 class ABlockingVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
-
-	virtual bool UpdateNavigationRelevancy() override;
 
 	// Begin UObject interface.
 #if WITH_EDITOR

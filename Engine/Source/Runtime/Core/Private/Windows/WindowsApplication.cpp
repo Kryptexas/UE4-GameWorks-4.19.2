@@ -45,12 +45,12 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	, bUsingHighPrecisionMouseInput( false )
 	, bIsMouseAttached( false )
 	, XInput( XInputInterface::Create( MessageHandler ) )
+	, bHasLoadedInputPlugins( false )
 	, CVarDeferMessageProcessing( 
 		TEXT( "Slate.DeferWindowsMessageProcessing" ),
 		bAllowedToDeferMessageProcessing,
 		TEXT( "Whether windows message processing is deferred until tick or if they are processed immediately" ) )
 	, bAllowedToDeferMessageProcessing( true )
-	, bHasLoadedInputPlugins( false )
 	, bInModalSizeLoop( false )
 
 {
@@ -73,7 +73,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	}
 
 	// Get initial display metrics. (display information for existing desktop, before we start changing resolutions)
-	GetDisplayMetrics(InitialDisplayMetrics);
+	FDisplayMetrics::GetDisplayMetrics(InitialDisplayMetrics);
 
 	// Save the current sticky/toggle/filter key settings so they can be restored them later
 	// If there are .ini settings, use them instead of the current system settings.
@@ -261,9 +261,10 @@ FModifierKeysState FWindowsApplication::GetModifierKeys() const
 	const bool bIsLeftControlDown = ( ::GetAsyncKeyState( VK_LCONTROL ) & 0x8000 ) != 0;
 	const bool bIsRightControlDown = ( ::GetAsyncKeyState( VK_RCONTROL ) & 0x8000 ) != 0;
 	const bool bIsLeftAltDown = ( ::GetAsyncKeyState( VK_LMENU ) & 0x8000 ) != 0;
-	const bool bIsRightAltDown = ( ::GetAsyncKeyState( VK_RMENU ) & 0x8000 ) != 0;
+	const bool bIsRightAltDown = ( ::GetAsyncKeyState (VK_RMENU ) & 0x8000 ) != 0;
+	const bool bAreCapsLocked = ( ::GetKeyState( VK_CAPITAL ) & 0x0001 ) != 0;
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false ); // Win key is ignored
+	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
 }
 
 void FWindowsApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWindow )
@@ -520,7 +521,7 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 	}
 }
 
-void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics)
 {
 	// Total screen size of the primary monitor
 	OutDisplayMetrics.PrimaryDisplayWidth = ::GetSystemMetrics( SM_CXSCREEN );
@@ -1024,7 +1025,7 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				// Slate needs to know when desktop size changes.
 				FDisplayMetrics DisplayMetrics;
-				GetDisplayMetrics( DisplayMetrics );
+				FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 				BroadcastDisplayMetricsChanged(DisplayMetrics);
 			}
 			break;

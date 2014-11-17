@@ -38,6 +38,7 @@ public:
 		, _MinSliderValue(0)				
 		, _MaxSliderValue(100)
 		, _SliderExponent(1.f)
+		, _MinDesiredValueWidth(0)
 	{}		
 
 		/** Style to use for the editable text box within this widget */
@@ -73,6 +74,8 @@ public:
 		SLATE_ATTRIBUTE( TOptional< NumericType >, MaxSliderValue )
 		/** Use exponential scale for the slider */
 		SLATE_ATTRIBUTE( float, SliderExponent )
+		/** The minimum desired width for the value portion of the control. */
+		SLATE_ATTRIBUTE( float, MinDesiredValueWidth )
 		/** Called whenever the text is changed interactively by the user */
 		SLATE_EVENT( FOnValueChanged, OnValueChanged )
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
@@ -98,6 +101,7 @@ public:
 		OnValueCommitted = InArgs._OnValueCommitted;
 		ValueAttribute = InArgs._Value;
 		UndeterminedString = InArgs._UndeterminedString;
+		MinDesiredValueWidth = InArgs._MinDesiredValueWidth;
 		
 		BorderImageNormal = &InArgs._EditableTextBoxStyle->BackgroundImageNormal;
 		BorderImageHovered = &InArgs._EditableTextBoxStyle->BackgroundImageHovered;
@@ -121,7 +125,8 @@ public:
 				.MinValue(InArgs._MinValue)
 				.SliderExponent(InArgs._SliderExponent)
 				.OnBeginSliderMovement(InArgs._OnBeginSliderMovement)
-				.OnEndSliderMovement(InArgs._OnEndSliderMovement);
+				.OnEndSliderMovement(InArgs._OnEndSliderMovement)
+				.MinDesiredWidth(InArgs._MinDesiredValueWidth);
 		}
 
 		// Always create an editable text box.  In the case of an undetermined value being passed in, we cant use the spinbox.
@@ -134,7 +139,8 @@ public:
 			.OnTextChanged( this, &SNumericEntryBox<NumericType>::OnTextChanged  )
 			.OnTextCommitted( this, &SNumericEntryBox<NumericType>::OnTextCommitted )
 			.SelectAllTextOnCommit( true )
-			.ContextMenuExtender( InArgs._ContextMenuExtender );
+			.ContextMenuExtender( InArgs._ContextMenuExtender )
+			.MinDesiredWidth(InArgs._MinDesiredValueWidth);
 
 		TSharedRef<SHorizontalBox> HorizontalBox = SNew( SHorizontalBox );
 		if( InArgs._Label.Widget != SNullWidget::NullWidget )
@@ -452,6 +458,8 @@ private:
 	const FSlateBrush* BorderImageHovered;
 	/** Styling: border image to draw when focused */
 	const FSlateBrush* BorderImageFocused;
+	/** Prevents the value portion of the control from being smaller than desired in certain cases. */
+	TAttribute<float> MinDesiredValueWidth;
 };
 
 

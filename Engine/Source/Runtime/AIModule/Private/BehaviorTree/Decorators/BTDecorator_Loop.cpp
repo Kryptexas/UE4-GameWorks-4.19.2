@@ -25,13 +25,21 @@ void UBTDecorator_Loop::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
 		DecoratorMemory->RemainingExecutions = NumLoops;
 	}
 
-	if (!bInfiniteLoop)
+	bool bShouldLoop = false;
+	if (bInfiniteLoop)
+	{
+		// protect from truly infinite loop within single search
+		bShouldLoop = SearchData.SearchId != DecoratorMemory->SearchId;
+		DecoratorMemory->SearchId = SearchData.SearchId;
+	}
+	else
 	{
 		DecoratorMemory->RemainingExecutions--;
+		bShouldLoop = DecoratorMemory->RemainingExecutions > 0;
 	}
 
+
 	// set child selection overrides
-	const bool bShouldLoop = bInfiniteLoop || (DecoratorMemory->RemainingExecutions > 0);
 	if (bShouldLoop)
 	{
 		GetParentNode()->SetChildOverride(SearchData, ChildIndex);

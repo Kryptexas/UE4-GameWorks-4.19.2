@@ -37,13 +37,15 @@ public:
 
 	void CleanUp();
 
-	void PullDataFromVisualLog(FVisualLog& VisualLog);
+	void PullDataFromVisualLog(const FVisualLog& VisualLog);
 
 	int32 GetLogIndexForActor(const class AActor* Actor);
 
 	void AddLoadedLog(TSharedPtr<FActorsVisLog> Log);
 
 	UWorld* GetWorld() { return World.Get(); }
+
+	virtual class AActor* GetHelperActor(class UWorld* InWorld);
 
 protected:
 	void OnNewLog(const class AActor* Actor, TSharedPtr<FActorsVisLog> Log);
@@ -57,6 +59,7 @@ private:
 	FVisLogsChangedEvent	LogAddedEvent;
 	TWeakObjectPtr<UWorld>	World;
 	TWeakPtr<SWindow>		LogWindow;
+	TWeakObjectPtr<class ALogVisualizerDebugActor> DebugActor;
 };
 
 #endif //ENABLE_VISUAL_LOG

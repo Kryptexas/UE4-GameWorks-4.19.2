@@ -386,6 +386,18 @@ FVector UPawnSensingComponent::GetSensorLocation() const
 	return SensorLocation;
 }
 
+FRotator UPawnSensingComponent::GetSensorRotation() const
+{
+	FRotator SensorRotation(FRotator::ZeroRotator);
+	const AActor* SensorActor = GetSensorActor();
+	
+	if (SensorActor != NULL)
+	{
+		SensorRotation = SensorActor->GetActorRotation();
+	}
+	
+	return SensorRotation;
+}
 
 bool UPawnSensingComponent::CanHear(const FVector& NoiseLoc, float Loudness, bool bFailedLOS) const
 {

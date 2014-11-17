@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IDetailCustomNodeBuilder.h"
-/*
+/**
  * Struct to uniquely identify clothing applied to a material section
  * Contains index into the ClothingAssets array and the submesh index.
  */

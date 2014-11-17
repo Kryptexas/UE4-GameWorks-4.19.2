@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "K2Node_Tunnel.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_Composite.generated.h"
 
 UCLASS(MinimalAPI)
@@ -16,7 +17,7 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual void DestroyNode() override;
 	BLUEPRINTGRAPH_API virtual void PostPasteNode() override;
-	BLUEPRINTGRAPH_API virtual FString GetTooltip() const override;
+	BLUEPRINTGRAPH_API virtual FText GetTooltipText() const override;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
 	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	BLUEPRINTGRAPH_API virtual bool CanUserDeleteNode() const override;
@@ -45,6 +46,9 @@ private:
 
 	/** Determine if the name already used by another graph in composite nodes chain */
 	bool IsCompositeNameAvailable( const FString& NewName );
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

@@ -15,7 +15,8 @@ public:
 	FVelocityDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
-		const FMaterial& InMaterialResource
+		const FMaterial& InMaterialResource,
+		ERHIFeatureLevel::Type InFeatureLevel
 		);
 
 	// FMeshDrawingPolicy interface.
@@ -27,7 +28,7 @@ public:
 			&& VertexShader == Other.VertexShader
 			&& PixelShader == Other.PixelShader;
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
@@ -35,7 +36,8 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData, 
+		const ContextDataType PolicyContext
 		) const;
 
 	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);

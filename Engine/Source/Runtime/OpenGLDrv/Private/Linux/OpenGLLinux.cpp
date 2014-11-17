@@ -11,8 +11,10 @@
 	OpenGL function pointers.
 ------------------------------------------------------------------------------*/
 #define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
-ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
-
+namespace GLFuncPointers	// see explanation in OpenGLLinux.h why we need the namespace
+{
+	ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
+};
 
 typedef SDL_Window*		SDL_HWindow;
 typedef SDL_GLContext	SDL_HGLContext;
@@ -159,6 +161,23 @@ static void _PlatformCreateOpenGLContextCore( FPlatformOpenGLContext* OutContext
 	OutContext->ViewportFramebuffer = 0;
 
 	OutContext->hGLContext = SDL_GL_CreateContext( OutContext->hWnd );
+	if (OutContext->hGLContext == nullptr)
+	{
+		FString SdlError(ANSI_TO_TCHAR(SDL_GetError()));
+		
+		// ignore errors getting version, it will be clear from the logs
+		int OpenGLMajorVersion = -1;
+		int OpenGLMinorVersion = -1;
+		SDL_GL_GetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, &OpenGLMajorVersion );
+		SDL_GL_GetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, &OpenGLMinorVersion );
+		
+		UE_LOG(LogInit, Fatal, TEXT("_PlatformCreateOpenGLContextCore - Could not create OpenGL %d.%d context, SDL error: '%s'"), 
+				OpenGLMajorVersion, OpenGLMinorVersion,
+				*SdlError
+			);
+		// unreachable
+		return;
+	}
 
 	SDL_GL_MakeCurrent( prevWindow, prevContext );
 }
@@ -357,6 +376,7 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 		glDrawBuffer( GL_BACK );
 		glBindFramebuffer( GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer );
 		glReadBuffer( GL_COLOR_ATTACHMENT0 );
+		glDisable(GL_FRAMEBUFFER_SRGB);
 
 		glBlitFramebuffer(	0, 0, BackbufferSizeX, BackbufferSizeY,
 							0, BackbufferSizeY, BackbufferSizeX, 0,
@@ -379,6 +399,7 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 
 			SDL_GL_SwapWindow( Context->hWnd );
 
+			glEnable(GL_FRAMEBUFFER_SRGB);
 			REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
 //			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 		}
@@ -687,20 +708,17 @@ bool PlatformInitOpenGL()
 	static bool bInitialized = false;
 	static bool bOpenGLSupported = false;
 
-	//	init the sdl here
-	if	( SDL_WasInit( 0 ) == 0 )
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
-		SDL_Init( SDL_INIT_VIDEO );
+		UE_LOG(LogInit, Fatal, TEXT("PlatformInitOpenGL() : PlatformInitMultimedia() failed, cannot initialize OpenGL."));
+		// unreachable
+		return false;
 	}
-	else
-	{
-		Uint32 subsystem_init = SDL_WasInit( SDL_INIT_EVERYTHING );
 
-		if	( !(subsystem_init & SDL_INIT_VIDEO) )
-		{
-			SDL_InitSubSystem( SDL_INIT_VIDEO );
-		}
-	}
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_VIDEO);
+#endif // DO_CHECK
 
 	if (!bInitialized)
 	{
@@ -762,7 +780,7 @@ bool PlatformInitOpenGL()
 		if (bOpenGLSupported)
 		{
 			// Initialize all entry points required by Unreal.
-			#define GET_GL_ENTRYPOINTS(Type,Func) Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
+			#define GET_GL_ENTRYPOINTS(Type,Func) GLFuncPointers::Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
 			ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
 		

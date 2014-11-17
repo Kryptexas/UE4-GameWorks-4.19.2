@@ -22,27 +22,24 @@ public:
 		CRASHREPORTCLIENT_CHECK(!!bIsDone);
 	}
 
-	TWorker& GetTask()
+
+	template<typename T1, typename T2, typename T3, typename T4, typename T5>
+	TWorker& GetTask( T1 Arg1, T2 Arg2, T3 Arg3, T4 Arg4, T5 Arg5 )
 	{
-		return Worker;
+		Worker = new TWorker( Arg1, Arg2, Arg3, Arg4, Arg5 );
+		return *Worker;
 	}
 
 	void StartBackgroundTask()
 	{
 		bIsDone = 0;
-
-		Thread = FRunnableThread::Create(this, Worker.Name());
+		Thread = FRunnableThread::Create( this, Worker->Name() );
 	}
 
 	/**
 	 * No need to join the thread, since this can't be reused
 	 */
-	bool IsDone()
-	{
-		return bIsDone == 1;
-	}
-
-	bool IsWorkDone() const
+	bool IsDone() const
 	{
 		return bIsDone == 1;
 	}
@@ -50,12 +47,12 @@ public:
 private:
 	virtual uint32 Run() override
 	{
-		Worker.DoWork();
+		Worker->DoWork();
 		FPlatformAtomics::InterlockedIncrement(&bIsDone);
 		return 0;
 	}
 
-	TWorker Worker;
+	TAutoPtr<TWorker> Worker;
 	TScopedPointer<FRunnableThread> Thread;
 	volatile int32 bIsDone;	
 };
@@ -103,34 +100,40 @@ FunctorDirectoryVisitor<Functor> MakeDirectoryVisitor(Functor&& FunctorInstance)
 	return FunctorDirectoryVisitor<Functor>(MoveTemp(FunctorInstance));
 }
 
-/**
- * Create a multiline string to display from an exception and callstack
- * @param Exception Exception description string
- * @param Assertion Assertion description string
- * @param Callstack List of callstack entry strings
- * @return Multiline text
- */
-inline FText FormatReportDescription(const FString& Exception, const FString& Assertion, const TArray<FString>& Callstack)
+struct FCrashReportUtil
 {
-	FString Diagnostic = Exception + "\n\n";
-
-	if( !Assertion.IsEmpty() )
+	/**
+	 * Create a multi line string to display from an exception and callstack
+	 * @param Exception Exception description string
+	 * @param Assertion Assertion description string
+	 * @param Callstack List of callstack entry strings
+	 * @return Multiline text
+	 */
+	static inline FText FormatReportDescription( const FString& Exception, const FString& Assertion, const TArray<FString>& Callstack )
 	{
-		TArray<FString> MultilineAssertion;
-		Assertion.ParseIntoArray( &MultilineAssertion, TEXT( "#" ), true );
+		FString Diagnostic = Exception + "\n\n";
 
-		for( const auto& AssertionLine : MultilineAssertion )
+		if( !Assertion.IsEmpty() )
 		{
-			Diagnostic += AssertionLine;
+			TArray<FString> MultilineAssertion;
+			Assertion.ParseIntoArray( &MultilineAssertion, TEXT( "#" ), true );
+
+			for( const auto& AssertionLine : MultilineAssertion )
+			{
+				Diagnostic += AssertionLine;
+				Diagnostic += "\n";
+			}
+
 			Diagnostic += "\n";
 		}
 
-		Diagnostic += "\n";
+		for( const auto& Line : Callstack )
+		{
+			Diagnostic += Line + "\n";
+		}
+		return FText::FromString( Diagnostic );
 	}
 
-	for (const auto& Line: Callstack)
-	{
-		Diagnostic += Line + "\n";
-	}
-	return FText::FromString(Diagnostic);
-}
+	/** Formats processed diagnostic text by adding additional information about machine and user. */
+	static FText FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot );
+};

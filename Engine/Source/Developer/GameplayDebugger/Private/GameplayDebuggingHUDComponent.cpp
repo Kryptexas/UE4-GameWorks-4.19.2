@@ -10,10 +10,12 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "CanvasItem.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/Texture2D.h"
 #include "Regex.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"					// Game play timers
+#include "RenderUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
@@ -23,6 +25,8 @@ AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPost
 	, EngineShowFlags(EShowFlagInitMode::ESFIM_Game)
 {
 	World = NULL;
+	SetTickableWhenPaused(true);
+
 #if WITH_EDITORONLY_DATA
 	SetIsTemporarilyHiddenInEditor(true);
 	SetActorHiddenInGame(false);
@@ -46,17 +50,13 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 		return CachedDebuggingReplicator.Get();
 	}
 	
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<AGameplayDebuggingReplicator> It(GetWorld()); It; ++It)
 	{
-		AActor* A = *It;
-		if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+		AGameplayDebuggingReplicator* Replicator = *It;
+		if (!Replicator->IsPendingKill() && Replicator->GetLocalPlayerOwner() == PlayerOwner)
 		{
-			AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(A);
-			if (Replicator->GetLocalPlayerOwner() == PlayerOwner)
-			{
-				CachedDebuggingReplicator = Replicator;
-				return Replicator;
-			}
+			CachedDebuggingReplicator = Replicator;
+			return Replicator;
 		}
 	}
 
@@ -66,10 +66,10 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
 {
 	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));				// Num1
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));		// Num2
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));					// Num3
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));		// Num4
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));
 }
 
 void AGameplayDebuggingHUDComponent::PrintAllData()
@@ -94,15 +94,15 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 	if (GetDebuggingReplicator())
 	{
 		DebugComponent = GetDebuggingReplicator()->GetDebugComponent();
-				}
+	}
 				
 	if (DebugComponent && DebugComponent->GetSelectedActor())
-				{
+	{
 		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-					DrawDebugComponentData(MyPC, DebugComponent);
-				}
+		DrawDebugComponentData(MyPC, DebugComponent);
+	}
 
-	if (!EngineShowFlags.DebugAI)
+	if (DefaultContext.Canvas && DefaultContext.Canvas->SceneView && DefaultContext.Canvas->SceneView->Family && DefaultContext.Canvas->SceneView->Family->EngineShowFlags.Game)
 	{
 		DrawMenu(MenuX, MenuY, DebugComponent);
 	}
@@ -178,7 +178,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
 
 	FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(GetDebuggingReplicator());
-	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) || EngineShowFlags.DebugAI)
+	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) /*|| EngineShowFlags.DebugAI*/)
 	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
 	}
@@ -188,9 +188,10 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
-	if (DebugComponent->GetSelectedActor() && DebugComponent->IsSelected())
+	const bool bDrawFullData = GetDebuggingReplicator()->GetSelectedActorToDebug() == SelectedActor;
+	if (DebugComponent->GetSelectedActor() && bDrawFullData)
 	{
-		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) || EngineShowFlags.DebugAI)
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) /*|| EngineShowFlags.DebugAI*/)
 		{
 			DrawBasicData(MyPC, DebugComponent);
 		}
@@ -202,10 +203,18 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 
 		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::EQS))
 		{
-			DrawEQSData(MyPC, DebugComponent);
+			bool bEnabledEnvironmentQueryEd = true;
+			if (GConfig)
+			{
+				GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnabledEnvironmentQueryEd, GEngineIni);
+			}
+			if (bEnabledEnvironmentQueryEd)
+			{
+				DrawEQSData(MyPC, DebugComponent);
+			}
 		}
 
-		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Perception) || EngineShowFlags.DebugAI)
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Perception) /*|| EngineShowFlags.DebugAI*/)
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}
@@ -263,7 +272,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 	FString ObjectName = FString::Printf( TEXT("{yellow}%s {white}(%s)"), *DebugComponent->ControllerName, *DebugComponent->PawnName);
 	CalulateStringSize(OverHeadContext, OverHeadContext.Font, ObjectName, TextXL, YL);
 
-	bool bDrawFullOverHead = DebugComponent->bIsSelectedForDebugging;
+	bool bDrawFullOverHead = GetDebuggingReplicator()->GetSelectedActorToDebug() == MyPawn;
 	float IconXLocation = OverHeadContext.DefaultX;
 	float IconYLocation = OverHeadContext.DefaultY;
 	if (bDrawFullOverHead)
@@ -295,8 +304,6 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 		OverHeadContext.FontRenderInfo.bEnableShadow = false;
 	}
 
-	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-	UGameplayDebuggingControllerComponent*  GDC = MyPC ? MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>() : NULL;
 	if (EngineShowFlags.DebugAI)
 	{
 		PrintString(OverHeadContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
@@ -321,10 +328,7 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 		PrintString(DefaultContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
 	}
 
-	if (DebugComponent->IsSelected())
-	{
-		DrawPath(PC, DebugComponent);
-	}
+	DrawPath(PC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -333,32 +337,123 @@ void AGameplayDebuggingHUDComponent::DrawBehaviorTreeData(APlayerController* PC,
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PrintString(DefaultContext, TEXT("\n{green}BEHAVIOR TREE\n"));
 	PrintString(DefaultContext, FString::Printf(TEXT("Brain Component: {yellow}%s\n"), *DebugComponent->BrainComponentName));
+	PrintString(DefaultContext, DebugComponent->BrainComponentString);
+	PrintString(DefaultContext, FColor::White, DebugComponent->BlackboardString, 600.0f, 40.0f);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
-	PrintString(DefaultContext, TEXT("\n{green}EQS\n"));
-	if (DebugComponent->EQSRepData.Num())
+	PrintString(DefaultContext, TEXT("\n{green}EQS {white}[Use + key to switch query]\n"));
+
+	if (DebugComponent->AllEQSName.Num() == 0)
 	{
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
-			, DebugComponent->EQSTimestamp, PC->GetWorld()->GetTimeSeconds() - DebugComponent->EQSTimestamp
-			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query Name: {yellow}%s\n")
-			, *DebugComponent->EQSName
-			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
-			, DebugComponent->EQSId
-			));
+		return;
 	}
 
-	if (DebugComponent->EQSLocalData.NumValidItems > 0)
+	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	if (!DebugComponent->AllEQSName.IsValidIndex(EQSIndex))
+	{
+		return;
+	}
+	const FString SelecterEQSName = DebugComponent->AllEQSName[EQSIndex];
+
+	PrintString(DefaultContext, TEXT("{white}Queries: "));
+	for (auto CurrentQuery : DebugComponent->EQSLocalData)
+	{
+		if (SelecterEQSName == CurrentQuery.Name)
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQuery.Name));
+		}
+		else
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQuery.Name));
+		}
+	}
+	PrintString(DefaultContext, TEXT("\n"));
+
+	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
+
+	/** find and draw item selection */
+	int32 BestItemIndex = INDEX_NONE;
+	{
+		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+		FVector CamLocation;
+		FVector FireDir;
+		if (!MyPC->GetSpectatorPawn())
+		{
+			FRotator CamRotation;
+			MyPC->GetPlayerViewPoint(CamLocation, CamRotation);
+			FireDir = CamRotation.Vector();
+		}
+		else
+		{
+			FireDir = DefaultContext.Canvas->SceneView->GetViewDirection();
+			CamLocation = DefaultContext.Canvas->SceneView->ViewMatrices.ViewOrigin;
+		}
+
+		float bestAim = 0;
+		for (int32 Index = 0; Index < CurrentLocalData.RenderDebugHelpers.Num(); ++Index)
+		{
+			auto& CurrentItem = CurrentLocalData.RenderDebugHelpers[Index];
+
+			const FVector AimDir = CurrentItem.Location - CamLocation;
+			float FireDist = AimDir.SizeSquared();
+
+			FireDist = FMath::Sqrt(FireDist);
+			float newAim = FireDir | AimDir;
+			newAim = newAim / FireDist;
+			if (newAim > bestAim)
+			{
+				BestItemIndex = Index;
+				bestAim = newAim;
+			}
+		}
+
+		if (BestItemIndex != INDEX_NONE)
+		{
+			DrawDebugSphere(World, CurrentLocalData.RenderDebugHelpers[BestItemIndex].Location, CurrentLocalData.RenderDebugHelpers[BestItemIndex].Radius, 8, FColor::Red, false);
+			int32 FailedTestIndex = CurrentLocalData.RenderDebugHelpers[BestItemIndex].FailedTestIndex;
+			if (FailedTestIndex != INDEX_NONE)
+			{
+				PrintString(DefaultContext, FString::Printf(TEXT("{red}Selected item failed with test %d: {yellow}%s {LightBlue}(%s)\n")
+					, FailedTestIndex
+					, *CurrentLocalData.Tests[FailedTestIndex].ShortName
+					, *CurrentLocalData.Tests[FailedTestIndex].Detailed
+					));
+				PrintString(DefaultContext, FString::Printf(TEXT("{white}'%s' with score %3.3f\n\n"), *CurrentLocalData.RenderDebugHelpers[BestItemIndex].AdditionalInformation, CurrentLocalData.RenderDebugHelpers[BestItemIndex].FailedScore));
+			}
+		}
+	}
+
+	PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
+		, CurrentLocalData.Timestamp, PC->GetWorld()->GetTimeSeconds() - CurrentLocalData.Timestamp
+		));
+	PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
+		, CurrentLocalData.Id
+		));
+
+	PrintString(DefaultContext, FString::Printf(TEXT("{white}Query contains %d options: "), CurrentLocalData.Options.Num()));
+	for (int32 OptionIndex = 0; OptionIndex < CurrentLocalData.Options.Num(); ++OptionIndex)
+	{
+		if (OptionIndex == CurrentLocalData.UsedOption)
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentLocalData.Options[OptionIndex]));
+		}
+		else
+		{
+			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentLocalData.Options[OptionIndex]));
+		}
+	}
+	PrintString(DefaultContext, TEXT("\n"));
+
+	const float RowHeight = 20.0f;
+	const int32 NumTests = CurrentLocalData.Tests.Num();
+	if (CurrentLocalData.NumValidItems > 0 && GetDebuggingReplicator()->EnableEQSOnHUD )
 	{
 		// draw test weights for best X items
-		const int32 NumItems = DebugComponent->EQSLocalData.Items.Num();
-		const int32 NumTests = DebugComponent->EQSLocalData.Tests.Num();
-		const float RowHeight = 20.0f;
+		const int32 NumItems = CurrentLocalData.Items.Num();
 
 		FCanvasTileItem TileItem(FVector2D(0, 0), GWhiteTexture, FVector2D(Canvas->SizeX, RowHeight), FLinearColor::Black);
 		FLinearColor ColorOdd(0, 0, 0, 0.6f);
@@ -373,7 +468,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			DrawItem(DefaultContext, TileItem, 0, DefaultContext.CursorY);
 
 			float HeaderX = DefaultContext.CursorX;
-			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), DebugComponent->EQSLocalData.NumValidItems), HeaderX, HeaderY);
+			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), CurrentLocalData.NumValidItems), HeaderX, HeaderY);
 			HeaderX += 200.0f;
 
 			PrintString(DefaultContext, FColor::White, TEXT("Score"), HeaderX, HeaderY);
@@ -397,28 +492,32 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 			DrawEQSItemDetails(Idx, DebugComponent);
 			DefaultContext.CursorY += RowHeight;
 		}
-
-		// test description
 		DefaultContext.CursorY += RowHeight;
-		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
-		{
-			FString TestDesc = FString::Printf(TEXT("{white}Test %d = {yellow}%s {LightBlue}(%s)\n"), TestIdx,
-				*DebugComponent->EQSLocalData.Tests[TestIdx].ShortName,
-				*DebugComponent->EQSLocalData.Tests[TestIdx].Detailed);
-
-			PrintString(DefaultContext, TestDesc);
-		}
 	}
+
+	// test description
+	PrintString(DefaultContext, TEXT("All tests from used option:\n"));
+	for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+	{
+		FString TestDesc = FString::Printf(TEXT("{white}Test %d = {yellow}%s {LightBlue}(%s)\n"), TestIdx,
+			*CurrentLocalData.Tests[TestIdx].ShortName,
+			*CurrentLocalData.Tests[TestIdx].Detailed);
+
+		PrintString(DefaultContext, TestDesc);
+	}
+
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent)
 {
-#if USE_EQS_DEBUGGER && WITH_EQS
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 	const float PosY = DefaultContext.CursorY + 1.0f;
 	float PosX = DefaultContext.CursorX;
 
-	const EQSDebug::FItemData& ItemData = DebugComponent->EQSLocalData.Items[ItemIdx];
+	const int32 EQSIndex = DebugComponent->AllEQSName.Num() > 0 ? FMath::Clamp(DebugComponent->CurrentEQSIndex, 0, DebugComponent->AllEQSName.Num() - 1) : INDEX_NONE;
+	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
+	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 
 	PrintString(DefaultContext, FColor::White, ItemData.Desc, PosX, PosY);
 	PosX += 200.0f;
@@ -459,7 +558,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 		PrintString(DefaultContext, FColor::Green, TestDesc, PosX, PosY);
 		PosX += 100.0f;
 	}
-#endif
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 }
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)

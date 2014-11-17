@@ -7,6 +7,8 @@
 #pragma once
 
 #include "UniformBuffer.h"
+//@todo - parallelrendering - remove once FOneFrameResource no longer needs to be referenced in header
+#include "SceneManagement.h"
 
 /**
  * Uniform buffer for mesh particle vertex factories.
@@ -65,8 +67,9 @@ public:
 		}
 	};
 
-	struct FBatchParametersCPU
+	class FBatchParametersCPU : public FOneFrameResource
 	{
+	public:
 		const struct FMeshParticleInstanceVertex* InstanceBuffer;
 		const struct FMeshParticleInstanceVertexDynamicParameter* DynamicParameterBuffer;
 	};
@@ -74,8 +77,11 @@ public:
 	/** Default constructor. */
 	FMeshParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
 		: FParticleVertexFactoryBase(InType, InFeatureLevel)
-	{
-	}
+	{}
+
+	FMeshParticleVertexFactory()
+		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+	{}
 
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
@@ -91,7 +97,7 @@ public:
 	{
 		FParticleVertexFactoryBase::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
-		const bool bInstanced = IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		const bool bInstanced = IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 
 		// Set a define so we can tell in MaterialTemplate.usf when we are compiling a mesh particle vertex factory
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_FACTORY"),TEXT("1"));

@@ -6,15 +6,18 @@
 /* ILauncherProfileManager structors
  *****************************************************************************/
 
-FLauncherProfileManager::FLauncherProfileManager( )
+FLauncherProfileManager::FLauncherProfileManager()
+{
+}
+
+/* ILauncherProfileManager interface
+ *****************************************************************************/
+
+void FLauncherProfileManager::Load()
 {
 	LoadDeviceGroups();
 	LoadProfiles();
 }
-
-
-/* ILauncherProfileManager interface
- *****************************************************************************/
 
 void FLauncherProfileManager::AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup )
 {
@@ -47,15 +50,51 @@ ILauncherDeviceGroupRef FLauncherProfileManager::AddNewDeviceGroup( )
 }
 
 
-ILauncherProfileRef FLauncherProfileManager::AddNewProfile( )
+ILauncherDeviceGroupRef FLauncherProfileManager::CreateUnmanagedDeviceGroup()
+{
+	ILauncherDeviceGroupRef  NewGroup = MakeShareable(new FLauncherDeviceGroup(FGuid::NewGuid(), TEXT("Simple Group")));
+	return NewGroup;
+}
+
+
+ILauncherSimpleProfilePtr FLauncherProfileManager::FindOrAddSimpleProfile(const FString& DeviceName)
+{
+	// replace the existing profile
+	ILauncherSimpleProfilePtr SimpleProfile = FindSimpleProfile(DeviceName);
+	if (!SimpleProfile.IsValid())
+	{
+		SimpleProfile = MakeShareable(new FLauncherSimpleProfile(DeviceName));
+		SimpleProfiles.Add(SimpleProfile);
+	}
+	
+	return SimpleProfile;
+}
+
+
+ILauncherSimpleProfilePtr FLauncherProfileManager::FindSimpleProfile(const FString& DeviceName)
+{
+	for (int32 ProfileIndex = 0; ProfileIndex < SimpleProfiles.Num(); ++ProfileIndex)
+	{
+		ILauncherSimpleProfilePtr SimpleProfile = SimpleProfiles[ProfileIndex];
+
+		if (SimpleProfile->GetDeviceName() == DeviceName)
+		{
+			return SimpleProfile;
+		}
+	}
+
+	return nullptr;
+}
+
+ILauncherProfileRef FLauncherProfileManager::AddNewProfile()
 {
 	// find a unique name for the profile.
-	int32 ProfileIndex = Profiles.Num();
+	int32 ProfileIndex = SavedProfiles.Num();
 	FString ProfileName = FString::Printf(TEXT("New Profile %d"), ProfileIndex);
 
-	for (int32 Index = 0; Index < Profiles.Num(); ++Index)
+	for (int32 Index = 0; Index < SavedProfiles.Num(); ++Index)
 	{
-		if (Profiles[Index]->GetName() == ProfileName)
+		if (SavedProfiles[Index]->GetName() == ProfileName)
 		{
 			ProfileName = FString::Printf(TEXT("New Profile %d"), ++ProfileIndex);
 			Index = -1;
@@ -65,17 +104,29 @@ ILauncherProfileRef FLauncherProfileManager::AddNewProfile( )
 	}
 
 	// create and add the profile
-	ILauncherProfileRef NewProfile = MakeShareable(new FLauncherProfile(ProfileName));
+	ILauncherProfileRef NewProfile = MakeShareable(new FLauncherProfile(AsShared(), FGuid::NewGuid(), ProfileName));
 
 	AddProfile(NewProfile);
 
+	SaveProfile(NewProfile);
+
+	return NewProfile;
+}
+
+ILauncherProfileRef FLauncherProfileManager::CreateUnsavedProfile(FString ProfileName)
+{
+	// create and return the profile
+	ILauncherProfileRef NewProfile = MakeShareable(new FLauncherProfile(AsShared(), FGuid(), ProfileName));
+	
+	AllProfiles.Add(NewProfile);
+	
 	return NewProfile;
 }
 
 
 void FLauncherProfileManager::AddProfile( const ILauncherProfileRef& Profile )
 {
-	if (!Profiles.Contains(Profile))
+	if (!SavedProfiles.Contains(Profile))
 	{
 		// replace the existing profile
 		ILauncherProfilePtr ExistingProfile = GetProfile(Profile->GetId());
@@ -85,9 +136,14 @@ void FLauncherProfileManager::AddProfile( const ILauncherProfileRef& Profile )
 			RemoveProfile(ExistingProfile.ToSharedRef());
 		}
 
+		if (!Profile->GetDeployedDeviceGroup().IsValid())
+		{
+			Profile->SetDeployedDeviceGroup(AddNewDeviceGroup());
+		}
+
 		// add the new profile
-		Profiles.Add(Profile);
-		SaveProfiles();
+		SavedProfiles.Add(Profile);
+		AllProfiles.Add(Profile);
 
 		ProfileAddedDelegate.Broadcast(Profile);
 	}
@@ -96,9 +152,9 @@ void FLauncherProfileManager::AddProfile( const ILauncherProfileRef& Profile )
 
 ILauncherProfilePtr FLauncherProfileManager::FindProfile( const FString& ProfileName )
 {
-	for (int32 ProfileIndex = 0; ProfileIndex < Profiles.Num(); ++ProfileIndex)
+	for (int32 ProfileIndex = 0; ProfileIndex < SavedProfiles.Num(); ++ProfileIndex)
 	{
-		ILauncherProfilePtr Profile = Profiles[ProfileIndex];
+		ILauncherProfilePtr Profile = SavedProfiles[ProfileIndex];
 
 		if (Profile->GetName() == ProfileName)
 		{
@@ -118,7 +174,7 @@ const TArray<ILauncherDeviceGroupPtr>& FLauncherProfileManager::GetAllDeviceGrou
 
 const TArray<ILauncherProfilePtr>& FLauncherProfileManager::GetAllProfiles( ) const
 {
-	return Profiles;
+	return SavedProfiles;
 }
 
 
@@ -140,9 +196,9 @@ ILauncherDeviceGroupPtr FLauncherProfileManager::GetDeviceGroup( const FGuid& Gr
 
 ILauncherProfilePtr FLauncherProfileManager::GetProfile( const FGuid& ProfileId ) const
 {
-	for (int32 ProfileIndex = 0; ProfileIndex < Profiles.Num(); ++ProfileIndex)
+	for (int32 ProfileIndex = 0; ProfileIndex < SavedProfiles.Num(); ++ProfileIndex)
 	{
-		ILauncherProfilePtr Profile = Profiles[ProfileIndex];
+		ILauncherProfilePtr Profile = SavedProfiles[ProfileIndex];
 
 		if (Profile->GetId() == ProfileId)
 		{
@@ -156,11 +212,16 @@ ILauncherProfilePtr FLauncherProfileManager::GetProfile( const FGuid& ProfileId 
 
 ILauncherProfilePtr FLauncherProfileManager::LoadProfile( FArchive& Archive )
 {
-	FLauncherProfile* Profile = new FLauncherProfile();
+	FLauncherProfile* Profile = new FLauncherProfile(AsShared());
 
 	if (Profile->Serialize(Archive))
 	{
-		Profile->SetDeployedDeviceGroup(GetDeviceGroup(Profile->GetDeployedDeviceGroupId()));
+		ILauncherDeviceGroupPtr DeviceGroup = GetDeviceGroup(Profile->GetDeployedDeviceGroupId());
+		if (!DeviceGroup.IsValid())
+		{
+			DeviceGroup = AddNewDeviceGroup();	
+		}
+		Profile->SetDeployedDeviceGroup(DeviceGroup);
 
 		return MakeShareable(Profile);
 	}
@@ -187,37 +248,89 @@ void FLauncherProfileManager::RemoveDeviceGroup( const ILauncherDeviceGroupRef& 
 }
 
 
-void FLauncherProfileManager::RemoveProfile( const ILauncherProfileRef& Profile )
+void FLauncherProfileManager::RemoveSimpleProfile(const ILauncherSimpleProfileRef& SimpleProfile)
 {
-	if (Profiles.Remove(Profile) > 0)
+	if (SimpleProfiles.Remove(SimpleProfile) > 0)
 	{
-		// delete the persisted profile on disk
-		FString ProfileFileName = GetProfileFolder() / Profile->GetId().ToString() + TEXT(".ulp");
-
-		// delete the profile
-		IFileManager::Get().Delete(*ProfileFileName);
-		SaveProfiles();
-
-		ProfileRemovedDelegate.Broadcast(Profile);
+		// delete the persisted simple profile on disk
+		FString SimpleProfileFileName = GetProfileFolder() / SimpleProfile->GetDeviceName() + TEXT(".uslp");
+		IFileManager::Get().Delete(*SimpleProfileFileName);
 	}
 }
 
 
-void FLauncherProfileManager::SaveProfile( const ILauncherProfileRef& Profile, FArchive& Archive )
+void FLauncherProfileManager::RemoveProfile( const ILauncherProfileRef& Profile )
 {
-	Profile->Serialize(Archive);
+	AllProfiles.Remove(Profile);
+	if (SavedProfiles.Remove(Profile) > 0)
+	{
+		if (Profile->GetId().IsValid())
+		{
+			// delete the persisted profile on disk
+			FString ProfileFileName = GetProfileFolder() / Profile->GetId().ToString() + TEXT(".ulp");
+
+			// delete the profile
+			IFileManager::Get().Delete(*ProfileFileName);
+
+			ProfileRemovedDelegate.Broadcast(Profile);
+		}
+	}
+}
+
+
+void FLauncherProfileManager::SaveProfile(const ILauncherProfileRef& Profile)
+{
+	if (Profile->GetId().IsValid())
+	{
+		FString ProfileFileName = GetProfileFolder() / Profile->GetId().ToString() + TEXT(".ulp");
+		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*ProfileFileName);
+
+		if (ProfileFileWriter != nullptr)
+		{
+			Profile->Serialize(*ProfileFileWriter);
+
+			delete ProfileFileWriter;
+		}
+	}
 }
 
 
 void FLauncherProfileManager::SaveSettings( )
 {
 	SaveDeviceGroups();
+	SaveSimpleProfiles();
 	SaveProfiles();
 }
 
+FString FLauncherProfileManager::GetProjectName() const
+{
+	return FLauncherProjectPath::GetProjectName(ProjectPath);
+}
 
-/* FLauncherProfileManager implementation
- *****************************************************************************/
+FString FLauncherProfileManager::GetProjectBasePath() const
+{
+	return FLauncherProjectPath::GetProjectBasePath(ProjectPath);
+}
+
+FString FLauncherProfileManager::GetProjectPath() const
+{
+	return ProjectPath;
+}
+
+void FLauncherProfileManager::SetProjectPath(const FString& InProjectPath)
+{
+	if (ProjectPath != InProjectPath)
+	{
+		ProjectPath = InProjectPath;
+		for (ILauncherProfilePtr Profile : AllProfiles)
+		{
+			if (Profile.IsValid())
+			{
+				Profile->FallbackProjectUpdated();
+			}
+		}
+	}
+}
 
 void FLauncherProfileManager::LoadDeviceGroups( )
 {
@@ -317,7 +430,7 @@ void FLauncherProfileManager::SaveDeviceGroups( )
 		for (int32 GroupIndex = 0; GroupIndex < DeviceGroups.Num(); ++GroupIndex)
 		{
 			const ILauncherDeviceGroupPtr& Group = DeviceGroups[GroupIndex];
-			const TArray<FString>& Devices = Group->GetDevices();
+			const TArray<FString>& Devices = Group->GetDeviceIDs();
 
 			FString DeviceListString;
 
@@ -343,18 +456,27 @@ void FLauncherProfileManager::SaveDeviceGroups( )
 }
 
 
-void FLauncherProfileManager::SaveProfiles( )
+void FLauncherProfileManager::SaveSimpleProfiles()
 {
-	for (TArray<ILauncherProfilePtr>::TIterator It(Profiles); It; ++It)
+	for (TArray<ILauncherSimpleProfilePtr>::TIterator It(SimpleProfiles); It; ++It)
 	{
-		FString ProfileFileName = GetProfileFolder() / (*It)->GetId().ToString() + TEXT(".ulp");
-		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*ProfileFileName);
+		FString SimpleProfileFileName = GetProfileFolder() / (*It)->GetDeviceName() + TEXT(".uslp");
+		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*SimpleProfileFileName);
 
 		if (ProfileFileWriter != nullptr)
 		{
-			SaveProfile((*It).ToSharedRef(), *ProfileFileWriter);
+			(*It)->Serialize(*ProfileFileWriter);
 
 			delete ProfileFileWriter;
 		}
+	}
+}
+
+
+void FLauncherProfileManager::SaveProfiles( )
+{
+	for (TArray<ILauncherProfilePtr>::TIterator It(SavedProfiles); It; ++It)
+	{
+		SaveProfile((*It).ToSharedRef());
 	}
 }

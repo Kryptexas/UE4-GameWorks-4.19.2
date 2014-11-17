@@ -129,23 +129,29 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 	const bool bIsMapPackage = (PackageFileSummary.PackageFlags & PKG_ContainsMap) != 0;
 
 	// Assets do not show up in map packages unless we launch with -WorldAssets
-	static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
 	if ( bIsMapPackage && !bUsingWorldAssets )
 	{
 		return true;
 	}
 
-	// Worlds that were saved before they were marked public do not have asset data so we will synthesize it here to make sure we see all legacy umaps
-	if ( bUsingWorldAssets && bIsMapPackage && PackageFileSummary.GetFileVersionUE4() < VER_UE4_PUBLIC_WORLDS )
-	{
-		const FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
-		TMap<FString, FString> TagsAndValues;
-		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, TEXT(""), AssetName, TEXT("World"), TagsAndValues, PackageFileSummary.ChunkIDs));
-	}
-
 	// Load the object count
 	int32 ObjectCount = 0;
 	*this << ObjectCount;
+
+	// Worlds that were saved before they were marked public do not have asset data so we will synthesize it here to make sure we see all legacy umaps
+	// We will also do this for maps saved after they were marked public but no asset data was saved for some reason. A bug caused this to happen for some maps.
+	if (bUsingWorldAssets && bIsMapPackage)
+	{
+		const bool bLegacyPackage = PackageFileSummary.GetFileVersionUE4() < VER_UE4_PUBLIC_WORLDS;
+		const bool bNoMapAsset = (ObjectCount == 0);
+		if (bLegacyPackage || bNoMapAsset)
+		{
+			const FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
+			TMap<FString, FString> TagsAndValues;
+			AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, TEXT(""), AssetName, TEXT("World"), TagsAndValues, PackageFileSummary.ChunkIDs));
+		}
+	}
 
 	// UAsset files only have one object, but legacy or map packages may have more.
 	for(int32 ObjectIdx = 0; ObjectIdx < ObjectCount; ++ObjectIdx)
@@ -368,8 +374,8 @@ FArchive& FPackageReader::operator<<( FName& Name )
 	{
 		int32 Number;
 		Ar << Number;
-		// simply create the name from the NameMap's name index and the serialized instance number
-		Name = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		// simply create the name from the NameMap's name and the serialized instance number
+		Name = FName(NameMap[NameIndex], Number);
 	}
 
 	return *this;

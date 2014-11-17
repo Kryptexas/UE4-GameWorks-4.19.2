@@ -541,7 +541,6 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 	check(Bone1Index != INDEX_NONE);
 	FTransform Bone1TM = SkelComp->GetBoneTransform(Bone1Index);
 	Bone1TM.RemoveScaling();
-	FTransform InvBone1TM = Bone1TM.InverseSafe();
 
 	UBodySetup* Body2 = PhysAsset->BodySetup[AddBodyIndex];
 	int32 Bone2Index = SkelComp->SkeletalMesh->RefSkeleton.FindBoneIndex(Body2->BoneName);
@@ -549,7 +548,7 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 	FTransform Bone2TM = SkelComp->GetBoneTransform(Bone2Index);
 	Bone2TM.RemoveScaling();
 
-	FTransform Bone2ToBone1TM = Bone2TM * InvBone1TM;
+	FTransform Bone2ToBone1TM = Bone2TM.GetRelativeTransform(Bone1TM);
 
 	// First copy all collision info over.
 	for(int32 i=0; i<Body2->AggGeom.SphereElems.Num(); i++)

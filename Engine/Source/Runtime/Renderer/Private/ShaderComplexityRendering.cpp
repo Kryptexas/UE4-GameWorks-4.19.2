@@ -8,6 +8,7 @@ ShaderComplexityRendering.cpp: Contains definitions for rendering the shader com
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessVisualizeComplexity.h"
+#include "SceneUtils.h"
 
 /**
  * Gets the maximum shader complexity count from the ini settings.
@@ -149,7 +150,7 @@ extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 
 void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessVisualizeComplexity, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessVisualizeComplexity, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -179,12 +180,12 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	//reuse this generic vertex shader
-	TShaderMapRef<FShaderComplexityApplyVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FShaderComplexityApplyPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FShaderComplexityApplyVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FShaderComplexityApplyPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState ShaderComplexityBoundShaderState;
 	
-	SetGlobalBoundShaderState(Context.RHICmdList, ShaderComplexityBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), ShaderComplexityBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(Context, Colors);
 	

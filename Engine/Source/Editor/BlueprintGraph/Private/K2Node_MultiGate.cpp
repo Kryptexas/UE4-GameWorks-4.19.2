@@ -7,6 +7,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "K2Node_MultiGate.h"
 #include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MultiGate"
 
@@ -461,9 +462,9 @@ UK2Node_MultiGate::UK2Node_MultiGate(const class FPostConstructInitializePropert
 {
 }
 
-FString UK2Node_MultiGate::GetTooltip() const
+FText UK2Node_MultiGate::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "MultiGate_Tooltip", "Executes a series of pins in order").ToString();
+	return NSLOCTEXT("K2Node", "MultiGate_Tooltip", "Executes a series of pins in order");
 }
 
 FLinearColor UK2Node_MultiGate::GetNodeTitleColor() const
@@ -656,12 +657,24 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 	}
 }
 
-void UK2Node_MultiGate::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_MultiGate::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

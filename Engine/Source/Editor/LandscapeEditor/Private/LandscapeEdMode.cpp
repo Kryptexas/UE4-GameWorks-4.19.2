@@ -26,6 +26,7 @@
 
 // Classes
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeMaterialInstanceConstant.h"
 #include "Landscape/LandscapeSplinesComponent.h"
@@ -148,16 +149,16 @@ void FLandscapeTool::SetEditRenderType()
 /** Constructor */
 FEdModeLandscape::FEdModeLandscape()
 	: FEdMode()
-	, CurrentGizmoActor(nullptr)
-	, LandscapeRenderAddCollision(nullptr)
-	, bToolActive(false)
-	, GizmoMaterial(nullptr)
-	, CopyPasteTool(nullptr)
-	, SplinesTool(nullptr)
 	, NewLandscapePreviewMode(ENewLandscapePreviewMode::None)
 	, DraggingEdge(ELandscapeEdge::None)
 	, DraggingEdge_Remainder(0)
+	, CurrentGizmoActor(nullptr)
+	, CopyPasteTool(nullptr)
+	, SplinesTool(nullptr)
+	, LandscapeRenderAddCollision(nullptr)
 	, CachedLandscapeMaterial(nullptr)
+	, bToolActive(false)
+	, GizmoMaterial(nullptr)
 {
 	GizmoMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/GizmoMaterial.GizmoMaterial"), NULL, LOAD_None, NULL);
 
@@ -204,7 +205,7 @@ FEdModeLandscape::FEdModeLandscape()
 	CurrentToolTarget.TargetType = ELandscapeToolTargetType::Heightmap;
 	CurrentToolTarget.LayerInfo = nullptr;
 
-	UISettings = ConstructObject<ULandscapeEditorObject>(ULandscapeEditorObject::StaticClass());
+	UISettings = ConstructObject<ULandscapeEditorObject>(ULandscapeEditorObject::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional);
 	UISettings->SetParent(this);
 }
 
@@ -299,14 +300,10 @@ void FEdModeLandscape::Enter()
 		GEditor->SelectNone(false, true);
 	}
 
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
 	{
-		ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-		if (Gizmo)
-		{
-			CurrentGizmoActor = Gizmo;
-			break;
-		}
+		CurrentGizmoActor = *It;
+		break;
 	}
 
 	if (!CurrentGizmoActor.IsValid())
@@ -500,25 +497,17 @@ void FEdModeLandscape::Exit()
 
 	// Clear all GizmoActors if there is no Landscape in World
 	bool bIsLandscapeExist = false;
-	for (FActorIterator It(GetWorld()); It; ++It)
+	for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
 	{
-		ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(*It);
-		if (Proxy)
-		{
-			bIsLandscapeExist = true;
-			break;
-		}
+		bIsLandscapeExist = true;
+		break;
 	}
 
 	if (!bIsLandscapeExist)
 	{
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<ALandscapeGizmoActor> It(GetWorld()); It; ++It)
 		{
-			ALandscapeGizmoActor* Gizmo = Cast<ALandscapeGizmoActor>(*It);
-			if (Gizmo)
-			{
-				GetWorld()->DestroyActor(Gizmo, false, false);
-			}
+			GetWorld()->DestroyActor(*It, false, false);
 		}
 	}
 
@@ -1104,7 +1093,7 @@ bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHit
 	}
 
 	// Override Click Input for Splines Tool
-	if (CurrentTool && CurrentTool && CurrentTool->HandleClick(HitProxy, Click))
+	if (CurrentTool && CurrentTool->HandleClick(HitProxy, Click))
 	{
 		return true;
 	}
@@ -1163,25 +1152,16 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			return true;
 		}
 
-		if (CurrentTool && CurrentTool && CurrentTool->InputKey(ViewportClient, Viewport, Key, Event) == true)
+		if (CurrentTool && CurrentTool->InputKey(ViewportClient, Viewport, Key, Event) == true)
 		{
 			return true;
 		}
 
-		if ((Event == IE_Pressed || Event == IE_Released) && IsCtrlDown(Viewport))
+		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
-			// Cheat, but works... :)
-			bool bNeedSelectGizmo = CurrentGizmoActor.IsValid() && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo) && CurrentGizmoActor->IsSelected();
-			GEditor->SelectNone(false, true);
-			if (bNeedSelectGizmo)
-			{
-				GEditor->SelectActor(CurrentGizmoActor.Get(), true, false);
-			}
-		}
-
-		if (Key == EKeys::LeftMouseButton)
-		{
-			if (Event == IE_Pressed && (IsCtrlDown(Viewport) || (Viewport->IsPenActive() && Viewport->GetTabletPressure() > 0.f)))
+			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
+			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
+			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(Viewport) && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
 			{
 				if (CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
 				{
@@ -1201,6 +1181,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 						else
 						{
 							bToolActive = CurrentTool->BeginTool(ViewportClient, CurrentToolTarget, HitLocation);
+							return bToolActive;
 						}
 					}
 				}
@@ -1208,15 +1189,15 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			}
 		}
 
-		if (Key == EKeys::LeftMouseButton || Key == EKeys::LeftControl || Key == EKeys::RightControl)
+		if (Key == EKeys::LeftMouseButton)
 		{
-			if (Event == IE_Released && CurrentTool && CurrentTool && bToolActive)
+			if (Event == IE_Released && CurrentTool && bToolActive)
 			{
 				//Set the cursor position to that of the slate cursor so it wont snap back
 				Viewport->SetPreCaptureMousePosFromSlateCursor();
 				CurrentTool->EndTool(ViewportClient);
 				bToolActive = false;
-				return (Key == EKeys::LeftMouseButton);
+				return true;
 			}
 		}
 
@@ -1275,7 +1256,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		// Prev tool 
 		if (Event == IE_Pressed && Key == EKeys::Comma)
 		{
-			if (CurrentTool && CurrentTool && bToolActive)
+			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				bToolActive = false;
@@ -1291,7 +1272,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		// Next tool 
 		if (Event == IE_Pressed && Key == EKeys::Period)
 		{
-			if (CurrentTool && CurrentTool && bToolActive)
+			if (CurrentTool && bToolActive)
 			{
 				CurrentTool->EndTool(ViewportClient);
 				bToolActive = false;
@@ -1323,6 +1304,7 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 			FVector DeltaScale = InScale;
 			DeltaScale.X = DeltaScale.Y = (FMath::Abs(InScale.X) > FMath::Abs(InScale.Y)) ? InScale.X : InScale.Y;
 
+			UISettings->Modify();
 			UISettings->NewLandscape_Location += InDrag;
 			UISettings->NewLandscape_Rotation += InRot;
 			UISettings->NewLandscape_Scale += DeltaScale;
@@ -1337,6 +1319,7 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 			FTransform Transform(UISettings->NewLandscape_Rotation, UISettings->NewLandscape_Location, UISettings->NewLandscape_Scale * UISettings->NewLandscape_QuadsPerSection * UISettings->NewLandscape_SectionsPerComponent);
 			HitLocation = Transform.InverseTransformPosition(HitLocation);
 
+			UISettings->Modify();
 			switch (DraggingEdge)
 			{
 			case ELandscapeEdge::X_Negative:
@@ -1397,7 +1380,7 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 		}
 	}
 
-	if (CurrentTool && CurrentTool && CurrentTool->InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
+	if (CurrentTool && CurrentTool->InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
 	{
 		return true;
 	}
@@ -1636,14 +1619,10 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	if (!CurrentGizmoActor.IsValid())
 	{
 		ALandscapeGizmoActiveActor* GizmoActor = NULL;
-		for (FActorIterator It(GetWorld()); It; ++It)
+		for (TActorIterator<ALandscapeGizmoActiveActor> It(GetWorld()); It; ++It)
 		{
-			ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(*It);
-			if (Gizmo)
-			{
-				GizmoActor = Gizmo;
-				break;
-			}
+			GizmoActor = *It;
+			break;
 		}
 	}
 
@@ -2093,7 +2072,7 @@ bool FEdModeLandscape::UsesTransformWidget() const
 	}
 
 	// Override Widget for Splines Tool
-	if (CurrentTool && CurrentTool && CurrentTool->UsesTransformWidget())
+	if (CurrentTool && CurrentTool->UsesTransformWidget())
 	{
 		return true;
 	}
@@ -2230,7 +2209,7 @@ bool FEdModeLandscape::IsSelectionAllowed(AActor* InActor, bool bInSelection) co
 	}
 
 	// Override Selection for Splines Tool
-	if (CurrentTool && CurrentTool && CurrentTool->OverrideSelection())
+	if (CurrentTool && CurrentTool->OverrideSelection())
 	{
 		return CurrentTool->IsSelectionAllowed(InActor, bInSelection);
 	}
@@ -2649,6 +2628,11 @@ bool LandscapeEditorUtils::SetWeightmapData(ALandscapeProxy* Landscape, ULandsca
 	}
 
 	return false;
+}
+
+FName FLandscapeTargetListInfo::GetLayerName() const
+{
+	return LayerInfoObj.IsValid() ? LayerInfoObj->LayerName : LayerName;
 }
 
 #undef LOCTEXT_NAMESPACE

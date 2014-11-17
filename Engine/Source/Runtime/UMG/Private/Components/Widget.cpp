@@ -12,27 +12,90 @@ UWidget::UWidget(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = true;
 	bDesignTime = false;
 	Visiblity = ESlateVisibility::Visible;
+	RenderTransformPivot = FVector2D(0.5f, 0.5f);
+}
+
+void UWidget::SetRenderTransform(FWidgetTransform Transform)
+{
+	RenderTransform = Transform;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderScale(FVector2D Scale)
+{
+	RenderTransform.Scale = Scale;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderShear(FVector2D Shear)
+{
+	RenderTransform.Shear = Shear;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderAngle(float Angle)
+{
+	RenderTransform.Angle = Angle;
+	UpdateRenderTransform();
+}
+
+void UWidget::SetRenderTranslation(FVector2D Translation)
+{
+	RenderTransform.Translation = Translation;
+	UpdateRenderTransform();
+}
+
+void UWidget::UpdateRenderTransform()
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		if (!RenderTransform.IsIdentity())
+		{
+			FSlateRenderTransform Transform2D = ::Concatenate(FScale2D(RenderTransform.Scale), FShear2D::FromShearAngles(RenderTransform.Shear), FQuat2D(FMath::DegreesToRadians(RenderTransform.Angle)), FVector2D(RenderTransform.Translation));
+			SafeWidget->SetRenderTransform(Transform2D);
+		}
+		else
+		{
+			SafeWidget->SetRenderTransform(TOptional<FSlateRenderTransform>());
+		}
+	}
+}
+
+void UWidget::SetRenderTransformPivot(FVector2D Pivot)
+{
+	RenderTransformPivot = Pivot;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		SafeWidget->SetRenderTransformPivot(Pivot);
+	}
 }
 
 bool UWidget::GetIsEnabled() const
 {
-	return MyWidget.IsValid() ? MyWidget.Pin()->IsEnabled() : bIsEnabled;
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	return SafeWidget.IsValid() ? SafeWidget->IsEnabled() : bIsEnabled;
 }
 
 void UWidget::SetIsEnabled(bool bInIsEnabled)
 {
 	bIsEnabled = bInIsEnabled;
-	if ( MyWidget.IsValid() )
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		MyWidget.Pin()->SetEnabled(bInIsEnabled);
+		SafeWidget->SetEnabled(bInIsEnabled);
 	}
 }
 
 TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
 {
-	if ( MyWidget.IsValid() )
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		return UWidget::ConvertRuntimeToSerializedVisiblity(MyWidget.Pin()->GetVisibility());
+		return UWidget::ConvertRuntimeToSerializedVisiblity(SafeWidget->GetVisibility());
 	}
 
 	return Visiblity;
@@ -42,9 +105,10 @@ void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
 {
 	Visiblity = InVisibility;
 
-	if ( MyWidget.IsValid() )
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		return MyWidget.Pin()->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
+		return SafeWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
 	}
 }
 
@@ -52,28 +116,84 @@ void UWidget::SetToolTipText(const FText& InToolTipText)
 {
 	ToolTipText = InToolTipText;
 
-	if ( MyWidget.IsValid() )
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		return MyWidget.Pin()->SetToolTipText(InToolTipText);
+		return SafeWidget->SetToolTipText(InToolTipText);
 	}
 }
 
 bool UWidget::IsHovered() const
 {
-	if ( MyWidget.IsValid() )
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		return MyWidget.Pin()->IsHovered();
+		return SafeWidget->IsHovered();
 	}
 
 	return false;
 }
 
+bool UWidget::HasKeyboardFocus() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->HasKeyboardFocus();
+	}
+
+	return false;
+}
+
+bool UWidget::HasFocusedDescendants() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->HasFocusedDescendants();
+	}
+
+	return false;
+}
+
+bool UWidget::HasMouseCapture() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->HasMouseCapture();
+	}
+
+	return false;
+}
+
+void UWidget::SetKeyboardFocus() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		FSlateApplication::Get().SetKeyboardFocus(SafeWidget);
+	}
+}
+
 void UWidget::ForceLayoutPrepass()
 {
-	if ( MyWidget.IsValid() )
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		MyWidget.Pin()->SlatePrepass();
+		SafeWidget->SlatePrepass();
 	}
+}
+
+FVector2D UWidget::GetDesiredSize() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->GetDesiredSize();
+	}
+
+	return FVector2D(0, 0);
 }
 
 UPanelWidget* UWidget::GetParent() const
@@ -83,12 +203,22 @@ UPanelWidget* UWidget::GetParent() const
 		return Slot->Parent;
 	}
 
-	return NULL;
+	return nullptr;
+}
+
+void UWidget::RemoveFromParent()
+{
+	UPanelWidget* CurrentParent = GetParent();
+	if ( CurrentParent )
+	{
+		CurrentParent->RemoveChild(this);
+	}
 }
 
 TSharedRef<SWidget> UWidget::TakeWidget()
 {
 	TSharedPtr<SWidget> SafeWidget;
+	bool bNewlyCreated = false;
 
 	if ( !MyWidget.IsValid() )
 	{
@@ -98,7 +228,8 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 		// just blow away the const here.
 		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
-		SyncronizeProperties();
+
+		bNewlyCreated = true;
 	}
 	else
 	{
@@ -121,11 +252,18 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 
 			MyGCWidget = SafeGCWidget;
 
+			SynchronizeProperties();
+
 			return SafeGCWidget.ToSharedRef();
 		}
 	}
 	else
 	{
+		if ( bNewlyCreated )
+		{
+			SynchronizeProperties();
+		}
+
 		return SafeWidget.ToSharedRef();
 	}
 }
@@ -169,6 +307,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 }
 
 #if WITH_EDITOR
+#define LOCTEXT_NAMESPACE "UMGEditor"
 
 bool UWidget::IsGeneratedName() const
 {
@@ -200,24 +339,24 @@ FString UWidget::GetLabel() const
 	}
 }
 
+const FText UWidget::GetPaletteCategory()
+{
+	return LOCTEXT("Uncategorized", "Uncategorized");
+}
+
 const FSlateBrush* UWidget::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget");
-}
-
-TSharedRef<SWidget> UWidget::GetToolboxPreviewWidget() const
-{
-	return SNew(SImage);
-	//.Image( FEditorStyle::GetBrush("UMGEditor.ToolboxPreviewWidget") );
 }
 
 void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if ( MyWidget.IsValid() )
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
 	{
-		SyncronizeProperties();
+		SynchronizeProperties();
 	}
 }
 
@@ -226,7 +365,7 @@ void UWidget::Select()
 	OnSelected();
 
 	UWidget* Parent = GetParent();
-	while ( Parent != NULL )
+	while ( Parent != nullptr )
 	{
 		Parent->OnDescendantSelected(this);
 		Parent = Parent->GetParent();
@@ -238,13 +377,14 @@ void UWidget::Deselect()
 	OnDeselected();
 
 	UWidget* Parent = GetParent();
-	while ( Parent != NULL )
+	while ( Parent != nullptr )
 	{
 		Parent->OnDescendantDeselected(this);
 		Parent = Parent->GetParent();
 	}
 }
 
+#undef LOCTEXT_NAMESPACE
 #endif
 
 bool UWidget::Modify(bool bAlwaysMarkDirty)
@@ -252,7 +392,9 @@ bool UWidget::Modify(bool bAlwaysMarkDirty)
 	bool Modified = Super::Modify(bAlwaysMarkDirty);
 
 	if ( Slot )
+	{
 		Modified &= Slot->Modify(bAlwaysMarkDirty);
+	}
 
 	return Modified;
 }
@@ -260,7 +402,7 @@ bool UWidget::Modify(bool bAlwaysMarkDirty)
 bool UWidget::IsChildOf(UWidget* PossibleParent)
 {
 	UPanelWidget* Parent = GetParent();
-	if ( Parent == NULL )
+	if ( Parent == nullptr )
 	{
 		return false;
 	}
@@ -278,15 +420,31 @@ TSharedRef<SWidget> UWidget::RebuildWidget()
 	return SNew(SSpacer);
 }
 
-void UWidget::SyncronizeProperties()
+void UWidget::SynchronizeProperties()
 {
-	MyWidget.Pin()->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
-	MyWidget.Pin()->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
-	//MyWidget->SetCursor(OPTIONAL_BINDING(EMouseCursor)
+	// We want to apply the bindings to the cached widget, which could be the SWidget, or the SObjectWidget, 
+	// in the case where it's a user widget.  We always want to prefer the SObjectWidget so that bindings to 
+	// visibility and enabled status are not stomping values setup in the root widget in the User Widget.
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+
+	// Always use an enabled and visible state in the designer.
+	if ( IsDesignTime() )
+	{
+		SafeWidget->SetEnabled(true);
+		SafeWidget->SetVisibility(EVisibility::Visible);
+	}
+	else
+	{
+		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
+		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
+	}
+
+	UpdateRenderTransform();
+	SafeWidget->SetRenderTransformPivot(RenderTransformPivot);
 
 	if ( !ToolTipText.IsEmpty() )
 	{
-		MyWidget.Pin()->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
+		SafeWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
 	}
 }
 
@@ -295,12 +453,12 @@ bool UWidget::IsDesignTime() const
 	return bDesignTime;
 }
 
-void UWidget::IsDesignTime(bool bInDesignTime)
+void UWidget::SetIsDesignTime(bool bInDesignTime)
 {
 	bDesignTime = bInDesignTime;
 }
 
-EVisibility UWidget::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input)
+EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input)
 {
 	switch ( Input )
 	{
@@ -315,12 +473,12 @@ EVisibility UWidget::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisi
 	case ESlateVisibility::SelfHitTestInvisible:
 		return EVisibility::SelfHitTestInvisible;
 	default:
-		check(false);
+		//check(false);
 		return EVisibility::Visible;
 	}
 }
 
-TEnumAsByte<ESlateVisibility::Type> UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
+ESlateVisibility::Type UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
 {
 	if ( Input == EVisibility::Visible )
 	{
@@ -344,7 +502,7 @@ TEnumAsByte<ESlateVisibility::Type> UWidget::ConvertRuntimeToSerializedVisiblity
 	}
 	else
 	{
-		check(false);
+		//check(false);
 		return ESlateVisibility::Visible;
 	}
 }
@@ -359,6 +517,8 @@ FSizeParam UWidget::ConvertSerializedSizeParamToRuntime(const FSlateChildSize& I
 	case ESlateSizeRule::Fill:
 		return FStretch(Input.Value);
 	}
+
+	return FAuto();
 }
 
 void UWidget::GatherChildren(UWidget* Root, TSet<UWidget*>& Children)
@@ -393,7 +553,7 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 {
 	UWidget* Parent = Descendant->GetParent();
 
-	while ( Parent != NULL )
+	while ( Parent != nullptr )
 	{
 		// If the Descendant's parent is the root, then the child containing the descendant is the descendant.
 		if ( Parent == Root )
@@ -405,5 +565,5 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 		Parent = Parent->GetParent();
 	}
 
-	return NULL;
+	return nullptr;
 }

@@ -107,9 +107,9 @@ FName FSoundBuffer::GetSoundClassName()
 			USoundWave* Wave = Cast<USoundWave>(*It);
 			if (Wave && Wave->ResourceID == ResourceID)
 			{
-				if (Cue && Cue->SoundClassObject)
+				if (Wave->SoundClassObject)
 				{
-					return Cue->SoundClassObject->GetFName();
+					return Wave->SoundClassObject->GetFName();
 				}
 				else
 				{
@@ -441,6 +441,11 @@ void FWaveInstance::AddReferencedObjects( FReferenceCollector& Collector )
 float FWaveInstance::GetActualVolume() const
 {
 	return Volume * VolumeMultiplier;
+}
+
+bool FWaveInstance::IsStreaming() const
+{
+	return FPlatformProperties::SupportsAudioStreaming() && WaveData != nullptr && WaveData->IsStreaming();
 }
 
 /*-----------------------------------------------------------------------------

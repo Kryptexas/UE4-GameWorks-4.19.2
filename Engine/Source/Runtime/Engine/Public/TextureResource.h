@@ -546,19 +546,22 @@ private:
 class FDeferredUpdateResource
 {
 public:
+
 	/**
 	 * Constructor, initializing UpdateListLink.
 	 */
 	FDeferredUpdateResource()
 		:	UpdateListLink(NULL)
 		,	bOnlyUpdateOnce(false)
-	{}
+	{ }
+
+public:
 
 	/**
 	 * Iterate over the global list of resources that need to
 	 * be updated and call UpdateResource on each one.
 	 */
-	ENGINE_API static void UpdateResources(FRHICommandListImmediate& RHICmdList);
+	ENGINE_API static void UpdateResources( FRHICommandListImmediate& RHICmdList );
 
 	/** 
 	 * This is reset after all viewports have been rendered
@@ -568,27 +571,28 @@ public:
 		bNeedsUpdate = true;
 	}
 
-	// FDeferredUpdateResource interface
-
 protected:
 
 	/**
-	* Updates the resource
-	*/
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) = 0;
+	 * Updates (resolves) the render target texture.
+	 * Optionally clears the contents of the render target to green.
+	 * This is only called by the rendering thread.
+	 */
+	virtual void UpdateDeferredResource( FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true ) = 0;
 
 	/**
 	 * Add this resource to deferred update list
 	 * @param OnlyUpdateOnce - flag this resource for a single update if true
 	 */
-	void AddToDeferredUpdateList( bool OnlyUpdateOnce );
+	ENGINE_API void AddToDeferredUpdateList( bool OnlyUpdateOnce );
 
 	/**
 	 * Remove this resource from deferred update list
 	 */
-	void RemoveFromDeferredUpdateList();
+	ENGINE_API void RemoveFromDeferredUpdateList();
 
 private:
+
 	/** 
 	 * Resources can be added to this list if they need a deferred update during scene rendering.
 	 * @return global list of resource that need to be updated. 
@@ -711,10 +715,12 @@ public:
 	FTexture2DRHIRef GetTextureRHI() { return Texture2DRHI; }
 protected:
 	/**
-	* Clear contents of the render target
-	*/
+	 * Updates (resolves) the render target texture.
+	 * Optionally clears the contents of the render target to green.
+	 * This is only called by the rendering thread.
+	 */
 	friend class UTextureRenderTarget2D;
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true) override;
 
 private:
 	/** The UTextureRenderTarget2D which this resource represents. */
@@ -806,10 +812,11 @@ public:
 
 protected:
 	/**
-	* Clear contents of the render target. Clears each face of the cube
+	* Updates (resolves) the render target texture.
+	* Optionally clears each face of the render target to green.
 	* This is only called by the rendering thread.
 	*/
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList, bool bClearRenderTarget=true) override;
 
 private:
 	/** The UTextureRenderTargetCube which this resource represents. */
@@ -826,58 +833,5 @@ private:
 	ECubeFace CurrentTargetFace;
 };
 
-/**
- * FTextureResource type for movie textures.
- */
-class FTextureMovieResource : public FTextureResource, public FRenderTarget, public FDeferredUpdateResource
-{
-public:
-
-	/** 
-	 * Constructor
-	 * @param InOwner - movie texture object to create a resource for
-	 */
-	FTextureMovieResource(const class UTextureMovie* InOwner)
-		:	Owner(InOwner)
-	{
-	}
-
-	// FRenderResource interface.
-
-	/**
-	 * Initializes the dynamic RHI resource and/or RHI render target used by this resource.
-	 * Called when the resource is initialized, or when reseting all RHI resources.
-	 * Resources that need to initialize after a D3D device reset must implement this function.
-	 * This is only called by the rendering thread.
-	 */
-	virtual void InitDynamicRHI();
-
-	/**
-	 * Releases the dynamic RHI resource and/or RHI render target resources used by this resource.
-	 * Called when the resource is released, or when reseting all RHI resources.
-	 * Resources that need to release before a D3D device reset must implement this function.
-	 * This is only called by the rendering thread.
-	 */
-	virtual void ReleaseDynamicRHI();	
-
-	// FDeferredClearResource interface
-
-	// FRenderTarget interface.
-	virtual FIntPoint GetSizeXY() const;
-
-protected:
-
-	/**
-	* Decodes the next frame of the movie stream and renders the result to this movie texture target
-	*/
-	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
-
-
-private:
-	/** The UTextureRenderTarget2D which this resource represents. */
-	const class UTextureMovie* Owner;
-	/** Texture resource used for rendering with and resolving to */
-	FTexture2DRHIRef Texture2DRHI;
-};
 
 #define TEXTURERESOURCE_H_INCLUDED 1 // needed by TargetPlatform, so TTargetPlatformBase template knows if it can use UTexture in GetDefaultTextureFormatName, or rather just declare it

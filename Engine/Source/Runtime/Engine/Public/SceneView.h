@@ -8,6 +8,7 @@
 #include "ConvexVolume.h"
 #include "FinalPostProcessSettings.h"
 #include "SceneInterface.h"
+#include "SceneTypes.h"
 
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
@@ -368,8 +369,8 @@ public:
 	FTextureRHIRef AtmosphereIrradianceTexture;
 	FTextureRHIRef AtmosphereInscatterTexture;
 
-	/** Areas of the screen where the depth of field should be forced to the max. */
-	TArray< FIntRect > UIBlurOverrideRectangles;
+	/** Feature level for this scene */
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	/** Initialization constructor. */
 	FSceneView(const FSceneViewInitOptions& InitOptions);
@@ -450,7 +451,10 @@ public:
 	void ConfigureBufferVisualizationSettings();
 
 	/** Get the feature level for this view **/
-	ERHIFeatureLevel::Type GetFeatureLevel() const;
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+
+	/** Get the feature level for this view **/
+	EShaderPlatform GetShaderPlatform() const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -612,6 +616,8 @@ public:
 
 	/** Computes FamilySizeX and FamilySizeY from the Views array. */
 	ENGINE_API void ComputeFamilySize();
+
+	ENGINE_API ERHIFeatureLevel::Type GetFeatureLevel() const;
 };
 
 /**

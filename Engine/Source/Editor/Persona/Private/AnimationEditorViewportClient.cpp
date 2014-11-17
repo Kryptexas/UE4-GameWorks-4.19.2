@@ -72,9 +72,10 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	, bManipulating(false)
 	, bInTransaction(false)
 	, AnimationPlaybackScale(1.0f)
-	, SelectedWindActor(NULL)
-	, PrevWindStrength(0.0f)
 	, GravityScaleSliderValue(0.25f)
+	, PrevWindStrength(0.0f)
+	, SelectedWindActor(NULL)
+	, bFocusOnDraw(false)
 	, BodyTraceDistance(100000.0f)
 {
 	// load config
@@ -94,7 +95,6 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 
 	EngineShowFlags.Game = 0;
 	EngineShowFlags.ScreenSpaceReflections = 1;
-	EngineShowFlags.ReflectionEnvironmentLightmapMixing = 0;
 	EngineShowFlags.AmbientOcclusion = 1;
 	EngineShowFlags.SetSnap(0);
 
@@ -507,6 +507,12 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 				Node->Draw(PDI, PreviewSkelMeshComp.Get());
 			}
 		}
+
+		if(bFocusOnDraw)
+		{
+			bFocusOnDraw = false;
+			FocusViewportOnPreviewMesh();
+		}
 	}
 }
 
@@ -616,7 +622,7 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 		// Handle updating the preview component to represent the effects of root motion	
 		FBoxSphereBounds Bounds = EditorFloorComp->CalcBounds(EditorFloorComp->GetRelativeTransform());
 		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
-	}
+	}	
 }
 
 void FAnimationViewportClient::SetCameraTargetLocation(const FSphere &BoundSphere, float DeltaSeconds)
@@ -624,7 +630,7 @@ void FAnimationViewportClient::SetCameraTargetLocation(const FSphere &BoundSpher
 	FVector OldViewLoc = GetViewLocation();
 	FMatrix EpicMat = FTranslationMatrix(-GetViewLocation());
 	EpicMat = EpicMat * FInverseRotationMatrix(GetViewRotation());
-	FMatrix CamRotMat = EpicMat.Inverse();
+	FMatrix CamRotMat = EpicMat.InverseFast();
 	FVector CamDir = FVector(CamRotMat.M[0][0],CamRotMat.M[0][1],CamRotMat.M[0][2]);
 	FVector NewViewLocation = BoundSphere.Center - BoundSphere.W * 2 * CamDir;
 
@@ -1095,7 +1101,7 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			}
 
 			// Remove SkelControl's orientation from BoneMatrix, as we need to translate/rotate in the non-SkelControlled space
-			BaseTM = BaseTM.InverseSafe() * CurrentSkelControlTM;
+			BaseTM = BaseTM.Inverse() * CurrentSkelControlTM;
 
 			const bool bDoRotation    = WidgetMode == FWidget::WM_Rotate    || WidgetMode == FWidget::WM_TranslateRotateZ;
 			const bool bDoTranslation = WidgetMode == FWidget::WM_Translate || WidgetMode == FWidget::WM_TranslateRotateZ;
@@ -1781,7 +1787,7 @@ void FAnimationViewportClient::UpdateCameraSetup()
 
 void FAnimationViewportClient::FocusViewportOnSphere( FSphere& Sphere )
 {
-	FBox Box( Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W) );
+	FBox Box( Sphere.Center - FVector(Sphere.W, 0.0f, 0.0f), Sphere.Center + FVector(Sphere.W, 0.0f, 0.0f) );
 
 	bool bInstant = false;
 	FocusViewportOnBox( Box, bInstant );
@@ -1791,6 +1797,14 @@ void FAnimationViewportClient::FocusViewportOnSphere( FSphere& Sphere )
 
 void FAnimationViewportClient::FocusViewportOnPreviewMesh()
 {
+	FIntPoint ViewportSize = Viewport->GetSizeXY();
+
+	if(!(ViewportSize.SizeSquared() > 0))
+	{
+		// We cannot focus fully right now as the viewport does not know its size
+		// and we must have the aspect to correctly focus on the component,
+		bFocusOnDraw = true;
+	}
 	FSphere Sphere = GetCameraTarget();
 	FocusViewportOnSphere(Sphere);
 }

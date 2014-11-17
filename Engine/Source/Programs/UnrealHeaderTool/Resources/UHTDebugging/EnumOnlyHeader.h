@@ -20,3 +20,11 @@ namespace ESomeNamespacedEnum
 		Six
 	};
 }
+
+UENUM()
+enum class ECppEnum : uint8
+{
+	Seven,
+	Eight,
+	Nine
+};

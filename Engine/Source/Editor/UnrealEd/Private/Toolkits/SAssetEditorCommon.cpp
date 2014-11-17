@@ -32,7 +32,8 @@ void SAssetEditorCommon::Construct( const FArguments& InArgs, TWeakPtr< FAssetEd
 	ParentToolkit->FillDefaultFileMenuCommands( MenuBuilder );
 	ParentToolkit->FillDefaultAssetMenuCommands( MenuBuilder );
 
-	this->ChildSlot.Widget =
+	this->ChildSlot
+	[
 		SNew( SVerticalBox )
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -40,6 +41,6 @@ void SAssetEditorCommon::Construct( const FArguments& InArgs, TWeakPtr< FAssetEd
 			[
 				MenuBuilder.MakeWidget()
 			]
-		;
+	];
 
 }

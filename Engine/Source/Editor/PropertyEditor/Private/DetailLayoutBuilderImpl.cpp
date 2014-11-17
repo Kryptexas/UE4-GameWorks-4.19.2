@@ -10,8 +10,8 @@
 FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView)
 	: PropertyMap( InPropertyMap )
 	, PropertyDetailsUtilities( InPropertyUtilities )
-	, CurrentCustomizationClass( NULL )
 	, DetailsView( *InDetailsView )
+	, CurrentCustomizationClass( NULL )
 {
 
 }

@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessPassThrough.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates a simple copy pixel shader. */
 class FPostProcessPassThroughPS : public FGlobalShader
@@ -17,7 +18,7 @@ class FPostProcessPassThroughPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -69,7 +70,7 @@ FRCPassPostProcessPassThrough::FRCPassPostProcessPassThrough(FPooledRenderTarget
 
 void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PassThrough, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PassThrough, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -114,13 +115,13 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessPassThroughPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessPassThroughPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context);

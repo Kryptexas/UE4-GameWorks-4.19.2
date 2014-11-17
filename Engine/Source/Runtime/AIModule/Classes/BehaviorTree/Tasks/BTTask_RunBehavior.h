@@ -18,13 +18,14 @@
  * - no or limited editor preview
  */
 
-UCLASS(MinimalAPI)
-class UBTTask_RunBehavior : public UBTTaskNode
+UCLASS()
+class AIMODULE_API UBTTask_RunBehavior : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual uint16 GetInstanceMemorySize() const override;
+	virtual void CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const override;
 	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR

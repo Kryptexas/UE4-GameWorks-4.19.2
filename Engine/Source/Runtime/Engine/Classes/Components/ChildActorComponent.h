@@ -13,7 +13,7 @@ class UChildActorComponent : public USceneComponent
 	GENERATED_UCLASS_BODY()
 
 	/** The class of Actor to spawn */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ChildActorComponent)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ChildActorComponent, meta=(OnlyPlaceable))
 	TSubclassOf<AActor>	ChildActorClass;
 
 	/** The actor that we spawned and own */

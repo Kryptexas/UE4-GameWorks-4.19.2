@@ -26,6 +26,7 @@ void UAnimationStateGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) con
 	FGraphNodeCreator<UAnimGraphNode_StateResult> NodeCreator(Graph);
 	UAnimGraphNode_StateResult* ResultSinkNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(ResultSinkNode, FNodeMetadata::DefaultGraphNode);
 
 	UAnimationStateGraph* TypedGraph = CastChecked<UAnimationStateGraph>(&Graph);
 	TypedGraph->MyResultNode = ResultSinkNode;

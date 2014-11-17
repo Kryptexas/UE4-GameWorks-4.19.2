@@ -10,6 +10,7 @@
 #include "PostProcessBokehDOF.h"
 #include "PostProcessDOF.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 
 /** Encapsulates the DOF setup pixel shader. */
@@ -79,7 +80,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFSetupPS<1>,TEXT("PostProcessDOF"
 
 void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(DOFSetup, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, DOFSetup, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -93,6 +94,9 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
+
+	const auto FeatureLevel = Context.GetFeatureLevel();
+	auto ShaderMap = Context.GetShaderMap();
 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
@@ -129,15 +133,15 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 
 	if (bNearBlurEnabled)
 	{
 		static FGlobalBoundShaderState BoundShaderState;
 		
 
-		TShaderMapRef< FPostProcessDOFSetupPS<1> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		TShaderMapRef< FPostProcessDOFSetupPS<1> > PixelShader(ShaderMap);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		
 		PixelShader->SetParameters(Context);
 	}
@@ -145,8 +149,8 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 	{
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		TShaderMapRef< FPostProcessDOFSetupPS<0> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		TShaderMapRef< FPostProcessDOFSetupPS<0> > PixelShader(ShaderMap);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		PixelShader->SetParameters(Context);
 	}
@@ -260,7 +264,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDOFRecombinePS<1>,TEXT("PostProcess
 
 void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(DOFRecombine, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, DOFRecombine, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
 
@@ -271,6 +275,9 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 	}
 
 	const FSceneView& View = Context.View;
+
+	const auto FeatureLevel = Context.GetFeatureLevel();
+	auto ShaderMap = Context.GetShaderMap();
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -294,22 +301,22 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 
 	if (bNearBlurEnabled)
 	{
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		TShaderMapRef< FPostProcessDOFRecombinePS<1> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		TShaderMapRef< FPostProcessDOFRecombinePS<1> > PixelShader(ShaderMap);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		PixelShader->SetParameters(Context);
 	}
 	else
 	{
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		TShaderMapRef< FPostProcessDOFRecombinePS<0> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		TShaderMapRef< FPostProcessDOFRecombinePS<0> > PixelShader(ShaderMap);
+		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		PixelShader->SetParameters(Context);
 	}
 

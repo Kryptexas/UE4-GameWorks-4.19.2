@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Events.h: Declares various input event related types.
-=============================================================================*/
-
 #pragma once
 
 #include "Events.generated.h"
 
+
 class SWindow;
+
 
 /**
  * Context for keyboard focus change
@@ -87,7 +85,7 @@ private:
 /**
  * Base class for all mouse and keyboard events.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInputEvent
 {
 	GENERATED_USTRUCT_BODY()
@@ -98,7 +96,7 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FInputEvent()
-		: ModifierKeys(FModifierKeysState(false, false, false, false, false, false, false, false))
+		: ModifierKeys(FModifierKeysState())
 		, bIsRepeat(false)
 		, EventPath(nullptr)
 	{ }
@@ -286,7 +284,7 @@ protected:
  * FKeyboardEvent describes a keyboard action (key pressed or released.)
  * It is passed to event handlers dealing with keyboard input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FKeyboardEvent
 	: public FInputEvent
 {
@@ -297,7 +295,7 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FKeyboardEvent()
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), false)
+		: FInputEvent(FModifierKeysState(), false)
 		, Key(EKeys::SpaceBar)
 		, CharacterCode(0)
 	{
@@ -364,7 +362,7 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FCharacterEvent()
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), false)
+		: FInputEvent(FModifierKeysState(), false)
 		, Character(0)
 	{
 	}
@@ -423,7 +421,7 @@ public:
  * FPointerEvent describes a mouse or touch action (e.g. Press, Release, Move, etc).
  * It is passed to event handlers dealing with pointer-based input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FPointerEvent
 	: public FInputEvent
 {
@@ -449,6 +447,7 @@ public:
 
 	/** Events are immutable once constructed. */
 	FPointerEvent(
+		uint32 InPointerIndex,
 		const FVector2D& InScreenSpacePosition,
 		const FVector2D& InLastScreenSpacePosition,
 		const TSet<FKey>& InPressedButtons,
@@ -463,7 +462,7 @@ public:
 		, PressedButtons(InPressedButtons)
 		, EffectingButton(InEffectingButton)
 		, UserIndex(0)
-		, PointerIndex(0)
+		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
 		, GestureType(EGestureEvent::None)
@@ -472,6 +471,7 @@ public:
 
 	/** A constructor for raw mouse events */
 	FPointerEvent(
+		uint32 InPointerIndex,
 		const FVector2D& InScreenSpacePosition,
 		const FVector2D& InLastScreenSpacePosition,
 		const FVector2D& InDelta,
@@ -484,7 +484,7 @@ public:
 		, CursorDelta(InDelta)
 		, PressedButtons(InPressedButtons)
 		, UserIndex(0)
-		, PointerIndex(0)
+		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(0)
 		, bIsTouchEvent(false)
 		, GestureType(EGestureEvent::None)
@@ -498,13 +498,13 @@ public:
 		const FVector2D& InScreenSpacePosition,
 		const FVector2D& InLastScreenSpacePosition,
 		bool bPressLeftMouseButton,
-		const FModifierKeysState& InModifierKeys = FModifierKeysState(false, false, false, false, false, false, false, false),
+		const FModifierKeysState& InModifierKeys = FModifierKeysState(),
 		uint32 InTouchpadIndex=0
 	)
 		: FInputEvent(InModifierKeys, false)
 		, ScreenSpacePosition(InScreenSpacePosition)
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
-		, CursorDelta(LastScreenSpacePosition - ScreenSpacePosition)
+		, CursorDelta(InScreenSpacePosition - InLastScreenSpacePosition)
 		, PressedButtons(bPressLeftMouseButton ? FTouchKeySet::StandardSet : FTouchKeySet::EmptySet)
 		, EffectingButton(EKeys::LeftMouseButton)
 		, UserIndex(InUserIndex)
@@ -566,7 +566,7 @@ public:
 	uint32 GetTouchpadIndex() const { return TouchpadIndex; }
 
 	/** @return Is this event a result from a touch (as opposed to a mouse) */
-	uint32 IsTouchEvent() const { return bIsTouchEvent; }
+	bool IsTouchEvent() const { return bIsTouchEvent; }
 
 	/** @return The type of touch gesture */
 	EGestureEvent::Type GetGestureType() const { return GestureType; }
@@ -610,7 +610,7 @@ private:
  * FControllerEvent describes a controller action (e.g. Button Press, Release, Analog stick move, etc).
  * It is passed to event handlers dealing with controller input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FControllerEvent
 	: public FInputEvent
 {
@@ -627,7 +627,7 @@ public:
 	{ }
 
 	FControllerEvent( FKey InEffectingButton, int32 InUserIndex, float InAnalogValue, bool bIsRepeat )
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), bIsRepeat)
+		: FInputEvent(FModifierKeysState(), bIsRepeat)
 		, EffectingButton(InEffectingButton)
 		, UserIndex(InUserIndex)
 		, AnalogValue(InAnalogValue)
@@ -661,7 +661,7 @@ private:
  * FMotionEvent describes a touch pad action (press, move, lift)
  * It is passed to event handlers dealing with touch input.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMotionEvent
 	: public FInputEvent
 {
@@ -686,7 +686,7 @@ public:
 		const FVector& InGravity, 
 		const FVector& InAcceleration
 	)
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), false)
+		: FInputEvent(FModifierKeysState(), false)
 		, UserIndex(InUserIndex)
 		, Tilt(InTilt)
 		, RotationRate(InRotationRate)

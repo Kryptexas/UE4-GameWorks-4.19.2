@@ -7,6 +7,7 @@
 #if WITH_LIBCURL
 
 CURLM * FCurlHttpManager::GMultiHandle = NULL;
+FCurlHttpManager::FCurlRequestOptions FCurlHttpManager::CurlRequestOptions;
 
 void FCurlHttpManager::InitCurl()
 {
@@ -66,14 +67,100 @@ void FCurlHttpManager::InitCurl()
 		{
 			UE_LOG(LogInit, Fatal, TEXT("Could not initialize create libcurl multi handle! HTTP transfers will not function properly."));
 		}
-
-		UE_LOG(LogInit, Log, TEXT("Libcurl will %s"), FParse::Param(FCommandLine::Get(), TEXT("reuseconn")) ? TEXT("reuse connections") : TEXT("NOT reuse connections"));
 	}
 	else
 	{
 		UE_LOG(LogInit, Fatal, TEXT("Could not initialize libcurl (result=%d), HTTP transfers will not function properly."), (int32)InitResult);
 	}
+
+	// Init curl request options
+
+	// set certificate verification (disable to allow self-signed certificates)
+	bool bVerifyPeer = true;
+	if (GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni))
+	{
+		CurlRequestOptions.bVerifyPeer = bVerifyPeer;
+	}
+
+	FString ProxyAddress;
+	if (FParse::Value(FCommandLine::Get(), TEXT("httpproxy="), ProxyAddress))
+	{
+		if (!ProxyAddress.IsEmpty())
+		{
+			CurlRequestOptions.bUseHttpProxy = true;
+			CurlRequestOptions.HttpProxyAddress = ProxyAddress;
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT(" Libcurl: -httpproxy has been passed as a parameter, but the address doesn't seem to be valid"));
+		}
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("noreuseconn")))
+	{
+		CurlRequestOptions.bDontReuseConnections = true;
+	}
+
+	// discover cert location
+	if (PLATFORM_LINUX)	// only relevant to Linux (for now?), not #ifdef'ed to keep the code checked by the compiler when compiling for other platforms
+	{
+		static const char * KnownBundlePaths[] =
+		{
+			"/etc/pki/tls/certs/ca-bundle.crt",
+			"/etc/ssl/certs/ca-certificates.crt",
+			"/etc/ssl/ca-bundle.pem",
+			nullptr
+		};
+
+		for (const char ** CurrentBundle = KnownBundlePaths; *CurrentBundle; ++CurrentBundle)
+		{
+			FString FileName(*CurrentBundle);
+			UE_LOG(LogInit, Log, TEXT(" Libcurl: checking if '%s' exists"), *FileName);
+
+			if (FPaths::FileExists(FileName))
+			{
+				CurlRequestOptions.CertBundlePath = *CurrentBundle;
+				break;
+			}
+		}
+		if (CurlRequestOptions.CertBundlePath == nullptr)
+		{
+			UE_LOG(LogInit, Log, TEXT(" Libcurl: did not find a cert bundle in any of known locations, TLS may not work"));
+		}
+	}
+
+	// print for visibility
+	CurlRequestOptions.Log();
 }
+
+void FCurlHttpManager::FCurlRequestOptions::Log()
+{
+	UE_LOG(LogInit, Log, TEXT(" CurlRequestOptions (configurable via config and command line):"));
+		UE_LOG(LogInit, Log, TEXT(" - bVerifyPeer = %s  - Libcurl will %sverify peer certificate"),
+		bVerifyPeer ? TEXT("true") : TEXT("false"),
+		bVerifyPeer ? TEXT("") : TEXT("NOT ")
+		);
+
+	UE_LOG(LogInit, Log, TEXT(" - bUseHttpProxy = %s  - Libcurl will %suse HTTP proxy"),
+		bUseHttpProxy ? TEXT("true") : TEXT("false"),
+		bUseHttpProxy ? TEXT("") : TEXT("NOT ")
+		);	
+	if (bUseHttpProxy)
+	{
+		UE_LOG(LogInit, Log, TEXT(" - HttpProxyAddress = '%s'"), *CurlRequestOptions.HttpProxyAddress);
+	}
+
+	UE_LOG(LogInit, Log, TEXT(" - bDontReuseConnections = %s  - Libcurl will %sreuse connections"),
+		bDontReuseConnections ? TEXT("true") : TEXT("false"),
+		bDontReuseConnections ? TEXT("NOT ") : TEXT("")
+		);
+
+	UE_LOG(LogInit, Log, TEXT(" - CertBundlePath = %s  - Libcurl will %s"),
+		(CertBundlePath != nullptr) ? *FString(CertBundlePath) : TEXT("nullptr"),
+		(CertBundlePath != nullptr) ? TEXT("set CURLOPT_CAINFO to it") : TEXT("use whatever was configured at build time.")
+		);
+}
+
 
 void FCurlHttpManager::ShutdownCurl()
 {

@@ -15,9 +15,9 @@ UK2Node_LeaderboardFlush::UK2Node_LeaderboardFlush(const FPostConstructInitializ
 	ProxyClass = ULeaderboardFlushCallbackProxy::StaticClass();
 }
 
-FString UK2Node_LeaderboardFlush::GetTooltip() const
+FText UK2Node_LeaderboardFlush::GetTooltipText() const
 {
-	return LOCTEXT("K2Node_LeaderboardFlush_Tooltip", "Flushes leaderboards for a session").ToString();
+	return LOCTEXT("K2Node_LeaderboardFlush_Tooltip", "Flushes leaderboards for a session");
 }
 
 FText UK2Node_LeaderboardFlush::GetNodeTitle(ENodeTitleType::Type TitleType) const

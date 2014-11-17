@@ -247,15 +247,15 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("UnsupportedTypeForPin", "Unsupported type (%s) on @@").ToString(), *UEdGraphSchema_K2::TypeToString(Type)), SourcePin);
+		MessageLog.Error(*FString::Printf(*LOCTEXT("UnsupportedTypeForPin", "Unsupported type (%s) on @@").ToString(), *UEdGraphSchema_K2::TypeToText(Type).ToString()), SourcePin);
 	}
 
 	if (bTypeMismatch)
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("TypeDoesNotMatchPropertyOfType_Error", "@@ of type %s doesn't match the property %s of type %s").ToString(),
-			*UEdGraphSchema_K2::TypeToString(Type),
+			*UEdGraphSchema_K2::TypeToText(Type).ToString(),
 			*Property->GetName(),
-			*UEdGraphSchema_K2::TypeToString(Property)),
+			*UEdGraphSchema_K2::TypeToText(Property).ToString()),
 			SourcePin);
 	}
 
@@ -517,8 +517,9 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 	{
 		// Only create 'set param by name' node if this pin is linked to something
 		UEdGraphPin* OrgPin = SpawnNode->Pins[PinIdx];
+		const bool bHasDefaultValue = !OrgPin->DefaultValue.IsEmpty() || !OrgPin->DefaultTextValue.IsEmpty() || OrgPin->DefaultObject;
 		if (NULL == CallBeginSpawnNode->FindPin(OrgPin->PinName) &&
-			(OrgPin->LinkedTo.Num() > 0 || OrgPin->DefaultValue != FString()))
+			(OrgPin->LinkedTo.Num() > 0 || bHasDefaultValue))
 		{
 			if( OrgPin->LinkedTo.Num() == 0 )
 			{
@@ -709,6 +710,19 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	else if (Type.PinCategory == Schema->PC_Class)
 	{
 		UClass* SubType = Cast<UClass>(Type.PinSubCategoryObject.Get());
+		
+		if (SubType == NULL)
+		{
+			// If this is from a degenerate pin, because the object type has been removed, default this to a UObject subtype so we can make a dummy term for it to allow the compiler to continue
+			SubType = UObject::StaticClass();
+
+			MessageLog.Warning(
+				*FString::Printf(
+				*LOCTEXT("InvalidClassForField_Error", "Invalid property '%s' class, replaced with Object.  Please fix or remove.").ToString(),
+				*PropertyName.ToString()
+				));
+		}
+
 		if (SubType != NULL)
 		{
 			UClassProperty* NewPropertyClass = NewNamedObject<UClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);

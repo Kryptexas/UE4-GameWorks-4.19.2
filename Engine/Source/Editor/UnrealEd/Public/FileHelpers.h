@@ -63,6 +63,12 @@ public:
 	static UNREALED_API bool IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage);
 
 	/**
+	 * Unloads the specified package potentially containing an inactive world.
+	 * When returning false, OutErrorMessage is supplied with a display string describing the reason why the world could not be unloaded.
+	 */
+	static UNREALED_API bool AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnload, FText& OutErrorMessage);
+
+	/**
 	 * Prompts the user to save the current map if necessary, the presents a load dialog and
 	 * loads a new map if selected by the user.
 	 */

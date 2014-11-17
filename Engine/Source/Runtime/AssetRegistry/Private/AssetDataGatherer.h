@@ -30,6 +30,9 @@ public:
 	/** Adds specific files to the search queue. Only works when searching asynchronously */
 	void AddFilesToSearch(const TArray<FString>& Files);
 
+	/** If assets are currently being asynchronously scanned in the specified path, this will cause them to be scanned before other assets. */
+	void PrioritizeSearchPath(const FString& PathToPrioritize);
+
 private:
 	
 	/** This function is run on the gathering thread, unless synchronous */

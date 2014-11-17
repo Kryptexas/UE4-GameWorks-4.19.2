@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "EditableTextWidgetStyle.h"
+
 #include "EditableText.generated.h"
 
 /** Editable text box widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface)
 class UMG_API UEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -18,32 +20,44 @@ public:
 public:
 
 	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category = Content, meta=(SingleLine=true))
 	FText Text;
 
+	/** A bindable delegate to allow logic to drive the text of the widget */
+	UPROPERTY()
+	FGetText TextDelegate;
+
 	/** Hint text that appears when there is no text in the text box */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category = Content, meta=(SingleLine=true))
 	FText HintText;
 
+	/** A bindable delegate to allow logic to drive the hint text of the widget */
+	UPROPERTY()
+	FGetText HintTextDelegate;
+
+	/** The style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FEditableTextStyle WidgetStyle;
+
 	/** Text style */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** Background image for the selected text (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImageSelected;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImageSelected_DEPRECATED;
 
 	/** Background image for the selection targeting effect (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImageSelectionTarget;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImageSelectionTarget_DEPRECATED;
 
 	/** Background image for the composing text (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImageComposing;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImageComposing_DEPRECATED;
 
 	/** Image brush used for the caret (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CaretImage;
+	UPROPERTY()
+	USlateBrushAsset* CaretImage_DEPRECATED;
 
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -85,6 +99,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
+public:
+
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnEditableTextChangedEvent OnTextChanged;
@@ -93,23 +109,49 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnEditableTextCommittedEvent OnTextCommitted;
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	/**
+	 * Gets the widget text
+	 * @return The widget text
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
 	FText GetText() const;
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	/**
+	 * Directly sets the widget text.
+	 * Warning: This will wipe any binding created for the Text property!
+	 * @param InText The text to assign to the widget
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
 	void SetText(FText InText);
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetIsPassword(bool InbIsPassword);
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetHintText(FText InHintText);
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetIsReadOnly(bool InbIsReadyOnly);
+
+public:
 	
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
-	virtual void ReleaseNativeWidget() override;
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
+	// End of UWidget interface
 
 protected:
 	// UWidget interface

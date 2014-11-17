@@ -388,14 +388,14 @@ public:
 	FMaterialAttributesInput MaterialAttributes;
 
 	/** Indicates that the material should be rendered in the SeparateTranslucency Pass (not affected by DOF, requires bAllowSeparateTranslucency to be set in .ini). */
-	UPROPERTY(EditAnywhere, Category=Translucency)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Separate Translucency"))
 	uint32 bEnableSeparateTranslucency:1;
 
 	/**
 	 * Indicates that the material should be rendered using responsive anti-aliasing. Improves sharpness of small moving particles such as sparks.
 	 * Only use for small moving features because it will cause aliasing of the background.
 	 */
-	UPROPERTY(EditAnywhere, Category=Translucency)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Responsive AA"))
 	uint32 bEnableResponsiveAA:1;
 
 	/** Indicates that the material should be rendered without backface culling and the normal should be flipped for backfaces. */
@@ -593,6 +593,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithUI:1;
 
+	/** 
+	 * Whether to automatically set usage flags based on what the material is applied to in the editor.
+	 * It can be useful to disable this on a base material with many instances, where adding another usage flag accidentally (eg bUsedWithSkeletalMeshes) can add a lot of shader permutations.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage, AdvancedDisplay)
+	uint32 bAutomaticallySetUsageInEditor:1;
+
 	/* Forces the material to be completely rough. Saves a number of instructions and one sampler. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bFullyRough:1;
@@ -606,11 +613,11 @@ public:
 	TEnumAsByte<enum EMaterialTessellationMode> D3D11TessellationMode;
 
 	/** Prevents cracks in the surface of the mesh when using tessellation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation, meta=(DisplayName = "Crack Free Displacement"))
 	uint32 bEnableCrackFreeDisplacement:1;
 
 	/** Enables adaptive tessellation, which tries to maintain a uniform number of pixels per triangle. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation, meta=(DisplayName = "Adaptive Tessellation"))
 	uint32 bEnableAdaptiveTessellation:1;
 
 	/** Enables a wireframe view of the mesh the material is applied to.  */
@@ -751,8 +758,8 @@ public:
 	ENGINE_API virtual bool GetRefractionSettings(float& OutBiasValue) const override;
 	ENGINE_API virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const override;
 	ENGINE_API virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
-	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const override;
-	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) override;
+	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
+	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel ) override;
 	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
@@ -771,6 +778,7 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 	ENGINE_API virtual bool IsMasked_Internal() const;
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
 
@@ -829,7 +837,7 @@ public:
 	ENGINE_API bool IsUsageFlagDirty(EMaterialUsage Usage);
 	
 	/** Useful to customize rendering if that case (e.g. hide the object) */
-	ENGINE_API bool IsCompilingOrHadCompileError();
+	ENGINE_API bool IsCompilingOrHadCompileError(ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
 	void BackwardsCompatibilityInputConversion();
@@ -845,6 +853,9 @@ private:
 
 	/** Sets up transient properties in MaterialResources. */
 	void UpdateResourceAllocations();
+
+	/** to share code for PostLoad() and PostEditChangeProperty() */
+	void PropagateDataToMaterialProxy();
 
 public:
 
@@ -974,7 +985,7 @@ public:
 	/**
 	 * Go through every material, flush the specified types and re-initialize the material's shader maps.
 	 */
-	ENGINE_API static void UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform=GRHIShaderPlatform);
+	ENGINE_API static void UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform);
 
 	/** 
 	 * Backs up all material shaders to memory through serialization, organized by FMaterialShaderMap. 

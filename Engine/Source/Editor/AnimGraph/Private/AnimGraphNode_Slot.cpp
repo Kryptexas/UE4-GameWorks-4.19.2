@@ -21,26 +21,42 @@ FLinearColor UAnimGraphNode_Slot::GetNodeTitleColor() const
 	return FLinearColor(0.7f, 0.7f, 0.7f);
 }
 
-FString UAnimGraphNode_Slot::GetTooltip() const
+FText UAnimGraphNode_Slot::GetTooltipText() const
 {
-	return TEXT("Plays animation from code using AnimMontage");
+	return LOCTEXT("AnimSlotNode_Tooltip", "Plays animation from code using AnimMontage");
 }
 
 FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText SlotName = (Node.SlotName != NAME_None) ? FText::FromName(Node.SlotName) : LOCTEXT("NoSlotName", "(No slot name)");
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("SlotName"), SlotName);
-
-	if (TitleType == ENodeTitleType::ListView)
+	if (Node.SlotName != NAME_None)
 	{
-		return FText::Format(LOCTEXT("SlotNodeListTitle", "Slot '{SlotName}'"), Args);
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			return LOCTEXT("SlotNodeListTitle_NoName", "Slot '(No slot name)'");
+		}
+		else
+		{
+			return LOCTEXT("SlotNodeTitle_NoName", "(No slot name)\nSlot");
+		}
 	}
-	else
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		return FText::Format(LOCTEXT("SlotNodeTitle", "{SlotName}\nSlot"), Args);
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SlotName"), FText::FromName(Node.SlotName));
+
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeListTitle", "Slot '{SlotName}'"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SlotNodeTitle", "{SlotName}\nSlot"), Args));
+		}
 	}
+	return CachedNodeTitles[TitleType];
 }
 
 FString UAnimGraphNode_Slot::GetNodeCategory() const

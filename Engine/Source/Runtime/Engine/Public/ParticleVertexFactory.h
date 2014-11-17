@@ -47,6 +47,11 @@ public:
 		return ParticleFactoryType;
 	}
 
+	inline void SetParticleFactoryType(EParticleVertexFactoryType InType)
+	{
+		ParticleFactoryType = InType;
+	}
+
 	/** Specify whether the factory is in use or not. */
 	FORCEINLINE void SetInUse( bool bInInUse )
 	{
@@ -101,8 +106,11 @@ public:
 	/** Default constructor. */
 	FParticleSpriteVertexFactory( EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel )
 		: FParticleVertexFactoryBase(InType, InFeatureLevel)
-	{
-	}
+	{}
+
+	FParticleSpriteVertexFactory() 
+		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+	{}
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;

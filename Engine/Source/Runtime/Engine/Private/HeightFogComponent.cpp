@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-
+#include "Engine/ExponentialHeightFog.h"
 
 UExponentialHeightFogComponent::UExponentialHeightFogComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

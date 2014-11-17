@@ -13,7 +13,7 @@
 #include "MoviePlayerThreading.h"
 #include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"
-
+#include "ShaderCompiler.h"
 
 TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::MoviePlayer;
 
@@ -32,6 +32,7 @@ FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
 	, LoadingIsDone(0)
 	, bUserCalledFinish(false)
 	, LoadingScreenAttributes()
+	, LastPlayTime(0.0)
 {
 }
 
@@ -131,37 +132,62 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		LoadingIsDone.Set(0);
 		bUserCalledFinish = false;
 		
+		LastPlayTime = FPlatformTime::Seconds();
+
+        bool bInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
-			MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
+			bInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
 		}
-		LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
-		LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
+        if (bInitialized)
+        {
+            LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
+            LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
 		
-		SyncMechanism = new FSlateLoadingSynchronizationMechanism();
-		SyncMechanism->Initialize();
+            SyncMechanism = new FSlateLoadingSynchronizationMechanism();
+            SyncMechanism->Initialize();
 
-		bBeganPlaying = true;
+            bBeganPlaying = true;
+        }
 	}
 
 	return bBeganPlaying;
 }
 
+void FDefaultGameMoviePlayer::StopMovie()
+{
+	LastPlayTime = 0;
+	bUserCalledFinish = true;
+}
+
 void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 {
-	if (LoadingScreenIsPrepared() && IsMovieCurrentlyPlaying())
+	const bool bEnforceMinimumTime = LoadingScreenAttributes.MinimumLoadingScreenDisplayTime >= 0.0f;
+
+	if (LoadingScreenIsPrepared() && ( IsMovieCurrentlyPlaying() || !bEnforceMinimumTime ) )
 	{
 		SyncMechanism->DestroySlateThread();
 		delete SyncMechanism;
 		SyncMechanism = NULL;
-		
-		LoadingIsDone.Set(1);
+
+		if( !bEnforceMinimumTime )
+		{
+			LoadingIsDone.Set(1);
+		}
 		
 		const bool bAutoCompleteWhenLoadingCompletes = LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes;
-		while (!IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes && !bUserCalledFinish)
+	
+		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
+		while ( !bUserCalledFinish && ( (!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes ) || ( bEnforceMinimumTime &&  (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime ) ) )
 		{
 			if (FSlateApplication::IsInitialized())
 			{
+				// Break out of the loop if the main window is closed during the movie.
+				if ( !FSlateApplication::Get().GetActiveTopLevelWindow().IsValid() )
+				{
+					break;
+				}
+
 				FPlatformMisc::PumpMessages(true);
 				FSlateApplication::Get().Tick();
 				
@@ -170,12 +196,16 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 			}
 		}
 
+
+		LoadingIsDone.Set(1);
+
 		MovieStreamingIsDone.Set(1);
 		if( MovieStreamer.IsValid() )
 		{
 			MovieStreamer->ForceCompletion();
 		}
 
+		LastPlayTime = 0;
 		FlushRenderingCommands();
 
 		// Allow the movie streamer to clean up any resources it uses once there are no movies to play.
@@ -259,34 +289,32 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 	// We may have already setup a movie from a startup module
 	if( !LoadingScreenAttributes.IsValid() )
 	{
+		// fill out the attributes
+		FLoadingScreenAttributes LoadingScreen;
+		LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
+		LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
+
 		// look in the settings for a list of loading movies
 		GetMutableDefault<UMoviePlayerSettings>()->LoadConfig();
-		TArray<FFilePath> StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
+		const TArray<FString>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
 
-		// if we didn't have any, add default_startup, movie streamers should gracefully handle not finding this movie
 		if (StartupMovies.Num() == 0)
         {
-            FFilePath defaultMovie;
-            defaultMovie.FilePath = TEXT("Default_Startup");
-            StartupMovies.Add(defaultMovie);
+			LoadingScreen.MoviePaths.Add(TEXT("Default_Startup"));
         }
+		else
 		{
-			// fill out the attributes
-			FLoadingScreenAttributes LoadingScreen;
-			LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
-			LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
-
-			for(const auto& Movie : StartupMovies)
+			for (const FString& Movie : StartupMovies)
 			{
-				if(Movie.FilePath.Len() > 0)
+				if (!Movie.IsEmpty())
 				{
-					LoadingScreen.MoviePaths.Add(Movie.FilePath);
+					LoadingScreen.MoviePaths.Add(Movie);
 				}
 			}
-
-			// now setup the actual loading screen
-			SetupLoadingScreen(LoadingScreen);
 		}
+
+		// now setup the actual loading screen
+		SetupLoadingScreen(LoadingScreen);
 	}
 }
 

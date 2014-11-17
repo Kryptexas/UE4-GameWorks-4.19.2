@@ -36,17 +36,20 @@ public:
 		FMemory::Memcpy( &(ScriptBuffer[iStart]), V, Length );
 	}
 
-	FArchive& operator<<(class FName& Name)
+	FArchive& operator<<(FName& Name)
 	{
-		// We can't call Serialize directly as we need to store the data endian clean.
-		NAME_INDEX W = Name.GetIndex(); 
-		int32 Num = Name.GetNumber(); 
 		FArchive& Ar = *this;
-		Ar << W << Num;
+
+		// We can't call Serialize directly as we need to store the data endian clean.
+		FScriptName ScriptName = NameToScriptName(Name);
+		Ar << ScriptName.ComparisonIndex;
+		Ar << ScriptName.DisplayIndex;
+		Ar << ScriptName.Number;
+
 		return Ar;
 	}
 
-	FArchive& operator<<(class UObject*& Res)
+	FArchive& operator<<(UObject*& Res)
 	{
 		ScriptPointerType D = (ScriptPointerType)Res; 
 		FArchive& Ar = *this;
@@ -55,12 +58,12 @@ public:
 		return Ar;
 	}
 
-	FArchive& operator<<(class FLazyObjectPtr& LazyObjectPtr)
+	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr)
 	{
 		return FArchive::operator<<(LazyObjectPtr);
 	}
 
-	FArchive& operator<<(class FAssetPtr& AssetPtr)
+	FArchive& operator<<(FAssetPtr& AssetPtr)
 	{
 		return FArchive::operator<<(AssetPtr);
 	}
@@ -76,7 +79,7 @@ public:
 		return *this;
 	}
 
-	FArchive& operator<<(enum EExprToken E)
+	FArchive& operator<<(EExprToken E)
 	{
 		checkSlow(E < 0xFF);
 
@@ -85,14 +88,14 @@ public:
 		return *this;
 	}
 
-	FArchive& operator<<(enum ECastToken E)
+	FArchive& operator<<(ECastToken E)
 	{
 		uint8 B = E; 
 		Serialize(&B, 1); 
 		return *this;
 	}
 
-	FArchive& operator<<(enum EPropertyType E)
+	FArchive& operator<<(EPropertyType E)
 	{
 		uint8 B = E; 
 		Serialize(&B, 1); 
@@ -612,6 +615,30 @@ public:
 	{
 		UFunction* FunctionToCall = Statement.FunctionToCall;
 		check(FunctionToCall);
+
+		if (FunctionToCall->HasAllFunctionFlags(FUNC_Native))
+		{
+			// Array output parameters are cleared, in case the native function doesn't clear them before filling.
+			int32 NumParams = 0;
+			for (TFieldIterator<UProperty> PropIt(FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+			{
+				UProperty* Param = *PropIt;
+				check(Param);
+				const bool bShouldParameterBeCleared = Param->IsA<UArrayProperty>()
+					&& Param->HasAllPropertyFlags(CPF_Parm | CPF_OutParm)
+					&& !Param->HasAnyPropertyFlags(CPF_ReferenceParm | CPF_ConstParm | CPF_ReturnParm);
+				if (bShouldParameterBeCleared)
+				{
+					// SetArray instruction will be called with empty parameter list.
+					Writer << EX_SetArray;
+					FBPTerminal* ArrayTerm = Statement.RHS[NumParams];
+					ensure(ArrayTerm && !ArrayTerm->bIsLiteral && !Statement.ArrayCoersionTermMap.Find(ArrayTerm));
+					EmitTerm(ArrayTerm, Param);
+					Writer << EX_EndArray;
+				}
+				NumParams += Param->HasAnyPropertyFlags(CPF_ReturnParm) ? 0 : 1;
+			}
+		}
 		
 		// The target label will only ever be set on a call function when calling into the Ubergraph, which requires a patchup
 		// or when re-entering from a latent function which requires a different kind of patchup

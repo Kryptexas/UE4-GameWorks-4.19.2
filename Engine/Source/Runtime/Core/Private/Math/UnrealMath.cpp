@@ -380,9 +380,18 @@ void FMatrix::DebugPrint() const
 
 FQuat FQuat::MakeFromEuler(const FVector& Euler)
 {
-	return FQuat( FRotationTranslationMatrix( FRotator::MakeFromEuler(Euler), FVector::ZeroVector ) );
+	return FRotator::MakeFromEuler(Euler).Quaternion();
 }
 
+FMatrix FRotationAboutPointMatrix::Make(const FQuat& Rot, const FVector& Origin)
+{
+	return FRotationAboutPointMatrix(Rot.Rotator(), Origin);
+}
+
+FMatrix FRotationMatrix::Make(FQuat const& Rot)
+{
+	return FQuatRotationTranslationMatrix(Rot, FVector::ZeroVector);
+}
 
 FMatrix FRotationMatrix::MakeFromX(FVector const& XAxis)
 {
@@ -1624,7 +1633,7 @@ FVector4 FMath::ComputeBaryCentric3D(const FVector& Point, const FVector& A, con
 
 	//The point V can be expressed as Ax=v where x is the vector containing the weights {w1...wn}
 	//Solve for x by multiplying both sides by AInv   (AInv * A)x = AInv * v ==> x = AInv * v
-	const FMatrix InvSolvMat = SolvMat.InverseSafe();
+	const FMatrix InvSolvMat = SolvMat.Inverse();
 	const FPlane BaryCoords = InvSolvMat.TransformVector(V);	 
 
 	//Reorder the weights to be a, b, c, d
@@ -2041,6 +2050,30 @@ CORE_API float FMath::FInterpConstantTo( float Current, float Target, float Delt
 
 	const float Step = InterpSpeed * DeltaTime;
 	return Current + FMath::Clamp<float>(Dist, -Step, Step);
+}
+
+/** Interpolate Linear Color from Current to Target. Scaled by distance to Target, so it has a strong start speed and ease out. */
+CORE_API FLinearColor FMath::CInterpTo(const FLinearColor& Current, const FLinearColor& Target, float DeltaTime, float InterpSpeed)
+{
+	// If no interp speed, jump to target value
+	if (InterpSpeed <= 0.f)
+	{
+		return Target;
+	}
+
+	// Difference between colors
+	const float Dist = FLinearColor::Dist(Target, Current);
+
+	// If distance is too small, just set the desired color
+	if (Dist < KINDA_SMALL_NUMBER)
+	{
+		return Target;
+	}
+
+	// Delta change, Clamp so we do not over shoot.
+	const FLinearColor DeltaMove = (Target - Current) * FMath::Clamp<float>(DeltaTime * InterpSpeed, 0.f, 1.f);
+
+	return Current + DeltaMove;
 }
 
 CORE_API float ClampFloatTangent( float PrevPointVal, float PrevTime, float CurPointVal, float CurTime, float NextPointVal, float NextTime )

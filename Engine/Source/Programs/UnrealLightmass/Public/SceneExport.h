@@ -7,7 +7,7 @@
 namespace Lightmass
 {
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 #pragma pack(push, 1)
 #endif
 
@@ -162,11 +162,8 @@ struct FSceneMaterialSettings
 	/** The size of the normal sample */
 	int32 NormalSize;
 
-
-	/** Enables normal map sampling when Lightmass is generating 'simple' light maps.  This increases lighting build time, but may improve quality when normal maps are used to represent curvature over a large surface area.  When this setting is disabled, 'simple' light maps will not take normal maps into account. */
-	/** Note: This setting is driven from the level's UEngine::bUseNormalMapsForSimpleLightMaps option */
-	bool bUseNormalMapsForSimpleLightMaps;
-
+	/** Whether to use the normal map for lighting, if false the smoothed vertex normal will be used. */
+	bool bUseNormalMapsForLighting;
 
 	/** 
 	 * Debugging - Amount of incoming light to reflect diffusely (equally in all directions). 
@@ -768,7 +765,6 @@ enum EDawnLightFlags
 	// maps to ULightComponent::CastStaticShadows
 	GI_LIGHT_CASTSTATICSHADOWS		= 0x00000010,
 	GI_LIGHT_USESIGNEDDISTANCEFIELDSHADOWS = 0x00000020,
-	GI_LIGHT_DOMINANT				= 0x00000040,
 	GI_LIGHT_INVERSE_SQUARED		= 0x00000080,
 	GI_LIGHT_USE_LIGHTPROFILE		= 0x00000100
 };
@@ -948,8 +944,6 @@ struct FStaticLightingMeshInstanceData
 	bool bCastShadowAsTwoSided;
 	/** Whether the mesh can be moved in game or not. */
 	bool bMovable;
-	/** Whether this is an instanced static mesh */
-	bool bInstancedStaticMesh;
 	/** The lights which affect the mesh's primitive. */
 	int32 NumRelevantLights;
 	/** The bounding box of the mesh. */
@@ -1096,7 +1090,7 @@ struct FLandscapeStaticLightingMeshData
 	int32 ExpandQuadsY;
 };
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 #pragma pack(pop)
 #endif
 

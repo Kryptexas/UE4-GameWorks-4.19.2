@@ -18,49 +18,66 @@ public:
 
 public:
 
-	//TODO UMG Add ways to make adding slots callable by blueprints.
-
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	int32 GetChildrenCount() const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	UWidget* GetChildAt(int32 Index) const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	int32 GetChildIndex(UWidget* Content) const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	bool RemoveChildAt(int32 Index);
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	UPanelSlot* AddChild(UWidget* Content);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	/** Swaps the widget out of the slot at the given index, replacing it with a different widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	void ReplaceChildAt(int32 Index, UWidget* Content);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	/** Inserts a widget at a specific index */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	void InsertChildAt(int32 Index, UWidget* Content);
 
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	/**
+	 * Removes a specific widget from the container.
+	 * @return true if the widget was found and removed.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	bool RemoveChild(UWidget* Content);
 
-	/**  */
+	/** @return true if there are any child widgets in the panel */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
+	bool HasAnyChildren() const;
+
+	/** Remove all child widgets from the panel widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
+	void ClearChildren();
+
+	/** @returns true if the panel supports more than one child. */
 	bool CanHaveMultipleChildren() const
 	{
 		return bCanHaveMultipleChildren;
 	}
 
-	virtual void ReleaseNativeWidget() override;
+	/** Sets that this widget is being designed sets it on all children as well. */
+	virtual void SetIsDesignTime(bool bInDesignTime) override;
+
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
+	virtual bool LockToPanelOnDrag() const
+	{
+		return false;
+	}
+
 	virtual void ConnectEditorData() override
 	{
 		for ( UPanelSlot* Slot : Slots )

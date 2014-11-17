@@ -15,7 +15,7 @@
 #include "ConfigCacheIni.h"
 #include "EngineModule.h"
 #include "Engine/GameInstance.h"
-
+#include "Engine/RendererSettings.h"
 #include "AVIWriter.h"
 
 #include "Slate.h"
@@ -27,6 +27,8 @@
 #include "SynthBenchmark.h"
 
 #include "IHeadMountedDisplay.h"
+#include "RendererInterface.h"
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -35,28 +37,22 @@ ENGINE_API bool GDisallowNetworkTravel = false;
 /** Benchmark results to the log */
 static void RunSynthBenchmark(const TArray<FString>& Args)
 {
-	uint32 WorkScale = 10;
-	bool bDebugOut = false;
-
-	// 2 arguments mean with debug out
-	if(Args.Num() > 1)
-	{
-		bDebugOut = true;
-	}
+	float WorkScale = 10.0f;
 
 	if ( Args.Num() > 0 )
 	{
-		WorkScale = FCString::Atoi(*Args[0]);
-		WorkScale = FMath::Clamp(WorkScale, (uint32)1, (uint32)1000);
+		WorkScale = FCString::Atof(*Args[0]);
+		WorkScale = FMath::Clamp(WorkScale, 1.0f, 1000.0f);
 	}
 
 	FSynthBenchmarkResults Result;
-	ISynthBenchmark::Get().Run(Result, true, WorkScale, bDebugOut);
+	ISynthBenchmark::Get().Run(Result, true, WorkScale);
 }
 
 static FAutoConsoleCommand GDumpDrawListStatsCmd(
 	TEXT("SynthBenchmark"),
-	TEXT("Run simple benchmark to get some metrics to find reasonable game settings automatically."),
+	TEXT("Run simple benchmark to get some metrics to find reasonable game settings automatically\n")
+	TEXT("Optional (float) parameter allows to scale with work amount to trade time or precision (default: 10)."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&RunSynthBenchmark)
 	);
 
@@ -84,19 +80,12 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if (WindowMode == EWindowMode::Windowed)
-		{
-			return WindowMode;
-		}
-
-		if (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullScreenAllowed())
+		if ((WindowMode != EWindowMode::Windowed) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullScreenAllowed())
 		{
 			return EWindowMode::Fullscreen;
 		}
-		
-		// Figure out which full screen mode we should be
-		EWindowMode::Type DesiredFullScreenWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
-		return DesiredFullScreenWindowMode;
+
+		return WindowMode;
 	}
 
 	return EWindowMode::Fullscreen;
@@ -120,7 +109,11 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 			// @todo TEMP
 			.RenderDirectlyToWindow( !GEngine->bStartWithMatineeCapture && GIsDumpingMovie == 0 )
 			[
-				ViewportOverlayWidgetRef
+				SNew(SDPIScaler)
+				.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UGameEngine::GetGameViewportDPIScale, GameViewportClient)))
+				[
+					ViewportOverlayWidgetRef
+				]
 			];
 
 	GameViewportWidget = GameViewportWidgetRef;
@@ -169,6 +162,13 @@ void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
 	FViewportFrame* ViewportFrame = SceneViewport.Get();
 
 	GameViewport->SetViewportFrame(ViewportFrame);
+}
+
+float UGameEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const
+{
+	FVector2D ViewportSize;
+	ViewportClient->GetViewportSize(ViewportSize);
+	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 }
 
 void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)
@@ -263,9 +263,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	if (ResX != GSystemResolution.ResX || ResY != GSystemResolution.ResY || WindowMode != GSystemResolution.WindowMode)
 	{
 		FSystemResolution::RequestResolutionChange(ResX, ResY, WindowMode);
-		GSystemResolution.ResX = ResX;
-		GSystemResolution.ResY = ResY;
-		GSystemResolution.WindowMode = WindowMode;
+		IConsoleManager::Get().CallAllConsoleVariableSinks();
 	}
 
 #if PLATFORM_64BITS
@@ -345,7 +343,7 @@ void UGameEngine::OnGameWindowClosed( const TSharedRef<SWindow>& WindowBeingClos
 
 void UGameEngine::OnGameWindowMoved( const TSharedRef<SWindow>& WindowBeingMoved )
 {
-	const FSlateRect WindowRect = WindowBeingMoved->GetWindowGeometryInScreen().GetRect();
+	const FSlateRect WindowRect = WindowBeingMoved->GetRectInScreen();
 	GetGameUserSettings()->SetWindowPosition(WindowRect.Left, WindowRect.Top);
 	GetGameUserSettings()->SaveConfig();
 }
@@ -395,6 +393,8 @@ UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	SelectionHighlightIntensityBillboards = 0.25f;
 
 	bUseSound = true;
+	bEditorAnalyticsEnabled = true;
+	bHardwareSurveyEnabled = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
 
@@ -422,7 +422,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
-	GetGameUserSettings()->ApplySettings(true);
+	GetGameUserSettings()->ApplyNonResolutionSettings();
 
 	// Create game instance.  For GameEngine, this should be the only GameInstance that ever gets created.
 	{
@@ -444,7 +444,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		ViewportClient = ConstructObject<UGameViewportClient>(GameViewportClientClass,this);
 		ViewportClient->Init(*GameInstance->GetWorldContext(), GameInstance);
 		GameViewport = ViewportClient;
- 		GameInstance->GetWorldContext()->GameViewport = ViewportClient;
+		GameInstance->GetWorldContext()->GameViewport = ViewportClient;
 	}
 
 	bCheckForMovieCapture = true;
@@ -545,14 +545,20 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleReattachComponentsCommand( Cmd, Ar );
 	}
-	// exec to 
-	else if( FParse::Command( &Cmd,TEXT("MOVIE")) )
-	{
-		return HandleMovieCommand( Cmd, Ar );
-	}
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
-		if ( FPlatformProperties::SupportsQuit() )
+		FString CmdName = FParse::Token(Cmd, 0);
+		bool Background = false;
+		if (!CmdName.IsEmpty() && !FCString::Stricmp(*CmdName, TEXT("background")))
+		{
+			Background = true;
+		}
+
+		if ( Background && FPlatformProperties::SupportsMinimize() )
+		{
+			return HandleMinimizeCommand( Cmd, Ar );
+		}
+		else if ( FPlatformProperties::SupportsQuit() )
 		{
 			return HandleExitCommand( Cmd, Ar );
 		}
@@ -632,35 +638,6 @@ bool UGameEngine::HandleReattachComponentsCommand( const TCHAR* Cmd, FOutputDevi
 	return true;
 }
 
-bool UGameEngine::HandleMovieCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	FString MovieCmd = FParse::Token(Cmd,0);
-	if( MovieCmd.Contains(TEXT("PLAY")) )
-	{
-		for( TObjectIterator<UTextureMovie> It; It; ++It )
-		{
-			UTextureMovie* Movie = *It;
-			Movie->Play();
-		}
-	}
-	else if( MovieCmd.Contains(TEXT("PAUSE")) )
-	{
-		for( TObjectIterator<UTextureMovie> It; It; ++It )
-		{
-			UTextureMovie* Movie = *It;
-			Movie->Pause();
-		}
-	}
-	else if( MovieCmd.Contains(TEXT("STOP")) )
-	{
-		for( TObjectIterator<UTextureMovie> It; It; ++It )
-		{
-			UTextureMovie* Movie = *It;
-			Movie->Stop();
-		}
-	}
-	return true;
-}
 
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
@@ -673,10 +650,25 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		// Shut down any existing game connections
 		ShutdownWorldNetDriver(World);
+
+		for (FActorIterator ActorIt(World); ActorIt; ++ActorIt)
+		{
+			ActorIt->RouteEndPlay(EEndPlayReason::Quit);
+		}
+
+		World->GetGameInstance()->Shutdown();
 	}
 
 	Ar.Log( TEXT("Closing by request") );
 	FPlatformMisc::RequestExit( 0 );
+	return true;
+}
+
+bool UGameEngine::HandleMinimizeCommand( const TCHAR *Cmd, FOutputDevice &Ar )
+{
+	Ar.Log( TEXT("Minimize by request") );
+	FPlatformMisc::RequestMinimize();
+
 	return true;
 }
 
@@ -789,7 +781,11 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Tick the module manager
-	FModuleManager::Get().Tick();
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
+	{
+		HotReload->Tick();
+	}
 
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 	{
@@ -1086,8 +1082,8 @@ UWorld* UGameEngine::GetGameWorld()
 	for (auto It = WorldList.CreateConstIterator(); It; ++It)
 	{
 		const FWorldContext& Context = *It;
-        // Explicitly not checking for PIE worlds here, this should only 
-        // be called outside of editor (and thus is in UGameEngine
+		// Explicitly not checking for PIE worlds here, this should only 
+		// be called outside of editor (and thus is in UGameEngine
 		if (Context.WorldType == EWorldType::Game && Context.World())
 		{
 			return Context.World();

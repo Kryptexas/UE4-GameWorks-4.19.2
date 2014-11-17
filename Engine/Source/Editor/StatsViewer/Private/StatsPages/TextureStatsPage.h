@@ -18,6 +18,8 @@ public:
 	virtual void OnHide() override;
 	/** End IStatsPage interface */
 
+	virtual ~FTextureStatsPage() {}
+
 private:
 
 	/** Delegate to allow is to trigger a refresh on actor selection */

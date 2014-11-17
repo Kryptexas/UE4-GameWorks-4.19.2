@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UCanvasPanel
 
@@ -14,9 +16,9 @@ UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UCanvasPanel::ReleaseNativeWidget()
+void UCanvasPanel::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyCanvas.Reset();
 }
@@ -64,11 +66,6 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
 }
 
-void UCanvasPanel::SyncronizeProperties()
-{
-	Super::SyncronizeProperties();
-}
-
 TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 {
 	return MyCanvas;
@@ -95,9 +92,9 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 
 		for ( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++ )
 		{
-			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->TakeWidget() )
+			if ( ArrangedChildren[ChildIndex].Widget == Slot->Content->TakeWidget() )
 			{
-				ArrangedGeometry = ArrangedChildren(ChildIndex).Geometry;
+				ArrangedGeometry = ArrangedChildren[ChildIndex].Geometry;
 				return true;
 			}
 		}
@@ -113,4 +110,13 @@ const FSlateBrush* UCanvasPanel::GetEditorIcon()
 	return FUMGStyle::Get().GetBrush("Widget.Canvas");
 }
 
+const FText UCanvasPanel::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
+}
+
 #endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

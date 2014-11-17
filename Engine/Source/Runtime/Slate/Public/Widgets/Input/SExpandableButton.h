@@ -2,12 +2,15 @@
 
 #pragma once
 
+
 /**
  * A button that can either be collapsed or expanded, containing different content in each state.
  */
-class SLATE_API SExpandableButton : public SBorder
+class SLATE_API SExpandableButton
+	: public SBorder
 {
 public:
+
 	SLATE_BEGIN_ARGS( SExpandableButton )
 		: _IsExpanded( true )
 		{}
@@ -46,9 +49,13 @@ public:
 	void Construct(const FArguments& InArgs);
 
 protected:
-	/** The attribute of the current expansion state */
-	TAttribute<bool> IsExpanded;
+
 	/** Callbacks to determine visibility of parts that should be shown when the button state is collapsed or expanded */
 	EVisibility GetCollapsedVisibility() const;
 	EVisibility GetExpandedVisibility() const;
+
+protected:
+
+	/** The attribute of the current expansion state */
+	TAttribute<bool> IsExpanded;
 };

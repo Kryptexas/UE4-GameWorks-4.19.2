@@ -21,7 +21,7 @@ namespace AutomationTool
 		/// <param name="Dirs">List of directories to cook, can be null</param>
 		/// <param name="TargetPlatform">Target platform.</param>
 		/// <param name="Parameters">List of additional parameters.</param>
-		public static void CookCommandlet(string ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string[] Dirs = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "-Unversioned")
+		public static void CookCommandlet(string ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string[] Dirs = null, string[] Cultures = null, string TargetPlatform = "WindowsNoEditor", string Parameters = "-Unversioned")
 		{
 			string MapsToCook = "";
 			if (IsNullOrEmpty(Maps))
@@ -41,7 +41,14 @@ namespace AutomationTool
 				DirsToCook.Trim();		
 			}
 
-			RunCommandlet(ProjectName, UE4Exe, "Cook", String.Format("{0} {1} -TargetPlatform={2} {3}", MapsToCook, DirsToCook, TargetPlatform, Parameters));
+            string CulturesToCook = "";
+            if (!IsNullOrEmpty(Cultures))
+            {
+                CulturesToCook = "-CookCultures=" + CombineCommandletParams(Cultures);
+                CulturesToCook.Trim();
+            }
+
+            RunCommandlet(ProjectName, UE4Exe, "Cook", String.Format("{0} {1} {2} -TargetPlatform={3} {4}", MapsToCook, DirsToCook, CulturesToCook, TargetPlatform, Parameters));
 		}
 
         /// <summary>

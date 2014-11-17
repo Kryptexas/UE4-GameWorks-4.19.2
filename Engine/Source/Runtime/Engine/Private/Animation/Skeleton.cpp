@@ -1,21 +1,31 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	UnSkeletalAnim.cpp: Skeletal mesh animation functions.
+	Skeleton.cpp: Skeleton features
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
 #include "EngineUtils.h"
 #include "AnimationRuntime.h"
 #include "AssetRegistryModule.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/Rig.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
 
 #if WITH_EDITOR
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
-const TCHAR USkeleton::AnimNotifyTagDeliminator = TEXT(';');
+const TCHAR USkeleton::AnimNotifyTagDelimiter = TEXT(';');
+
+const FName USkeleton::CurveTag = FName(TEXT("CurveUIDList"));
+const TCHAR USkeleton::CurveTagDelimiter = TEXT(';');
+
+const FName USkeleton::RigTag = FName(TEXT("Rig"));
 #endif 
+
+// Names of smartname containers for skeleton properties
+const FName USkeleton::AnimCurveMappingName = FName(TEXT("AnimationCurves"));
 
 const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
 
@@ -36,9 +46,13 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	// Make sure we have somewhere for curve names.
+	SmartNames.AddContainer(AnimCurveMappingName);
+
 #if WITH_EDITORONLY_DATA
 	SlotGroupNames.Empty();
 	SlotGroupNames.Add(DefaultSlotGroupName);
+
 #endif
 }
 
@@ -66,13 +80,6 @@ void USkeleton::PostLoad()
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
-
-#if WITH_EDITOR
-	if ( GIsEditor )
-	{
-		CollectAnimationNotifies();
-	}
-#endif
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -143,6 +150,13 @@ void USkeleton::Serialize( FArchive& Ar )
 	{
 		Ar << Guid;
 	}
+
+	// If we should be using smartnames, serialize the mappings
+	if(Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
+	{
+		SmartNames.Serialize(Ar);
+	}
+
 #if WITH_EDITORONLY_DATA
 	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
 	{
@@ -674,7 +688,7 @@ void USkeleton::CollectAnimationNotifies()
 	//AnimationNotifies.Empty();
 	TArray<FAssetData> AssetList;
 	AssetRegistryModule.Get().GetAssetsByClass(UAnimSequenceBase::StaticClass()->GetFName(), AssetList, true);
-
+#if WITH_EDITOR
 	// do not clear AnimationNotifies. We can't remove old ones yet. 
 	FString CurrentSkeletonName = FAssetData(this).GetExportTextName();
 	for (auto Iter = AssetList.CreateConstIterator(); Iter; ++Iter)
@@ -686,7 +700,7 @@ void USkeleton::CollectAnimationNotifies()
 			if (const FString * Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
 			{
 				TArray<FString> NotifyList;
-				Value->ParseIntoArray(&NotifyList, &AnimNotifyTagDeliminator, true);
+				Value->ParseIntoArray(&NotifyList, &AnimNotifyTagDelimiter, true);
 				for (auto NotifyIter = NotifyList.CreateConstIterator(); NotifyIter; ++NotifyIter)
 				{
 					FString NotifyName = *NotifyIter;
@@ -695,6 +709,7 @@ void USkeleton::CollectAnimationNotifies()
 			}
 		}
 	}
+#endif
 }
 
 void USkeleton::AddNewAnimationNotify(FName NewAnimNotifyName)
@@ -741,6 +756,11 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 	}
 
 	return PreviewMesh;
+}
+
+USkeletalMesh* USkeleton::GetPreviewMesh() const
+{
+	return PreviewSkeletalMesh.Get();
 }
 
 void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=true*/)
@@ -822,6 +842,8 @@ void USkeleton::AddBoneToLOD(int32 LODIndex, int32 BoneIndex)
 	}
 }
 
+#if WITH_EDITOR
+
 void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, bool bRemoveChildBones )
 {
 	TArray<int32> BonesRemoved = ReferenceSkeleton.RemoveBonesByName(BonesToRemove);
@@ -863,6 +885,8 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void * Unregister)
 {
 	OnSkeletonHierarchyChanged.RemoveAll(Unregister);
 }
+
+#endif
 
 void USkeleton::AddSlotNodeName(FName SlotNodeName)
 {
@@ -907,6 +931,52 @@ bool USkeleton::DoesHaveSlotGroupName(FName GroupName) const
 {
 	return SlotGroupNames.Contains(GroupName);
 }
+
+bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
+	if(RequestedMapping)
+	{
+		if(RequestedMapping->AddName(NewName, NewUid))
+		{
+			Modify(true);
+			Successful = true;
+		}
+	}
+	return Successful;
+}
+
+bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
+{
+	bool Successful = false;
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
+	if(RequestedMapping)
+	{
+		FName CurrentName;
+		RequestedMapping->GetName(Uid, CurrentName);
+		if(CurrentName != NewName)
+		{
+			Modify();
+			Successful = RequestedMapping->Rename(Uid, NewName);
+		}
+	}
+	return Successful;
+}
+
+void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
+{
+	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
+	if(RequestedMapping)
+	{
+		if(RequestedMapping->Exists(Uid))
+		{
+			Modify();
+			RequestedMapping->Remove(Uid);
+		}
+	}
+}
+
 #endif // WITH_EDITORONLY_DATA
 
 void USkeleton::RegenerateGuid()
@@ -915,4 +985,165 @@ void USkeleton::RegenerateGuid()
 	check(Guid.IsValid());
 }
 
+#if WITH_EDITOR
+void USkeleton::SetRigConfig(URig * Rig)
+{
+	if (RigConfig.Rig != Rig)
+	{
+		RigConfig.Rig = Rig;
+		RigConfig.BoneMappingTable.Empty();
+
+		if (Rig)
+		{
+			const FReferenceSkeleton & RefSkeleton = GetReferenceSkeleton();
+			const TArray<FNode> & Nodes = Rig->GetNodes();
+			// now add bone mapping table
+			for (auto Node: Nodes)
+			{
+				// if find same bone, use that bone for mapping
+				if (RefSkeleton.FindBoneIndex(Node.Name) != INDEX_NONE)
+				{
+					RigConfig.BoneMappingTable.Add(FNameMapping(Node.Name, Node.Name));
+				}
+				else
+				{
+					RigConfig.BoneMappingTable.Add(FNameMapping(Node.Name));
+				}
+			}
+		}
+	}
+}
+
+int32 USkeleton::FindRigBoneMapping(const FName & NodeName) const
+{
+	int32 Index=0;
+	for(const auto & NameMap : RigConfig.BoneMappingTable)
+	{
+		if(NameMap.NodeName == NodeName)
+		{
+			return Index;
+		}
+
+		++Index;
+	}
+
+	return INDEX_NONE;
+}
+
+FName USkeleton::GetRigBoneMapping(const FName & NodeName) const
+{
+	int32 Index = FindRigBoneMapping(NodeName);
+
+	if (Index != INDEX_NONE)
+	{
+		return RigConfig.BoneMappingTable[Index].BoneName;
+	}
+
+	return NAME_None;
+}
+
+FName USkeleton::GetRigNodeNameFromBoneName(const FName & BoneName) const
+{
+	for(const auto & NameMap : RigConfig.BoneMappingTable)
+	{
+		if(NameMap.BoneName == BoneName)
+		{
+			return NameMap.NodeName;
+		}
+	}
+
+	return NAME_None;
+}
+
+int32 USkeleton::GetMappedValidNodes(TArray<FName> &OutValidNodeNames)
+{
+	OutValidNodeNames.Empty();
+
+	for (auto Entry : RigConfig.BoneMappingTable)
+	{
+		if (Entry.BoneName != NAME_None)
+		{
+			OutValidNodeNames.Add(Entry.NodeName);
+		}
+	}
+
+	return OutValidNodeNames.Num();
+}
+
+bool USkeleton::SetRigBoneMapping(const FName & NodeName, FName BoneName)
+{
+	// make sure it's valid
+	int32 BoneIndex = ReferenceSkeleton.FindBoneIndex(BoneName);
+
+	// @todo we need to have validation phase where you can't set same bone for different nodes
+	// but it might be annoying to do that right now since the tool is ugly
+	// so for now it lets you set everything, but in the future
+	// we'll have to add verification
+	if ( BoneIndex == INDEX_NONE )
+	{
+		BoneName = NAME_None;
+	}
+
+	int32 Index = FindRigBoneMapping(NodeName);
+
+	if(Index != INDEX_NONE)
+	{
+		RigConfig.BoneMappingTable[Index].BoneName = BoneName;
+		return true;
+	}
+
+	return false;
+}
+
+void USkeleton::RefreshRigConfig()
+{
+	if (RigConfig.Rig != NULL)
+	{
+		if (RigConfig.BoneMappingTable.Num() > 0)
+		{
+			// verify if any missing bones or anything
+			// remove if removed
+			for ( int32 TableId=0; TableId<RigConfig.BoneMappingTable.Num(); ++TableId )
+			{
+				auto & BoneMapping = RigConfig.BoneMappingTable[TableId];
+
+				if ( RigConfig.Rig->FindNode(BoneMapping.NodeName) == INDEX_NONE)
+				{
+					// if not contains, remove it
+					RigConfig.BoneMappingTable.RemoveAt(TableId);
+					--TableId;
+				}
+			}
+
+			// if the count doesn't match, there is missing nodes. 
+			if (RigConfig.Rig->GetNodeNum() != RigConfig.BoneMappingTable.Num())
+			{
+				int32 NodeNum = RigConfig.Rig->GetNodeNum();
+				for(int32 NodeId=0; NodeId<NodeNum; ++NodeId)
+				{
+					const auto * Node = RigConfig.Rig->GetNode(NodeId);
+
+					if (FindRigBoneMapping(Node->Name) == INDEX_NONE)
+					{
+						RigConfig.BoneMappingTable.Add(FNameMapping(Node->Name));
+					}
+				}
+			}
+		}
+	}
+}
+
+URig * USkeleton::GetRig() const
+{
+	return RigConfig.Rig;
+}
+
+void USkeleton::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+	FString RigFullName = (RigConfig.Rig)? RigConfig.Rig->GetFullName() : TEXT("");
+
+	OutTags.Add(FAssetRegistryTag(USkeleton::RigTag, RigFullName, FAssetRegistryTag::TT_Hidden));
+}
+#endif //WITH_EDITOR
 #undef LOCTEXT_NAMESPACE 

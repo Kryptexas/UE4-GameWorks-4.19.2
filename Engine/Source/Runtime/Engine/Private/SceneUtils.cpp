@@ -2,32 +2,27 @@
 
 #include "EnginePrivate.h"
 #include "DynamicRHI.h"
+#include "SceneUtils.h"
 
 #if WANTS_DRAW_MESH_EVENTS && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS
 
-bool FDrawEvent::IsInRenderingThread_Internal()
+void FDrawEvent::Start(FRHICommandList& InRHICmdList, const FColor& Color, const TCHAR* Fmt, ...)
 {
-	return IsInRenderingThread();
-}
-
-FDrawEvent::~FDrawEvent()
-{
-	if (bDrawEventHasBeenEmitted)
+	check(IsInParallelRenderingThread() || IsInRHIThread());
 	{
-		GDynamicRHI->PopEvent();
+		va_list ptr;
+		va_start(ptr, Fmt);
+		TCHAR TempStr[256];
+		// Build the string in the temp buffer
+		FCString::GetVarArgs(TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr) - 1, Fmt, ptr);
+		InRHICmdList.PushEvent(TempStr);
+		RHICmdList = &InRHICmdList;
 	}
 }
 
-void FDrawEvent::Start(const FColor& Color, const TCHAR* Fmt, ...)
+void FDrawEvent::Stop()
 {
-	check(IsInRenderingThread_Internal());
-	va_list ptr;
-	va_start(ptr, Fmt);
-	TCHAR TempStr[256];
-	// Build the string in the temp buffer
-	FCString::GetVarArgs(TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr) - 1, Fmt, ptr);
-	GDynamicRHI->PushEvent(TempStr);
-	bDrawEventHasBeenEmitted = true;
+	RHICmdList->PopEvent();
 }
 
 #endif // WANTS_DRAW_MESH_EVENTS && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS

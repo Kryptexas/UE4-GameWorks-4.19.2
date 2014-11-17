@@ -15,6 +15,7 @@ public class Cascade : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
                 "InputCore",

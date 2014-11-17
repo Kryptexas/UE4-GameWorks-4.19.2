@@ -136,6 +136,8 @@ UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeP
 	bBoundsChangeTriggersStreamingDataRebuild = true;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
+	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
+
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 #endif
@@ -257,6 +259,11 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 		// Irrelevant lights were incorrect before VER_UE4_TOSS_IRRELEVANT_LIGHTS
 		IrrelevantLights.Empty();
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_AUTO_WELDING)
+	{
+		GetBodyInstance()->bAutoWeld = false;	//existing content may rely on no auto welding
+	}
 }
 
 
@@ -343,11 +350,9 @@ void UStaticMeshComponent::CheckForErrors()
 
 	if (!StaticMesh && (!Owner || !Owner->IsA(AWorldSettings::StaticClass())))	// Ignore worldsettings
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("OwnerName"), FText::FromString(OwnerName));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(Owner))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_StaticMeshNull", "{OwnerName} : Static mesh actor has NULL StaticMesh property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_StaticMeshNull", "Static mesh actor has NULL StaticMesh property")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
 	}
 
@@ -373,11 +378,9 @@ void UStaticMeshComponent::CheckForErrors()
 
 	if ( BodyInstance.bSimulatePhysics && StaticMesh != NULL && StaticMesh->BodySetup != NULL && StaticMesh->BodySetup->AggGeom.GetElementCount() == 0) 
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_SimulatePhyNoSimpleCollision", "{ActorName} : Using bSimulatePhysics but StaticMesh has not simple collision."), Arguments ) ));
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_SimulatePhyNoSimpleCollision", "{0} : Using bSimulatePhysics but StaticMesh has not simple collision."), FText::FromString(GetName()) ) ));
 	}
 
 	if( Mobility == EComponentMobility::Movable &&
@@ -468,6 +471,8 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 {
 	if ( StaticMesh && !bIgnoreInstanceForTextureStreaming )
 	{
+		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
 		bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
 			&& StaticMesh->RenderData
 			&& StaticMesh->RenderData->LODResources.Num() > 0
@@ -518,7 +523,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				// Enumerate the textures used by the material.
 				TArray<UTexture*> Textures;
 
-				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false);
+				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 
 				// Add each texture to the output with the appropriate parameters.
 				// TODO: Take into account which UVIndex is being used.
@@ -536,7 +541,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 			{
 				const FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
 				FLightMap2D* Lightmap = LODInfo.LightMap ? LODInfo.LightMap->GetLightMap2D() : NULL;
-				uint32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
+				uint32 LightmapIndex = AllowHighQualityLightmaps(FeatureLevel) ? 0 : 1;
 				if ( Lightmap != NULL && Lightmap->IsValid(LightmapIndex) )
 				{
 					const FVector2D& Scale = Lightmap->GetCoordinateScale();
@@ -884,7 +889,7 @@ bool UStaticMeshComponent::FixupOverrideColorsIfNecessary( bool bRebuildingStati
 
 void UStaticMeshComponent::PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate )
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	UE_LOG(LogStaticMesh,Verbose,TEXT("Fixing up override colors for %s [%s]"),*GetPathName(),*StaticMesh->GetPathName());
 	for ( TArray<int32>::TConstIterator LODIdxIter( LODsToUpdate ); LODIdxIter; ++LODIdxIter )
 	{
@@ -911,7 +916,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors( const TArray<int32>& LODs
 		BeginInitResource( CurCompLODInfo.OverrideVertexColors );
 	}
 	StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
-#endif // WITH_EDITORONLY_DATA
+#endif // WITH_EDITOR
 }
 
 void UStaticMeshComponent::InitResources()

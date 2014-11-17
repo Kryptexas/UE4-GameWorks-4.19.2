@@ -9,6 +9,7 @@
 #include "ClassIconFinder.h"
 #include "LevelEditorActions.h"
 #include "IPlacementModeModule.h"
+#include "Engine/TriggerBase.h"
 
 class SMenuThumbnail : public SCompoundWidget
 {

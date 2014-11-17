@@ -7,22 +7,40 @@
 
 #pragma once
 
+
+// time and amount of work that was measured
+struct FTimeSample
+{
+	FTimeSample(float InTotalTime, float InNormalizedTime)
+		: TotalTime(InTotalTime)
+		, NormalizedTime(InNormalizedTime)
+	{
+	}
+
+	// in seconds, >=0
+	float TotalTime;
+	// Time / WorkScale, WorkScale might have been adjusted (e.g. quantized), >0
+	float NormalizedTime;
+};
+
 struct FSynthBenchmarkStat
 {
 	FSynthBenchmarkStat()
 		: Desc(0)
-		, MeasuredTime(-1)
-		, IndexTime(-1)
+		, MeasuredTotalTime(-1)
+		, MeasuredNormalizedTime(-1)
+		, IndexNormalizedTime(-1)
 		, ValueType(0)
 		, Confidence(0)
 	{
 	}
 
 	// @param InDesc descriptions
-	FSynthBenchmarkStat(const TCHAR* InDesc, float InIndexTime, const TCHAR* InValueType)
+	FSynthBenchmarkStat(const TCHAR* InDesc, float InIndexNormalizedTime, const TCHAR* InValueType)
 		: Desc(InDesc)
-		, MeasuredTime(-1)
-		, IndexTime(InIndexTime)
+		, MeasuredTotalTime(-1)
+		, MeasuredNormalizedTime(-1)
+		, IndexNormalizedTime(InIndexNormalizedTime)
 		, ValueType(InValueType)
 		, Confidence(0)
 	{
@@ -30,16 +48,19 @@ struct FSynthBenchmarkStat
 //		check(InValueType);
 	}
 
+	// Computes the linear performance index (>0), around 100 with good hardware but higher numbers are possible
 	float ComputePerfIndex() const
 	{
-		return 100.0f * IndexTime / MeasuredTime;
+		return 100.0f * IndexNormalizedTime / MeasuredNormalizedTime;
 	}
 
+	// @param TimeSample seconds and normalized time (e.g. seconds / GPixels)
 	// @param InConfidence 0..100
-	void SetMeasuredTime(float InMeasuredValue, float InConfidence = 90)
+	void SetMeasuredTime(const FTimeSample& TimeSample, float InConfidence = 90)
 	{
 //		check(InConfidence >= 0.0f && InConfidence <= 100.0f);
-		MeasuredTime = InMeasuredValue;
+		MeasuredTotalTime = TimeSample.TotalTime;
+		MeasuredNormalizedTime = TimeSample.NormalizedTime;
 		Confidence = InConfidence;
 	}
 
@@ -55,12 +76,17 @@ struct FSynthBenchmarkStat
 		return ValueType;
 	}
 
-	float GetMeasuredTime() const
+	float GetNormalizedTime() const
 	{
-		return MeasuredTime;
+		return MeasuredNormalizedTime;
 	}
 
-	// @param 0..100
+	float GetMeasuredTotalTime() const
+	{
+		return MeasuredTotalTime;
+	}
+
+	// @return 0=no..100=full
 	float GetConfidence() const
 	{
 		return Confidence;
@@ -69,10 +95,12 @@ struct FSynthBenchmarkStat
 private:
 	// 0 if not valid
 	const TCHAR *Desc;
-	// -1 if not defined
-	float MeasuredTime;
+	// -1 if not defined, in seconds, useful to see if a test did run too long (some slower GPUs might timeout)
+	float MeasuredTotalTime;
+	// -1 if not defined, depends on the test (e.g. s/GPixels), WorkScale is divided out
+	float MeasuredNormalizedTime;
 	// -1 if not defined, timing value expected on a norm GPU (index value 100, here NVidia 670)
-	float IndexTime;
+	float IndexNormalizedTime;
 	// 0 if not valid
 	const TCHAR *ValueType;
 	// 0..100, 100: fully confident
@@ -88,21 +116,44 @@ struct FSynthBenchmarkResults
 	float ComputeCPUPerfIndex() const
 	{
 		// if needed we can weight them differently
-		return (
-			CPUStats[0].ComputePerfIndex() +
-			CPUStats[1].ComputePerfIndex() ) / 2;
+		float Ret = 0.0f;
+		float Count = 0.0f;
+
+		for(uint32 i = 0; i < sizeof(CPUStats) / sizeof(CPUStats[0]); ++i)
+		{
+			Ret += CPUStats[i].ComputePerfIndex();
+			++Count;
+		}
+
+		return Ret / Count;
 	}
 
 	// 100: avg good GPU, <100:slower, >100:faster
 	float ComputeGPUPerfIndex() const
 	{
 		// if needed we can weight them differently
-		return (
-			GPUStats[0].ComputePerfIndex() +
-			GPUStats[1].ComputePerfIndex() +
-			GPUStats[2].ComputePerfIndex() +
-			GPUStats[3].ComputePerfIndex() +
-			GPUStats[4].ComputePerfIndex() ) / 5;
+		float Ret = 0.0f;
+		float Count = 0.0f;
+
+		for(uint32 i = 0; i < sizeof(GPUStats) / sizeof(GPUStats[0]); ++i)
+		{
+			Ret += GPUStats[i].ComputePerfIndex();
+			++Count;
+		}
+
+		return Ret / Count;
+	}
+
+	// @return in seconds, useful to check if a benchmark takes too long (very slow hardware, don't make tests with large WorkScale)
+	float ComputeTotalGPUTime() const
+	{
+		float Ret = 0.0f;
+		for(uint32 i = 0; i < sizeof(GPUStats) / sizeof(GPUStats[0]); ++i)
+		{
+			Ret += GPUStats[i].GetMeasuredTotalTime();
+		}
+
+		return Ret;
 	}
 };
 

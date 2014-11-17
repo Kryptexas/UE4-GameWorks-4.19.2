@@ -110,16 +110,42 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		PropertyModule.RegisterCustomClassLayout("ProjectPackagingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FProjectPackagingSettingsCustomization::MakeInstance));
 	}
 
-	bool bCookOnTheSide = FParse::Param( FCommandLine::Get(),TEXT("COOKONTHESIDE"));
-	if ( bCookOnTheSide )
+	if ( FParse::Param( FCommandLine::Get(),TEXT("COOKONTHESIDE")) )
 	{
 		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
-		CookServer->Initialize( false, false, false, true, true );
+		CookServer->Initialize( ECookMode::CookOnTheFly, ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave );
 		CookServer->StartNetworkFileServer( false );
 
 		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
 		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
 	}
+	else if ( FParse::Param( FCommandLine::Get(), TEXT("COOKINTHEEDITOR")))
+	{
+		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave );
+
+		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
+	}
+}
+
+bool UUnrealEdEngine::CanCookByTheBookInEditor() const 
+{ 
+	if ( CookServer )
+	{
+		return CookServer->GetCookMode() == ECookMode::CookByTheBookFromTheEditor; 
+	}
+	return false;
+}
+
+void UUnrealEdEngine::StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections )
+{
+	CookServer->StartCookByTheBook( TargetPlatforms, CookMaps, CookDirectories, CookCultures, IniMapSections );
+}
+
+bool UUnrealEdEngine::IsCookByTheBookInEditorFinished() const 
+{ 
+	return !CookServer->IsCookByTheBookRunning();
 }
 
 void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo) const
@@ -580,7 +606,7 @@ FString FClassPickerDefaults::GetName() const
 	}
 
 	FText OutName;
-	if ( FText::FindText(TEXT(LOCTEXT_NAMESPACE), LocTextNameID, OutName) )
+	if ( FText::FindText(TEXT("UnrealEd"), LocTextNameID, OutName) )
 	{
 		return OutName.ToString();
 	}
@@ -614,7 +640,7 @@ FString FClassPickerDefaults::GetDescription() const
 	}
 
 	FText OutDesc;
-	if ( FText::FindText(TEXT(LOCTEXT_NAMESPACE), LocTextDescriptionID, OutDesc) )
+	if ( FText::FindText(TEXT("UnrealEd"), LocTextDescriptionID, OutDesc) )
 	{
 		return OutDesc.ToString();
 	}
@@ -964,21 +990,16 @@ static void InternalUpdateVolumeActorVisibility( TArray<AActor*>& ActorsToUpdate
 }
 
 
-void UUnrealEdEngine::UpdateVolumeActorVisibility( const UClass* InVolumeActorClass, FLevelEditorViewportClient* InViewport )
+void UUnrealEdEngine::UpdateVolumeActorVisibility( UClass* InVolumeActorClass, FLevelEditorViewportClient* InViewport )
 {
-	const UClass* VolumeClassToCheck = InVolumeActorClass ? InVolumeActorClass : AVolume::StaticClass();
+	TSubclassOf<AActor> VolumeClassToCheck = InVolumeActorClass ? InVolumeActorClass : AVolume::StaticClass();
 	
 	// Build a list of actors that need to be updated.  Only take actors of the passed in volume class.  
 	UWorld* World = InViewport ? InViewport->GetWorld() : GWorld;
 	TArray< AActor *> ActorsToUpdate;
-	for( FActorIterator It( World ); It; ++It)
+	for( TActorIterator<AActor> It( World, VolumeClassToCheck ); It; ++It)
 	{
-		AActor* Actor = *It;
-
-		if( Actor->IsA( VolumeClassToCheck ) )
-		{
-			ActorsToUpdate.Add(Actor);
-		}
+		ActorsToUpdate.Add(*It);
 	}
 
 	if( ActorsToUpdate.Num() > 0 )

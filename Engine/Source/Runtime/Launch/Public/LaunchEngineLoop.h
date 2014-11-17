@@ -53,6 +53,11 @@ public:
 	 */ 
 	void LoadPreInitModules();
 
+	/**
+	* Load core modules.
+	*/
+	void LoadCoreModules();
+
 #if WITH_ENGINE
 	
 	/**
@@ -124,6 +129,12 @@ public:
 	 * This function called outside guarded exit code, during all exits (including error exits).
 	 */
 	static void AppExit( );
+
+private:
+	/**
+	 * Utility function that processes Slate operations
+	 */
+	void ProcessPlayerControllersSlateOperations() const;
 
 protected:
 

@@ -240,16 +240,16 @@ void USoundCueGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 	}
 }
 
-FString USoundCueGraphNode::GetTooltip() const
+FText USoundCueGraphNode::GetTooltipText() const
 {
-	FString Tooltip;
+	FText Tooltip;
 	if (SoundNode)
 	{
-		Tooltip = SoundNode->GetClass()->GetToolTipText().ToString();
+		Tooltip = SoundNode->GetClass()->GetToolTipText();
 	}
-	if (Tooltip.Len() == 0)
+	if (Tooltip.IsEmpty())
 	{
-		Tooltip = GetNodeTitle(ENodeTitleType::ListView).ToString();
+		Tooltip = GetNodeTitle(ENodeTitleType::ListView);
 	}
 	return Tooltip;
 }

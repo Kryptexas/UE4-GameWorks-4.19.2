@@ -6,6 +6,7 @@
 #include "AI/Navigation/PImplRecastNavMesh.h"
 #include "AI/Navigation/RecastHelpers.h"
 #include "DetourCrowd/DetourCrowd.h"
+#include "Detour/DetourCommon.h"
 #endif
 
 #include "Navigation/CrowdManager.h"
@@ -16,7 +17,7 @@
 
 DECLARE_STATS_GROUP(TEXT("Crowd"), STATGROUP_AICrowd, STATCAT_Advanced);
 
-DECLARE_CYCLE_STAT(TEXT("Simulation Time"), STAT_AI_Crowd_Tick, STATGROUP_AICrowd);
+DECLARE_CYCLE_STAT(TEXT("Nav Tick: crowd simulation"), STAT_AI_Crowd_Tick, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: corridor update"), STAT_AI_Crowd_StepCorridorTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: paths"), STAT_AI_Crowd_StepPathsTime, STATGROUP_AICrowd);
 DECLARE_CYCLE_STAT(TEXT("Step: proximity"), STAT_AI_Crowd_StepProximityTime, STATGROUP_AICrowd);
@@ -659,7 +660,8 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, struct dtC
 			(CrowdComponent->IsCrowdSeparationEnabled() ? DT_CROWD_SEPARATION : 0) |
 			(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
 			(CrowdComponent->IsCrowdOptimizeTopologyEnabled() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
-			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0);
+			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0) |
+			(CrowdComponent->IsCrowdSlowdownAtGoalEnabled() ? DT_CROWD_SLOWDOWN_AT_GOAL : 0);
 
 		AgentParams->avoidanceGroup = CrowdComponent->GetAvoidanceGroup();
 		AgentParams->groupsToAvoid = CrowdComponent->GetGroupsToAvoid();

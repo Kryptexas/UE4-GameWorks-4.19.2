@@ -45,12 +45,12 @@ bool UPanelSlot::IsDesignTime() const
 	return Parent->IsDesignTime();
 }
 
-void UPanelSlot::ReleaseNativeWidget()
+void UPanelSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	if ( Content )
 	{
-		Content->ReleaseNativeWidget();
+		Content->ReleaseSlateResources(bReleaseChildren);
 	}
 }

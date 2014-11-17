@@ -153,11 +153,11 @@ class UDestructibleFractureSettings : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** The number of voronoi cell sites. */
-	UPROPERTY(EditAnywhere, Category=Voronoi)
+	UPROPERTY(EditAnywhere, Category = Voronoi, meta = (ClampMin = "1", UIMin = "1"))
 	int32									CellSiteCount;
 
 	/** Stored interior material data.  Just need one as we only support Voronoi splitting. */
-	UPROPERTY(EditAnywhere, transient, editinline, Category=General)
+	UPROPERTY(EditAnywhere, transient, Category=General)
 	FFractureMaterial						FractureMaterialDesc;
 
 	/** Random seed for reproducibility */

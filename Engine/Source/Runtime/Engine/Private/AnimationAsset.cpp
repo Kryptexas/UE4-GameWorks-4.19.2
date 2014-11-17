@@ -54,13 +54,17 @@ void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 }
 
 #if WITH_EDITOR
-bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton)
+bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces/*=false*/)
 {
 	// if it's not same 
 	if (NewSkeleton != Skeleton)
 	{
 		// get all sequences that need to change
 		TArray<UAnimSequence*> AnimSeqsToReplace;
+		if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(this))
+		{
+			AnimSeqsToReplace.AddUnique(AnimSequence);
+		}
 		if (GetAllAnimationSequencesReferred(AnimSeqsToReplace))
 		{
 			for (auto Iter = AnimSeqsToReplace.CreateIterator(); Iter; ++Iter)
@@ -68,7 +72,7 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton)
 				UAnimSequence* AnimSeq = *Iter;
 				if (AnimSeq && AnimSeq->Skeleton != NewSkeleton)
 				{
-					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton);
+					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
 				}
 			}
 		}

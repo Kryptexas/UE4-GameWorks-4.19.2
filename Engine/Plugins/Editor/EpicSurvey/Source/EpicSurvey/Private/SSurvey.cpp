@@ -35,7 +35,7 @@ void SSurvey::Construct( const FArguments& Args, const TSharedRef< FEpicSurvey >
 			[
 				// Drop shadow border
 				SNew(SBorder)
-				.Padding( 5.0f )
+				.Padding( 4.0f )
 				.BorderImage( FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
 				[
 					SAssignNew( ContentsContainer, SBorder )

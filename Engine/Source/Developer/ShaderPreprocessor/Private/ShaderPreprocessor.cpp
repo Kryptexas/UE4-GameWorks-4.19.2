@@ -28,6 +28,7 @@ static bool FilterMcppError(const FString& ErrorMsg)
 {
 	const TCHAR* SubstringsToFilter[] =
 	{
+		TEXT("Unknown encoding:"),
 		TEXT("with no newline, supplemented newline"),
 		TEXT("Converted [CR+LF] to [LF]")
 	};

@@ -19,9 +19,9 @@ class FPackageButton : public TSharedFromThis<FPackageButton>
 public:
 	FPackageButton(FPackagesDialogModule* InModule, EDialogReturnType InType, const FText& InName, const FText& InToolTip, TAttribute<bool> InDisabled = false)
 		: Module(InModule)
-		, Type(InType)
 		, Name(InName)
 		, ToolTip(InToolTip)
+		, Type(InType)
 		, Clicked(false)
 		, Disabled(InDisabled)
 	{ }

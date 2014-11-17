@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Misc/Base64.h"
 #include "VisualLog.h"
 #include "Json.h"
 
@@ -13,7 +14,7 @@ DEFINE_STAT(STAT_VisualLog);
 //----------------------------------------------------------------------//
 // FVisLogEntry
 //----------------------------------------------------------------------//
-FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<AActor> >* Children)
+FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<UObject> >* Children)
 {
 	if (InActor->IsPendingKill() == false)
 	{
@@ -22,13 +23,16 @@ FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<AA
 		InActor->GrabDebugSnapshot(this);
 		if (Children != NULL)
 		{
-			TWeakObjectPtr<AActor>* WeakActorPtr = Children->GetTypedData();
+			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
 			for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
 			{
-				if (WeakActorPtr->IsValid())
+				if (WeakActorPtr->IsValid() )
 				{
-					const AActor* ChildActor = WeakActorPtr->Get();
-					ChildActor->GrabDebugSnapshot(this);
+					const AActor* ChildActor = Cast<AActor>(WeakActorPtr->Get());
+					if (ChildActor)
+					{
+						ChildActor->GrabDebugSnapshot(this);
+					}
 				}
 			}
 		}
@@ -82,6 +86,9 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 				LogLines[LogLineIndex].Category = FName(*(JsonLogLine->GetStringField(VisualLogJson::TAG_CATEGORY)));
 				LogLines[LogLineIndex].Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::TruncToInt(JsonLogLine->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
 				LogLines[LogLineIndex].Line = JsonLogLine->GetStringField(VisualLogJson::TAG_LINE);
+				LogLines[LogLineIndex].TagName = FName(*(JsonLogLine->GetStringField(VisualLogJson::TAG_TAGNAME)));
+				LogLines[LogLineIndex].UserData = (int64)(JsonLogLine->GetNumberField(VisualLogJson::TAG_USERDATA));
+
 			}
 		}
 	}
@@ -141,6 +148,39 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 		}
 	}
 
+	TArray< TSharedPtr<FJsonValue> > JasonDataBlocks = JsonEntryObject->GetArrayField(VisualLogJson::TAG_DATABLOCK);
+	if (JasonDataBlocks.Num() > 0)
+	{
+		DataBlocks.Reserve(JasonDataBlocks.Num());
+		for (int32 SampleIndex = 0; SampleIndex < JasonDataBlocks.Num(); ++SampleIndex)
+		{
+			TSharedPtr<FJsonObject> JsonSampleObject = JasonDataBlocks[SampleIndex]->AsObject();
+			if (JsonSampleObject.IsValid())
+			{
+				FDataBlock& Sample = DataBlocks[DataBlocks.Add(FDataBlock())];
+				Sample.TagName = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_TAGNAME)));
+				Sample.Category = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_CATEGORY)));
+				Sample.Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::TruncToInt(JsonSampleObject->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
+
+				// decode data from Base64 string
+				const FString DataBlockAsCompressedString = JsonSampleObject->GetStringField(VisualLogJson::TAG_DATABLOCK_DATA);
+				TArray<uint8> CompressedDataBlock;
+				FBase64::Decode(DataBlockAsCompressedString, CompressedDataBlock);
+
+				// uncompress decoded data to get final TArray<uint8>
+				int32 UncompressedSize = 0;
+				const int32 HeaderSize = sizeof(int32);
+				uint8* SrcBuffer = (uint8*)CompressedDataBlock.GetTypedData();
+				FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
+				SrcBuffer += HeaderSize;
+				const int32 CompressedSize = CompressedDataBlock.Num() - HeaderSize;
+
+				Sample.Data.AddZeroed(UncompressedSize);
+				FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB), (void*)Sample.Data.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
+			}
+		}
+	}
+
 }
 
 TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
@@ -183,6 +223,8 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 		JsonLogLineObject->SetStringField(VisualLogJson::TAG_CATEGORY, LogLine->Category.ToString());
 		JsonLogLineObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, LogLine->Verbosity);
 		JsonLogLineObject->SetStringField(VisualLogJson::TAG_LINE, LogLine->Line);
+		JsonLogLineObject->SetStringField(VisualLogJson::TAG_TAGNAME, LogLine->TagName.ToString());
+		JsonLogLineObject->SetNumberField(VisualLogJson::TAG_USERDATA, LogLine->UserData);
 		JsonLines[LogLineIndex] = MakeShareable(new FJsonValueObject(JsonLogLineObject));
 	}
 
@@ -239,6 +281,35 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 
 	JsonEntryObject->SetArrayField(VisualLogJson::TAG_HISTOGRAMSAMPLES, JsonHistogramSamples);
 	
+	int32 DataBlockIndex = 0;
+	TArray<TSharedPtr<FJsonValue> > JasonDataBlocks;
+	JasonDataBlocks.AddZeroed(DataBlocks.Num());
+	for (const auto CurrentData : DataBlocks)
+	{
+		TSharedPtr<FJsonObject> JsonSampleObject = MakeShareable(new FJsonObject);
+
+		TArray<uint8> CompressedData;
+		const int32 UncompressedSize = CurrentData.Data.Num();
+		const int32 HeaderSize = sizeof(int32);
+		CompressedData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedSize));
+
+		int32 CompressedSize = CompressedData.Num() - HeaderSize;
+		uint8* DestBuffer = CompressedData.GetTypedData();
+		FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
+		DestBuffer += HeaderSize;
+
+		FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), (void*)DestBuffer, CompressedSize, (void*)CurrentData.Data.GetData(), UncompressedSize);
+		CompressedData.SetNum(CompressedSize + HeaderSize, true);
+		const FString CurrentDataAsString = FBase64::Encode(CompressedData);
+
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_CATEGORY, CurrentData.Category.ToString());
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_TAGNAME, CurrentData.TagName.ToString());
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_DATABLOCK_DATA, CurrentDataAsString);
+		JsonSampleObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, CurrentData.Verbosity);
+
+		JasonDataBlocks[DataBlockIndex++] = MakeShareable(new FJsonValueObject(JsonSampleObject));
+	}
+	JsonEntryObject->SetArrayField(VisualLogJson::TAG_DATABLOCK, JasonDataBlocks);
 
 	return MakeShareable(new FJsonValueObject(JsonEntryObject));
 }
@@ -290,10 +361,20 @@ void FVisLogEntry::AddHistogramData(const FVector2D& DataSample, const FName& Ca
 	HistogramSamples.Add(Sample);
 }
 
+void FVisLogEntry::AddDataBlock(const FString& TagName, const TArray<uint8>& BlobDataArray, const FName& CategoryName)
+{
+	FDataBlock DataBlock;
+	DataBlock.Category = CategoryName;
+	DataBlock.TagName = *TagName;
+	DataBlock.Data = BlobDataArray;
+
+	DataBlocks.Add(DataBlock);
+}
+
 //----------------------------------------------------------------------//
 // FActorsVisLog
 //----------------------------------------------------------------------//
-FActorsVisLog::FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<AActor> >* Children)
+FActorsVisLog::FActorsVisLog(const class AActor* Actor, TArray<TWeakObjectPtr<UObject> >* Children)
 	: Name(Actor->GetFName())
 	, FullName(Actor->GetFullName())
 {
@@ -474,8 +555,8 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 
 FVisLogEntry*  FVisualLog::GetEntryToWrite(const class AActor* Actor)
 {
-	check(Actor && Actor->GetWorld() && Actor->GetVisualLogRedirection());
-	const class AActor* LogOwner = Actor->GetVisualLogRedirection();
+	const class AActor* LogOwner = GetVisualLogRedirection(Actor);
+	check(Actor && Actor->GetWorld() && LogOwner);
 	const float TimeStamp = Actor->GetWorld()->TimeSeconds;
 	TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
 	const int32 LastIndex = Log->Entries.Num() - 1;
@@ -505,55 +586,80 @@ void FVisualLog::Cleanup(bool bReleaseMemory)
 	}
 }
 
-void FVisualLog::Redirect(AActor* Actor, const AActor* NewRedirection)
+const class AActor* FVisualLog::GetVisualLogRedirection(const class UObject* Source)
+{
+	for (auto Iterator = RedirectsMap.CreateConstIterator(); Iterator; ++Iterator)
+	{
+		const auto& Children = (*Iterator).Value;
+		if (Children.Find(Source) != INDEX_NONE)
+		{
+			return (*Iterator).Key;
+		}
+	}
+
+	return Cast<AActor>(Source);
+}
+
+void FVisualLog::RedirectToVisualLog(const class UObject* Src, const class AActor* Dest)
+{
+	Redirect( const_cast<class UObject*>(Src), Dest);
+}
+
+void FVisualLog::Redirect(UObject* Source, const AActor* NewRedirection)
 {
 	// sanity check
-	if (Actor == NULL)
+	if (Source == NULL)
 	{ 
 		return;
 	}
 
 	if (NewRedirection != NULL)
 	{
-		NewRedirection = NewRedirection->GetVisualLogRedirection();
+		NewRedirection = GetVisualLogRedirection(NewRedirection);
 	}
-	const AActor* OldRedirect = Actor->GetVisualLogRedirection();
+	const AActor* OldRedirect = GetVisualLogRedirection(Source);
 
 	if (NewRedirection == OldRedirect)
 	{
 		return;
 	}
-	if (NewRedirection == NULL)
+	if (!NewRedirection)
 	{
-		NewRedirection = Actor;
+		NewRedirection = Cast<AActor>(Source);
+	}
+	if (!NewRedirection)
+	{
+		return;
 	}
 
 	// this should log to OldRedirect
-	UE_VLOG(Actor, LogVisual, Display, TEXT("Binding %s to log %s"), *Actor->GetName(), *NewRedirection->GetName());
+	UE_VLOG(Source, LogVisual, Display, TEXT("Binding %s to log %s"), *Source->GetName(), *NewRedirection->GetName());
 
-	TArray<TWeakObjectPtr<AActor> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
+	TArray<TWeakObjectPtr<UObject> >& NewTargetChildren = RedirectsMap.FindOrAdd(NewRedirection);
 
-	Actor->SetVisualLogRedirection(NewRedirection);
-	NewTargetChildren.AddUnique(Actor);
+	NewTargetChildren.AddUnique(Source);
 
 	// now update all actors that have Actor as their VLog redirection
-	TArray<TWeakObjectPtr<AActor> >* Children = RedirectsMap.Find(Actor);
-	if (Children != NULL)
+	AActor* SourceAsActor = Cast<AActor>(Source);
+	if (SourceAsActor)
 	{
-		TWeakObjectPtr<AActor>* WeakActorPtr = Children->GetTypedData();
-		for (int32 Index = 0; Index < Children->Num(); ++Index)
+		TArray<TWeakObjectPtr<UObject> >* Children = RedirectsMap.Find(SourceAsActor);
+		if (Children != NULL)
 		{
-			if (WeakActorPtr->IsValid())
+			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetTypedData();
+			for (int32 Index = 0; Index < Children->Num(); ++Index)
 			{
-				WeakActorPtr->Get()->SetVisualLogRedirection(NewRedirection);
-				NewTargetChildren.AddUnique(*WeakActorPtr);
+				if (WeakActorPtr->IsValid())
+				{
+					NewTargetChildren.AddUnique(*WeakActorPtr);
+				}
 			}
+			RedirectsMap.Remove(SourceAsActor);
 		}
-		RedirectsMap.Remove(Actor);
 	}
 }
 
-void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line)
+void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line, int64 UserData, FName TagName)
 {
 	if (IsRecording() == false || Actor == NULL || Actor->IsPendingKill() || (IsAllBlocked() && !InWhitelist(CategoryName)))
 	{
@@ -566,7 +672,8 @@ void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVer
 	{
 		// @todo will have to store CategoryName separately, and create a map of names 
 		// used in log to have saved logs independent from FNames index changes
-		Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Verbosity, Line));
+		int32 LineIndex = Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Verbosity, Line, UserData));
+		Entry->LogLines[LineIndex].TagName = TagName;
 	}
 }
 #endif // ENABLE_VISUAL_LOG
@@ -595,11 +702,6 @@ public:
 				FVisualLog::Get().SetIsRecording(false);
 				return true;
 			}
-			else if (Command == TEXT("exit"))
-			{
-				FLogVisualizerModule::Get()->CloseUI(InWorld);
-				return true;
-			}
 			else if (Command == TEXT("disableallbut"))
 			{
 				FString Category = FParse::Token(Cmd, 1);
@@ -607,11 +709,18 @@ public:
 				FVisualLog::Get().AddCategortyToWhiteList(*Category);
 				return true;
 			}
+#if WITH_EDITOR
+			else if (Command == TEXT("exit"))
+			{
+				FLogVisualizerModule::Get()->CloseUI(InWorld);
+				return true;
+			}
 			else
 			{
 				FLogVisualizerModule::Get()->SummonUI(InWorld);
 				return true;
 			}
+#endif
 #else
 			UE_LOG(LogVisual, Warning, TEXT("Unable to open LogVisualizer - logs are disabled"));
 #endif

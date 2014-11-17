@@ -1,4 +1,4 @@
-Welcome to the UE 4.4 source code!
+Welcome to the UE 4.5 source code!
 ==================================
 
 This is the source code page for the **Unreal Engine on GitHub**.  With the UE4 source code, you can modify the
@@ -17,7 +17,7 @@ Have fun - we can't wait to see what you create!
 Source releases
 ---------------
 
-This branch contains source code for the **4.4 release**.  You'll need to download dependency files per the instructions below in order to build and run the engine.
+This branch contains source code for the **4.5 release**.  You'll need to download dependency files per the instructions below in order to build and run the engine.
 
 We're also publishing bleeding edge changes from our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) on GitHub.  Here you can 
 see [live commits](https://github.com/EpicGames/UnrealEngine/commits/master) from Epic programmers along with integrated code submissions from the community.  This branch is 
@@ -39,18 +39,18 @@ first.  Okay, here we go!
 
 1. We recommend using Git in order to participate in the community, but you can **download the source** as a zip file if you prefer. See instructions for 
    [setting up Git](http://help.github.com/articles/set-up-git), then [fork our repository](https://help.github.com/articles/fork-a-repo), clone it to your local 
-   machine, and switch to the 4.4 branch:
+   machine, and switch to the 4.5 branch:
    
 ```
-git checkout 4.4
+git checkout 4.5
 ```	
    
 1. You should now have an _UnrealEngine_ folder on your computer.  All of the source and dependencies will go into this folder.  The folder name might 
-   have a branch suffix (such as _UnrealEngine-4.4_), but that's fine.
+   have a branch suffix (such as _UnrealEngine-4.5_), but that's fine.
 
 1. Download the **required dependencies**:
-   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.4.3-release/Required_1of2.zip) and
-   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.4.3-release/Required_2of2.zip).
+   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.5.0-release/Required_1of2.zip) and
+   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.5.0-release/Required_2of2.zip).
 
 1. Unzip the dependencies into the _UnrealEngine_ folder alongside the source.  Be careful to make sure the folders are merged together 
    correctly.  On Mac, we recommend **Option + dragging** the unzipped files into the _UnrealEngine_ folder, then selecting **Keep Newer** if prompted.
@@ -96,15 +96,25 @@ git checkout 4.4
 
 
 
+
+### Linux
+
+1. Both cross-compiling and native builds are supported. 
+
+2. Cross-compiling is handy when you are a Windows (Mac support planned too) developer who wants to package your game for Linux with minimal hassle, and it requires a [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to be installed (see the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux)). Note that you will also need [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.5.0-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder.
+
+2. Native compilation is discussed in [a separate README](https://github.com/EpicGames/UnrealEngine/blob/4.5/Engine/Build/BatchFiles/Linux/README.md) and [community wiki page](https://wiki.unrealengine.com/Building_On_Linux). Downloading the dependencies has now been automated, so you will only need to clone the repo and run **GenerateProjectFiles.sh** (provided that you have OAUTH_TOKEN set to your personal access token, see the above README for details).
+
+
+
+
 ### Additional target platforms
 
 **Android** development currently works best from a PC. See the [Android getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/).
 
 **iOS** programming requires a Mac. Instructions are in the [iOS getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/iOS/GettingStarted/index.html).
 
-**HTML5** is supported using Emscripten, and requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.4.3-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
-
-**Linux** support requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.4.3-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder, and the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v3_clang-3.3_ld-2.24_glibc-2.12.2.zip) to be installed. See the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux).
+**HTML5** is supported using Emscripten, and requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.5.0-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
 
 **Playstation 4** or **XboxOne** development require additional files that can only be provided after your registered developer status is confirmed by Sony or Microsoft. See [the announcement blog post](https://www.unrealengine.com/blog/playstation-4-and-xbox-one-now-supported) for more information.
 
@@ -115,7 +125,7 @@ Additional Notes
 
 Visual Studio 2013 and Xcode 5.1 are strongly recommended for development.
 
-Legacy support for Visual Studio 2012 can be enabled by unzipping the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.4.3-release/Optional.zip) into your UnrealEngine folder.
+Legacy support for Visual Studio 2012 can be enabled by unzipping the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.5.0-release/Optional.zip) into your UnrealEngine folder.
 
 The first time you start the editor from a fresh source build, you may experience long load times.  This only happens on the first 
 run as the engine optimizes content for the platform and _fills the derived data cache_.

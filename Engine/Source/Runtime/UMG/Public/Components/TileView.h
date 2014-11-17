@@ -5,10 +5,12 @@
 #include "TileView.generated.h"
 
 /** A flow panel that presents the contents as a set of tiles all uniformly sized. */
-UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
+UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -30,6 +32,8 @@ class UMG_API UTileView : public UTableViewBase
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnGenerateRowUObject OnGenerateTileEvent;
 
+public:
+
 	/** Set item width */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetItemWidth(float Width);
@@ -41,6 +45,11 @@ class UMG_API UTileView : public UTableViewBase
 	/** Refreshes the list */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void RequestListRefresh();
+
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
+#endif
 
 protected:
 	TSharedRef<ITableRow> HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const;

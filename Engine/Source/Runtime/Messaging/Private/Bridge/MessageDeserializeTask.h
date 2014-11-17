@@ -82,12 +82,12 @@ public:
 
 private:
 
-	// Holds the message's type information.
+	/** Holds the message's type information. */
 	TWeakObjectPtr<UScriptStruct> MessageTypeInfoPtr;
 
-	// Holds a reference to the serializer to use.
+	/** Holds a reference to the serializer to use. */
 	ISerializeMessagesRef Serializer;
 
-	// Holds the name of the thread that deserialization should be run on.
+	/** Holds the name of the thread that deserialization should be run on. */
 	ENamedThreads::Type Thread;
 };

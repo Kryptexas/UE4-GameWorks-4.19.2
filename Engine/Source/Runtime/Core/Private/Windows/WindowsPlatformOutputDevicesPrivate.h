@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformOutputDevicesPrivate.h: Windows implementations of output devices
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,12 +11,14 @@
 	#endif
 #endif
 
+
 #if WANTS_WINDOWS_EVENT_LOGGING
+
 /**
  * Output device that writes to Windows Event Log
  */
-class FOutputDeviceEventLog :
-	public FOutputDevice
+class FOutputDeviceEventLog
+	: public FOutputDevice
 {
 	/** Handle to the event log object */
 	HANDLE EventLog;
@@ -136,9 +134,6 @@ public:
 	 * error handler, e.g. using structured exception handling on the PC.
 	 */
 	void HandleError();
-
-private:
-	int32	ErrorPos;
 };
 
 /**

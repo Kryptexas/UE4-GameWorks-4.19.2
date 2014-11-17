@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/DirectionalLight.h"
 
 static float GMaxCSMRadiusToAllowPerObjectShadows = 8000;
 static FAutoConsoleVariableRef CVarMaxCSMRadiusToAllowPerObjectShadows(
@@ -85,6 +86,12 @@ public:
 
 	bool bUseInsetShadowsForMovableObjects;
 
+	/** If greater than WholeSceneDynamicShadowRadius, a cascade will be created to support ray traced distance field shadows covering up to this distance. */
+	float DistanceFieldShadowDistance;
+
+	/** Light source angle in degrees. */
+	float LightSourceAngle;
+
 	/** Initialization constructor. */
 	FDirectionalLightSceneProxy(const UDirectionalLightComponent* Component):
 		FLightSceneProxy(Component),
@@ -96,7 +103,9 @@ public:
 		CascadeDistributionExponent(Component->CascadeDistributionExponent),
 		CascadeTransitionFraction(Component->CascadeTransitionFraction),
 		ShadowDistanceFadeoutFraction(Component->ShadowDistanceFadeoutFraction),
-		bUseInsetShadowsForMovableObjects(Component->bUseInsetShadowsForMovableObjects)
+		bUseInsetShadowsForMovableObjects(Component->bUseInsetShadowsForMovableObjects),
+		DistanceFieldShadowDistance(Component->bUseRayTracedDistanceFieldShadows ? Component->DistanceFieldShadowDistance : 0),
+		LightSourceAngle(Component->LightSourceAngle)
 	{
 		LightShaftOverrideDirection.Normalize();
 
@@ -122,24 +131,6 @@ public:
 			Proxy->UpdateLightShaftOverrideDirection_RenderThread(NewLightShaftOverrideDirection);
 		});
 	}
-		
-	float ComputeShadowDistance() const
-	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.DistanceScale"));
-
-		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.1f, 2.0f);
-
-		return WholeSceneDynamicShadowRadius * Scale;
-	}
-
-	float GetShadowTransiationScale() const
-	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.CSM.TransitionScale"));
-
-		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 2.0f);
-
-		return Scale;
-	}
 
 	/** Accesses parameters needed for rendering the light. */
 	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const
@@ -158,6 +149,11 @@ public:
 		LightSourceRadius = 0.0f;
 		LightSourceLength = 0.0f;
 		LightMinRoughness = MinRoughness;
+	}
+
+	virtual float GetLightSourceAngle() const override
+	{
+		return LightSourceAngle;
 	}
 
 	virtual bool GetLightShaftOcclusionParameters(float& OutOcclusionMaskDarkness, float& OutOcclusionDepthRange) const override
@@ -200,8 +196,15 @@ public:
 	/** Returns the number of view dependent shadows this light will create. */
 	virtual int32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const 
 	{ 
-		int32 NumCascades = WholeSceneDynamicShadowRadius > 0.0f ? DynamicShadowCascades : 0;
-		return FMath::Min<int32>(NumCascades, View.MaxShadowCascades);
+		int32 NumCascades = GetNumShadowMappedCascades(View.MaxShadowCascades);
+
+		if (ShouldCreateRayTracedCascade())
+		{
+			// Add a cascade for the ray traced shadows
+			NumCascades++;
+		}
+
+		return NumCascades;
 	}
 
 	/**
@@ -210,34 +213,29 @@ public:
 	 */
 	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(const FSceneView& View, int32 SplitIndex, FWholeSceneProjectedShadowInitializer& OutInitializer) const
 	{
-		// this checks for WholeSceneDynamicShadowRadius and DynamicShadowCascades
-		int32 NumCascades = GetNumViewDependentWholeSceneShadows(View);
+		const FMatrix& WorldToLight = GetWorldToLight();
 
-		if(NumCascades)
-		{
-			const FMatrix& WorldToLight = GetWorldToLight();
+		FShadowCascadeSettings CascadeSettings;
 
-			FShadowCascadeSettings CascadeSettings;
+		FSphere Bounds = FDirectionalLightSceneProxy::GetShadowSplitBounds(View, SplitIndex, &CascadeSettings);
+		OutInitializer.CascadeSettings = CascadeSettings;
 
-			FSphere Bounds = FDirectionalLightSceneProxy::GetShadowSplitBounds(View, SplitIndex, &CascadeSettings);
-			OutInitializer.CascadeSettings = CascadeSettings;
-
-			const float ShadowExtent = Bounds.W / FMath::Sqrt(3.0f);
-			const FBoxSphereBounds SubjectBounds(Bounds.Center, FVector(ShadowExtent, ShadowExtent, ShadowExtent), Bounds.W);
-			OutInitializer.bDirectionalLight = true;
-			OutInitializer.bOnePassPointLightShadow = false;
-			OutInitializer.PreShadowTranslation = -Bounds.Center;
-			OutInitializer.WorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).SafeNormal().Rotation());
-			OutInitializer.Scales = FVector(1.0f,1.0f / Bounds.W,1.0f / Bounds.W);
-			OutInitializer.FaceDirection = FVector(1,0,0);
-			OutInitializer.SubjectBounds = FBoxSphereBounds(FVector::ZeroVector,SubjectBounds.BoxExtent,SubjectBounds.SphereRadius);
-			OutInitializer.WAxis = FVector4(0,0,0,1);
-			OutInitializer.MinLightW = -HALF_WORLD_MAX;
-			OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 8.0f;
-			OutInitializer.SplitIndex = SplitIndex;
-			return true;
-		}
-		return false;
+		const float ShadowExtent = Bounds.W / FMath::Sqrt(3.0f);
+		const FBoxSphereBounds SubjectBounds(Bounds.Center, FVector(ShadowExtent, ShadowExtent, ShadowExtent), Bounds.W);
+		OutInitializer.bDirectionalLight = true;
+		OutInitializer.bOnePassPointLightShadow = false;
+		OutInitializer.PreShadowTranslation = -Bounds.Center;
+		OutInitializer.WorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).SafeNormal().Rotation());
+		OutInitializer.Scales = FVector(1.0f,1.0f / Bounds.W,1.0f / Bounds.W);
+		OutInitializer.FaceDirection = FVector(1,0,0);
+		OutInitializer.SubjectBounds = FBoxSphereBounds(FVector::ZeroVector,SubjectBounds.BoxExtent,SubjectBounds.SphereRadius);
+		OutInitializer.WAxis = FVector4(0,0,0,1);
+		OutInitializer.MinLightW = -HALF_WORLD_MAX;
+		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 8.0f;
+		OutInitializer.SplitIndex = SplitIndex;
+		// Last cascade is the ray traced shadow, if enabled
+		OutInitializer.bRayTracedDistanceFieldShadow = ShouldCreateRayTracedCascade() && SplitIndex == FDirectionalLightSceneProxy::GetNumViewDependentWholeSceneShadows(View) - 1;
+		return true;
 	}
 
 	// reflective shadow map for Light Propagation Volume
@@ -307,6 +305,63 @@ public:
 	}
 
 private:
+
+	int32 GetNumShadowMappedCascades(int32 MaxShadowCascades) const
+	{
+		int32 NumCascades = WholeSceneDynamicShadowRadius > 0.0f ? DynamicShadowCascades : 0;
+		return FMath::Min<int32>(NumCascades, MaxShadowCascades);
+	}
+
+	float GetCSMMaxDistance() const
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.DistanceScale"));
+		 
+		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.1f, 2.0f);
+		float Distance = WholeSceneDynamicShadowRadius * Scale;
+		return Distance;
+	}
+
+	float GetDistanceFieldShadowDistance() const
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+
+		if (CVar->GetValueOnRenderThread() == 0)
+		{
+			// Meshes must have distance fields generated
+			return 0;
+		}
+
+		return DistanceFieldShadowDistance;
+	}
+
+	bool ShouldCreateRayTracedCascade() const
+	{
+		//@todo - handle View.MaxShadowCascades properly
+		const int32 NumCascades = GetNumShadowMappedCascades(10);
+		const float RaytracedShadowDistance = GetDistanceFieldShadowDistance();
+		const bool bCreateWithCSM = NumCascades > 0 && RaytracedShadowDistance > GetCSMMaxDistance();
+		const bool bCreateWithoutCSM = NumCascades == 0 && RaytracedShadowDistance > 0;
+		return DoesPlatformSupportDistanceFieldShadowing(GRHIShaderPlatform) && (bCreateWithCSM || bCreateWithoutCSM);
+	}
+
+	float ComputeShadowDistance() const
+	{
+		float Distance = GetCSMMaxDistance();
+
+		if (ShouldCreateRayTracedCascade())
+		{
+			Distance = GetDistanceFieldShadowDistance();
+		}
+
+		return Distance;
+	}
+
+	float GetShadowTransitionScale() const
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.CSM.TransitionScale"));
+		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 2.0f);
+		return Scale;
+	}
 
 	void UpdateLightShaftOverrideDirection_RenderThread(FVector NewLightShaftOverrideDirection)
 	{
@@ -422,9 +477,18 @@ private:
 	}
 
 	// Given a particular split index and view near plane, returns the view space Z distance to the PSSM split plane.
-	inline float GetSplitDistance(int32 SplitIndex, int32 NumCascades, float ShadowNear, float FarDistance) const
+	inline float GetSplitDistance(int32 SplitIndex, int32 NumCascades, float ShadowNear, bool bIgnoreLastCascade) const
 	{
 		check(SplitIndex >= 0);
+
+		float FarDistance = ComputeShadowDistance();
+
+		if (bIgnoreLastCascade)
+		{
+			// Compute shadowmap cascade distances as if the ray traced cascade didn't exist
+			NumCascades--;
+			FarDistance = GetCSMMaxDistance();
+		}
 
 		return ShadowNear + ComputeAccumulatedScale(CascadeDistributionExponent, SplitIndex, NumCascades) * (FarDistance - ShadowNear);
 	}
@@ -434,6 +498,9 @@ private:
 		// this checks for WholeSceneDynamicShadowRadius and DynamicShadowCascades
 		int32 NumCascades = GetNumViewDependentWholeSceneShadows(View);
 
+		const bool bHasRayTracedCascade = ShouldCreateRayTracedCascade();
+		const bool bIsRayTracedCascade = bHasRayTracedCascade && SplitIndex == NumCascades - 1;
+
 		const FMatrix ViewMatrix = View.ShadowViewMatrices.ViewMatrix;
 		const FMatrix ProjectionMatrix = View.ShadowViewMatrices.ProjMatrix;
 		const FVector4 ViewOrigin = View.ShadowViewMatrices.ViewOrigin;
@@ -441,14 +508,13 @@ private:
 		const FVector CameraDirection = ViewMatrix.GetColumn(2);
 		const FVector LightDirection = -GetDirection();
 
-		float FarDistance = ComputeShadowDistance();
-
 		// Determine start and end distances to the current cascade's split planes
-		float SplitNear = GetSplitDistance(SplitIndex, NumCascades, View.NearClippingDistance, FarDistance);
-		float SplitFar = GetSplitDistance(SplitIndex + 1, NumCascades, View.NearClippingDistance, FarDistance);
+		// Presence of the ray traced cascade does not change depth ranges for the shadow-mapped cascades
+		float SplitNear = GetSplitDistance(SplitIndex, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
+		float SplitFar = GetSplitDistance(SplitIndex + 1, NumCascades, View.NearClippingDistance, bHasRayTracedCascade && !bIsRayTracedCascade);
 		float FadePlane = SplitFar;
 
-		float LocalCascadeTransitionFraction = CascadeTransitionFraction * GetShadowTransiationScale();
+		float LocalCascadeTransitionFraction = CascadeTransitionFraction * GetShadowTransitionScale();
 
 		float FadeExtension = (SplitFar - SplitNear) * LocalCascadeTransitionFraction;
 
@@ -466,8 +532,8 @@ private:
 			if(SplitIndex >= 1)
 			{
 				// todo: optimize
-				float BeforeSplitNear = GetSplitDistance(SplitIndex - 1, NumCascades, View.NearClippingDistance, FarDistance);
-				float BeforeSplitFar = GetSplitDistance(SplitIndex, NumCascades, View.NearClippingDistance, FarDistance);
+				float BeforeSplitNear = GetSplitDistance(SplitIndex - 1, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
+				float BeforeSplitFar = GetSplitDistance(SplitIndex, NumCascades, View.NearClippingDistance, bHasRayTracedCascade);
 
 				OutCascadeSettings->SplitNearFadeRegion = (BeforeSplitFar - BeforeSplitNear) * LocalCascadeTransitionFraction;
 			}
@@ -524,7 +590,9 @@ private:
 		{
 			CascadeSphere.W = FMath::Max(CascadeSphere.W, FVector::DistSquared(CascadeFrustumVerts[Index], CascadeSphere.Center));
 		}
-		CascadeSphere.W = FMath::Sqrt(CascadeSphere.W); 
+
+		// Don't allow the bounds to reach 0 (INF)
+		CascadeSphere.W = FMath::Max(FMath::Sqrt(CascadeSphere.W), 1.0f); 
 
 		if (OutCascadeSettings)
 		{
@@ -567,6 +635,9 @@ UDirectionalLightComponent::UDirectionalLightComponent(const class FPostConstruc
 	WholeSceneDynamicShadowRadius_DEPRECATED = 20000.0f;
 	DynamicShadowDistanceMovableLight = 20000.0f;
 	DynamicShadowDistanceStationaryLight = 0.f;
+
+	DistanceFieldShadowDistance = 30000.0f;
+	LightSourceAngle = 1;
 
 	DynamicShadowCascades = 3;
 	CascadeDistributionExponent = 3.0f;
@@ -619,8 +690,18 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, ShadowDistanceFadeoutFraction)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, bUseInsetShadowsForMovableObjects))
 		{
-			return (DynamicShadowDistanceMovableLight > 0 && Mobility == EComponentMobility::Movable
-				|| DynamicShadowDistanceStationaryLight > 0 && Mobility == EComponentMobility::Stationary);
+			return CastShadows 
+				&& CastDynamicShadows 
+				&& (DynamicShadowDistanceMovableLight > 0 && Mobility == EComponentMobility::Movable
+					|| DynamicShadowDistanceStationaryLight > 0 && Mobility == EComponentMobility::Stationary);
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, DistanceFieldShadowDistance)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, LightSourceAngle))
+		{
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+			bool bCanEdit = CastShadows && CastDynamicShadows && bUseRayTracedDistanceFieldShadows && Mobility != EComponentMobility::Static && CVar->GetValueOnGameThread() != 0;
+			return bCanEdit;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, OcclusionMaskDarkness)

@@ -32,5 +32,17 @@ public class coremod: ModuleRules
 			PublicLibraryPaths.Add(LibraryPath + "/lib/IOS");
 			PublicAdditionalShadowFiles.Add(LibraryPath + "/lib/IOS/libcoremod.a");
 		}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            PublicAdditionalLibraries.Add(LibraryPath + "/lib/Linux/" + Target.Architecture + "/" + "libcoremodLinux.a");
+        }
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			string AndroidPath = LibraryPath + "/lib/Android/";
+			// No 64bit support for Android yet
+			PublicLibraryPaths.Add(AndroidPath + "armeabi-v7a");
+			PublicLibraryPaths.Add(AndroidPath + "x86");
+			PublicAdditionalLibraries.Add("xmp-coremod");			
+		}
 	}
 }

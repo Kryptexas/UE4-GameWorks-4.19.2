@@ -74,7 +74,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	
 	SetViewLocationForOrbiting(FVector::ZeroVector);
 
-	SetViewMode(VMI_Lit);
+	SetViewModes(VMI_Lit, VMI_Lit);
 
 	bUsingOrbitCamera = true;
 
@@ -101,7 +101,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 	float W, H;
 	PhATFont->GetCharSize(TEXT('L'), W, H);
 
-	const float XOffset = 150.0f;
+	const float XOffset = 200.0f;
 
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), PhATFont, FLinearColor::White );
 
@@ -368,13 +368,13 @@ void FPhATEdPreviewViewportClient::ProcessClick(class FSceneView& View, class HH
 		{
 			HPhATEdBoneProxy* BoneProxy = (HPhATEdBoneProxy*)HitProxy;
 
-			SharedData->HitBone(BoneProxy->BodyIndex, BoneProxy->PrimType, BoneProxy->PrimIndex, IsCtrlPressed());
+			SharedData->HitBone(BoneProxy->BodyIndex, BoneProxy->PrimType, BoneProxy->PrimIndex, IsCtrlPressed() || IsShiftPressed());
 		}
 		else if (HitProxy && HitProxy->IsA(HPhATEdConstraintProxy::StaticGetType()))
 		{
 			HPhATEdConstraintProxy* ConstraintProxy = (HPhATEdConstraintProxy*)HitProxy;
 
-			SharedData->HitConstraint(ConstraintProxy->ConstraintIndex, IsCtrlPressed());
+			SharedData->HitConstraint(ConstraintProxy->ConstraintIndex, IsCtrlPressed() || IsShiftPressed());
 		}
 		else
 		{	
@@ -735,7 +735,7 @@ void FPhATEdPreviewViewportClient::StartManipulating(EAxisList::Type Axis, const
 
 		const FTransform WParentFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame2);
 		const FTransform WChildFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame1);
-		StartManRelConTM = WChildFrame * WParentFrame.InverseSafe();
+		StartManRelConTM = WChildFrame * WParentFrame.Inverse();
 
 		UPhysicsConstraintTemplate* Setup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->GetSelectedConstraint()->Index];
 
@@ -804,7 +804,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* Viewport, bool bCons
 #endif
 	SharedData->LastClickPos = Click.GetClickPos();
 	FHitResult Result(1.f);
-	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(true));
+	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin() - Click.GetDirection() * SimGrabCheckDistance, Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(true));
 
 	if (bHit)
 	{
@@ -831,7 +831,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* Viewport, bool bCons
 			// Create handle to object.
 			SharedData->MouseHandle->GrabComponent(SharedData->EditorSkelComp, BoneName, Result.Location, bConstrainRotation);
 
-			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.Inverse();
+			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.InverseFast();
 
 			SimGrabMinPush = SimMinHoldDistance - (Result.Time * SimGrabCheckDistance);
 
@@ -870,7 +870,7 @@ void FPhATEdPreviewViewportClient::SimMouseMove(float DeltaX, float DeltaY)
 
 	//Now we project new ScreenPos to xy-plane of SimGrabLocation
 	FVector LocalOffset = View->ViewMatrices.ViewMatrix.TransformPosition(SimGrabLocation + SimGrabZ * SimGrabPush);
-	float ZDistance = fabs(LocalOffset.Z);
+	float ZDistance = GetViewportType() == ELevelViewportType::LVT_Perspective ? fabs(LocalOffset.Z) : 1.f;	//in the ortho case we don't need to do any fixup because there is no perspective
 	WorldDelta = ProjectedDelta * ZDistance;
 	
 	//Now we convert back into WorldPos

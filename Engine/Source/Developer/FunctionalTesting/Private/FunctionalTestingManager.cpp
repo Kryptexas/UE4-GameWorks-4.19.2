@@ -198,12 +198,13 @@ void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnd
 void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
 {
 	// add a delay
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting to build next tile if necessary"),
+		STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary,
+		STATGROUP_TaskGraphTasks);
+
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UFunctionalTestingManager::NotifyTestDone, FTest)
-		, TEXT("Requesting to build next tile if necessary")
-		, NULL
-		, ENamedThreads::GameThread
-		);
+		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UFunctionalTestingManager::NotifyTestDone, FTest),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingToBuildNextTileIfNecessary), NULL, ENamedThreads::GameThread);
 }
 
 void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
@@ -293,9 +294,15 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			const FString SingleTestReproString = TestReproStrings.Pop(/*bAllowShrinking=*/false);
 			SingleTestReproString.ParseIntoArray(&TestParams, TEXT("#"), /*InCullEmpty=*/true);
 			
-			// first param is the test name. Look for it			
-			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestParams[0]);
+			if (TestParams.Num() == 0)
+			{
+				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to parse \'%s\'"), *SingleTestReproString)));
+				continue;
+			}
+			// first param is the test name. Look for it		
+			const FString TestName = TestParams[0];
 			TestParams.RemoveAt(0, 1, /*bAllowShrinking=*/false);
+			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);			
 			if (TestToRun)
 			{
 				TestToRun->TestFinishedObserver = TestFinishedObserver;
@@ -311,11 +318,12 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			}
 			else
 			{
-				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to find test \'%s\'"), *TestToRun->GetName())));
+				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to find test \'%s\'"), *TestName)));
 			}
 		}
 	}
-	else
+	
+	if (bTestSuccessfullyTriggered == false)
 	{
 		for (int32 Index = TestsLeft.Num()-1; Index >= 0; --Index)
 		{

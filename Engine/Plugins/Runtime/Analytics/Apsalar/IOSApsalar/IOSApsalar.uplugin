@@ -1,0 +1,22 @@
+{
+	"FileVersion" : 3,
+	
+	"FriendlyName" : "IOS Apsalar Analytics Provider",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"EngineVersion" : "4.2.0",
+	"Description" : "Apsalar Analytics Provider for iOS",
+	"Category" : "Analytics.Provider",
+	
+	"Modules" :
+	[
+		{
+			"Name" : "IOSApsalar",
+			"Type" : "Runtime",
+			"LoadingPhase" : "PreDefault",
+			"WhitelistPlatforms" : [ "IOS" ]
+		}
+	]
+}

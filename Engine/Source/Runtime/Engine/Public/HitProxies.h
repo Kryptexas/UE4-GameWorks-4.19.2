@@ -91,6 +91,11 @@ public:
 	 */
 	friend ENGINE_API class HHitProxy* GetHitProxyById(FHitProxyId Id);
 
+	friend bool operator==(FHitProxyId X, FHitProxyId Y)
+	{
+		return X.Index == Y.Index;
+	}
+
 private:
 	
 	/** Initialization constructor. */

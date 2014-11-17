@@ -14,20 +14,12 @@ UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const class F
 
 UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttributeChange(UObject* WorldContextObject, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (ThisAbility)
-	{
-		UAbilityTask_WaitAttributeChange * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitAttributeChange>();
-		MyObj->InitTask(ThisAbility);
-		MyObj->WithTag = InWithTag;
-		MyObj->WithoutTag = InWithoutTag;
-		MyObj->Attribute = InAttribute;
+	auto MyObj = NewTask<UAbilityTask_WaitAttributeChange>(WorldContextObject);
+	MyObj->WithTag = InWithTag;
+	MyObj->WithoutTag = InWithoutTag;
+	MyObj->Attribute = InAttribute;
 
-		return MyObj;
-	}
-	return NULL;
+	return MyObj;
 }
 
 void UAbilityTask_WaitAttributeChange::Activate()
@@ -57,12 +49,19 @@ void UAbilityTask_WaitAttributeChange::OnAttributeChange(float NewValue, const F
 			// Failed tag check
 			return;
 		}
-	}
-	
+	}	
+
+	OnChange.Broadcast();
+
+	EndTask();
+}
+
+void UAbilityTask_WaitAttributeChange::OnDestroy(bool AbilityEnded)
+{
 	if (AbilitySystemComponent.IsValid())
 	{
 		AbilitySystemComponent->RegisterGameplayAttributeEvent(Attribute).RemoveUObject(this, &UAbilityTask_WaitAttributeChange::OnAttributeChange);
 	}
 
-	OnChange.Broadcast();
+	Super::OnDestroy(AbilityEnded);
 }

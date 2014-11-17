@@ -76,5 +76,5 @@ TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
 
 bool IsMoviePlayerEnabled()
 {
-	return !GIsEditor && !IsRunningDedicatedServer() && !IsRunningCommandlet();
+	return !GIsEditor && !IsRunningDedicatedServer() && !IsRunningCommandlet() && !FParse::Param(FCommandLine::Get(), TEXT("ONETHREAD"));
 }

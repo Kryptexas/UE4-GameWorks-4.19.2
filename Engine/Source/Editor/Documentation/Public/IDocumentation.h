@@ -16,6 +16,7 @@ public:
 		, NumberedContentStyleName(TEXT("Documentation.NumberedContent"))
 		, Header1StyleName(TEXT("Documentation.Header1"))
 		, Header2StyleName(TEXT("Documentation.Header2"))
+		, HyperlinkStyleName(TEXT("Documentation.Hyperlink"))
 		, HyperlinkButtonStyleName(TEXT("Documentation.Hyperlink.Button"))
 		, HyperlinkTextStyleName(TEXT("Documentation.Hyperlink.Text"))
 		, SeparatorStyleName(TEXT("Documentation.Separator"))
@@ -58,6 +59,13 @@ public:
 	}
 
 	/** Set the hyperlink button style for this documentation */
+	FDocumentationStyle& HyperlinkStyle(const FName& InName) 
+	{
+		HyperlinkStyleName = InName;
+		return *this;
+	}
+
+	/** Set the hyperlink button style for this documentation */
 	FDocumentationStyle& HyperlinkButtonStyle(const FName& InName) 
 	{
 		HyperlinkButtonStyleName = InName;
@@ -92,6 +100,9 @@ public:
 
 	/** Header2 text style */
 	FName Header2StyleName;
+
+	/** Hyperlink style */
+	FName HyperlinkStyleName;
 
 	/** Hyperlink button style */
 	FName HyperlinkButtonStyleName;
@@ -139,13 +150,13 @@ public:
 
 	virtual bool OpenHome() const = 0;
 
-	virtual bool OpenHome(const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const = 0;
+	virtual bool OpenHome(const FCultureRef& Culture) const = 0;
 
 	virtual bool OpenAPIHome() const = 0;
 
 	virtual bool Open( const FString& Link ) const = 0;
 
-	virtual bool Open(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const = 0;
+	virtual bool Open(const FString& Link, const FCultureRef& Culture) const = 0;
 
 	virtual TSharedRef< class SWidget > CreateAnchor( const TAttribute<FString>& Link, const FString& PreviewLink = FString(), const FString& PreviewExcerptName = FString() ) const = 0;
 
@@ -153,7 +164,7 @@ public:
 
 	virtual bool PageExists(const FString& Link) const = 0;
 
-	virtual bool PageExists(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const = 0;
+	virtual bool PageExists(const FString& Link, const FCultureRef& Culture) const = 0;
 
 	virtual TSharedRef< class SToolTip > CreateToolTip( const TAttribute<FText>& Text, const TSharedPtr<SWidget>& OverrideContent, const FString& Link, const FString& ExcerptName ) const = 0;
 };

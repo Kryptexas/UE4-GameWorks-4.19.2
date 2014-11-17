@@ -12,7 +12,8 @@ class SLATE_API SRichTextBlock : public SWidget
 public:
 
 	SLATE_BEGIN_ARGS( SRichTextBlock )
-		: _Text(  )
+		: _Text()
+		, _HighlightText()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
 		, _DecoratorStyleSet( &FCoreStyle::Get() )
@@ -24,7 +25,10 @@ public:
 		, _Parser()
 	{}
 		/** The text displayed in this text block */
-		SLATE_ARGUMENT( FText, Text )
+		SLATE_ATTRIBUTE( FText, Text )
+
+		/** Highlight this text in the text block */
+		SLATE_ATTRIBUTE( FText, HighlightText )
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE( float, WrapTextAt )
@@ -101,9 +105,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
-	virtual void CacheDesiredSize() override;
 	virtual FVector2D ComputeDesiredSize() const override;
 
 	virtual FChildren* GetChildren() override;
@@ -116,51 +118,49 @@ public:
 	 */
 	const FText& GetText() const
 	{
-		return Text;
+		return BoundText.Get(FText::GetEmpty());
 	}
 
 	/**
 	 * Sets the text for this text block
 	 */
-	void SetText( const FText& InText );
+	void SetText( const TAttribute<FText>& InTextAttr );
 
-	void SetHighlightText( const FText& InHighlightText );
+	void SetHighlightText( const TAttribute<FText>& InHighlightText );
 
-
-private:
-	
-	TSharedPtr< ITextDecorator > TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& Decorators, const FString& Line, const FTextRunParseResults& TextRun ) const;
+	/**
+	 * Causes the text to reflow it's layout
+	 */
+	void Refresh();
 
 private:
 
 	/** The text displayed in this text block */
-	FText Text;
+	TAttribute< FText > BoundText;
 
-	TSharedPtr< FSlateTextLayout > TextLayout;
+	/** The wrapped layout for this text block */
+	TSharedPtr< FTextBlockLayout > TextLayoutCache;
 
-	FText HighlightText;
-	TArray< FTextRunRenderer > TextHighlights;
-	TSharedPtr< ISlateRunRenderer> TextHighlighter;
-
-	const ISlateStyle* TagStyleSet;
+	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;
-	
+
+	/** Highlight this text in the textblock */
+	TAttribute<FText> HighlightText;
+
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	TAttribute<float> WrapTextAt;
 	
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute<bool> AutoWrapText;
 
-	/** The last known width of the control from the previous OnPaint, used to recalculate wrapping. */
-	mutable float CachedAutoWrapTextWidth;
-
+	/** The amount of blank space left around the edges of text area. */
 	TAttribute< FMargin > Margin;
+
+	/** The amount to scale each lines height by. */
 	TAttribute< ETextJustify::Type > Justification; 
+
+	/** How the text should be aligned with the margin. */
 	TAttribute< float > LineHeightPercentage;
-
-	TArray< TSharedRef< class ITextDecorator > > Decorators;
-
-	TSharedPtr< class IRichTextMarkupParser > Parser;
 };
 
 #endif //WITH_FANCY_TEXT

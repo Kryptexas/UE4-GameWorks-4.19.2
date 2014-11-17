@@ -89,9 +89,10 @@ FAssetRegistry::FAssetRegistry()
 	}
 #endif // WITH_EDITOR
 
-	// Listen for new content paths being added at runtime.  These are usually plugin-specific asset paths that
+	// Listen for new content paths being added or removed at runtime.  These are usually plugin-specific asset paths that
 	// will be loaded a bit later on.
 	FPackageName::OnContentPathMounted().AddRaw( this, &FAssetRegistry::OnContentPathMounted );
+	FPackageName::OnContentPathDismounted().AddRaw( this, &FAssetRegistry::OnContentPathDismounted );
 
 	// Now collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
@@ -168,6 +169,7 @@ FAssetRegistry::~FAssetRegistry()
 
 	// Stop listening for content mount point events
 	FPackageName::OnContentPathMounted().RemoveAll( this );
+	FPackageName::OnContentPathDismounted().RemoveAll( this );
 
 	// Commandlets dont listen for directory changes
 #if WITH_EDITOR
@@ -216,13 +218,14 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	FPackageName::QueryRootContentPaths( PathsToSearch );
 
 	// Start the asset search (synchronous in commandlets)
+	const bool bLoadAndSaveCache = !FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache"));
 	if ( bSynchronousSearch )
 	{
-		ScanPathsSynchronous(PathsToSearch);
+		const bool bForceRescan = false;
+		ScanPathsSynchronous_Internal(PathsToSearch, bForceRescan, bLoadAndSaveCache);
 	}
 	else
 	{
-		const bool bLoadAndSaveCache = !FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache"));
 		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
 	}
 }
@@ -327,7 +330,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			{
 				UPackage* InMemoryPackage = ObjIt->GetOutermost();
 
-				static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+				static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
 				// Skip assets in map packages... unless we are showing world assets
 				if ( InMemoryPackage->ContainsMap() && !bUsingWorldAssets )
 				{
@@ -1063,51 +1066,15 @@ bool FAssetRegistry::RemovePath(const FString& PathToRemove)
 
 void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan)
 {
-	const double SearchStartTime = FPlatformTime::Seconds();
+	const bool bUseCache = false;
+	ScanPathsSynchronous_Internal(InPaths, bForceRescan, bUseCache);
+}
 
-	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
-	TArray<FString> PathsToScan;
-	for ( auto PathIt = InPaths.CreateConstIterator(); PathIt; ++PathIt )
+void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
+{
+	if (BackgroundAssetSearch.IsValid())
 	{
-		if ( bForceRescan || !SynchronouslyScannedPaths.Contains(*PathIt) )
-		{
-			PathsToScan.Add(*PathIt);
-			SynchronouslyScannedPaths.Add(*PathIt);
-		}
-	}
-
-	if ( PathsToScan.Num() > 0 )
-	{
-		// Start the sync asset search
-		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true);
-
-		// Get the search results
-		TArray<FBackgroundAssetData*> AssetResults;
-		TArray<FString> PathResults;
-		TArray<FPackageDependencyData> DependencyResults;
-		TArray<double> SearchTimes;
-		int32 NumFilesToSearch = 0;
-		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
-
-		// Cache the search results
-		const int32 NumResults = AssetResults.Num();
-		AssetSearchDataGathered(-1, AssetResults);
-		PathDataGathered(-1, PathResults);
-		DependencyDataGathered(-1, DependencyResults);
-
-		// Log stats
-		const FString& Path = PathsToScan[0];
-		FString PathsString;
-		if ( PathsToScan.Num() > 1 )
-		{
-			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, PathsToScan.Num());
-		}
-		else
-		{
-			PathsString = FString::Printf(TEXT("'%s'"), *Path);
-		}
-
-		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
+		BackgroundAssetSearch->PrioritizeSearchPath(PathToPrioritize);
 	}
 }
 
@@ -1274,6 +1241,11 @@ void FAssetRegistry::Tick(float DeltaTime)
 	}
 }
 
+bool FAssetRegistry::IsUsingWorldAssets()
+{
+	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
+}
+
 void FAssetRegistry::Serialize(FArchive& Ar)
 {
 	if (Ar.IsSaving())
@@ -1314,6 +1286,56 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	for (TMap<FName, FAssetData*>::TIterator It(Data); It; ++It)
 	{
 		Ar << *It.Value();
+	}
+}
+
+void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, bool bUseCache)
+{
+	const double SearchStartTime = FPlatformTime::Seconds();
+
+	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
+	TArray<FString> PathsToScan;
+	for ( auto PathIt = InPaths.CreateConstIterator(); PathIt; ++PathIt )
+	{
+		if ( bForceRescan || !SynchronouslyScannedPaths.Contains(*PathIt) )
+		{
+			PathsToScan.Add(*PathIt);
+			SynchronouslyScannedPaths.Add(*PathIt);
+		}
+	}
+
+	if ( PathsToScan.Num() > 0 )
+	{
+		// Start the sync asset search
+		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true, bUseCache);
+
+		// Get the search results
+		TArray<FBackgroundAssetData*> AssetResults;
+		TArray<FString> PathResults;
+		TArray<FPackageDependencyData> DependencyResults;
+		TArray<double> SearchTimes;
+		int32 NumFilesToSearch = 0;
+		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
+
+		// Cache the search results
+		const int32 NumResults = AssetResults.Num();
+		AssetSearchDataGathered(-1, AssetResults);
+		PathDataGathered(-1, PathResults);
+		DependencyDataGathered(-1, DependencyResults);
+
+		// Log stats
+		const FString& Path = PathsToScan[0];
+		FString PathsString;
+		if ( PathsToScan.Num() > 1 )
+		{
+			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, PathsToScan.Num());
+		}
+		else
+		{
+			PathsString = FString::Printf(TEXT("'%s'"), *Path);
+		}
+
+		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
 	}
 }
 
@@ -1526,15 +1548,18 @@ bool FAssetRegistry::AddAssetPath(const FString& PathToAdd)
 	return false;
 }
 
-bool FAssetRegistry::RemoveAssetPath(const FString& PathToRemove)
+bool FAssetRegistry::RemoveAssetPath(const FString& PathToRemove, bool bEvenIfAssetsStillExist)
 {
-	// Check if there were assets in the specified folder. You can not remove paths that still contain assets
-	TArray<FAssetData> AssetsInPath;
-	GetAssetsByPath(FName(*PathToRemove), AssetsInPath, true);
-	if ( AssetsInPath.Num() > 0 )
+	if ( !bEvenIfAssetsStillExist )
 	{
-		// At least one asset still exists in the path. Fail the remove.
-		return false;
+		// Check if there were assets in the specified folder. You can not remove paths that still contain assets
+		TArray<FAssetData> AssetsInPath;
+		GetAssetsByPath(FName(*PathToRemove), AssetsInPath, true);
+		if ( AssetsInPath.Num() > 0 )
+		{
+			// At least one asset still exists in the path. Fail the remove.
+			return false;
+		}
 	}
 
 	if ( PathTreeRoot.RemoveFolder(PathToRemove) )
@@ -1822,13 +1847,14 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 					{
 						// This file was deleted. Remove all assets in the package from the registry.
 						const FName PackageName = FName(*LongPackageName);
-						TArray<FAssetData*>* PackageAssets = CachedAssetsByPackageName.Find(PackageName);
+						TArray<FAssetData*>* PackageAssetsPtr = CachedAssetsByPackageName.Find(PackageName);
 
-						if (PackageAssets)
+						if (PackageAssetsPtr)
 						{
-							for ( auto AssetIt = (*PackageAssets).CreateConstIterator(); AssetIt; ++AssetIt )
+							TArray<FAssetData*>& PackageAssets = *PackageAssetsPtr;
+							for ( int32 AssetIdx = PackageAssets.Num() - 1; AssetIdx >= 0; --AssetIdx )
 							{
-								RemoveAssetData(*AssetIt);
+								RemoveAssetData(PackageAssets[AssetIdx]);
 							}
 						}
 
@@ -1848,8 +1874,16 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 #endif // WITH_EDITOR
 
 
-void FAssetRegistry::OnContentPathMounted( const FString& AssetPath )
+void FAssetRegistry::OnContentPathMounted( const FString& InAssetPath, const FString& FileSystemPath )
 {
+	// Sanitize
+	FString AssetPath = InAssetPath;
+	if (AssetPath.EndsWith(TEXT("/")) == false)
+	{
+		// We actually want a trailing slash here so the path can be properly converted while searching for assets
+		AssetPath = AssetPath + TEXT("/");
+	}
+
 	// Add this to our list of root paths to process
 	AddPathToSearch( AssetPath );
 
@@ -1862,8 +1896,63 @@ void FAssetRegistry::OnContentPathMounted( const FString& AssetPath )
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 		if (DirectoryWatcher)
 		{
-			const FString& ContentFolder = FPackageName::LongPackageNameToFilename( AssetPath );
-			DirectoryWatcher->RegisterDirectoryChangedCallback( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+			// If the path doesn't exist on disk, make it so the watcher will work.
+			IFileManager::Get().MakeDirectory(*FileSystemPath);
+			DirectoryWatcher->RegisterDirectoryChangedCallback( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+		}
+	}
+#endif // WITH_EDITOR
+
+}
+
+void FAssetRegistry::OnContentPathDismounted(const FString& InAssetPath, const FString& FileSystemPath)
+{
+	// Sanitize
+	FString AssetPath = InAssetPath;
+	if ( AssetPath.EndsWith(TEXT("/")) )
+	{
+		// We don't want a trailing slash here as it could interfere with RemoveAssetPath
+		AssetPath = AssetPath.LeftChop(1);
+	}
+
+	// Remove all cached assets found at this location
+	{
+		TArray<FAssetData*> AllAssetDataToRemove;
+		TArray<FString> PathList;
+		const bool bRecurse = true;
+		GetSubPaths(AssetPath, PathList, bRecurse);
+		PathList.Add(AssetPath);
+		for ( const FString& Path : PathList )
+		{
+			TArray<FAssetData*>* AssetsInPath = CachedAssetsByPath.Find(FName(*Path));
+			if ( AssetsInPath )
+			{
+				AllAssetDataToRemove.Append(*AssetsInPath);
+			}
+		}
+
+		for ( FAssetData* AssetData : AllAssetDataToRemove )
+		{
+			RemoveAssetData(AssetData);
+		}
+	}
+
+	// Remove the root path
+	{
+		const bool bEvenIfAssetsStillExist = true;
+		RemoveAssetPath(AssetPath, bEvenIfAssetsStillExist);
+	}
+
+	// Stop listening for directory changes in this content path
+#if WITH_EDITOR
+	// Commandlets and in-game don't listen for directory changes
+	if (!IsRunningCommandlet() && GIsEditor)
+	{
+		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
+		if (DirectoryWatcher)
+		{
+			DirectoryWatcher->UnregisterDirectoryChangedCallback(FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
 		}
 	}
 #endif // WITH_EDITOR

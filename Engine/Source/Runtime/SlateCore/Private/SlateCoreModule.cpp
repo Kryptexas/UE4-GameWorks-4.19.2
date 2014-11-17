@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateCoreModule.cpp: Implements the FSlateCoreModule class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 #include "ModuleManager.h"
 
@@ -13,6 +9,7 @@ DEFINE_LOG_CATEGORY(LogSlateStyles);
 
 DEFINE_STAT(STAT_SlateMeasureStringTime);
 DEFINE_STAT(STAT_SlateRenderingRTTime);
+DEFINE_STAT(STAT_SlatePresentRTTime);
 DEFINE_STAT(STAT_SlateUpdateBufferRTTime);
 DEFINE_STAT(STAT_SlateDrawTime);
 DEFINE_STAT(STAT_SlateUpdateBufferGTTime);
@@ -39,6 +36,7 @@ DEFINE_STAT(STAT_SlateVertexCount);
 
 DEFINE_STAT(STAT_SlateTextureDataMemory);
 DEFINE_STAT(STAT_SlateTextureAtlasMemory);
+DEFINE_STAT(STAT_SlateTextureGPUMemory);
 DEFINE_STAT(STAT_SlateFontKerningTableMemory);
 DEFINE_STAT(STAT_SlateFontMeasureCacheMemory);
 DEFINE_STAT(STAT_SlateVertexBatchMemory);

@@ -157,6 +157,13 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 		DefaultTextValue = SourcePin.DefaultTextValue;
 	}
 
+	// In K2 schemas the wildcard pins need to have their type copied before we get to pin splitting
+	// TODO: Better less hacky way of this?
+	if (PinType.PinCategory == TEXT("wildcard"))
+	{
+		PinType = SourcePin.PinType;
+	}
+
 	// Copy the links
 	for (int32 LinkIndex = 0; LinkIndex < SourcePin.LinkedTo.Num(); ++LinkIndex)
 	{
@@ -198,7 +205,8 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 const class UEdGraphSchema* UEdGraphPin::GetSchema() const
 {
 #if WITH_EDITOR
-	return GetOwningNode()->GetGraph()->GetSchema();
+	auto OwnerNode = GetOwningNodeUnchecked();
+	return OwnerNode ? OwnerNode->GetSchema() : NULL;
 #else
 	return NULL;
 #endif	//WITH_EDITOR
@@ -208,12 +216,27 @@ FString UEdGraphPin::GetDefaultAsString() const
 {
 	if(DefaultObject != NULL)
 	{
-		return DefaultObject->GetFullName();
+		return DefaultObject->GetPathName();
 	}
 	else
 	{
 		return DefaultValue;
 	}
+}
+
+FText UEdGraphPin::GetDisplayName() const
+{
+	FString StrName;
+	auto Schema = GetSchema();
+	if (Schema)
+	{
+		StrName = Schema->GetPinDisplayName(this);
+	}
+	else
+	{
+		StrName = (!PinFriendlyName.IsEmpty()) ? PinFriendlyName.ToString() : PinName;
+	}
+	return FText::FromString(StrName);
 }
 
 const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, const FString& InInfoData, const UEdGraphPin* InToPin ) const

@@ -32,6 +32,8 @@ void SInlineEditableTextBlock::Construct( const FArguments& InArgs )
 			.HighlightText( InArgs._HighlightText )
 			.ToolTipText( InArgs._ToolTipText )
 			.WrapTextAt( InArgs._WrapTextAt )
+			.Justification( InArgs._Justification )
+			.LineBreakPolicy( InArgs._LineBreakPolicy )
 		]
 	];
 
@@ -57,11 +59,7 @@ SInlineEditableTextBlock::~SInlineEditableTextBlock()
 
 void SInlineEditableTextBlock::CancelEditMode()
 {
-	HorizontalBox->RemoveSlot(TextBox.ToSharedRef());
-	TextBlock->SetVisibility(EVisibility::Visible);
-
-	// Clear the error so it will vanish.
-	TextBox->SetError( FText::GetEmpty() );
+	ExitEditingMode();
 
 	// Get the text from source again.
 	TextBox->SetText(Text);
@@ -75,7 +73,7 @@ bool SInlineEditableTextBlock::SupportsKeyboardFocus() const
 
 void SInlineEditableTextBlock::EnterEditingMode()
 {
-	if(!bIsReadOnly.Get() && !FSlateApplication::Get().GetMouseCaptor().IsValid() )
+	if(!bIsReadOnly.Get() && FSlateApplication::Get().HasAnyMouseCaptor() == false)
 	{
 		if(TextBlock->GetVisibility() == EVisibility::Visible)
 		{
@@ -95,7 +93,11 @@ void SInlineEditableTextBlock::EnterEditingMode()
 
 void SInlineEditableTextBlock::ExitEditingMode()
 {
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);	
+	HorizontalBox->RemoveSlot(TextBox.ToSharedRef());
+	TextBlock->SetVisibility(EVisibility::Visible);
+
+	// Clear the error so it will vanish.
+	TextBox->SetError( FText::GetEmpty() );
 }
 
 bool SInlineEditableTextBlock::IsInEditMode() const
@@ -243,13 +245,9 @@ void SInlineEditableTextBlock::OnTextBoxCommitted(const FText& InText, ETextComm
 			}
 		}
 		
-		HorizontalBox->RemoveSlot(TextBox.ToSharedRef());
-		TextBlock->SetVisibility(EVisibility::Visible);
+		ExitEditingMode();
 
 		OnTextCommittedDelegate.ExecuteIfBound(InText, InCommitType);
-
-		// Clear the error so it will vanish.
-		TextBox->SetError( FText::GetEmpty() );
 
 		if ( !Text.IsBound() )
 		{

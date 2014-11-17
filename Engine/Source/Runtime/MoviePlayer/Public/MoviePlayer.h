@@ -48,7 +48,7 @@ public:
 	 * Initializes this movie streamer with all the movie paths (ordered) we want to play
 	 * Movie paths are local to the current game's Content/Movies/ directory.
 	 */
-	virtual void Init(const TArray<FString>& MoviePaths) = 0;
+	virtual bool Init(const TArray<FString>& MoviePaths) = 0;
 	
 	/** Forces the movie streamer to cancel what it's streaming and close */
 	virtual void ForceCompletion() = 0;
@@ -74,7 +74,8 @@ public:
 struct MOVIEPLAYER_API FLoadingScreenAttributes
 {
 	FLoadingScreenAttributes()
-		: bAutoCompleteWhenLoadingCompletes(true)
+		: MinimumLoadingScreenDisplayTime(0.0f)
+		, bAutoCompleteWhenLoadingCompletes(true)
 		, bMoviesAreSkippable(true) {}
 
 	/** The widget to be displayed on top of the movie or simply standalone if there is no movie */
@@ -83,12 +84,14 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 	/** The movie paths local to the game's Content/Movies/ directory we will play */
 	TArray<FString> MoviePaths;
 
+	/** The minimum time that a loading screen should be opened for */
+	float MinimumLoadingScreenDisplayTime;
+
 	/** If true, the loading screen will disappear as soon as all movies are played and loading is done */
 	bool bAutoCompleteWhenLoadingCompletes;
 
 	/** If true, movies can be skipped by clicking the loading screen as long as loading is done */
 	bool bMoviesAreSkippable;
-
 
 	/** True if there is either a standalone widget or any movie paths or both */
 	bool IsValid() const;
@@ -123,6 +126,11 @@ public:
 	 * @return true of a movie started playing
 	 */
 	virtual bool PlayMovie() = 0;
+
+	/** 
+	 * Stops the currently playing movie, if any
+	 */
+	virtual void StopMovie() = 0;
 	
 	/** Call only on the game thread. Spins this thread until the movie stops. */
 	virtual void WaitForMovieToFinish() = 0;

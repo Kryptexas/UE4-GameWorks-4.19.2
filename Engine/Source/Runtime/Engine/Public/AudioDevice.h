@@ -342,7 +342,7 @@ public:
 	/**
 	 * Creates an audio component to handle playing a sound cue
 	 */
-	static class UAudioComponent* CreateComponent( class USoundBase* Sound, class UWorld* World, AActor*  AActor  = NULL, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = NULL );
+	static class UAudioComponent* CreateComponent( class USoundBase* Sound, class UWorld* World, AActor*  AActor  = NULL, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = NULL, USoundAttenuation* AttenuationSettings = NULL );
 
 	/**
 	 * Adds an active sound to the audio device
@@ -508,7 +508,10 @@ public:
     
     /** Resume any context related objects */
     virtual void ResumeContext() {}
-    
+
+	/** Check if any background music or sound is playing through the audio device */
+	virtual bool IsExernalBackgroundSoundActive() { return false; }
+
 protected:
 	friend class FSoundSource;
 

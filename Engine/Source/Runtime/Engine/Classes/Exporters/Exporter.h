@@ -167,7 +167,7 @@ class UExporter : public UObject
 	 * @param FileIndex - Index of files being exported
 	 * @return - true if the the object was successfully exported
 	 */
-	static bool ExportToArchive( UObject* Object, UExporter* Exporter, FArchive& Ar, const TCHAR* FileType, int32 FileIndex );
+	ENGINE_API static bool ExportToArchive(UObject* Object, UExporter* Exporter, FArchive& Ar, const TCHAR* FileType, int32 FileIndex);
 
 
 	/**

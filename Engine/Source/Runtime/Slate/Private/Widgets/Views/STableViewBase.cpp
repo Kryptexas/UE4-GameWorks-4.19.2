@@ -146,29 +146,55 @@ static FEndOfListResult ComputeOffsetForEndOfList( const FGeometry& ListPanelGeo
 	return FEndOfListResult( OffsetFromEndOfList, ItemsAboveView );
 }
 
+void STableViewBase::TickInertialScroll( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	if ( IsRightClickScrolling() )
+	{
+		// We sample for the inertial scroll on tick rather than on mouse/touch move so
+		// that we still get samples even if the mouse has not moved.
+		if ( CanUseInertialScroll(TickScrollDelta) )
+		{
+			this->InertialScrollManager.AddScrollSample(TickScrollDelta, InCurrentTime);
+		}
+	}
+	else
+	{
+		// If we are not right click scrolling then we can perform inertial scroll
+		this->InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
+		const float ScrollVelocity = this->InertialScrollManager.GetScrollVelocity();
+
+		if ( ScrollVelocity != 0.f )
+		{
+			if ( CanUseInertialScroll(ScrollVelocity) )
+			{
+				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, EAllowOverscroll::Yes);
+			}
+			else
+			{
+				this->InertialScrollManager.ClearScrollVelocity();
+			}
+		}
+	}
+
+	TickScrollDelta = 0.f;
+}
 
 void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (ItemsPanel.IsValid())
 	{
+		TickInertialScroll(AllottedGeometry, InCurrentTime, InDeltaTime);
+
 		if ( !IsRightClickScrolling() )
 		{
-			this->InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
-			const float ScrollVelocity = this->InertialScrollManager.GetScrollVelocity();
-
-			if ( ScrollVelocity != 0.f )
+			// If we are currently in overscroll, the list will need refreshing.
+			// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
+			if ( Overscroll.GetOverscroll() != 0.0f )
 			{
-				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, EAllowOverscroll::Yes);
+				this->RequestListRefresh();
 			}
 
 			Overscroll.UpdateOverscroll( InDeltaTime );
-
-			if (Overscroll.GetOverscroll() != 0.0f)
-			{
-				InertialScrollManager.ClearScrollVelocity();	
-				
-				this->RequestListRefresh();
-			}
 		}
 
 		FGeometry PanelGeometry = FindChildGeometry( AllottedGeometry, ItemsPanel.ToSharedRef() );
@@ -291,6 +317,7 @@ FReply STableViewBase::OnMouseButtonUp( const FGeometry& MyGeometry, const FPoin
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
+
 		OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
 
 		FReply Reply = FReply::Handled().ReleaseMouseCapture();
@@ -320,7 +347,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 {	
 	if( MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ) )
 	{
-		const float ScrollByAmount = MouseEvent.GetCursorDelta().Y;
+		const float ScrollByAmount = MouseEvent.GetCursorDelta().Y / MyGeometry.Scale;
 		// If scrolling with the right mouse button, we need to remember how much we scrolled.
 		// If we did not scroll at all, we will bring up the context menu when the mouse is released.
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
@@ -329,14 +356,15 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		// the mouse and dragging the view?
 		if( IsRightClickScrolling() )
 		{
-			this->InertialScrollManager.AddScrollSample(-ScrollByAmount, FPlatformTime::Seconds());
+			TickScrollDelta -= ScrollByAmount;
+
 			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
 			FReply Reply = FReply::Handled();
 
 			// The mouse moved enough that we're now dragging the view. Capture the mouse
 			// so the user does not have to stay within the bounds of the list while dragging.
-			if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
+			if(this->HasMouseCapture() == false)
 			{
 				Reply.CaptureMouse( AsShared() ).UseHighPrecisionMouseMovement( AsShared() );
 				SoftwareCursorPosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
@@ -346,7 +374,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 			// Check if the mouse has moved.
 			if( AmountScrolled != 0 )
 			{
-				SoftwareCursorPosition.Y += MouseEvent.GetCursorDelta().Y;
+				SoftwareCursorPosition.Y += ScrollByAmount;
 			}
 
 			return Reply;
@@ -360,7 +388,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 void STableViewBase::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	bStartedTouchInteraction = false;
-	if( FSlateApplication::Get().GetMouseCaptor().Get() != this )
+	if(this->HasMouseCapture() == false)
 	{
 		// No longer scrolling (unless we have mouse capture)
 		AmountScrolledWhileRightMouseDown = 0;
@@ -423,11 +451,11 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 {
 	if (bStartedTouchInteraction)
 	{
-		const float ScrollByAmount = InTouchEvent.GetCursorDelta().Y;
+		const float ScrollByAmount = InTouchEvent.GetCursorDelta().Y / MyGeometry.Scale;
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
+		TickScrollDelta -= ScrollByAmount;
 
-		this->InertialScrollManager.AddScrollSample( ScrollByAmount, FPlatformTime::Seconds());
-		const float AmountScrolled = this->ScrollBy( MyGeometry, ScrollByAmount, EAllowOverscroll::Yes );
+		const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
 		if (AmountScrolledWhileRightMouseDown > SlatePanTriggerDistance)
 		{
@@ -446,6 +474,7 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 
 FReply STableViewBase::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
+
 	AmountScrolledWhileRightMouseDown = 0;
 	bStartedTouchInteraction = false;
 
@@ -521,6 +550,7 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, ScrollOffset( 0 )
 	, bStartedTouchInteraction( false )
 	, AmountScrolledWhileRightMouseDown( 0 )
+	, TickScrollDelta( 0 )
 	, LastGenerateResults( 0,0,0,false )
 	, bWasAtEndOfList(false)
 	, SelectionMode( ESelectionMode::Multi )
@@ -669,6 +699,14 @@ TSharedRef<class SWidget> STableViewBase::GetScrollWidget()
 	return SharedThis(this);
 }
 
+bool STableViewBase::CanUseInertialScroll( float ScrollAmount ) const
+{
+	const auto CurrentOverscroll = Overscroll.GetOverscroll();
+
+	// We allow sampling for the inertial scroll if we are not in the overscroll region,
+	// Or if we are scrolling outwards of the overscroll region
+	return CurrentOverscroll == 0.f || FMath::Sign(CurrentOverscroll) != FMath::Sign(ScrollAmount);
+}
 
 STableViewBase::FOverscroll::FOverscroll()
 : OverscrollAmount( 0.0f )
@@ -680,6 +718,13 @@ float STableViewBase::FOverscroll::ScrollBy( float Delta )
 	const float ValueBeforeDeltaApplied = OverscrollAmount;
 	const float EasedDelta = Delta / (FMath::Abs(OverscrollAmount/ListConstants::OvershootMax)+1.0f);
 	OverscrollAmount = FMath::Clamp(OverscrollAmount + EasedDelta, -ListConstants::OvershootMax, ListConstants::OvershootMax);
+
+	// Don't allow an interaction to change from positive <-> negative overscroll
+	const bool bCrossedOverscrollBoundary = FMath::Sign(ValueBeforeDeltaApplied) != FMath::Sign(OverscrollAmount);
+	if ( bCrossedOverscrollBoundary && ValueBeforeDeltaApplied != 0.f )
+	{
+		OverscrollAmount = 0.f;
+	}
 
 	return ValueBeforeDeltaApplied - OverscrollAmount;
 }

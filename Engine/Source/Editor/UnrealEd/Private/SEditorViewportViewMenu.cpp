@@ -103,62 +103,76 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 	TSharedPtr< SEditorViewport > PinnedViewport = Viewport.Pin();
 	if( PinnedViewport.IsValid() )
 	{
+		static FName WireframeIcon( "EditorViewport.WireframeMode" );
+		static FName UnlitIcon( "EditorViewport.UnlitMode" );
+		static FName LitIcon( "EditorViewport.LitMode" );
+		static FName DetailLightingIcon("EditorViewport.DetailLightingMode");
+		static FName LightingOnlyIcon("EditorViewport.LightingOnlyMode");
+		static FName LightComplexityIcon("EditorViewport.LightComplexityMode");
+		static FName ShaderComplexityIcon("EditorViewport.ShaderComplexityMode");
+		static FName LightOverlapIcon("EditorViewport.StationaryLightOverlapMode");
+		static FName LightmapDensityIcon("EditorViewport.LightmapDensityMode");
+		static FName ReflectionModeIcon("EditorViewport.ReflectionOverrideMode");
+		static FName VisualizeBufferIcon("EditorViewport.VisualizeBufferMode");
+		static FName CollisionPawnIcon("EditorViewport.CollisionPawn");
+		static FName CollisionVisibilityIcon("EditorViewport.CollisionVisibility");
+
 		switch( PinnedViewport->GetViewportClient()->GetViewMode() )
 		{
 			case VMI_BrushWireframe:
-				Icon = FName( "EditorViewport.WireframeMode" );
+				Icon = WireframeIcon;
 				break;
 
 			case VMI_Wireframe:
-				Icon = FName( "EditorViewport.WireframeMode" );
+				Icon = WireframeIcon;
 				break;
 
 			case VMI_Unlit:
-				Icon = FName( "EditorViewport.UnlitMode" );
+				Icon = UnlitIcon;
 				break;
 
 			case VMI_Lit:
-				Icon = FName( "EditorViewport.LitMode" );
+				Icon = LitIcon;
 				break;
 
 			case VMI_Lit_DetailLighting:
-				Icon = FName( "EditorViewport.DetailLightingMode" );
+				Icon = DetailLightingIcon;
 				break;
 
 			case VMI_LightingOnly:
-				Icon = FName( "EditorViewport.LightingOnlyMode" );
+				Icon = LightingOnlyIcon;
 				break;
 
 			case VMI_LightComplexity:
-				Icon = FName( "EditorViewport.LightComplexityMode" );
+				Icon = LightComplexityIcon;
 				break;
 
 			case VMI_ShaderComplexity:
-				Icon = FName( "EditorViewport.ShaderComplexityMode" );
+				Icon = ShaderComplexityIcon;
 				break;
 
 			case VMI_StationaryLightOverlap:
-				Icon = FName( "EditorViewport.StationaryLightOverlapMode" );
+				Icon = LightOverlapIcon;
 				break;
 
 			case VMI_LightmapDensity:
-				Icon = FName( "EditorViewport.LightmapDensityMode" );
+				Icon = LightmapDensityIcon;
 				break;
 
 			case VMI_ReflectionOverride:
-				Icon = FName( "EditorViewport.ReflectionOverrideMode" );
+				Icon = ReflectionModeIcon;
 				break;
 
 			case VMI_VisualizeBuffer:
-				Icon = FName( "EditorViewport.VisualizeBufferMode" );
+				Icon = VisualizeBufferIcon;
 				break;
 
 			case VMI_CollisionPawn:
-				Icon = FName( "EditorViewport.CollisionPawn" );
+				Icon = CollisionPawnIcon;
 				break;
 
 			case VMI_CollisionVisibility:
-				Icon = FName( "EditorViewport.CollisionVisibility" );
+				Icon = CollisionVisibilityIcon;
 				break;
 		}
 	}

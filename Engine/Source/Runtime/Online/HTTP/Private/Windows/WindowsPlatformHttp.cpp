@@ -10,6 +10,16 @@ bool bUseCurl = false;
 
 void FWindowsPlatformHttp::Init()
 {
+	if (GConfig)
+	{
+		bool bUseCurlConfigValue = false;
+		if (GConfig->GetBool(TEXT("Networking"), TEXT("UseLibCurl"), bUseCurlConfigValue, GEngineIni))
+		{
+			bUseCurl = bUseCurlConfigValue;
+		}
+	}
+
+	// allow override on command line
 	FString HttpMode;
 	if (FParse::Value(FCommandLine::Get(), TEXT("HTTP="), HttpMode) &&
 		(HttpMode.Equals(TEXT("Curl"), ESearchCase::IgnoreCase) || HttpMode.Equals(TEXT("LibCurl"), ESearchCase::IgnoreCase)))
@@ -18,16 +28,25 @@ void FWindowsPlatformHttp::Init()
 	}
 
 #if WITH_LIBCURL
-	FCurlHttpManager::InitCurl();
+	if (bUseCurl)
+	{
+		FCurlHttpManager::InitCurl();
+	}
 #endif
 }
 
 void FWindowsPlatformHttp::Shutdown()
 {
 #if WITH_LIBCURL
-	FCurlHttpManager::ShutdownCurl();
+	if (bUseCurl)
+	{
+		FCurlHttpManager::ShutdownCurl();
+	}
+	else
 #endif
-	FWinInetConnection::Get().ShutdownConnection();
+	{
+		FWinInetConnection::Get().ShutdownConnection();
+	}
 }
 
 FHttpManager * FWindowsPlatformHttp::CreatePlatformHttpManager()

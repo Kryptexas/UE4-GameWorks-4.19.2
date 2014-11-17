@@ -42,10 +42,10 @@ public:
 	CORE_API void SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
-	CORE_API TSharedRef<FCulture, ESPMode::ThreadSafe> GetCurrentCulture() const;
+	CORE_API FCultureRef GetCurrentCulture() const;
 
 	//@return culture object by given name, or NULL if not found
-	CORE_API TSharedPtr<FCulture, ESPMode::ThreadSafe> GetCulture(const FString& Name) const;
+	CORE_API FCulturePtr GetCulture(const FString& Name) const;
 
 	//@return the default culture
 	CORE_API TSharedRef< FCulture, ESPMode::ThreadSafe > GetDefaultCulture() const
@@ -68,8 +68,13 @@ public:
 
 	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
 
-	// Given some paths to look at, populate a list of cultures that we have available localization information for
-	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures) const;
+	CORE_API const TArray< FCultureRef >& GetAllCultures() const
+	{
+		return AllCultures;
+	}
+
+	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bIncludeDerivedCultures, include cultures that are derived from those we have localization data for.
+	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCultureRef >& OutAvailableCultures, const bool bIncludeDerivedCultures) const;
 
 private:
 	FInternationalization();
@@ -103,6 +108,25 @@ private:
 	TSharedPtr< FCulture, ESPMode::ThreadSafe > InvariantCulture;
 
 	TArray< void* > DLLHandles;
+
+#if UE_ENABLE_ICU
+	friend struct FICUDataCallbacks;
+
+	// Tidy class for storing the count of references for an ICU data file and the file's data itself.
+	struct FICUCachedFileData
+	{
+		FICUCachedFileData(const int64 FileSize);
+		FICUCachedFileData(const FICUCachedFileData& Source);
+		FICUCachedFileData(FICUCachedFileData&& Source);
+		~FICUCachedFileData();
+
+		uint32 ReferenceCount;
+		void* Buffer;
+	};
+
+	// Map for associating ICU data file paths with cached file data, to prevent multiple copies of immutable ICU data files from residing in memory.
+	TMap<FString, FICUCachedFileData> PathToCachedFileDataMap;
+#endif
 };
 
 #undef LOC_DEFINE_REGION

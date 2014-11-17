@@ -45,7 +45,6 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(1)
-				.AspectRatio()
 				[
 					SNew(SCheckBox)
 					.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")

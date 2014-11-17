@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Geometry.h"
-
+#include "Engine/GameInstance.h"
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
@@ -11,28 +11,13 @@ static FSlateRect NullRect;
 static FSlateWindowElementList NullElementList;
 static FWidgetStyle NullStyle;
 
-class FUMGDragDropOp : public FDragDropOperation
-{
-public:
-	DRAG_DROP_OPERATOR_TYPE(FUMGDragDropOp, FDragDropOperation)
-
-	static TSharedRef<FUMGDragDropOp> New();
-
-	virtual void OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent) override;
-
-	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
-
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
-
-private:
-	TSharedPtr<SWidget> DecoratorWidget;
-};
+class UWidgetAnimation;
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
  * allow script code to override OnPaint behavior.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct UMG_API FPaintContext
 {
 	GENERATED_USTRUCT_BODY()
@@ -109,22 +94,53 @@ public:
 	void Initialize();
 
 	//UVisual interface
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	// End of UVisual interface
 
-	/*  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void AddToViewport(bool bAbsoluteLayout = false, bool bModal = false, bool bShowCursor = false);
+	/** Sets that this widget is being designed sets it on all children as well. */
+	virtual void SetIsDesignTime(bool bInDesignTime) override;
 
-	/*  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	/**
+	 * Adds it to the game's viewport, defaults to filling the entire viewport area.
+	 * @param bModal If this dialog should steal keyboard/mouse focus and consume all input. Great for a fullscreen menu. Terrible for HUDs.
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void AddToViewport();
+
+	/**
+	 * Removes the widget from the viewport.
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
 	void RemoveFromViewport();
 
+	/**
+	 * Sets the widgets position in the viewport.
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetPositionInViewport(FVector2D Position);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetDesiredSizeInViewport(FVector2D Size);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetAnchorsInViewport(FAnchors Anchors);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetAlignmentInViewport(FVector2D Alignment);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Viewport")
+	void SetZOrderInViewport(int32 ZOrder);
+
+	/*  */
 	UFUNCTION(BlueprintPure, Category="Appearance")
-	bool GetIsVisible();
+	bool GetIsVisible() const;
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
-	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
+	TEnumAsByte<ESlateVisibility::Type> GetVisiblity() const;
 
 	/** Sets the player context associated with this UI. */
 	void SetPlayerContext(FLocalPlayerContext InPlayerContext);
@@ -134,87 +150,96 @@ public:
 
 	/** Gets the local player associated with this UI. */
 	UFUNCTION(BlueprintCallable, Category="Player")
-	class ULocalPlayer* GetLocalPlayer() const;
+	class ULocalPlayer* GetOwningLocalPlayer() const;
 
 	/** Gets the player controller associated with this UI. */
 	UFUNCTION(BlueprintCallable, Category="Player")
-	class APlayerController* GetPlayerController() const;
+	class APlayerController* GetOwningPlayer() const;
+
+	/** Gets the player pawn associated with this UI. */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	class APawn* GetOwningPlayerPawn() const;
 
 	/** Called when the widget is constructed */
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Construct();
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
 
 	//TODO UMG HitTest
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface | Painting")
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	FEventReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
 	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	//UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	//void OnKeyboardFocusChanging(FWeakWidgetPath PreviousFocusPath, FWidgetPath NewWidgetPath);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	FEventReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	FEventReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	FEventReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	FEventReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	FEventReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Mouse")
+	FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
+
+	//UFUNCTION(BlueprintNativeEvent, Category="Mouse")
 	//FCursorReply OnCursorQuery(FGeometry MyGeometry, const FPointerEvent& CursorEvent) const;
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnDragDetected(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//void OnDragEnter(FGeometry MyGeometry, FDragDropEvent DragDropEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//void OnDragLeave(FDragDropEvent DragDropEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//FSReply OnDragOver(FGeometry MyGeometry, FDragDropEvent DragDropEvent);
-	//UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	//FSReply OnDrop(FGeometry MyGeometry, FDragDropEvent DragDropEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
+	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
+	void OnDragCancelled(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
+	
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
+	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
+	void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
+	bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
+	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
+	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
+	FEventReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
+	FEventReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
+	FEventReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
+	FEventReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
+	FEventReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
+	FEventReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Touch Input")
+	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
@@ -224,7 +249,7 @@ public:
 	 * @param The name of the animation to play
 	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
-	void PlayAnimation(FName AnimationName);
+	void PlayAnimation(const UWidgetAnimation* InAnimation);
 
 	/**
 	 * Stops an already running animation in this widget
@@ -232,7 +257,7 @@ public:
 	 * @param The name of the animation to stop
 	 */
 	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
-	void StopAnimation(FName AnimationName);
+	void StopAnimation(const UWidgetAnimation* InAnimation);
 
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
@@ -241,7 +266,7 @@ public:
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor);
+	TSharedRef<SWidget> MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget);
 
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();
@@ -258,67 +283,15 @@ public:
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 #endif
 
 public:
+
 	/** Called when the visibility changes. */
-	UPROPERTY(BlueprintAssignable)
-	FOnVisibilityChangedEvent OnVisibilityChanged;
-
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FMargin Padding;
-
-	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateChildSize Size;
-
-	/** The position on the screen to place the UI. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FVector2D FullScreenPosition;
-
-	/** The size on the screen the UI should be. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FVector2D FullScreenSize;
-
-	/** The normalized UI alignment on the screen, 0..1.  Think of this as the pivot point. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FVector2D FullScreenAlignment;
-
-	/** The Z-Order when the UI is fullscreen. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	int32 FullScreenZOrder;
-
-	/**
-	* Horizontal pivot position
-	*  Given a top aligned slot, where '+' represents the
-	*  anchor point defined by PositionAttr.
-	*
-	*   Left				Center				Right
-	+ _ _ _ _            _ _ + _ _          _ _ _ _ +
-	|		  |		   | 		   |	  |		    |
-	| _ _ _ _ |        | _ _ _ _ _ |	  | _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported in absolute layout
-	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/**
-	* Vertical pivot position
-	*   Given a left aligned slot, where '+' represents the
-	*   anchor point defined by PositionAttr.
-	*
-	*   Top					Center			  Bottom
-	*	+_ _ _ _ _		 _ _ _ _ _		 _ _ _ _ _
-	*	|         |		| 		  |		|		  |
-	*	|         |     +		  |		|		  |
-	*	| _ _ _ _ |		| _ _ _ _ |		+ _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported in absolute layout
-	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
+	bool bSupportsKeyboardFocus;
 
 	/** The components contained in this user widget. */
 	UPROPERTY(Transient)
@@ -332,14 +305,24 @@ public:
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
 
+	/** List of sequence players to cache and clean up when safe */
+	UPROPERTY(Transient)
+	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	FMargin GetFullScreenOffset() const;
+	FAnchors GetViewportAnchors() const;
 	FVector2D GetFullScreenAlignment() const;
 	int32 GetFullScreenZOrder() const;
 
 private:
+	FAnchors ViewportAnchors;
+	FMargin ViewportOffsets;
+	FVector2D ViewportAlignment;
+	int32 ViewportZOrder;
+
 	TWeakPtr<SWidget> FullScreenWidget;
 
 	FLocalPlayerContext PlayerContext;
@@ -355,13 +338,14 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
-		return NULL;
+		return nullptr;
 	}
 
+	// Assign the outer to the game instance if it exists, otherwise use the world
+	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
 	ULocalPlayer* Player = World->GetFirstLocalPlayerFromController();
-
-	UObject* Outer = ( Player == NULL ) ? StaticCast<UObject*>(World) : StaticCast<UObject*>(Player);
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+
 	NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
 	NewWidget->Initialize();
 
@@ -374,10 +358,14 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
 	{
 		// TODO UMG Error?
-		return NULL;
+		return nullptr;
 	}
 
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningPlayer);
+	// Assign the outer to the game instance if it exists, otherwise use the player controller's world
+	UWorld* World = OwningPlayer->GetWorld();
+	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+	
 	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
 	NewWidget->Initialize();
 

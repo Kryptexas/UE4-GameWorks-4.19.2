@@ -15,7 +15,7 @@ class UDirectionalLightComponent : public ULightComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Whether to occlude fog and atmosphere inscattering with screenspace blurred occlusion from this light. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts, meta=(DisplayName = "Light Shaft Occlusion"))
 	uint32 bEnableLightShaftOcclusion:1;
 
 	/** 
@@ -94,11 +94,21 @@ class UDirectionalLightComponent : public ULightComponent
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=CascadedShadowMaps)
 	uint32 bUseInsetShadowsForMovableObjects : 1;
 
+	/** 
+	 * Distance at which the ray traced shadow cascade should end.  Distance field shadows will cover the range between 'Dynamic Shadow Distance' this distance. 
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows, meta=(UIMin = "0", UIMax = "100000"), DisplayName = "DistanceField Shadow Distance")
+	float DistanceFieldShadowDistance;
+
+	/** Light source angle in degrees. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows, meta=(UIMin = "0", UIMax = "5"))
+	float LightSourceAngle;
+
 	/** The Lightmass settings for this object. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(ShowOnlyInnerProperties))
 	struct FLightmassDirectionalLightSettings LightmassSettings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(DisplayName = "Atmosphere Sun Light"))
 	uint32 bUsedAsAtmosphereSunLight : 1;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")

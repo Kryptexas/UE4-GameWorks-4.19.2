@@ -6,6 +6,7 @@
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 
+class FMacEvent;
 
 /**
  * Mac-specific application implementation.
@@ -49,8 +50,6 @@ public:
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
-
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override
 	{
 		return EWindowTitleAlignment::Center;
@@ -61,11 +60,13 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
+	void ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindow > CurrentEventWindow, FVector2D const MousePosition);
+
 	void ProcessEvent(NSEvent* Event);
 
 	void OnWindowDraggingFinished();
 
-	bool IsWindowMovable(FSlateCocoaWindow* Win, bool* OutMovableByBackground);
+	bool IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground);
 
 	void ResetModifierKeys() { ModifierKeysFlags = 0; }
 
@@ -74,6 +75,8 @@ public:
 	uint32 GetModifierKeysFlags() { return ModifierKeysFlags; }
 
 	void UseMouseCaptureWindow(bool bUseMouseCaptureWindow);
+
+	bool IsProcessingNSEvent() const { return bIsProcessingNSEvent; }
 
 #if WITH_EDITOR
     virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
@@ -84,27 +87,40 @@ public:
 	}
 #endif
 
+	void SystemModalMode(bool const bInSystemModalMode);
 
 public:
 
-	void OnDragEnter( FSlateCocoaWindow* Window, void *InPasteboard );
-	void OnDragOver( FSlateCocoaWindow* Window );
-	void OnDragOut( FSlateCocoaWindow* Window );
-	void OnDragDrop( FSlateCocoaWindow* Window );
+	void OnDragEnter( FCocoaWindow* Window, void *InPasteboard );
+	void OnDragOver( FCocoaWindow* Window );
+	void OnDragOut( FCocoaWindow* Window );
+	void OnDragDrop( FCocoaWindow* Window );
 
-	void OnWindowDidBecomeKey( FSlateCocoaWindow* Window );
-	void OnWindowDidResignKey( FSlateCocoaWindow* Window );
-	void OnWindowWillMove( FSlateCocoaWindow* Window );
-	void OnWindowDidMove( FSlateCocoaWindow* Window );
-	void OnWindowDidResize( FSlateCocoaWindow* Window );
-	void OnWindowRedrawContents( FSlateCocoaWindow* Window );
-	void OnWindowDidClose( FSlateCocoaWindow* Window );
-	bool OnWindowDestroyed( FSlateCocoaWindow* Window );
+	void OnWindowDidBecomeKey( FCocoaWindow* Window );
+	void OnWindowDidResignKey( FCocoaWindow* Window );
+	void OnWindowWillMove( FCocoaWindow* Window );
+	void OnWindowDidMove( FCocoaWindow* Window );
+	void OnWindowDidResize( FCocoaWindow* Window );
+	void OnWindowRedrawContents( FCocoaWindow* Window );
+	void OnWindowDidClose( FCocoaWindow* Window );
+	bool OnWindowDestroyed( FCocoaWindow* Window );
+	void OnWindowClose( FCocoaWindow* Window );
 
 	void OnMouseCursorLock( bool bLockEnabled );
 
+	static FCocoaWindow* FindMacEventWindow( NSEvent* CocoaEvent );
+	static TSharedPtr< FMacWindow > FindMacWindowByNSWindow( FCocoaWindow* const WindowHandle );
+	static void ProcessEvent(FMacEvent const* const Event);
+
+	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
 
 private:
+	enum FMacApplicationEventTypes
+	{
+		ResentEvent = 0x0f00
+	};
+
+	static NSEvent* HandleNSEvent(NSEvent* Event);
 	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
 
 	FMacApplication();
@@ -113,12 +129,13 @@ private:
 	TCHAR ConvertChar( TCHAR Character );
 	TCHAR TranslateCharCode( TCHAR CharCode, uint32 KeyCode );
 
-	FSlateCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
+	void ResendEvent( NSEvent* Event );
+	FCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
 	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 
-	void UpdateMouseCaptureWindow( FSlateCocoaWindow* TargetWindow );
+	void UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow );
 
 	void HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
@@ -138,15 +155,19 @@ private:
 
 	EMouseButtons::Type LastPressedMouseButton;
 
+	FCriticalSection WindowsMutex;
 	TArray< TSharedRef< FMacWindow > > Windows;
 
 	TSharedRef< class HIDInputInterface > HIDInput;
 
-	FSlateCocoaWindow* DraggedWindow;
+	FCocoaWindow* DraggedWindow;
 
 	FMouseCaptureWindow* MouseCaptureWindow;
 	bool bIsMouseCaptureEnabled;
 	bool bIsMouseCursorLocked;
+
+	bool bSystemModalMode;
+	bool bIsProcessingNSEvent;
 
 	TSharedPtr< FMacWindow > LastEventWindow;
 
@@ -173,6 +194,8 @@ private:
 	/** Stores the number of times a gesture has been used for analytics */
 	int32 GestureUsage[EGestureEvent::Count];
 #endif
+
+	void* EventMonitor;
 
 	friend class FMacWindow;
 };

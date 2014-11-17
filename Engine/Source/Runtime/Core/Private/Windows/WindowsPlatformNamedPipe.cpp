@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformNamedPipe.cpp: Windows implementations of Named Pipe functions
-=============================================================================*/
-
-
 #include "Core.h"
 
 static void VerifyWinResult(BOOL bResult, const TCHAR* InMessage)
@@ -21,6 +16,7 @@ static void VerifyWinResult(BOOL bResult, const TCHAR* InMessage)
 	verify(bResult != 0);
 }
 
+#if PLATFORM_SUPPORTS_NAMED_PIPES
 FWindowsPlatformNamedPipe::FWindowsPlatformNamedPipe() :
 	Pipe(NULL),
 	LastWaitingTime(0.0f),
@@ -528,3 +524,4 @@ bool FWindowsPlatformNamedPipe::HasFailed() const
 
 	return false;
 }
+#endif // PLATFORM_SUPPORTS_NAMED_PIPES

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SPanel.cpp: Implements the SPanel class.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 
@@ -39,7 +35,7 @@ int32 SPanel::PaintArrangedChildren( const FPaintArgs& Args, const FArrangedChil
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		const FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		const FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect());
 		
 		if (ChildClipRect.GetSize().Size() > 0)
@@ -51,4 +47,10 @@ int32 SPanel::PaintArrangedChildren( const FPaintArgs& Args, const FArrangedChil
 	}
 	
 	return MaxLayerId;
+}
+
+
+void SPanel::SetVisibility( TAttribute<EVisibility> InVisibility )
+{
+	SWidget::SetVisibility( InVisibility );
 }

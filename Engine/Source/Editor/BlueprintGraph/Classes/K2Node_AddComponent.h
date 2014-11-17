@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_CallFunction.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_AddComponent.generated.h"
 
 UCLASS(MinimalAPI)
@@ -25,6 +26,7 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface
@@ -69,6 +71,9 @@ private:
 	}
 
 	const UClass* GetSpawnedType() const;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

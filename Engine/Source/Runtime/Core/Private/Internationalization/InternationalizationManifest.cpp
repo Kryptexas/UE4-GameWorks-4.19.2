@@ -263,6 +263,21 @@ TSharedPtr< FManifestEntry > FInternationalizationManifest::FindEntryByContext( 
 	return NULL;
 }
 
+void FInternationalizationManifest::UpdateEntry(const TSharedRef<FManifestEntry>& OldEntry, TSharedRef<FManifestEntry>& NewEntry)
+{
+	for (const FContext& Context : OldEntry->Contexts)
+	{
+		EntriesByContextId.RemoveSingle(Context.Key, OldEntry);
+	}
+	for (const FContext& Context : NewEntry->Contexts)
+	{
+		EntriesByContextId.Add(Context.Key, NewEntry);
+	}
+
+	EntriesBySourceText.RemoveSingle(OldEntry->Source.Text, OldEntry);
+	EntriesBySourceText.Add(NewEntry->Source.Text, NewEntry);
+}
+
 FContext* FManifestEntry::FindContext( const FString& ContextKey, const TSharedPtr<FLocMetadataObject>& KeyMetadata /*= NULL */ )
 {
 	for( auto ContextIter = Contexts.CreateIterator(); ContextIter; ++ContextIter )
@@ -284,4 +299,3 @@ FContext* FManifestEntry::FindContext( const FString& ContextKey, const TSharedP
 	}
 	return NULL;
 }
-

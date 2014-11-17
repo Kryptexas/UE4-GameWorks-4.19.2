@@ -16,7 +16,10 @@ Landscape.cpp: Terrain rendering
 #include "TargetPlatform.h"
 #include "Landscape/Landscape.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
 #include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
 
@@ -82,6 +85,9 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 	NeighborLODBias[5] = 128;
 	NeighborLODBias[6] = 128;
 	NeighborLODBias[7] = 128;
+#if WITH_EDITORONLY_DATA
+	LightingLODBias = -1; // -1 Means automatic LOD calculation based on ForcedLOD + LODBias
+#endif
 
 	Mobility = EComponentMobility::Static;
 
@@ -425,19 +431,21 @@ void ULandscapeComponent::PostLoad()
 	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// Move the MICs and Textures back to the Package if they're currently in the level
+		// Moving them into the level caused them to be duplicated when running PIE, which is *very very slow*, so we've reverted that change
+		// Also clear the public flag to avoid various issues, e.g. generating and saving thumbnails that can never be seen
 		{
 			ULevel* Level = GetLevel();
 			if (ensure(Level))
 			{
 				TArray<UObject*> ObjectsToMoveFromLevelToPackage;
-				GetAllReferencedTexturesAndMaterials(ObjectsToMoveFromLevelToPackage);
+				GetGeneratedTexturesAndMaterialInstances(ObjectsToMoveFromLevelToPackage);
 
 				UPackage* MyPackage = GetOutermost();
 				for (auto* Obj : ObjectsToMoveFromLevelToPackage)
 				{
-					if (Obj && Obj->GetOuter() == Level)
+					Obj->ClearFlags(RF_Public);
+					if (Obj->GetOuter() == Level)
 					{
-						Obj->ClearFlags(RF_Public);
 						Obj->Rename(NULL, MyPackage, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 					}
 				}
@@ -572,14 +580,11 @@ ULevel* ULandscapeComponent::GetLevel() const
 	return MyOwner ? MyOwner->GetLevel() : NULL;
 }
 
-void ULandscapeComponent::GetAllReferencedTexturesAndMaterials(TArray<UObject*>& OutTexturesAndMaterials) const
+void ULandscapeComponent::GetGeneratedTexturesAndMaterialInstances(TArray<UObject*>& OutTexturesAndMaterials) const
 {
-	for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC; CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
+	for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC && CurrentMIC->IsA<ULandscapeMaterialInstanceConstant>(); CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
 	{
-		if (CurrentMIC)
-		{
-			OutTexturesAndMaterials.Add(CurrentMIC);
-		}
+		OutTexturesAndMaterials.Add(CurrentMIC);
 	}
 
 	if (HeightmapTexture)
@@ -589,10 +594,7 @@ void ULandscapeComponent::GetAllReferencedTexturesAndMaterials(TArray<UObject*>&
 
 	for (auto* Tex : WeightmapTextures)
 	{
-		if (Tex)
-		{
-			OutTexturesAndMaterials.Add(Tex);
-		}
+		OutTexturesAndMaterials.Add(Tex);
 	}
 
 	if (XYOffsetmapTexture)
@@ -671,7 +673,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 {
 	const auto FeatureLevel = GetWorld()->FeatureLevel;
 	FPrimitiveSceneProxy* Proxy = NULL;
-	if (FeatureLevel >= ERHIFeatureLevel::SM3)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 #if WITH_EDITOR
 		if (EditToolRenderData == NULL)
@@ -683,7 +685,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 		Proxy = new FLandscapeComponentSceneProxy(this, NULL);
 #endif
 	}
-	else if (FeatureLevel >= ERHIFeatureLevel::ES2)
+	else
 	{
 #if WITH_EDITOR
 		if (!PlatformData.HasValidPlatformData()) // Deferred generation
@@ -792,38 +794,6 @@ void ALandscapeProxy::UnregisterAllComponents()
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 	}
-}
-
-bool ALandscapeProxy::UpdateNavigationRelevancy()
-{
-	SetNavigationRelevancy(bUsedForNavigation);
-
-	return bUsedForNavigation;
-}
-
-FBox ALandscapeProxy::GetComponentsBoundingBox(bool bNonColliding) const
-{
-	FBox Bounds = Super::GetComponentsBoundingBox(bNonColliding);
-
-	USceneComponent* LandscapeRoot = GetRootComponent();
-
-	// can't really tell if it breaks anything, but is needed for navmesh generation
-	if (bUsedForNavigation)
-	{
-		for (auto CollisionComponentIt(CollisionComponents.CreateConstIterator()); CollisionComponentIt; ++CollisionComponentIt)
-		{
-			const ULandscapeHeightfieldCollisionComponent* Component = *CollisionComponentIt;
-			if (Component != NULL)
-			{
-				// Component may not be attached, so we'll calculate bounds manually
-				FTransform ComponentLtWTransform = FTransform(Component->RelativeRotation, Component->RelativeLocation, Component->RelativeScale3D) *
-					FTransform(LandscapeRoot->RelativeRotation, LandscapeRoot->RelativeLocation, LandscapeRoot->RelativeScale3D);
-
-				Bounds += Component->CalcBounds(ComponentLtWTransform).GetBox();
-			}
-		}
-	}
-	return Bounds;
 }
 
 // FLandscapeWeightmapUsage serializer
@@ -943,6 +913,8 @@ void ALandscapeProxy::PreEditUndo()
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+
+		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 }
 
@@ -953,6 +925,8 @@ void ALandscapeProxy::PostEditUndo()
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
@@ -1286,11 +1260,6 @@ void ALandscapeProxy::PostLoad()
 }
 
 #if WITH_EDITOR
-void ALandscape::Destroyed()
-{
-	Super::Destroyed();
-}
-
 void ALandscapeProxy::Destroyed()
 {
 	Super::Destroyed();
@@ -1370,6 +1339,7 @@ void ALandscapeProxy::SetAbsoluteSectionBase(FIntPoint InSectionBase)
 		{
 			FIntPoint AbsoluteSectionBase = Comp->GetSectionBase() + Difference;
 			Comp->SetSectionBase(AbsoluteSectionBase);
+			Comp->RecreateRenderState_Concurrent();
 		}
 	}
 
@@ -1782,9 +1752,9 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 
 	TMap<FGuid, TArray<ALandscapeProxy*>> ValidLandscapesMap;
 	// Gather all valid landscapes in the world
-	for (FActorIterator It(InWorld); It; ++It)
+	for (TActorIterator<ALandscapeProxy> It(InWorld); It; ++It)
 	{
-		ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(*It);
+		ALandscapeProxy* Proxy = *It;
 		if (Proxy
 			&& Proxy->HasAnyFlags(RF_BeginDestroyed) == false
 			&& Proxy->IsPendingKill() == false

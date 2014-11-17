@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystem.h"
 #include "ParticleSystemComponent.generated.h"
@@ -19,7 +20,7 @@ struct FDynamicEmitterReplayDataBase;
 struct FParticleAnimTrailEmitterInstance;
 
 /** Enum for specifying type of a name instance parameter. */
-UENUM()
+UENUM(BlueprintType)
 enum EParticleSysParamType
 {
 	PSPT_None UMETA(DisplayName="None"),
@@ -74,7 +75,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemCompo
 
 
 /** Struct used for a particular named instance parameter for this ParticleSystemComponent. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FParticleSysParam
 {
 	GENERATED_USTRUCT_BODY()
@@ -277,6 +278,9 @@ public:
 
 	uint32 bWasDeactivated:1;
 
+	/** True if this was active before being unregistered or otherwise reset, if so reactivate it */
+	uint32 bWasActive:1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	uint32 bResetOnDetach:1;
 
@@ -294,7 +298,7 @@ public:
 	 *	Array holding name instance parameters for this ParticleSystemComponent.
 	 *	Parameters can be used in Cascade using DistributionFloat/VectorParticleParameters.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editinline, Category=Particles)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	TArray<struct FParticleSysParam> InstanceParameters;
 
 	UPROPERTY(BlueprintAssignable)
@@ -399,7 +403,7 @@ public:
 	uint32 bIsViewRelevanceDirty:1;
 
 	/** Array of replay clips for this particle system component.  These are serialized to disk.  You really should never add anything to this in the editor.  It's exposed so that you can delete clips if you need to, but be careful when doing so! */
-	UPROPERTY(editinline)
+	UPROPERTY()
 	TArray<class UParticleSystemReplay*> ReplayClips;
 
 	/** Current particle 'replay state'.  This setting controls whether we're currently simulating/rendering particles normally, or whether we should capture or playback particle replay data instead. */
@@ -769,7 +773,7 @@ public:
 	/** Deactivate the system */
 	void DeactivateSystem();
 	// Collision Handling...
-	virtual bool ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent);
+	virtual bool ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams& ObjectParams);
 
 	/** return true if this psys can tick in any thread */
 	FORCEINLINE bool CanTickInAnyThread()

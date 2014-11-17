@@ -16,8 +16,11 @@
 #include "PropertyDetailsUtilities.h"
 #include "SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "SDetailsView"
+
 
 SDetailsView::~SDetailsView()
 {
@@ -71,6 +74,22 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			);
 		}
 
+		if( DetailsViewArgs.bShowDifferingPropertiesOption )
+		{
+			DetailViewOptions.AddMenuEntry(
+				LOCTEXT("ShowOnlyDiffering", "Show Only Differing Properties"),
+				LOCTEXT("ShowOnlyDiffering_ToolTip", "Displays only properties in this instance which have been changed or added from the instance being compared"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SDetailsView::OnShowOnlyDifferingClicked),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(this, &SDetailsView::IsShowOnlyDifferingChecked)
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+		}
+
 		FUIAction ShowAllAdvancedAction( 
 			FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
 			FCanExecuteAction(),
@@ -106,6 +125,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			// Create the search box
 			SAssignNew( SearchBox, SSearchBox )
 			.OnTextChanged( this, &SDetailsView::OnFilterTextChanged  )
+			.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
 		]
 		+SHorizontalBox::Slot()
 		.Padding( 4.0f, 0.0f, 0.0f, 0.0f )
@@ -132,6 +152,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 				.ContentPadding(0)
 				.ForegroundColor( FSlateColor::UseForeground() )
 				.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
 				.MenuContent()
 				[
 					DetailViewOptions.MakeWidget()

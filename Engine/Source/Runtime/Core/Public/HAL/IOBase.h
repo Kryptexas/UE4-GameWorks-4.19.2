@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IOBase.h: General-purpose file utilities.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Enum for async IO priorities.
@@ -18,6 +15,7 @@ enum EAsyncIOPriority
 	AIOP_High,
 	AIOP_MAX
 };
+
 
 /*-----------------------------------------------------------------------------
 	FIOSystem.
@@ -48,7 +46,7 @@ struct CORE_API FIOSystem
 	 * @param	Offset		Offset into file
 	 * @param	Size		Size of load request
 	 * @param	Dest		Pointer to load data into
-	 * @param	Counter		Thread safe counter to decrement when loading has finished, can be NULL
+	 * @param	Counter		Thread safe counter to decrement when loading has finished, can be nullptr
 	 * @param	Priority	Priority of request
 	 *
 	 * @return Returns an index to the request that can be used for canceling or 0 if the request failed.
@@ -70,7 +68,7 @@ struct CORE_API FIOSystem
 	 * @param	UncompressedSize	Size of uncompressed data
 	 * @param	Dest				Pointer to load data into
 	 * @param	CompressionFlags	Flags controlling data decompression
-	 * @param	Counter				Thread safe counter to decrement when loading has finished, can be NULL
+	 * @param	Counter				Thread safe counter to decrement when loading has finished, can be nullptr
 	 * @param	Priority			Priority of request
 	 *
 	 * @return Returns an index to the request that can be used for canceling or 0 if the request failed.

@@ -209,7 +209,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category=InputInterpolation)
 	FInterpolationParameter	InterpolationParam[3];
 
-	/* 
+	/** 
 	 * Target weight interpolation. When target samples are set, how fast you'd like to get to target. Improve target blending. 
 	 * i.e. for locomotion, if you interpolate input, when you move from left to right rapidly, you'll interpolate through forward, but if you use target weight interpolation, 
 	 * you'll skip forward, but interpolate between left to right 
@@ -227,7 +227,7 @@ protected:
 	
 public:
 
-	/* 
+	/** 
 	 * When you use blend per bone, allows rotation to blend in mesh space. This only works if this does not contain additive animation samples
 	 * This is more performance intensive
 	 */
@@ -248,7 +248,7 @@ public:
 	UPROPERTY(transient)
 	float AnimLength;
 
-	/* 
+	/** 
 	 * Define target weight interpolation per bone. This will blend in different speed per each bone setting 
 	 */
 	UPROPERTY(EditAnywhere, Category=SampleInterpolation)

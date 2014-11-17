@@ -2,8 +2,9 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_BreakStruct"
 
@@ -124,6 +125,17 @@ UK2Node_BreakStruct::UK2Node_BreakStruct(const class FPostConstructInitializePro
 {
 }
 
+bool UK2Node_BreakStruct::CanCreatePinForProperty(const UProperty* Property)
+{
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	FEdGraphPinType DumbGraphPinType;
+	const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
+
+	//TODO: remove CPF_Edit in a next release.
+	const bool bVisible = Property ? Property->HasAnyPropertyFlags(CPF_Edit | CPF_BlueprintVisible) : false;
+	return bVisible && bConvertable;
+}
+
 bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
@@ -131,15 +143,9 @@ bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct)
 	{
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
-			if(const UProperty* Property = *It)
+			if (CanCreatePinForProperty(*It))
 			{
-				FEdGraphPinType DumbGraphPinType;
-				const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
-				const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit);
-				if(bVisible && bConvertable)
-				{
-					return true;
-				}
+				return true;
 			}
 		}
 	}
@@ -153,7 +159,19 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	{
 		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, true, StructType->GetName(), true);
 		
-		UK2Node_StructMemberGet::AllocateDefaultPins();
+		struct FBreakStructPinManager : public FStructOperationOptionalPinManager
+		{
+			virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override
+			{
+				return UK2Node_BreakStruct::CanCreatePinForProperty(TestProperty);
+			}
+		};
+
+		{
+			FBreakStructPinManager OptionalPinManager;
+			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
+			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Output, this);
+		}
 
 		// When struct has a lot of fields, mark their pins as advanced
 		if(Pins.Num() > 5)
@@ -176,17 +194,36 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 
 FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
-	return FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("BreakNullStruct_Title", "Break <unknown struct>");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("StructName"), FText::FromString(StructType->GetName()));
+
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
-FString UK2Node_BreakStruct::GetTooltip() const
+FText UK2Node_BreakStruct::GetTooltipText() const
 {
-	return FString::Printf(
-		*LOCTEXT("MakeStruct_Tooltip", "Adds a node that breaks a '%s' into its member fields").ToString(),
-		*(StructType ? StructType->GetName() : FString())
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("BreakNullStruct_Tooltip", "Adds a node that breaks an '<unknown struct>' into its member fields");
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(
+			LOCTEXT("BreakStruct_Tooltip", "Adds a node that breaks a '{0}' into its member fields"),
+			FText::FromName(StructType->GetFName())
 		);
+	}
+	return CachedTooltip;
 }
 
 void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
@@ -194,6 +231,37 @@ void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	if(!StructType)
 	{
 		MessageLog.Error(*LOCTEXT("NoStruct_Error", "No Struct in @@").ToString(), this);
+	}
+	else
+	{
+		bool bHasAnyBlueprintVisibleProperty = false;
+		for (TFieldIterator<UProperty> It(StructType); It; ++It)
+		{
+			const UProperty* Property = *It;
+			if (CanCreatePinForProperty(Property))
+			{
+				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible) || (Property->GetOwnerStruct() && Property->GetOwnerStruct()->IsA<UUserDefinedStruct>());
+				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
+
+				const UEdGraphPin* Pin = Property ? FindPin(Property->GetName()) : NULL;
+				const bool bIsLinked = Pin && Pin->LinkedTo.Num();
+
+				if (!bIsBlueprintVisible && bIsLinked)
+				{
+					MessageLog.Warning(*LOCTEXT("PropertyIsNotBPVisible_Warning", "@@ - the native property is not tagged as BlueprintReadWrite or BlueprintReadOnly, the pin will be removed in a future release.").ToString(), Pin);
+				}
+
+				if ((Property->ArrayDim > 1) && bIsLinked)
+				{
+					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
+				}
+			}
+		}
+
+		if (!bHasAnyBlueprintVisibleProperty)
+		{
+			MessageLog.Warning(*LOCTEXT("StructHasNoBPVisibleProperties_Warning", "@@ has no property tagged as BlueprintReadWrite or BlueprintReadOnly. The node will be removed in a future release.").ToString(), this);
+		}
 	}
 }
 
@@ -212,16 +280,20 @@ FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const
 UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	if ((ERedirectType_None == Result) && NewPin && OldPin)
+	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, true))
+	{
+		Result = ERedirectType_Custom;
+	}
+	else if ((ERedirectType_None == Result) && NewPin && OldPin)
 	{
 		if ((EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
-	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
 		{
-			Result = ERedirectType_Custom;
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
+			{
+				Result = ERedirectType_Custom;
+			}
 		}
-	}
 		else if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
 		{
 			TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(StructType->GetFName());
@@ -243,36 +315,40 @@ FNodeHandlingFunctor* UK2Node_BreakStruct::CreateNodeHandler(class FKismetCompil
 	return new FKCHandler_BreakStruct(CompilerContext);
 }
 
-void UK2Node_BreakStruct::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_BreakStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	auto SetNodeStructLambda = [](UEdGraphNode* NewNode, UField const* /*StructField*/, TWeakObjectPtr<UScriptStruct> NonConstStructPtr)
+	{
+		UK2Node_BreakStruct* BreakNode = CastChecked<UK2Node_BreakStruct>(NewNode);
+		BreakNode->StructType = NonConstStructPtr.Get();
+	};
+
 	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
 	{
 		UScriptStruct const* Struct = (*StructIt);
-		// we only want to add autonomous structs here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any structs that were changed).
-		bool bIsStandaloneStruct = Struct->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneStruct || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeBroken(Struct))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeBroken(Struct))
 		{
 			continue;
 		}
 
-		auto CustomizeBreakNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UScriptStruct> StructPtr)
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Struct))
 		{
-			UK2Node_BreakStruct* BreakNode = CastChecked<UK2Node_BreakStruct>(NewNode);
-			if (StructPtr.IsValid())
-			{
-				BreakNode->StructType = StructPtr.Get();
-			}
-		};
+			continue;
+		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Struct);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeStructLambda, NonConstStructPtr);
 
-		TWeakObjectPtr<UScriptStruct> StructPtr = Struct;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeBreakNodeLambda, StructPtr);
+		// this struct could belong to a class, or is a user defined struct 
+		// (asset), that's why we want to make sure to register it along with 
+		// the action (so the action knows to refresh when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Struct, NodeSpawner);
 	}	
 }
 

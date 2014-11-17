@@ -374,58 +374,50 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		LayerId = SNodePanel::SNode::OnPaint(Args, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 		
 		const bool bSelected = (IsItemSelected() || bAffectedByMarquee);
+		const bool bHighlighted = (WorldModel->GetPreviewStreamingLevels().Find(TileModel->TileDetails->PackageName) != nullptr);
 
-		// Draw the node's selection.
-		if (bSelected)
+		// Draw the node's selection/highlight.
+		if (bSelected || bHighlighted)
 		{
-			FPaintGeometry SelectionGeometry = AllottedGeometry.ToInflatedPaintGeometry(FVector2D(4,4)/AllottedGeometry.Scale);
-			SelectionGeometry.DrawScale = 0.5;
-				
+			// Calculate selection box paint geometry 
+			const FVector2D InflateAmount = FVector2D(4, 4);
+			const float Scale = 0.5f; // Scale down image of the borders to make them thinner 
+			FSlateLayoutTransform LayoutTransform(Scale, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() - InflateAmount);
+			FSlateRenderTransform RenderTransform(Scale, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() - InflateAmount);
+			FPaintGeometry SelectionGeometry(LayoutTransform, RenderTransform, (AllottedGeometry.GetLocalSize()*AllottedGeometry.Scale + InflateAmount*2)/Scale);
+										
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + 1,
 				SelectionGeometry,
-				GetShadowBrush(bSelected),
-				ClippingRect
+				GetShadowBrush(bSelected || bHighlighted),
+				ClippingRect,
+				ESlateDrawEffect::None,
+				bHighlighted ? FLinearColor::Green : FLinearColor::White
 				);
 		}
-
-		// Highlight potentially visible streaming levels from current preview point
-		//const auto& PreviewStreamingLevels = WorldModel->GetPreviewStreamingLevels();
-		//if (PreviewStreamingLevels.Find(LevelModel->TileDetails->PackageName) != INDEX_NONE)
-		//{
-		//	FPaintGeometry SelectionGeometry = AllottedGeometry.ToInflatedPaintGeometry(FVector2D(4,4)/AllottedGeometry.Scale);
-		//	SelectionGeometry.DrawScale = 0.5;
-
-		//	FSlateDrawElement::MakeBox(
-		//		OutDrawElements,
-		//		LayerId + 1,
-		//		SelectionGeometry,
-		//		GetShadowBrush(true),
-		//		ClippingRect,
-		//		ESlateDrawEffect::None,
-		//		FLinearColor::Green
-		//		);
-		//}
 
 		// Draw progress bar if level is currently loading
 		if (TileModel->IsLoading())
 		{
-			const float ProgressBarAnimOffset = ProgressBarImage->ImageSize.X * CurveSequence.GetLerpLooping() / AllottedGeometry.Scale;
-			const float ProgressBarImageSize = ProgressBarImage->ImageSize.X / AllottedGeometry.Scale;
-			const float ProgressBarImageHeight = ProgressBarImage->ImageSize.Y / AllottedGeometry.Scale;
-			const FSlateRect ProgressBarClippingRect = AllottedGeometry.ToPaintGeometry().ToSlateRect().IntersectionWith(ClippingRect);
-		
-			FPaintGeometry LoadingBarPaintGeometry = AllottedGeometry.ToPaintGeometry(
-					FVector2D(ProgressBarAnimOffset - ProgressBarImageSize, 0 ),
-					FVector2D(AllottedGeometry.Size.X + ProgressBarImageSize, FMath::Min(AllottedGeometry.Size.Y, ProgressBarImageHeight))
-			);
-			LoadingBarPaintGeometry.DrawScale = 1.f;
+			const float ProgressBarAnimOffset = ProgressBarImage->ImageSize.X * CurveSequence.GetLerpLooping();
+			const float ProgressBarImageSize = ProgressBarImage->ImageSize.X;
+			const float ProgressBarImageHeight = ProgressBarImage->ImageSize.Y;
+			const FVector2D ProggresBarOffset = FVector2D(ProgressBarAnimOffset - ProgressBarImageSize, 0);
+
+			FSlateLayoutTransform ProgressBarLayoutTransform(1.f, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() + ProggresBarOffset);
+			FSlateRenderTransform ProgressBarRenderTransform(1.f, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() + ProggresBarOffset);
+			FPaintGeometry ProgressBarPaintGeometry(
+				ProgressBarLayoutTransform, 
+				ProgressBarRenderTransform, 
+				FVector2D(AllottedGeometry.Size.X*AllottedGeometry.Scale + ProgressBarImageSize, FMath::Min(AllottedGeometry.Size.Y*AllottedGeometry.Scale, ProgressBarImageHeight)));
+								
+			const FSlateRect ProgressBarClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(ClippingRect);
 								
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + 1,
-				LoadingBarPaintGeometry,
+				ProgressBarPaintGeometry,
 				ProgressBarImage,
 				ProgressBarClippingRect,
 				ESlateDrawEffect::None,
@@ -439,21 +431,8 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 
 FReply SWorldTileItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (OnHitTest(InMyGeometry, InMouseEvent.GetScreenSpacePosition()))
-	{
-		TileModel->MakeLevelCurrent();
-		return FReply::Handled();
-	}
-	
-	return FReply::Unhandled();
-}
-
-bool SWorldTileItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
-{
-	FVector2D CursorOffset = (InAbsoluteCursorPosition - MyGeometry.AbsolutePosition)/MyGeometry.Scale;
-	FVector2D LevelPos = TileModel->GetLevelPosition2D();
-	FVector2D CursorWorldPos = LevelPos + CursorOffset;
-	return TileModel->HitTest2D(CursorWorldPos);
+	TileModel->MakeLevelCurrent();
+	return FReply::Handled();
 }
 
 FString SWorldTileItem::GetLevelNameText() const

@@ -23,7 +23,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache( EShaderPlatform Platform )
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 
 		/** Default constructor. */
@@ -67,7 +67,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache(EShaderPlatform Platform)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 
 		/** Default constructor. */
@@ -186,7 +186,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache( EShaderPlatform Platform )
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 
 		/** Default constructor. */
@@ -230,7 +230,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache(EShaderPlatform Platform)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 
 		/** Default constructor. */
@@ -348,16 +348,16 @@ namespace MeshPaintRendering
 
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void SetMeshPaintShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform,
+	void SetMeshPaintShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform,
 										   const float InGamma,
 										   const FMeshPaintShaderParameters& InShaderParams )
 	{
-		TShaderMapRef< TMeshPaintVertexShader > VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< TMeshPaintPixelShader > PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< TMeshPaintVertexShader > VertexShader(GetGlobalShaderMap(InFeatureLevel));
+		TShaderMapRef< TMeshPaintPixelShader > PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 		
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GMeshPaintVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, InFeatureLevel, BoundShaderState, GMeshPaintVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		// Set vertex shader parameters
 		VertexShader->SetParameters(RHICmdList, InTransform );
@@ -369,16 +369,16 @@ namespace MeshPaintRendering
 	}
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void SetMeshPaintDilateShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform,
+	void SetMeshPaintDilateShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform,
 												 const float InGamma,
 												 const FMeshPaintDilateShaderParameters& InShaderParams )
 	{
-		TShaderMapRef< TMeshPaintDilateVertexShader > VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef< TMeshPaintDilatePixelShader > PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< TMeshPaintDilateVertexShader > VertexShader(GetGlobalShaderMap(InFeatureLevel));
+		TShaderMapRef< TMeshPaintDilatePixelShader > PixelShader(GetGlobalShaderMap(InFeatureLevel));
 
 		
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GMeshPaintDilateVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, InFeatureLevel, BoundShaderState, GMeshPaintDilateVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		// Set vertex shader parameters
 		VertexShader->SetParameters(RHICmdList, InTransform );

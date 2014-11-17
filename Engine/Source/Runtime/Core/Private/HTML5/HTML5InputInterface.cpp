@@ -8,19 +8,6 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogHTML5, Log, All);
 DEFINE_LOG_CATEGORY(LogHTML5);
 
-#if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
-static void GrabMouse(bool grab)
-{
-	if (grab) {
-		SDL_WM_GrabInput(SDL_GRAB_ON);
-		SDL_ShowCursor(SDL_DISABLE);
-	} else {
-		SDL_ShowCursor(SDL_ENABLE);
-		SDL_WM_GrabInput(SDL_GRAB_OFF);
-	}
-}
-#endif
-
 TSharedRef< FHTML5InputInterface > FHTML5InputInterface::Create(  const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler, const TSharedPtr< ICursor >& InCursor )
 {
 	return MakeShareable( new FHTML5InputInterface( InMessageHandler, InCursor ) );
@@ -43,7 +30,7 @@ void FHTML5InputInterface::SetMessageHandler( const TSharedRef< FGenericApplicat
 	MessageHandler = InMessageHandler;
 }
 
-void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
+void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedRef < FGenericWindow>& ApplicationWindow )
 {
 #if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
 	// we have to emulate repeat
@@ -58,14 +45,6 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 	{
 		if (Event.type == SDL_KEYDOWN)
 		{
-#if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
-			isRepeat = (lastKey == Event.key.keysym.sym);
-			lastKey = Event.key.keysym.sym;
-
-			if (!isRepeat && Event.key.keysym.sym == SDLK_ESCAPE) {
-				GrabMouse(false);
-			}
-#endif
 			MessageHandler->OnKeyDown(Event.key.keysym.sym, Event.key.keysym.sym, EVENT_KEY_REPEAT);
 			if (!(Event.key.keysym.mod & KMOD_CTRL) && !(Event.key.keysym.mod & KMOD_ALT) && !(Event.key.keysym.mod & KMOD_GUI))
 			{
@@ -82,7 +61,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 		else if (Event.type == SDL_MOUSEBUTTONDOWN)
 		{
 			EMouseButtons::Type MouseButton = Event.button.button == 1 ? EMouseButtons::Left : Event.button.button == 2 ? EMouseButtons::Middle : EMouseButtons::Right;
-			MessageHandler->OnMouseDown(NULL, MouseButton );
+			MessageHandler->OnMouseDown(ApplicationWindow, MouseButton );
 		}
 		else if (Event.type == SDL_MOUSEBUTTONUP)
 		{
@@ -92,7 +71,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 		else if (Event.type == SDL_MOUSEMOTION)
 		{
 			Cursor->SetPosition(Event.motion.x, Event.motion.y);
-			MessageHandler->OnRawMouseMove(Event.motion.xrel, -Event.motion.yrel);
+			MessageHandler->OnRawMouseMove(Event.motion.xrel, Event.motion.yrel);
 			MessageHandler->OnMouseMove(); 
 		} 
 #if PLATFORM_HTML5_BROWSER 
@@ -103,16 +82,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 			MessageHandler->OnMouseWheel(w->y * SpinFactor);
 		}
 #endif 
-#if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
-		else if (Event.type == SDL_ACTIVEEVENT)
-		{
-			if (Event.active.gain && Event.active.state & (SDL_APPINPUTFOCUS | SDL_APPACTIVE)) {
-				GrabMouse(true);
-			} else {
-				GrabMouse(false);
-			}
-		}
-#endif
+
 	}
 }
 

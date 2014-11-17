@@ -12,6 +12,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "GPUSkinCache.h"
 #include "ShaderParameterUtils.h"
+#include "SceneUtils.h"
 
 #define GPUSKINCACHE_FRAMES	3
 
@@ -21,8 +22,9 @@ static FAutoConsoleVariableRef CVarEnableGPUSkinCache(
 	GEnableGPUSkinCache,
 	TEXT("Whether or not to use the GPU compute skinning cache.\n")
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
+	TEXT("GPUSkinVertexFactory.usf needs to be touched to cause a recompile if this changes.\n")
 	TEXT("0 is off(default), 1 is on"),
-	ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
 int32 GMaxGPUSkinCacheElementsPerFrame = 1000;
@@ -467,18 +469,21 @@ FGPUSkinCache::FElementCacheStatusInfo* FGPUSkinCache::FindEvictableCacheStatusI
 
 void FGPUSkinCache::DispatchSkinCacheProcess(FRHICommandListImmediate& RHICmdList, uint32 InputStreamFloatOffset, uint32 OutputBufferFloatOffset, FBoneBufferTypeRef BoneBuffer, FUniformBufferRHIRef UniformBuffer, const FVertexBufferInfo* VBInfo, uint32 VertexStride, uint32 VertexCount, const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences)
 {
-	if (GRHIFeatureLevel < ERHIFeatureLevel::SM5)
+	// MOBILEPREVIEWTODO: Proper value for this
+	const auto FeatureLevel = GRHIFeatureLevel;
+
+	if (FeatureLevel < ERHIFeatureLevel::SM5)
 	{
 		return;
 	}
 
 	uint32 VertexCountAlign64 = (VertexCount + 63) / 64;
 
-	SCOPED_DRAW_EVENT(SkinCacheDispatch, DEC_SKEL_MESH);
+	SCOPED_DRAW_EVENT(RHICmdList, SkinCacheDispatch, DEC_SKEL_MESH);
 
 	if (bUseExtraBoneInfluences)
 	{
-		TShaderMapRef<FGPUSkinCacheCS<true> > SkinCacheCS(GetGlobalShaderMap());
+		TShaderMapRef<FGPUSkinCacheCS<true> > SkinCacheCS(GetGlobalShaderMap(FeatureLevel));
 		SkinCacheCS->SetParameters(RHICmdList, VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 
 		RHICmdList.SetComputeShader(SkinCacheCS->GetComputeShader());
@@ -487,7 +492,7 @@ void FGPUSkinCache::DispatchSkinCacheProcess(FRHICommandListImmediate& RHICmdLis
 	}
 	else
 	{
-		TShaderMapRef<FGPUSkinCacheCS<false> > SkinCacheCS(GetGlobalShaderMap());
+		TShaderMapRef<FGPUSkinCacheCS<false> > SkinCacheCS(GetGlobalShaderMap(FeatureLevel));
 		SkinCacheCS->SetParameters(RHICmdList, VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 
 		RHICmdList.SetComputeShader(SkinCacheCS->GetComputeShader());

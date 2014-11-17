@@ -24,32 +24,29 @@ FString UAnimGraphNode_BlendListByEnum::GetNodeCategory() const
 	return FString::Printf(TEXT("%s, Blend List by enum"), *Super::GetNodeCategory() );
 }
 
-FString UAnimGraphNode_BlendListByEnum::GetTooltip() const
+FText UAnimGraphNode_BlendListByEnum::GetTooltipText() const
 {
-	if (BoundEnum != NULL)
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
-		return FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Tooltip", "Blend Poses based on enum ({EnumName}). Use context menu to add new entries."), Args).ToString();
-	}
-	else
-	{
-		return LOCTEXT("AnimGraphNode_BlendListByEnum_TooltipError", "ERROR: Blend Poses (by missing enum)").ToString();
-	}
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (BoundEnum != NULL)
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
-		return FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Title", "Blend Poses ({EnumName})"), Args);
-	}
-	else
+	if (BoundEnum == nullptr)
 	{
 		return LOCTEXT("AnimGraphNode_BlendListByEnum_TitleError", "ERROR: Blend Poses (by missing enum)");
 	}
+	// @TODO: don't know enough about this node type to comfortably assert that
+	//        the BoundEnum won't change after the node has spawned... until
+	//        then, we'll leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Title", "Blend Poses ({EnumName})"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UAnimGraphNode_BlendListByEnum::PostPlacedNewNode()
@@ -73,7 +70,7 @@ void UAnimGraphNode_BlendListByEnum::GetMenuEntries(FGraphContextMenuBuilder& Co
 			UAnimGraphNode_BlendListByEnum* EnumTemplate = NewObject<UAnimGraphNode_BlendListByEnum>();
 			EnumTemplate->BoundEnum = CurrentEnum;
 
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EnumTemplate->GetNodeCategory(), EnumTemplate->GetNodeTitle(ENodeTitleType::ListView), EnumTemplate->GetTooltip(), 0, EnumTemplate->GetKeywords());
+			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EnumTemplate->GetNodeCategory(), EnumTemplate->GetNodeTitle(ENodeTitleType::ListView), EnumTemplate->GetTooltipText().ToString(), 0, EnumTemplate->GetKeywords());
 			Action->NodeTemplate = EnumTemplate;
 		}
 	}

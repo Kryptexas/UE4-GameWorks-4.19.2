@@ -16,6 +16,7 @@
 #include "EngineModule.h"
 #include "EngineModule.h"
 #include "ContentStreaming.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 
@@ -689,7 +690,7 @@ class FDummyViewport : public FViewport
 public:
 	FDummyViewport(FViewportClient* InViewportClient)
 		: FViewport(InViewportClient)
-		, DebugCanvas( this, NULL, InViewportClient->GetWorld() )
+		, DebugCanvas(this, NULL, InViewportClient->GetWorld(), InViewportClient->GetWorld()->FeatureLevel)
 	{
 		DebugCanvas.SetAllowedModes(0);
 	}
@@ -716,6 +717,8 @@ public:
 	virtual void	GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) { MousePosition = FIntPoint(0, 0); }
 	virtual void	SetMouse(int32 x, int32 y) { }
 	virtual void	ProcessInput( float DeltaTime ) { }
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const override { return FVector2D::ZeroVector; }
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const override { return FIntPoint::ZeroValue; }
 	virtual void InvalidateDisplay() { }
 	virtual void DeferInvalidateHitProxy() { }
 	virtual FViewportFrame* GetViewportFrame() { return 0; }
@@ -803,7 +806,7 @@ void FViewport::HighResScreenshot()
 	ViewportClient->GetEngineShowFlags()->HighResScreenshotMask = GetHighResScreenshotConfig().bMaskEnabled ? 1 : 0;
 	ViewportClient->GetEngineShowFlags()->MotionBlur = 0;
 
-	FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld());
+	FCanvas Canvas(DummyViewport, NULL, ViewportClient->GetWorld(), ViewportClient->GetWorld()->FeatureLevel);
 	{
 		ViewportClient->Draw(DummyViewport, &Canvas);
 	}
@@ -1068,8 +1071,11 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 					GameThread.Waits = 0;
 				}
 
-				FCanvas Canvas(this, NULL, ViewportClient->GetWorld());
+				auto World = ViewportClient->GetWorld();
+				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GRHIFeatureLevel);
 				{
+					// Make sure the Canvas is not rendered upside down
+					Canvas.SetAllowSwitchVerticalAxis(false);
 					ViewportClient->Draw(this, &Canvas);
 				}
 				Canvas.Flush_GameThread();
@@ -1171,7 +1177,8 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 		});
 
 		// Let the viewport client draw its hit proxies.
-		FCanvas Canvas(&HitProxyMap, &HitProxyMap, ViewportClient->GetWorld());
+		auto World = ViewportClient->GetWorld();
+		FCanvas Canvas(&HitProxyMap, &HitProxyMap, World, World ? World->FeatureLevel : GRHIFeatureLevel);
 		{
 			ViewportClient->Draw(this, &Canvas);
 		}
@@ -1583,12 +1590,12 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 
 
 
-ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap)
+ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap, const FIntRect& ViewRect /*= FIntRect()*/)
 {
 	// Read the contents of the viewport into an array.
-	if(Viewport->ReadPixels(Bitmap))
+	if (Viewport->ReadPixels(Bitmap, FReadSurfaceDataFlags(), ViewRect))
 	{
-		check(Bitmap.Num() == Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y);
+		check(Bitmap.Num() == ViewRect.Area() || (Bitmap.Num() == Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y));
 		return true;
 	}
 

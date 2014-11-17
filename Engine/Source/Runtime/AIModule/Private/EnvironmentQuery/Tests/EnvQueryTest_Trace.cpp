@@ -9,8 +9,6 @@
 
 UEnvQueryTest_Trace::UEnvQueryTest_Trace(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Trace::RunTest);
-
 	Cost = EEnvTestCost::High;
 	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 	SetWorkOnFloatValues(false);
@@ -23,7 +21,7 @@ UEnvQueryTest_Trace::UEnvQueryTest_Trace(const class FPostConstructInitializePro
 	TraceData.SetGeometryOnly();
 }
 
-void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryTest_Trace::RunTest(FEnvQueryInstance& QueryInstance) const
 {
 	bool bWantsHit = false;
 	bool bTraceToItem = false;

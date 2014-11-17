@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "EdGraphNode_Comment.generated.h"
 
 typedef TArray<class UObject*> FCommentNodeSet;
@@ -45,7 +46,7 @@ public:
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override {}
-	ENGINE_API virtual FString GetTooltip() const override;
+	ENGINE_API virtual FText GetTooltipText() const override;
 	ENGINE_API virtual FLinearColor GetNodeCommentColor() const override;
 	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldOverridePinNames() const override { return true; }
@@ -74,6 +75,9 @@ public:
 private:
 	/** Nodes currently within the region of the comment */
 	FCommentNodeSet	NodesUnderComment;
+
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 #endif
 };
 

@@ -189,18 +189,14 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 
 		if (RemoteBlueprint && BaseBlueprint)
 		{
-			FMergeDisplayArgs DisplayArgs = { CurrentRevInfo, BaseRevInfo };
+			FBlueprintMergeData Data(Editor 
+									, static_cast<const UBlueprint*>(StaticDuplicateObject(&Object, GetTransientPackage(), TEXT("None")))
+									, BaseBlueprint
+									, CurrentRevInfo
+									, RemoteBlueprint
+									, BaseRevInfo );
 
-			SBlueprintDiff::FArguments BaseArgs;
-			BaseArgs.BlueprintOld(BaseBlueprint)
-				.OldRevision(CurrentRevInfo)
-				.BlueprintNew(RemoteBlueprint)
-				.NewRevision(BaseRevInfo);
-
-			Contents = SNew(SBlueprintMerge)
-				.BlueprintLocal(static_cast<const UBlueprint*> ( StaticDuplicateObject( &Object, GetTransientPackage(), TEXT("None") ) ) )
-				.OwningEditor(Editor)
-				.BaseArgs(BaseArgs);
+			Contents = SNew(SBlueprintMerge, Data);
 		}
 		else
 		{

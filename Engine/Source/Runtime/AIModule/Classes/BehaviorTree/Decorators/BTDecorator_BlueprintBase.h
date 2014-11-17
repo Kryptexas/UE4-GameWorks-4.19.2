@@ -35,6 +35,7 @@ class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 	virtual FString GetStaticDescription() const override;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

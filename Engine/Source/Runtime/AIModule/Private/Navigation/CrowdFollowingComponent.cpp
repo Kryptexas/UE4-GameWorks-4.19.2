@@ -23,6 +23,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const class FPostConstructIni
 	bEnableOptimizeVisibility = true;
 	bEnableOptimizeTopology = true;
 	bEnablePathOffset = false;
+	bEnableSlowdownAtGoal = true;
 
 	SeparationWeight = 2.0f;
 	CollisionQueryRange = 400.0f;		// approx: radius * 12.0f
@@ -116,6 +117,19 @@ void UCrowdFollowingComponent::SetCrowdOptimizeTopology(bool bEnable, bool bUpda
 	if (bEnableOptimizeTopology != bEnable)
 	{
 		bEnableOptimizeTopology = bEnable;
+
+		if (bUpdateAgent)
+		{
+			UpdateCrowdAgentParams();
+		}
+	}
+}
+
+void UCrowdFollowingComponent::SetCrowdSlowdownAtGoal(bool bEnable, bool bUpdateAgent)
+{
+	if (bEnableSlowdownAtGoal != bEnable)
+	{
+		bEnableSlowdownAtGoal = bEnable;
 
 		if (bUpdateAgent)
 		{
@@ -544,6 +558,10 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		{
 			RecastNavData->GetPolyCenter(NavMeshPath->PathCorridor[PathPartEndIdx], CurrentTargetPt);
 		}
+		else if (NavMeshPath->IsPartial())
+		{
+			RecastNavData->GetClosestPointOnPoly(NavMeshPath->PathCorridor[PathPartEndIdx], Path->GetPathPoints()[1].Location, CurrentTargetPt);
+		}
 
 		// not safe to read those directions yet, you have to wait until crowd manager gives you next corner of string pulled path
 		CrowdAgentMoveDirection = FVector::ZeroVector;
@@ -626,7 +644,9 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 			const float SegmentDot = FVector::DotProduct(ToTarget, Path->IsDirect() ? MovementComp->Velocity : CrowdAgentMoveDirection);
 			const bool bMovedTooFar = bCheckMovementAngle && (SegmentDot < 0.0);
 
-			if (bMovedTooFar || HasReachedDestination(CurrentLocation))
+			// can't use HasReachedDestination here, because it will use last path point
+			// which is not set correctly for partial paths without string pulling
+			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
 				OnPathFinished(EPathFollowingResult::Success);
@@ -815,7 +835,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 		const float DistSq = (GetCurrentTargetLocation() - CurrentLocation).SizeSquared();
 		const float PathSwitchThresSq = FMath::Square(AgentRadius * 5.0f);
 
-		Tokens.Add(TEXT("dist2D"));
+		Tokens.Add(TEXT("distance"));
 		Flags.Add(EPathFollowingDebugTokens::ParamName);
 		Tokens.Add(FString::Printf(TEXT("%.0f"), FMath::Sqrt(DistSq)));
 		Flags.Add((DistSq < PathSwitchThresSq) ? EPathFollowingDebugTokens::PassedValue : EPathFollowingDebugTokens::FailedValue);

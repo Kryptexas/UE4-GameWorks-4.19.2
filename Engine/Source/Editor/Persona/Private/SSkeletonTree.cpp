@@ -829,6 +829,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 			.SelectAllTextWhenFocused( true )
 			.OnTextChanged( this, &SSkeletonTree::OnFilterTextChanged )
 			.HintText( LOCTEXT( "SearchBoxHint", "Search Skeleton Tree...") )
+			.AddMetaData<FTagMetaData>(TEXT("SkelTree.Search"))
 		]
 
 		+ SVerticalBox::Slot()
@@ -845,6 +846,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				.ContentPadding(3)
 				.OnGetMenuContent( this, &SSkeletonTree::CreateBoneFilterMenu )
 				.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of bones are shown" ) )
+				.AddMetaData<FTagMetaData>(TEXT("SkelTree.Bones"))
 				.ButtonContent()
 				[
 					SNew( STextBlock )
@@ -861,6 +863,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				.ContentPadding(3)
 				.OnGetMenuContent( this, &SSkeletonTree::CreateSocketFilterMenu )
 				.ToolTipText( LOCTEXT( "SocketFilterToolTip", "Change which types of sockets are shown" ) )
+				.AddMetaData<FTagMetaData>(TEXT("SkelTree.Sockets"))
 				.ButtonContent()
 				[
 					SNew( STextBlock )
@@ -1749,7 +1752,8 @@ void SSkeletonTree::OnAddSocket()
 		check(NewSocket);
 
 		NewSocket->BoneName = *static_cast<FName*>( TreeSelection.GetSingleSelectedItem()->GetData() );
-		NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( *LOCTEXT( "NewSocketDefaultName", "NewSocket" ).ToString() );
+		FString SocketName = NewSocket->BoneName.ToString() + LOCTEXT("SocketPostfix", "Socket").ToString();
+		NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( *SocketName );
 
 		TargetSkeleton->Sockets.Add( NewSocket );
 

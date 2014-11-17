@@ -9,6 +9,9 @@
 	#include <shellapi.h>
 	#include <shlobj.h>
 	#include <Winver.h>
+	#include <LM.h>
+	#include <tlhelp32.h>
+	#include <Psapi.h>
 #include "HideWindowsPlatformTypes.h"
 
 #pragma comment( lib, "version.lib" )
@@ -93,7 +96,7 @@ bool FDesktopPlatformWindows::OpenDirectoryDialog(const void* ParentWindowHandle
 	return bSuccess;
 }
 
-bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags)
+bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {	
 	FScopedSystemModalMode SystemModalScope;
 
@@ -113,7 +116,7 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 		HDC DC = ::GetDC( cf.hwndOwner ); 
 		const float LogicalPixelsY = static_cast<float>(GetDeviceCaps(DC, LOGPIXELSY));
 		const int32 PixelHeight = static_cast<int32>(-lf.lfHeight * ( 72.0f / LogicalPixelsY ));	// Always target 72 DPI
-		uint32 FontFlags = EFontImportFlags::None;
+		auto FontFlags = EFontImportFlags::None;
 		if ( lf.lfUnderline )
 		{
 			FontFlags |= EFontImportFlags::EnableUnderline;
@@ -129,7 +132,7 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 
 		OutFontName = (const TCHAR*)lf.lfFaceName;
 		OutHeight = PixelHeight;
-		OutFlags = static_cast<EFontImportFlags::Type>(FontFlags);
+		OutFlags = FontFlags;
 
 		::ReleaseDC( cf.hwndOwner, DC ); 
 	}
@@ -141,55 +144,84 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 	return bSuccess;
 }
 
+bool FDesktopPlatformWindows::CanOpenLauncher(bool Install)
+{
+	// Check if the launcher exists, or (optionally) if the installer exists
+	FString Path;
+	return GetLauncherPath(Path) || (Install && GetLauncherInstallerPath(Path));
+}
+
 bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString CommandLineParams )
 {
-	FString LaunchPath;
+	// Try to launch it directly
+	FString LauncherPath;
+	if(GetLauncherPath(LauncherPath))
+	{
+		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
+		{
+			CommandLineParams += TEXT(" -noselfupdate");
+		}
+		return FPlatformProcess::CreateProc(*LauncherPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LauncherPath), NULL).IsValid();
+	}
 
+	// Otherwise see if we can install it
+	FString InstallerPath;
+	if(Install && GetLauncherInstallerPath(InstallerPath))
+	{
+		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
+		return true;
+	}
+
+	return false;
+}
+
+bool FDesktopPlatformWindows::GetLauncherPath(FString& OutLauncherPath)
+{
+	// Try the default executable in the binaries directory
 	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 	{
-		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"), TEXT("UnrealEngineLauncher-Win64-Debug.exe"));
-		CommandLineParams += TEXT(" -noselfupdate");
+		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"), TEXT("UnrealEngineLauncher-Win64-Debug.exe"));
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
 	}
 	else
 	{
-		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("../../Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
+		FString LauncherPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("../../Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
+		if(FPaths::FileExists(LauncherPath))
+		{
+			OutLauncherPath = LauncherPath;
+			return true;
+		}
 	}
 
-	// if the Launcher doesn't exist locally...
-	if (!FPaths::FileExists(LaunchPath))
+	// Otherwise locate it in the Registry...
+	FString InstallDir;
+	if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\EpicGames\\Unreal Engine"), TEXT("InstallDir"), InstallDir) && (InstallDir.Len() > 0))
 	{
-		FString InstallDir;
-
-		// ... locate it in the Registry...
-		if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\EpicGames\\Unreal Engine"), TEXT("InstallDir"), InstallDir) && (InstallDir.Len() > 0))
+		FString LauncherPath = FPaths::Combine(*InstallDir, TEXT("Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
+		if(FPaths::FileExists(LauncherPath))
 		{
-			LaunchPath = FPaths::Combine(*InstallDir, TEXT("Launcher/Engine/Binaries/Win64/UnrealEngineLauncher.exe"));
-		}
-		else
-		{
-			LaunchPath.Empty();
-		}
-
-		if (LaunchPath.IsEmpty() || !FPaths::FileExists(LaunchPath))
-		{
-			if (Install)
-			{
-				// ... or run the installer if desired
-				LaunchPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngineInstaller.msi")));
-
-				if (FPaths::FileExists(LaunchPath))
-				{
-					FPlatformProcess::LaunchFileInDefaultExternalApplication(*LaunchPath);
-
-					return true;
-				}
-			}
-
-			return false;
+			OutLauncherPath = LauncherPath;
+			return true;
 		}
 	}
 
-	return FPlatformProcess::CreateProc(*LaunchPath, *CommandLineParams, true, false, false, NULL, 0, *FPaths::GetPath(LaunchPath), NULL).IsValid();
+	// Otherwise fail
+	return false;
+}
+
+bool FDesktopPlatformWindows::GetLauncherInstallerPath(FString& OutInstallerPath)
+{
+	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/UnrealEngineInstaller.msi")));
+	if(FPaths::FileExists(InstallerPath))
+	{
+		OutInstallerPath = InstallerPath;
+		return true;
+	}
+	return false;
 }
 
 bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
@@ -512,6 +544,34 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
 }
 
+bool FDesktopPlatformWindows::IsUnrealBuildToolRunning()
+{
+	FString UBTPath = GetUnrealBuildToolExecutableFilename();
+	FPaths::MakePlatformFilename(UBTPath);
+
+	HANDLE SnapShot = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (SnapShot != INVALID_HANDLE_VALUE)
+	{
+		PROCESSENTRY32 Entry;
+		Entry.dwSize = sizeof(PROCESSENTRY32);
+
+		if (::Process32First(SnapShot, &Entry))
+		{
+			do
+			{
+				const FString EntryFullPath = FPlatformProcess::GetApplicationName(Entry.th32ProcessID);
+				if (EntryFullPath == UBTPath)
+				{
+					::CloseHandle(SnapShot);
+					return true;
+				}
+			} while (::Process32Next(SnapShot, &Entry));
+		}
+	}
+	::CloseHandle(SnapShot);
+	return false;
+}
+
 FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
 {
 	static FWindowsNativeFeedbackContext FeedbackContext;
@@ -529,9 +589,8 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 	FString ExecutableFileName = FString(FPlatformProcess::BaseDir()) / DefaultVersionSelectorName;
 
 	// Defer to UnrealVersionSelector.exe in a launcher installation if it's got the same version number or greater.
-	TCHAR InstallDir[MAX_PATH];
-	::DWORD InstallDirSize = sizeof(InstallDir);
-	if(RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), RRF_RT_REG_SZ, NULL, InstallDir, &InstallDirSize) == ERROR_SUCCESS)
+	FString InstallDir;
+	if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), InstallDir) && (InstallDir.Len() > 0))
 	{
 		FString NormalizedInstallDir = InstallDir;
 		FPaths::NormalizeDirectoryName(NormalizedInstallDir);
@@ -546,6 +605,10 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 	// Get the path to the executable
 	FPaths::MakePlatformFilename(ExecutableFileName);
 	FString QuotedExecutableFileName = FString(TEXT("\"")) + ExecutableFileName + FString(TEXT("\""));
+
+	// HKCU\SOFTWARE\Classes\.uproject
+	FRegistryRootedKey *UserRootExtensionKey = new FRegistryRootedKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Classes\\.uproject"));
+	RootedKeys.AddRawItem(UserRootExtensionKey);
 
 	// HKLM\SOFTWARE\Classes\.uproject
 	FRegistryRootedKey *RootExtensionKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\.uproject"));
@@ -585,6 +648,28 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 	ShellVersionKey->SetValue(TEXT(""), TEXT("Switch Unreal Engine version..."));
 	ShellVersionKey->SetValue(TEXT("Icon"), QuotedExecutableFileName);
 	ShellVersionKey->FindOrAddKey(L"command")->SetValue(TEXT(""), QuotedExecutableFileName + FString(TEXT(" /switchversion \"%1\"")));
+
+	// If the user has manually selected something other than our extension, we need to delete it. Explorer explicitly disables set access on that keys in that folder, but we can delete the whole thing.
+	const TCHAR* UserChoicePath = TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.uproject\\UserChoice");
+
+	// Figure out whether we need to delete it. If it's already set to our own ProgId, leave it alone.
+	bool bDeleteUserChoiceKey = true;
+	HKEY hUserChoiceKey;
+	if(RegOpenKeyEx(HKEY_CURRENT_USER, UserChoicePath, 0, KEY_READ, &hUserChoiceKey) == S_OK)
+	{
+		TCHAR ProgId[128];
+		::DWORD ProgIdSize = sizeof(ProgId);
+		::DWORD ProgIdType = 0;
+		if(RegQueryValueEx(hUserChoiceKey, TEXT("Progid"), NULL, &ProgIdType, (BYTE*)ProgId, &ProgIdSize) == ERROR_SUCCESS && ProgIdType == REG_SZ)
+		{
+			bDeleteUserChoiceKey = (FCString::Strcmp(ProgId, TEXT("Unreal.ProjectFile")) != 0);
+		}
+		RegCloseKey(hUserChoiceKey);
+	}
+	if(bDeleteUserChoiceKey)
+	{
+		RootedKeys.AddRawItem(new FRegistryRootedKey(HKEY_CURRENT_USER, UserChoicePath));
+	}
 }
 
 int32 FDesktopPlatformWindows::GetShellIntegrationVersion(const FString &FileName)

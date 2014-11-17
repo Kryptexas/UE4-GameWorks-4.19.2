@@ -8,6 +8,8 @@ class FUnloadedBlueprintData : public IUnloadedBlueprintData
 public:
 	FUnloadedBlueprintData( TWeakPtr< class FClassViewerNode > InClassViewerNode );
 
+	virtual ~FUnloadedBlueprintData() {}
+
 	virtual bool HasAnyClassFlags( uint32 InFlagsToCheck ) const override;
 
 	virtual bool HasAllClassFlags( uint32 InFlagsToCheck ) const override;

@@ -30,7 +30,6 @@ public:
 		const typename DrawingPolicyFactoryType::ContextType& InDrawingContext,
 		bool InPreFog,
 		bool bInIsHitTesting = false,
-		bool bInIsVelocityRendering = false,
 		bool bInEditorCompositeDepthTest = false,
 		bool bInIsSelectionOutlineRendering = false
 		):
@@ -42,7 +41,6 @@ public:
 		bPreFog(InPreFog),
 		bDirty(false),
 		bIsHitTesting(bInIsHitTesting),
-		bIsVelocityRendering(bInIsVelocityRendering),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		bIsSelectionOutlineRendering(bInIsSelectionOutlineRendering)
 	{}
@@ -58,7 +56,7 @@ public:
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
 	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const override;
 	virtual int32 DrawMesh(const FMeshBatch& Mesh) override;
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) override;
 	virtual void DrawSprite(
 		const FVector& Position,
 		float SizeX,
@@ -88,11 +86,6 @@ public:
 		uint8 DepthPriorityGroup
 		) override;
 
-	// Accessors.
-	bool IsPreFog() const
-	{
-		return bPreFog;
-	}
 	bool IsDirty() const
 	{
 		return bDirty;
@@ -101,11 +94,6 @@ public:
 	{
 		bDirty = false;
 	}
-
-	/**
-	 * @return true if rendering is occurring during velocity pass 
-	 */
-	virtual bool IsRenderingVelocities() const { return bIsVelocityRendering; }
 
 private:
 
@@ -139,9 +127,6 @@ private:
 	/** true if hit proxies are being drawn. */
 	uint32 bIsHitTesting : 1;
 
-	/** true if rendering is occuring during velocity pass */
-	uint32 bIsVelocityRendering : 1;
-
 	/** true if rendering is occuring during editor compositing */
 	uint32 bEditorCompositeDepthTest : 1;
 
@@ -149,6 +134,25 @@ private:
 	uint32 bIsSelectionOutlineRendering : 1;
 
 };
+
+/**
+* Draws a range of view's elements with the specified drawing policy factory type.
+* @param View - The view to draw the meshes for.
+* @param DrawingContext - The drawing policy type specific context for the drawing.
+* @param DPGIndex World or Foreground DPG index for draw order
+* @param FirstIndex - Element range
+* @param LastIndex - Element range
+*/
+template<class DrawingPolicyFactoryType>
+void DrawViewElementsInner(
+	FRHICommandList& RHICmdList,
+	const FViewInfo& View,
+	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
+	uint8 DPGIndex,
+	bool bPreFog,
+	int32 FirstIndex,
+	int32 LastIndex
+	);
 
 /**
  * Draws a view's elements with the specified drawing policy factory type.
@@ -164,6 +168,25 @@ bool DrawViewElements(
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog
+	);
+
+/**
+* Draws a view's elements with the specified drawing policy factory type.
+* @param View - The view to draw the meshes for.
+* @param DrawingContext - The drawing policy type specific context for the drawing.
+* @param DPGIndex World or Foreground DPG index for draw order
+* @param bPreFog - true if the draw call is occurring before fog has been rendered.
+* @param ParentCmdList - cmdlist to put the wait and execute task on
+* @param Width - parallel width
+*/
+template<class DrawingPolicyFactoryType>
+void DrawViewElementsParallel(
+	const FViewInfo& View,
+	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
+	uint8 DPGIndex,
+	bool bPreFog,
+	FRHICommandList& ParentCmdList,
+	int32 Width
 	);
 
 /**
@@ -193,7 +216,7 @@ public:
 	virtual bool IsHitTesting() override;
 	virtual void SetHitProxy(HHitProxy* HitProxy) override;
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) override;
 	virtual void DrawSprite(
 		const FVector& Position,
 		float SizeX,

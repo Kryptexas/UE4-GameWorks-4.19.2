@@ -180,9 +180,10 @@ float3 EncodeSubsurfaceColor(float3 SubsurfaceColor)
 	return sqrt(saturate(SubsurfaceColor));
 }
 
-float3 DecodeSubsurfaceColor(float3 SubsurfaceColor)
+// @param SubsurfaceProfile 0..1, SubsurfaceProfileId = int(x * 255)
+float3 EncodeSubsurfaceProfile(float SubsurfaceProfile)
 {
-	return Square(SubsurfaceColor);
+	return float3(SubsurfaceProfile, 0, 0);
 }
 
 float EncodeIndirectIrradiance(float IndirectIrradiance)
@@ -260,7 +261,8 @@ uint DecodeShadingModelId(float InPackedChannel)
 #define SHADINGMODELID_SUBSURFACE			2
 #define SHADINGMODELID_PREINTEGRATED_SKIN	3
 #define SHADINGMODELID_CLEAR_COAT			4
-#define SHADINGMODELID_NUM					5
+#define SHADINGMODELID_SUBSURFACE_PROFILE	5
+#define SHADINGMODELID_NUM					6
 
 // all values that are output by the forward rendering pass
 struct FGBufferData
@@ -308,17 +310,17 @@ struct FGBufferData
 struct FDBufferData
 {
 	// 0..1, premultiplied with ColorOpacity
-	float3 Color;
+	float3 PreMulColor;
 	// 0:opaque ..1:see through
 	float ColorOpacity;
 
 	// -1..1, premultiplied with NormalOpacity
-	float3 WorldNormal;
+	float3 PreMulWorldNormal;
 	// 0:opaque ..1:see through
 	float NormalOpacity;
 
 	// 0..1, premultiplied with RoughnessOpacity
-	float Roughness;
+	float PreMulRoughness;
 	// 0:opaque ..1:see through
 	float RoughnessOpacity;
 };
@@ -356,22 +358,33 @@ void EncodeGBuffer(
 	}
 	else
 	{
-		bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
+		bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN || GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 
 #if DIFFUSE_SPEC_INPUTS
 		OutGBufferB.rgb = EncodeSpecularColor(GBuffer.SpecularColor);
 		OutGBufferC.rgb = EncodeDiffuseColor(GBuffer.DiffuseColor);
+
+		if (bSubsurface)
+		{
+			// Only Fortnite uses DIFFUSE_SPEC_INPUTS which doesn't have IndirectIrradiance, GBufferAO is lost
+			OutGBufferC.a = GBuffer.Opacity;
+		}
+		else
+		{
+			// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
+			OutGBufferC.a = EncodeIndirectIrradiance(GBuffer.IndirectIrradiance * GBuffer.GBufferAO) + QuantizationBias * (1.0 / 255.0);
+		}
 #else
 		// NOTE OutGBufferB.b is currently unused!
 		OutGBufferB.r = bSubsurface ? GBuffer.Opacity : GBuffer.Metallic;
 		OutGBufferB.g = GBuffer.Specular;
 		OutGBufferB.b = 0;
 		OutGBufferC.rgb = EncodeBaseColor(GBuffer.BaseColor);
-#endif
-		OutGBufferB.a = GBuffer.ShadingModelID * (1.0 / 255.0);
 
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
-		OutGBufferC.a = EncodeIndirectIrradiance( GBuffer.IndirectIrradiance * GBuffer.GBufferAO ) + QuantizationBias * (1.0 / 255.0);
+		OutGBufferC.a = EncodeIndirectIrradiance(GBuffer.IndirectIrradiance * GBuffer.GBufferAO) + QuantizationBias * (1.0 / 255.0);
+#endif
+		OutGBufferB.a = GBuffer.ShadingModelID * (1.0 / 255.0);
 
 		// Roughness in OutGBufferD.r instead of OutGBufferB.a so that deferred decals can blend in roughness while using MRT
 		OutGBufferD.r = GBuffer.Roughness;
@@ -406,7 +419,7 @@ FGBufferData DecodeGBufferData(
 	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
-	bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
+	bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN || GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 
 #if DIFFUSE_SPEC_INPUTS
 	GBuffer.BaseColor = 0;
@@ -415,6 +428,7 @@ FGBufferData DecodeGBufferData(
 
 	GBuffer.DiffuseColor = DecodeDiffuseColor(InGBufferC.rgb);
 	GBuffer.SpecularColor = DecodeSpecularColor(InGBufferB.rgb);
+	GBuffer.Opacity = bSubsurface ? InGBufferC.a : 0;
 #else
 	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
 	GBuffer.Metallic = bSubsurface ? 0 : InGBufferB.r;
@@ -424,17 +438,16 @@ FGBufferData DecodeGBufferData(
 	GBuffer.SpecularColor = lerp( 0.08 * GBuffer.Specular.xxx, GBuffer.BaseColor, GBuffer.Metallic );
 
 	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
+	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES31_AEP_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		GBuffer.DiffuseColor = GBuffer.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;
 		GBuffer.SpecularColor = GBuffer.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 	}
 	#endif //COMPILE_SHADERS_FOR_DEVELOPMENT == 1
-
+	GBuffer.Opacity = bSubsurface ? InGBufferB.r : 0;
 #endif
 
-	GBuffer.Opacity = bSubsurface ? InGBufferB.r : 0;
 	
 	GBuffer.Roughness = InGBufferD.r;
 	GBuffer.CustomData = InGBufferD.gba;
@@ -456,15 +469,15 @@ FDBufferData DecodeDBufferData(
 	FDBufferData ret;
 
 	// UNORM 4 channel
-	ret.Color = DBufferA.rgb;
+	ret.PreMulColor = DBufferA.rgb;
 	ret.ColorOpacity = DBufferA.a;
 
 	// UNORM 4 channel, 128/255 represents 0
-	ret.WorldNormal = DBufferB.rgb * 2 - (256.0 / 255.0);
+	ret.PreMulWorldNormal = DBufferB.rgb * 2 - (256.0 / 255.0);
 	ret.NormalOpacity = DBufferB.a;
 
 	// UNORM 2 channel
-	ret.Roughness = DBufferC.r;
+	ret.PreMulRoughness = DBufferC.r;
 	ret.RoughnessOpacity = DBufferC.g;
 
 	return ret;
@@ -489,6 +502,30 @@ void EncodeDBufferData(FGBufferData GBufferData, float3 MultiOpacity,
 
 	// UNORM 2 channel
 	DBufferC = float4(GBufferData.Roughness, 0, 0, MultiOpacity.z);
+
+	// no need to output any data if the channel isn't used anyway (for DX10 we don't adjust the FrameBufferBlend state - it doesn't support different blend modes for different MRT)
+	{
+#if !MATERIAL_DBUFFERA
+		DBufferA = 0;
+#endif
+#if !MATERIAL_DBUFFERB
+		DBufferB = 0;
+#endif
+#if !MATERIAL_DBUFFERC
+		DBufferC = 0;
+#endif
+	}
+}
+
+float3 ExtractSubsurfaceColor(FGBufferData BufferData)
+{
+	return Square(BufferData.CustomData);
+}
+
+uint ExtractSubsurfaceProfileInt(FGBufferData BufferData)
+{
+	// can be optimized
+	return uint(BufferData.CustomData.r * 255.0f + 0.5f);
 }
 
 /** Populates DBufferA, DBufferB, DBufferC as float4 and puts opacity in alpha for frame buffer blending */
@@ -500,18 +537,18 @@ void ApplyDBufferData(FDBufferData DBufferData, inout float3 WorldNormal, inout 
 #endif
 					  )
 {
-	WorldNormal = WorldNormal * DBufferData.NormalOpacity + DBufferData.WorldNormal;
-	Roughness = Roughness * DBufferData.RoughnessOpacity + DBufferData.Roughness;
+	WorldNormal = WorldNormal * DBufferData.NormalOpacity + DBufferData.PreMulWorldNormal;
+	Roughness = Roughness * DBufferData.RoughnessOpacity + DBufferData.PreMulRoughness;
 	
 	SubsurfaceColor *= DBufferData.ColorOpacity;
 
 #if DIFFUSE_SPEC_INPUTS
-	DiffuseColor = DiffuseColor * DBufferData.ColorOpacity + DBufferData.Color;
-	SpecularColor = SpecularColor * DBufferData.ColorOpacity + 0.04f;		// most non metal materials have a specular of 4%
+	DiffuseColor = DiffuseColor * DBufferData.ColorOpacity + DBufferData.PreMulColor;
+	SpecularColor = lerp(0.04f, SpecularColor, DBufferData.ColorOpacity);		// most non metal materials have a specular of 4%
 #else
-	BaseColor = BaseColor * DBufferData.ColorOpacity + DBufferData.Color;
+	BaseColor = BaseColor * DBufferData.ColorOpacity + DBufferData.PreMulColor;
 	Metallic = Metallic * DBufferData.ColorOpacity + 0;			// decals are always no metallic
-	Specular = Specular * DBufferData.ColorOpacity + 0.5f;		// most non metal materials have a specular of 4% which is 0.5 in this scale
+	Specular = lerp(0.5f, Specular, DBufferData.ColorOpacity);		// most non metal materials have a specular of 4% which is 0.5 in this scale
 #endif
 }
 

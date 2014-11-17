@@ -51,12 +51,6 @@ namespace UnrealBuildTool
 		// Path to the plugin's root directory
 		public string Directory;
 
-		// Path to the plugin's intermediate build folder
-		public string IntermediateBuildPath;
-
-		// Path to the plugin's Inc folder
-		public string IntermediateIncPath;
-
 		// List of modules in this plugin
 		public readonly List<PluginModuleInfo> Modules = new List<PluginModuleInfo>();
 

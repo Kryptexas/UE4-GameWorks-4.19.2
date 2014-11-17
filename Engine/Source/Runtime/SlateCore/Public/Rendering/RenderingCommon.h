@@ -6,6 +6,7 @@ struct FVector2D;
 class FSlateRect;
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
+#define SLATE_USE_FLOAT16 !PLATFORM_USES_ES2
 
 #if SLATE_USE_32BIT_INDICES
 typedef uint32 SlateIndex;
@@ -87,6 +88,75 @@ namespace ESlateLineJoinType
 	};
 };
 
+/**
+ * Stores a rectangle that has been transformed by an arbitrary render transform. 
+ * We provide a ctor that does the work common to slate drawing, but you could technically 
+ * create this any way you want.
+ */
+struct FSlateRotatedRect
+{
+	/** Default ctor. */
+	FSlateRotatedRect();
+	/** Construct a rotated rect from a given aligned rect. */
+	explicit FSlateRotatedRect(const FSlateRect& AlignedRect);
+	/** Per-element constructor. */
+	FSlateRotatedRect(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
+	/** transformed Top-left corner. */
+	FVector2D TopLeft;
+	/** transformed X extent (right-left). */
+	FVector2D ExtentX;
+	/** transformed Y extent (bottom-top). */
+	FVector2D ExtentY;
+
+	/** Convert to a bounding, aligned rect. */
+	FSlateRect ToBoundingRect() const;
+	/** Point-in-rect test. */
+	bool IsUnderLocation(const FVector2D& Location) const;
+};
+
+/**
+ * Transforms a rect by the given transform.
+ */
+template <typename TransformType>
+FSlateRotatedRect TransformRect(const TransformType& Transform, const FSlateRotatedRect& Rect)
+{
+	return FSlateRotatedRect
+	(
+		TransformPoint(Transform, Rect.TopLeft),
+		TransformVector(Transform, Rect.ExtentX),
+		TransformVector(Transform, Rect.ExtentY)
+	);
+}
+
+
+/**
+ * Stores a Rotated rect as float16 (for rendering).
+ */
+struct FSlateRotatedRectHalf
+{
+	/** Default ctor. */
+	FSlateRotatedRectHalf();
+	/** Construct a float16 version of a rotated rect from a full-float version. */
+	explicit FSlateRotatedRectHalf(const FSlateRotatedRect& RotatedRect);
+	/** Per-element constructor. */
+	FSlateRotatedRectHalf(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
+	/** transformed Top-left corner. */
+	FVector2DHalf TopLeft;
+	/** transformed X extent (right-left). */
+	FVector2DHalf ExtentX;
+	/** transformed Y extent (bottom-top). */
+	FVector2DHalf ExtentY;
+};
+
+/**
+ * Not all platforms support Float16, so we have to be tricky here and declare the proper vertex type.
+ */
+#if SLATE_USE_FLOAT16
+typedef FSlateRotatedRectHalf FSlateRotatedClipRectType;
+#else
+typedef FSlateRotatedRect FSlateRotatedClipRectType;
+#endif
+
 
 /** 
  * A struct which defines a basic vertex seen by the Slate vertex buffers and shaders
@@ -95,69 +165,42 @@ struct FSlateVertex
 {
 	/** Texture coordinates.  The first 2 are in xy and the 2nd are in zw */
 	FVector4 TexCoords; 
-	/** Clipping coordinates (left,top,right,bottom)*/
-	uint16 ClipCoords[4];
-	/** Position of the vertex in world space */
-	uint16 Position[2];
+	/** Position of the vertex in window space */
+	int16 Position[2];
+	/** clip center/extents in render window space (window space with render transforms applied) */
+	FSlateRotatedClipRectType ClipRect;
 	/** Vertex color */
 	FColor Color;
 	
-	FSlateVertex() {}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRect& InClipCoords) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, InTexCoord2.X, InTexCoord2.Y )
-		, Color( InColor )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = FMath::TruncToInt(InClipCoords.Left);
-		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Top);
-		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Right);
-		ClipCoords[3] = FMath::TruncToInt(InClipCoords.Bottom);
-	}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FVector4& InClipCoords) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, InTexCoord2.X, InTexCoord2.Y )
-		, Color( InColor )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = FMath::TruncToInt(InClipCoords.X);
-		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Y);
-		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Z);
-		ClipCoords[3] = FMath::TruncToInt(InClipCoords.W);
-	}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRect& InClipCoords ) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, 1.0f, 1.0f )
-		, Color( InColor )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = FMath::TruncToInt(InClipCoords.Left);
-		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Top);
-		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Right);
-		ClipCoords[3] = FMath::TruncToInt(InClipCoords.Bottom);
-	}
-
-	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const uint32 InDWORD ) 
-		: TexCoords( InTexCoord.X, InTexCoord.Y, 1.0f, 1.0f )
-		, Color( InDWORD )
-	{
-
-		Position[0] = FMath::TruncToInt(InPosition.X);
-		Position[1] = FMath::TruncToInt(InPosition.Y);
-		ClipCoords[0] = 0;
-		ClipCoords[1] = 0;
-		ClipCoords[2] = 0;
-		ClipCoords[3] = 0;
-	}
+	FSlateVertex();
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
 };
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };
+
+/** Stores an aligned rect as shorts. */
+struct FShortRect
+{
+	FShortRect() : Left(0), Top(0), Right(0), Bottom(0) {}
+	FShortRect(uint16 InLeft, uint16 InTop, uint16 InRight, uint16 InBottom) : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom) {}
+	explicit FShortRect(const FSlateRect& Rect) : Left((uint16)Rect.Left), Top((uint16)Rect.Top), Right((uint16)Rect.Right), Bottom((uint16)Rect.Bottom) {}
+	bool operator==(const FShortRect& RHS) const { return Left == RHS.Left && Top == RHS.Top && Right == RHS.Right && Bottom == RHS.Bottom; }
+	bool operator!=(const FShortRect& RHS) const { return !(*this == RHS); }
+	bool DoesIntersect( const FShortRect& B ) const
+	{
+		const bool bDoNotOverlap =
+			B.Right < Left || Right < B.Left ||
+			B.Bottom < Top || Bottom < B.Top;
+
+		return ! bDoNotOverlap;
+	}
+
+	uint16 Left;
+	uint16 Top;
+	uint16 Right;
+	uint16 Bottom;
+};
 
 /**
  * Viewport implementation interface that is used by SViewport when it needs to draw and processes input.                   

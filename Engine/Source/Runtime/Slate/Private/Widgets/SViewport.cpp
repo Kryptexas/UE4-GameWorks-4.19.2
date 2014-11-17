@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SViewport.cpp: Implements the SViewport class.
-=============================================================================*/
-
 #include "SlatePrivatePCH.h"
 
 
@@ -11,7 +7,7 @@
  *****************************************************************************/
 
 SViewport::SViewport( )
-	: ViewportInterface(NULL)
+	: ViewportInterface(nullptr)
 	, bRenderDirectlyToWindow(false)
 	, bEnableGammaCorrection(true)
 { }
@@ -63,7 +59,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	// Only draw a quad if not rendering directly to the backbuffer
 	if( !ShouldRenderDirectly() )
 	{
-		if( ViewportInterfacePin.IsValid() && ViewportInterfacePin->GetViewportRenderTargetTexture() != NULL )
+		if( ViewportInterfacePin.IsValid() && ViewportInterfacePin->GetViewportRenderTargetTexture() != nullptr )
 		{
 			FSlateDrawElement::MakeViewport( OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), ViewportInterfacePin, MyClippingRect, bEnableGammaCorrection, bEnableBlending, DrawEffects, InWidgetStyle.GetColorAndOpacityTint() );
 		}
@@ -83,11 +79,12 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 		// @todo Slate: why are we calling OnCursorQuery in here?
 		FCursorReply Reply = ViewportInterfacePin->OnCursorQuery( AllottedGeometry,
 			FPointerEvent(
+				FSlateApplicationBase::CursorPointerIndex,
 				CursorPosScreenSpace,
 				CursorPosScreenSpace,
 				FVector2D::ZeroVector,
 				TSet<FKey>(),
-				FModifierKeysState(false, false, false, false, false, false, false, false) )
+				FModifierKeysState() )
 		 );
 		EMouseCursor::Type CursorType = Reply.GetCursor();
 

@@ -11,7 +11,7 @@ namespace UnrealBuildTool
     class LinuxPlatform : UEBuildPlatform
     {
         /** This is the SDK version we support */
-        static private string ExpectedSDKVersion = "v3_clang-3.3_ld-2.24_glibc-2.12.2";
+		static private string ExpectedSDKVersion = "v4_clang-3.5.0_ld-2.24_glibc-2.12.2";
 
         /** Platform name (embeds architecture for now) */
         static private string TargetPlatformName = "Linux_x64";
@@ -80,7 +80,7 @@ namespace UnrealBuildTool
          */
         protected override SDKStatus HasRequiredManualSDKInternal()
         {
-            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
             {
                 return SDKStatus.Valid;
             }
@@ -101,15 +101,15 @@ namespace UnrealBuildTool
             return SDKStatus.Invalid;
         }
 
-        public override bool CanUseXGE()
-        {
-            // disabled until XGE crash is fixed
-            return false;
-        }
-        
-        /**
-         *	Register the platform with the UEBuildPlatform class
-         */
+		public override bool CanUseXGE()
+		{
+			// disabled until XGE crash is fixed - it is still happening as of 2014-09-30
+			return false;
+		}
+
+		/**
+		 *	Register the platform with the UEBuildPlatform class
+		 */
         protected override void RegisterBuildPlatformInternal()
         {
 			//@todo.Rocket: Add platform support

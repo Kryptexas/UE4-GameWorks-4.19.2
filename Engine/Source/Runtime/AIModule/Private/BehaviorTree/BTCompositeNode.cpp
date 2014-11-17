@@ -9,7 +9,6 @@ UBTCompositeNode::UBTCompositeNode(const class FPostConstructInitializePropertie
 	bUseChildExecutionNotify = false;
 	bUseNodeActivationNotify = false;
 	bUseNodeDeactivationNotify = false;
-	OptionalDeactivationResult = EBTNodeResult::Optional;
 }
 
 void UBTCompositeNode::InitializeComposite(uint16 InLastExecutionIndex)
@@ -127,21 +126,18 @@ void UBTCompositeNode::OnNodeActivation(struct FBehaviorTreeSearchData& SearchDa
 		NotifyNodeActivation(SearchData);
 	}
 
-	// add services when execution flow enters this composite
 	for (int32 ServiceIndex = 0; ServiceIndex < Services.Num(); ServiceIndex++)
 	{
+		// add services when execution flow enters this composite
 		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Services[ServiceIndex], SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::Add));
+
+		// give services chance to perform initial tick before searching further
+		Services[ServiceIndex]->NotifyParentActivation(SearchData);
 	}
 }
 
 void UBTCompositeNode::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
-	// replace optional result before calling handler
-	if (NodeResult == EBTNodeResult::Optional)
-	{
-		NodeResult = OptionalDeactivationResult;
-	}
-
 	if (bUseNodeDeactivationNotify)
 	{
 		NotifyNodeDeactivation(SearchData, NodeResult);
@@ -373,6 +369,11 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 				bResult = false;
 				break;
 			}
+			else
+			{
+				UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Child[%d] execution allowed by %s"),
+					ChildIdx, *UBehaviorTreeTypes::DescribeNodeHelper(TestDecorator));
+			}
 		}
 	}
 	else
@@ -509,7 +510,7 @@ void UBTCompositeNode::RequestDelayedExecution(class UBehaviorTreeComponent* Own
 	OwnerComp->RequestExecution(LastResult);
 }
 
-uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index, EBTChildIndex::Type ChildMode) const
+uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index, EBTChildIndex ChildMode) const
 {
 	const UBTNode* ChildNode = GetChildNode(Index);
 	if (ChildNode)

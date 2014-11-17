@@ -11,15 +11,13 @@
 
 UEnvQueryGenerator_ActorsOfClass::UEnvQueryGenerator_ActorsOfClass(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_ActorsOfClass::GenerateItems);
-
 	SearchCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Actor::StaticClass();
 	Radius.Value = 500.0f;
 	SearchedActorClass = AActor::StaticClass();
 }
 
-void UEnvQueryGenerator_ActorsOfClass::GenerateItems(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryGenerator_ActorsOfClass::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
 	float RadiusValue = 0.0f;
 	float DensityValue = 0.0f;

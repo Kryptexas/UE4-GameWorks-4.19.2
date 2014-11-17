@@ -88,6 +88,7 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	.Padding(0, 10)
 	[
 		SAssignNew( AnimCurvePanel, SAnimCurvePanel )
+		.Persona(InArgs._Persona)
 		.Sequence(MontageObj)
 		.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
 		.ViewInputMin(this, &SAnimEditorBase::GetViewMinInput)
@@ -173,6 +174,10 @@ void SMontageEditor::RefreshNotifyTriggerOffsets()
 		{
 			PredictedOffset = MontageObj->CalculateOffsetForNotify(Notify.DisplayTime + Notify.Duration);
 			Notify.RefreshEndTriggerOffset(PredictedOffset);
+		}
+		else
+		{
+			Notify.EndTriggerTimeOffset = 0.0f;
 		}
 	}
 

@@ -8,14 +8,9 @@ static FName InvisibleWall_NAME(TEXT("InvisibleWall"));
 ABlockingVolume::ABlockingVolume(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	BrushComponent->bCanEverAffectNavigation = true;
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	BrushComponent->SetCollisionProfileName(InvisibleWall_NAME);
-}
-
-bool ABlockingVolume::UpdateNavigationRelevancy() 
-{ 
-	SetNavigationRelevancy(GetActorEnableCollision() && RootComponent->IsRegistered()); 
-	return IsNavigationRelevant(); 
 }
 
 #if WITH_EDITOR

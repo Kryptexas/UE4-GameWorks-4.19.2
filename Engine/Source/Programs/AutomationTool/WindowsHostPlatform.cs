@@ -191,6 +191,11 @@ namespace AutomationTool
 			ProcessManager.SetConsoleCtrlHandler(Handler, true);
 		}
 
+		public override bool IsScriptModuleSupported(string ModuleName)
+		{
+			return true;
+		}
+
 		public override string UBTProjectName
 		{
 			get { return "UnrealBuildTool"; }

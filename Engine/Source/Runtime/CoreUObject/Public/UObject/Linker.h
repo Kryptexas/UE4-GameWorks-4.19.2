@@ -13,6 +13,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
 
 /** Map of packages to their open linkers **/ 
 extern TMap<class UPackage*, class ULinkerLoad*>		GObjLoaders;
+/** Map of packages to their open linkers which have not yet been finalized (during async loading) **/
+extern TMap<class UPackage*, class ULinkerLoad*>		GObjPendingLoaders;
 /** List of loaders that have new imports **/
 extern TSet<class ULinkerLoad*>							GObjLoadersWithNewImports;
 
@@ -886,6 +888,41 @@ public:
 	}
 
 };
+
+
+struct FLinkerNamePairKeyFuncs : DefaultKeyFuncs<FName, false>
+{
+	static FORCEINLINE bool Matches(FName A, FName B)
+	{
+		// The linker requires that FNames preserve case, but the numeric suffix can be ignored since
+		// that is stored separately for each FName instance saved
+		return A.IsEqual(B, ENameCase::CaseSensitive, false/*bCompareNumber*/);
+	}
+
+	static FORCEINLINE uint32 GetKeyHash(FName Key)
+	{
+		return Key.GetComparisonIndex();
+	}
+};
+
+
+template<typename ValueType>
+struct TLinkerNameMapKeyFuncs : TDefaultMapKeyFuncs<FName, ValueType, false>
+{
+	static FORCEINLINE bool Matches(FName A, FName B)
+	{
+		// The linker requires that FNames preserve case, but the numeric suffix can be ignored since
+		// that is stored separately for each FName instance saved
+		return A.IsEqual(B, ENameCase::CaseSensitive, false/*bCompareNumber*/);
+	}
+
+	static FORCEINLINE uint32 GetKeyHash(FName Key)
+	{
+		return Key.GetComparisonIndex();
+	}
+};
+
+
 /*----------------------------------------------------------------------------
 	ULinker.
 ----------------------------------------------------------------------------*/
@@ -1189,6 +1226,17 @@ class ULinkerLoad : public ULinker, public FArchiveUObject
 		LINKER_TimedOut = 2
 	};
 
+	/** Verify result. */
+	enum EVerifyResult
+	{
+		/** Error occured when verifying import (can be fatal). */
+		VERIFY_Failed = 0,
+		/** Verify completed successfully. */
+		VERIFY_Success = 1,
+		/** Verify completed successfully and followed a redirector. */
+		VERIFY_Redirected = 2
+	};
+
 	// Variables.
 public:
 	/** Flags determining loading behavior.																					*/
@@ -1420,9 +1468,10 @@ public:
 	 * not currently open. (Rename fixes up references of all loaded objects, but naturally not for ones that aren't
 	 * loaded).
 	 *
-	 * @param	i	The index into this package's ImportMap to verify
+	 * @param	ImportIndex	The index into this package's ImportMap to verify
+	 * @return Verify import result
 	 */
-	void VerifyImport( int32 i );
+	EVerifyResult VerifyImport(int32 ImportIndex);
 	
 	/**
 	 * Loads all objects in package.
@@ -1801,7 +1850,7 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
 
 	/** Index array - location of the name in the NameMap array for each FName is stored in the NameIndices array using the FName's Index */
-	TMap<int32, int32> NameIndices;
+	TMap<FName, int32, FDefaultSetAllocator, TLinkerNameMapKeyFuncs<int32>> NameIndices;
 
 	/** List of bulkdata that needs to be stored at the end of the file */
 	struct FBulkDataStorageInfo
@@ -1831,13 +1880,7 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	FPackageIndex MapObject(const UObject* Object) const;
 
 	// FArchive interface.
-	FArchive& operator<<(FName& InName)
-	{
-		int32 Save = MapName(InName);
-		int32 Number = InName.GetNumber();
-		FArchive& Ar = *this;
-		return Ar << Save << Number;
-	}
+	FArchive& operator<<( FName& InName );
 	FArchive& operator<<( UObject*& Obj );
 	FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr );
 	FArchive& operator<<( FAssetPtr& AssetPtr );

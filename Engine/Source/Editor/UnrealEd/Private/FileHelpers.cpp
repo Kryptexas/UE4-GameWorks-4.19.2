@@ -22,9 +22,11 @@
 #include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
-#include "Dialogs/SOpenLevelDialog.h"
 
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Runtime/AssetRegistry/Public/AssetData.h"
+
+#include "PackageTools.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
@@ -490,12 +492,12 @@ static bool SaveWorld(UWorld* World,
 		{
 			if ( bPackageNeedsRename )
 			{
-				Package->Rename(*NewPackageName, NULL, REN_NonTransactional);
+				Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
 			}
 
 			if ( bWorldNeedsRename )
 			{
-				World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional);
+				World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
 			}
 		}
 
@@ -594,14 +596,18 @@ static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& I
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
 
-	TSharedPtr<SDlgPickAssetPath> PickAssetPathWidget =
-		SNew(SDlgPickAssetPath)
-		.Title(LOCTEXT("LevelPathPickerTitle", "Save Level As"))
-		.DefaultAssetPath(FText::FromString(PackageName));
+	FSaveAssetDialogConfig SaveAssetDialogConfig;
+	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveLevelDialogTitle", "Save Level As");
+	SaveAssetDialogConfig.DefaultPath = DefaultPath;
+	SaveAssetDialogConfig.DefaultAssetName = NewNameSuggestion;
+	SaveAssetDialogConfig.AssetClassNames.Add(UWorld::StaticClass()->GetFName());
+	SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
 
-	if (EAppReturnType::Ok == PickAssetPathWidget->ShowModal())
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
+	if ( !SaveObjectPath.IsEmpty() )
 	{
-		OutPackageName = PickAssetPathWidget->GetFullAssetPath().ToString();
+		OutPackageName = FPackageName::ObjectPathToPackageName(SaveObjectPath);
 		return true;
 	}
 
@@ -628,7 +634,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	{
 		FString SaveFilename;
 		bool bSaveFileLocationSelected = false;
-		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		if (UEditorEngine::IsUsingWorldAssets())
 		{
 			FString DefaultPackagePath;
 			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory, DefaultPackagePath);
@@ -664,6 +670,19 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 
 			FText ErrorMessage;
 			bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(SaveFilename, ErrorMessage);
+			
+			if ( bFilenameIsValid )
+			{
+				// If there is an existing world in memory that shares this name unload it now to prepare for overwrite.
+				// Don't do this if we are using save as to overwrite the current level since it will just save naturally.
+				const FString NewPackageName = FPackageName::FilenameToLongPackageName(SaveFilename);
+				UPackage* ExistingPackage = FindPackage(nullptr, *NewPackageName);
+				if ( ExistingPackage && ExistingPackage != InWorld->GetOutermost() )
+				{
+					bFilenameIsValid = FEditorFileUtils::AttemptUnloadInactiveWorldPackage(ExistingPackage, ErrorMessage);
+				}
+			}
+
 			if ( !bFilenameIsValid )
 			{
 				// Start the loop over, prompting for save again
@@ -738,7 +757,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 								if( CurStreamingLevel != NULL )
 								{
 									// Update the package name
-									FString PackageNameToRename = CurStreamingLevel->PackageName.ToString();
+									FString PackageNameToRename = CurStreamingLevel->GetWorldAssetPackageName();
 									if( RenameStreamingLevel( PackageNameToRename, OldBaseLevelName, NewBaseLevelName ) )
 									{
 										bAnythingToRename = true;
@@ -777,10 +796,10 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 							if( CurStreamingLevel != NULL )
 							{
 								// Update the package name
-								FString PackageNameToRename = CurStreamingLevel->PackageName.ToString();
+								FString PackageNameToRename = CurStreamingLevel->GetWorldAssetPackageName();
 								if( RenameStreamingLevel( PackageNameToRename, OldBaseLevelName, NewBaseLevelName ) )
 								{
-									CurStreamingLevel->PackageName = FName( *PackageNameToRename );
+									CurStreamingLevel->SetWorldAssetByPackageName(FName( *PackageNameToRename ));
 
 									// Level was renamed!
 									CurStreamingLevel->MarkPackageDirty();
@@ -1510,7 +1529,51 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 
 void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
 {
-	SOpenLevelDialog::CreateAndShowOpenLevelDialog(OnLevelsChosen, bAllowMultipleSelection);
+	struct FLocal
+	{
+		static void OnLevelsSelected(const TArray<FAssetData>& SelectedLevels, FOnLevelsChosen OnLevelsChosen)
+		{
+			if ( SelectedLevels.Num() > 0 )
+			{
+				// We selected a level. Save the path to this level to use as the default path next time we open.
+				const FAssetData& FirstAssetData = SelectedLevels[0];
+				
+				// Convert from package name to filename. Add a trailing slash to prevent an invalid conversion when an asset is in a root folder (e.g. /Game)
+				const FString FilesystemPathWithTrailingSlash = FPackageName::LongPackageNameToFilename(FirstAssetData.PackagePath.ToString() + TEXT("/"));
+
+				// Remove the slash if needed
+				FString FilesystemPath = FilesystemPathWithTrailingSlash;
+				if ( FilesystemPath.EndsWith(TEXT("/")) )
+				{
+					FilesystemPath = FilesystemPath.LeftChop(1);
+				}
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FilesystemPath);
+
+				OnLevelsChosen.ExecuteIfBound(SelectedLevels);
+			}
+		}
+	};
+
+	// Determine the starting path. Try to use the most recently used directory
+	FString DefaultPath;
+	{
+		const FString DefaultFilesystemDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
+		if (DefaultFilesystemDirectory.IsEmpty() || !FPackageName::TryConvertFilenameToLongPackageName(DefaultFilesystemDirectory, DefaultPath))
+		{
+			// No saved path, just use a reasonable default
+			DefaultPath = TEXT("/Game/Maps");
+		}
+	}
+
+	FOpenAssetDialogConfig OpenAssetDialogConfig;
+	OpenAssetDialogConfig.DialogTitleOverride = LOCTEXT("OpenLevelDialogTitle", "Open Level");
+	OpenAssetDialogConfig.DefaultPath = DefaultPath;
+	OpenAssetDialogConfig.AssetClassNames.Add(UWorld::StaticClass()->GetFName());
+	OpenAssetDialogConfig.bAllowMultipleSelection = bAllowMultipleSelection;
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().CreateOpenAssetDialog(OpenAssetDialogConfig, FOnAssetsChosenForOpen::CreateStatic(&FLocal::OnLevelsSelected, OnLevelsChosen));
 }
 
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)
@@ -1594,6 +1657,61 @@ bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& Out
 	return true;
 }
 
+bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnload, FText& OutErrorMessage)
+{
+	if ( ensure(PackageToUnload) )
+	{
+		UWorld* ExistingWorld = UWorld::FindWorldInPackage(PackageToUnload);
+		if ( ExistingWorld )
+		{
+			bool bContinueUnloadingExistingWorld = false;
+
+			switch (ExistingWorld->WorldType)
+			{
+				case EWorldType::None:
+				case EWorldType::Inactive:
+					// Untyped and inactive worlds are safe to unload
+					bContinueUnloadingExistingWorld = true;
+					break;
+
+				case EWorldType::Editor:
+					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldNotInactive", "You can not unload a level you are currently editing.");
+					bContinueUnloadingExistingWorld = false;
+					break;
+
+				case EWorldType::Game:
+				case EWorldType::PIE:
+				case EWorldType::Preview:
+				default:
+					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldNotInactive", "The level you are attempting to unload is invalid.");
+					bContinueUnloadingExistingWorld = false;
+					break;
+			}
+
+			if ( !bContinueUnloadingExistingWorld )
+			{
+				return false;
+			}
+		}
+
+		TArray<UPackage*> PackagesToUnload;
+		PackagesToUnload.Add(PackageToUnload);
+		TWeakObjectPtr<UPackage> WeakPackage = PackageToUnload;
+		if (!PackageTools::UnloadPackages(PackagesToUnload, OutErrorMessage))
+		{
+			return false;
+		}
+
+		if ( WeakPackage.IsValid() )
+		{
+			OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingPackageFailedToUnload", "Failed to unload existing level.");
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /**
  * Prompts the user to save the current map if necessary, the presents a load dialog and
  * loads a new map if selected by the user.
@@ -1605,7 +1723,7 @@ void FEditorFileUtils::LoadMap()
 		return;
 	}
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+	if (UEditorEngine::IsUsingWorldAssets())
 	{
 		struct FLocal
 		{
@@ -2002,6 +2120,9 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 	UWorld*	AssociatedWorld	= UWorld::FindWorldInPackage(PackageToSave);
 	const bool	bIsMapPackage = AssociatedWorld != NULL;
 
+	// The name of the package
+	const FString PackageName = PackageToSave->GetName();
+
 	// Place were we should save the file, including the filename
 	FString FinalPackageSavePath;
 	// Just the filename
@@ -2010,18 +2131,18 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 	// True if we should attempt saving
 	bool bAttemptSave = true;
 
-	// If we are treating worlds as assets, there is never a need to go down the "Save As" codepath
-	static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
-
-	FString ExistingFilename;
-	const bool bPackageAlreadyExists = FPackageName::DoesPackageExist( PackageToSave->GetName(), NULL, &ExistingFilename );
-	if( !bIsMapPackage || bPackageAlreadyExists || bUsingWorldAssets )
+	// If the package already has a valid path to a non read-only location, use it to determine where the file should be saved
+	const bool bIncludeReadOnlyRoots = false;
+	const bool bIsValidPath = FPackageName::IsValidLongPackageName(PackageName, bIncludeReadOnlyRoots);
+	if( bIsValidPath )
 	{
+		FString ExistingFilename;
+		const bool bPackageAlreadyExists = FPackageName::DoesPackageExist(PackageName, NULL, &ExistingFilename);
 		if (!bPackageAlreadyExists)
 		{
 			// Construct a filename from long package name.
 			const FString& FileExtension = bIsMapPackage ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
-			ExistingFilename = FPackageName::LongPackageNameToFilename(PackageToSave->GetName(), FileExtension);
+			ExistingFilename = FPackageName::LongPackageNameToFilename(PackageName, FileExtension);
 
 			// Check if we can use this filename.
 			FText ErrorText;
@@ -2046,8 +2167,12 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 			FinalPackageFilename = FString::Printf( TEXT("%s.%s"), *BaseFilename, *Extension );
 		}
 	}
-	else
+	else if ( bIsMapPackage )
 	{
+		// @todo Only maps should be allowed to change names at save time, for now.
+		// If this changes, there must be generic code to rename assets to the new name BEFORE saving to disk.
+		// Right now, all of this code is specific to maps
+
 		// There wont be a "not checked out from SCC but writable on disk" conflict if the package is new.
 		bOutPackageLocallyWritable = false;
 
@@ -2083,7 +2208,30 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		{
 			FString DefaultLocation = Directory;
 
-			if( FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename) )
+			bool bSaveFile = false;
+			if( UEditorEngine::IsUsingWorldAssets() )
+			{
+				FString DefaultPackagePath;
+				FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation, DefaultPackagePath);
+
+				FString PackageName;
+				bSaveFile = OpenLevelSaveAsDialog(
+					DefaultPackagePath,
+					FPaths::GetBaseFilename(FinalPackageFilename),
+					PackageName);
+
+				if (bSaveFile)
+				{
+					// Leave out the extension. It will be added below.
+					FinalPackageFilename = FPackageName::LongPackageNameToFilename(PackageName);
+				}
+			}
+			else
+			{
+				bSaveFile = FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename );
+			}
+
+			if( bSaveFile )
 			{
 				// If the supplied file name is missing an extension then give it the default package
 				// file extension.
@@ -2097,6 +2245,18 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				if ( bValidFilename )
 				{
 					bValidFilename = bIsMapPackage ? FEditorFileUtils::IsValidMapFilename( FinalPackageFilename, ErrorMessage ) : FPackageName::IsValidLongPackageName( FinalPackageFilename, false, &ErrorMessage );
+				}
+
+				if ( bValidFilename )
+				{
+					// If there is an existing world in memory that shares this name unload it now to prepare for overwrite.
+					// Don't do this if we are using save as to overwrite the current level since it will just save naturally.
+					const FString NewPackageName = FPackageName::FilenameToLongPackageName(FinalPackageFilename);
+					UPackage* ExistingPackage = FindPackage(nullptr, *NewPackageName);
+					if (ExistingPackage && ExistingPackage != PackageToSave)
+					{
+						bValidFilename = FEditorFileUtils::AttemptUnloadInactiveWorldPackage(ExistingPackage, ErrorMessage);
+					}
 				}
 
 				if ( !bValidFilename )
@@ -2135,15 +2295,12 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		}
 	}
 
-	// The name of the package
-	FString PackageName = PackageToSave->GetName();
-
 	// attempt the save
 
 	while( bAttemptSave )
 	{
 		bool bWasSuccessful = false;
-		if ( bIsMapPackage && !bUsingWorldAssets )
+		if ( bIsMapPackage )
 		{
 			// have a Helper attempt to save the map
 			SaveOutput.Log("LogFileHelpers", ELogVerbosity::Log, FString::Printf(TEXT("Saving Map: %s"), *PackageName));
@@ -2958,13 +3115,9 @@ FString FEditorFileUtils::ExtractPackageName(const FString& ObjectPath)
 
 void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages)
 {
-	// If we are saving map packages, collect all valid worlds and see if their package is dirty
-	TArray<UWorld*> Worlds;
-	EditorLevelUtils::GetWorlds(GWorld, Worlds, true);
-
-	for (int32 WorldIdx = 0; WorldIdx < Worlds.Num(); ++WorldIdx)
+	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
 	{
-		UPackage* WorldPackage = Worlds[WorldIdx]->GetOutermost();
+		UPackage* WorldPackage = WorldIt->GetOutermost();
 		if (WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0
 			&& !WorldPackage->HasAnyFlags(RF_Transient))
 		{

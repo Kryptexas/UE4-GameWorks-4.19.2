@@ -13,6 +13,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
+#include "SceneUtils.h"
 
 // ----------------------------------------------------------------------------
 
@@ -247,20 +248,20 @@ IMPLEMENT_SHADER_TYPE(,FLpvVisualiseVS,TEXT("LPVVisualise"),TEXT("VShader"),SF_V
 IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("LPVVisualise"),TEXT("PShader"),SF_Pixel);
 
 
-void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FSceneView& View) const
+void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FViewInfo& View) const
 {
-	SCOPED_DRAW_EVENT(LpvVisualise, DEC_LIGHT);
+	SCOPED_DRAW_EVENT(RHICmdList, LpvVisualise, DEC_LIGHT);
 	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);
 
-	TShaderMapRef<FLpvVisualiseVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FLpvVisualiseGS> GeometryShader(GetGlobalShaderMap());
-	TShaderMapRef<FLpvVisualisePS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FLpvVisualiseVS> VertexShader(View.ShaderMap);
+	TShaderMapRef<FLpvVisualiseGS> GeometryShader(View.ShaderMap);
+	TShaderMapRef<FLpvVisualisePS> PixelShader(View.ShaderMap);
 
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
 
-	SetGlobalBoundShaderState(RHICmdList, LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 	VertexShader->SetParameters(RHICmdList, View);
 	GeometryShader->SetParameters(RHICmdList, View);

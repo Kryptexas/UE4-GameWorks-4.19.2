@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "RenderUtils.h"
 
 class FPrimitiveDrawInterface;
 class FMaterialRenderProxy;
@@ -91,6 +92,9 @@ public:
 
 	/** Add many indices to the mesh. */
 	ENGINE_API void AddTriangles(const TArray<int32> &InIndices);
+
+	/** Adds a mesh of what's been built so far to the collector. */
+	ENGINE_API void GetMesh(const FMatrix& LocalToWorld,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup,bool bDisableBackfaceCulling, bool bReceivesDecals, int32 ViewIndex, FMeshElementCollector& Collector);
 
 	/**
 	 * Draws the mesh to the given primitive draw interface.

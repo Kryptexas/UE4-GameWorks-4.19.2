@@ -22,7 +22,7 @@ public:
 	FMessageLogViewModel( const TSharedPtr< class FMessageLogModel >& InMessageLogModel );
 
 	/** Destructor */ 
-	~FMessageLogViewModel();
+	virtual ~FMessageLogViewModel();
 
 	/** Initializes the FMessageLogViewModel for use */
 	virtual void Initialize();
@@ -76,7 +76,7 @@ public:
 	FString GetCurrentListingLabel() const;
 
 	/** Get the linearized array of ViewModels */
-	const TArray< TSharedPtr< class FMessageLogListingViewModel > >& GetLogListingViewModels() const { return ViewModelArray; }
+	const TArray<IMessageLogListingPtr>& GetLogListingViewModels() const { return ViewModelArray; }
 
 private:
 
@@ -92,7 +92,7 @@ private:
 	TMap< FName, TSharedPtr< class FMessageLogListingViewModel > > NameToViewModelMap;
 
 	/** A linearized array of the ViewModels - we need this for the data to display in a SComboBox */
-	TArray< TSharedPtr< class FMessageLogListingViewModel > > ViewModelArray;
+	TArray<IMessageLogListingPtr> ViewModelArray;
 
 	/** The currently selected log listing */
 	TSharedPtr< class FMessageLogListingViewModel > SelectedLogListingViewModel;

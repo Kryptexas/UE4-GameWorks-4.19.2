@@ -27,6 +27,8 @@ DECLARE_DELEGATE_RetVal(bool, FOnGetDisplayCurrentState);
 /** Delegate used to get the debugger's current timestamp */
 DECLARE_DELEGATE_RetVal_OneParam(float, FOnGetDebugTimeStamp, bool /* bUseCurrentState */);
 
+/** Delegate for when a blackboard key changes (added, removed, renamed) */
+DECLARE_DELEGATE_TwoParams(FOnBlackboardKeyChanged, UBlackboardData* /*InBlackboardData*/, FBlackboardEntry* const /*InKey*/);
 
 /** Displays blackboard entries */
 class SBehaviorTreeBlackboardView : public SCompoundWidget, public FGCObject
@@ -43,6 +45,7 @@ public:
 		SLATE_EVENT(FOnIsDebuggerReady, OnIsDebuggerReady)
 		SLATE_EVENT(FOnIsDebuggerPaused, OnIsDebuggerPaused)
 		SLATE_EVENT(FOnGetDebugTimeStamp, OnGetDebugTimeStamp)
+		SLATE_EVENT(FOnBlackboardKeyChanged, OnBlackboardKeyChanged)
 		SLATE_ARGUMENT(bool, IsReadOnly)
 
 	SLATE_END_ARGS()
@@ -148,6 +151,9 @@ protected:
 
 	/** Delegate used to get the debugger's current timestamp */
 	FOnGetDebugTimeStamp OnGetDebugTimeStamp;
+
+	/** Delegate for when a blackboard key changes (added, removed, renamed) */
+	FOnBlackboardKeyChanged OnBlackboardKeyChanged;
 
 	/** Whether we want to show the current or saved state */
 	bool bShowCurrentState;

@@ -83,11 +83,6 @@ FString USoundNodeWavePlayer::GetTitle() const
 }
 #endif
 
-FString USoundNodeWavePlayer::GetUniqueString() const
-{
-	return TEXT("");
-}
-
 // A Wave Player is the end of the chain and has no children
 int32 USoundNodeWavePlayer::GetMaxChildNodes() const
 {

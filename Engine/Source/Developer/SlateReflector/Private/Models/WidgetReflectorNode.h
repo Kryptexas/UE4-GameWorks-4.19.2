@@ -52,7 +52,7 @@ public:
 		for (int32 WidgetIndex=0; WidgetIndex < ArrangedChildren.Num(); ++WidgetIndex)
 		{
 			// Note that we include both visible and invisible children!
-			NewNode->ChildNodes.Add( FReflectorNode::NewTreeFrom( ArrangedChildren(WidgetIndex) )  );
+			NewNode->ChildNodes.Add( FReflectorNode::NewTreeFrom( ArrangedChildren[WidgetIndex] )  );
 		}
 
 		return NewNode;
@@ -70,11 +70,11 @@ public:
 	{
 		if (NodeIndexToFind < WidgetPathToFind.Widgets.Num())
 		{
-			const FArrangedWidget& WidgetToFind = WidgetPathToFind.Widgets(NodeIndexToFind);
+			const FArrangedWidget& WidgetToFind = WidgetPathToFind.Widgets[NodeIndexToFind];
 
 			for (int32 NodeIndex=0; NodeIndex < CandidateNodes.Num(); ++NodeIndex)
 			{
-				if (CandidateNodes[NodeIndex]->Widget.Pin() == WidgetPathToFind.Widgets(NodeIndexToFind).Widget)
+				if (CandidateNodes[NodeIndex]->Widget.Pin() == WidgetPathToFind.Widgets[NodeIndexToFind].Widget)
 				{
 					SearchResult.Add(CandidateNodes[NodeIndex]);
 					FindWidgetPath(CandidateNodes[NodeIndex]->ChildNodes, WidgetPathToFind, SearchResult, NodeIndexToFind + 1);

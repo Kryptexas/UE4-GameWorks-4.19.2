@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "Materials/MaterialExpressionWorldPosition.h"
-#include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionSpeedTree.h"
 #include "MaterialShared.h"
+#include "Materials/MaterialExpressionSpeedTree.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
 
 /** 
  * The interface used to translate material expressions into executable code. 
@@ -34,8 +34,6 @@ public:
 	virtual EMaterialQualityLevel::Type GetQualityLevel() = 0;
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() = 0;
-
-	virtual float GetRefractionDepthBiasValue() = 0;
 
 	/** 
 	 * Casts the passed in code to DestType, or generates a compile error if the cast is not valid. 
@@ -204,7 +202,6 @@ public:
 	virtual EMaterialValueType GetType(int32 Code) override { return Compiler->GetType(Code); }
 	virtual EMaterialQualityLevel::Type GetQualityLevel() override { return Compiler->GetQualityLevel(); }
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() override { return Compiler->GetFeatureLevel(); }
-	virtual float GetRefractionDepthBiasValue() override { return Compiler->GetRefractionDepthBiasValue(); }
 	virtual int32 ValidCast(int32 Code,EMaterialValueType DestType) override { return Compiler->ValidCast(Code, DestType); }
 	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) override
 	{ return Compiler->ForceCast(Code,DestType,bExactMatch,bReplicateValue); }

@@ -101,8 +101,8 @@ class ENGINE_API UWorldComposition : public UObject
 	/** Handles level is being removed from the world */
 	void OnLevelRemovedFromWorld(ULevel* InLevel);
 
-	/** @returns Level offset from zero origin, with respect to parent levels */
-	FIntPoint GetLevelOffset(ULevel* InLevel) const;
+	/** @returns Level offset from current origin, with respect to parent levels */
+	FIntVector GetLevelOffset(ULevel* InLevel) const;
 
 	/** @returns Level bounding box in current shifted space */
 	FBox GetLevelBounds(ULevel* InLevel) const;

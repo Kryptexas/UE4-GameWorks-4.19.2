@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "WidgetBlueprintLibrary.generated.h"
 
 UCLASS(MinimalAPI)
@@ -9,8 +10,28 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	GENERATED_UCLASS_BODY()
 
 	/** Creates a widget */
-	UFUNCTION(BlueprintCallable, meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", FriendlyName = "Create Widget" ), Category="User Interface|Widget")
+	UFUNCTION(BlueprintCallable, meta=( WorldContext="WorldContextObject", FriendlyName = "Create Widget", BlueprintInternalUseOnly = "true" ), Category="User Interface|Widget")
 	static class UUserWidget* Create(UObject* WorldContextObject, TSubclassOf<class UUserWidget> WidgetType, APlayerController* OwningPlayer);
+
+	UFUNCTION(BlueprintCallable, Category="User Interface|Drag and Drop", meta=( BlueprintInternalUseOnly = "true" ))
+	static UDragDropOperation* CreateDragDropOperation(TSubclassOf<UDragDropOperation> OperationClass);
+	
+
+	/** Setup an input mode that allows only the UI to respond to user input. */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	static void SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false);
+
+	/** Setup an input mode that allows only the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	static void SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false);//, bool bHideCursorDuringCapture = true);
+
+	/** Setup an input mode that allows only player input / player controller to respond to user input. */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	static void SetInputMode_GameOnly(APlayerController* Target);
+
+
+	UFUNCTION(BlueprintCallable, Category="Focus")
+	static void SetFocusToGameViewport();
 
 	/** Draws a box */
 	UFUNCTION(BlueprintCallable, Category="Painting")
@@ -39,4 +60,76 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Painting")
 	static void DrawText(UPARAM(ref) FPaintContext& Context, const FString& InString, FVector2D Position, FLinearColor Tint = FLinearColor::White);
 
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply Handled();
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply Unhandled();
+
+	UFUNCTION(BlueprintPure, meta=( HidePin="CapturingWidget", DefaultToSelf="CapturingWidget" ), Category="Widget|Event Reply")
+	static FEventReply CaptureMouse(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget);
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply ReleaseMouseCapture(UPARAM(ref) FEventReply& Reply);
+
+	UFUNCTION(BlueprintPure, meta=( HidePin="CapturingWidget", DefaultToSelf="CapturingWidget" ), Category="Widget|Event Reply")
+	static FEventReply CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks = false);
+
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks = false);
+
+	/**
+	 * Ask Slate to detect if a user started dragging in this widget.
+	 * If a drag is detected, Slate will send an OnDragDetected event.
+	 *
+	 * @param WidgetDetectingDrag  Detect dragging in this widget
+	 * @param DragKey		       This button should be pressed to detect the drag
+	 */
+	UFUNCTION(BlueprintPure, meta=( HidePin="WidgetDetectingDrag", DefaultToSelf="WidgetDetectingDrag" ), Category="Widget|Event Reply")
+	static FEventReply DetectDrag(UPARAM(ref) FEventReply& Reply, UWidget* WidgetDetectingDrag, FKey DragKey);
+
+	UFUNCTION(BlueprintCallable, meta=( HidePin="WidgetDetectingDrag", DefaultToSelf="WidgetDetectingDrag" ), Category="Widget|Event Reply")
+	static FEventReply DetectDragIfPressed(const FPointerEvent& PointerEvent, UWidget* WidgetDetectingDrag, FKey DragKey);
+
+	/**
+	 * An event should return FReply::Handled().EndDragDrop() to request that the current drag/drop operation be terminated.
+	 */
+	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	static FEventReply EndDragDrop(UPARAM(ref) FEventReply& Reply);
+
+	/**
+	 * Creates a Slate Brush from a Slate Brush Asset
+	 *
+	 * @return A new slate brush using the asset's brush.
+	 */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush MakeBrushFromAsset(USlateBrushAsset* BrushAsset);
+
+	/** 
+	 * Creates a Slate Brush from a Texture2D
+	 *
+	 * @param Width  When less than or equal to zero, the Width of the brush will default to the Width of the Texture
+	 * @param Height  When less than or equal to zero, the Height of the brush will default to the Height of the Texture
+	 *
+	 * @return A new slate brush using the texture.
+	 */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush MakeBrushFromTexture(UTexture2D* Texture, int32 Width = 0, int32 Height = 0);
+
+	/**
+	 * Creates a Slate Brush from a Material.  Materials don't have an implicit size, so providing a widget and height
+	 * is required to hint slate with how large the image wants to be by default.
+	 *
+	 * @return A new slate brush using the material.
+	 */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush MakeBrushFromMaterial(UMaterialInterface* Material, int32 Width = 32, int32 Height = 32);
+
+	/**
+	 * Creates a Slate Brush that wont draw anything, the "Null Brush".
+	 *
+	 * @return A new slate brush that wont draw anything.
+	 */
+	UFUNCTION(BlueprintPure, Category="Widget|Brush")
+	static FSlateBrush NoResourceBrush();
 };

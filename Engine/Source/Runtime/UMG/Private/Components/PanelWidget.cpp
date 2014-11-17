@@ -18,15 +18,18 @@ UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UPanelWidget::ReleaseNativeWidget()
+void UPanelWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
+	if ( bReleaseChildren )
 	{
-		if ( Slots[SlotIndex]->Content != NULL )
+		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
 		{
-			Slots[SlotIndex]->ReleaseNativeWidget();
+			if ( Slots[SlotIndex]->Content != NULL )
+			{
+				Slots[SlotIndex]->ReleaseSlateResources(bReleaseChildren);
+			}
 		}
 	}
 }
@@ -73,10 +76,17 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 
 UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 {
+	if ( Content == nullptr )
+	{
+		return NULL;
+	}
+
 	if ( !bCanHaveMultipleChildren && GetChildrenCount() > 0 )
 	{
 		return NULL;
 	}
+
+	Content->RemoveFromParent();
 
 	UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
 	Slot->SetFlags(RF_Transactional);
@@ -105,7 +115,7 @@ void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 		Content->Slot = Slot;
 	}
 
-	Slot->SyncronizeProperties();
+	Slot->SynchronizeProperties();
 }
 
 void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
@@ -119,6 +129,9 @@ void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 	{
 		Content->Slot = Slot;
 	}
+
+	// Only allow inserting within the valid range of slots (and one more than the size).
+	Index = FMath::Clamp(Index, 0, FMath::Max(Slots.Num(), 1));
 
 	Slots.Insert(Slot, Index);
 
@@ -134,6 +147,35 @@ bool UPanelWidget::RemoveChild(UWidget* Content)
 	}
 
 	return false;
+}
+
+bool UPanelWidget::HasAnyChildren() const
+{
+	return GetChildrenCount() > 0;
+}
+
+void UPanelWidget::ClearChildren()
+{
+	int32 Children = GetChildrenCount();
+	for ( int32 ChildIndex = 0; ChildIndex < Children; ChildIndex++ )
+	{
+		RemoveChildAt(0);
+	}
+}
+
+void UPanelWidget::SetIsDesignTime(bool bInDesignTime)
+{
+	Super::SetIsDesignTime(bInDesignTime);
+
+	// Also mark all children as design time widgets.
+	int32 Children = GetChildrenCount();
+	for ( int32 SlotIndex = 0; SlotIndex < Children; SlotIndex++ )
+	{
+		if ( Slots[SlotIndex]->Content != NULL )
+		{
+			Slots[SlotIndex]->Content->SetIsDesignTime(bInDesignTime);
+		}
+	}
 }
 
 void UPanelWidget::PostLoad()

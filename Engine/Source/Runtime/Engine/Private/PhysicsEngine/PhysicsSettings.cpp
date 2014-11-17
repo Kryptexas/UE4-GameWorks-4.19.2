@@ -6,6 +6,7 @@ UPhysicsSettings::UPhysicsSettings(const class FPostConstructInitializePropertie
 	: Super(PCIP)
 	, DefaultGravityZ(-980.f)
 	, DefaultTerminalVelocity(4000.f)
+	, DefaultFluidFriction(0.3f)
 	, bEnableAsyncScene(false)
 	, bEnable2DPhysics(false)
 	, MaxPhysicsDeltaTime(1.f / 30.f)

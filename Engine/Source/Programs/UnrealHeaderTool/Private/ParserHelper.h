@@ -11,24 +11,6 @@ extern class FCompilerMetadataManager GScriptHelper;
 	FPropertyBase.
 -----------------------------------------------------------------------------*/
 
-enum EPropertyReferenceType
-{
-	/** no reference */
-	CPRT_None					=0,
-
-	/** we're referencing this property in order to assign a value to it */
-	CPRT_AssignValue			=1,
-
-	/** we're referencing this property's value in such a way that doesn't require it be initialized (if checks, iterators, etc.) */
-	CPRT_SimpleReference		=2,
-
-	/** we're referecning this property's value in such a away that requires it to be initialized (assigning to another property, using in a function call, etc) */
-	CPRT_AssignmentReference	=3,
-
-	/** we're referencing this property in a way that both changes its value and references the value (combination of CPRT_AssignmentReference and CPRT_AssignValue) */
-	CPRT_DualReference			=4,
-};
-
 enum EFunctionExportFlags
 {
 	FUNCEXPORT_Final			=0x00000001,	// function declaration included "final" keyword.  Used to differentiate between functions that have FUNC_Final only because they're private
@@ -121,14 +103,12 @@ public:
 	/** Map of key value pairs that will be added to the package's UMetaData for this property */
 	TMap<FName, FString> MetaData;
 
-	EPropertyReferenceType ReferenceType;
-
 	EPointerType::Type PointerType;
 
 public:
 	/** @name Constructors */
 	//@{
-	FPropertyBase( EPropertyType InType, EPropertyReferenceType InRefType = CPRT_None )
+	explicit FPropertyBase(EPropertyType InType)
 	: Type               (InType)
 	, ArrayType          (EArrayType::None)
 	, PropertyFlags      (0)
@@ -138,13 +118,12 @@ public:
 	, MetaClass          (NULL)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
-	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
 	{
 	}
 
-	FPropertyBase( UEnum* InEnum, EPropertyReferenceType InRefType = CPRT_None )
-	: Type               (CPT_Byte)
+	explicit FPropertyBase(UEnum* InEnum, EPropertyType InType)
+	: Type               (InType)
 	, ArrayType          (EArrayType::None)
 	, PropertyFlags      (0)
 	, RefQualifier       (ERefQualifier::None)
@@ -153,12 +132,11 @@ public:
 	, MetaClass          (NULL)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
-	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
 	{
 	}
 
-	FPropertyBase( UClass* InClass, UClass* InMetaClass=NULL, EPropertyReferenceType InRefType = CPRT_None, bool bAllowWeak = false, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
+	explicit FPropertyBase(UClass* InClass, UClass* InMetaClass=NULL, bool bAllowWeak = false, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
 	: Type               (CPT_ObjectReference)
 	, ArrayType          (EArrayType::None)
 	, PropertyFlags      (0)
@@ -168,7 +146,6 @@ public:
 	, MetaClass          (InMetaClass)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
-	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
 	{
 		// if this is an interface class, we use the UInterfaceProperty class instead of UObjectProperty
@@ -216,7 +193,7 @@ public:
 		}
 	}
 
-	FPropertyBase( UScriptStruct* InStruct, EPropertyReferenceType InRefType = CPRT_None )
+	explicit FPropertyBase(UScriptStruct* InStruct)
 	: Type               (CPT_Struct)
 	, ArrayType          (EArrayType::None)
 	, PropertyFlags      (0)
@@ -226,12 +203,11 @@ public:
 	, MetaClass          (NULL)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
-	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
 	{
 	}
 
-	FPropertyBase( UProperty* Property, EPropertyReferenceType InRefType = CPRT_None )
+	explicit FPropertyBase(UProperty* Property)
 	: PropertyExportFlags(PROPEXPORT_Public)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
@@ -392,7 +368,6 @@ public:
 		ArrayType     = ArrType;
 		PropertyFlags = Property->PropertyFlags | PropagateFlags;
 		RefQualifier  = ERefQualifier::None;
-		ReferenceType = InRefType;
 		PointerType   = EPointerType::None;
 	}
 	//@}
@@ -470,8 +445,7 @@ public:
 				return false;
 			}
 		}
-		else if ( (Type == CPT_ObjectReference || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference) && Other.Type != CPT_Interface
-			&&	(ReferenceType == CPRT_AssignmentReference || ReferenceType == CPRT_DualReference || (PropertyFlags & CPF_ReturnParm)))
+		else if ((Type == CPT_ObjectReference || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference) && Other.Type != CPT_Interface && (PropertyFlags & CPF_ReturnParm))
 		{
 			bReverseClassChainCheck = false;
 		}
@@ -612,8 +586,6 @@ public:
 	//@}
 
 	static const TCHAR* GetPropertyTypeText( EPropertyType Type );
-
-	static const TCHAR* GetPropertyRefText( EPropertyReferenceType Type );
 };
 
 //
@@ -727,28 +699,34 @@ public:
 	}
 
 	// Constructors.
-	FToken() : FPropertyBase(CPT_None, CPRT_None), TokenProperty(NULL)
+	FToken()
+		: FPropertyBase(CPT_None)
+		, TokenProperty(NULL)
 	{
-		InitToken(CPT_None, CPRT_None);
-	}
-	FToken( EPropertyReferenceType InRefType )
-	: FPropertyBase( CPT_None, InRefType ), TokenProperty(NULL)
-	{
-		InitToken( CPT_None, InRefType );
+		InitToken(CPT_None);
 	}
 
 	// copy constructors
-	FToken( const FPropertyBase& InType )
-	: FPropertyBase( CPT_None, InType.ReferenceType ), TokenProperty(NULL)
+	explicit FToken(EPropertyType InType)
+		: FPropertyBase(InType)
+		, TokenProperty(NULL)
 	{
-		InitToken( CPT_None, InType.ReferenceType );
+		InitToken(InType);
+	}
+
+	// copy constructors
+	FToken(const FPropertyBase& InType)
+		: FPropertyBase(CPT_None)
+		, TokenProperty(NULL)
+	{
+		InitToken( CPT_None );
 		(FPropertyBase&)*this = InType;
 	}
 
 	// Inlines.
-	void InitToken( EPropertyType InType, EPropertyReferenceType InRefType = CPRT_None )
+	void InitToken( EPropertyType InType )
 	{
-		(FPropertyBase&)*this = FPropertyBase(InType, InRefType);
+		(FPropertyBase&)*this = FPropertyBase(InType);
 		TokenType		= TOKEN_None;
 		TokenName		= NAME_None;
 		StartPos		= 0;
@@ -847,11 +825,11 @@ public:
 	FString Describe()
 	{
 		return FString::Printf(
-			TEXT("Property:%s  Type:%s  TokenName:%s  ConstValue:%s  Struct:%s  Flags:%lli  RefType:%s"),
+			TEXT("Property:%s  Type:%s  TokenName:%s  ConstValue:%s  Struct:%s  Flags:%lli"),
 			TokenProperty!=NULL?*TokenProperty->GetName():TEXT("NULL"),
 			GetPropertyTypeText(Type), *TokenName.ToString(), *GetConstantValue(),
 			Struct!=NULL?*Struct->GetName():TEXT("NULL"),
-			PropertyFlags, GetPropertyRefText(ReferenceType)
+			PropertyFlags
 			);
 	}
 };

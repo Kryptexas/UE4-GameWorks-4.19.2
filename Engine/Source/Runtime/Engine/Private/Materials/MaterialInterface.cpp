@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/SubsurfaceProfile.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -16,6 +17,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bDistortionRelevance = bDistortion;
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
+	OutViewRelevance.bSubsurfaceProfileRelevance = bSubsurfaceProfile;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -36,11 +38,11 @@ void UMaterialInterface::PostLoad()
 	PostLoadDefaultMaterials();
 }
 
-FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Material) const
+FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	if(Material)
 	{
-		const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
+		const FMaterialResource* MaterialResource = Material->GetMaterialResource(InFeatureLevel);
 		const bool bIsTranslucent = IsTranslucentBlendMode((EBlendMode)GetBlendMode());
 		const bool bIsLit = GetShadingModel() != MSM_Unlit;
 		// Determine the material's view relevance.
@@ -51,6 +53,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;
+		MaterialRelevance.bSubsurfaceProfile = (Material->MaterialDomain == MD_Surface) && !bIsTranslucent && (Material->GetShadingModel() == MSM_SubsurfaceProfile);
 		return MaterialRelevance;
 	}
 	else
@@ -59,19 +62,19 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 	}
 }
 
-FMaterialRelevance UMaterialInterface::GetRelevance() const
+FMaterialRelevance UMaterialInterface::GetRelevance(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// Find the interface's concrete material.
 	const UMaterial* Material = GetMaterial();
-	return GetRelevance_Internal(Material);
+	return GetRelevance_Internal(Material, InFeatureLevel);
 }
 
-FMaterialRelevance UMaterialInterface::GetRelevance_Concurrent() const
+FMaterialRelevance UMaterialInterface::GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// Find the interface's concrete material.
 	TMicRecursionGuard RecursionGuard;
 	const UMaterial* Material = GetMaterial_Concurrent(RecursionGuard);
-	return GetRelevance_Internal(Material);
+	return GetRelevance_Internal(Material, InFeatureLevel);
 }
 
 int32 UMaterialInterface::GetWidth() const
@@ -89,7 +92,7 @@ void UMaterialInterface::SetForceMipLevelsToBeResident( bool OverrideForceMiplev
 {
 	TArray<UTexture*> Textures;
 	
-	GetUsedTextures(Textures, EMaterialQualityLevel::Num, false);
+	GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 	for ( int32 TextureIndex=0; TextureIndex < Textures.Num(); ++TextureIndex )
 	{
 		UTexture2D* Texture = Cast<UTexture2D>(Textures[TextureIndex]);
@@ -217,7 +220,7 @@ bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* C
 	}
 
 	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true);
+	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
 	for (int32 i = 0; i < Textures.Num(); i++)
 	{
 		if (Textures[i] == CheckTexture)
@@ -321,7 +324,84 @@ void UMaterialInterface::SetFeatureLevelToCompile(ERHIFeatureLevel::Type Feature
 	}
 }
 
+uint32 UMaterialInterface::FeatureLevelsForAllMaterials = 0;
+
+void UMaterialInterface::SetGlobalRequiredFeatureLevel(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile)
+{
+	uint32 FeatureLevelBit = (1 << FeatureLevel);
+	if (bShouldCompile)
+	{
+		FeatureLevelsForAllMaterials |= FeatureLevelBit;
+	}
+	else
+	{
+		FeatureLevelsForAllMaterials &= (~FeatureLevelBit);
+	}
+}
+
+
 uint32 UMaterialInterface::GetFeatureLevelsToCompileForRendering() const
 {
-	return FeatureLevelsToForceCompile | (1 << GRHIFeatureLevel);
+	return FeatureLevelsToForceCompile | GetFeatureLevelsToCompileForAllMaterials();
+}
+
+
+void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
+{
+	// no 0 pointer
+	check(&Proxy);
+
+	EMaterialShadingModel MaterialShadingModel = GetShadingModel_Internal();
+
+	// for better performance we only update SubsurfaceProfileRT if the feature is used
+	if (MaterialShadingModel == MSM_SubsurfaceProfile)
+	{
+		FSubsurfaceProfileStruct Settings;
+
+		USubsurfaceProfile* LocalSubsurfaceProfile = GetSubsurfaceProfile_Internal();
+		
+		if (LocalSubsurfaceProfile)
+		{
+			Settings = LocalSubsurfaceProfile->Settings;
+		}
+
+		// this can be improved, it doesn't support Renderer hot reload
+		{
+			static bool bFirst = true;
+
+			if (bFirst)
+			{
+				bFirst = false;
+
+				static const FName RendererModuleName("Renderer");
+				IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
+
+				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+					UpdateMaterialRenderProxySubsurfaceSetup,
+					IRendererModule&, RendererModule, RendererModule,
+					{
+					GSubsufaceProfileTextureObject.SetRendererModule(&RendererModule);
+				});
+			}
+		}
+
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+				UpdateMaterialRenderProxySubsurface,
+				const FSubsurfaceProfileStruct, Settings, Settings,
+				USubsurfaceProfilePointer, LocalSubsurfaceProfile, (USubsurfaceProfilePointer)LocalSubsurfaceProfile,
+				FMaterialRenderProxy&, Proxy, Proxy,
+			{
+				uint32 AllocationId = 0;
+
+				if (LocalSubsurfaceProfile)
+				{
+					AllocationId = GSubsufaceProfileTextureObject.AddOrUpdateProfile(Settings, LocalSubsurfaceProfile);
+
+					check(AllocationId >= 0 && AllocationId <= 255);
+				}
+				Proxy.SetSubsurfaceProfileRT(LocalSubsurfaceProfile);
+			});
+		}
+	}
 }

@@ -18,9 +18,9 @@ UGameplayAbility_Montage::UGameplayAbility_Montage(const class FPostConstructIni
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Server;
 }
 
-void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!CommitAbility(ActorInfo, ActivationInfo))
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		return;
 	}

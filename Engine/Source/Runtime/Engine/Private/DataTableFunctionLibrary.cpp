@@ -26,6 +26,29 @@ void UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* CurveTable, F
     }
 }
 
+bool UDataTableFunctionLibrary::Generic_GetDataTableRowFromName(UDataTable* Table, FName RowName, void* OutRowPtr)
+{
+	bool bFoundRow = false;
+
+	if (OutRowPtr && Table)
+	{
+		void* RowPtr = Table->FindRowUnchecked(RowName);
+
+		if (RowPtr != NULL)
+		{
+			UScriptStruct* StructType = Table->RowStruct;
+
+			if (StructType != NULL)
+			{
+				StructType->CopyScriptStruct(OutRowPtr, RowPtr);
+				bFoundRow = true;
+			}
+		}
+	}
+
+	return bFoundRow;
+}
+
 bool UDataTableFunctionLibrary::GetDataTableRowFromName(UDataTable* Table, FName RowName, FTableRowBase& OutRow)
 {
 	// We should never hit this!  stubs to avoid NoExport on the class.

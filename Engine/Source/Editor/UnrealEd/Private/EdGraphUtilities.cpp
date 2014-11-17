@@ -16,17 +16,11 @@ struct FGraphObjectTextFactory : public FCustomizableTextObjectFactory
 public:
 	TSet<UEdGraphNode*> SpawnedNodes;
 	const UEdGraph* DestinationGraph;
-	const UEdGraphSchema* DestinationSchema;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
 		, DestinationGraph(InDestinationGraph)
-		, DestinationSchema(NULL)
 	{
-		if (DestinationGraph != NULL)
-		{
-			DestinationSchema = DestinationGraph->Schema->GetDefaultObject<UEdGraphSchema>();
-		}
 	}
 
 protected:
@@ -36,9 +30,9 @@ protected:
 		{
 			if (DefaultNode->CanDuplicateNode())
 			{
-				if (DestinationSchema != NULL)
+				if (DestinationGraph != NULL)
 				{
-					if (DefaultNode->CanCreateUnderSpecifiedSchema(DestinationSchema))
+					if (DefaultNode->CanCreateUnderSpecifiedSchema(DestinationGraph->GetSchema()))
 					{
 						return true;
 					}
@@ -57,10 +51,10 @@ protected:
 	{
 		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
 		{
-			if(!Node->CanPasteHere(DestinationGraph, DestinationSchema))
+			if(!Node->CanPasteHere(DestinationGraph))
 			{
 				// Attempt to create a substitute node if it cannot be pasted (note: the return value can be NULL, indicating that the node cannot be pasted into the graph)
-				Node = DestinationSchema->CreateSubstituteNode(Node, DestinationGraph, &InstanceGraph);
+				Node = DestinationGraph->GetSchema()->CreateSubstituteNode(Node, DestinationGraph, &InstanceGraph);
 			}
 
 			if(Node != CreatedObject)

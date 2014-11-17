@@ -4,12 +4,21 @@
 
 #include "Overlay.generated.h"
 
-UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UOverlay : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	UOverlaySlot* AddChildToOverlay(UWidget* Content);
+
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
+#endif
 
 protected:
 

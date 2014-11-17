@@ -7,8 +7,10 @@ p4 edit $THIRD_PARTY_CHANGELIST lib/IOS/...
 
 # compile Mac
 
-# @todo: the makefile stuff is a complete cluster, should we just make an Xcode project like we do for IOS?
-
+pushd Builds/mac
+xcodebuild -sdk macosx clean
+xcodebuild -sdk macosx
+cp build/Release/libfreetype.a ../../lib/Mac/libfreetype2412.a
 
 # compile IOS (NOTE the lib rename below when we update versions)
 pushd Builds/IOS

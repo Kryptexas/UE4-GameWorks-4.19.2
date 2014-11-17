@@ -45,10 +45,13 @@ void SGraphNodeFormatText::CreateInputSideAddButton(TSharedPtr<SVerticalBox> Inp
 										NSLOCTEXT("FormatTextNode", "FormatTextNodeAddPinButton_Tooltip", "Adds an argument to the node"),
 										false);
 
+	FMargin AddPinPadding = Settings->GetInputPinPadding();
+	AddPinPadding.Top += 6.0f;
+
 	InputBox->AddSlot()
 	.AutoHeight()
 	.VAlign(VAlign_Center)
-	.Padding(10,10,10,4)
+	.Padding(AddPinPadding)
 	[
 		AddPinButton
 	];

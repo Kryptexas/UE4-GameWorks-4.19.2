@@ -7,7 +7,7 @@
 
 UScrollBoxSlot::UScrollBoxSlot(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, Slot(NULL)
+	, Slot(nullptr)
 {
 	HorizontalAlignment = HAlign_Fill;
 }
@@ -18,7 +18,7 @@ void UScrollBoxSlot::BuildSlot(TSharedRef<SScrollBox> ScrollBox)
 		.Padding(Padding)
 		.HAlign(HorizontalAlignment)
 		[
-			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
+			Content == nullptr ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
 }
 
@@ -40,14 +40,14 @@ void UScrollBoxSlot::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAli
 	}
 }
 
-void UScrollBoxSlot::SyncronizeProperties()
+void UScrollBoxSlot::SynchronizeProperties()
 {
 	SetPadding(Padding);
 	SetHorizontalAlignment(HorizontalAlignment);
 }
 
-void UScrollBoxSlot::ReleaseNativeWidget()
+void UScrollBoxSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
-	Slot = NULL;
+	Super::ReleaseSlateResources(bReleaseChildren);
+	Slot = nullptr;
 }

@@ -17,7 +17,8 @@ class CORE_API FPageAllocator
 public:
 	enum
 	{
-		PageSize = 64 * 1024
+		PageSize = 64 * 1024,
+		SmallPageSize = 1024
 	};
 	FORCEINLINE static void *Alloc()
 	{
@@ -30,13 +31,24 @@ public:
 		TheAllocator.Free(Mem);
 		STAT(UpdateStats());
 	}
+	FORCEINLINE static void *AllocSmall()
+	{
+		void *Result = TheSmallAllocator.Allocate();
+		STAT(UpdateStats());
+		return Result;
+	}
+	FORCEINLINE static void FreeSmall(void *Mem)
+	{
+		TheSmallAllocator.Free(Mem);
+		STAT(UpdateStats());
+	}
 	static uint64 BytesUsed()
 	{
-		return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize;
+		return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize + uint64(TheSmallAllocator.GetNumUsed().GetValue()) * SmallPageSize;
 	}
 	static uint64 BytesFree()
 	{
-		return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize;
+		return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize + uint64(TheSmallAllocator.GetNumFree().GetValue()) * SmallPageSize;
 	}
 private:
 
@@ -44,6 +56,7 @@ private:
 	static void UpdateStats();
 #endif
 	static TLockFreeFixedSizeAllocator<PageSize, FThreadSafeCounter> TheAllocator;
+	static TLockFreeFixedSizeAllocator<SmallPageSize, FThreadSafeCounter> TheSmallAllocator;
 };
 
 /**
@@ -136,7 +149,11 @@ public:
 	{
 		FTaggedMemory* Next;
 		int32 DataSize;
-		uint8 Data[1];
+
+		uint8 *Data() const
+		{
+			return ((uint8*)this) + sizeof(FTaggedMemory);
+		}
 	};
 
 private:

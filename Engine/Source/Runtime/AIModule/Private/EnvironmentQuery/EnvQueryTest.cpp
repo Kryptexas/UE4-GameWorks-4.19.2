@@ -11,7 +11,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest::UEnvQueryTest(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	TestPurpose = EEnvTestPurpose::FilterAndScore;
 	FilterType = EEnvTestFilterType::Range;
@@ -30,7 +30,7 @@ UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCI
 	bDiscardFailedItems = true;					// DEPRECATED
 }
 
-void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 {
 	if (!IsScoring())
 	{
@@ -176,26 +176,26 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 	}
 }
 
-bool UEnvQueryTest::IsContextPerItem(TSubclassOf<class UEnvQueryContext> CheckContext) const
+bool UEnvQueryTest::IsContextPerItem(TSubclassOf<UEnvQueryContext> CheckContext) const
 {
 	return CheckContext == UEnvQueryContext_Item::StaticClass();
 }
 
-FVector UEnvQueryTest::GetItemLocation(struct FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
+FVector UEnvQueryTest::GetItemLocation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeVectorCDO ?
 		QueryInstance.ItemTypeVectorCDO->GetLocation(QueryInstance.RawData.GetTypedData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		FVector::ZeroVector;
 }
 
-FRotator UEnvQueryTest::GetItemRotation(struct FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
+FRotator UEnvQueryTest::GetItemRotation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeVectorCDO ?
 		QueryInstance.ItemTypeVectorCDO->GetRotation(QueryInstance.RawData.GetTypedData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		FRotator::ZeroRotator;
 }
 
-AActor* UEnvQueryTest::GetItemActor(struct FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
+AActor* UEnvQueryTest::GetItemActor(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeActorCDO ?
 		QueryInstance.ItemTypeActorCDO->GetActor(QueryInstance.RawData.GetTypedData() + QueryInstance.Items[ItemIndex].DataOffset) :
@@ -298,13 +298,15 @@ void UEnvQueryTest::PostLoad()
 	bFormatUpdated = true;
 }
 
-#if WITH_EDITOR
+#if WITH_EDITOR && USE_EQS_DEBUGGER
 void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+#if USE_EQS_DEBUGGER
 	UEnvQueryManager::NotifyAssetUpdate(NULL);
+#endif
 }
-#endif //WITH_EDITOR
+#endif //WITH_EDITOR && USE_EQS_DEBUGGER
 
 FText UEnvQueryTest::DescribeFloatTestParams() const
 {

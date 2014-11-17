@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "Curves/CurveEdPresetCurve.h"
 /**
  *	UCurveEdPresetCurve
  */

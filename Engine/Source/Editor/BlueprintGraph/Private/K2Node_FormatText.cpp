@@ -2,12 +2,14 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "Kismet/KismetTextLibrary.h"
 #include "Editor/GraphEditor/Public/DiffResults.h"
 #include "Kismet2NameValidators.h"
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_FormatText"
 
@@ -27,7 +29,7 @@ UK2Node_FormatText::UK2Node_FormatText(const class FPostConstructInitializePrope
 	: Super(PCIP)
 	, CachedFormatPin(NULL)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Builds a formatted string using available specifier values. Use {} to denote specifiers.").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Builds a formatted string using available specifier values. Use {} to denote specifiers.");
 }
 
 void UK2Node_FormatText::AllocateDefaultPins()
@@ -155,7 +157,7 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 	}
 }
 
-FString UK2Node_FormatText::GetTooltip() const
+FText UK2Node_FormatText::GetTooltipText() const
 {
 	return NodeTooltip;
 }
@@ -375,12 +377,24 @@ UEdGraphPin* UK2Node_FormatText::GetFormatPin() const
 	return CachedFormatPin;
 }
 
-void UK2Node_FormatText::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_FormatText::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_FormatText::GetMenuCategory() const

@@ -6,45 +6,40 @@
 UNavRelevantComponent::UNavRelevantComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	bNavigationRelevant = true;
-	Bounds = FBox::BuildAABB(FVector::ZeroVector, FVector(100.0f, 100.0f, 100.0f));
 }
 
 void UNavRelevantComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	AActor* MyOwner = GetOwner();
-	if (MyOwner)
-	{
-		Bounds.ShiftBy(MyOwner->GetActorLocation());
-		MyOwner->UpdateNavigationRelevancy();
-	}
+	CalcBounds();
+
+	UNavigationSystem::OnComponentRegistered(this);
 }
 
 void UNavRelevantComponent::OnUnregister()
 {
 	Super::OnUnregister();
 
-	if (GetOwner())
-	{
-		GetOwner()->UpdateNavigationRelevancy();
-	}
+	UNavigationSystem::OnComponentUnregistered(this);
 }
 
-
-void UNavRelevantComponent::OnOwnerRegistered()
+FBox UNavRelevantComponent::GetNavigationBounds() const
 {
-
+	return Bounds;
 }
 
-void UNavRelevantComponent::OnOwnerUnregistered()
+bool UNavRelevantComponent::IsNavigationRelevant() const
 {
-
+	return bNavigationRelevant;
 }
 
-void UNavRelevantComponent::OnApplyModifiers(FCompositeNavModifier& Modifiers)
+void UNavRelevantComponent::CalcBounds()
 {
+	AActor* OwnerActor = GetOwner();
+	const FVector MyLocation = OwnerActor ? OwnerActor->GetActorLocation() : FVector::ZeroVector;
 
+	Bounds = FBox::BuildAABB(MyLocation, FVector(100.0f, 100.0f, 100.0f));
 }
 
 void UNavRelevantComponent::SetNavigationRelevancy(bool bRelevant)
@@ -52,33 +47,11 @@ void UNavRelevantComponent::SetNavigationRelevancy(bool bRelevant)
 	if (bNavigationRelevant != bRelevant)
 	{
 		bNavigationRelevant = bRelevant;
-
-		if (bRelevant)
-		{
-			OnOwnerRegistered();
-		}
-		else
-		{
-			OnOwnerUnregistered();
-		}
-
 		RefreshNavigationModifiers();
 	}
 }
 
 void UNavRelevantComponent::RefreshNavigationModifiers()
 {
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	if (NavSys && GetOwner())
-	{
-		INavRelevantActorInterface* NavRelevantOwner = InterfaceCast<INavRelevantActorInterface>(GetOwner());
-		if (NavRelevantOwner && NavRelevantOwner->DoesSupplyPerComponentNavigationCollision())
-		{
-			NavSys->UpdateNavOctree(this, UNavigationSystem::OctreeUpdate_Modifiers);
-		}
-		else
-		{
-			NavSys->UpdateNavOctree(GetOwner(), UNavigationSystem::OctreeUpdate_Modifiers);
-		}
-	}
+	UNavigationSystem::UpdateNavOctree(this);
 }

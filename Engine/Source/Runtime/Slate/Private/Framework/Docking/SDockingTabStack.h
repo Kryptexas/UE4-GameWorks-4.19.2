@@ -36,7 +36,7 @@ public:
 	void AddTabWidget( const TSharedRef<SDockTab>& InTab, int32 AtLocation = INDEX_NONE);
 
 	/** @return All child tabs in this node */
-	const TArray< TSharedRef<SDockTab> >& GetTabs() const;
+	const TSlotlessChildren<SDockTab>& GetTabs() const;
 	
 	/** @return How many tabs are in this node */
 	int32 GetNumTabs() const;
@@ -114,7 +114,8 @@ protected:
 	enum ETabsToClose
 	{
 		CloseDocumentTabs,
-		CloseDocumentsAndTools
+		CloseDocumentAndMajorTabs,
+		CloseAllTabs
 	};
 	/**
 	 * Close all the background tabs.
@@ -173,6 +174,12 @@ private:
 
 	/** Only allow hiding the tab well when there is a single tab in it. */
 	bool CanHideTabWell() const;
+
+	/** Only allow closing the tab well when the tab allows it. */
+	bool CanCloseForegroundTab() const;
+
+	/** Only allow closing all other tabs when there are more then one tab open and the tab is of type Document or Major. */
+	bool CanCloseAllButForegroundTab() const;
 
 	/** Keep around our geometry from the last frame so that we can resize the preview windows correctly */
 	FGeometry TabStackGeometry;

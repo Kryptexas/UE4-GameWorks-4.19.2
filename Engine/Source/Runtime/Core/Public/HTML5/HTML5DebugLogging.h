@@ -29,7 +29,7 @@ extern "C" {
  * stack will be omitted. */
 #define EM_LOG_NO_PATHS 64
 
-/*
+/**
  * Prints out a message to the console, optionally with the 
  * callstack information.
  * @param flags A binary OR of items from the list of EM_LOG_xxx 
@@ -39,7 +39,7 @@ extern "C" {
  */
 void emscripten_log(int flags, ...);
 
-/*
+/**
  * Programmatically obtains the current callstack.
  * @param flags    A binary OR of items from the list of EM_LOG_xxx 
  *                    flags that specify printing options. The 

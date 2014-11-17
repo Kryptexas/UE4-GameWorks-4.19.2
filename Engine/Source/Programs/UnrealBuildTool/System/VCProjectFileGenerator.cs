@@ -575,6 +575,7 @@ namespace UnrealBuildTool
 											{
 												// UBT gets a pass because it is a dependency of every single configuration combination
 												if( CurProject != UBTProject &&
+													!CurProject.ShouldBuildForAllSolutionTargets &&
 													TargetConfigurationName != TargetRules.TargetType.Game.ToString() )
 												{
 													// Can't build non-generated project in configurations except for the default (Game)
@@ -761,16 +762,24 @@ namespace UnrealBuildTool
 
 
 			// Save a solution config file which selects the development editor configuration by default.
-			if (bSuccess && ProjectFileFormat == VCProjectFileFormat.VisualStudio2013)
+			if (bSuccess)
 			{
 				VCSolutionConfigCombination DefaultConfig = SolutionConfigCombinations.Find(x => x.Configuration == UnrealTargetConfiguration.Development && x.Platform == UnrealTargetPlatform.Win64 && x.TargetConfigurationName == "Editor");
 				if (DefaultConfig != null)
 				{
-					string SolutionOptionsFileName = Path.Combine(MasterProjectRelativePath, Path.ChangeExtension(SolutionFileName, "v12.suo"));
+					// Figure out the filename for the SUO file. VS2013 will automatically import the VS2012 options if necessary.
+					string SolutionOptionsExtension = (ProjectFileFormat == VCProjectFileFormat.VisualStudio2012)? "v11.suo" : "v12.suo";
+
+					// Check it doesn't exist before overwriting it. Since these files store the user's preferences, it'd be bad form to overwrite them.
+					string SolutionOptionsFileName = Path.Combine(MasterProjectRelativePath, Path.ChangeExtension(SolutionFileName, SolutionOptionsExtension));
 					if(!File.Exists(SolutionOptionsFileName))
 					{
 						VCSolutionOptions Options = new VCSolutionOptions();
 						Options.SolutionConfiguration.Add(new VCBinarySetting("ActiveCfg", DefaultConfig.VCSolutionConfigAndPlatformName));
+						if(DefaultProject != null)
+						{
+							Options.SolutionConfiguration.Add(new VCBinarySetting("StartupProject", ((MSBuildProjectFile)DefaultProject).ProjectGUID.ToString("B")));
+						}
 						Options.Write(SolutionOptionsFileName);
 					}
 				}

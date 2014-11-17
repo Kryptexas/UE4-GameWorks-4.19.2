@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_AssetUserData.h"
-
 #include "ActorComponent.generated.h"
+
+struct FReplicationFlags;
 
 UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
@@ -78,6 +78,9 @@ public:
 
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
 	uint32 bHasBeenCreated:1;
+
+	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
+	uint32 bHasBeenInitialized:1;
 
 	UFUNCTION()
 	void OnRep_IsActive();
@@ -253,6 +256,12 @@ public:
 	 * Requires component to be registered, and bWantsInitializeComponent to be TRUE.
 	 */
 	virtual void InitializeComponent();
+
+	/**
+	 * Ends gameplay for this component.
+	 * Called from AActor::EndPlay only if bHasBeenInitialized is true
+	 */
+	virtual void UninitializeComponent();
 
 	/**
 	 * When called, will call the virtual call chain to register all of the tick functions
@@ -480,6 +489,22 @@ public:
 
 	/** Changes the ticking group for this component */
 	void SetTickGroup(ETickingGroup NewTickGroup);
+
+	/** Make this component tick after PrerequisiteActor */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void AddTickPrerequisiteActor(AActor* PrerequisiteActor);
+
+	/** Make this component tick after PrerequisiteComponent. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void AddTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
+
+	/** Remove tick dependency on PrerequisiteActor. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void RemoveTickPrerequisiteActor(AActor* PrerequisiteActor);
+
+	/** Remove tick dependency on PrerequisiteComponent. */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
+	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
 
 	/** 
 	 *  Called by owner actor on position shifting

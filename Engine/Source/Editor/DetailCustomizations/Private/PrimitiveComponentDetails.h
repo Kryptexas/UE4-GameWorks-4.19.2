@@ -36,5 +36,8 @@ private:
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
 	TSharedPtr<IPropertyHandle> LockedAxisProperty;
 	EVisibility IsCustomLockedAxisSelected() const;
+
+	bool IsAutoWeldEditable() const;
+	EVisibility IsAutoWeldVisible() const;
 };
 

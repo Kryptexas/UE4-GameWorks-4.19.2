@@ -9,24 +9,7 @@ void SDocumentationAnchor::Construct(const FArguments& InArgs )
 {
 	Link = InArgs._Link;
 	
-	struct StringToText_Local
-	{
-		static FText PassThroughAttribute( TAttribute<FString> StringAttribute )
-		{
-			return FText::FromString( StringAttribute.Get( FString() ) );
-		}
-	};
-
-	TAttribute<FText> ToolTipText;
-	if ( InArgs._ToolTipText.IsBound() )
-	{
-		ToolTipText = TAttribute< FText >::Create( TAttribute< FText >::FGetter::CreateStatic( &StringToText_Local::PassThroughAttribute, InArgs._ToolTipText ) );
-	}
-	else
-	{
-		ToolTipText = FText::FromString( InArgs._ToolTipText.Get( FString() ) );
-	}
-
+	TAttribute<FText> ToolTipText = InArgs._ToolTipText;
 	if ( !ToolTipText.IsBound() && ToolTipText.Get().IsEmpty() )
 	{
 		ToolTipText = NSLOCTEXT("DocumentationAnchor", "DefaultToolTip", "Click to open documentation");

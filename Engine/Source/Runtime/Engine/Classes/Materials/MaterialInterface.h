@@ -27,6 +27,7 @@ enum EMaterialUsage
 	MATUSAGE_Landscape,
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
+	MATUSAGE_UI,
 	MATUSAGE_MAX,
 };
 
@@ -53,6 +54,9 @@ struct ENGINE_API FMaterialRelevance
 	UPROPERTY()
 		uint32 bDisableDepthTest : 1;
 
+	UPROPERTY()
+		uint32 bSubsurfaceProfile : 1;
+
 	/** Default constructor. */
 	FMaterialRelevance()
 		: bOpaque(false)
@@ -61,6 +65,7 @@ struct ENGINE_API FMaterialRelevance
 		, bSeparateTranslucency(false)
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)
+		, bSubsurfaceProfile(false)
 	{}
 
 	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
@@ -72,6 +77,7 @@ struct ENGINE_API FMaterialRelevance
 		bSeparateTranslucency |= B.bSeparateTranslucency;
 		bNormalTranslucency |= B.bNormalTranslucency;
 		bDisableDepthTest |= B.bDisableDepthTest;
+		bSubsurfaceProfile |= B.bSubsurfaceProfile;
 		return *this;
 	}
 
@@ -162,6 +168,12 @@ class UMaterialInterface : public UObject, public IBlendableInterface
 {
 	GENERATED_UCLASS_BODY()
 
+	/** SubsurfaceProfile, for Screen Space Subsurface Scattering */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Material, meta = (DisplayName = "Subsurface Profile"))
+	class USubsurfaceProfile* SubsurfaceProfile;
+
+	/* -------------------------- */
+
 	/** A fence to track when the primitive is no longer used as a parent */
 	FRenderCommandFence ParentRefFence;
 
@@ -178,7 +190,7 @@ public:
 	FStringAssetReference PreviewMesh;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 private:
@@ -192,9 +204,14 @@ private:
 	/** Feature levels to force to compile. */
 	uint32 FeatureLevelsToForceCompile;
 
+	/** Feature level bitfield to compile for all materials */
+	static uint32 FeatureLevelsForAllMaterials;
 public:
-	/** Set which feature levels the preview material should compile. GRHIFeatureLevel is always compiled! */
+	/** Set which feature levels this material instance should compile. GMaxRHIFeatureLevel is always compiled! */
 	ENGINE_API void SetFeatureLevelToCompile(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
+
+	/** Set which feature levels _all_ materials should compile to. GMaxRHIFeatureLevel is always compiled. */
+	ENGINE_API static void SetGlobalRequiredFeatureLevel(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
 
 	// Begin UObject interface.
 	ENGINE_API virtual void BeginDestroy() override;
@@ -252,7 +269,7 @@ public:
 	virtual UPhysicalMaterial* GetPhysicalMaterial() const PURE_VIRTUAL(UMaterialInterface::GetPhysicalMaterial,return NULL;);
 
 	/** Return the textures used to render this material. */
-	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const 
+	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const
 		PURE_VIRTUAL(UMaterialInterface::GetUsedTextures,);
 
 	/**
@@ -261,7 +278,7 @@ public:
 	 * @param InTextureToOverride The texture to override
 	 * @param OverrideTexture The new texture to use
 	 */
-	virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) PURE_VIRTUAL(UMaterialInterface::OverrideTexture,return;);
+	virtual void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
 
 	/**
 	 * Checks if the material can be used with the given usage flag.  
@@ -319,11 +336,11 @@ public:
 		PURE_VIRTUAL(UMaterialInterface::GetTerrainLayerWeightParameterValue,return false;);
 
 	/** @return The material's relevance. */
-	ENGINE_API FMaterialRelevance GetRelevance() const;
+	ENGINE_API FMaterialRelevance GetRelevance(ERHIFeatureLevel::Type InFeatureLevel) const;
 	/** @return The material's relevance, from concurrent render thread updates. */
-	ENGINE_API FMaterialRelevance GetRelevance_Concurrent() const;
+	ENGINE_API FMaterialRelevance GetRelevance_Concurrent(ERHIFeatureLevel::Type InFeatureLevel) const;
 private:
-	ENGINE_API FMaterialRelevance GetRelevance_Internal(const UMaterial* Material) const;
+	ENGINE_API FMaterialRelevance GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const;
 public:
 
 	int32 GetWidth() const;
@@ -517,6 +534,8 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 	ENGINE_API virtual bool IsMasked_Internal() const;
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const { return 0; }
+
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and
 	 * instead always load all mip-levels for all textures used by this material.
@@ -565,9 +584,15 @@ public:
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
 
+	/** Get bitfield indicating which feature levels should be compiled by default */
+	ENGINE_API static uint32 GetFeatureLevelsToCompileForAllMaterials() { return FeatureLevelsForAllMaterials | (1 << GMaxRHIFeatureLevel); }
+
 protected:
-	/** Returns a bitfield indicating which feature levels should be compiled for rendering. */
+
+	/** Returns a bitfield indicating which feature levels should be compiled for rendering. GMaxRHIFeatureLevel is always present */
 	ENGINE_API uint32 GetFeatureLevelsToCompileForRendering() const;
+
+	void UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy);
 
 private:
 	/**

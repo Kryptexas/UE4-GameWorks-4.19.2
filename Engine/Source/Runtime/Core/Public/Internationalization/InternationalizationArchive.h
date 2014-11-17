@@ -4,7 +4,7 @@
 
 #include "Internationalization/InternationalizationManifest.h"
 
-class FArchiveEntry
+class CORE_API FArchiveEntry
 {
 public:
 	FArchiveEntry( const FString& InNamespace, const FLocItem& InSource, const FLocItem& InTranslation, TSharedPtr<FLocMetadataObject> InKeyMetadataObj = NULL, bool IsOptional = false );
@@ -37,9 +37,23 @@ typedef TMultiMap< FString, TSharedRef< FArchiveEntry >, FDefaultSetAllocator, F
 class CORE_API FInternationalizationArchive 
 {
 	friend class IInternationalizationArchiveSerializer;
-	friend class FInternationalizationArchivetJsonSerializer;
-
+	friend class FInternationalizationArchiveJsonSerializer;
 public:
+	enum EFormatVersion
+	{
+		Initial = 0,
+		EscapeFixes,
+
+		LatestPlusOne,
+		Latest = LatestPlusOne - 1
+	};
+
+	FInternationalizationArchive()
+		: FormatVersion(static_cast<int32>(EFormatVersion::Latest))
+	{
+
+	}
+
 	TArchiveEntryContainer::TConstIterator GetEntryIterator() const;
 
 	bool AddEntry( const FString& Namespace, const FLocItem& Source, const FLocItem& Translation, const TSharedPtr<FLocMetadataObject> KeyMetadataObj, const bool bOptional );
@@ -54,13 +68,19 @@ public:
 		return EntriesBySourceText.Num();
 	}
 
-private:
+	void UpdateEntry(const TSharedRef<FArchiveEntry>& OldEntry, const TSharedRef<FArchiveEntry>& NewEntry);
 
+	void SetFormatVersion(const EFormatVersion Version)
+	{
+		FormatVersion = static_cast<int>(Version);
+	}
+
+	EFormatVersion GetFormatVersion() const
+	{
+		return EFormatVersion(FormatVersion);
+	}
+
+private:
+	int32 FormatVersion;
 	TArchiveEntryContainer EntriesBySourceText;
 };
-
-
-
-
-
-

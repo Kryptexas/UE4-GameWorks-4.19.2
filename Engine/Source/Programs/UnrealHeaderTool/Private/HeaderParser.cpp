@@ -337,6 +337,11 @@ namespace
 		{
 			FError::Throwf(TEXT("SealedEvent may only be used on events"));
 		}
+
+		if (FuncInfo.bSealedEvent && FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
+		{
+			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
+		}
 	}
 }
 	
@@ -545,34 +550,55 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	TArray<FPropertySpecifier> SpecifiersFound;
 	ReadSpecifierSetInsideMacro(SpecifiersFound, TEXT("Enum"), EnumToken.MetaData);
 
-	// Check enum type. This can be global 'enum' or 'namespace' enum.
-	FToken EnumType;
-	if (!GetIdentifier(EnumType) || (!EnumType.Matches(TEXT("enum"), ESearchCase::CaseSensitive) && !EnumType.Matches(TEXT("namespace"), ESearchCase::CaseSensitive)))
-	{
-		FError::Throwf(TEXT("UENUM() should be followed by \'enum\' or \'namespace\' keywords.") );
-	}
-	bool bInNamespace = EnumType.Matches(TEXT("namespace"));
-
 	FScriptLocation DeclarationPosition;
 
-	// Get enumeration name.
+	// Check enum type. This can be global 'enum', 'namespace' or 'enum class' enums.
+	bool            bReadEnumName = false;
+	UEnum::ECppForm CppForm       = UEnum::ECppForm::Regular;
 	if (!GetIdentifier(EnumToken))
 	{
-		if (bInNamespace)
+		FError::Throwf(TEXT("Missing identifier after UENUM()") );
+	}
+
+	if (EnumToken.Matches(TEXT("namespace"), ESearchCase::CaseSensitive))
+	{
+		CppForm      = UEnum::ECppForm::Namespaced;
+		bReadEnumName = GetIdentifier(EnumToken);
+	}
+	else if (EnumToken.Matches(TEXT("enum"), ESearchCase::CaseSensitive))
+	{
+		if (!GetIdentifier(EnumToken))
 		{
-			FError::Throwf(TEXT("Missing enumeration namespace name") );
+			FError::Throwf(TEXT("Missing identifier after enum") );
+		}
+
+		if (EnumToken.Matches(TEXT("class"), ESearchCase::CaseSensitive) || EnumToken.Matches(TEXT("struct"), ESearchCase::CaseSensitive))
+		{
+			CppForm       = UEnum::ECppForm::EnumClass;
+			bReadEnumName = GetIdentifier(EnumToken);
 		}
 		else
 		{
-			FError::Throwf(TEXT("Missing enumeration name") );
+			CppForm       = UEnum::ECppForm::Regular;
+			bReadEnumName = true;
 		}
+	}
+	else
+	{
+		FError::Throwf(TEXT("UENUM() should be followed by \'enum\' or \'namespace\' keywords.") );
+	}
+
+	// Get enumeration name.
+	if (!bReadEnumName)
+	{
+		FError::Throwf(TEXT("Missing enumeration name") );
 	}
 
 	// Verify that the enumeration definition is unique within this scope.
-	UField* Existing = FindField( Scope, EnumToken.Identifier );
-	if ((Existing != NULL) && (Existing->GetOuter() == Scope))
+	UField* Existing = FindField(Scope, EnumToken.Identifier);
+	if (Existing && Existing->GetOuter() == Scope)
 	{
-		FError::Throwf(TEXT("enum: '%s' already defined here"), *EnumToken.TokenName.ToString() );
+		FError::Throwf(TEXT("enum: '%s' already defined here"), *EnumToken.TokenName.ToString());
 	}
 
 	CheckObscures(Scope, EnumToken.Identifier, EnumToken.Identifier);
@@ -586,25 +612,52 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	// Validate the metadata for the enum
 	ValidateMetaDataFormat(Enum, EnumToken.MetaData);
 
+	// Read optional base for enum class
+	if (CppForm == UEnum::ECppForm::EnumClass && MatchSymbol(TEXT(":")))
+	{
+		FToken BaseToken;
+		if (!GetIdentifier(BaseToken))
+		{
+			FError::Throwf(TEXT("Missing enum base") );
+		}
+
+		// We only support uint8 at the moment, until the properties get updated
+		if (FCString::Strcmp(BaseToken.Identifier, TEXT("uint8")))
+		{
+			FError::Throwf(TEXT("Only enum bases of type uint8 are currently supported"));
+		}
+
+		GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
+	}
+
 	// Get opening brace.
 	RequireSymbol( TEXT("{"), TEXT("'Enum'") );
 
-	if (bInNamespace)
+	switch (CppForm)
 	{
-		// Now handle the inner true enum portion
-		RequireIdentifier(TEXT("enum"), TEXT("'Enum'"));
-
-		FToken InnerEnumToken;
-		if (!GetIdentifier(InnerEnumToken))
+		case UEnum::ECppForm::Namespaced:
 		{
-			FError::Throwf(TEXT("Missing enumeration name") );
-		}
-		else
-		{
-			Enum->ActualEnumNameInsideNamespace = InnerEnumToken.Identifier;
-		}
+			// Now handle the inner true enum portion
+			RequireIdentifier(TEXT("enum"), TEXT("'Enum'"));
 
-		RequireSymbol( TEXT("{"), TEXT("'Enum'") );
+			FToken InnerEnumToken;
+			if (!GetIdentifier(InnerEnumToken))
+			{
+				FError::Throwf(TEXT("Missing enumeration name") );
+			}
+
+			Enum->CppType = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, InnerEnumToken.Identifier);
+
+			RequireSymbol( TEXT("{"), TEXT("'Enum'") );
+		}
+		break;
+
+		case UEnum::ECppForm::Regular:
+		case UEnum::ECppForm::EnumClass:
+		{
+			Enum->CppType = EnumToken.Identifier;
+		}
+		break;
 	}
 
 	// List of all metadata generated for this enum
@@ -649,51 +702,58 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 
 		int32 iFound;
 		FName NewTag;
-		if (bInNamespace)
+		switch (CppForm)
 		{
-			NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add, true);
+			case UEnum::ECppForm::Namespaced:
+			case UEnum::ECppForm::EnumClass:
+			{
+				NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add, true);
+			}
+			break;
+
+			case UEnum::ECppForm::Regular:
+			{
+				NewTag = FName(TagToken.Identifier, FNAME_Add, true);
+			}
+			break;
 		}
-		else
-		{
-			NewTag = FName(TagToken.Identifier, FNAME_Add, true);
-		}
+
 		if (EnumNames.Find(NewTag, iFound))
 		{
 			FError::Throwf(TEXT("Duplicate enumeration tag %s"), TagToken.Identifier );
 		}
-		else if (CurrentEnumValue > 255)
+
+		if (CurrentEnumValue > 255)
 		{
 			FError::Throwf(TEXT("Exceeded maximum of 255 enumerators") );
 		}
-		else
+
+		UEnum* FoundEnum = NULL;
+		if (UEnum::LookupEnumName(NewTag, &FoundEnum) != INDEX_NONE)
 		{
-			UEnum* FoundEnum = NULL;
-			if (UEnum::LookupEnumName(NewTag, &FoundEnum) != INDEX_NONE)
-			{
-				FError::Throwf(TEXT("Enumeration tag '%s' already in use by enum '%s'"), TagToken.Identifier, *FoundEnum->GetPathName());
-			}
-
-			// Make sure the enum names array is tightly packed by inserting dummies
-			//@TODO: UCREMOVAL: Improve the UEnum system so we can have loosely packed values for e.g., bitfields
-			for (int32 DummyIndex = EnumNames.Num(); DummyIndex < CurrentEnumValue; ++DummyIndex)
-			{
-				FString DummyName              = FString::Printf(TEXT("UnusedSpacer_%d"), DummyIndex);
-				FString DummyNameWithNamespace = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, *DummyName);
-				EnumNames.Add(FName(*DummyNameWithNamespace));
-
-				// These ternary operators are the correct way around, believe it or not.
-				// Spacers are qualified with the ETheEnum:: when they're not namespaced in order to prevent spacer name clashes.
-				// They're not qualified when they're actually in a namespace.
-				InsertMetaDataPair(EnumValueMetaData, (bInNamespace ? DummyName : DummyNameWithNamespace) + TEXT(".Hidden"), TEXT(""));
-				InsertMetaDataPair(EnumValueMetaData, (bInNamespace ? DummyName : DummyNameWithNamespace) + TEXT(".Spacer"), TEXT(""));
-			}
-
-			// Save the new tag
-			EnumNames.Add( NewTag );
-
-			// Autoincrement the current enumerant value
-			CurrentEnumValue++;
+			FError::Throwf(TEXT("Enumeration tag '%s' already in use by enum '%s'"), TagToken.Identifier, *FoundEnum->GetPathName());
 		}
+
+		// Make sure the enum names array is tightly packed by inserting dummies
+		//@TODO: UCREMOVAL: Improve the UEnum system so we can have loosely packed values for e.g., bitfields
+		for (int32 DummyIndex = EnumNames.Num(); DummyIndex < CurrentEnumValue; ++DummyIndex)
+		{
+			FString DummyName              = FString::Printf(TEXT("UnusedSpacer_%d"), DummyIndex);
+			FString DummyNameWithQualifier = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, *DummyName);
+			EnumNames.Add(FName(*DummyNameWithQualifier));
+
+			// These ternary operators are the correct way around, believe it or not.
+			// Spacers are qualified with the ETheEnum:: when they're regular enums in order to prevent spacer name clashes.
+			// They're not qualified when they're actually in a namespace or are enum classes.
+			InsertMetaDataPair(EnumValueMetaData, ((CppForm != UEnum::ECppForm::Regular) ? DummyName : DummyNameWithQualifier) + TEXT(".Hidden"), TEXT(""));
+			InsertMetaDataPair(EnumValueMetaData, ((CppForm != UEnum::ECppForm::Regular) ? DummyName : DummyNameWithQualifier) + TEXT(".Spacer"), TEXT(""));
+		}
+
+		// Save the new tag
+		EnumNames.Add( NewTag );
+
+		// Autoincrement the current enumerant value
+		CurrentEnumValue++;
 
 		// check for metadata on this enum value
 		ParseFieldMetaData(TagToken.MetaData, TagToken.Identifier);
@@ -735,27 +795,24 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	RequireSymbol( TEXT("}"), TEXT("'Enum'") );
 	MatchSemi();
 
-	if (bInNamespace)
+	if (CppForm == UEnum::ECppForm::Namespaced)
 	{
 		// Trailing brace for the namespace.
 		RequireSymbol( TEXT("}"), TEXT("'Enum'") );
 	}
 
 	// Register the list of enum names.
-	if (!Enum->SetEnums(EnumNames, bInNamespace))
+	if (!Enum->SetEnums(EnumNames, CppForm))
 	{
-		const FName MaxEnumItem = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
+		const FName MaxEnumItem      = *(Enum->GenerateEnumPrefix() + TEXT("_MAX"));
 		const int32 MaxEnumItemIndex = Enum->FindEnumIndex(MaxEnumItem);
 		if (MaxEnumItemIndex != INDEX_NONE)
 		{
 			ReturnToLocation(EnumTagLocations[MaxEnumItemIndex], false, true);
 			FError::Throwf(TEXT("Illegal enumeration tag specified.  Conflicts with auto-generated tag '%s'"), *MaxEnumItem.ToString());
 		}
-		else
-		{
-			FError::Throwf(TEXT("Unable to generate enum MAX entry '%s' due to name collision"), *MaxEnumItem.ToString());
-		}
-		///return NULL;
+
+		FError::Throwf(TEXT("Unable to generate enum MAX entry '%s' due to name collision"), *MaxEnumItem.ToString());
 	}
 
 	return Enum;
@@ -1122,18 +1179,17 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	if (!Scope->HasAnyClassFlags(CLASS_Temporary))
 	{
 		UField* Existing = FindField(Scope, *EffectiveStructName);
-		if ((Existing != NULL) && (Existing->GetOuter() == Scope))
+		if (Existing && Existing->GetOuter() == Scope)
 		{
 			FError::Throwf(TEXT("struct: '%s' already defined here"), *EffectiveStructName);
 		}
-		else if (FindObject<UClass>(ANY_PACKAGE, *EffectiveStructName) != NULL)
+
+		if (FindObject<UClass>(ANY_PACKAGE, *EffectiveStructName) != NULL)
 		{
 			FError::Throwf(TEXT("struct: '%s' conflicts with class name"), *EffectiveStructName);
 		}
-		else
-		{
-			CheckObscures(Scope, StructNameInScript, EffectiveStructName);
-		}
+
+		CheckObscures(Scope, StructNameInScript, EffectiveStructName);
 	}
 
 	// Get optional superstruct.
@@ -2431,7 +2487,12 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("NonPIETransient"))
 			{
-				Flags |= CPF_NonPIETransient;
+				UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
+				Flags |= CPF_NonPIEDuplicateTransient;
+			}
+			else if (Specifier == TEXT("NonPIEDuplicateTransient"))
+			{
+				Flags |= CPF_NonPIEDuplicateTransient;
 			}
 			else if (Specifier == TEXT("Export"))
 			{
@@ -2439,7 +2500,7 @@ bool FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("EditInline"))
 			{
-				Flags |= CPF_EditInline;
+				FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
 			}
 			else if (Specifier == TEXT("NoClear"))
 			{
@@ -2654,7 +2715,8 @@ bool FHeaderParser::GetVarType
 		}
 		FError::Throwf(TEXT("%s: Missing variable type"), Thing );
 	}
-	else if ( VarType.Matches(TEXT("int8")) )
+
+	if ( VarType.Matches(TEXT("int8")) )
 	{
 		VarProperty = FPropertyBase(CPT_Int8);
 	}
@@ -2794,7 +2856,7 @@ bool FHeaderParser::GetVarType
 		// Eat the forward declaration enum text if present
 		MatchIdentifier(TEXT("enum"));
 
-		bool bFailedToFindEnum = true;
+		bool bFoundEnum = false;
 
 		FToken InnerEnumType;
 		if (GetIdentifier(InnerEnumType, true))
@@ -2802,9 +2864,9 @@ bool FHeaderParser::GetVarType
 			if (UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, InnerEnumType.Identifier))
 			{
 				// In-scope enumeration.
-				VarProperty = FPropertyBase(Enum);
-				bFailedToFindEnum = false;
-			}	
+				VarProperty = FPropertyBase(Enum, CPT_Byte);
+				bFoundEnum  = true;
+			}
 		}
 
 		// Try to handle namespaced enums
@@ -2818,18 +2880,24 @@ bool FHeaderParser::GetVarType
 			}
 		}
 
-		if (bFailedToFindEnum)
+		if (!bFoundEnum)
 		{
 			FError::Throwf(TEXT("Expected the name of a previously defined enum"));
 		}
 
 		RequireSymbol(TEXT(">"), VarType.Identifier, ESymbolParseOption::CloseTemplateBracket);
 	}
-	else if (UEnum* Enum = FindObject<UEnum>( ANY_PACKAGE, VarType.Identifier ))
+	else if (UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, VarType.Identifier))
 	{
+		EPropertyType UnderlyingType = CPT_Byte;
+
 		if (VariableCategory == EVariableCategory::Member)
 		{
-			FError::Throwf(TEXT("You cannot use the raw enum name as a type for member variables, instead use TEnumAsByte<%s>."), VarType.Identifier);
+			auto* UnderlyingType = GEnumUnderlyingTypes.Find(Enum);
+			if (!UnderlyingType || *UnderlyingType != CPT_Byte)
+			{
+				FError::Throwf(TEXT("You cannot use the raw enum name as a type for member variables, instead use TEnumAsByte or a C++11 enum class with an explicit underlying type (currently only uint8 supported)."), *Enum->CppType);
+			}
 		}
 
 		// Try to handle namespaced enums
@@ -2844,7 +2912,7 @@ bool FHeaderParser::GetVarType
 		}
 
 		// In-scope enumeration.
-		VarProperty = FPropertyBase(Enum);
+		VarProperty            = FPropertyBase(Enum, UnderlyingType);
 		bUnconsumedEnumKeyword = false;
 	}
 	else
@@ -3005,7 +3073,7 @@ bool FHeaderParser::GetVarType
 				CheckInScope( TempClass );
 
 				bool bAllowWeak = !(Disallow & CPF_AutoWeak); // if it is not allowing anything, force it strong. this is probably a function arg
-				VarProperty = FPropertyBase( TempClass, NULL, CPRT_None, bAllowWeak, bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
+				VarProperty = FPropertyBase( TempClass, NULL, bAllowWeak, bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
 				if (TempClass->IsChildOf(UClass::StaticClass()))
 				{
 					if ( MatchSymbol(TEXT("<")) )
@@ -3205,6 +3273,11 @@ bool FHeaderParser::GetVarType
 	}
 
 	// Perform some more specific validation on the property flags
+	if ((VarProperty.PropertyFlags & CPF_EditInline) && VarProperty.Type != CPT_ObjectReference)
+	{
+		FError::Throwf(TEXT("'Instanced' is only allowed on object property (or array of objects)"));
+	}
+
 	if ( VarProperty.IsObject() && VarProperty.MetaClass == NULL && (VarProperty.PropertyFlags&CPF_Config) != 0 )
 	{
 		FError::Throwf(TEXT("Not allowed to use 'config' with object variables"));
@@ -3222,12 +3295,12 @@ bool FHeaderParser::GetVarType
 
 	if ((VarProperty.PropertyFlags & CPF_BlueprintCallable) && VarProperty.Type != CPT_MulticastDelegate)
 	{
-		FError::Throwf(TEXT("'BlueprintCallable' is only allowed on multicast delegate properties"));
+		FError::Throwf(TEXT("'BlueprintCallable' is only allowed on a property when it is a multicast delegate"));
 	}
 
 	if ((VarProperty.PropertyFlags & CPF_BlueprintAuthorityOnly) && VarProperty.Type != CPT_MulticastDelegate)
 	{
-		FError::Throwf(TEXT("'BlueprintAuthorityOnly' is only allowed on multicast delegate properties"));
+		FError::Throwf(TEXT("'BlueprintAuthorityOnly' is only allowed on a property when it is a multicast delegate"));
 	}
 	
 	if (VariableCategory != EVariableCategory::Member)
@@ -3237,7 +3310,7 @@ bool FHeaderParser::GetVarType
 	}
 
 	// Check for invalid transients
-	uint64 Transients = VarProperty.PropertyFlags & (CPF_DuplicateTransient | CPF_TextExportTransient | CPF_NonPIETransient);
+	uint64 Transients = VarProperty.PropertyFlags & (CPF_DuplicateTransient | CPF_TextExportTransient | CPF_NonPIEDuplicateTransient);
 	if (Transients && !Cast<UClass>(Scope))
 	{
 		TArray<const TCHAR*> FlagStrs = ParsePropertyFlags(Transients);
@@ -3909,7 +3982,7 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 
 			if (Nest < 0)
 			{
-				FError::Throwf(TEXT("Unexpected '}'. Didn't you miss a semi-colon?"));
+				FError::Throwf(TEXT("Unexpected '}'. Did you miss a semi-colon?"));
 			}
 		}
 		else if (bMacroDeclaration && Nest == 0)
@@ -3937,7 +4010,12 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 				// Not a variable name.
 				UngetToken(VariableName);
 			}
+			else if (!SafeMatchSymbol(TEXT(";")))
+			{
+				FError::Throwf(*FString::Printf(TEXT("Unexpected '%s'. Did you miss a semi-colon?"), VariableName.Identifier));
+			}
 		}
+
 		// C++ allows any number of ';' after member declaration/definition.
 		while (SafeMatchSymbol(TEXT(";")));
 	}
@@ -4235,7 +4313,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 		{
 			FError::Throwf(TEXT("The dependsOn specifier is deprecated. Please use proper #include instead."));
 
-			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
+			// Make sure the syntax matches but don't do anything with it;
 			RequireSpecifierValue(PropSpecifier);
 		}
 		else if (Specifier == TEXT("MinimalAPI"))
@@ -4665,7 +4743,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 
 		if (Specifier == TEXT("DependsOn"))
 		{
-			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
+			// Make sure the syntax matches but don't do anything with it
 			RequireSpecifierValue(*SpecifierIt);
 		}
 		else if (Specifier == TEXT("MinimalAPI"))
@@ -5068,6 +5146,41 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 	FFuncInfo FuncInfo;
 	FuncInfo.FunctionFlags = FUNC_Native;
+
+	// Infer the function's access level from the currently declared C++ access level
+	if (CurrentAccessSpecifier == ACCESS_Public)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Public;
+	}
+	else if (CurrentAccessSpecifier == ACCESS_Protected)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Protected;
+	}
+	else if (CurrentAccessSpecifier == ACCESS_Private)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Private;
+		FuncInfo.FunctionFlags |= FUNC_Final;
+
+		// This is automatically final as well, but in a different way and for a different reason
+		bAutomaticallyFinal = false;
+	}
+	else
+	{
+		FError::Throwf(TEXT("Unknown access level"));
+	}
+
+	// non-static functions in a const class must be const themselves
+	if (Class->HasAnyClassFlags(CLASS_Const))
+	{
+		FuncInfo.FunctionFlags |= FUNC_Const;
+	}
+
+	if (MatchIdentifier(TEXT("static")))
+	{
+		FuncInfo.FunctionFlags |= FUNC_Static;
+		FuncInfo.FunctionExportFlags |= FUNCEXPORT_CppStatic;
+	}
+
 	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
 
 	if( (FuncInfo.FunctionFlags & FUNC_BlueprintPure) && Class->HasAnyClassFlags(CLASS_Interface) )
@@ -5131,41 +5244,6 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 				FError::Throwf(TEXT("Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents.  Use CannotImplementInterfaceInBlueprint on the interface if you wish to keep this function."));
 			}
 		}
-	}
-	
-
-	// Infer the function's access level from the currently declared C++ access level
-	if (CurrentAccessSpecifier == ACCESS_Public)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Public;
-	}
-	else if (CurrentAccessSpecifier == ACCESS_Protected)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Protected;
-	}
-	else if (CurrentAccessSpecifier == ACCESS_Private)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Private;
-		FuncInfo.FunctionFlags |= FUNC_Final;
-
-		// This is automatically final as well, but in a different way and for a different reason
-		bAutomaticallyFinal = false;
-	}
-	else
-	{
-		FError::Throwf(TEXT("Unknown access level"));
-	}
-
-	// non-static functions in a const class must be const themselves
-	if (Class->HasAnyClassFlags(CLASS_Const))
-	{
-		FuncInfo.FunctionFlags |= FUNC_Const;
-	}
-
-	if (MatchIdentifier(TEXT("static")))
-	{
-		FuncInfo.FunctionFlags |= FUNC_Static;
-		FuncInfo.FunctionExportFlags |= FUNCEXPORT_CppStatic;
 	}
 
 	// Peek ahead to look for a CORE_API style DLL import/export token if present
@@ -5360,12 +5438,12 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 			//FError::Throwf(TEXT("'const' may only be used for native functions"));
 		}
 
-		if( (FuncInfo.FunctionFlags & (FUNC_BlueprintPure)) != 0 )
-		{
-			FError::Throwf(TEXT("Cannot mark function '%s' as both 'BlueprintPure' and 'const'"), *TopFunction->GetName());
-		}
-
 		FuncInfo.FunctionFlags |= FUNC_Const;
+
+		// @todo: the presence of const and one or more outputs does not guarantee that there are
+		// no side effects. On GCC and clang we could use __attribure__((pure)) or __attribute__((const))
+		// or we could just rely on the use marking things BlueprintPure. Either way, checking the C++
+		// const identifier to determine purity is not desirable. We should remove the following logic:
 
 		// If its a const BlueprintCallable function with some sort of output, mark it as BlueprintPure as well
 		if ( bHasAnyOutputs && ((FuncInfo.FunctionFlags & FUNC_BlueprintCallable) != 0) )
@@ -5411,6 +5489,10 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		if (Class->HasAnyClassFlags(CLASS_Interface))
 		{
 			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
+		}
+		else if (FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
+		{
+			FError::Throwf(TEXT("Blueprint events cannot be declared 'final'"));
 		}
 	}
 
@@ -5546,6 +5628,18 @@ Found:
 	if ((TopFunction->FunctionFlags & FUNC_Net) && (TopFunction->GetSuperFunction() == NULL) && Cast<UClass>(TopFunction->GetOuter()) == NULL)
 	{
 		FError::Throwf(TEXT("Function '%s': Base implementation of RPCs cannot be in a state. Add a stub outside state scope."), *TopFunction->GetName());
+	}
+
+	if (TopFunction->FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintEvent))
+	{
+		for (TFieldIterator<UProperty> It(TopFunction); It; ++It)
+		{
+			UProperty const* const Param = *It;
+			if (Param->ArrayDim > 1)
+			{
+				FError::Throwf(TEXT("Static array cannot be exposed to blueprint. Function: %s Parameter %s\n"), *TopFunction->GetName(), *Param->GetName());
+			}
+		}
 	}
 
 	// Just declaring a function, so end the nesting.
@@ -5889,7 +5983,29 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 				StructBeingBuilt->StructFlags = EStructFlags(StructBeingBuilt->StructFlags | STRUCT_HasInstancedReference);
 			}
 		}
+
+		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) && (NewProperty->ArrayDim > 1))
+		{
+			UE_LOG(LogCompile, Warning, TEXT("Static array cannot be exposed to blueprint %s.%s\n"), *Struct->GetName(), *NewProperty->GetName());
+		}
+
 	} while( MatchSymbol(TEXT(",")) );
+
+	// Optional member initializer.
+	if (MatchSymbol(TEXT("=")))
+	{
+		// Skip past the specified member initializer; we make no attempt to parse it
+		FToken SkipToken;
+		while (GetToken(SkipToken))
+		{
+			if (SkipToken.Matches(TEXT(";")))
+			{
+				// went too far
+				UngetToken(SkipToken);
+				break;
+			}
+		}
+	}
 
 	// Expect a semicolon.
 	RequireSymbol( TEXT(";"), TEXT("'variable declaration'") );
@@ -6328,10 +6444,6 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 		// Detect potentially unnecessary usage of dependson.
 		if (DependsOnClass->HasAnyClassFlags(CLASS_Parsed))
 			continue;
-
-		// Treat manual dependency on a base class as an error to detect bad habits early on.
-		if (Class->IsChildOf(DependsOnClass))
-			FError::Throwf(TEXT("%s is derived from %s - please remove the DependsOn"),*Class->GetName(),*DependsOnClass->GetName() );
 
 		// Check for circular dependency. If the DependsOnClass is dependent on the SubClass, there is one.
 		if (DependsOnClass != Class && AllClasses.IsDependentOn(DependsOnClass, Class))
@@ -6777,7 +6889,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, bool& bIsInterfa
 				bKeepPreprocessorDirectives = false;
 				bNotCPP = true;
 			}
-			else if (bIf && FParse::Command(&Str,TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str,TEXT("WITH_EDITOR")))
+			else if (bIf && (FParse::Command(&Str,TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str,TEXT("WITH_EDITOR"))))
 			{
 				Target = &ClassHeaderTextStrippedOfCppText;
 				bUnknownDirective = true;
@@ -7132,7 +7244,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			const UEnum* Enum = CastChecked<UByteProperty>(Property)->Enum;
 			if( NULL != Enum )
 			{
-				OutForm = FDefaultValueHelper::RemoveWhitespaces( CppForm );
+				OutForm = FDefaultValueHelper::GetUnqualifiedEnumValue(FDefaultValueHelper::RemoveWhitespaces(CppForm));
 				return ( INDEX_NONE != Enum->FindEnumIndex( *OutForm ) );
 			}
 			int32 Value;

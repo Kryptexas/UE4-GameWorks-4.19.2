@@ -77,4 +77,10 @@ struct FHTML5PlatformProperties
 	{
 		return true;
 	}
+
+	static FORCEINLINE bool SupportsWindowedMode()
+	{
+		return true;
+	}
+
 };

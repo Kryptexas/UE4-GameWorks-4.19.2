@@ -205,14 +205,16 @@ public:
 	/** Get category child actions for the passed in action */
 	void GetCategorySubActions(TWeakPtr<FGraphActionNode> InAction, TArray<TSharedPtr<FEdGraphSchemaAction>>& OutActions) const;
 
-	/*
+	/**
 	 * Selects an non-creation item in the list, searching by FName, deselects if name is none 
 	 *
 	 * @param	ItemName		The name of the item to select
 	 * @param	SelectInfo		The selection type
+	 * @param	SectionId		If known, the section Id to restrict the selection to, useful in the case of categories where they can exist multiple times
+	 * @param	bIsCategory		TRUE if the selection is a category, categories obey different rules and it's hard to re-select properly without this knowledge
 	 * @return					TRUE if the item was successfully selected or the tree cleared, FALSE if unsuccessful
 	 */
-	bool SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct );
+	bool SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false );
 
 	/** Expands any category with the associated name */
 	void ExpandCategory(const FString& CategoryName);
@@ -253,7 +255,7 @@ protected:
 	/** Create widget for the supplied node */
 	TSharedRef<ITableRow> MakeWidget( TSharedPtr<FGraphActionNode> InItem, const TSharedRef<STableViewBase>& OwnerTable, bool bIsReadOnly );
 
-	/*
+	/**
 	 * Called when tree item is selected 
 	 *
 	 * @param	InSelectedItem	The action node that is being selected
@@ -261,7 +263,7 @@ protected:
 	 */
 	void OnItemSelected( TSharedPtr< FGraphActionNode > InSelectedItem, ESelectInfo::Type SelectInfo );
 
-	/*
+	/**
 	 * Executes the selection delegate providing it has been bound, and the provided action node given is valid and is an action node
 	 *
 	 * @param InselectedItem	The graph action node selected

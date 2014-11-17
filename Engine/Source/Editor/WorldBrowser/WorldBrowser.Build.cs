@@ -17,7 +17,8 @@ public class WorldBrowser : ModuleRules
         );
      
         PrivateDependencyModuleNames.AddRange(
-            new string[] {    
+            new string[] {
+                "AppFramework",
                 "Core", 
                 "CoreUObject",
                 "RenderCore",

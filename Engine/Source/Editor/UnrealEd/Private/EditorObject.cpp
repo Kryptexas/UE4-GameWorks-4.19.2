@@ -10,6 +10,7 @@
 
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType.h"
+#include "InstancedFoliage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorObject, Log, All);
 

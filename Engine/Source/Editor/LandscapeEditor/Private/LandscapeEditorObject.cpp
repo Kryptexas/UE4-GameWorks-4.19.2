@@ -50,23 +50,6 @@ ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitial
 	, bUseSelectedRegion(true)
 	, bUseNegativeMask(true)
 
-	// Brush Settings:
-	, BrushRadius(2048.0f)
-	, BrushFalloff(0.5f)
-	, bUseClayBrush(false)
-
-	, AlphaBrushScale(0.5f)
-	, bAlphaBrushAutoRotate(true)
-	, AlphaBrushRotation(0.0f)
-	, AlphaBrushPanU(0.5f)
-	, AlphaBrushPanV(0.5f)
-	, AlphaTexture(NULL)
-	, AlphaTextureChannel(EColorChannel::Red)
-	, AlphaTextureSizeX(1)
-	, AlphaTextureSizeY(1)
-
-	, BrushComponentSize(1)
-
 	, PasteMode(ELandscapeToolNoiseMode::Both)
 	, bApplyToAllTargets(true)
 	, bSnapGizmo(false)
@@ -86,6 +69,23 @@ ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitial
 	, NewLandscape_Scale(100, 100, 100)
 	, ImportLandscape_Width(0)
 	, ImportLandscape_Height(0)
+
+	// Brush Settings:
+	, BrushRadius(2048.0f)
+	, BrushFalloff(0.5f)
+	, bUseClayBrush(false)
+
+	, AlphaBrushScale(0.5f)
+	, bAlphaBrushAutoRotate(true)
+	, AlphaBrushRotation(0.0f)
+	, AlphaBrushPanU(0.5f)
+	, AlphaBrushPanV(0.5f)
+	, AlphaTexture(NULL)
+	, AlphaTextureChannel(EColorChannel::Red)
+	, AlphaTextureSizeX(1)
+	, AlphaTextureSizeY(1)
+
+	, BrushComponentSize(1)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -118,19 +118,22 @@ void ULandscapeEditorObject::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		SetAlphaTexture(AlphaTexture, AlphaTextureChannel);
 	}
 
-	if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, GizmoHeightmapFilenameString))
+	if (PropertyChangedEvent.MemberProperty == NULL ||
+		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, GizmoHeightmapFilenameString))
 	{
 		GuessGizmoImportSize();
 	}
 
-	if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_QuadsPerSection) ||
+	if (PropertyChangedEvent.MemberProperty == NULL ||
+		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_QuadsPerSection) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_SectionsPerComponent) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_ComponentCount))
 	{
 		NewLandscape_ClampSize();
 	}
 
-	if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_QuadsPerSection) ||
+	if (PropertyChangedEvent.MemberProperty == NULL ||
+		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_QuadsPerSection) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_SectionsPerComponent) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_ConvertMode))
 	{
@@ -252,10 +255,10 @@ void ULandscapeEditorObject::Load()
 
 	// Gizmo History (not saved!)
 	GizmoHistories.Empty();
-	for (FActorIterator It(ParentMode->GetWorld()); It; ++It)
+	for (TActorIterator<ALandscapeGizmoActor> It(ParentMode->GetWorld()); It; ++It)
 	{
-		ALandscapeGizmoActor* Gizmo = Cast<ALandscapeGizmoActor>(*It);
-		if (Gizmo && !Gizmo->IsEditable())
+		ALandscapeGizmoActor* Gizmo = *It;
+		if (!Gizmo->IsEditable())
 		{
 			new(GizmoHistories) FGizmoHistory(Gizmo);
 		}

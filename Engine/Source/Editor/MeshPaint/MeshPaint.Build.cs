@@ -8,8 +8,9 @@ public class MeshPaint : ModuleRules
     {
 		PrivateIncludePathModuleNames.Add("AssetTools");
 
-        PrivateDependencyModuleNames.AddRange( 
-            new string[] { 
+        PrivateDependencyModuleNames.AddRange(
+            new string[] {
+                "AppFramework",
                 "Core", 
                 "CoreUObject",
                 "DesktopPlatform",

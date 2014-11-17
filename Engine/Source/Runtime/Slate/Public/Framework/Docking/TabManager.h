@@ -466,6 +466,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 				void OnTabClosing( const TSharedRef<SDockTab>& TabBeingClosed );
 				void OnDockAreaClosing( const TSharedRef<SDockingArea>& DockAreaThatIsClosing );
 				void OnTabManagerClosing();
+				bool CanTabLeaveTabWell(const TSharedRef<const SDockTab>& TabToTest) const;
 				const TArray< TWeakPtr<SDockingArea> >& GetLiveDockAreas() const;
 				/**
 				 * Notify the tab manager that the NewForegroundTab was brought to front and the BackgroundedTab was send to the background as a result.
@@ -597,6 +598,12 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		 */
 		void UpdateMainMenu(bool const bForce);
 
+		/** Provide a tab that will be the main tab and cannot be closed. */
+		void SetMainTab(const TSharedRef<const SDockTab>& InTab);
+
+		/** @return if the provided tab can be closed. */
+		bool IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const;
+
 	protected:
 		void InvokeTabForMenu( FName TabId );
 
@@ -702,6 +709,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		 * We will ignore that request them.
 		 */
 		bool bIsSavingVisualState;
+
+		/** The main tab, this tab cannot be closed. */
+		TWeakPtr<const SDockTab> MainNonCloseableTab;
 };
 
 
@@ -860,4 +870,5 @@ private:
 
 	/** Keeps track of the running-maximum number of unique parent windows in all dock areas and sub-managers during this session */
 	int32 AllAreasWindowMaxCount;
+
 };

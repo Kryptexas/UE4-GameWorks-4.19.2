@@ -148,11 +148,6 @@ void USoundNodeMature::CreateStartingConnectors()
 	InsertChildNode( ChildNodes.Num() );
 }
 
-FString USoundNodeMature::GetUniqueString() const
-{
-	return TEXT( "Mature/" );
-}
-
 void USoundNodeMature::PostLoad()
 {
 	Super::PostLoad();

@@ -726,7 +726,7 @@ void UEngine::DumpFPSChartToStatsLog( float TotalTime, float DeltaTime, int32 Nu
 		// Flush, close and delete.
 		delete OutputFile;
 
-		SendDataToPCViaUnrealConsole( TEXT("UE_PROFILER!FPSCHART:"), *(ChartName) );
+		UE_LOG( LogProfilingDebugging, Warning, TEXT( "FPS Chart (logfile) saved to %s" ), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *ChartName ) );
 	}
 #endif // ALLOW_DEBUG_FILES
 }
@@ -871,7 +871,7 @@ void UEngine::DumpFPSChartToHTML( float TotalTime, float DeltaTime, int32 NumFra
 		// Save the resulting file back to disk.
 		FFileHelper::SaveStringToFile( FPSChart, *FPSChartFilename );
 
-		SendDataToPCViaUnrealConsole( TEXT("UE_PROFILER!FPSCHART:"), *(FPSChartFilename) );
+		UE_LOG( LogProfilingDebugging, Warning, TEXT( "FPS Chart (HTML) saved to %s" ), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FPSChartFilename ) );
 	}
 	else
 	{

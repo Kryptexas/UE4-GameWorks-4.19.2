@@ -19,7 +19,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 {
 	if( InClassToReinstance != NULL )
 	{
-		SaveClassFieldMapping();
+		SaveClassFieldMapping(InClassToReinstance);
 
 		// Remember the initial CDO for the class being resinstanced
 		OriginalCDO = ClassToReinstance->GetDefaultObject();
@@ -66,10 +66,17 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 			{
 				UClass* ChildClass = *ClassIt;
 				UBlueprint* ChildBP = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
-				if( ChildBP && !ChildBP->HasAnyFlags(RF_BeingRegenerated))
+				if (ChildBP)
 				{
+					if (ChildBP->HasAnyFlags(RF_BeingRegenerated))
+					{
+						if (ChildClass->GetSuperClass() == ClassToReinstance)
+						{
+							ReparentChild(ChildClass);
+						}
+					}
 					// If this is a direct child, change the parent and relink so the property chain is valid for reinstancing
-					if( !ChildBP->HasAnyFlags(RF_NeedLoad) )
+					else if( !ChildBP->HasAnyFlags(RF_NeedLoad) )
 					{
 						if( ChildClass->GetSuperClass() == ClassToReinstance )
 						{
@@ -92,30 +99,21 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		check(GeneratingBP || GIsAutomationTesting);
 		if(GeneratingBP)
 		{
-			TArray<UObject*> AllBlueprints;
-			GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
-			for( auto BPIt = AllBlueprints.CreateIterator(); BPIt; ++BPIt )
-			{
-				UBlueprint* CurrentBP = Cast<UBlueprint>(*BPIt);
-				if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, GeneratingBP) )
-				{
-					Dependencies.Add(CurrentBP);
-				}
-			}
+			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 		}
 	}
 }
 
-void FBlueprintCompileReinstancer::SaveClassFieldMapping()
+void FBlueprintCompileReinstancer::SaveClassFieldMapping(UClass* InClassToReinstance)
 {
-	check(ClassToReinstance);
+	check(InClassToReinstance);
 
-	for(UProperty* Prop = ClassToReinstance->PropertyLink; Prop && (Prop->GetOuter() == ClassToReinstance); Prop = Prop->PropertyLinkNext)
+	for (UProperty* Prop = InClassToReinstance->PropertyLink; Prop && (Prop->GetOuter() == InClassToReinstance); Prop = Prop->PropertyLinkNext)
 	{
 		PropertyMap.Add(Prop->GetFName(), Prop);
 	}
 
-	for(auto Function : TFieldRange<UFunction>(ClassToReinstance, EFieldIteratorFlags::ExcludeSuper))
+	for (auto Function : TFieldRange<UFunction>(InClassToReinstance, EFieldIteratorFlags::ExcludeSuper))
 	{
 		FunctionMap.Add(Function->GetFName(),Function);
 	}
@@ -368,6 +366,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				NewActor->ResetPropertiesForConstruction(); // reset properties/streams
 
 				NewActor->RegisterAllComponents(); // Register native components
+
+				// Because this is an editor context it's important to use this execution guard:
+				FEditorScriptExecutionGuard ScriptGuard;
 
 				// Run the construction script, which will use the properties we just copied over
 				NewActor->ExecuteConstruction(WorldTransform, &InstanceDataCache);

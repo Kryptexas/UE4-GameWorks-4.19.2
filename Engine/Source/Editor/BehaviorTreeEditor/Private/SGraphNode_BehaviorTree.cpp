@@ -441,14 +441,11 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 										.ToolTipText( this, &SGraphNode_BehaviorTree::GetErrorMsgToolTip )
 									]
 									+SHorizontalBox::Slot()
-									.AspectRatio()
+									.AutoWidth()
+									.VAlign(VAlign_Center)
 									[
-										SNew(SOverlay)
-										+SOverlay::Slot()
-										[
-											SNew(SImage)
-											.Image(this, &SGraphNode_BehaviorTree::GetNameIcon)
-										]
+										SNew(SImage)
+										.Image(this, &SGraphNode_BehaviorTree::GetNameIcon)
 									]
 									+SHorizontalBox::Slot()
 									.Padding(FMargin(4.0f, 0.0f, 4.0f, 0.0f))
@@ -658,7 +655,7 @@ FReply SGraphNode_BehaviorTree::OnMouseUp(const FGeometry& SenderGeometry, const
 	return FReply::Unhandled();
 }
 
-TSharedPtr<SGraphNode> SGraphNode_BehaviorTree::GetSubNodeUnderCursor(const FGeometry& WidgetGeometry, const FPointerEvent& MouseEvent)
+TSharedPtr<SGraphNode> SGraphNode_BehaviorTree::GetSubNodeUnderCursor(const FGeometry& WidgetGeometry, const FPointerEvent& MouseEvent) const
 {
 	TSharedPtr<SGraphNode> ResultNode;
 
@@ -684,7 +681,7 @@ TSharedPtr<SGraphNode> SGraphNode_BehaviorTree::GetSubNodeUnderCursor(const FGeo
 		int32 HoveredIndex = SWidget::FindChildUnderMouse( ArrangedChildren, MouseEvent );
 		if ( HoveredIndex != INDEX_NONE )
 		{
-			ResultNode = StaticCastSharedRef<SGraphNode>(ArrangedChildren(HoveredIndex).Widget);
+			ResultNode = StaticCastSharedRef<SGraphNode>(ArrangedChildren[HoveredIndex].Widget);
 		}
 	}
 
@@ -1204,6 +1201,12 @@ TArray<FOverlayWidgetInfo> SGraphNode_BehaviorTree::GetOverlayWidgets(bool bSele
 	}
 
 	return Widgets;
+}
+
+TSharedRef<SGraphNode> SGraphNode_BehaviorTree::GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, MouseEvent);
+	return SubNode.IsValid() ? SubNode.ToSharedRef() : StaticCastSharedRef<SGraphNode>(AsShared());
 }
 
 #undef LOCTEXT_NAMESPACE

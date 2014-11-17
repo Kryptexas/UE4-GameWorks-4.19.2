@@ -69,9 +69,14 @@ struct FKismetUserDeclaredFunctionMetadata
 	UPROPERTY()
 	bool bCallInEditor;
 
+	/** Cached value for whether or not the graph has latent functions, positive for TRUE, zero for FALSE, and INDEX_None for undetermined */
+	UPROPERTY(transient)
+	int8 HasLatentFunctions;
+
 public:
 	FKismetUserDeclaredFunctionMetadata()
 		: InstanceTitleColor(FLinearColor::White)
+		, HasLatentFunctions(INDEX_NONE)
 	{
 	}
 };

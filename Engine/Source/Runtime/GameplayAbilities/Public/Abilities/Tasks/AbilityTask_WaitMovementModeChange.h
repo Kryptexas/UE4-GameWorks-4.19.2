@@ -5,6 +5,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMovementModeChangedDelegate, EMovementMode, NewMovementMode);
 
+class ACharacter;
+
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitMovementModeChange : public UAbilityTask
 {
@@ -20,8 +22,14 @@ public:
 
 	EMovementMode	RequiredMode;
 
-	UFUNCTION(BlueprintCallable, Category=Abilities, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	/** Wait until movement mode changes (E.g., landing) */
+	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE", FriendlyName="WaitMovementModeChange"))
 	static UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(UObject* WorldContextObject, EMovementMode NewMode);
 
 	virtual void Activate() override;
+private:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
+
+	TWeakObjectPtr<ACharacter>	MyCharacter;
 };

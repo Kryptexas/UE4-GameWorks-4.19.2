@@ -7,6 +7,12 @@
 /* SConstraintCanvas interface
  *****************************************************************************/
 
+SConstraintCanvas::SConstraintCanvas()
+: Children()
+{
+
+}
+
 void SConstraintCanvas::Construct( const SConstraintCanvas::FArguments& InArgs )
 {
 	const int32 NumSlots = InArgs.Slots.Num();
@@ -27,7 +33,7 @@ int32 SConstraintCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
-		if (SlotWidget == Children[SlotIdx].Widget)
+		if (SlotWidget == Children[SlotIdx].GetWidget())
 		{
 			Children.RemoveAt(SlotIdx);
 			return SlotIdx;
@@ -56,6 +62,8 @@ struct FSortSlotsByZOrder
 
 void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
+	CachedGeometry = AllottedGeometry;
+
 	if (Children.Num() > 0)
 	{
 		// Sort the children based on zorder.
@@ -82,6 +90,8 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			const FVector2D Alignment = CurChild.AlignmentAttr.Get();
 			const FAnchors Anchors = CurChild.AnchorsAttr.Get();
 
+			const bool AutoSize = CurChild.AutoSizeAttr.Get();
+
 			const FMargin AnchorPixels =
 				FMargin(Anchors.Minimum.X * AllottedGeometry.Size.X,
 						Anchors.Minimum.Y * AllottedGeometry.Size.Y,
@@ -91,7 +101,10 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			const bool bIsHorizontalStretch = Anchors.Minimum.X != Anchors.Maximum.X;
 			const bool bIsVerticalStretch = Anchors.Minimum.Y != Anchors.Maximum.Y;
 			
-			const FVector2D Size = FVector2D(Offset.Right, Offset.Bottom);
+			const FVector2D SlotSize = FVector2D(Offset.Right, Offset.Bottom);
+			const FVector2D WidgetDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+
+			const FVector2D Size = AutoSize ? WidgetDesiredSize : SlotSize;
 			
 			// Calculate the offset based on the pivot position.
 			FVector2D AlignmentOffset = Size * Alignment;
@@ -126,7 +139,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			// Add the information about this child to the output list (ArrangedChildren)
 			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 				// The child widget being arranged
-				CurChild.Widget,
+				CurChild.GetWidget(),
 				// Child's local position (i.e. position within parent)
 				LocalPosition,
 				// Child's size
@@ -139,8 +152,6 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 
 int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	CachedGeometry = AllottedGeometry;
-
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
@@ -150,7 +161,7 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect());
 		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 

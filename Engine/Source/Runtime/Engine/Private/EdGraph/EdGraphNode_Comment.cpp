@@ -55,9 +55,13 @@ void UEdGraphNode_Comment::PostPlacedNewNode()
 	NodeComment = NSLOCTEXT("K2Node", "CommentBlock_NewEmptyComment", "Comment").ToString();
 }
 
-FString UEdGraphNode_Comment::GetTooltip() const
+FText UEdGraphNode_Comment::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "CommentBlock_Tooltip", "Comment:\n%s").ToString(), *NodeComment);
+	if (CachedTooltip.IsOutOfDate())
+	{
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "CommentBlock_Tooltip", "Comment:\n{0}"), FText::FromString(NodeComment));
+	}
+	return CachedTooltip;
 }
 
 FString UEdGraphNode_Comment::GetDocumentationLink() const
@@ -72,9 +76,13 @@ FString UEdGraphNode_Comment::GetDocumentationExcerptName() const
 
 FText UEdGraphNode_Comment::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if(TitleType == ENodeTitleType::ListView)
+	if(TitleType == ENodeTitleType::MenuTitle)
 	{
-		return NSLOCTEXT("K2Node", "CommentBlock_Title", "Comment");
+		return NSLOCTEXT("K2Node", "NoComment_ListTitle", "Add Comment...");
+	}
+	else if(TitleType == ENodeTitleType::ListView)
+	{
+		return NSLOCTEXT("K2Node", "CommentBlock_ListTitle", "Comment");	
 	}
 
 	return FText::FromString(NodeComment);
@@ -130,6 +138,7 @@ const FCommentNodeSet& UEdGraphNode_Comment::GetNodesUnderComment() const
 void UEdGraphNode_Comment::OnRenameNode(const FString& NewName)
 {
 	NodeComment = NewName;
+	CachedTooltip.MarkDirty();
 }
 
 TSharedPtr<class INameValidatorInterface> UEdGraphNode_Comment::MakeNameValidator() const

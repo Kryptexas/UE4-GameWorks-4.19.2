@@ -28,17 +28,20 @@ UK2Node_Event* UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(UBlueprint* B
 {
 	UK2Node_Event* FoundNode = nullptr;
 
-	TArray<UK2Node_Event*> AllEvents;
-	FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
-
-	for (UK2Node_Event* EventNode : AllEvents)
+	if (CustomName != NAME_None)
 	{
-		if (EventNode->CustomFunctionName == CustomName)
+		TArray<UK2Node_Event*> AllEvents;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
+
+		for (UK2Node_Event* EventNode : AllEvents)
 		{
-			FoundNode = EventNode;
-			break;
+			if (EventNode->CustomFunctionName == CustomName)
+			{
+				FoundNode = EventNode;
+				break;
+			}
 		}
-	}
+	}	
 	return FoundNode;
 }
 
@@ -86,55 +89,63 @@ UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructIniti
 }
 
 //------------------------------------------------------------------------------
-UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+FBlueprintNodeSignature UBlueprintEventNodeSpawner::GetSpawnerSignature() const
 {
-	check(ParentGraph != nullptr);
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
-
-	UK2Node_Event* EventNode = nullptr;
-	
-	FName EventName = CustomEventName;
-	if (EventFunc != nullptr)
+	FBlueprintNodeSignature SpawnerSignature(NodeClass);
+	if (IsForCustomEvent() && !CustomEventName.IsNone())
 	{
-		check(EventFunc != nullptr);
-		EventName = EventFunc->GetFName();
-	}
-	
-	UClass* ClassOwner = Blueprint->GeneratedClass;
-	// look to see if a node for this event already exists (only one node is
-	// allowed per event, per blueprint)
-	if (EventFunc != nullptr)
-	{
-		ClassOwner = CastChecked<UClass>(EventFunc->GetOuter());
-		EventNode  = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventName);
+		static const FName CustomSignatureKey(TEXT("CustomEvent"));
+		SpawnerSignature.AddNamedValue(CustomSignatureKey, CustomEventName.ToString());
 	}
 	else
 	{
-		EventNode  = UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(Blueprint, EventName);
+		SpawnerSignature.AddSubObject(EventFunc);
+	}
+	return SpawnerSignature;
+}
+
+//------------------------------------------------------------------------------
+UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
+{
+	check(ParentGraph != nullptr);
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
+	// look to see if a node for this event already exists (only one node is
+	// allowed per event, per blueprint)
+	UK2Node_Event const* PreExistingNode = FindPreExistingEvent(Blueprint, Bindings);
+	// @TODO: casting away the const is bad form!
+	UK2Node_Event* EventNode = const_cast<UK2Node_Event*>(PreExistingNode);
+
+	bool const bIsCustomEvent = IsForCustomEvent();
+	check(bIsCustomEvent || (EventFunc != nullptr));
+
+	FName EventName = CustomEventName;
+	if (!bIsCustomEvent)
+	{
+		EventName  = EventFunc->GetFName();	
 	}
 
 	// if there is no existing node, then we can happily spawn one into the graph
 	if (EventNode == nullptr)
 	{
-		bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+		auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* EventFunc, FName EventName, FCustomizeNodeDelegate UserDelegate)
+		{
+			UK2Node_Event* EventNode = CastChecked<UK2Node_Event>(NewNode);
+			if (EventFunc != nullptr)
+			{
+				EventNode->EventSignatureName  = EventName;
+				EventNode->EventSignatureClass = EventFunc->GetOuterUClass();
+				EventNode->bOverrideFunction   = true;
+			}
+			else if (!bIsTemplateNode)
+			{
+				EventNode->CustomFunctionName = EventName;
+			}
 
-		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph));
-		if (EventFunc != nullptr)
-		{
-			EventNode->EventSignatureName  = EventName;
-			EventNode->EventSignatureClass = ClassOwner;
-			EventNode->bOverrideFunction   = true;
-		}
-		else if (!bIsTemplateNode)
-		{
-			EventNode->CustomFunctionName  = CustomEventName;
-		}
+			UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+		};
 
-		if (!bIsTemplateNode)
-		{
-			EventNode->SetFlags(RF_Transactional);
-			EventNode->AllocateDefaultPins();
-		}
+		FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, EventFunc, EventName, CustomizeNodeDelegate);
+		EventNode = Cast<UK2Node_Event>(Super::Invoke(ParentGraph, Bindings, Location, PostSpawnDelegate));
 	}
 	// else, a node for this event already exists, and we should return that 
 	// (the FBlueprintActionMenuItem should detect this and focus in on it).
@@ -143,32 +154,48 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph) const
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintEventNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {
-	FText EventName;
-	if (EventFunc != nullptr)
+	if (CachedMenuName.IsOutOfDate())
 	{
-		EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc));
-	}
-	else if (!CustomEventName.IsNone())
-	{
-		EventName = FText::FromName(CustomEventName);
-	}
+		FText EventName;
+		if (EventFunc != nullptr)
+		{
+			EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc));
+		}
+		else if (!CustomEventName.IsNone())
+		{
+			EventName = FText::FromName(CustomEventName);
+		}
+		else
+		{
+			CachedMenuName = LOCTEXT("AddCustomEvent", "Add Custom Event...");
+		}
 
-	if (!EventName.IsEmpty())
-	{
-		EventName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
+		if(CachedMenuName.IsOutOfDate())
+		{
+			CachedMenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
+		}
 	}
-	return EventName;
+	return CachedMenuName;
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
+FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
 {
-	FText Keywords = FText::GetEmpty();
+	// certain events can have specialized categories (like input events), so 
+	// we choose to leave this in the node's hands (returns an empty text string
+	// so that the menu builder polls the node instead).
+	return UBlueprintNodeSpawner::GetDefaultMenuCategory();
+}
+
+//------------------------------------------------------------------------------
+FString UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
+{
+	FString Keywords;
 	if (EventFunc != nullptr)
 	{
-		Keywords = FText::FromString(UK2Node_CallFunction::GetKeywordsForFunction(EventFunc));
+		Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc);
 	}
 	return Keywords;
 }
@@ -177,6 +204,33 @@ FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
 UFunction const* UBlueprintEventNodeSpawner::GetEventFunction() const
 {
 	return EventFunc;
+}
+
+//------------------------------------------------------------------------------
+UK2Node_Event const* UBlueprintEventNodeSpawner::FindPreExistingEvent(UBlueprint* Blueprint, FBindingSet const& /*Bindings*/) const
+{
+	UK2Node_Event* PreExistingNode = nullptr;
+
+	check(Blueprint != nullptr);
+	if (IsForCustomEvent())
+	{
+		PreExistingNode = UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(Blueprint, CustomEventName);
+	}
+	else
+	{
+		check(EventFunc != nullptr);
+		UClass* ClassOwner = EventFunc->GetOwnerClass();
+
+		PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventFunc->GetFName());
+	}
+
+	return PreExistingNode;
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintEventNodeSpawner::IsForCustomEvent() const
+{
+	return (EventFunc == nullptr);
 }
 
 #undef LOCTEXT_NAMESPACE

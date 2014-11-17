@@ -36,12 +36,13 @@ DEFINE_LOG_CATEGORY(LogAINavigation);
 AAIController::AAIController(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
 	// set up navigation component
 	NavComponent = PCIP.CreateDefaultSubobject<UNavigationComponent>(this, TEXT("NavComponent"));
 
 	PathFollowingComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
 	PathFollowingComponent->OnMoveFinished.AddUObject(this, &AAIController::OnMoveCompleted);
+
+	ActionsComp = PCIP.CreateDefaultSubobject<UPawnActionsComponent>(this, "ActionsComp");
 
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;
@@ -61,6 +62,18 @@ void AAIController::PostInitializeComponents()
 	if (bWantsPlayerState && !IsPendingKill() && (GetNetMode() != NM_Client))
 	{
 		InitPlayerState();
+	}
+}
+
+void AAIController::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
+
+	// cache PerceptionComponent if not already set
+	// note that it's possible for an AI to not have a perception component at all
+	if (PerceptionComponent == NULL || PerceptionComponent->IsPendingKill() == true)
+	{
+		PerceptionComponent = FindComponentByClass<UAIPerceptionComponent>();
 	}
 }
 
@@ -128,6 +141,11 @@ void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 	{
 		BrainComponent->DescribeSelfToVisLog(Snapshot);
 	}
+
+	if (PerceptionComponent != NULL)
+	{
+		PerceptionComponent->DescribeSelfToVisLog(Snapshot);
+}
 }
 #endif // ENABLE_VISUAL_LOG
 
@@ -172,6 +190,7 @@ void AAIController::SetFocalPoint( FVector FP, bool bOffsetFromBase, uint8 InPri
 FVector AAIController::GetFocalPoint() const
 {
 	FBasedPosition FinalFocus;
+
 	// find focus with highest priority
 	for( int32 Index = FocusInformation.Priorities.Num()-1; Index >= 0; --Index)
 	{
@@ -229,7 +248,7 @@ void AAIController::K2_ClearFocus()
 	ClearFocus(EAIFocusPriority::Gameplay);
 }
 
-void AAIController::SetFocus(AActor* NewFocus, uint8 InPriority)
+void AAIController::SetFocus(AActor* NewFocus, EAIFocusPriority::Type InPriority)
 {
 	if( NewFocus )
 	{
@@ -245,7 +264,7 @@ void AAIController::SetFocus(AActor* NewFocus, uint8 InPriority)
 	}
 }
 
-void AAIController::ClearFocus(uint8 InPriority)
+void AAIController::ClearFocus(EAIFocusPriority::Type InPriority)
 {
 	if (InPriority < FocusInformation.Priorities.Num())
 	{
@@ -292,13 +311,13 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 	}
 
 	const FVector OtherActorLocation = Other->GetActorLocation();
-	float distSq = (OtherActorLocation - ViewPoint).SizeSquared();
-	if ( distSq > FARSIGHTTHRESHOLDSQUARED )
+	const float DistSq = (OtherActorLocation - ViewPoint).SizeSquared();
+	if ( DistSq > FARSIGHTTHRESHOLDSQUARED )
 	{
 		return false;
 	}
 
-	if ( !OtherPawn && (distSq > NEARSIGHTTHRESHOLDSQUARED) ) 
+	if ( !OtherPawn && (DistSq > NEARSIGHTTHRESHOLDSQUARED) ) 
 	{
 		return false;
 	}
@@ -329,28 +348,28 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 		Points[1] = OtherActorLocation + FVector(OtherRadius, OtherRadius, 0);
 		Points[2] = OtherActorLocation - FVector(OtherRadius, OtherRadius, 0);
 		Points[3] = OtherActorLocation + FVector(OtherRadius, -1 * OtherRadius, 0);
-		int32 imin = 0;
-		int32 imax = 0;
-		float currentmin = (Points[0] - ViewPoint).SizeSquared();
-		float currentmax = currentmin;
+		int32 IndexMin = 0;
+		int32 IndexMax = 0;
+		float CurrentMax = (Points[0] - ViewPoint).SizeSquared();
+		float CurrentMin = CurrentMax;
 		for ( int32 PointIndex=1; PointIndex<4; PointIndex++ )
 		{
-			float nextsize = (Points[PointIndex] - ViewPoint).SizeSquared();
-			if (nextsize > currentmax)
+			const float NextSize = (Points[PointIndex] - ViewPoint).SizeSquared();
+			if (NextSize > CurrentMin)
 			{
-				currentmax = nextsize;
-				imax = PointIndex;
+				CurrentMin = NextSize;
+				IndexMax = PointIndex;
 			}
-			else if (nextsize < currentmin)
+			else if (NextSize < CurrentMax)
 			{
-				currentmin = nextsize;
-				imin = PointIndex;
+				CurrentMax = NextSize;
+				IndexMin = PointIndex;
 			}
 		}
 
 		for ( int32 PointIndex=0; PointIndex<4; PointIndex++ )
 		{
-			if	( (PointIndex != imin) && (PointIndex != imax) )
+			if ((PointIndex != IndexMin) && (PointIndex != IndexMax))
 			{
 				bHit = GetWorld()->LineTraceTest(ViewPoint,  Points[PointIndex], ECC_Visibility, CollisionParams);
 				if ( !bHit )
@@ -361,6 +380,11 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 		}
 	}
 	return false;
+}
+
+void AAIController::ActorsPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
+{
+
 }
 
 DEFINE_LOG_CATEGORY_STATIC(LogTestAI, All, All);
@@ -744,5 +768,8 @@ bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start,
 
 	return UGameplayStatics::SuggestProjectileVelocity(this, OutTossVelocity, Start, End, TossSpeed, bPreferHighArc, CollisionRadius, GravityOverride, TraceOption);
 }
-
+bool AAIController::PerformAction(UPawnAction* Action, EAIRequestPriority::Type Priority, UObject* const Instigator)
+{
+	return ActionsComp != NULL && ActionsComp->PushAction(Action, Priority, Instigator);
+}
 

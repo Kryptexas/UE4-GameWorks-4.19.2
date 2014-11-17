@@ -2,6 +2,7 @@
 
 #include "CrashReportClientApp.h"
 #include "ExceptionHandling.h"
+#include "CocoaThread.h"
 
 /**
  * Because crash reporters can crash, too
@@ -41,7 +42,35 @@ static FString GSavedCommandLine;
 //handler for the quit apple event used by the Dock menu
 - (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
 {
-	[NSApp terminate:self];
+    [self requestQuit:self];
+}
+
+- (IBAction)requestQuit:(id)Sender
+{
+	GIsRequestingExit = true;
+}
+
+- (void) runGameThread:(id)Arg
+{
+	FPlatformMisc::SetGracefulTerminationHandler();
+	FPlatformMisc::SetCrashHandler(&CrashReporterCrashHandler);
+	
+	RunCrashReportClient(*GSavedCommandLine);
+	
+	[NSApp terminate: self];
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)Sender;
+{
+	if(!GIsRequestingExit || ([NSThread gameThread] && [NSThread gameThread] != [NSThread mainThread]))
+	{
+		[self requestQuit:self];
+		return NSTerminateLater;
+	}
+	else
+	{
+		return NSTerminateNow;
+	}
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
@@ -50,15 +79,8 @@ static FString GSavedCommandLine;
     NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
     [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
 	
-	FPlatformMisc::SetGracefulTerminationHandler();
-	FPlatformMisc::SetCrashHandler(CrashReporterCrashHandler);
-	
-	// Force ourselves to the front
-	[[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
-	
-	RunCrashReportClient(*GSavedCommandLine);
-	
-	[NSApp terminate: self];
+	FPlatformMisc::ActivateApplication();
+	RunGameThread(self, @selector(runGameThread:));
 }
 
 @end

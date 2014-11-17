@@ -132,7 +132,7 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 				LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
 				LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Project"), FName("Game"), FName("General")))
+				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Project"), FName("Project"), FName("General")))
 			);
 		}
 	}
@@ -182,7 +182,7 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 
 		if (GetDefault<UEditorExperimentalSettings>()->bGameLauncher)
 		{
-			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "SessionLauncher");
+			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "ProjectLauncher");
 		}
 
 		if (GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor)
@@ -331,7 +331,8 @@ TSharedRef< SWidget > FMainMenu::MakeMainTabMenu( const TSharedPtr<FTabManager>&
 				);
 				*/
 
-				if (FPaths::FileExists(FModuleManager::Get().GetSolutionFilepath()))
+				FString SolutionPath;
+				if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 				{
 					MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().RefreshCodeProject,
 						NAME_None,

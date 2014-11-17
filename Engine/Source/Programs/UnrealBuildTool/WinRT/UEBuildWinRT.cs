@@ -171,6 +171,7 @@ namespace UnrealBuildTool
             UEBuildConfiguration.bCompileLeanAndMeanUE = true;
             UEBuildConfiguration.bCompilePhysX = false;
             UEBuildConfiguration.bCompileAPEX = false;
+            UEBuildConfiguration.bRuntimePhysicsCooking = false;
 
             BuildConfiguration.bUseUnityBuild = false;
 

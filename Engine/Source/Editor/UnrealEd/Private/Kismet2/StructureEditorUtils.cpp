@@ -10,6 +10,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/UnrealEd/Public/EditorModes.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Editor/DataTableEditor/Public/IDataTableEditor.h"
 
 #define LOCTEXT_NAMESPACE "Structure"
 
@@ -36,6 +38,7 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 		check(Struct);
 		Struct->EditorData = NewNamedObject<UUserDefinedStructEditorData>(Struct, NAME_None, RF_Transactional);
 		check(Struct->EditorData);
+
 		Struct->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 		Struct->Bind();
 		Struct->StaticLink(true);
@@ -154,20 +157,19 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruc
 		{
 			if (OutMsg)
 			{
-				*OutMsg = LOCTEXT("StructureIncorrectStructType", "Icorrect struct type in a structure member variable.").ToString();
+				*OutMsg = LOCTEXT("StructureIncorrectStructType", "Incorrect struct type in a structure member variable.").ToString();
 			}
 			return false;
 		}
 	}
 	else if ((VarType.PinCategory == K2Schema->PC_Exec) 
-		|| (VarType.PinCategory == K2Schema->PC_Meta) 
 		|| (VarType.PinCategory == K2Schema->PC_Wildcard)
 		|| (VarType.PinCategory == K2Schema->PC_MCDelegate)
 		|| (VarType.PinCategory == K2Schema->PC_Delegate))
 	{
 		if (OutMsg)
 		{
-			*OutMsg = LOCTEXT("StructureIncorrectTypeCategory", "Icorrect type for a structure member variable.").ToString();
+			*OutMsg = LOCTEXT("StructureIncorrectTypeCategory", "Incorrect type for a structure member variable.").ToString();
 		}
 		return false;
 	}
@@ -521,7 +523,8 @@ void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UB
 			auto Response = FMessageDialog::Open( 
 				EAppMsgType::OkCancel,
 				FText::Format(
-					LOCTEXT("RemoveInvalidStructureMemberVariable_Msg", "The following member variables have invalid type. Would you like to remove them? \n\n{0}"), 
+					LOCTEXT("RemoveInvalidStructureMemberVariable_Msg", "The following member variables in blueprint '{0}' have invalid type. Would you like to remove them? \n\n{1}"), 
+					FText::FromString(Blueprint->GetFullName()),
 					FText::FromString(DislpayList)
 				));
 			check((EAppReturnType::Ok == Response) || (EAppReturnType::Cancel == Response));
@@ -608,12 +611,36 @@ bool FStructureEditorUtils::ChangeEditableOnBPInstance(UUserDefinedStruct* Struc
 	const bool bNewDontEditoOnInstance = !bInIsEditable;
 	if (VarDesc && (bNewDontEditoOnInstance != VarDesc->bDontEditoOnInstance))
 	{
-		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
+		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableOnBPInstance", "Change variable editable on BP instance"));
 		ModifyStructData(Struct);
 
 		VarDesc->bDontEditoOnInstance = bNewDontEditoOnInstance;
 		OnStructureChanged(Struct);
 		return true;
+	}
+	return false;
+}
+
+bool FStructureEditorUtils::MoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid, EMoveDirection MoveDirection)
+{
+	if (Struct)
+	{
+		const bool bMoveUp = (EMoveDirection::MD_Up == MoveDirection);
+		auto& DescArray = GetVarDesc(Struct);
+		const int32 InitialIndex = bMoveUp ? 1 : 0;
+		const int32 IndexLimit = DescArray.Num() - (bMoveUp ? 0 : 1);
+		for (int32 Index = InitialIndex; Index < IndexLimit; ++Index)
+		{
+			if (DescArray[Index].VarGuid == VarGuid)
+			{
+				const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Varaibles reordered"));
+				ModifyStructData(Struct);
+
+				DescArray.Swap(Index, Index + (bMoveUp ? -1 : 1));
+				OnStructureChanged(Struct);
+				return true;
+			}
+		}
 	}
 	return false;
 }
@@ -685,6 +712,54 @@ UProperty* FStructureEditorUtils::GetPropertyByGuid(const UUserDefinedStruct* St
 FGuid FStructureEditorUtils::GetGuidFromPropertyName(const FName Name)
 {
 	return FMemberVariableNameHelper::GetGuidFromName(Name);
+}
+
+struct FReinstanceDataTableHelper
+{
+	// TODO: shell we cache the dependency?
+	static TArray<UDataTable*> GetTablesDependentOnStruct(UUserDefinedStruct* Struct)
+	{
+		TArray<UDataTable*> Result;
+		if (Struct)
+		{
+			TArray<UObject*> DataTables;
+			GetObjectsOfClass(UDataTable::StaticClass(), DataTables);
+			for (auto DataTableObj : DataTables)
+			{
+				auto DataTable = Cast<UDataTable>(DataTableObj);
+				if (DataTable && (Struct == DataTable->RowStruct))
+				{
+					Result.Add(DataTable);
+				}
+			}
+		}
+		return Result;
+	}
+};
+
+void FStructureEditorUtils::BroadcastPreChange(UUserDefinedStruct* Struct)
+{
+	FStructureEditorUtils::FStructEditorManager::Get().PreChange(Struct);
+	auto DataTables = FReinstanceDataTableHelper::GetTablesDependentOnStruct(Struct);
+	for (auto DataTable : DataTables)
+	{
+		DataTable->CleanBeforeStructChange();
+	}
+}
+
+void FStructureEditorUtils::BroadcastPostChange(UUserDefinedStruct* Struct)
+{
+	FStructureEditorUtils::FStructEditorManager::Get().PostChange(Struct);
+	auto DataTables = FReinstanceDataTableHelper::GetTablesDependentOnStruct(Struct);
+	for (auto DataTable : DataTables)
+	{
+		DataTable->RestoreAfterStructChange();
+		auto DataTableEditor = static_cast<IDataTableEditor*>(FAssetEditorManager::Get().FindEditorForAsset(DataTable, false));
+		if (DataTableEditor)
+		{
+			DataTableEditor->OnDataTableReloaded();
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

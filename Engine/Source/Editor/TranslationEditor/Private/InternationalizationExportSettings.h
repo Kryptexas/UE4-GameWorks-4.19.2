@@ -45,4 +45,8 @@ public:
 	/** Whether or not to import localization data */
 	UPROPERTY(Category = GatherTextStep, EditAnywhere, config)
 	bool bImportLoc;
+
+	/** Whether or not to use culture path */
+	UPROPERTY(Category = GatherTextStep, EditAnywhere, config)
+	bool bUseCultureDirectory;
 };

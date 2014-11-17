@@ -750,7 +750,7 @@ void FOnlineAsyncTaskSteamJoinLobby::TriggerDelegates()
 	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
 	if (SessionInt.IsValid())
 	{
-		SessionInt->TriggerOnJoinSessionCompleteDelegates(SessionName, bWasSuccessful);
+		SessionInt->TriggerOnJoinSessionCompleteDelegates(SessionName, bWasSuccessful ? EOnJoinSessionCompleteResult::Success : EOnJoinSessionCompleteResult::UnknownError);
 	}
 }
 

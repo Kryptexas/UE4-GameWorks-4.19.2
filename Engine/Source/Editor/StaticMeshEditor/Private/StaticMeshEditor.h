@@ -14,6 +14,7 @@ public:
 		: StaticMesh( NULL )
 		, NumLODLevels(0)
 		, MinPrimSize(0.5f)
+		, OverlapNudge(10.0f)
 	{}
 
 	~FStaticMeshEditor();
@@ -75,6 +76,7 @@ public:
 	virtual bool GetLastSelectedPrimTransform(FTransform& OutTransform) const;
 	FTransform GetPrimTransform(const FPrimData& InPrimData) const;
 	void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const;
+	bool OverlapsExistingPrim(const FPrimData& InPrimData) const;
 
 	virtual int32 GetNumTriangles( int32 LODLevel = 0 ) const override;
 	virtual int32 GetNumVertices( int32 LODLevel = 0 ) const override;
@@ -114,7 +116,6 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_SocketManager(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Collision(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_GenerateUniqueUVs(const FSpawnTabArgs& Args);
 
 private:
 	/** Binds commands associated with the Static Mesh Editor. */
@@ -162,7 +163,7 @@ private:
 	/** Event for importing the light map channel to a static mesh from an intermediate file from Max/Maya */
 	void OnImportLightmapMesh( bool IsFBX );
 
-	/*
+	/**
 	* Quick and dirty way of creating box vertices from a box collision representation
 	* Grossly inefficient, but not time critical
 	* @param BoxElem - Box collision to get the vertices for
@@ -259,9 +260,6 @@ private:
 	/** Convex Decomposition widget */
 	TSharedPtr< class SConvexDecomposition> ConvexDecomposition;
 
-	/** Generate Unique UVs widget. */
-	TSharedPtr< class SGenerateUniqueUVs> GenerateUniqueUVs;
-
 	/** Widget for displaying the available UV Channels. */
 	TSharedPtr< class STextComboBox > UVChannelCombo;
 
@@ -299,12 +297,12 @@ private:
 	TArray<FPrimData> SelectedPrims;
 
 	/** Misc consts */
-	const float	MinPrimSize;
+	const float MinPrimSize;
+	const FVector OverlapNudge;
 
 	/**	The tab ids for all the tabs used */
 	static const FName ViewportTabId;
 	static const FName PropertiesTabId;
 	static const FName SocketManagerTabId;
 	static const FName CollisionTabId;
-	static const FName GenerateUniqueUVsTabId;
 };

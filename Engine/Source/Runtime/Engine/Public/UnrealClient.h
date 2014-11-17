@@ -285,6 +285,24 @@ public:
 	virtual void ProcessInput( float DeltaTime ) = 0;
 
 	/**
+	 * Transforms a virtual desktop pixel (the origin is in the primary screen's top left corner) to the local space of this viewport
+	 *
+	 * @param VirtualDesktopPointPx   Coordinate on the virtual desktop in pixel units. Desktop is considered virtual because multiple monitors are supported.
+	 *
+	 * @return The transformed pixel. It is normalized to the range [0, 1]
+	 */
+	virtual FVector2D VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const = 0;
+
+	/**
+	 * Transforms a coordinate in the local space of this viewport into a virtual desktop pixel.
+	 *
+	 * @param ViewportCoordiante    Normalized coordniate in the rate [0..1]; (0,0) is upper left and (1,1) is lower right.
+	 *
+	 * @return the transformed coordinate. It is in virtual desktop pixels.
+	 */
+	virtual FIntPoint ViewportToVirtualDesktopPixel(FVector2D ViewportCoordinate) const = 0;
+
+	/**
 	 * @return A canvas that can be used while this viewport is being drawn to render debug elements on top of everything else
 	 */
 	virtual FCanvas* GetDebugCanvas() { return NULL; };
@@ -602,8 +620,21 @@ extern ENGINE_API bool IsCtrlDown(FViewport* Viewport);
 extern ENGINE_API bool IsShiftDown(FViewport* Viewport);
 extern ENGINE_API bool IsAltDown(FViewport* Viewport);
 
-extern ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap);
+extern ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap, const FIntRect& ViewRect = FIntRect());
 extern ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask);
+
+namespace EMouseCaptureMode
+{
+	enum Type
+	{
+		/** Do not capture the mouse at all */
+		NoCapture,
+		/** Capture the mouse permanently when the viewport is clicked */
+		CapturePermanently,
+		/** Capture the mouse during a mouse down, releases on mouse up */
+		CaptureDuringMouseDown
+	};
+}
 
 /**
  * An abstract interface to a viewport's client.
@@ -836,6 +867,16 @@ public:
 	 * Set the sound stat flags enabled for this viewport
 	 */
 	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) {}
+
+	/**
+	 * Check whether we should ignore input.
+	 */
+	virtual bool IgnoreInput() { return false; }
+
+	/**
+	 * Gets the mouse capture behavior when the viewport is clicked
+	 */
+	virtual EMouseCaptureMode::Type CaptureMouseOnClick() { return EMouseCaptureMode::CapturePermanently; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

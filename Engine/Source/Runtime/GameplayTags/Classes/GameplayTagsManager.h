@@ -230,12 +230,18 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
 
+	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
+	static bool ShouldImportTagsFromINI();
+
 private:
 
 	friend class FGameplayTagTest;
+	friend class FGameplayEffectsTest;
 
 	/** Helper function to populate the tag tree from each table */
 	void PopulateTreeFromDataTable(class UDataTable* Table);
+
+	void AddTagTableRow(const FGameplayTagTableRow& TagRow);
 
 	/**
 	 * Helper function for RequestGameplayTagParents to add all parents to the container

@@ -4,11 +4,11 @@
 #define LOCTEXT_NAMESPACE "LayersView"
 
 FLayerCollectionViewModel::FLayerCollectionViewModel( const TSharedRef< ILayers >& InWorldLayers, const TWeakObjectPtr< UEditorEngine >& InEditor )
-	: WorldLayers( InWorldLayers )
-	, Editor( InEditor )
+	: bIsRefreshing( false )
 	, Filters( MakeShareable( new LayerFilterCollection ) )
 	, CommandList( MakeShareable( new FUICommandList ) )
-	, bIsRefreshing( false )
+	, WorldLayers( InWorldLayers )
+	, Editor( InEditor )
 {
 
 }

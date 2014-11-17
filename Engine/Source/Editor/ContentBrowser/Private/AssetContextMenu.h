@@ -8,9 +8,6 @@ public:
 	/** Constructor */
 	FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView);
 
-	/** Bind menu selection commands to the command list */
-	void BindCommands(TSharedPtr< FUICommandList > InCommandList);
-
 	/** Makes the context menu widget */
 	TSharedRef<SWidget> MakeContextMenu(const TArray<FAssetData>& SelectedAssets, const FSourcesData& InSourcesData, TSharedPtr< FUICommandList > InCommandList);
 
@@ -33,12 +30,27 @@ public:
 	DECLARE_DELEGATE(FOnAssetViewRefreshRequested);
 	void SetOnAssetViewRefreshRequested(const FOnAssetViewRefreshRequested& InOnAssetViewRefreshRequested);
 
+	/** Handler to check to see if a rename command is allowed */
+	bool CanExecuteRename() const;
+
+	/** Handler for Rename */
+	void ExecuteRename();
+
+	/** Handler to check to see if a delete command is allowed */
+	bool CanExecuteDelete() const;
+
+	/** Handler for Delete */
+	void ExecuteDelete();
+
 private:
 	/** Adds common menu options to a menu builder. Returns true if any options were added. */
 	bool AddCommonMenuOptions(FMenuBuilder& MenuBuilder);
 
 	/** Adds asset reference menu options to a menu builder. Returns true if any options were added. */
 	bool AddReferenceMenuOptions(FMenuBuilder& MenuBuilder);
+
+	/** Adds asset documentation menu options to a menu builder. Returns true if any options were added. */
+	bool AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder);
 
 	/** Adds asset type-specific menu options to a menu builder. Returns true if any options were added. */
 	bool AddAssetTypeMenuOptions(FMenuBuilder& MenuBuilder);
@@ -48,6 +60,9 @@ private:
 
 	/** Adds menu options related to working with collections */
 	bool AddCollectionMenuOptions(FMenuBuilder& MenuBuilder);
+
+	/** Creates a sub-menu of Chunk IDs that are are assigned to all selected assets */
+	void MakeChunkIDListMenu(FMenuBuilder& MenuBuilder);
 
 	/** Handler for when sync to asset tree is selected */
 	void ExecuteSyncToAssetTree();
@@ -76,12 +91,6 @@ private:
 	/** Handler for Duplicate */
 	void ExecuteDuplicate();
 
-	/** Handler for Rename */
-	void ExecuteRename();
-
-	/** Handler for Delete */
-	void ExecuteDelete();
-
 	/** Handler for confirmation of folder deletion */
 	FReply ExecuteDeleteFolderConfirmed();
 
@@ -99,6 +108,15 @@ private:
 
 	/** Handler for ShowReferenceViewer */
 	void ExecuteShowReferenceViewer();
+
+	/** Handler for GoToAssetCode */
+	void ExecuteGoToCodeForAsset(UClass* SelectedClass);
+
+	/** Handler for GoToAssetDocs */
+	void ExecuteGoToDocsForAsset(UClass* SelectedClass);
+
+	/** Handler for GoToAssetDocs */
+	void ExecuteGoToDocsForAsset(UClass* SelectedClass, const FString ExcerptSection);
 
 	/** Handler for CopyReference */
 	void ExecuteCopyReference();
@@ -139,6 +157,15 @@ private:
 	/** Handler for when source control is disabled */
 	void ExecuteEnableSourceControl();
 
+	/** Handler to assign ChunkID to a selection of assets */
+	void ExecuteAssignChunkID();
+
+	/** Handler to remove all ChunkID assignments from a selection of assets */
+	void ExecuteRemoveAllChunkID();
+
+	/** Handler to remove a single ChunkID assignment from a selection of assets */
+	void ExecuteRemoveChunkID(int32 ChunkID);
+
 	/** Handler to check to see if a sync to asset tree command is allowed */
 	bool CanExecuteSyncToAssetTree() const;
 
@@ -159,12 +186,6 @@ private:
 
 	/** Handler to check to see if a duplicate command is allowed */
 	bool CanExecuteDuplicate() const;
-
-	/** Handler to check to see if a rename command is allowed */
-	bool CanExecuteRename() const;
-
-	/** Handler to check to see if a delete command is allowed */
-	bool CanExecuteDelete() const;
 
 	/** Handler to check to see if a "Remove from collection" command is allowed */
 	bool CanExecuteRemoveFromCollection() const;
@@ -223,6 +244,18 @@ private:
 	/** Helper function to gather the packages containing all selected assets */
 	void GetSelectedPackages(TArray<UPackage*>& OutPackages) const;
 
+	/** Update interanl state logic */
+	void OnChunkIDAssignChanged(int32 ChunkID);
+
+	/** Gets the current value of the ChunkID entry box */
+	TOptional<int32> GetChunkIDSelection() const;
+
+	/** Handles when the Assign chunkID dialog OK button is clicked */
+	FReply OnChunkIDAssignCommit(TSharedPtr<SWindow> Window);
+
+	/** Handles when the Assign chunkID dialog Cancel button is clicked */
+	FReply OnChunkIDAssignCancel(TSharedPtr<SWindow> Window);
+
 private:
 	/** Generates a list of selected assets in the content browser */
 	void GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRedirectors);
@@ -247,4 +280,7 @@ private:
 	bool bCanExecuteSCCHistory;
 	bool bCanExecuteSCCRevert;
 	bool bCanExecuteSCCSync;
+
+	/** */
+	int32 ChunkIDSelected;
 };

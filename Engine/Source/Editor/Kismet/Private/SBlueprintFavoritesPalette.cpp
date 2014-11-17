@@ -5,6 +5,9 @@
 #include "Engine.h"
 #include "KismetClasses.h"
 #include "K2ActionMenuBuilder.h"
+#include "BlueprintActionMenuUtils.h"
+#include "BlueprintActionMenuBuilder.h"
+#include "BlueprintActionFilter.h" // for FBlueprintActionContext
 
 #define LOCTEXT_NAMESPACE "BlueprintFavoritesPalette"
 
@@ -276,9 +279,9 @@ SBlueprintFavoritesPalette::~SBlueprintFavoritesPalette()
 void SBlueprintFavoritesPalette::Construct(FArguments const& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
 {
 	SBlueprintSubPalette::FArguments SuperArgs;
-	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Favorites").ToString();
+	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Favorites");
 	SuperArgs._Icon        = FEditorStyle::GetBrush("Kismet.Palette.Favorites");
-	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "A listing of your favorite and most used nodes.").ToString();
+	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "A listing of your favorite and most used nodes.");
 
 	static FString const ShowFreqUsedConfigKey("bShowFrequentlyUsed");
 	// should be set before we call the super (so CollectAllActions() has the right value)
@@ -301,42 +304,13 @@ void SBlueprintFavoritesPalette::Construct(FArguments const& InArgs, TWeakPtr<FB
 //------------------------------------------------------------------------------
 void SBlueprintFavoritesPalette::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
-	UBlueprint const* const Blueprint = GetBlueprint();
-	FBlueprintPaletteListBuilder AllBlueprintActions(Blueprint);
-	// get all actions available to this blueprint
-	UEdGraphSchema_K2::GetPaletteActions(AllBlueprintActions);	
+	FBlueprintActionContext FilterContext;
+	FilterContext.Blueprints.Add(GetBlueprint());
 
-	UEditorUserSettings& EditorUserSettings = GEditor->AccessEditorUserSettings();
-	// grab the user's favorites
-	UBlueprintPaletteFavorites const* BlueprintFavorites = EditorUserSettings.BlueprintFavorites;
-	check(BlueprintFavorites != NULL);
+	FBlueprintActionMenuBuilder FavoritesBuilder(BlueprintEditorPtr);
+	FBlueprintActionMenuUtils::MakeFavoritesMenu(FilterContext, FavoritesBuilder);
 
-	FString RootCategory = SBlueprintFavoritesPaletteUtils::FavoritesCategoryName;
-	if (!bShowFrequentlyUsed)
-	{
-		RootCategory = TEXT("");
-	}
-
-	// @TODO there has to be a better way than going through EVERY single action (using favorites as a filter?)
-	for (int32 ActionIndex = 0; ActionIndex < AllBlueprintActions.GetNumActions(); ++ActionIndex)
-	{
-		FGraphActionListBuilderBase::ActionGroup& ActionGroup = AllBlueprintActions.GetAction(ActionIndex);
-		if (!ensureMsg(ActionGroup.Actions.Num() == 1, TEXT("SBlueprintFavoritesPalette::CollectAllActions() - Currently not handling action-groups with more than one action.")))
-		{
-			continue;
-		}
-
-		TSharedPtr<FEdGraphSchemaAction> Action = ActionGroup.Actions[0];
-		if (!Action.IsValid())
-		{
-			continue;
-		}
-
-		if (BlueprintFavorites->IsFavorited(Action))
-		{
-			OutAllActions.AddAction(Action, RootCategory);
-		}
-	}
+	OutAllActions.Append(FavoritesBuilder);
 }
 
 //------------------------------------------------------------------------------

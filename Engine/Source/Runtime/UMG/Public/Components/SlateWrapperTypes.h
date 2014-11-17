@@ -12,7 +12,7 @@
 	Type::CreateUObject( this, &ThisClass::Function )
 
 /** Is an entity visible? */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateVisibility
 {
 	enum Type
@@ -31,67 +31,48 @@ namespace ESlateVisibility
 }
 
 /** The sizing options of UWidgets */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateSizeRule
 {
 	enum Type
 	{
-		/** The container will size to fit the needs of the child widgets */
+		/** Only requests as much room as it needs based on the widgets desired size. */
 		Automatic,
-		/** The container will fill the percentage of the container based on the Value 0..1 */
+		/** Greedily attempts to fill all available room based on the percentage value 0..1 */
 		Fill
 	};
 }
 
-/** A struct exposing FReply options in a UStruct compatible way. */
-USTRUCT()
-struct FSReply
+/**
+ * Allows users to handle events and return information to the underlying UI layer.
+ */
+USTRUCT(BlueprintType)
+struct FEventReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=User)
-	uint32 bIsHandled : 1;
+public:
 
-	UPROPERTY(EditAnywhere, Category=User)
-	uint32 bCaptureMouse : 1;
-
-	FSReply()
-		: bIsHandled(false)
-		, bCaptureMouse(false)
+	FEventReply(bool IsHandled = false)
+	: NativeReply(IsHandled ? FReply::Handled() : FReply::Unhandled())
 	{
-
 	}
 
-	FReply ToReply( TSharedRef<SWidget> Widget ) const
-	{
-		FReply Reply = FReply::Unhandled();
-
-		if ( bIsHandled )
-		{
-			Reply = FReply::Handled();
-		}
-
-		if ( bCaptureMouse )
-		{
-			Reply = Reply.CaptureMouse(Widget);
-		}
-
-		return Reply;
-	}
+	FReply NativeReply;
 };
 
 /** A struct exposing size param related properties to UMG. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSlateChildSize
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** The parameter of the size rule. */
-	UPROPERTY(EditAnywhere, Category=Appearance, meta=(ClampMin="0", ClampMax="1"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( UIMin="0", UIMax="1" ))
 	float Value;
 
 	/** The sizing rule of the content. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	TEnumAsByte<ESlateSizeRule::Type> SizeRule;
 
 	FSlateChildSize()

@@ -26,13 +26,10 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
-
 UCookerSettings::UCookerSettings(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	DefaultPVRTCQuality = 0;
-	bSupportMetal = false;
-	bSupportOpenGLES2 = true;
 }
 
 
@@ -85,7 +82,13 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	// make sure that the cookonthefly server doesn't get cleaned up while we are garbage collecting below :)
 	FScopeRootObject S(CookOnTheFlyServer);
 
-	CookOnTheFlyServer->Initialize( bCompressed, bIterativeCooking, bSkipEditorContent );
+	ECookInitializationFlags CookFlags = ECookInitializationFlags::None;
+	CookFlags |= bCompressed ? ECookInitializationFlags::Compressed : ECookInitializationFlags::None;
+	CookFlags |= bIterativeCooking ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
+
+
+	CookOnTheFlyServer->Initialize( ECookMode::CookOnTheFly, CookFlags );
 
 	bool BindAnyPort = InstanceId.IsValid();
 
@@ -146,7 +149,7 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 				}
 
 				// delay the gc until we process some unsolicited packages
-				if ( bCookedAMapSinceLastGC && (CookOnTheFlyServer->HasUnsolicitedCookRequests() == false) )
+				if ( bCookedAMapSinceLastGC )
 				{
 					UE_LOG( LogCookCommandlet, Display, TEXT("Delaying map gc because we have unsolicited cook requests") );
 					bShouldGC |= bCookedAMapSinceLastGC;
@@ -170,21 +173,7 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 				}
 			}
 
-#if PLATFORM_MAC
-			// On Mac we need to process Cocoa events so that the console window for CookOnTheFlyServer is interactive
-			FPlatformMisc::PumpMessages(true);
-#endif
-
-			// update task graph
-			FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
-
-			// execute deferred commands
-			for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
-			{
-				GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
-			}
-
-			GEngine->DeferredCommands.Empty();
+			ProcessDeferredCommands();
 
 			// handle server timeout
 			if (InstanceId.IsValid() || bForceClose)
@@ -571,8 +560,15 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		// always generate the asset registry before starting to cook, for either method
 		GenerateAssetRegistry(Platforms);
 
-		Cook(Platforms, FilesInPath);
-
+		// new cook is better 
+		if ( Switches.Contains(TEXT("NEWCOOK")))
+		{
+			NewCook(Platforms, FilesInPath );
+		}
+		else
+		{
+			Cook(Platforms, FilesInPath);
+		}
 	}
 	
 	return 0;
@@ -676,7 +672,7 @@ void UCookCommandlet::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Plat
 	double GenerateAssetRegistryTime = 0.0;
 	{
 		SCOPE_SECONDS_COUNTER(GenerateAssetRegistryTime);
-		UE_LOG(LogCookCommandlet, Display, TEXT("Creating asset registry [is editor: %d]"), GIsEditor);
+		UE_LOG(LogCookCommandlet, Display, TEXT("Populating asset registry."));
 
 		// Perform a synchronous search of any .ini based asset paths (note that the per-game delegate may
 		// have already scanned paths on its own)
@@ -711,7 +707,7 @@ void UCookCommandlet::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Plat
 			}
 		}
 	}
-	UE_LOG(LogCookCommandlet, Display, TEXT("Done creating registry. It took %5.2fs."), GenerateAssetRegistryTime);
+	UE_LOG(LogCookCommandlet, Display, TEXT("Done populating registry. It took %5.2fs."), GenerateAssetRegistryTime);
 	
 }
 
@@ -754,55 +750,49 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	GEditor->ParseMapSectionIni(*Params, MapList);
 	for (int32 MapIdx = 0; MapIdx < MapList.Num(); MapIdx++)
 	{
-		FilesInPath.AddUnique(MapList[MapIdx]);
+		AddFileToCook(FilesInPath, MapList[MapIdx]);
 	}
 
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
+	TArray<FString> CmdLineCultEntries;
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
 	{
 		const FString& Switch = Switches[SwitchIdx];
 
-		// Check for -MAP=<name of map> entries
-		if (Switch.StartsWith(TEXT("MAP=")) == true)
+		auto GetSwitchValueElements = [&Switch](const FString SwitchKey) -> TArray<FString>
 		{
-			FString MapToCook = Switch.Right(Switch.Len() - 4);
-			
-			// Allow support for -MAP=Map1+Map2+Map3 as well as -MAP=Map1 -MAP=Map2
-			for (int32 PlusIdx = MapToCook.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = MapToCook.Find(TEXT("+")))
+			TArray<FString> ValueElements;
+			if (Switch.StartsWith(SwitchKey + TEXT("=")) == true)
 			{
-				FString MapName = MapToCook.Left(PlusIdx);
-				CmdLineMapEntries.Add(MapName);
+				FString ValuesList = Switch.Right(Switch.Len() - (SwitchKey + TEXT("=")).Len());
 
-				MapToCook = MapToCook.Right(MapToCook.Len() - (PlusIdx + 1));
+				// Allow support for -KEY=Value1+Value2+Value3 as well as -KEY=Value1 -KEY=Value2
+				for (int32 PlusIdx = ValuesList.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = ValuesList.Find(TEXT("+")))
+				{
+					const FString ValueElement = ValuesList.Left(PlusIdx);
+					ValueElements.Add(ValueElement);
+
+					ValuesList = ValuesList.Right(ValuesList.Len() - (PlusIdx + 1));
+				}
+				ValueElements.Add(ValuesList);
 			}
+			return ValueElements;
+		};
 
-			CmdLineMapEntries.Add(MapToCook);
-		}
+		// Check for -MAP=<name of map> entries
+		CmdLineMapEntries += GetSwitchValueElements(TEXT("MAP"));
 
 		// Check for -COOKDIR=<path to directory> entries
-		if (Switch.StartsWith(TEXT("COOKDIR=")) == true)
+		CmdLineDirEntries += GetSwitchValueElements(TEXT("COOKDIR"));
+		for(FString& Entry : CmdLineDirEntries)
 		{
-			FString DirToCook = Switch.Right(Switch.Len() - 8);
-			
-			// Allow support for -COOKDIR=Dir1+Dir2+Dir3 as well as -COOKDIR=Dir1 -COOKDIR=Dir2
-			for (int32 PlusIdx = DirToCook.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = DirToCook.Find(TEXT("+")))
-			{
-				FString DirName = DirToCook.Left(PlusIdx);
-				
-				// The dir may be contained within quotes
-				DirName = DirName.TrimQuotes();
-				FPaths::NormalizeDirectoryName(DirName);
-				CmdLineDirEntries.Add(DirName);
-
-				DirToCook = DirToCook.Right(DirToCook.Len() - (PlusIdx + 1));
-			}
-			
-			// The dir may be contained within quotes
-			DirToCook = DirToCook.TrimQuotes();
-			FPaths::NormalizeDirectoryName(DirToCook);
-			CmdLineDirEntries.Add(DirToCook);
+			Entry = Entry.TrimQuotes();
+			FPaths::NormalizeDirectoryName(Entry);
 		}
+
+		// Check for -COOKCULTURES=<culture name> entries
+		CmdLineCultEntries += GetSwitchValueElements(TEXT("COOKCULTURES"));
 	}
 
 	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
@@ -827,12 +817,12 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 			}
 			else
 			{
-				FilesInPath.AddUnique(CurrEntry);
+				AddFileToCook(FilesInPath, CurrEntry);
 			}
 		}
 		else
 		{
-			FilesInPath.AddUnique(CurrEntry);
+			AddFileToCook(FilesInPath, CurrEntry);
 		}
 	}
 
@@ -847,7 +837,7 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		{
 			FString StdFile = Files[Index];
 			FPaths::MakeStandardFilename(StdFile);
-			FilesInPath.AddUnique(StdFile);
+			AddFileToCook(FilesInPath, StdFile);
 
 			// this asset may not be in our currently mounted content directories, so try to mount a new one now
 			FString LongPackageName;
@@ -888,7 +878,7 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 
 			for (int32 TokenFileIndex = 0; TokenFileIndex < TokenFiles.Num(); ++TokenFileIndex)
 			{
-				FilesInPath.AddUnique(TokenFiles[TokenFileIndex]);
+				AddFileToCook(FilesInPath, TokenFiles[TokenFileIndex]);
 			}
 		}
 	}
@@ -908,28 +898,28 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		{
 			if (Obj != FName(NAME_None).ToString())
 			{
-				FilesInPath.AddUnique(Obj);
+				AddFileToCook(FilesInPath, Obj);
 			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), Obj))
 		{
 			if (Obj != FName(NAME_None).ToString())
 			{
-				FilesInPath.AddUnique(Obj);
+				AddFileToCook(FilesInPath, Obj);
 			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultGameMode"), Obj))
 		{
 			if (Obj != FName(NAME_None).ToString())
 			{
-				FilesInPath.AddUnique(Obj);
+				AddFileToCook(FilesInPath, Obj);
 			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultServerGameMode"), Obj))
 		{
 			if (Obj != FName(NAME_None).ToString())
 			{
-				FilesInPath.AddUnique(Obj);
+				AddFileToCook(FilesInPath, Obj);
 			}
 		}
 	}
@@ -943,7 +933,7 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	{
 		if (InterfaceFile != TEXT("None") && InterfaceFile != TEXT(""))
 		{
-			FilesInPath.AddUnique(InterfaceFile);
+			AddFileToCook(FilesInPath, InterfaceFile);
 		}
 	}
 
@@ -966,7 +956,7 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 				{
 					FString StdFile = Files[Index];
 					FPaths::MakeStandardFilename(StdFile);
-					FilesInPath.AddUnique(StdFile);
+					AddFileToCook(FilesInPath, StdFile);
 				}
 			}
 		}
@@ -982,14 +972,14 @@ void UCookCommandlet::GenerateLongPackageNames(TArray<FString>& FilesInPath)
 		const FString& FileInPath = FilesInPath[FilesInPath.Num() - FileIndex - 1];
 		if (FPackageName::IsValidLongPackageName(FileInPath))
 		{
-			FilesInPathReverse.AddUnique(FileInPath);
+			AddFileToCook(FilesInPathReverse, FileInPath);
 		}
 		else
 		{
 			FString LongPackageName;
 			if (FPackageName::TryConvertFilenameToLongPackageName(FileInPath, LongPackageName))
 			{
-				FilesInPathReverse.AddUnique(LongPackageName);
+				AddFileToCook(FilesInPathReverse, LongPackageName);
 			}
 			else
 			{
@@ -998,6 +988,214 @@ void UCookCommandlet::GenerateLongPackageNames(TArray<FString>& FilesInPath)
 		}
 	}
 	Exchange(FilesInPathReverse, FilesInPath);
+}
+
+bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath )
+{
+
+	UCookOnTheFlyServer *CookOnTheFlyServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+
+	struct FScopeRootObject
+	{
+		UObject *Object;
+		FScopeRootObject( UObject *InObject ) : Object( InObject )
+		{
+			Object->AddToRoot();
+		}
+
+		~FScopeRootObject()
+		{
+			Object->RemoveFromRoot();
+		}
+	};
+
+	// make sure that the cookonthefly server doesn't get cleaned up while we are garbage collecting below :)
+	FScopeRootObject S(CookOnTheFlyServer);
+
+	ECookInitializationFlags CookFlags = ECookInitializationFlags::IncludeServerMaps;
+	CookFlags |= bCompressed ? ECookInitializationFlags::Compressed : ECookInitializationFlags::None;
+	CookFlags |= bIterativeCooking ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
+	CookFlags |= bGenerateStreamingInstallManifests ? ECookInitializationFlags::GenerateStreamingInstallManifest : ECookInitializationFlags::None;
+
+
+	CookOnTheFlyServer->Initialize( ECookMode::CookByTheBook, CookFlags );
+
+	//////////////////////////////////////////////////////////////////////////
+	// parse commandline options 
+
+	TArray<FString> CmdLineIniSections;
+	FString SectionStr;
+	if (FParse::Value(*Params, TEXT("MAPINISECTION="), SectionStr))
+	{
+		if (SectionStr.Contains(TEXT("+")))
+		{
+			SectionStr.ParseIntoArray(&CmdLineIniSections,TEXT("+"),true);
+		}
+		else
+		{
+			CmdLineIniSections.Add(SectionStr);
+		}
+	}
+
+	// Add any map sections specified on command line
+	TArray<FString> MapList;
+	GEditor->ParseMapSectionIni(*Params, MapList);
+
+	TArray<FString> CmdLineMapEntries;
+	TArray<FString> CmdLineDirEntries;
+	TArray<FString> CmdLineCultEntries;
+	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
+	{
+		const FString& Switch = Switches[SwitchIdx];
+
+		auto GetSwitchValueElements = [&Switch](const FString SwitchKey) -> TArray<FString>
+		{
+			TArray<FString> ValueElements;
+			if (Switch.StartsWith(SwitchKey + TEXT("=")) == true)
+			{
+				FString ValuesList = Switch.Right(Switch.Len() - (SwitchKey + TEXT("=")).Len());
+
+				// Allow support for -KEY=Value1+Value2+Value3 as well as -KEY=Value1 -KEY=Value2
+				for (int32 PlusIdx = ValuesList.Find(TEXT("+")); PlusIdx != INDEX_NONE; PlusIdx = ValuesList.Find(TEXT("+")))
+				{
+					const FString ValueElement = ValuesList.Left(PlusIdx);
+					ValueElements.Add(ValueElement);
+
+					ValuesList = ValuesList.Right(ValuesList.Len() - (PlusIdx + 1));
+				}
+				ValueElements.Add(ValuesList);
+			}
+			return ValueElements;
+		};
+
+		// Check for -MAP=<name of map> entries
+		CmdLineMapEntries += GetSwitchValueElements(TEXT("MAP"));
+
+		// Check for -COOKDIR=<path to directory> entries
+		CmdLineDirEntries += GetSwitchValueElements(TEXT("COOKDIR"));
+		for(FString& Entry : CmdLineDirEntries)
+		{
+			Entry = Entry.TrimQuotes();
+			FPaths::NormalizeDirectoryName(Entry);
+		}
+
+		// Check for -COOKCULTURES=<culture name> entries
+		CmdLineCultEntries += GetSwitchValueElements(TEXT("COOKCULTURES"));
+	}
+
+	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
+	{
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+		for(const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
+		{
+			CmdLineDirEntries.Add(AbsoluteGameContentDir / DirToCook.Path);
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// start cook by the book 
+
+	for ( const auto& MapName : CmdLineMapEntries )
+	{
+		MapList.Add( MapName );
+	}
+
+	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections );
+
+	// Garbage collection should happen when either
+	//	1. We have cooked a map
+	//	2. We have cooked non-map packages and...
+	//		a. we have accumulated 50 of these since the last GC.
+	//		b. we have been idle for 20 seconds.
+	bool bShouldGC = true;
+
+	// megamoth
+	uint32 NonMapPackageCountSinceLastGC = 0;
+
+	const int32 PackagesPerGC = 50;
+
+	const double IdleTimeToGC = 20.0;
+	double LastCookActionTime = FPlatformTime::Seconds();
+
+	FDateTime LastConnectionTime = FDateTime::UtcNow();
+	bool bHadConnection = false;
+
+	bool bCookedAMapSinceLastGC = false;
+	while ( CookOnTheFlyServer->IsCookByTheBookRunning() )
+	{
+		uint32 TickResults = 0;
+		static const float CookOnTheSideTimeSlice = 10.0f;
+		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
+
+		bCookedAMapSinceLastGC |= TickResults & UCookOnTheFlyServer::COSR_CookedMap;
+		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
+		{
+			LastCookActionTime = FPlatformTime::Seconds();
+		}
+
+
+		if (NonMapPackageCountSinceLastGC > 0)
+		{
+			// We should GC if we have packages to collect and we've been idle for some time.
+			bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
+				((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
+		}
+
+		// delay the gc until we process some unsolicited packages
+		if ( bCookedAMapSinceLastGC )
+		{
+			UE_LOG( LogCookCommandlet, Display, TEXT("Delaying map gc because we have unsolicited cook requests") );
+			bShouldGC |= bCookedAMapSinceLastGC;
+		}
+
+		if (bShouldGC)
+		{
+			bShouldGC = false;
+			bCookedAMapSinceLastGC = false;
+			NonMapPackageCountSinceLastGC = 0;
+
+			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
+
+			CollectGarbage( RF_Native );
+		}
+		else
+		{
+			CookOnTheFlyServer->TickRecompileShaderRequests();
+
+			FPlatformProcess::Sleep(0.0f);
+		}
+
+
+
+		ProcessDeferredCommands();
+	}
+
+	return true;
+
+
+
+}
+
+
+void UCookCommandlet::ProcessDeferredCommands()
+{
+#if PLATFORM_MAC
+	// On Mac we need to process Cocoa events so that the console window for CookOnTheFlyServer is interactive
+	FPlatformMisc::PumpMessages(true);
+#endif
+
+	// update task graph
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+
+	// execute deferred commands
+	for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
+	{
+		GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
+	}
+
+	GEngine->DeferredCommands.Empty();
 }
 
 bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath)
@@ -1020,11 +1218,24 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 	}
 
 	GenerateLongPackageNames(FilesInPath);
-	
+
+	TSet<UClass*> ClassesToForceFullGC;
+	for ( const FString& ClassName : FullGCAssetClassNames )
+	{
+		UClass* ClassToForceFullGC = FindObject<UClass>(nullptr, *ClassName);
+		if ( ClassToForceFullGC )
+		{
+			ClassesToForceFullGC.Add(ClassToForceFullGC);
+		}
+		else
+		{
+			UE_LOG(LogCookCommandlet, Warning, TEXT("Configured to force full GC for assets of type (%s) but that class does not exist."), *ClassName);
+		}
+	}
+
 	const int32 GCInterval = bLeakTest ? 1: 500;
 	int32 NumProcessedSinceLastGC = GCInterval;
-	bool bLastLoadWasMap = false;
-	bool bLastLoadWasMapWithStreamingLevels = false;
+	bool bForceGC = false;
 	TSet<FString> CookedPackages;
 	FString LastLoadedMapName;
 
@@ -1035,7 +1246,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 
 	for( int32 FileIndex = 0; ; FileIndex++ )
 	{
-		if (NumProcessedSinceLastGC >= GCInterval || bLastLoadWasMap || FileIndex < 0 || FileIndex >= FilesInPath.Num())
+		if (NumProcessedSinceLastGC >= GCInterval || bForceGC || FileIndex < 0 || FileIndex >= FilesInPath.Num())
 		{
 			// since we are about to save, we need to resolve all string asset references now
 			GRedirectCollector.ResolveStringAssetReference();
@@ -1057,7 +1268,8 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 				{
 					// Populate streaming install manifests
 					FString SandboxFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*Filename);
-					ManifestGenerator.AddPackageToChunkManifest(Pkg, SandboxFilename, LastLoadedMapName);
+					UE_LOG(LogCookCommandlet, Display, TEXT("Adding package to manifest %s, %s, %s"), *Pkg->GetName(), *SandboxFilename, *LastLoadedMapName);
+					ManifestGenerator.AddPackageToChunkManifest(Pkg, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
 				}
 					
 				if (!CookedPackages.Contains(Filename))
@@ -1081,7 +1293,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 				}
 			}
 
-			if (NumProcessedSinceLastGC >= GCInterval)
+			if (bForceGC || NumProcessedSinceLastGC >= GCInterval)
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Full GC..."));
 
@@ -1099,6 +1311,8 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 						}
 					}
 				}
+
+				bForceGC = false;
 			}
 		}
 
@@ -1106,7 +1320,6 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 		{
 			break;
 		}
-			
 		// Attempt to find file for package name. THis is to make sure no short package
 		// names are passed to LoadPackage.
 		FString Filename;
@@ -1116,6 +1329,8 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 			
 			continue;
 		}
+		
+		UE_LOG(LogCookCommandlet, Display, TEXT("Processing package %s"), *Filename);
 		Filename = FPaths::ConvertRelativePathToFull(Filename);
 
 		if (bDoSubset)
@@ -1133,9 +1348,6 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 			continue;
 		}
 
-		bLastLoadWasMap = false;
-		bLastLoadWasMapWithStreamingLevels = false;
-
 		if (!ShouldCook(Filename))
 		{
 			UE_LOG(LogCookCommandlet, Display, TEXT("Up To Date: %s"), *Filename);
@@ -1147,6 +1359,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 
 		if (bGenerateStreamingInstallManifests)
 		{
+			UE_LOG(LogCookCommandlet, Display, TEXT("PrepareToLoadNewPackage %s"), *Filename );
 			ManifestGenerator.PrepareToLoadNewPackage(Filename);
 		}
 
@@ -1176,15 +1389,26 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 					World->WorldComposition->CollectTilesToCook(FilesInPath);
 				}
 
-				// maps don't compile level script actors correctly unless we do FULL GC's, they may also hold weak pointer refs that need to be reset
-				NumProcessedSinceLastGC = GCInterval; 
-
 				LastLoadedMapName = Package->GetName();
-				bLastLoadWasMap = true;
 			}
 			else
 			{
 				LastLoadedMapName.Empty();
+			}
+
+			if ( !bForceGC && ClassesToForceFullGC.Num() > 0 )
+			{
+				const bool bIncludeNestedObjects = false;
+				TArray<UObject*> RootLevelObjects;
+				GetObjectsWithOuter(Package, RootLevelObjects, bIncludeNestedObjects);
+				for ( auto* RootObject : RootLevelObjects )
+				{
+					if ( ClassesToForceFullGC.Contains(RootObject->GetClass()) )
+					{
+						bForceGC = true;
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -1194,11 +1418,10 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 
-	if (bGenerateStreamingInstallManifests)
 	{
-		ManifestGenerator.SaveManifests();
-	}
-	{
+		// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
+		ManifestGenerator.SaveManifests(SandboxFile.GetOwnedPointer());
+
 		// Save modified asset registry with all streaming chunk info generated during cook
 		FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
 		FString SandboxRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*RegistryFilename);

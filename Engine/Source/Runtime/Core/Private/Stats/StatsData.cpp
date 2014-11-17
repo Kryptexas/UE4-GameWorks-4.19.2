@@ -1283,11 +1283,14 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 		}
 
 		// Add the info to the task graph so we can inform the game thread
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatsGroupToGame"),
+			STAT_FSimpleDelegateGraphTask_StatsGroupToGame,
+			STATGROUP_TaskGraphTasks);
+
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
-			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FStatGroupGameThreadNotifier::Get(), &FStatGroupGameThreadNotifier::NewData, Item.NameAndInfo)
-			, TEXT("StatsGroupToGame")
-			, nullptr, ENamedThreads::GameThread
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FStatGroupGameThreadNotifier::Get(), &FStatGroupGameThreadNotifier::NewData, Item.NameAndInfo),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_StatsGroupToGame), nullptr, ENamedThreads::GameThread
 		);
 	}
 	else

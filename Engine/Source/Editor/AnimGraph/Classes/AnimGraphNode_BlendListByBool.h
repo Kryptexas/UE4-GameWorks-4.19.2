@@ -14,7 +14,7 @@ class UAnimGraphNode_BlendListByBool : public UAnimGraphNode_BlendListBase
 	FAnimNode_BlendListByBool Node;
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 

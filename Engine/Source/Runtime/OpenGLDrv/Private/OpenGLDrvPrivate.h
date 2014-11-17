@@ -11,7 +11,7 @@
 
 #define GL_CHECK(x)		x; do { GLint Err = glGetError(); if (Err != 0) {FPlatformMisc::LowLevelOutputDebugStringf(TEXT("(%s:%d) GL_CHECK Failed '%s'! %d (%x)\n"), ANSI_TO_TCHAR(__FILE__), __LINE__, ANSI_TO_TCHAR( #x ), Err, Err); check(!Err);}} while (0)
 
-#ifndef __GNUC__
+#if !defined(__GNUC__) && !defined(__clang__)
 	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
 		do \
 		{ \
@@ -77,8 +77,18 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Uniform buffer pool num free"),STAT_
 
 #if OPENGLRHI_DETAILED_STATS
 DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawPrimitive Time"),STAT_OpenGLDrawPrimitiveTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawPrimitive Driver Time"),STAT_OpenGLDrawPrimitiveDriverTime,STATGROUP_OpenGLRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawPrimitiveUP Time"),STAT_OpenGLDrawPrimitiveUPTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Shader bind time"),STAT_OpenGLShaderBindTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Texture bind time"),STAT_OpenGLTextureBindTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Uniform bind time"),STAT_OpenGLUniformBindTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("VBO setup time"),STAT_OpenGLVBOSetupTime,STATGROUP_OpenGLRHI, );
 #endif
+
+namespace OpenGLConsoleVariables
+{
+	extern int32 bBindlessTexture;
+};
 
 enum EOpenGLCurrentContext
 {
@@ -250,6 +260,8 @@ struct FOpenGLTextureFormat
 	GLenum Format;
 	GLenum Type;
 	bool bCompressed;
+	// Reorder to B and R elements using texture swizzle
+	bool bBGRA;
 
 	FOpenGLTextureFormat()
 	{
@@ -260,11 +272,12 @@ struct FOpenGLTextureFormat
 		Format = GL_NONE;
 		Type = GL_NONE;
 		bCompressed = false;
+		bBGRA = false;
 	}
 
 	FOpenGLTextureFormat(
 		GLenum InInternalFormat, GLenum InInternalFormatSRGB, GLenum InFormat,
-		GLenum InType, bool bInCompressed)
+		GLenum InType, bool bInCompressed, bool bInBGRA)
 	{
 		InternalFormat[0] = InInternalFormat;
 		InternalFormat[1] = InInternalFormatSRGB;
@@ -273,13 +286,14 @@ struct FOpenGLTextureFormat
 		Format = InFormat;
 		Type = InType;
 		bCompressed = bInCompressed;
+		bBGRA = bInBGRA;
 	}
 
 	FOpenGLTextureFormat(
 		GLenum InInternalFormat, GLenum InInternalFormatSRGB, 
 		GLenum InSizedInternalFormat, GLenum InSizedInternalFormatSRGB,
 		GLenum InFormat,
-		GLenum InType, bool bInCompressed)
+		GLenum InType, bool bInCompressed, bool bInBGRA)
 	{
 		InternalFormat[0] = InInternalFormat;
 		InternalFormat[1] = InInternalFormatSRGB;
@@ -288,6 +302,7 @@ struct FOpenGLTextureFormat
 		Format = InFormat;
 		Type = InType;
 		bCompressed = bInCompressed;
+		bBGRA = bInBGRA;
 	}
 
 };
@@ -480,5 +495,30 @@ public:
 };
 
 extern TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
+
+extern bool GUseEmulatedUniformBuffers;
+
+inline bool OpenGLShaderPlatformNeedsBindLocation(const EShaderPlatform InShaderPlatform)
+{
+	switch (InShaderPlatform)
+	{
+		case SP_OPENGL_SM5:
+		case SP_OPENGL_ES31_EXT:
+			return false;
+
+		case SP_OPENGL_SM4:
+		case SP_OPENGL_SM4_MAC:
+		case SP_OPENGL_PCES2:
+		case SP_OPENGL_ES2:
+		case SP_OPENGL_ES2_WEBGL:
+		case SP_OPENGL_ES2_IOS:
+			return true;
+		default:
+			check(IsOpenGLPlatform(InShaderPlatform));
+			checkf(false, TEXT("invalid shader platform (%d)"), int(InShaderPlatform));
+			return true;
+			break;
+	}
+}
 
 #endif // __OPENGLDRVPRIVATE_H__

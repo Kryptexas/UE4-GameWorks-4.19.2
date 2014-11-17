@@ -67,7 +67,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Development|AnyCPU' ">
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -106,6 +106,7 @@
     <Compile Include="Distiller.cs" />
     <Compile Include="HelpUtils.cs" />
     <Compile Include="HostPlatform.cs" />
+    <Compile Include="LinuxHostPlatform.cs" />
     <Compile Include="LocalBuildEnvironment.cs" />
     <Compile Include="LocalP4Environment.cs" />
     <Compile Include="Log.cs" />
@@ -138,7 +139,7 @@
     <ProjectReference Include="..\UnrealBuildTool\UnrealBuildTool.csproj">
       <Project>{fd7c5e1a-cfe4-4fd5-a525-1eb1599a39ac}</Project>
       <Name>UnrealBuildTool</Name>
-      <Private>True</Private>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

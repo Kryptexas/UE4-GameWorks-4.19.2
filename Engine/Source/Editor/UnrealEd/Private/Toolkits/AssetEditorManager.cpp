@@ -280,7 +280,19 @@ bool FAssetEditorManager::OpenEditorForAsset(UObject* Asset, const EToolkitMode:
 	{
 		TArray<UObject*> AssetsToEdit;
 		AssetsToEdit.Add(Asset);
+
+		// Some assets (like UWorlds) may be destroyed and recreated as part of opening. To protect against this, keep the path to the asset and try to re-find it if it disappeared.
+		TWeakObjectPtr<UObject> WeakAsset = Asset;
+		const FString AssetPath = Asset->GetPathName();
+
 		AssetTypeActions.Pin()->OpenAssetEditor(AssetsToEdit, ActualToolkitMode == EToolkitMode::WorldCentric ? OpenedFromLevelEditor : TSharedPtr<IToolkitHost>());
+		
+		// If the Asset was destroyed, attempt to find it if it was recreated
+		if ( !WeakAsset.IsValid() && !AssetPath.IsEmpty() )
+		{
+			Asset = FindObject<UObject>(nullptr, *AssetPath);
+		}
+
 		AssetEditorOpenedEvent.Broadcast(Asset);
 	}
 	else if( bCanSummonSimpleAssetEditor )

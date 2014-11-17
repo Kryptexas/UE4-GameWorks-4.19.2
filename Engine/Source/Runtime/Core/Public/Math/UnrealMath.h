@@ -29,6 +29,7 @@
 #include "Axis.h"
 #include "Matrix.h"
 #include "RotationTranslationMatrix.h"
+#include "RotationAboutPointMatrix.h"
 #include "ScaleRotationTranslationMatrix.h"
 #include "RotationMatrix.h"
 #include "Quat.h"
@@ -111,7 +112,18 @@ inline FPlane FPlane::TransformByUsingAdjointT( const FMatrix& M, float DetM, co
 	return FPlane(M.TransformPosition(*this * W), newNorm);
 }
 
-// FMath Implementation
+/**
+ * Find the intersection of a line and an offset plane. Assumes that the
+ * line and plane do indeed intersect; you must make sure they're not
+ * parallel before calling.
+ *
+ * @param Point1 the first point defining the line
+ * @param Point2 the second point defining the line
+ * @param PlaneOrigin the origin of the plane
+ * @param PlaneNormal the normal of the plane
+ *
+ * @return The point of intersection between the line and the plane.
+ */
 inline FVector FMath::LinePlaneIntersection
 	(
 	const FVector &Point1,
@@ -125,6 +137,19 @@ inline FVector FMath::LinePlaneIntersection
 		+	(Point2-Point1)
 		*	(((PlaneOrigin - Point1)|PlaneNormal) / ((Point2 - Point1)|PlaneNormal));
 }
+
+
+/**
+ * Find the intersection of a line and a plane. Assumes that the line and
+ * plane do indeed intersect; you must make sure they're not parallel before
+ * calling.
+ *
+ * @param Point1 the first point defining the line
+ * @param Point2 the second point defining the line
+ * @param Plane the plane
+ *
+ * @return The point of intersection between the line and the plane.
+ */
 inline FVector FMath::LinePlaneIntersection
 	(
 	const FVector &Point1,
@@ -150,6 +175,17 @@ inline bool FMath::PointBoxIntersection
 		return 1;
 	else
 		return 0;
+}
+
+inline bool FMath::LineBoxIntersection
+	( 
+	const FBox& Box, 
+	const FVector& Start, 
+	const FVector& End, 
+	const FVector& Direction
+	)
+{
+	return LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
 }
 
 inline bool FMath::LineBoxIntersection
@@ -351,12 +387,12 @@ inline FVector FMath::VRand()
 	do
 	{
 		// Check random vectors in the unit sphere so result is statistically uniform.
-		Result.X = FRand() * 2 - 1;
-		Result.Y = FRand() * 2 - 1;
-		Result.Z = FRand() * 2 - 1;
-
+		Result.X = FRand() * 2.f - 1.f;
+		Result.Y = FRand() * 2.f - 1.f;
+		Result.Z = FRand() * 2.f - 1.f;
 		L = Result.SizeSquared();
-	} while(L > 1.0f || L < 0.001f);
+	}
+	while(L > 1.0f || L < KINDA_SMALL_NUMBER);
 
 	return Result * (1.0f / Sqrt(L));
 }

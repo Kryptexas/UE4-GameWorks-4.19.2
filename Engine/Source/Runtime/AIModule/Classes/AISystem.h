@@ -9,12 +9,15 @@
 
 class UBehaviorTreeManager;
 class UEnvQueryManager;
+class UAIPerceptionSystem;
+class UAIAsyncTaskBlueprintProxy;
 
 UCLASS(config=Engine)
 class AIMODULE_API UAISystem : public UAISystemBase
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
 	/** Behavior tree manager used by game */
 	UPROPERTY(Transient)
 	UBehaviorTreeManager* BehaviorTreeManager;
@@ -23,11 +26,18 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	UPROPERTY(Transient)
 	UEnvQueryManager* EnvironmentQueryManager;
 
-	~UAISystem();
+	UPROPERTY(Transient)
+	UAIPerceptionSystem* PerceptionSystem;
+
+	UPROPERTY(Transient)
+	TArray<class UAIAsyncTaskBlueprintProxy*> AllProxyObjects;
+
+public:
+	virtual ~UAISystem();
 
 	// IAISystemInterface begin		
 	virtual void InitializeActorsForPlay(bool bTimeGotReset) override;
-	virtual void WorldOriginChanged(FIntPoint OldOrigin, FIntPoint NewOrigin) override;
+	virtual void WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVector NewOriginLocation) override;
 	virtual void CleanupWorld(bool bSessionEnded = true, bool bCleanupResources = true, UWorld* NewWorld = NULL) override;
 	// IAISystemInterface end
 	
@@ -41,34 +51,28 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	/** Behavior tree manager const getter */
 	FORCEINLINE const UEnvQueryManager* GetEnvironmentQueryManager() const { return EnvironmentQueryManager; }
 
-	FORCEINLINE static UAISystem* GetCurrent(UWorld* World) 
+	FORCEINLINE UAIPerceptionSystem* GetPerceptionSystem() { return PerceptionSystem; }
+	FORCEINLINE const UAIPerceptionSystem* GetPerceptionSystem() const { return PerceptionSystem; }
+
+	FORCEINLINE static UAISystem* GetCurrent(UWorld* World, bool bChecked = true) 
 	{ 
-		check(World != NULL)
-		check(World->GetAISystem() == NULL || Cast<UAISystem>(World->GetAISystem()) != NULL);
-		return (UAISystem*)(World->GetAISystem());
-	}
+		if (!bChecked && World == NULL)
+		{
+			return NULL;
+		}
 
-	FORCEINLINE static UBehaviorTreeManager* GetCurrentBTManager(UWorld* World)
-	{
-		UAISystem* AISys = GetCurrent(World);
-		// if AI system is NULL you're probably running your AI code on a client
-		// or did something horribly wrong
-		check(AISys != NULL);
-		return AISys->GetBehaviorTreeManager();
-	}
-
-	FORCEINLINE static UEnvQueryManager* GetCurrentEQSManager(UWorld* World)
-	{
-		UAISystem* AISys = GetCurrent(World);
-		// if AI system is NULL you're probably running your AI code on a client
-		check(AISys != NULL);
-		return AISys->GetEnvironmentQueryManager();
+		check(World);
+		return Cast<UAISystem>(World->GetAISystem());
 	}
 
 	FORCEINLINE UWorld* GetOuterWorld() const { return Cast<UWorld>(GetOuter()); }
 
 	virtual UWorld* GetWorld() const override { return GetOuterWorld(); }
 	
+	FORCEINLINE void AddReferenceFromProxyObject(UAIAsyncTaskBlueprintProxy* BlueprintProxy) { AllProxyObjects.AddUnique(BlueprintProxy); }
+
+	FORCEINLINE void RemoveReferenceToProxyObject(UAIAsyncTaskBlueprintProxy* BlueprintProxy) { AllProxyObjects.RemoveSwap(BlueprintProxy); }
+
 	//----------------------------------------------------------------------//
 	// cheats
 	//----------------------------------------------------------------------//
@@ -78,7 +82,6 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	UFUNCTION(exec)
 	virtual void AILoggingVerbose();
 
-	/** insta-runs EQS query for GameplayDebugComponent selected AI */
-	UFUNCTION(exec)
-	void RunEQS(const FString& QueryName);
+	/** insta-runs EQS query for given Target */
+	void RunEQS(const FString& QueryName, UObject* Target);
 };

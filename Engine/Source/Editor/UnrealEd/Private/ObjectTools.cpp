@@ -18,6 +18,7 @@
 #include "AssetToolsModule.h"
 #include "Editor/UnrealEd/Public/Toolkits/AssetEditorManager.h"
 #include "ISourceControlModule.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "FbxImporter.h"
 #include "PackageHelperFunctions.h"
@@ -1360,17 +1361,10 @@ namespace ObjectTools
 					bIsReferenced = IsReferenced(Package, GARBAGE_COLLECTION_KEEPFLAGS, true, &FoundReferences);
 					GEditor->Trans->EnableObjectSerialization();
 
-					// only ref to this object is the transaction buffer - let the user choose whether to clear the undo buffer
+					// only ref to this object is the transaction buffer, clear the transaction buffer
 					if ( !bIsReferenced )
 					{
-						if ( EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "ResetUndoBufferForObjectDeletionPrompt", "The only reference to this object is the undo history.  In order to delete this object, you must clear all undo history - would you like to clear undo history?")) )
-						{
-							GEditor->Trans->Reset(NSLOCTEXT("UnrealEd", "DeleteSelectedItem", "Delete Selected Item"));
-						}
-						else
-						{
-							bIsReferenced = true;
-						}
+						GEditor->Trans->Reset(NSLOCTEXT("UnrealEd", "DeleteSelectedItem", "Delete Selected Item"));
 					}
 				}
 			}
@@ -1563,6 +1557,10 @@ namespace ObjectTools
 			return false;
 		}
 
+		// let systems clean up any unnecessary references that they may have 
+		// (so that they're not flagged in the dialog)
+		FEditorDelegates::OnAssetsPreDelete.Broadcast(ObjectsToDelete);
+
 		TSharedRef<FAssetDeleteModel> DeleteModel = MakeShareable(new FAssetDeleteModel(ObjectsToDelete));
 
 		if ( bShowConfirmation )
@@ -1653,11 +1651,15 @@ namespace ObjectTools
 		// Update the browser if something was actually deleted.
 		if ( bSawSuccessfulDelete )
 		{
+			TArray<UClass*> DeletedObjectClasses;
 			TArray<UPackage*> PotentialPackagesToDelete;
 			for ( int32 ObjIdx = 0; ObjIdx < ObjectsDeletedSuccessfully.Num(); ++ObjIdx )
 			{
+				DeletedObjectClasses.AddUnique(ObjectsDeletedSuccessfully[ObjIdx]->GetClass());
 				PotentialPackagesToDelete.AddUnique( ObjectsDeletedSuccessfully[ObjIdx]->GetOutermost() );
 			}
+			// Broadcast the classes of the successfully deleted objects (before cleanup)
+			FEditorDelegates::OnAssetsDeleted.Broadcast(DeletedObjectClasses);
 
 			bool bPerformReferenceCheck = false;
 			CleanupAfterSuccessfulDelete( PotentialPackagesToDelete, bPerformReferenceCheck );
@@ -1695,17 +1697,10 @@ namespace ObjectTools
 				bIsReferenced = IsReferenced( ObjectToDelete, GARBAGE_COLLECTION_KEEPFLAGS, true, &Refs );
 				GEditor->Trans->EnableObjectSerialization();
 
-				// only ref to this object is the transaction buffer - let the user choose whether to clear the undo buffer
+				// only ref to this object is the transaction buffer, clear the transaction buffer
 				if ( !bIsReferenced )
 				{
-					if ( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT( "UnrealEd", "ResetUndoBufferForObjectDeletionPrompt", "The only reference to this object is the undo history.  In order to delete this object, you must clear all undo history - would you like to clear undo history?" ) ) )
-					{
-						GEditor->Trans->Reset( NSLOCTEXT( "UnrealEd", "DeleteSelectedItem", "Delete Selected Item" ) );
-					}
-					else
-					{
-						bIsReferenced = true;
-					}
+					GEditor->Trans->Reset( NSLOCTEXT( "UnrealEd", "DeleteSelectedItem", "Delete Selected Item" ) );
 				}
 			}
 
@@ -1741,7 +1736,6 @@ namespace ObjectTools
 	int32 ForceDeleteObjects( const TArray< UObject* >& InObjectsToDelete, bool ShowConfirmation )
 	{
 		int32 NumDeletedObjects = 0;
-		bool ForceDeleteAll = false;
 
 		// Confirm that the delete was intentional
 		if ( ShowConfirmation && !ShowDeleteConfirmationDialog(InObjectsToDelete) )
@@ -1770,92 +1764,71 @@ namespace ObjectTools
 
 			GEditor->GetSelectedObjects()->Deselect( CurrentObject );
 
-			if( !ForceDeleteAll )
-			{
-				FReferencerInformationList Refs;
-
-				// Check and see whether we are referenced by any objects that won't be garbage collected. 
-				bool bIsReferenced = IsReferenced( CurrentObject, GARBAGE_COLLECTION_KEEPFLAGS, true, &Refs );
-
-				if ( bIsReferenced )
-				{
-					// Create a string list of all referenced properties.
-					// Check if this object is referenced in default properties
-					FString RefObjNames;
-					FString DefaultPropertiesObjNames;
-					ComposeStringOfReferencingObjects( Refs.ExternalReferences, RefObjNames, DefaultPropertiesObjNames );
-					ComposeStringOfReferencingObjects( Refs.InternalReferences, RefObjNames, DefaultPropertiesObjNames );
-
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("ObjectName"), FText::FromString( CurrentObject->GetName() ) );
-					Args.Add( TEXT("ReferencedObjectNames"), FText::FromString( RefObjNames ) );
-					const FText Message = FText::Format( NSLOCTEXT("Core", "Warning_ForceDelete", "Deleting {ObjectName}.\n\nForcing delete on a referenced object is potentially dangerous and could cause data corruption.  The following objects may have invalid references if you proceed:\n {ReferencedObjectNames}.\n\nDo you wish to delete this referenced object?"), Args );
-
-					int32 YesNoCancelReply = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAll, Message );
-					switch ( YesNoCancelReply )
-					{
-					case EAppReturnType::Yes: // Yes
-						{
-							ObjectsToDelete.Add( CurrentObject );
-							break;
-						}
-
-					case EAppReturnType::YesAll: // Yes to All
-						{
-							ForceDeleteAll = true;
-							ObjectsToDelete.Add( CurrentObject );
-							break;
-						}
-
-					case EAppReturnType::Cancel:
-					case EAppReturnType::No: // No
-						{
-							//Skip to the next object and proceed
-							continue;
-							break;
-						}
-
-					case EAppReturnType::NoAll: // No to All
-						{
-							GWarn->EndSlowTask();
-							return NumDeletedObjects;
-						}
-
-					default:
-						break;
-					}
-				}
-				else
-				{
-					ObjectsToDelete.Add( CurrentObject );
-				}
-			}
-			else
-			{
-				ObjectsToDelete.Add( CurrentObject );
-			}
+			ObjectsToDelete.Add( CurrentObject );
 		}
 
 		// If the current editor world is in this list, transition to a new map and reload the world to finish the delete
 		ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToDelete);
 
 		{
-			// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
-			FGlobalComponentReregisterContext ReregisterContext;
-
 			int32 ReplaceableObjectsNum = 0;
 			{
+				bool bNeedsGarbageCollection = false;
 				TArray<UObject*> ObjectsToReplace = ObjectsToDelete;
 				for (TArray<UObject*>::TIterator ObjectItr(ObjectsToReplace); ObjectItr; ++ObjectItr)
 				{
 					UObject* CurObject = *ObjectItr;
-					// If we're a blueprint add our generated class as well
+					
 					UBlueprint *BlueprintObject = Cast<UBlueprint>(CurObject);
-					if (BlueprintObject && BlueprintObject->GeneratedClass)
+					if (BlueprintObject)
 					{
-						ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
+						// If we're a blueprint add our generated class as well
+						if (BlueprintObject->GeneratedClass)
+						{
+							ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
+						}
+
+						// Clear BP ref so we're not warned about the skeleton class being transient during replacement
+						if (BlueprintObject->SkeletonGeneratedClass)
+						{
+							BlueprintObject->SkeletonGeneratedClass->ClassGeneratedBy = NULL;
+						}
+
+						// Reparent any direct children to the parent class of the blueprint that's about to be deleted
+						if(BlueprintObject->ParentClass != nullptr)
+						{
+							for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+							{
+								UClass* ChildClass = *ClassIt;
+								if(ChildClass->GetSuperStruct() == BlueprintObject->GeneratedClass)
+								{
+									UBlueprint* ChildBlueprint = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
+									if(ChildBlueprint != nullptr)
+									{
+										ChildBlueprint->Modify();
+										ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
+
+										// Recompile the child blueprint to fix up the generated class
+										FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
+
+										// Defer garbage collection until after we're done processing the list of objects
+										bNeedsGarbageCollection = true;
+									}
+								}
+							}
+						}
 					}
 				}
+
+				// Handle deferred garbage collection
+				if(bNeedsGarbageCollection)
+				{
+					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+					bNeedsGarbageCollection = false;
+				}
+
+				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
+				FGlobalComponentReregisterContext ReregisterContext;
 
 				// UserDefinedStructs (probably all SctiptStructs) should be replaced with the FallbackStruct
 				{
@@ -3402,7 +3375,7 @@ namespace ThumbnailTools
 		check( RenderTargetResource != NULL );
 
 		// Create a canvas for the render target and clear it to black
-		FCanvas Canvas( RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime );
+		FCanvas Canvas( RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GMaxRHIFeatureLevel );
 		Canvas.Clear( FLinearColor::Black );
 
 

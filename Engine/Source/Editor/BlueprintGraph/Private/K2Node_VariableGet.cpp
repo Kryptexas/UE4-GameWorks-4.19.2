@@ -52,6 +52,26 @@ public:
 	}
 };
 
+namespace K2Node_VariableGetImpl
+{
+	/**
+	 * Shared utility method for retrieving a UK2Node_VariableGet's bare tooltip.
+	 * 
+	 * @param  VarName	The name of the variable that the node represents.
+	 * @return A formatted text string, describing what the VariableGet node does.
+	 */
+	static FText GetBaseTooltip(FName VarName);
+}
+
+static FText K2Node_VariableGetImpl::GetBaseTooltip(FName VarName)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VarName"), FText::FromName(VarName));
+
+	return FText::Format(LOCTEXT("GetVariableTooltip", "Read the value of variable {VarName}"), Args);
+
+}
+
 UK2Node_VariableGet::UK2Node_VariableGet(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -85,51 +105,95 @@ void UK2Node_VariableGet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 	}
 }
 
-FString UK2Node_VariableGet::GetTooltip() const
+FText UK2Node_VariableGet::GetPropertyTooltip(UProperty const* VariableProperty)
 {
-	FFormatNamedArguments Args;
-	Args.Add( TEXT( "VarName" ), FText::FromString( GetVarNameString() ));
-	Args.Add( TEXT( "TextPartition" ), FText::GetEmpty());
-	Args.Add( TEXT( "MetaData" ), FText::GetEmpty());
-
-	FName VarName = VariableReference.GetMemberName();
-	if (VarName != NAME_None)
+	FName VarName = NAME_None;
+	if (VariableProperty != nullptr)
 	{
-		FString BPMetaData;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprint(), VarName, VariableReference.GetMemberScope(this), TEXT("tooltip"), BPMetaData);
+		VarName = VariableProperty->GetFName();
 
-		if( !BPMetaData.IsEmpty() )
-		{
-			Args.Add( TEXT( "TextPartition" ), FText::FromString( "\n" ));
-			Args.Add( TEXT( "MetaData" ), FText::FromString( BPMetaData ));
-		}
-	}
-	if(  UProperty* Property = GetPropertyForVariable() )
-	{
+		UClass* SourceClass = VariableProperty->GetOwnerClass();
 		// discover if the variable property is a non blueprint user variable
-		UClass* SourceClass = Property->GetOwnerClass();
-		if( SourceClass && SourceClass->ClassGeneratedBy == NULL )
-		{
-			const FString MetaData = Property->GetToolTipText().ToString();
+		bool const bIsNativeVariable = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy == nullptr);
+		FName const TooltipMetaKey(TEXT("tooltip"));
 
-			if( !MetaData.IsEmpty() )
+		FText SubTooltip;
+		if (bIsNativeVariable)
+		{
+			FText const PropertyTooltip = VariableProperty->GetToolTipText();
+			if (!PropertyTooltip.IsEmpty())
 			{
-				// See if the property associated with this editor has a tooltip
-				FText PropertyMetaData = FText::FromString( *MetaData );
-				FString TooltipName = FString::Printf( TEXT("%s.tooltip"), *(Property->GetName()));
-				FText::FindText( *(Property->GetFullGroupName(true)), *TooltipName, PropertyMetaData );
-				Args.Add( TEXT( "TextPartition" ), FText::FromString( "\n" ));
-				Args.Add( TEXT( "MetaData" ), PropertyMetaData );
+				// See if the native property has a tooltip
+				SubTooltip = PropertyTooltip;
+				FString TooltipName = FString::Printf(TEXT("%s.%s"), *VarName.ToString(), *TooltipMetaKey.ToString());
+				FText::FindText(*VariableProperty->GetFullGroupName(true), *TooltipName, SubTooltip);
 			}
 		}
+		else if (UBlueprint* VarBlueprint = Cast<UBlueprint>(SourceClass->ClassGeneratedBy))
+		{
+			FString UserTooltipData;
+			if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, /*InLocalVarScope =*/nullptr, TooltipMetaKey, UserTooltipData))
+			{
+				SubTooltip = FText::FromString(UserTooltipData);
+			}
+		}
+
+		if (!SubTooltip.IsEmpty())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("VarName"), FText::FromName(VarName));
+			Args.Add(TEXT("PropertyTooltip"), SubTooltip);
+
+			return FText::Format(LOCTEXT("GetVariableProperty_Tooltip", "Read the value of variable {VarName}\n{PropertyTooltip}"), Args);
+		}
 	}
-	return FText::Format( NSLOCTEXT( "K2Node", "GetVariable_ToolTip", "Read the value of variable {VarName}{TextPartition}{MetaData}"), Args ).ToString();
+	return K2Node_VariableGetImpl::GetBaseTooltip(VarName);
+}
+
+FText UK2Node_VariableGet::GetBlueprintVarTooltip(FBPVariableDescription const& VarDesc)
+{
+	FName const TooltipMetaKey(TEXT("tooltip"));
+	int32 const MetaIndex = VarDesc.FindMetaDataEntryIndexForKey(TooltipMetaKey);
+	bool const bHasTooltipData = (MetaIndex != INDEX_NONE);
+
+	if (bHasTooltipData)
+	{
+		FString UserTooltipData = VarDesc.GetMetaData(TooltipMetaKey);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VarName"), FText::FromName(VarDesc.VarName));
+		Args.Add(TEXT("UserTooltip"), FText::FromString(UserTooltipData));
+
+		return FText::Format(LOCTEXT("GetVariableProperty_Tooltip", "Read the value of variable {VarName}\n{UserTooltip}"), Args);
+	}
+	return K2Node_VariableGetImpl::GetBaseTooltip(VarDesc.VarName);
+}
+
+FText UK2Node_VariableGet::GetTooltipText() const
+{
+	// @TODO: The variable name mutates as the user makes changes to the 
+	//        underlying property, so until we can catch all those cases, we're
+	//        going to leave this optimization off
+	//if (CachedTooltip.IsOutOfDate())
+	{
+		if (UProperty* Property = GetPropertyForVariable())
+		{
+			CachedTooltip = GetPropertyTooltip(Property);
+		}
+		else if (FBPVariableDescription const* VarDesc = GetBlueprintVarDescription())
+		{
+			CachedTooltip = GetBlueprintVarTooltip(*VarDesc);
+		}
+		else
+		{
+			CachedTooltip = K2Node_VariableGetImpl::GetBaseTooltip(GetVarName());
+		}
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText Result;
-
 	// If there is only one variable being read, the title can be made the variable name
 	FString OutputPinName;
 	int32 NumOutputsFound = 0;
@@ -144,18 +208,21 @@ FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		}
 	}
 
-	if (NumOutputsFound == 1)
+	if (NumOutputsFound != 1)
+	{
+		return LOCTEXT("Get", "Get");
+	}
+	// @TODO: The variable name mutates as the user makes changes to the 
+	//        underlying property, so until we can catch all those cases, we're
+	//        going to leave this optimization off
+	else //if (CachedNodeTitle.IsOutOfDate())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PinName"), FText::FromString(OutputPinName));
-		Result = FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args);
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args);
 	}
-	else
-	{
-		Result = LOCTEXT("Get", "Get");
-	}
-
-	return Result;
+	return CachedNodeTitle;
 }
 
 FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

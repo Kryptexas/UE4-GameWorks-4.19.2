@@ -215,7 +215,7 @@ void AController::PostInitializeComponents()
 
 void AController::Possess(APawn* InPawn)
 {
-	REDIRECT_ACTOR_TO_VLOG(InPawn, this);
+	REDIRECT_OBJECT_TO_VLOG(InPawn, this);
 
 	if (InPawn != NULL)
 	{
@@ -422,7 +422,7 @@ void AController::InitPlayerState()
 			{
 				// don't call SetPlayerName() as that will broadcast entry messages but the GameMode hasn't had a chance
 				// to potentially apply a player/bot name yet
-				PlayerState->PlayerName = GetDefault<AGameMode>()->DefaultPlayerName;
+				PlayerState->PlayerName = GameMode->DefaultPlayerName;
 			}
 		}
 	}
@@ -508,7 +508,7 @@ FName AController::GetStateName() const
 	return StateName;
 }
 
-bool AController::IsInState(FName InStateName)
+bool AController::IsInState(FName InStateName) const
 {
 	return (StateName == InStateName);
 }
@@ -564,13 +564,6 @@ void AController::UpdateNavigationComponents()
 	if (PathFollowingComp != NULL)
 	{
 		PathFollowingComp->UpdateCachedComponents();
-	}
-
-	// initialize movement mode in characters
-	ACharacter* MyCharacter = Cast<ACharacter>(GetPawn());
-	if (MyCharacter && MyCharacter->CharacterMovement)
-	{
-		MyCharacter->CharacterMovement->SetDefaultMovementMode();
 	}
 }
 

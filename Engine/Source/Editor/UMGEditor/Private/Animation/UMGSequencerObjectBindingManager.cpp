@@ -6,9 +6,9 @@
 #include "ISequencer.h"
 #include "MovieScene.h"
 
-FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UMovieScene& InMovieScene )
-	: WidgetBlueprintEditor( InWidgetBlueprintEditor )
-	, MovieScene( &InMovieScene )
+FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation )
+	: WidgetAnimation( &InAnimation )
+	, WidgetBlueprintEditor( InWidgetBlueprintEditor )
 {
 	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().AddRaw( this, &FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated );
 
@@ -16,6 +16,7 @@ FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlu
 
 FUMGSequencerObjectBindingManager::~FUMGSequencerObjectBindingManager()
 {
+	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().RemoveAll( this );
 }
 
 FGuid FUMGSequencerObjectBindingManager::FindGuidForObject( const UMovieScene& MovieScene, UObject& Object ) const
@@ -37,20 +38,26 @@ void FUMGSequencerObjectBindingManager::BindPossessableObject( const FGuid& Poss
 {
 	PreviewObjectToGuidMap.Add( &PossessedObject, PossessableGuid );
 
-	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
-	FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene(*MovieScene);
-
 	FWidgetAnimationBinding NewBinding;
-	NewBinding.WidgetName = PossessedObject.GetFName();
-	if( PossessedObject.IsA<UPanelSlot>() )
-	{
-		// Save the name of the widget containing the slots.  This is the object to look up that contaisn the slot itself(the thing we are animating)
-		NewBinding.SlotWidgetName = PossessedObject.GetOuter()->GetFName();
-	}
-
 	NewBinding.AnimationGuid = PossessableGuid;
 
-	WidgetAnimation->AnimationBindings.Add( NewBinding );
+	UPanelSlot* Slot = Cast<UPanelSlot>( &PossessedObject );
+	if( Slot && Slot->Content )
+	{
+		// Save the name of the widget containing the slots.  This is the object to look up that contains the slot itself(the thing we are animating)
+		NewBinding.SlotWidgetName = Slot->GetFName();
+		NewBinding.WidgetName = Slot->Content->GetFName();
+
+
+		WidgetAnimation->AnimationBindings.Add(NewBinding);
+	}
+	else if( !Slot )
+	{
+		NewBinding.WidgetName = PossessedObject.GetFName();
+
+		WidgetAnimation->AnimationBindings.Add(NewBinding);
+	}
+
 }
 
 void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& PossessableGuid )
@@ -64,7 +71,6 @@ void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& P
 	}
 
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
-	FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene(*MovieScene);
 
 	WidgetAnimation->AnimationBindings.RemoveAll( [&]( const FWidgetAnimationBinding& Binding ) { return Binding.AnimationGuid == PossessableGuid; } );
 
@@ -82,41 +88,28 @@ void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMov
 	}
 }
 
-void FUMGSequencerObjectBindingManager::InitPreviewObjects()
+bool FUMGSequencerObjectBindingManager::HasValidWidgetAnimation() const
 {
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
+	return WidgetAnimation.IsValid() && WidgetBlueprint->Animations.Contains( WidgetAnimation.Get() );
+}
 
+void FUMGSequencerObjectBindingManager::InitPreviewObjects()
+{
 	// Populate preview object to guid map
 	UUserWidget* PreviewWidget = WidgetBlueprintEditor.GetPreview();
 
-	UWidgetTree* WidgetTree = PreviewWidget->WidgetTree;
-
-	const FWidgetAnimation* WidgetAnimation = WidgetBlueprint->FindAnimationDataForMovieScene( *MovieScene );
-	check( WidgetAnimation );
-
-	for( const FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings )
+	if( PreviewWidget )
 	{
-		FName ObjectName = Binding.WidgetName;
-		FName SlotWidgetName = Binding.SlotWidgetName;
+		UWidgetTree* WidgetTree = PreviewWidget->WidgetTree;
 
-		FName NameToSearchFor = SlotWidgetName != NAME_None ? SlotWidgetName : ObjectName;
-
-		UObject* FoundObject = FindObject<UObject>(WidgetTree, *NameToSearchFor.ToString());
-		if(FoundObject)
+		for(const FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings)
 		{
-			if( SlotWidgetName == NAME_None )
+			UObject* FoundObject = Binding.FindRuntimeObject( *WidgetTree );
+			if( FoundObject )
 			{
 				PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
 			}
-			else
-			{
-				FoundObject = FindObject<UObject>( FoundObject, *ObjectName.ToString() );
-				if( FoundObject )
-				{
-					PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
-				}
-			}
-		
 		}
 	}
 }

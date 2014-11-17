@@ -89,7 +89,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/**
 	 * Whether the light should be injected into the Light Propagation Volume
 	 **/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(DisplayName = "Dynamic Indirect Lighting"))
 	uint32 bAffectDynamicIndirectLighting : 1;
 
 	/** 
@@ -119,7 +119,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	 * Distance at which the light function should be completely faded to DisabledBrightness.  
 	 * This is useful for hiding aliasing from light functions applied in the distance.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction, meta=(DisplayName = "Fade Distance"))
 	float LightFunctionFadeDistance;
 
 	/** 
@@ -134,7 +134,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	 * For directional lights, the color around the light direction will be blurred radially and added back to the scene.
 	 * for point lights, the color on pixels closer than the light's SourceRadius will be blurred radially and added back to the scene.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts, meta=(DisplayName = "Light Shaft Bloom"))
 	uint32 bEnableLightShaftBloom:1;
 
 	/** Scales the additive color. */
@@ -149,10 +149,19 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts)
 	FColor BloomTint;
 
+	/** 
+	 * Whether to use ray traced distance field area shadows.  The project setting bGenerateMeshDistanceFields must be enabled for this to have effect.
+	 * Distance field shadows support area lights so they create soft shadows with sharp contacts.  
+	 * They have less aliasing artifacts than standard shadowmaps, but inherit all the limitations of distance field representations (only uniform scale, no deformation).
+	 * These shadows have a low per-object cost (and don't depend on triangle count) so they are effective for distant shadows from a dynamic sun.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows, meta=(DisplayName = "Use RayTraced DistanceField Shadows"))
+	bool bUseRayTracedDistanceFieldShadows;
+
 public:
-	/** Set brightness of the light */
+	/** Set intensity of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
-	void SetBrightness(float NewBrightness);
+	void SetIntensity(float NewIntensity);
 
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")

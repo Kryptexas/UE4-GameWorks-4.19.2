@@ -24,11 +24,15 @@
 // Components
 #include "SlateWrapperTypes.h"
 
+#include "DragDropOperation.h"
+
 #include "Visual.h"
 
 #include "PanelSlot.h"
 
 #include "Widget.h"
+
+#include "NamedSlotInterface.h"
 
 #include "PanelWidget.h"
 #include "ContentWidget.h"
@@ -45,6 +49,9 @@
 #include "UniformGridSlot.h"
 #include "UniformGridPanel.h"
 
+#include "GridSlot.h"
+#include "GridPanel.h"
+
 #include "OverlaySlot.h"
 #include "Overlay.h"
 
@@ -60,9 +67,14 @@
 #include "ButtonSlot.h"
 #include "Button.h"
 
+#include "SizeBoxSlot.h"
+#include "SizeBox.h"
+
 #include "TextBlock.h"
 #include "CheckBox.h"
 #include "Image.h"
+
+#include "SpinBox.h"
 
 #include "EditableText.h"
 #include "EditableTextBox.h"
@@ -72,7 +84,13 @@
 
 #include "Slider.h"
 #include "ProgressBar.h"
+
 #include "ComboBox.h"
+#include "ComboBoxString.h"
+
+#include "SScaleBox.h"
+#include "ScaleBoxSlot.h"
+#include "ScaleBox.h"
 
 #include "Spacer.h"
 #include "MenuAnchor.h"
@@ -86,6 +104,8 @@
 #include "TileView.h"
 
 #include "Viewport.h"
+
+#include "NativeWidgetHost.h"
 
 // Slate
 #include "SObjectWidget.h"

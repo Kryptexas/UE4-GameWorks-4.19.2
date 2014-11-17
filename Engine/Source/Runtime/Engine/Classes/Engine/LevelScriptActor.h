@@ -33,13 +33,13 @@ class ENGINE_API ALevelScriptActor : public AActor
 	virtual void LevelReset();
 
 	/**
-	 * Event called on world origin changes
+	 * Event called on world origin location changes
 	 *
-	 * @param	OldOrigin			Previous world origin position
-	 * @param	NewOrigin			New world origin position
+	 * @param	OldOriginLocation	Previous world origin location
+	 * @param	NewOriginLocation	New world origin location
 	 */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void WorldOriginChanged(FIntPoint OldOrigin, FIntPoint NewOrigin);
+	virtual void WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVector NewOriginLocation);
 	
 #if WITH_EDITOR
 	// Begin UObject Interface

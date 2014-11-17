@@ -17,7 +17,7 @@ class UEnvQueryTest_Dot : public UEnvQueryTest
 	UPROPERTY(EditDefaultsOnly, Category=Dot)
 	FEnvDirection LineB;
 
-	void RunTest(struct FEnvQueryInstance& QueryInstance);
+	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FString GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;
@@ -26,17 +26,17 @@ protected:
 
 	/** helper function: gather directions from context pairs */
 	void GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FVector& ItemLocation,
-		TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo);
+		TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo) const;
 
 	/** helper function: gather directions from context */
 	void GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation,
-		TSubclassOf<class UEnvQueryContext> LineDirection);
+		TSubclassOf<class UEnvQueryContext> LineDirection) const;
 
 	/** helper function: gather directions from proper contexts */
 	void GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance,
 		TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext,
-		const FVector& ItemLocation = FVector::ZeroVector, const FRotator& ItemRotation = FRotator::ZeroRotator);
+		const FVector& ItemLocation = FVector::ZeroVector, const FRotator& ItemRotation = FRotator::ZeroRotator) const;
 
 	/** helper function: check if contexts are updated per item */
-	bool RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext);
+	bool RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext) const;
 };

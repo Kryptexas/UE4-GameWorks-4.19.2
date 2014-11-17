@@ -2,56 +2,64 @@
 
 #pragma once
 
+#include "CheckBoxWidgetStyle.h"
+
 #include "CheckBox.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, bool, bIsChecked );
 
-/** Check box widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+/**
+ * Check box widget
+ */
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UCheckBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
-protected:
+public:
+	/** The checkbox bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FCheckBoxStyle WidgetStyle;
+
 	/** Style of the check box */
-	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** Image to use when the checkbox is unchecked */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UncheckedImage;
+	UPROPERTY()
+	USlateBrushAsset* UncheckedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is unchecked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UncheckedHoveredImage;
+	UPROPERTY()
+	USlateBrushAsset* UncheckedHoveredImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is unchecked and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UncheckedPressedImage;
+	UPROPERTY()
+	USlateBrushAsset* UncheckedPressedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CheckedImage;
+	UPROPERTY()
+	USlateBrushAsset* CheckedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CheckedHoveredImage;
+	UPROPERTY()
+	USlateBrushAsset* CheckedHoveredImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* CheckedPressedImage;
+	UPROPERTY()
+	USlateBrushAsset* CheckedPressedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is in an ambiguous state and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UndeterminedImage;
+	UPROPERTY()
+	USlateBrushAsset* UndeterminedImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is checked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UndeterminedHoveredImage;
+	UPROPERTY()
+	USlateBrushAsset* UndeterminedHoveredImage_DEPRECATED;
 	
 	/** Image to use when the checkbox is in an ambiguous state and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* UndeterminedPressedImage;
+	UPROPERTY()
+	USlateBrushAsset* UndeterminedPressedImage_DEPRECATED;
 
 	/** Whether the check box is currently in a checked state */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -69,27 +77,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FMargin Padding;
 
-	/** Foreground color for the checkbox's content and parts */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor ForegroundColor;
-
 	/** The color of the background border */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateColor BorderBackgroundColor;
 
-	//SLATE_ATTRIBUTE( bool, ReadOnly )
-	//SLATE_ARGUMENT( bool, IsFocusable )
-
-	//SLATE_EVENT( FOnGetContent, OnGetMenuContent )
-
-	UPROPERTY(EditDefaultsOnly, Category="Sound")
-	FSlateSound CheckedSound;
-
-	UPROPERTY(EditDefaultsOnly, Category="Sound")
-	FSlateSound UncheckedSound;
-
-	UPROPERTY(EditDefaultsOnly, Category="Sound")
-	FSlateSound HoveredSound;
+public:
 
 	/** Called when the checked state has changed */
 	UPROPERTY(BlueprintAssignable)
@@ -116,13 +108,20 @@ protected:
 	void SetCheckedState(ESlateCheckBoxState::Type InCheckedState);
 	
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
-	virtual void ReleaseNativeWidget() override;
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

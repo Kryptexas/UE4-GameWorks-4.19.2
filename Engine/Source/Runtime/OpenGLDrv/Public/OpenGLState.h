@@ -310,7 +310,6 @@ struct FOpenGLContextState : public FOpenGLCommonState
 	FLinearColor					ClearColor;
 	uint16							ClearStencil;
 	float							ClearDepth;
-	bool							bSeamlessCubemapEnabled;
 
 	// @todo-mobile: Used to cache the last color attachment to optimize logical buffer loads
 	GLuint							LastES2ColorRT;
@@ -340,7 +339,6 @@ struct FOpenGLContextState : public FOpenGLCommonState
 	,	ClearColor(-1, -1, -1, -1)
 	,	ClearStencil(0xFFFF)
 	,	ClearDepth(-1.0f)
-	,	bSeamlessCubemapEnabled(false)
 #if PLATFORM_ANDROID
 	,	LastES2ColorRT(0xFFFFFFFF)
 	,	LastES2DepthRT(0xFFFFFFFF)
@@ -389,7 +387,6 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 	uint32							RenderTargetWidth;
 	uint32							RenderTargetHeight;
 	GLuint							RunningOcclusionQuery;
-	bool							bSeamlessCubemapEnabled;
 
 	// Pending framebuffer setup
 	int32							FirstNonzeroRenderTarget;
@@ -439,7 +436,6 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 	,	RenderTargetWidth(0)
 	,	RenderTargetHeight(0)
 	,	RunningOcclusionQuery(0)
-	,	bSeamlessCubemapEnabled(false)
 	,	FirstNonzeroRenderTarget(-1)
 	,	DepthStencil(0)
 	,	bFramebufferSetupInvalid(true)
@@ -473,19 +469,19 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 		check(!ShaderParameters);
 		FOpenGLCommonState::InitializeResources(NumCombinedTextures, NumComputeUAVUnits);
 		ShaderParameters = new FOpenGLShaderParameterCache[CrossCompiler::NUM_SHADER_STAGES];
-		ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(FOpenGL::GetMaxVertexUniformComponents() * sizeof(float));
-		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(FOpenGL::GetMaxPixelUniformComponents() * sizeof(float));
-		ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].InitializeResources(FOpenGL::GetMaxGeometryUniformComponents() * sizeof(float));
+		ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(FOpenGL::GetMaxVertexUniformComponents() * 4 * sizeof(float));
+		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(FOpenGL::GetMaxPixelUniformComponents() * 4 * sizeof(float));
+		ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].InitializeResources(FOpenGL::GetMaxGeometryUniformComponents() * 4 * sizeof(float));
 		
 		if ( FOpenGL::SupportsTessellation() )
 		{
-			ShaderParameters[CrossCompiler::SHADER_STAGE_HULL].InitializeResources(FOpenGL::GetMaxHullUniformComponents() * sizeof(float));
-			ShaderParameters[CrossCompiler::SHADER_STAGE_DOMAIN].InitializeResources(FOpenGL::GetMaxDomainUniformComponents() * sizeof(float));
+			ShaderParameters[CrossCompiler::SHADER_STAGE_HULL].InitializeResources(FOpenGL::GetMaxHullUniformComponents() * 4 * sizeof(float));
+			ShaderParameters[CrossCompiler::SHADER_STAGE_DOMAIN].InitializeResources(FOpenGL::GetMaxDomainUniformComponents() * 4 * sizeof(float));
 		}
 
 		if ( FOpenGL::SupportsComputeShaders() )
 		{
-			ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(FOpenGL::GetMaxComputeUniformComponents() * sizeof(float));
+			ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(FOpenGL::GetMaxComputeUniformComponents() * 4 * sizeof(float));
 		}
 
 		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)

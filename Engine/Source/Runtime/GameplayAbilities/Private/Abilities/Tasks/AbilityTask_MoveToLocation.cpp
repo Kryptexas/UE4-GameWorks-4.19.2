@@ -5,54 +5,50 @@
 UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
-
-}
-
-void UAbilityTask_MoveToLocation::InterpolatePosition()
-{
-	if (Ability.IsValid())
-	{
-		if (AActor* ActorOwner = Cast<AActor>(Ability->GetOuter()))
-		{
-			float CurrentTime = ActorOwner->GetWorld()->GetTimeSeconds();
-
-			if (CurrentTime >= TimeMoveWillEnd)
-			{
-				ActorOwner->GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_MoveToLocation::InterpolatePosition);
-				ActorOwner->SetActorLocation(TargetLocation);
-				OnTargetLocationReached.Broadcast();
-			}
-			else
-			{
-				float MoveFraction = (CurrentTime - TimeMoveStarted) / DurationOfMovement;
-				if (LerpCurve.IsValid())
-				{
-					MoveFraction = LerpCurve.Get()->GetFloatValue(MoveFraction);
-				}
-				ActorOwner->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));				
-			}
-		}
-	}
+	bTickingTask = true;
 }
 
 UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	check(ThisAbility);
-	AActor* ActorOwner = Cast<AActor>(ThisAbility->GetOuter());
-	check(ActorOwner);
+	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
 
-	UAbilityTask_MoveToLocation* MyObj = NewObject<UAbilityTask_MoveToLocation>();
-	MyObj->Ability = ThisAbility;
-
-	MyObj->StartLocation = ActorOwner->GetActorLocation();
+	MyObj->StartLocation = MyObj->GetActor()->GetActorLocation();
 	MyObj->TargetLocation = Location;
 	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		//Avoid negative or divide-by-zero cases
-	MyObj->TimeMoveStarted = WorldContextObject->GetWorld()->GetTimeSeconds();
+	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
 	MyObj->TimeMoveWillEnd = MyObj->TimeMoveStarted + MyObj->DurationOfMovement;
 	MyObj->LerpCurve = OptionalInterpolationCurve;
-	WorldContextObject->GetWorld()->GetTimerManager().SetTimer(MyObj, &UAbilityTask_MoveToLocation::InterpolatePosition, 0.001f, true);
 
 	return MyObj;
+}
+
+void UAbilityTask_MoveToLocation::Activate()
+{
+}
+
+//TODO: This is still an awful way to do this and we should scrap this task or do it right.
+void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
+{
+	Super::TickTask(DeltaTime);
+	AActor* MyActor = GetActor();
+	if (MyActor)
+	{
+		float CurrentTime = GetWorld()->GetTimeSeconds();
+
+		if (CurrentTime >= TimeMoveWillEnd)
+		{
+			MyActor->SetActorLocation(TargetLocation);
+			OnTargetLocationReached.Broadcast();
+			EndTask();
+		}
+		else
+		{
+			float MoveFraction = (CurrentTime - TimeMoveStarted) / DurationOfMovement;
+			if (LerpCurve.IsValid())
+			{
+				MoveFraction = LerpCurve.Get()->GetFloatValue(MoveFraction);
+			}
+			MyActor->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));
+		}
+	}
 }

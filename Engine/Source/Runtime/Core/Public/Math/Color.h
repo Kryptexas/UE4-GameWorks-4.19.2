@@ -161,6 +161,19 @@ struct FLinearColor
 		return *this;
 	}
 
+	// clamped in 0..1 range
+	FORCEINLINE FLinearColor GetClamped(float InMin = 0.0f, float InMax = 1.0f) const
+	{
+		FLinearColor Ret;
+
+		Ret.R = FMath::Clamp(R, InMin, InMax);
+		Ret.G = FMath::Clamp(G, InMin, InMax);
+		Ret.B = FMath::Clamp(B, InMin, InMax);
+		Ret.A = FMath::Clamp(A, InMin, InMax);
+
+		return Ret;
+	}
+
 	/** Comparison operators */
 	FORCEINLINE bool operator==(const FLinearColor& ColorB) const
 	{
@@ -188,6 +201,11 @@ struct FLinearColor
 	 * Converts byte hue-saturation-brightness to floating point red-green-blue.
 	 */
 	static CORE_API FLinearColor FGetHSV(uint8 H,uint8 S,uint8 V);
+
+	/**
+	* Makes a random but quite nice color.
+	*/
+	static CORE_API FLinearColor MakeRandomColor();
 
 	/**
 	 * Euclidean distance between two points.
@@ -495,6 +513,12 @@ FORCEINLINE uint32 GetTypeHash( const FColor& Color )
 {
 	return Color.DWColor();
 }
+
+FORCEINLINE uint32 GetTypeHash( const FLinearColor& Color )
+{
+	return GetTypeHash(FColor(Color));
+}
+
 
 /** Computes a brightness and a fixed point color from a floating point color. */
 extern CORE_API void ComputeAndFixedColorAndIntensity(const FLinearColor& InLinearColor,FColor& OutColor,float& OutIntensity);

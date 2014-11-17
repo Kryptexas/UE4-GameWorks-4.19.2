@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintNodeSpawner.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "BlueprintComponentNodeSpawner.generated.h"
 
 // Forward declarations
@@ -31,9 +32,11 @@ public:
 	static UBlueprintComponentNodeSpawner* Create(TSubclassOf<UActorComponent> const ComponentClass, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
-	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;
-	virtual FText    GetDefaultMenuName() const override;
-	virtual FText    GetDefaultMenuCategory() const override;
+	virtual FBlueprintNodeSignature GetSpawnerSignature() const override;
+	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const override;
+	virtual FText GetDefaultMenuName(FBindingSet const& Bindings) const override;
+	virtual FText GetDefaultMenuCategory() const override;
+	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) const override;
 	// End UBlueprintNodeSpawner interface
 	
 	/**
@@ -47,4 +50,8 @@ private:
 	/** The component class to configure new nodes with. */
 	UPROPERTY()
 	TSubclassOf<UActorComponent> ComponentClass;
+
+	/** Constructing FText strings can be costly, so we cache the default menu name/category */
+	FNodeTextCache CachedMenuName;
+	FNodeTextCache CachedCategory;
 };

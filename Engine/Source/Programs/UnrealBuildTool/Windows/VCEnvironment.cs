@@ -177,7 +177,7 @@ namespace UnrealBuildTool
 		static string GetLinkerToolPath(string PlatformVSToolPath)
 		{
 			// If we were asked to use Clang, then we'll redirect the path to the compiler to the LLVM installation directory
-			if( WindowsPlatform.bCompileWithClang )
+			if( WindowsPlatform.bCompileWithClang && WindowsPlatform.bAllowClangLinker )
 			{
 				var Result = Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.ProgramFilesX86 ), "LLVM", "bin", "lld.exe" );
 				if( !File.Exists( Result ) )

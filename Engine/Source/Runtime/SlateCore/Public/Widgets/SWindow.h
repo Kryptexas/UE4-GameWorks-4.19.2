@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWindow.h: Declares the SWindow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -211,6 +207,9 @@ public:
 		}
 	}
 
+	/** Paint the window and all of its contents. Not the same as Paint(). */
+	int32 PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+
 	/**
 	 * Returns the size of the title bar as a Slate size parameter.  Does not take into account application scale!
 	 *
@@ -230,6 +229,12 @@ public:
 	/** @return The geometry of the window in window space (i.e. position and AbsolutePosition are 0) */
 	FGeometry GetWindowGeometryInWindow() const;
 
+	/** @return the transform from local space to screen space (desktop space). */
+	FSlateLayoutTransform GetLocalToScreenTransform() const;
+
+	/** @return the transform from local space to window space, which is basically desktop space without the offset. Essentially contains the DPI scale. */
+	FSlateLayoutTransform GetLocalToWindowTransform() const;
+
 	/** @return The position of the window in screen space */
 	FVector2D GetPositionInScreen() const;
 
@@ -241,6 +246,9 @@ public:
 
 	/** @return Rectangle that this window occupies in screen space */
 	FSlateRect GetRectInScreen() const;
+
+	/** @return Rectangle of the window's usable client area in screen space. */
+	FSlateRect GetClientRectInScreen() const;
 
 	/** @return the size of the window's usable client area. */
 	FVector2D GetClientSizeInScreen() const;
@@ -333,10 +341,16 @@ public:
 	TSharedRef<const SWidget> GetContent() const;
 
 	/**
+	 * Check whether we have a full window overlay, used to draw content over the entire window.
+	 * 
+	 * @return true if the window has an overlay
+	 */
+	bool HasOverlay() const;
+
+	/**
 	 * Adds content to draw on top of the entire window
 	 *
 	 * @param	InZOrder	Z-order to use for this widget
-	 * 
 	 * @return The added overlay slot so that it can be configured and populated
 	 */
 	SOverlay::FOverlaySlot& AddOverlaySlot( const int32 ZOrder = INDEX_NONE );
@@ -609,11 +623,9 @@ public:
 
 public:
 
-	// Begin SWidget overrides
+	// SWidget overrides
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-
-	// End SWidget overrides
 
 protected:
 
@@ -726,8 +738,7 @@ protected:
 			, bIsActive(false)
 			, bIsPendingPlay(false)
 			, bIsAnimatingWindowSize(false)
-		{
-		}
+		{ }
 
 		/** Initial window opacity */
 		float StartingOpacity;
@@ -769,6 +780,7 @@ protected:
 	const FSlateBrush* WindowBackground;
 
 private:
+
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
 	
@@ -798,8 +810,6 @@ private:
 
 	/** Full window overlay widget */
 	TSharedPtr<SWidget> FullWindowOverlayWidget;
-
-
 
 	/** When not null, this window will always appear on top of the parent and be closed when the parent is closed. */
 	TWeakPtr<SWindow> ParentWindowPtr;
@@ -840,29 +850,23 @@ private:
 	EVisibility GetWindowFlashVisibility() const;
 };
 
+
 /**
  * Popups, tooltips, drag and drop decorators all can be executed without creating a new window.
  * This slot along with the SWindow::AddPopupLayerSlot() API enabled it.
  */
-struct FPopupLayerSlot
+struct FPopupLayerSlot : public TSlotBase<FPopupLayerSlot>
 {
 public:
 	FPopupLayerSlot()
-	: DesktopPosition_Attribute(FVector2D::ZeroVector)
+	: TSlotBase<FPopupLayerSlot>()
+	, DesktopPosition_Attribute(FVector2D::ZeroVector)
 	, WidthOverride_Attribute()
 	, HeightOverride_Attribute()
 	, Scale_Attribute(1.0f)
 	, Clamp_Attribute(false)
 	, ClampBuffer_Attribute(FVector2D::ZeroVector)
-	, Widget(SNullWidget::NullWidget)
 	{}
-
-	/** Support for using brackets in slate declarative syntax */
-	FPopupLayerSlot& operator[]( TSharedRef<SWidget> InWidget )
-	{
-		Widget = InWidget;
-		return *this;
-	}
 
 	/** Pixel position in desktop space */
 	FPopupLayerSlot& DesktopPosition( const TAttribute<FVector2D>& InDesktopPosition )
@@ -906,12 +910,6 @@ public:
 		return *this;
 	}
 
-	/** @return the widget present in this slot */
-	const TSharedRef<SWidget>& GetWidget()
-	{
-		return Widget;
-	}
-
 private:
 	/** SPopupLayer arranges FPopupLayerSlots, so it needs to know all about */
 	friend class SPopupLayer;
@@ -924,7 +922,6 @@ private:
 	TAttribute<float> Scale_Attribute;
 	TAttribute<bool> Clamp_Attribute;
 	TAttribute<FVector2D> ClampBuffer_Attribute;
-	TSharedRef<SWidget> Widget;
 };
 
 

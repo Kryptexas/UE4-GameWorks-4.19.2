@@ -6,7 +6,6 @@
 #include "CoreUObject.h"
 #include "Json.h"
 #include "SlateCore.h"
-
 #include "SlateClasses.h"
 
 
@@ -130,8 +129,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SVolumeControl.h"
 #include "SColorSpectrum.h"
 #include "SColorWheel.h"
-#include "SColorThemes.h"
-#include "SColorPicker.h"
 ///
 #include "SToolBarButtonBlock.h"
 #include "SToolBarComboButtonBlock.h"
@@ -149,7 +146,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SWidgetSwitcher.h"
 #include "SSuggestionTextBox.h"
 #include "SBreadcrumbTrail.h"
-#include "SWizard.h"
 #include "STextComboBox.h"
 #include "SNumericEntryBox.h"
 #include "SEditableComboBox.h"
@@ -157,7 +153,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SDPIScaler.h"
 #include "SInlineEditableTextBlock.h"
 #include "SVirtualKeyboardEntry.h"
-#include "STutorialWrapper.h"
 #include "ScrollyZoomy.h"
 #include "SSafeZone.h"
 #include "MarqueeRect.h"
@@ -174,6 +169,3 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 // Old docking
 #include "SDockableTab.h"
 #include "SDockTabStack.h"
-
-// Test suite
-#include "STestSuite.h"

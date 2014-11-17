@@ -80,6 +80,11 @@ public:
 		return  (Running.GetValue() != 0); 
 	}
 
+	void GetAddress( FInternetAddr &Addr )
+	{
+		Socket->GetAddress(Addr);
+	}
+
 	~FNetworkFileServerClientConnectionThreaded()
 	{
 		WorkerThread->Kill(true);
@@ -220,6 +225,21 @@ uint32 FNetworkFileServer::Run( )
 
 			if (ClientSocket != NULL)
 			{
+				TSharedPtr<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();;
+				ClientSocket->GetAddress(*Addr);
+
+				for ( auto PreviousConnection : Connections )
+				{
+					TSharedPtr<FInternetAddr> PreviousAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();;
+					PreviousConnection->GetAddress( *PreviousAddr );
+					if ( *Addr == *PreviousAddr)
+					{
+						// kill hte connection 
+						PreviousConnection->Stop();
+						UE_LOG(LogFileServer, Display, TEXT( "Killing client connection %s because new client connected from same address." ), *PreviousConnection->GetDescription() );
+					}
+				}
+
 				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, FileRequestDelegate, RecompileShadersDelegate, ActiveTargetPlatforms);
 				Connections.Add(Connection);
 				UE_LOG(LogFileServer, Display, TEXT( "Client %s connected." ), *Connection->GetDescription() );

@@ -427,7 +427,8 @@ void FMetalShaderParameterCache::CommitPackedGlobals(int32 Stage, const FMetalSh
 		// is there any data that needs to be copied?
 		if (PackedGlobalUniformDirty[UniformBufferIndex].HighVector > 0)//PackedGlobalUniformDirty[UniformBufferIndex].LowVector)
 		{
-			check(UniformBufferIndex == 0 || UniformBufferIndex == 1);
+			//@todo rco safe to remove this forever?
+			//check(UniformBufferIndex == 0 || UniformBufferIndex == 1 || UniformBufferIndex == 3);
 			uint32 TotalSize = Bindings.PackedGlobalArrays[Index].Size;
 			uint32 SizeToUpload = PackedGlobalUniformDirty[UniformBufferIndex].HighVector * SizeOfFloat4;
 //@todo-rco: Temp workaround
@@ -525,25 +526,6 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(TRefCountPtr<FMetalB
 				{
 					LastInfoIndex = InfoIndex;
 					break;
-				}
-			}
-		}
-	}
-	else
-	{
-		for (int32 BufferIndex = 0; BufferIndex < RHIUniformBuffers.Num(); ++BufferIndex)
-		{
-			const FRHIUniformBuffer* RHIUniformBuffer = RHIUniformBuffers[BufferIndex];
-			if (RHIUniformBuffer)
-			{
-				auto* UB = (FMetalUniformBuffer*)RHIUniformBuffer;
-				if (Stage == CrossCompiler::SHADER_STAGE_VERTEX)
-				{
-					[FMetalManager::GetContext() setVertexBuffer:UB->Buffer offset:UB->Offset atIndex:BufferIndex];
-				}
-				else
-				{
-					[FMetalManager::GetContext() setFragmentBuffer:UB->Buffer offset:UB->Offset atIndex:BufferIndex];
 				}
 			}
 		}

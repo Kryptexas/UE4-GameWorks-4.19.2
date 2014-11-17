@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Self"
 
@@ -38,17 +39,15 @@ UK2Node_Self::UK2Node_Self(const class FPostConstructInitializeProperties& PCIP)
 
 void UK2Node_Self::AllocateDefaultPins()
 {
-	SelfClass = GetBlueprint()->GeneratedClass;
-
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, K2Schema->PC_Object, K2Schema->PSC_Self, SelfClass, false, false, K2Schema->PN_Self);
+	CreatePin(EGPD_Output, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
 
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_Self::GetTooltip() const
+FText UK2Node_Self::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "GetSelfReference", "Gets a reference to this instance of the blueprint").ToString());
+	return NSLOCTEXT("K2Node", "GetSelfReference", "Gets a reference to this instance of the blueprint");
 }
 
 FString UK2Node_Self::GetKeywords() const
@@ -59,7 +58,7 @@ FString UK2Node_Self::GetKeywords() const
 FText UK2Node_Self::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FText NodeTitle = NSLOCTEXT("K2Node", "SelfReferenceName", "Self-Reference");
-	if (TitleType == ENodeTitleType::ListView)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
 		NodeTitle = LOCTEXT("ListTitle", "Get a reference to self");
 	}
@@ -75,7 +74,7 @@ void UK2Node_Self::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mess
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 	const UBlueprint* Blueprint = GetBlueprint();
-	const UClass* MyClass = SelfClass ? SelfClass : (Blueprint ? Blueprint->GeneratedClass : NULL);
+	const UClass* MyClass = Blueprint ? Blueprint->GeneratedClass : NULL;
 	const bool bValidClass = !MyClass || !MyClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass());
 	if (!bValidClass)
 	{
@@ -83,12 +82,24 @@ void UK2Node_Self::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mess
 	}
 }
 
-void UK2Node_Self::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_Self::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_Self::GetMenuCategory() const

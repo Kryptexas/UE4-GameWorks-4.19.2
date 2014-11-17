@@ -400,7 +400,7 @@ public:
 	 * 
 	 * @param NewSkeleton	NewSkeleton to change to 
 	 */
-	ENGINE_API bool ReplaceSkeleton(USkeleton* NewSkeleton);
+	ENGINE_API bool ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces=false);
 
 	/** Retrieve all animations that are used by this asset 
 	 * 
@@ -417,7 +417,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category = Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 #endif
 

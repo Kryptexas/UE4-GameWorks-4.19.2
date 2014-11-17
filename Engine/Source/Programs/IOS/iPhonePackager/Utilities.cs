@@ -351,6 +351,21 @@ namespace iPhonePackager
 				return true;
 			}
 
+			public bool GetDate(string Key, out string Value)
+			{
+				string PathToValue = String.Format("/plist/dict/key[.='{0}']/following-sibling::date[1]", Key);
+
+				XmlNode ValueNode = Doc.DocumentElement.SelectSingleNode(PathToValue);
+				if (ValueNode == null)
+				{
+					Value = "";
+					return false;
+				}
+
+				Value = ValueNode.InnerText;
+				return true;
+			}
+
 			public bool GetBool(string Key)
 			{
 				string PathToValue = String.Format("/plist/dict/key[.='{0}']/following-sibling::node()", Key);
@@ -448,8 +463,6 @@ namespace iPhonePackager
 			/// </summary>
 			public bool HasKey(string KeyName)
 			{
-				XmlNode DictionaryNode = Doc.DocumentElement.SelectSingleNode("/plist/dict");
-
 				string PathToKey = String.Format("/plist/dict/key[.='{0}']", KeyName);
 
 				XmlNode KeyNode = Doc.DocumentElement.SelectSingleNode(PathToKey);

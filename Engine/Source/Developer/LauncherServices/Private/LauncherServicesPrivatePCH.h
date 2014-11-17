@@ -20,11 +20,15 @@
 /* Private includes
  *****************************************************************************/
 
+/** Defines the launcher simple profile file version. */
+#define LAUNCHERSERVICES_SIMPLEPROFILEVERSION 1
+
 /** Defines the launcher profile file version. */
-#define LAUNCHERSERVICES_PROFILEVERSION 8
+#define LAUNCHERSERVICES_PROFILEVERSION 10
 
 
 // profile manager
+#include "LauncherProjectPath.h"
 #include "LauncherDeviceGroup.h"
 #include "LauncherProfileLaunchRole.h"
 #include "LauncherProfile.h"
@@ -33,13 +37,7 @@
 // launcher worker
 #include "LauncherTaskChainState.h"
 #include "LauncherTask.h"
-#include "LauncherUATCommand.h"
 #include "LauncherUATTask.h"
-#include "LauncherBuildCommands.h"
-#include "LauncherCookCommands.h"
-#include "LauncherDeployCommands.h"
-#include "LauncherLaunchCommands.h"
-#include "LauncherPackageCommands.h"
 #include "LauncherVerifyProfileTask.h"
 #include "LauncherWorker.h"
 #include "Launcher.h"

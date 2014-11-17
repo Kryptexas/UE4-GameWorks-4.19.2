@@ -13,6 +13,7 @@ public class LevelEditor : ModuleRules
 				"MainFrame",
                 "PlacementMode",
 				"ReferenceViewer",
+                "IntroTutorials"
 			}
 		);
 
@@ -20,6 +21,7 @@ public class LevelEditor : ModuleRules
 			new string[] {
 				"Settings",
 				"UserFeedback",
+				"IntroTutorials"
 			}
 		);
 
@@ -48,6 +50,7 @@ public class LevelEditor : ModuleRules
                 "RHI",
 				"Projects",
 				"TargetPlatform",
+				"EngineSettings",
 			}
 		);
 
@@ -74,6 +77,7 @@ public class LevelEditor : ModuleRules
                 "PlacementMode",
 				"UserFeedback",
 				"ReferenceViewer",
+                "IntroTutorials"
 			}
 		);
 	}

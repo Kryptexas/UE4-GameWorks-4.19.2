@@ -1,5 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "Brushes/SlateNoResource.h"
+#include "Fonts/SlateFontInfo.h"
+
+struct FMargin;
+struct FSlateSound;
 
 class SLATECORE_API FStyleDefaults
 {

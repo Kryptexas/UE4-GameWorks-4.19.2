@@ -11,6 +11,7 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
+#include "SceneUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGPUSort, Log, All);
 
@@ -54,7 +55,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FRadixSortParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, GroupCount )
 END_UNIFORM_BUFFER_STRUCT( FRadixSortParameters )
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FRadixSortParameters,TEXT("RadixSort"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FRadixSortParameters,TEXT("RadixSortUB"));
 
 typedef TUniformBufferRef<FRadixSortParameters> FRadixSortUniformBufferRef;
 
@@ -689,9 +690,10 @@ int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortB
 	const bool bDebugOffsets = CVarDebugOffsets.GetValueOnRenderThread() != 0;
 	const bool bDebugSort = CVarDebugSort.GetValueOnRenderThread() != 0;
 
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	const auto FeatureLevel = GRHIFeatureLevel;
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
-	SCOPED_DRAW_EVENTF(SortGPU, DEC_PARTICLE, TEXT("SortGPU_%d"), Count);
+	SCOPED_DRAW_EVENTF(RHICmdList, SortGPU, DEC_PARTICLE, TEXT("SortGPU_%d"), Count);
 
 	// Determine how many tiles need to be sorted.
 	const int32 TileCount = Count / TILE_SIZE;
@@ -728,10 +730,11 @@ int32 SortGPUBuffers(FRHICommandListImmediate& RHICmdList, FGPUSortBuffers SortB
 	SortParameters.GroupCount = GroupCount;
 
 	// Grab shaders.
-	TShaderMapRef<FRadixSortClearOffsetsCS> ClearOffsetsCS(GetGlobalShaderMap());
-	TShaderMapRef<FRadixSortUpsweepCS> UpsweepCS(GetGlobalShaderMap());
-	TShaderMapRef<FRadixSortSpineCS> SpineCS(GetGlobalShaderMap());
-	TShaderMapRef<FRadixSortDownsweepCS> DownsweepCS(GetGlobalShaderMap());
+	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef<FRadixSortClearOffsetsCS> ClearOffsetsCS(ShaderMap);
+	TShaderMapRef<FRadixSortUpsweepCS> UpsweepCS(ShaderMap);
+	TShaderMapRef<FRadixSortSpineCS> SpineCS(ShaderMap);
+	TShaderMapRef<FRadixSortDownsweepCS> DownsweepCS(ShaderMap);
 
 	// Constant buffer workaround. Both shaders must use either the constant buffer or vertex buffer.
 	check( UpsweepCS->RequiresConstantBufferWorkaround() == DownsweepCS->RequiresConstantBufferWorkaround() );

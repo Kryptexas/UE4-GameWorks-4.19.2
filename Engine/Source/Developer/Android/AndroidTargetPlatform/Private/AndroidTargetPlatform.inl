@@ -8,6 +8,8 @@
 /* FAndroidTargetPlatform structors
  *****************************************************************************/
 
+#define LOCTEXT_NAMESPACE "FAndroidTargetPlatform"
+
 template<class TPlatformProperties>
 inline FAndroidTargetPlatform<TPlatformProperties>::FAndroidTargetPlatform( ) :
 	DeviceDetection(nullptr)
@@ -275,13 +277,55 @@ const FTextureLODSettings& FAndroidTargetPlatform<TPlatformProperties>::GetTextu
 template<class TPlatformProperties>
 FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( class USoundWave* Wave ) const
 {
-	static FName NAME_OGG(TEXT("OGG"));		//@todo android: probably not ogg
+	static bool formatRead = false;
+	static FName NAME_FORMAT;
 
-	return NAME_OGG;
+	if (!formatRead)
+	{
+		formatRead = true;
+
+		FString audioSetting;
+		if (!GConfig->GetString(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("AndroidAudio"), audioSetting, GEngineIni))
+		{
+			audioSetting = TEXT("DEFAULT");
+		}
+
+#if WITH_OGGVORBIS
+		if (audioSetting == TEXT("OGG") || audioSetting == TEXT("Default"))
+		{
+			static FName NAME_OGG(TEXT("OGG"));
+			NAME_FORMAT = NAME_OGG;
+		}
+#else
+		if (audioSetting == TEXT("OGG"))
+		{
+			UE_LOG(LogAudio, Error, TEXT("Attemped to select Ogg Vorbis encoding when the cooker is built without Ogg Vorbis support."));
+		}
+#endif
+		else
+		{
+	
+			// Otherwise return ADPCM as it'll either be option '2' or 'default' depending on WITH_OGGVORBIS config
+			static FName NAME_ADPCM(TEXT("ADPCM"));
+			NAME_FORMAT = NAME_ADPCM;
+		}
+	}
+	return NAME_FORMAT;
 }
 
 #endif //WITH_ENGINE
 
+template<class TPlatformProperties>
+bool FAndroidTargetPlatform<TPlatformProperties>::SupportsVariants() const
+{
+	return true;
+}
+
+template<class TPlatformProperties>
+FText FAndroidTargetPlatform<TPlatformProperties>::GetVariantTitle() const
+{
+	return LOCTEXT("AndroidVariantTitle", "Texture Format");
+}
 
 /* FAndroidTargetPlatform implementation
  *****************************************************************************/
@@ -361,3 +405,5 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 
 	return true;
 }
+
+#undef LOCTEXT_NAMESPACE

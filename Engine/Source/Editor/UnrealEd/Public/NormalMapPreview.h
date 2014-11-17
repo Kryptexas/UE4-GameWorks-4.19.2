@@ -16,6 +16,7 @@ class UNREALED_API FNormalMapBatchedElementParameters : public FBatchedElementPa
 	/** Binds vertex and pixel shaders for this element */
 	virtual void BindShaders(
 		FRHICommandList& RHICmdList,
+		ERHIFeatureLevel::Type InFeatureLevel,
 		const FMatrix& InTransform,
 		const float InGamma,
 		const FMatrix& ColorWeights,

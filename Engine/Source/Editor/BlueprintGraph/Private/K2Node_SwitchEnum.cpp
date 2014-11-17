@@ -3,7 +3,9 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "K2Node_SwitchEnum.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -49,58 +51,88 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 
 FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const 
 {
-	FText EnumName = (Enum != NULL) ? FText::FromString(Enum->GetName()) : LOCTEXT("BadEnum", "(bad enum)");
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("EnumName"), EnumName);
-
-	return FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
+	if (Enum == nullptr)
+	{
+		return LOCTEXT("SwitchEnum_BadEnumTitle", "Switch on (bad enum)");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(Enum->GetName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
-FString UK2Node_SwitchEnum::GetTooltip() const
+FText UK2Node_SwitchEnum::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "SwitchEnum_ToolTip", "Selects an output that matches the input value").ToString();
+	return NSLOCTEXT("K2Node", "SwitchEnum_ToolTip", "Selects an output that matches the input value");
 }
 
-void UK2Node_SwitchEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+bool UK2Node_SwitchEnum::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
+	const UEnum* SubCategoryObject = Cast<UEnum>( OtherPin->PinType.PinSubCategoryObject.Get() );
+	if( SubCategoryObject )
+	{
+		if( SubCategoryObject != Enum )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UK2Node_SwitchEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto SetNodeEnumLambda = [](UEdGraphNode* NewNode, UField const* /*EnumField*/, TWeakObjectPtr<UEnum> NonConstEnumPtr)
+	{
+		UK2Node_SwitchEnum* EnumNode = CastChecked<UK2Node_SwitchEnum>(NewNode);
+		EnumNode->Enum = NonConstEnumPtr.Get();
+	};
+
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
 		UEnum const* Enum = (*EnumIt);
-		// we only want to add global "standalone" enums here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any enums that were changed).
-		//
-		// @TODO: don't love how this code is essentially duplicated in BlueprintActionDatabase.cpp, for class enums
-		bool bIsStandaloneEnum = Enum->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneEnum || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
 		{
 			continue;
 		}
 
-		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Enum))
 		{
-			UK2Node_SwitchEnum* EnumNode = CastChecked<UK2Node_SwitchEnum>(NewNode);
-			if (EnumPtr.IsValid())
-			{
-				EnumNode->SetEnum(EnumPtr.Get());
-			}
-		};
+			continue;
+		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Enum);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = Enum;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeEnumLambda, NonConstEnumPtr);
 
-		TWeakObjectPtr<UEnum> EnumPtr = Enum;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+		// this enum could belong to a class, or is a user defined enum (asset), 
+		// that's why we want to make sure to register it along with the action 
+		// (so the action can be refreshed when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Enum, NodeSpawner);
 	}
 }
 
 void UK2Node_SwitchEnum::CreateSelectionPin()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Byte, TEXT(""), NULL, false, false, TEXT("Selection"));
+	UEdGraphPin* Pin = CreatePin(EGPD_Input, K2Schema->PC_Byte, TEXT(""), Enum, false, false, TEXT("Selection"));
+	K2Schema->SetPinDefaultValueBasedOnType(Pin);
+}
+
+FEdGraphPinType UK2Node_SwitchEnum::GetPinType() const
+{ 
+	FEdGraphPinType EnumPinType;
+	EnumPinType.PinCategory = UEdGraphSchema_K2::PC_Byte;
+	EnumPinType.PinSubCategoryObject = Enum;
+	return EnumPinType; 
 }
 
 FString UK2Node_SwitchEnum::GetUniquePinName()

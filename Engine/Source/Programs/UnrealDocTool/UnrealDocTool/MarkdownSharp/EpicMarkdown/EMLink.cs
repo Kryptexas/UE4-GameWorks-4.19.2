@@ -227,7 +227,16 @@ namespace MarkdownSharp.EpicMarkdown
             }
             catch (EMPathVerificationException e)
             {
-                return new EMErrorElement(doc, orig, parent, e.AddToErrorList(data, orig.Text));
+				if (doc.PerformStrictConversion())
+				{
+					return new EMErrorElement(doc, orig, parent, e.AddToErrorList(data, orig.Text));
+				}
+				else
+				{
+					EMFormattedText Text = new EMFormattedText(doc, orig, parent);
+					Text.Parse(orig.Text, data);
+					return Text;
+				}
             }
         }
 

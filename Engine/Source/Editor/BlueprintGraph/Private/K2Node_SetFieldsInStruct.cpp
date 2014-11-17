@@ -55,17 +55,35 @@ void UK2Node_SetFieldsInStruct::AllocateDefaultPins()
 
 FText UK2Node_SetFieldsInStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
-	return FText::Format(LOCTEXT("SetFieldsInStructNodeTitle", "Set members in {StructName}"), Args);
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("SetFieldsInNullStructNodeTitle", "Set members in <unknown struct>");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("StructName"), FText::FromName(StructType->GetFName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("SetFieldsInStructNodeTitle", "Set members in {StructName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
-FString UK2Node_SetFieldsInStruct::GetTooltip() const
+FText UK2Node_SetFieldsInStruct::GetTooltipText() const
 {
-	return FString::Printf(
-		*LOCTEXT("SetFieldsInStruct_Tooltip", "Adds a node that modifies a '%s'").ToString(),
-		*(StructType ? StructType->GetName() : FString())
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("SetFieldsInStruct_NullTooltip", "Adds a node that modifies an '<unknown struct>'");
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(
+			LOCTEXT("SetFieldsInStruct_Tooltip", "Adds a node that modifies a '{0}'"),
+			FText::FromName(StructType->GetFName())
 		);
+	}
+	return CachedTooltip;
 }
 
 FName UK2Node_SetFieldsInStruct::GetPaletteIcon(FLinearColor& OutColor) const
@@ -108,10 +126,19 @@ void UK2Node_SetFieldsInStruct::RemoveFieldPins(const UEdGraphPin* Pin, EPinsToR
 {
 	if (ShowCustomPinActions(Pin, false) && (Pin->GetOwningNodeUnchecked() == this))
 	{
+		// Pretend that the action was done on the hidden parent pin if the pin is split
+		while (Pin->ParentPin != nullptr)
+		{
+			Pin = Pin->ParentPin;
+		}
+
+		const bool bHideSelected = (Selection == EPinsToRemove::GivenPin);
+		const bool bHideNotSelected = (Selection == EPinsToRemove::AllOtherPins);
 		bool bWasChanged = false;
 		for (FOptionalPinFromProperty& OptionalProperty : ShowPinForProperties)
 		{
-			const bool bHide = ((Pin->PinName == OptionalProperty.PropertyName.ToString()) == (Selection == EPinsToRemove::GivenPin));
+			const bool bSelected = (Pin->PinName == OptionalProperty.PropertyName.ToString());
+			const bool bHide = (bSelected && bHideSelected) || (!bSelected && bHideNotSelected);
 			if (OptionalProperty.bShowPin && bHide)
 			{
 				bWasChanged = true;

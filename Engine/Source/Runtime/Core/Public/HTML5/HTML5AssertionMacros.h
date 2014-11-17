@@ -10,9 +10,6 @@ void emscripten_log(int flags, ...);
 }
 #endif
 
-#define STRINGIZE_HELPER(x) #x
-#define STRINGIZE_HTML5(x) STRINGIZE_HELPER(x)
-
 #if DO_CHECK && !PLATFORM_HTML5_WIN32
 
 // For the asm.js builds, use emscripten-specific versions of these macros
@@ -31,10 +28,10 @@ void emscripten_log(int flags, ...);
 #define checkNoReentry(...)
 #define checkNoRecursion(...)
 
-#define check(expr)			{ if (!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); } }
-#define checkf(expr, ...)	{ if (!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__, ##__VA_ARGS__ ); } CA_ASSUME(expr); }
-#define verify(expr)		{ if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); } }
-#define verifyf(expr, ...)	{ if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); } }
+#define check(expr)			{ if (!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); } }
+#define checkf(expr, ...)	{ if (!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__, ##__VA_ARGS__ ); } CA_ASSUME(expr); }
+#define verify(expr)		{ if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); } }
+#define verifyf(expr, ...)	{ if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); } }
 
 #endif
 
@@ -44,8 +41,8 @@ void emscripten_log(int flags, ...);
 #undef checkfSlow
 #undef verifySlow
 
-#define checkSlow(expr, ...)   {if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); } CA_ASSUME(expr); }
-#define checkfSlow(expr, ...)	{ if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__, __VA_ARGS__ ); } CA_ASSUME(expr); }
-#define verifySlow(expr)  {if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" STRINGIZE_HTML5(__LINE__) "!\n"); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); } }
+#define checkSlow(expr, ...)   {if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); } CA_ASSUME(expr); }
+#define checkfSlow(expr, ...)	{ if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__, __VA_ARGS__ ); } CA_ASSUME(expr); }
+#define verifySlow(expr)  {if(!(expr)) { emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); } }
 
 #endif

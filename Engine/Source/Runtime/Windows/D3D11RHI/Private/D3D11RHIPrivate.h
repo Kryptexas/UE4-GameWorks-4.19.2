@@ -58,13 +58,6 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Allocated"),STAT_D3D11TexturesA
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Released"),STAT_D3D11TexturesReleased,STATGROUP_D3D11RHI, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture object pool memory"),STAT_D3D11TexturePoolMemory,STATGROUP_D3D11RHI, );
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Commit resource tables"),STAT_D3D11CommitResourceTables,STATGROUP_D3D11RHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Cache resource tables"),STAT_D3D11CacheResourceTables,STATGROUP_D3D11RHI, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num cached resource tables"),STAT_D3D11CacheResourceTableCalls,STATGROUP_D3D11RHI, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num textures in tables"),STAT_D3D11SetTextureInTableCalls,STATGROUP_D3D11RHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("SetShaderTexture time"),STAT_D3D11SetShaderTextureTime,STATGROUP_D3D11RHI, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("SetShaderTexture calls"),STAT_D3D11SetShaderTextureCalls,STATGROUP_D3D11RHI, );
-
 // This class has multiple inheritance but really FGPUTiming is a static class
 class FD3D11BufferedGPUTiming : public FRenderResource, public FGPUTiming
 {
@@ -166,12 +159,20 @@ public:
 		Timing(InRHI, 1)
 	{
 		// Initialize Buffered timestamp queries 
-		Timing.InitResource();
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		Timing.InitDynamicRHI();
+#else
+		Timing.InitResource(); // can't do this from the RHI thread
+#endif
 	}
 
 	virtual ~FD3D11EventNode()
 	{
-		Timing.ReleaseResource();
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		Timing.ReleaseDynamicRHI();
+#else
+		Timing.ReleaseResource();  // can't do this from the RHI thread
+#endif
 	}
 
 	/** 
@@ -204,16 +205,26 @@ public:
 		RootEventTiming(InRHI, 1),
 		DisjointQuery(InRHI)
 	{
-
-	  RootEventTiming.InitResource();
-	  DisjointQuery.InitResource();
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		RootEventTiming.InitDynamicRHI();
+		DisjointQuery.InitDynamicRHI();
+#else
+		// can't do these on the RHI thread
+		RootEventTiming.InitResource();
+		DisjointQuery.InitResource();
+#endif
 	}
 
 	~FD3D11EventNodeFrame()
 	{
-
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		RootEventTiming.ReleaseDynamicRHI();
+		DisjointQuery.ReleaseDynamicRHI();
+#else
+		// can't do these on the RHI thread
 		RootEventTiming.ReleaseResource();
 		DisjointQuery.ReleaseResource();
+#endif
 	}
 
 	/** Start this frame of per tracking */
@@ -242,12 +253,22 @@ public:
 	FD3D11GPUProfile(FD3D11DynamicRHI* D3D11RHI)
 	: DisjointQuery(D3D11RHI)
 	{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		DisjointQuery.InitDynamicRHI();
+#else
+		// can't do these on the RHI thread
 		DisjointQuery.InitResource();
+#endif
 	}
 
 	~FD3D11GPUProfile()
 	{
+#if PLATFORM_SUPPORTS_RHI_THREAD
+		DisjointQuery.ReleaseDynamicRHI();
+#else
+		// can't do these on the RHI thread
 		DisjointQuery.ReleaseResource();
+#endif
 	}
 
 	FD3D11DisjointTimeStampQuery DisjointQuery;
@@ -327,8 +348,6 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
-	virtual void PushEvent(const TCHAR* Name) override { GPUProfilingData.PushEvent(Name); }
-	virtual void PopEvent() override { GPUProfilingData.PopEvent(); }
 
 	/**
 	 * Reads a D3D query's data into the provided buffer.
@@ -446,14 +465,6 @@ protected:
 	uint32 NumSimultaneousRenderTargets;
 	uint32 NumUAVs;
 
-	friend class FD3D11UniformBuffer;
-	uint32 CommitResourceTableCycles;
-	uint32 CacheResourceTableCalls;
-	uint32 CacheResourceTableCycles;
-	uint32 SetShaderTextureCycles;
-	uint32 SetShaderTextureCalls;
-	uint32 SetTextureInTableCalls;
-	
 	/** Internal frame counter, incremented on each call to RHIBeginScene. */
 	uint32 SceneFrameCounter;
 
@@ -595,6 +606,13 @@ protected:
 	void ReadSurfaceDataNoMSAARaw(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
 	void ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous& RHICmdList, FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
+
+#if PLATFORM_SUPPORTS_RHI_THREAD
+	void SetupRecursiveResources();
+#endif
+#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
+	void CheckThreadsafeQueries(bool bWait = false);
+#endif
 
 	friend struct FD3DGPUProfiler;
 };

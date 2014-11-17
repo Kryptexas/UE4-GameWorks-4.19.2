@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
 
 /**
  * Wrapper to log the low level file system
@@ -97,7 +97,7 @@ public:
 	}
 
 	FLoggedPlatformFile()
-		: LowerLevel(NULL)
+		: LowerLevel(nullptr)
 	{
 	}
 
@@ -108,7 +108,7 @@ public:
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		// Inner is required.
-		check(Inner != NULL);
+		check(Inner != nullptr);
 		LowerLevel = Inner;
 		return !!LowerLevel;
 	}
@@ -308,5 +308,3 @@ public:
 		return Result;
 	}
 };
-
-

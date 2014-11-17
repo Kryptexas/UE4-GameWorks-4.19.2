@@ -136,7 +136,7 @@ void SSessionBrowser::FilterSessions( )
 	{
 		const ISessionInfoPtr& Session = AvailableSessions[Index];
 
-		if (Session->GetSessionOwner() == FPlatformProcess::UserName(false))
+		if (Session->GetSessionOwner() == FPlatformProcess::UserName(true))
 		{
 			SessionList.Add(Session);
 		}
@@ -322,7 +322,7 @@ FReply SSessionBrowser::HandleTerminateSessionButtonClicked( )
 
 		if (SelectedSession.IsValid())
 		{
-			if (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false))
+			if (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(true))
 			{
 				SelectedSession->Terminate();
 			}

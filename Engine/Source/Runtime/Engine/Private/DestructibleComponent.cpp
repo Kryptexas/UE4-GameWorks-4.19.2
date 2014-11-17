@@ -7,11 +7,13 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/DestructibleActor.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
 #include "ParticleDefinitions.h"
 #include "ObjectEditorUtils.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicsEngine/DestructibleActor.h"
 
 UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -352,9 +354,13 @@ void UDestructibleComponent::DestroyPhysicsState()
 	{
 		if(UWorld * World = GetWorld())
 		{
-			if(FPhysScene * PhysScene = World->GetPhysicsScene())
+			if (FPhysScene * PhysScene = World->GetPhysicsScene())
 			{
-				PhysScene->DeferredCommandHandler.DeferredRelease(ApexDestructibleActor);
+				const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+				PxScene * PScene = PhysScene->GetPhysXScene(SceneType);
+				SCOPED_SCENE_WRITE_LOCK(PScene);
+				ApexDestructibleActor->release();
+				//Deferring here is difficult because a call to CreatePhysicsState will re-use the same chunk info buffer for new chunks. Note this may be possible, but need to fix crash now
 			}
 		}
 		
@@ -683,7 +689,7 @@ void UDestructibleComponent::SetDestructibleMesh(class UDestructibleMesh* NewMes
 	this->DestructibleMesh = GetDestructibleMesh();
 #endif // WITH_EDITORONLY_DATA
 	
-	SetChunkVisible(0, true);
+	RecreatePhysicsState();
 }
 
 class UDestructibleMesh * UDestructibleComponent::GetDestructibleMesh()
@@ -796,6 +802,7 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 				check(InfoIndex == UserDataIdx);
 
 				PActor->userData = UserData;
+
 
 
 				// Set collision response to non-root chunks
@@ -1101,7 +1108,7 @@ void UDestructibleComponent::ResetFakeBodyInstance( FFakeBodyInstanceState& Prev
 }
 #endif
 
-FBodyInstance* UDestructibleComponent::GetBodyInstance( FName BoneName /*= NAME_None*/ ) const
+FBodyInstance* UDestructibleComponent::GetBodyInstance( FName BoneName /*= NAME_None*/, bool) const
 {
 #if WITH_APEX
 	if (ApexDestructibleActor != NULL)

@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_CallFunction.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "K2Node_Message.generated.h"
 
 UCLASS(MinimalAPI)
@@ -28,5 +29,8 @@ class UK2Node_Message : public UK2Node_CallFunction
 protected:
 	virtual void EnsureFunctionIsInBlueprint() override;
 	// End K2Node_CallFunction Interface.
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTitleTextTable CachedNodeTitles;
 };
 

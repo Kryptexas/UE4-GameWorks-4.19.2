@@ -8,8 +8,9 @@
 #include "K2Node_CastByteToEnum.h"
 #include "K2Node_ForEachElementInEnum.h"
 #include "K2Node_GetNumEnumEntries.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -130,16 +131,25 @@ void UK2Node_ForEachElementInEnum::ValidateNodeDuringCompilation(FCompilerResult
 	}
 }
 
-FString UK2Node_ForEachElementInEnum::GetTooltip() const
+FText UK2Node_ForEachElementInEnum::GetTooltipText() const
 {
-	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();
+	return GetNodeTitle(ENodeTitleType::FullTitle);
 }
 
 FText UK2Node_ForEachElementInEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("EnumName"), Enum ? FText::FromString(Enum->GetName()) : LOCTEXT("Unknown", "UNKNOWN"));
-	return FText::Format(LOCTEXT("ForEachElementInEnum_Title", "ForEach {EnumName}"), Args);
+	if (Enum == nullptr)
+	{
+		return LOCTEXT("ForEachElementInUnknownEnum_Title", "ForEach UNKNOWN");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromName(Enum->GetFName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("ForEachElementInEnum_Title", "ForEach {EnumName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -193,38 +203,40 @@ void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& Comp
 	}
 }
 
-void UK2Node_ForEachElementInEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_ForEachElementInEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	auto SetNodeEnumLambda = [](UEdGraphNode* NewNode, UField const* /*EnumField*/, TWeakObjectPtr<UEnum> NonConstEnumPtr)
+	{
+		UK2Node_ForEachElementInEnum* EnumNode = CastChecked<UK2Node_ForEachElementInEnum>(NewNode);
+		EnumNode->Enum = NonConstEnumPtr.Get();
+	};
+
 	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
 	{
 		UEnum const* Enum = (*EnumIt);
-		// we only want to add global "standalone" enums here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any enums that were changed).
-		//
-		// @TODO: don't love how this code is essentially duplicated in BlueprintActionDatabase.cpp, for class enums
-		bool bIsStandaloneEnum = Enum->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneEnum || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
 		{
 			continue;
 		}
 
-		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Enum))
 		{
-			UK2Node_ForEachElementInEnum* EnumNode = CastChecked<UK2Node_ForEachElementInEnum>(NewNode);
-			if (EnumPtr.IsValid())
-			{
-				EnumNode->Enum = EnumPtr.Get();
-			}
-		};
+			continue;
+		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Enum);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = Enum;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeEnumLambda, NonConstEnumPtr);
 
-		TWeakObjectPtr<UEnum> EnumPtr = Enum;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+		// this enum could belong to a class, or is a user defined enum (asset), 
+		// that's why we want to make sure to register it along with the action 
+		// (so the action can be refreshed when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Enum, NodeSpawner);
 	}
 }
 

@@ -169,7 +169,7 @@ static UObject* GetAssetRevisionObject(TSharedPtr<FHistoryTreeItem> HistoryTreeI
 					TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
 
 					// try and load the temporary package
-					AssetPackage = LoadPackage(NULL, *TempPackageName, LOAD_None);
+					AssetPackage = LoadPackage(NULL, *TempPackageName, LOAD_ForDiff);
 				}
 			} // if FileSourceControlState.IsValid()
 		}
@@ -540,7 +540,7 @@ public:
 		{
 			return
 				SNew(STextBlock)
-				.Text( RevisionListItem->Date.Ticks == 0 ? FText() : FText::AsDateTime( RevisionListItem->Date ) );
+				.Text( RevisionListItem->Date > FDateTime::MinValue() == 0 ? FText() : FText::AsDateTime( RevisionListItem->Date ) );
 		}
 		else if (ColumnName == TEXT("UserName"))
 		{

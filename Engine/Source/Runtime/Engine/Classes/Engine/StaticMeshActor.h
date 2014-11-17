@@ -1,15 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AI/Navigation/NavRelevantActorInterface.h"
 #include "StaticMeshActor.generated.h"
 
 /**
- * An instance of a StaticMesh in a level
- * Note that PostInitializeComponents() is not called for StaticMeshActors
+ * StaticMeshActor is an instance of a UStaticMesh in the world.
+ * Static meshes are geometry that do not animate or otherwise deform, and are more efficient to render than other types of geometry.
+ * Static meshes dragged into the level from the Content Browser are automatically converted to StaticMeshActors.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Actors/StaticMeshActor/
+ * @see UStaticMesh
  */
 UCLASS(hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"), ConversionRoot, meta=(ChildCanTick))
-class ENGINE_API AStaticMeshActor : public AActor, public INavRelevantActorInterface
+class ENGINE_API AStaticMeshActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -22,7 +25,7 @@ class ENGINE_API AStaticMeshActor : public AActor, public INavRelevantActorInter
 	UPROPERTY(Category=Actor, EditAnywhere, AdvancedDisplay)
 	bool bStaticMeshReplicateMovement;
 
-	/** Function to change mobility type of light */
+	/** Function to change mobility type */
 	void SetMobility(EComponentMobility::Type InMobility);
 
 #if WITH_EDITOR

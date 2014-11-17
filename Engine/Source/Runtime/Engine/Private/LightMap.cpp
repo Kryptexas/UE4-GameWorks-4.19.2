@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "TargetPlatform.h"
 #include "StaticLighting.h"
-
+#include "LightMap.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 
@@ -68,11 +68,11 @@ ENGINE_API FColor GTexelSelectionColor(255, 50, 0);
 
 FLightMap::FLightMap()
 	: bAllowHighQualityLightMaps(true)
-	, NumRefs(0) 
+	, NumRefs(0)
 {
-	bAllowHighQualityLightMaps = !IsES2Platform(GRHIShaderPlatform) && AllowHighQualityLightmaps();
+	bAllowHighQualityLightMaps = AllowHighQualityLightmaps();
 #if !PLATFORM_DESKTOP 
-	checkf(bAllowHighQualityLightMaps || IsES2Platform(GRHIShaderPlatform), TEXT("Low quality lightmaps are not currently supported on consoles. Make sure console variable r.HighQualityLightMaps is true for this platform"));
+	checkf(bAllowHighQualityLightMaps || IsMobilePlatform(GRHIShaderPlatform), TEXT("Low quality lightmaps are not currently supported on consoles. Make sure console variable r.HighQualityLightMaps is true for this platform"));
 #endif
 }
 
@@ -115,7 +115,7 @@ FString ULightMapTexture2D::GetDesc()
 	return FString::Printf( TEXT("Lightmap: %dx%d [%s]"), GetSizeX(), GetSizeY(), GPixelFormats[GetPixelFormat()].Name );
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 static void DumpLightmapSizeOnDisk()
 {
 	UE_LOG(LogLightMap,Log,TEXT("Lightmap size on disk"));
@@ -137,7 +137,7 @@ static FAutoConsoleCommand CmdDumpLightmapSizeOnDisk(
 	TEXT("Dumps the size of all loaded lightmaps on disk (source and platform data)"),
 	FConsoleCommandDelegate::CreateStatic(DumpLightmapSizeOnDisk)
 	);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /** Lightmap resolution scaling factors for debugging.  The defaults are to use the original resolution unchanged. */
 float TextureMappingDownsampleFactor0 = 1.0f;
@@ -1265,7 +1265,7 @@ UTexture2D* FLightMap2D::GetTexture(uint32 BasisIndex)
  */
 bool FLightMap2D::IsValid(uint32 BasisIndex) const
 {
-	return AllowHighQualityLightmaps() ? BasisIndex == 0 : BasisIndex == 1;
+	return Textures[BasisIndex] != nullptr;
 }
 
 struct FLegacyLightMapTextureInfo
@@ -1419,16 +1419,18 @@ void FLightMap2D::Serialize(FArchive& Ar)
 	}
 }
 
-FLightMapInteraction FLightMap2D::GetInteraction() const
+FLightMapInteraction FLightMap2D::GetInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	int32 LightmapIndex = AllowHighQualityLightmaps() ? 0 : 1;
+	bool bHighQuality = AllowHighQualityLightmaps(InFeatureLevel);
+
+	int32 LightmapIndex = bHighQuality ? 0 : 1;
 
 	bool bValidTextures = Textures[ LightmapIndex ] && Textures[ LightmapIndex ]->Resource;
 
 	// When the FLightMap2D is first created, the textures aren't set, so that case needs to be handled.
 	if(bValidTextures)
 	{
-		return FLightMapInteraction::Texture(Textures, SkyOcclusionTexture, ScaleVectors, AddVectors, CoordinateScale, CoordinateBias, AllowHighQualityLightmaps());
+		return FLightMapInteraction::Texture(Textures, SkyOcclusionTexture, ScaleVectors, AddVectors, CoordinateScale, CoordinateBias, bHighQuality);
 	}
 
 	return FLightMapInteraction::None();

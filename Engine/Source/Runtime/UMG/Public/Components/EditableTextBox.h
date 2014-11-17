@@ -5,7 +5,7 @@
 #include "EditableTextBox.generated.h"
 
 /** Editable text box widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UEditableTextBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -17,17 +17,29 @@ public:
 
 public:
 
+	/** The style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FEditableTextBoxStyle WidgetStyle;
+
 	/** Style used for the text box */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category = Content, meta=(SingleLine=true))
 	FText Text;
 
+	/** A bindable delegate to allow logic to drive the text of the widget */
+	UPROPERTY()
+	FGetText TextDelegate;
+
 	/** Hint text that appears when there is no text in the text box */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, Category = Content, meta=(SingleLine=true))
 	FText HintText;
+
+	/** A bindable delegate to allow logic to drive the hint text of the widget */
+	UPROPERTY()
+	FGetText HintTextDelegate;
 
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -92,6 +104,8 @@ public:
 	/** Provide a alternative mechanism for error reporting. */
 	//SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
 
+public:
+
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	FText GetText() const;
@@ -107,13 +121,20 @@ public:
 	void ClearError();
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
-	virtual void ReleaseNativeWidget() override;
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

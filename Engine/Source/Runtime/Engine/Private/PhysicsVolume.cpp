@@ -10,7 +10,7 @@ APhysicsVolume::APhysicsVolume(const class FPostConstructInitializeProperties& P
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
 	BrushComponent->SetCollisionProfileName(CollisionProfileName);
 
-	FluidFriction = 0.3f;
+	FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
 	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
 	bAlwaysRelevant = true;
 	NetUpdateFrequency = 0.1f;
@@ -40,7 +40,7 @@ bool APhysicsVolume::IsOverlapInVolume(const class USceneComponent& TestComponen
 	if (!bPhysicsOnContact)
 	{
 		FVector ClosestPoint(0.f);
-		UPrimitiveComponent* RootPrimitive = GetRootPrimitiveComponent();
+		UPrimitiveComponent* RootPrimitive = Cast<UPrimitiveComponent>(GetRootComponent());
 		const float DistToCollision = RootPrimitive ? RootPrimitive->GetDistanceToCollision(TestComponent.GetComponentLocation(), ClosestPoint) : 0.f;
 		bInsideVolume = (DistToCollision == 0.f);
 	}

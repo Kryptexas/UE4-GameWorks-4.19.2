@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintGraphDefinitions.h"		// @todo sequencer uobject: workaround for header generator dependencies
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_PlayMovieScene.generated.h"
 
 #if WITH_EDITOR
@@ -135,6 +136,10 @@ protected:
 #if WITH_EDITOR
 	/** Event that is broadcast when the bindings are changed */
 	FOnMovieSceneBindingsChanged OnBindingsChangedEvent;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 #endif
 };
 

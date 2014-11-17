@@ -53,6 +53,11 @@ void FGameplayAbilitiesEditor::EnsureGameplayAbilityBlueprintIsUpToDate(UBluepri
 #endif
 }
 
+FName FGameplayAbilitiesEditor::GetToolkitContextFName() const
+{
+	return GetToolkitFName();
+}
+
 FName FGameplayAbilitiesEditor::GetToolkitFName() const
 {
 	return FName("GameplayAbilitiesEditor");

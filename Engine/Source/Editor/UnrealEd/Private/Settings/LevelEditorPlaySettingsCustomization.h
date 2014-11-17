@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LevelEditorPlaySettingsCustomization.h: Declares the FLevelEditorPlaySettingsCustomization class.
-=============================================================================*/
-
 #pragma once
 
 #include "PropertyEditing.h"
@@ -26,10 +22,10 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param LayoutBuilder - The layout builder to use for generating property widgets.
-	 * @param InWindowPositionProperty - The handle to the window position property.
-	 * @param InCenterWindowProperty - The handle to the center window property.
+	 * @param InArgs The declaration data for this widget.
+	 * @param LayoutBuilder The layout builder to use for generating property widgets.
+	 * @param InWindowPositionProperty The handle to the window position property.
+	 * @param InCenterWindowProperty The handle to the center window property.
 	 */
 	void Construct( const FArguments& InArgs, IDetailLayoutBuilder* LayoutBuilder, const TSharedRef<IPropertyHandle>& InWindowPositionProperty, const TSharedRef<IPropertyHandle>& InCenterWindowProperty )
 	{
@@ -132,10 +128,10 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param LayoutBuilder - The layout builder to use for generating property widgets.
-	 * @param InWindowHeightProperty - The handle to the window height property.
-	 * @param InWindowWidthProperty - The handle to the window width property.
+	 * @param InArgs The declaration data for this widget.
+	 * @param LayoutBuilder The layout builder to use for generating property widgets.
+	 * @param InWindowHeightProperty The handle to the window height property.
+	 * @param InWindowWidthProperty The handle to the window width property.
 	 */
 	void Construct( const FArguments& InArgs, IDetailLayoutBuilder* LayoutBuilder, const TSharedRef<IPropertyHandle>& InWindowHeightProperty, const TSharedRef<IPropertyHandle>& InWindowWidthProperty )
 	{
@@ -288,9 +284,13 @@ class FLevelEditorPlaySettingsCustomization
 	: public IDetailCustomization
 {
 public:
-	virtual ~FLevelEditorPlaySettingsCustomization() {}
 
-	// Begin IDetailCustomization interface
+	/** Virtual destructor. */
+	virtual ~FLevelEditorPlaySettingsCustomization( ) { }
+
+public:
+
+	// IDetailCustomization interface
 
 	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{

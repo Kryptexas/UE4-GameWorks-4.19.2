@@ -9,7 +9,7 @@ class UAnimSequence;
 class UAnimSequenceBase;
 struct FAnimNotifyEvent;
 
-UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, meta=(ShowHiddenSelfPins))
+UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, meta=(ShowWorldContextPin))
 class ENGINE_API UAnimNotifyState : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -21,7 +21,7 @@ class ENGINE_API UAnimNotifyState : public UObject
 	FString GetNotifyName() const;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool Received_NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation) const;
+	virtual bool Received_NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation, float TotalDuration) const;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual bool Received_NotifyTick(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation, float FrameDeltaTime) const;
@@ -36,7 +36,7 @@ class ENGINE_API UAnimNotifyState : public UObject
 
 #endif // WITH_EDITORONLY_DATA
 
-	virtual void NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation);
+	virtual void NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation, float TotalDuration);
 	virtual void NotifyTick(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation, float FrameDeltaTime);
 	virtual void NotifyEnd(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation);
 
@@ -63,6 +63,10 @@ class ENGINE_API UAnimNotifyState : public UObject
 	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
 	 */
 	virtual void AnimNotifyEventChanged(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, FAnimNotifyEvent * OwnerEvent) {}
+
+	/** UObject Interface */
+	virtual void PostLoad();
+	/** End UObject Interface */
 };
 
 

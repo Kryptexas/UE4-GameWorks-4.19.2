@@ -5,14 +5,19 @@
 #include "ScrollBar.generated.h"
 
 /** */
-UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
+UCLASS(Experimental, ClassGroup=UserInterface, meta=( IsAdvanced = "True" ))
 class UMG_API UScrollBar : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Style of the scrollbar */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FScrollBarStyle WidgetStyle;
+
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/**  */
 	UPROPERTY(EditDefaultsOnly, Category="Behavior")
@@ -25,6 +30,8 @@ class UMG_API UScrollBar : public UPanelWidget
 	/** The thickness of the scrollbar thumb */
 	UPROPERTY(EditDefaultsOnly, Category="Behavior")
 	FVector2D Thickness;
+
+public:
 
 	/**
 	* Set the offset and size of the track's thumb.
@@ -52,14 +59,22 @@ class UMG_API UScrollBar : public UPanelWidget
 	///** @return True if the user is scrolling by dragging the scroll bar thumb. */
 	//bool IsScrolling() const;
 
-
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 #endif
 

@@ -106,9 +106,9 @@ public:
 	/**
 	 * Checks if the modules for a project are up to date
 	 *
-	 * @return	true if the UBT needs to be run to recompile modules for a project.
+	 * @return	false if UBT needs to be run to recompile modules for a project.
 	 */
-	virtual bool AreProjectModulesUpToDate( ) = 0;
+	virtual bool CheckModuleCompatibility(TArray<FString>& OutIncompatibleModules) = 0;
 
 	/**
 	 * Gets the name of the text file that contains the most recently loaded filename.
@@ -118,13 +118,6 @@ public:
 	 * @return File name.
 	 */
 	virtual const FString& GetAutoLoadProjectFileName() = 0;
-
-	/**
-	 * Gets the extension for game project files.
-	 *
-	 * @return File extension.
-	 */
-	virtual const FString& NonStaticGetProjectFileExtension() = 0;
 
 	/**
 	 * Generates a new project file and saves it to disk at the specified location
@@ -227,7 +220,4 @@ public:
 	 * @return	True if the application needs to be restarted.
 	 */
 	virtual bool IsRestartRequired() const = 0;
-
-	/** Helper functions to reduce the syntax complexity of commonly used functions */
-	static const FString& GetProjectFileExtension() { return Get().NonStaticGetProjectFileExtension(); }
 };

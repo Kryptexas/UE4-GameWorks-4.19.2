@@ -33,8 +33,8 @@ public:
 	virtual FName GetAssetName() const override;
 	virtual FName GetLongPackageName() const override;
 	virtual bool SupportsLevelColor() const override;
-	virtual FColor GetLevelColor() const override;
-	virtual void SetLevelColor(FColor InColor) override;
+	virtual FLinearColor GetLevelColor() const override;
+	virtual void SetLevelColor(FLinearColor InColor) override;
 	virtual void Update() override;
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) override;
 	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const override;

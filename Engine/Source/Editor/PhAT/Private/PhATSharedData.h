@@ -106,11 +106,13 @@ public:
 	void DeleteCurrentPrim();
 	void DeleteBody(int32 DelBodyIndex, bool bRefreshComponent=true);
 	void RefreshPhysicsAssetChange(const UPhysicsAsset * InPhysAsset);
-	void MakeNewBody(int32 NewBoneIndex);
+	void MakeNewBody(int32 NewBoneIndex, bool bAutoSelect = true);
 	void CopyBody();
 	void CopyConstraint();
 	void PasteBodyProperties();
 	bool WeldSelectedBodies(bool bWeld = true);
+
+	void Mirror();
 
 	/** Misc */
 	void ToggleInstanceProperties();
@@ -138,6 +140,8 @@ private:
 
 	/** Hides the transform widget if the simulation is running, else restores it to its previous mode before simulation */
 	void UpdateTransformWidgetVisibilityForSimulationMode(bool bEnableSimulation);
+
+	void CopyConstraintProperties(UPhysicsConstraintTemplate * FromConstraintSetup, UPhysicsConstraintTemplate * ToConstraintSetup);
 
 public:
 	/** Callback for handling selection changes */

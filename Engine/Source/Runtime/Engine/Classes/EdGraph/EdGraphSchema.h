@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "EdGraphPin.h"
-
+#include "EdGraph/EdGraphNode.h"
 #include "EdGraphSchema.generated.h"
 
 class FSlateRect;
 class UEdGraphNode;
+class UEdGraphPin;
+struct FEdGraphPinType;
 
 /** Distinguishes between different graph types. Graphs can have different properties; for example: functions have one entry point, ubergraphs can have multiples. */
 UENUM()
@@ -53,8 +53,8 @@ struct ENGINE_API FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction"); return Type;}
-	virtual FString GetTypeId() const { return StaticGetTypeId(); }
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction"); return Type;}
+	virtual FName GetTypeId() const { return StaticGetTypeId(); }
 
 	/** The menu text that should be displayed for this node in the creation menu */
 	UPROPERTY()
@@ -149,8 +149,8 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_NewNode"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_NewNode"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -188,8 +188,8 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 /** Dummy action, useful for putting messages in the menu */
 struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 {
-	static FString StaticGetTypeId() { static FString Type = TEXT("FEdGraphSchemaAction_Dummy"); return Type; }
-	virtual FString GetTypeId() const override{ return StaticGetTypeId(); }
+	static FName StaticGetTypeId() { static FName Type("FEdGraphSchemaAction_Dummy"); return Type; }
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); }
 
 	FEdGraphSchemaAction_Dummy()
 	: FEdGraphSchemaAction()
@@ -395,8 +395,6 @@ public:
 };
 
 
-
-
 UCLASS(abstract)
 class ENGINE_API UEdGraphSchema : public UObject
 {
@@ -509,10 +507,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 *	Determine whether the current pin default values are valid
 	 *	@see IsPinDefaultValid
 	 */
-	FString IsCurrentPinDefaultValid(const UEdGraphPin* Pin) const
-	{
-		return IsPinDefaultValid(Pin, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue);
-	}
+	FString IsCurrentPinDefaultValid(const UEdGraphPin* Pin) const;
 
 	/**
 	 * An easy way to check to see if the current graph system supports pin watching.
@@ -578,7 +573,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param   PinDescription	A detailed description, describing the pin's purpose
 	 * @param   TooltipOut		The constructed tool-tip (out)
 	 */
-	virtual void ConstructBasicPinTooltip(UEdGraphPin const& Pin, FString const& PinDescription, FString& TooltipOut) const;
+	virtual void ConstructBasicPinTooltip(UEdGraphPin const& Pin, FText const& PinDescription, FString& TooltipOut) const;
 
 	/** @return     The type of graph (function vs. ubergraph) that this that TestEdGraph is. */
 	//@TODO: This is too K2-specific to be included in EdGraphSchema and should be refactored
@@ -599,6 +594,9 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param	TargetNode	The node to break links on
 	 */
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const;
+
+	/** */
+	static bool SetNodeMetaData(UEdGraphNode* Node, FName const& KeyValue);
 
 	/**
 	 * Breaks all links from/to a single pin
@@ -670,6 +668,9 @@ class ENGINE_API UEdGraphSchema : public UObject
 
 	/** Returns schema action to create comment from implemention */
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const { return NULL; }
+
+	/** Returns schema action to create documention node from implemention */
+	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateDocumentNodeAction() const { return NULL; }
 
 	/**
 	 * Handle a graph being removed by the user (potentially removing associated bound nodes, etc...)

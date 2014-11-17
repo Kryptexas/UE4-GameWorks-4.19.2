@@ -50,7 +50,8 @@ const FSlateBrush* SSourceControlStatus::GetSourceControlIconImage() const
 { 
 	if(QueryState == EQueryState::Querying)
 	{
-		return FEditorStyle::GetBrush("SourceControl.StatusIcon.Unknown");
+		static FName UnknownIconName("SourceControl.StatusIcon.Unknown");
+		return FEditorStyle::GetBrush(UnknownIconName);
 	}
 	else 
 	{
@@ -59,16 +60,19 @@ const FSlateBrush* SSourceControlStatus::GetSourceControlIconImage() const
 		{
 			if (!SourceControlModule.GetProvider().IsAvailable())
 			{
-				return FEditorStyle::GetBrush("SourceControl.StatusIcon.Error");
+				static FName ErrorIconName("SourceControl.StatusIcon.Error");
+				return FEditorStyle::GetBrush(ErrorIconName);
 			}
 			else
 			{
-				return FEditorStyle::GetBrush("SourceControl.StatusIcon.On");
+				static FName OnIconName("SourceControl.StatusIcon.On");
+				return FEditorStyle::GetBrush(OnIconName);
 			}
 		}
 		else
 		{
-			return FEditorStyle::GetBrush("SourceControl.StatusIcon.Off");
+			static FName OffIconName("SourceControl.StatusIcon.Off");
+			return FEditorStyle::GetBrush(OffIconName);
 		}
 	}
 }

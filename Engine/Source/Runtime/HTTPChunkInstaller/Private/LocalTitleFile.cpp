@@ -60,27 +60,22 @@ bool FLocalTitleFile::EnumerateFiles(const FPagedQuery& Page)
 	TArray<FString> Filenames;
 	IFileManager::Get().FindFiles(Filenames, *WildCard, true, false);
 
-	bool Success = Filenames.Num() > 0;
-
-	if (Success)
+	for(int32 FileIdx = 0; FileIdx < Filenames.Num(); ++FileIdx)
 	{
-		for (int32 FileIdx = 0; FileIdx < Filenames.Num(); ++FileIdx)
-		{
-			const FString Filename = Filenames[FileIdx];
+		const FString Filename = Filenames[FileIdx];
 
-			FCloudFileHeader NewHeader;
-			NewHeader.FileName = Filename;
-			NewHeader.DLName = Filename + FileIdx;
-			NewHeader.FileSize = 0;
-			NewHeader.Hash.Empty();
+		FCloudFileHeader NewHeader;
+		NewHeader.FileName = Filename;
+		NewHeader.DLName = Filename + FileIdx;
+		NewHeader.FileSize = 0;
+		NewHeader.Hash.Empty();
 
-			FileHeaders.Add(NewHeader);
-		}
+		FileHeaders.Add(NewHeader);
 	}
 
-	TriggerOnEnumerateFilesCompleteDelegates(Success);
+	TriggerOnEnumerateFilesCompleteDelegates(true);
 
-	return Success;
+	return true;
 }
 
 void FLocalTitleFile::GetFileList(TArray<FCloudFileHeader>& InFileHeaders)

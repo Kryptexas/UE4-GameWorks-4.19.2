@@ -62,11 +62,11 @@ public:
 	 */
 	FORCEINLINE FIntPoint GetImportedSize() const
 	{
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		return FIntPoint(Source.GetSizeX(),Source.GetSizeY());
-#else // #if WITH_EDITORONLY_DATA
+#else // #if WITH_EDITOR
 		return ImportedSize;
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	}
 
 private:
@@ -431,7 +431,7 @@ public:
 	/** creates and initializes a new Texture2D with the requested settings */
 	ENGINE_API static class UTexture2D* CreateTransient(int32 InSizeX, int32 InSizeY, EPixelFormat InFormat = PF_B8G8R8A8);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/**
 	 * Legacy serialization.
 	 */

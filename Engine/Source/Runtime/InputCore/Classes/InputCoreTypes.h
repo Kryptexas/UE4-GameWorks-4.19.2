@@ -4,7 +4,7 @@
 
 #include "InputCoreTypes.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct INPUTCORE_API FKey
 {
 	GENERATED_USTRUCT_BODY()
@@ -37,6 +37,7 @@ struct INPUTCORE_API FKey
 	bool IsBindableInBlueprints() const;
 	FText GetDisplayName() const;
 	FString ToString() const;
+	FName GetFName() const;
 
 	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
 	bool ExportTextItem(FString& ValueStr, FKey const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
@@ -393,7 +394,7 @@ struct INPUTCORE_API EKeys
 
 	static const FKey Invalid;
 
-	static const int32 NUM_TOUCH_KEYS = 10;
+	static const int32 NUM_TOUCH_KEYS = 11;
 	static const FKey TouchKeys[NUM_TOUCH_KEYS];
 
 	static EConsoleForGamepadLabels::Type ConsoleForGamepadLabels;

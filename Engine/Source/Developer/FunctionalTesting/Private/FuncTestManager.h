@@ -7,6 +7,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogFunctionalTest, Log, All);
 class FFuncTestManager : public IFuncTestManager, public TSharedFromThis<FFuncTestManager>
 {
 public:
+
+	virtual ~FFuncTestManager() {}
 		
 	/** Triggers in sequence all functional tests found on the level.*/
 	virtual void RunAllTestsOnMap(bool bClearLog, bool bRunLooped) override;

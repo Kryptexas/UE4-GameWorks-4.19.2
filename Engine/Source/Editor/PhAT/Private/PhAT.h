@@ -139,8 +139,8 @@ private:
 
 	/** Collision editing helper methods */
 	void AddNewPrimitive(EKCollisionPrimitiveType PrimitiveType, bool bCopySelected = false);
-	void SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType);
-	void SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<int32> & Indices);
+	void SetBodiesBelowSelectedPhysicsType( EPhysicsType InPhysicsType, bool bMarkAsDirty);
+	void SetBodiesBelowPhysicsType( EPhysicsType InPhysicsType, const TArray<int32> & Indices, bool bMarkAsDirty);
 
 	/** Toolbar/menu command methods */
 	bool IsNotSimulation() const;
@@ -213,6 +213,7 @@ private:
 	void OnPlayAnimation();
 	bool IsPlayAnimation() const;
 	void OnShowSkeleton();
+	void OnViewType(ELevelViewportType ViewType);
 	bool IsShowSkeleton() const;
 	void OnSetBodyPhysicsType( EPhysicsType InPhysicsType );
 	bool IsBodyPhysicsType( EPhysicsType InPhysicsType );
@@ -229,6 +230,7 @@ private:
 	void OnToggleSwing2();
 	void OnToggleTwist();
 	void OnFocusSelection();
+	void Mirror();
 
 	//menu commands
 	void OnSelectAll();

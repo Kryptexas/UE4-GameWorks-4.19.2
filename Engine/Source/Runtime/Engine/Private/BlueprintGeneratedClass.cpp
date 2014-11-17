@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
+#include "Engine/InputDelegateBinding.h"
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"
@@ -52,6 +53,14 @@ void UBlueprintGeneratedClass::PostLoad()
 		if (ensure(Blueprint) && Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
 			ClassFlags &= ~CLASS_NotPlaceable;
+		}
+	}
+
+	if (const UPackage* Package = GetOutermost())
+	{
+		if (Package->PackageFlags & PKG_ForDiffing)
+		{
+			ClassFlags |= CLASS_Deprecated;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -180,7 +189,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			// Make sure that nodes are up to date, so that we get any updated blueprint signatures
 			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(GeneratingBP);
 
-			if (GeneratingBP->Status != BS_Error)
+			if ((GeneratingBP->Status != BS_Error) && (GeneratingBP->BlueprintType != EBlueprintType::BPTYPE_MacroLibrary))
 			{
 				FKismetEditorUtilities::RecompileBlueprintBytecode(GeneratingBP, ObjLoaded);
 			}
@@ -284,8 +293,8 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 	{
 		const UTimelineTemplate* TimelineTemplate = Timelines[i];
 
-		// Not fatal if NULL, but shouldn't happen
-		if(!ensure(TimelineTemplate != NULL))
+		// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
+		if(!TimelineTemplate||!TimelineTemplate->bValidatedAsWired)
 		{
 			continue;
 		}

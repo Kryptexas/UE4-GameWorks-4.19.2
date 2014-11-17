@@ -341,6 +341,11 @@ bool FOnlineSubsystemSteam::Init()
 	}
 	else
 	{
+		// If the client succeeded, but the server didn't, this could be because there's a server and client running on the same machine - inform the user
+		if (bClientInitSuccess)
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Failed to initialize Steam, this could be due to a Steam server and client running on the same machine. Try running with -NOSTEAM on the cmdline to disable."));
+		}
 		Shutdown();
 	}
 
@@ -406,10 +411,11 @@ bool FOnlineSubsystemSteam::IsEnabled()
 
 	// Check the ini for disabling Steam
 	bool bEnableSteam = true;
-	if (GConfig->GetBool(TEXT("OnlineSubsystemSteam"), TEXT("bEnabled"), bEnableSteam, GEngineIni) && bEnableSteam)
+	GConfig->GetBool(TEXT("OnlineSubsystemSteam"), TEXT("bEnabled"), bEnableSteam, GEngineIni);
+	if (bEnableSteam)
 	{
-		// Check the commandline for disabling Steam
-		bEnableSteam = !FParse::Param(FCommandLine::Get(),TEXT("NOSTEAM"));
+		// Steam doesn't support running both the server and client on the same machine
+		bEnableSteam = !FParse::Param(FCommandLine::Get(),TEXT("MultiprocessOSS"));
 #if UE_EDITOR
 		if (bEnableSteam)
 		{

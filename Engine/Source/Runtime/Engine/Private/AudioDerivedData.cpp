@@ -3,6 +3,7 @@
 #include "AudioDerivedData.h"
 #include "TargetPlatform.h"
 #include "Sound/SoundWave.h"
+#include "DerivedDataCacheInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 

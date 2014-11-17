@@ -65,6 +65,7 @@ FTextBlockStyle::FTextBlockStyle()
 , ColorAndOpacity()
 , ShadowOffset(FVector2D::ZeroVector)
 , ShadowColorAndOpacity(FLinearColor::Black)
+, SelectedBackgroundColor(FSlateColor::UseForeground())
 {
 }
 
@@ -233,6 +234,8 @@ void FEditableTextBoxStyle::GetResources( TArray< const FSlateBrush* >& OutBrush
 	OutBrushes.Add( &BackgroundImageHovered );
 	OutBrushes.Add( &BackgroundImageFocused );
 	OutBrushes.Add( &BackgroundImageReadOnly );
+
+	ScrollBarStyle.GetResources(OutBrushes);
 }
 
 const FName FEditableTextBoxStyle::TypeName( TEXT("FEditableTextBoxStyle") );
@@ -355,13 +358,14 @@ const FSearchBoxStyle& FSearchBoxStyle::GetDefault()
 	return Default;
 }
 
-
 FSliderStyle::FSliderStyle()
 {
 }
 
 void FSliderStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) const
 {
+	OutBrushes.Add( &NormalBarImage );
+	OutBrushes.Add( &DisabledBarImage );
 	OutBrushes.Add( &NormalThumbImage );
 	OutBrushes.Add( &DisabledThumbImage );
 }
@@ -568,6 +572,8 @@ void FScrollBoxStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) c
 {
 	OutBrushes.Add( &TopShadowBrush );
 	OutBrushes.Add( &BottomShadowBrush );
+	OutBrushes.Add( &LeftShadowBrush );
+	OutBrushes.Add( &RightShadowBrush );
 }
 
 const FName FScrollBoxStyle::TypeName( TEXT("FScrollBoxStyle") );

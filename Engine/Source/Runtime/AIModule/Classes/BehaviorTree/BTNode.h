@@ -24,8 +24,11 @@ class AIMODULE_API UBTNode : public UObject
 	/** initialize any asset related data */
 	virtual void InitializeFromAsset(class UBehaviorTree* Asset);
 	
-	/** initialize memory in instance */
-	virtual void InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	/** initialize memory block */
+	virtual void InitializeMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const;
+
+	/** cleanup memory block */
+	virtual void CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const;
 
 	/** gathers description of all runtime parameters */
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const;
@@ -39,8 +42,11 @@ class AIMODULE_API UBTNode : public UObject
 	/** called when node instance is removed from tree */
 	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp);
 
-	/** initialize memory and instancing */
-	void InitializeForInstance(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex) const;
+	/** called on creating subtree to set up memory and instancing */
+	void InitializeInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const;
+
+	/** called on removing subtree to cleanup memory */
+	void CleanupInSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const;
 
 	/** size of special, hidden memory block for internal mechanics */
 	virtual uint16 GetSpecialMemorySize() const;

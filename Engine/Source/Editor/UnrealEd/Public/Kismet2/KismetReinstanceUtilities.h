@@ -6,12 +6,12 @@
 
 #pragma once
 
-
 #include "Engine.h"
 
 class UNREALED_API FBlueprintCompileReinstancer
 {
-private:
+protected:
+
 	/** Reference to the class we're actively reinstancing */
 	UClass* ClassToReinstance;
 
@@ -38,13 +38,13 @@ private:
 	bool bSkipGarbageCollection;
 
 public:
-	~FBlueprintCompileReinstancer();
+	virtual ~FBlueprintCompileReinstancer();
 
 	/** Sets the reinstancer up to work on every object of the specified class */
 	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false);
 
 	/** Saves a mapping of field names to their UField equivalents, so we can remap any bytecode that references them later */
-	void SaveClassFieldMapping();
+	void SaveClassFieldMapping(UClass* InClassToReinstance);
 
 	/** Helper to gather mappings from the old class's fields to the new class's version */
 	void GenerateFieldMappings(TMap<UObject*, UObject*>& FieldMapping);
@@ -61,9 +61,16 @@ public:
 	/** Verify that all instances of the duplicated class have been replaced and collected */
 	void VerifyReplacement();
 
-private:
-	/** Hide the default constructor for the reinstancer */
-	FBlueprintCompileReinstancer();
+protected:
+
+	/** Default constructor, can only be used by derived classes */
+	FBlueprintCompileReinstancer()
+		: ClassToReinstance(NULL)
+		, DuplicatedClass(NULL)
+		, OriginalCDO(NULL)
+		, bHasReinstanced(false)
+		, bSkipGarbageCollection(false)
+	{}
 
 	/** Reparents the specified blueprint or class to be the duplicated class in order to allow properties to be copied from the previous CDO to the new one */
 	void ReparentChild(UBlueprint* ChildBP);

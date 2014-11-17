@@ -7,7 +7,7 @@
 
 void SEditorViewportToolbarMenu::Construct( const FArguments& Declaration )
 {
-	const TAttribute<FString>& Label = Declaration._Label;
+	const TAttribute<FText>& Label = Declaration._Label;
 
 	const FName ImageName = Declaration._Image;
 	const FSlateBrush* ImageBrush = FEditorStyle::GetBrush( ImageName );

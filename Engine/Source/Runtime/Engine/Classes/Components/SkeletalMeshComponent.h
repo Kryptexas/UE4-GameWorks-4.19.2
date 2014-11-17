@@ -5,7 +5,46 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "SkeletalMeshTypes.h"
 #include "SkeletalMeshComponent.generated.h"
+
+class UAnimInstance;
+
+struct FAnimationEvaluationContext
+{
+	// The anim instance we are evaluating
+	UAnimInstance* AnimInstance;
+
+	// The SkeletalMesh we are evaluating for
+	USkeletalMesh* SkeletalMesh;
+
+	// Double buffer evaluation data
+	TArray<FTransform> SpaceBases;
+	TArray<FTransform> LocalAtoms;
+	TArray<FActiveVertexAnim> VertexAnims;
+	FVector RootBoneTranslation;
+
+	// Are we performing interpolation this tick
+	bool bDoInterpolation;
+
+	// Are we evaluating this tick
+	bool bDoEvaluation;
+
+	// Are we storing data in cache bones this tick
+	bool bDuplicateToCacheBones;
+
+	FAnimationEvaluationContext()
+	{
+		Clear();
+	}
+
+	void Clear()
+	{
+		AnimInstance = NULL;
+		SkeletalMesh = NULL;
+	}
+
+};
 
 //#if WITH_APEX
 namespace physx
@@ -20,7 +59,7 @@ namespace physx
 
 class FPhysScene;
 
-/** thie is a class to manage an APEX clothing actor */
+/** a class to manage an APEX clothing actor */
 class FClothingActor
 {
 public:
@@ -59,6 +98,20 @@ struct FClothSimulData
 {
 	TArray<FVector4> ClothSimulPositions;
 	TArray<FVector4> ClothSimulNormals;
+};
+
+/**  for storing precomputed cloth morph target data */
+struct FClothMorphTargetData
+{
+	FName MorphTargetName;
+	// save a previous weight to compare whether weight was changed or not
+	float PrevWeight;
+	// an index of clothing assets which this morph target data is used in
+	int32 ClothAssetIndex;
+	// original positions which only this cloth section is including / extracted from a morph target
+	TArray<FVector> OriginPos;
+	// delta positions to morph this cloth section
+	TArray<FVector> PosDelta;
 };
 
 #if WITH_CLOTH_COLLISION_DETECTION
@@ -207,7 +260,10 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 
 
 /**
- * SkeletalMeshComponent is a mesh that supports skeletal animation and physics.
+ * SkeletalMeshComponent is used to create an instance of a USkeletalMesh.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
+ * @see USkeletalMesh
  */
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent, public IInterface_CollisionDataProvider
@@ -310,6 +366,15 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Clothing)
 	uint32 bLocalSpaceSimulation : 1;
+
+	/**
+	 * cloth morph target option
+	 * This option will be applied only before playing because should do pre-calculation to reduce computation time for run-time play
+	 * so it's impossible to change this option in run-time
+	 */
+	UPROPERTY(EditAnywhere, Category = Clothing)
+	uint32 bClothMorphTarget : 1;
+
 	/** reset the clothing after moving the clothing position (called teleport) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bResetAfterTeleport:1;
@@ -412,6 +477,11 @@ public:
 	 * Misc 
 	 */
 	
+	/** If true TickPose() will not be called from the Component's TickComponent function.
+	* It will instead be called from Autonomous networking updates. See ACharacter. */
+	UPROPERTY(Transient)
+	uint32 bAutonomousTickPose : 1;
+
 	/** If true, force the mesh into the reference pose - is an optimization. */
 	UPROPERTY()
 	uint32 bForceRefpose:1;
@@ -481,7 +551,7 @@ public:
 	bool IsPlaying() const;
 
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetPosition(float InPos);
+	void SetPosition(float InPos, bool bFireNotifies = true);
 
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	float GetPosition() const;
@@ -607,6 +677,10 @@ public:
 	 * use until Apex clothing bug is resolved 
 	 */
 	bool bNeedTeleportAndResetOnceMore;
+	/** used for checking whether cloth morph target data were pre-computed or not */
+	bool bPreparedClothMorphTargets;
+	/** precomputed actual cloth morph target data */
+	TArray<FClothMorphTargetData> ClothMorphTargets;
 
 #if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
@@ -672,16 +746,6 @@ public:
 	/** freezing clothing actor now */
 	void FreezeClothSection(bool bFreeze);
 
-	/** Evaluate Anim System **/
-	void EvaluateAnimation( TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation ) const;
-
-	/**
-	 * Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
-	 * It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.
-	 * This code also applies any per-bone rotators etc. as part of the composition process
-	 */
-	void FillSpaceBases( const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases ) const;
-
 	/** 
 	 * Recalculates the RequiredBones array in this SkeletalMeshComponent based on current SkeletalMesh, LOD and PhysicsAsset.
 	 * Is called when bRequiredBonesUpToDate = false
@@ -745,10 +809,9 @@ public:
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) override;
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool CanEditSimulatePhysics() override;
-	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const override;
+	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const override;
 	virtual void UpdatePhysicsToRBChannels() override;
 	virtual void SetAllPhysicsAngularVelocity(FVector const& NewVel, bool bAddToCurrent = false) override;
 	virtual void SetAllPhysicsPosition(FVector NewPos) override;
@@ -784,6 +847,9 @@ public:
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset,bool bForceReInit = false) override;
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh) override;
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
+
+	virtual bool IsPlayingRootMotion() override;
+
 	// End USkinnedMeshComponent interface
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
@@ -794,13 +860,15 @@ public:
 	/**
 	* Runs the animation evaluation for the current pose into the supplied variables
 	*
+	* @param	InSkeletalMesh			The skeletal mesh we are animating
+	* @param	InAnimInstance			The anim instance we are evaluating
 	* @param	OutSpaceBases			Component space bone transforms
 	* @param	OutLocalAtoms			Local space bone transforms
 	* @param	OutVertexAnims			Active vertex animations
 	* @param	OutRootBoneTranslation	Calculated root bone translation
 	*/
-	void PerformAnimationEvaluation( TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation ) const;
-	void PostAnimEvaluation( bool bDoInterpolation, bool bDuplicateToCacheBones );
+	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const;
+	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
 
 	/**
 	 * Blend of Physics Bones with PhysicsWeight and Animated Bones with (1-PhysicsWeight)
@@ -889,6 +957,7 @@ public:
 	/** Enable or Disable AngularVelocityDrive based on a list of bone names */
 	void SetNamedMotorsAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, const TArray<FName>& BoneNames, bool bSetOtherBodiesToComplement = false);
 
+	void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutChildrenLabels) override;
 
 	/**
 	 * Return Transform Matrix for SkeletalMeshComponent considering root motion setups
@@ -932,7 +1001,7 @@ public:
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
 	 */
-	void UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning);
+	void UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning, bool bForceUpdate = false);
 	
 	/**
 	 * Look up all bodies for broken constraints.
@@ -971,8 +1040,9 @@ public:
 	/** 
 	* APEX clothing actor is created from APEX clothing asset for cloth simulation 
 	* create only if became invalid
+	* BlendedData : added for cloth morph target but not used commonly
 	*/
-	bool CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAsset);
+	bool CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAsset, TArray<FVector>* BlendedDelta=NULL);
 	/** should call this method if occurred any changes in clothing assets */
 	void ValidateClothingActors();
 	/** add bounding box for cloth */
@@ -981,6 +1051,17 @@ public:
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
 	virtual void CheckClothTeleport(float DeltaTime);
+
+	/** 
+	* methods for cloth morph targets 
+	*/
+	/** pre-compute morph target data for clothing */
+	void PrepareClothMorphTargets();
+	/** change morph target mapping when active morph target is changed */
+	void ChangeClothMorphTargetMapping(FClothMorphTargetData& MorphData, FName CurrentActivatedMorphName);
+	/** update active morph target's blending data when morph weight is changed */
+	void UpdateClothMorphTarget();
+
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */
@@ -1046,30 +1127,42 @@ protected:
 	bool NeedToSpawnAnimScriptInstance(bool bForceInit) const;
 	
 private:
+	/** Evaluate Anim System **/
+	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const;
+
+	/**
+	* Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
+	* It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.
+	* This code also applies any per-bone rotators etc. as part of the composition process
+	*/
+	void FillSpaceBases(const USkeletalMesh* InSkeletalMesh, const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases) const;
+
 	void RenderAxisGizmo(const FTransform& Transform, class UCanvas* Canvas) const;
 
 	bool ShouldBlendPhysicsBones();	
 	void ClearAnimScriptInstance();
 
-	//Handle parallel evaluation of animation
-	TArray<FTransform> PTSpaceBases;
-	TArray<FTransform> PTLocalAtoms;
-	TArray<FActiveVertexAnim> PTVertexAnims;
-	FVector PTRootBoneTranslation;
-	bool bPTDoInterpolation;
-	bool bPTDuplicateToCacheBones;
+	//Data for parallel evaluation of animation
+	FAnimationEvaluationContext AnimEvaluationContext;
 
 public:
 	// Parallel evaluation wrappers
-	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(PTSpaceBases, PTLocalAtoms, PTVertexAnims, PTRootBoneTranslation); }
+	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation); }
 	void CompleteParallelAnimationEvaluation()
 	{
-		Exchange(PTSpaceBases, bPTDoInterpolation ? CachedSpaceBases : SpaceBases);
-		Exchange(PTLocalAtoms, bPTDoInterpolation ? CachedLocalAtoms : LocalAtoms);
-		Exchange(PTVertexAnims, ActiveVertexAnims);
-		Exchange(PTRootBoneTranslation, RootBoneTranslation);
+		if (AnimEvaluationContext.AnimInstance == AnimScriptInstance && AnimEvaluationContext.SkeletalMesh == SkeletalMesh)
+		{
+			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : SpaceBases);
+			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
+			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
+			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
 
-		PostAnimEvaluation(bPTDoInterpolation, bPTDuplicateToCacheBones);
+			PostAnimEvaluation(AnimEvaluationContext);
+		}
+		else
+		{
+			AnimEvaluationContext.Clear();
+		}
 	}
 
 	friend class FSkeletalMeshComponentDetails;

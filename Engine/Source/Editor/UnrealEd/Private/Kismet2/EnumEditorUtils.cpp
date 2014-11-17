@@ -37,7 +37,7 @@ UEnum* FEnumEditorUtils::CreateUserDefinedEnum(UObject* InParent, FName EnumName
 	if (NULL != Enum)
 	{
 		TArray<FName> EmptyNames;
-		Enum->SetEnums(EmptyNames, true);
+		Enum->SetEnums(EmptyNames, UEnum::ECppForm::Namespaced);
 		Enum->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 	}
 
@@ -62,7 +62,7 @@ void FEnumEditorUtils::UpdateAfterPathChanged(UEnum* Enum)
 		NewEnumeratorsNames.Add(FName(*NewFullName));
 	}
 
-	Enum->SetEnums(NewEnumeratorsNames, true);
+	Enum->SetEnums(NewEnumeratorsNames, UEnum::ECppForm::Namespaced);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -95,8 +95,8 @@ void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum
 		const FString FullNameStr = Enum->GenerateFullEnumName(*EnumNameString);
 		Names.Add(FName(*FullNameStr));
 
-		const bool bIsNamespace = Enum->IsNamespaceEnum();
-		Enum->SetEnums(Names, bIsNamespace);
+		const UEnum::ECppForm EnumType = Enum->GetCppForm();
+		Enum->SetEnums(Names, EnumType);
 		EnsureAllDisplayNamesExist(Enum);
 
 		BroadcastChanges(Enum, OldNames);
@@ -119,8 +119,8 @@ void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enu
 
 		Enum->RemoveMetaData(FEnumEditorUtilsHelper::DisplayName(), EnumeratorIndex);
 
-		const bool bIsNamespace = Enum->IsNamespaceEnum();
-		Enum->SetEnums(Names, bIsNamespace);
+		const UEnum::ECppForm EnumType = Enum->GetCppForm();
+		Enum->SetEnums(Names, EnumType);
 		EnsureAllDisplayNamesExist(Enum);
 		BroadcastChanges(Enum, OldNames);
 
@@ -151,8 +151,8 @@ void FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(UUserDefinedEnum* Enum, i
 			Names.Swap(EnumeratorIndex, EnumeratorIndex + 1);
 		}
 
-		const bool bIsNamespace = Enum->IsNamespaceEnum();
-		Enum->SetEnums(Names, bIsNamespace);
+		const UEnum::ECppForm EnumType = Enum->GetCppForm();
+		Enum->SetEnums(Names, EnumType);
 		EnsureAllDisplayNamesExist(Enum);
 		BroadcastChanges(Enum, OldNames);
 

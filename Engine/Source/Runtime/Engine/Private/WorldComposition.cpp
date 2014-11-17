@@ -7,6 +7,8 @@
 #include "Engine/WorldComposition.h"
 #include "LevelUtils.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogWorldComposition, Log, All);
+
 #if WITH_EDITOR
 UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionCreated;
 UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionDestroyed;
@@ -267,7 +269,7 @@ ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldComposition
 	ULevelStreaming* StreamingLevel = Cast<ULevelStreaming>(StaticConstructObject(StreamingClass, OwningWorld, NAME_None, RF_Transient, NULL));
 		
 	// Associate a package name.
-	StreamingLevel->PackageName			= InTile.PackageName;
+	StreamingLevel->SetWorldAssetByPackageName(InTile.PackageName);
 	StreamingLevel->PackageNameToLoad	= InTile.PackageName;
 
 	//Associate LOD packages if any
@@ -280,13 +282,28 @@ void UWorldComposition::CaclulateTilesAbsolutePositions()
 {
 	for (FWorldCompositionTile& Tile : Tiles)
 	{
-		Tile.Info.AbsolutePosition = FIntPoint::ZeroValue;
+		TSet<FName> VisitedParents;
 		
-		auto* ParentTile = &Tile;
+		Tile.Info.AbsolutePosition = FIntPoint::ZeroValue;
+		FWorldCompositionTile* ParentTile = &Tile;
+		
 		do 
 		{
+			// Sum relative offsets
 			Tile.Info.AbsolutePosition+= ParentTile->Info.Position;
-			ParentTile = FindTileByName(FName(*ParentTile->Info.ParentTilePackageName));
+			VisitedParents.Add(ParentTile->PackageName);
+
+			FName NextParentTileName = FName(*ParentTile->Info.ParentTilePackageName);
+			// Detect loops in parent->child hierarchy
+			FWorldCompositionTile* NextParentTile = FindTileByName(NextParentTileName);
+			if (NextParentTile && VisitedParents.Find(NextParentTileName) != nullptr)
+			{
+				UE_LOG(LogWorldComposition, Warning, TEXT("World composition tile (%s) has a cycled parent (%s)"), *Tile.PackageName.ToString(), *NextParentTileName.ToString());
+				NextParentTile = nullptr;
+				ParentTile->Info.ParentTilePackageName = FName(NAME_None).ToString();
+			}
+			
+			ParentTile = NextParentTile;
 		} 
 		while (ParentTile);
 	}
@@ -441,7 +458,7 @@ void UWorldComposition::GetDistanceVisibleLevels(
 {
 	const UWorld* OwningWorld = GetWorld();
 
-	FIntPoint WorldOffset = OwningWorld->GlobalOriginOffset;
+	FIntPoint WorldOriginLocationXY = FIntPoint(OwningWorld->OriginLocation.X, OwningWorld->OriginLocation.Y);
 			
 	for (int32 TileIdx = 0; TileIdx < Tiles.Num(); TileIdx++)
 	{
@@ -472,8 +489,8 @@ void UWorldComposition::GetDistanceVisibleLevels(
 			//
 			// Check if tile bounding box intersects with a sphere with origin at provided location and with radius equal to tile layer distance settings
 			//
-			FIntPoint LevelOffset = Tile.Info.AbsolutePosition - WorldOffset;
-			FBox LevelBounds = Tile.Info.Bounds.ShiftBy(FVector(LevelOffset, 0));
+			FIntPoint LevelOffset = Tile.Info.AbsolutePosition - WorldOriginLocationXY;
+			FBox LevelBounds = Tile.Info.Bounds.ShiftBy(FVector(LevelOffset));
 			// We don't care about third dimension yet
 			LevelBounds.Min.Z = -WORLD_MAX;
 			LevelBounds.Max.Z = +WORLD_MAX;
@@ -606,9 +623,9 @@ void UWorldComposition::OnLevelAddedToWorld(ULevel* InLevel)
 	}
 #endif
 		
-	// Move level according to current global origin offset
-	FIntPoint LevelOffset = GetLevelOffset(InLevel);
-	InLevel->ApplyWorldOffset(FVector(LevelOffset, 0), false);
+	// Move level according to current global origin
+	FIntVector LevelOffset = GetLevelOffset(InLevel);
+	InLevel->ApplyWorldOffset(FVector(LevelOffset), false);
 }
 
 void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
@@ -621,8 +638,8 @@ void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
 #endif
 	
 	// Move level to his local origin
-	FIntPoint LevelOffset = GetLevelOffset(InLevel);
-	InLevel->ApplyWorldOffset(-FVector(LevelOffset, 0), false);
+	FIntVector LevelOffset = GetLevelOffset(InLevel);
+	InLevel->ApplyWorldOffset(-FVector(LevelOffset), false);
 }
 
 void UWorldComposition::OnLevelPostLoad(ULevel* InLevel)
@@ -671,18 +688,19 @@ void UWorldComposition::OnLevelPostSave(ULevel* InLevel)
 	}
 }
 
-FIntPoint UWorldComposition::GetLevelOffset(ULevel* InLevel) const
+FIntVector UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 {
 	UWorld* OwningWorld = GetWorld();
 	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());
 	
-	FIntPoint LevelPosition = FIntPoint::ZeroValue;
+	FIntVector LevelPosition = FIntVector::ZeroValue;
 	if (LevelPackage->WorldTileInfo)
 	{
-		LevelPosition = LevelPackage->WorldTileInfo->AbsolutePosition;
+		FIntPoint AbsolutePosition = LevelPackage->WorldTileInfo->AbsolutePosition;
+		LevelPosition = FIntVector(AbsolutePosition.X, AbsolutePosition.Y, 0);
 	}
 	
-	return LevelPosition - OwningWorld->GlobalOriginOffset;
+	return LevelPosition - OwningWorld->OriginLocation;
 }
 
 FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const
@@ -693,7 +711,7 @@ FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const
 	FBox LevelBBox(0);
 	if (LevelPackage->WorldTileInfo)
 	{
-		LevelBBox = LevelPackage->WorldTileInfo->Bounds.ShiftBy(FVector(GetLevelOffset(InLevel), 0));
+		LevelBBox = LevelPackage->WorldTileInfo->Bounds.ShiftBy(FVector(GetLevelOffset(InLevel)));
 	}
 	
 	return LevelBBox;

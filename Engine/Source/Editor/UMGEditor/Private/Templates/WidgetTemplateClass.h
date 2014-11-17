@@ -11,7 +11,10 @@ class FWidgetTemplateClass : public FWidgetTemplate
 {
 public:
 	/** Constructor */
-	FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass);
+	explicit FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass);
+
+	/** Destructor */
+	virtual ~FWidgetTemplateClass();
 
 	/** Gets the category for the widget */
 	virtual FText GetCategory() const override;
@@ -26,9 +29,12 @@ public:
 	virtual TSharedRef<IToolTip> GetToolTip() const override;
 
 protected:
-	/** The widget class that will be created by this template */
-	TSubclassOf<UWidget> WidgetClass;
+	/** Creates a widget template class without any class reference */
+	FWidgetTemplateClass();
 
-	/** The cached category for the widget. */
-	mutable FText Category;
+	/** Called when objects need to be swapped out for new versions, like after a blueprint recompile. */
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
+
+	/** The widget class that will be created by this template */
+	TWeakObjectPtr<UClass> WidgetClass;
 };

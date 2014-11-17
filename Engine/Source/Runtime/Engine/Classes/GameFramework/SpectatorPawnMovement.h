@@ -5,10 +5,7 @@
  */
 
 #pragma once
-
-#include "FloatingPawnMovement.h"
 #include "GameFramework/FloatingPawnMovement.h"
-
 #include "SpectatorPawnMovement.generated.h"
 
 UCLASS()

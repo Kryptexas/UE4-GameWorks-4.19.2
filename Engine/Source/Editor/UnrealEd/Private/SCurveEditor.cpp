@@ -2,19 +2,21 @@
 
 
 #include "UnrealEd.h"
+#include "RichCurveEditorCommands.h"
 #include "SCurveEditor.h"
 #include "ScopedTransaction.h"
 #include "SColorGradientEditor.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 
-const static FVector2D	CONST_KeySize		= FVector2D(10,10);
+const static FVector2D	CONST_KeySize		= FVector2D(11,11);
+const static FVector2D	CONST_TangentSize	= FVector2D(7,7);
 const static FVector2D	CONST_CurveSize		= FVector2D(12,12);
 
 const static float		CONST_FitMargin		= 0.05f;
 const static float		CONST_MinViewRange	= 0.01f;
 const static float		CONST_DefaultZoomRange	= 1.0f;
-const static float      CONST_KeyTangentOffset = 20.0f;
+const static float      CONST_KeyTangentOffset = 60.0f;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -36,12 +38,15 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	ViewMinOutput = InArgs._ViewMinOutput;
 	ViewMaxOutput = InArgs._ViewMaxOutput;
 
-	bZoomToFit = InArgs._ZoomToFit;
+	InputSnap = InArgs._InputSnap;
+	OutputSnap = InArgs._OutputSnap;
+	bSnappingEnabled = InArgs._SnappingEnabled;
+
+	bZoomToFitVertical = InArgs._ZoomToFitVertical;
+	bZoomToFitHorizontal = InArgs._ZoomToFitHorizontal;
 	DesiredSize = InArgs._DesiredSize;
 
 	bIsUsingSlider = false;
-
-	ResetDragValues();
 
 	// if editor size is set, use it, otherwise, use default value
 	if (DesiredSize.Get().IsZero())
@@ -55,30 +60,72 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	bHideUI = InArgs._HideUI;
 	bAllowZoomOutput = InArgs._AllowZoomOutput;
 	bAlwaysDisplayColorCurves = InArgs._AlwaysDisplayColorCurves;
+	bShowZoomButtons = InArgs._ShowZoomButtons;
 
 	OnCreateAsset = InArgs._OnCreateAsset;
 
-	bMovingKeys = false;
-	bPanning = false;
-	bMovingTangent = false;
+	DragState = EDragState::None;
+	DragThreshold = 4;
 
 	//Simple r/g/b for now
 	CurveColors.Add(FLinearColor(1.0f, 0.0f, 0.0f));
 	CurveColors.Add(FLinearColor(0.0f, 1.0f, 0.0f));
-	CurveColors.Add(FLinearColor(0.0f, 0.0f, 1.0f));
+	CurveColors.Add(FLinearColor(0.05f, 0.05f, 1.0f));
 
 	TransactionIndex = -1;
 
-	Commands->MapAction( FGenericCommands::Get().Undo,
-		FExecuteAction::CreateSP( this, &SCurveEditor::UndoAction ));
+	Commands->MapAction(FGenericCommands::Get().Undo,
+		FExecuteAction::CreateSP(this, &SCurveEditor::UndoAction));
 
-	Commands->MapAction( FGenericCommands::Get().Redo,
-		FExecuteAction::CreateSP( this, &SCurveEditor::RedoAction ));
+	Commands->MapAction(FGenericCommands::Get().Redo,
+		FExecuteAction::CreateSP(this, &SCurveEditor::RedoAction));
 
-	SAssignNew(WarningMessageText, SErrorText );
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitHorizontal,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitHorizontal, false));
 
-	TSharedRef<SBorder> CurveSelector = SNew(SBorder)
-		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitVertical,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitVertical, false));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitAll,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitAll, false));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ZoomToFitSelected,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ZoomToFitAll, true));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ToggleSnapping,
+		FExecuteAction::CreateSP(this, &SCurveEditor::ToggleSnapping),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsSnappingEnabled));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationConstant,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Constant, RCTM_Auto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Constant, RCTM_Auto));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationLinear,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Linear, RCTM_Auto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Linear, RCTM_Auto));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationCubicAuto,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Auto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_Auto));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationCubicUser,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_User),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_User));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().InterpolationCubicBreak,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Break),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCurveEditor::IsInterpolationModeSelected, RCIM_Cubic, RCTM_Break));
+
+	SAssignNew(WarningMessageText, SErrorText);
+
+	TSharedRef<SBox> CurveSelector = SNew(SBox)
+		.VAlign(VAlign_Top)
 		.Visibility(this, &SCurveEditor::GetControlVisibility)
 		[
 			CreateCurveSelectionWidget()
@@ -88,146 +135,153 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	this->ChildSlot
 	[
-		SNew( SVerticalBox )
+		SNew( SHorizontalBox )
 
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
 		[
-			SNew(SHorizontalBox)
-			.Visibility( this, &SCurveEditor::GetCurveAreaVisibility )
+			SNew( SVerticalBox )
 
-			+ SHorizontalBox::Slot()
-			.Padding(FMargin(20, 12, 0, 0))
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			[
-				SNew(SSpacer)
-			]
-			
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(FMargin(2, 12, 0, 0))
-			[
-				CurveSelector
-			]
+				SNew(SHorizontalBox)
+				.Visibility( this, &SCurveEditor::GetCurveAreaVisibility )
 
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SBorder)
-				.VAlign(VAlign_Top)
-				.HAlign(HAlign_Left)
-				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-				.DesiredSizeScale(FVector2D(256.0f,32.0f))
-				.Visibility(this, &SCurveEditor::GetControlVisibility)
-				.Padding(FMargin(2, 12, 0, 0))
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(FMargin(30, 12, 0, 0))
 				[
-					SNew(SHorizontalBox)
-					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
+					CurveSelector
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBorder)
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+					.DesiredSizeScale(FVector2D(256.0f,32.0f))
+					.Visibility(this, &SCurveEditor::GetControlVisibility)
+					.Padding(FMargin(2, 12, 0, 0))
 					[
-						SNew(SButton)
-						.ToolTipText(LOCTEXT("ZoomToFitHorizontal", "Zoom To Fit Horizontal"))
-						.OnClicked(this, &SCurveEditor::ZoomToFitHorizontal)
-						.ContentPadding(1)
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
 						[
-							SNew(SImage) 
-							.Image( FEditorStyle::GetBrush("CurveEd.FitHorizontal") ) 
-							.ColorAndOpacity( FSlateColor::UseForeground() ) 
-						]
-					]
-					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ToolTipText(LOCTEXT("ZoomToFitVertical", "Zoom To Fit Vertical"))
-						.OnClicked(this, &SCurveEditor::ZoomToFitVertical)
-						.ContentPadding(1)
-						[
-							SNew(SImage) 
-							.Image( FEditorStyle::GetBrush("CurveEd.FitVertical") ) 
-							.ColorAndOpacity( FSlateColor::UseForeground() ) 
-						]
-					]
-					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-						.Visibility(this, &SCurveEditor::GetEditVisibility)
-						.VAlign(VAlign_Center)
-						[
-							SNew(SNumericEntryBox<float>)
-							.IsEnabled(this, &SCurveEditor::GetInputEditEnabled)
-							.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
-							.Value(this, &SCurveEditor::OnGetTime)
-							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
-							.OnValueCommitted(this, &SCurveEditor::OnTimeComitted)
-							.OnValueChanged(this, &SCurveEditor::OnTimeChanged)
-							.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetValue", "Set New Time"))
-							.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
-							.LabelVAlign(VAlign_Center)
-							.AllowSpin(true)
-							.MinValue(TOptional<float>())
-							.MaxValue(TOptional<float>())
-							.MaxSliderValue(TOptional<float>())
-							.MinSliderValue(TOptional<float>())
-							.Label()
+							SNew(SButton)
+							.ToolTipText(LOCTEXT("ZoomToFitHorizontal", "Zoom To Fit Horizontal"))
+							.Visibility(this, &SCurveEditor::GetZoomButtonVisibility)
+							.OnClicked(this, &SCurveEditor::ZoomToFitHorizontalClicked)
+							.ContentPadding(1)
 							[
-								SNew(STextBlock)
-								.Text(LOCTEXT("Time", "Time"))
+								SNew(SImage) 
+								.Image( FEditorStyle::GetBrush("CurveEd.FitHorizontal") ) 
+								.ColorAndOpacity( FSlateColor::UseForeground() ) 
 							]
 						]
-					]
 					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SBorder)
-						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-						.Visibility(this, &SCurveEditor::GetEditVisibility)
-						.VAlign(VAlign_Center)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
 						[
-							SNew(SNumericEntryBox<float>)
-							.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
-							.Value(this, &SCurveEditor::OnGetValue)
-							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
-							.OnValueCommitted(this, &SCurveEditor::OnValueComitted)
-							.OnValueChanged(this, &SCurveEditor::OnValueChanged)
-							.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetValue", "Set New Value"))
-							.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
-							.LabelVAlign(VAlign_Center)
-							.AllowSpin(true)
-							.MinValue(TOptional<float>())
-							.MaxValue(TOptional<float>())
-							.MaxSliderValue(TOptional<float>())
-							.MinSliderValue(TOptional<float>())
-							.Label()
+							SNew(SButton)
+							.ToolTipText(LOCTEXT("ZoomToFitVertical", "Zoom To Fit Vertical"))
+							.Visibility(this, &SCurveEditor::GetZoomButtonVisibility)
+							.OnClicked(this, &SCurveEditor::ZoomToFitVerticalClicked)
+							.ContentPadding(1)
 							[
-								SNew(STextBlock)
-								.Text(LOCTEXT("Value", "Value"))
+								SNew(SImage) 
+								.Image( FEditorStyle::GetBrush("CurveEd.FitVertical") ) 
+								.ColorAndOpacity( FSlateColor::UseForeground() ) 
+							]
+						]
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+							.Visibility(this, &SCurveEditor::GetEditVisibility)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SNumericEntryBox<float>)
+								.IsEnabled(this, &SCurveEditor::GetInputEditEnabled)
+								.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+								.Value(this, &SCurveEditor::OnGetTime)
+								.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
+								.OnValueCommitted(this, &SCurveEditor::OnTimeComitted)
+								.OnValueChanged(this, &SCurveEditor::OnTimeChanged)
+								.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetValue", "Set New Time"))
+								.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
+								.LabelVAlign(VAlign_Center)
+								.AllowSpin(true)
+								.MinValue(TOptional<float>())
+								.MaxValue(TOptional<float>())
+								.MaxSliderValue(TOptional<float>())
+								.MinSliderValue(TOptional<float>())
+								.Delta(0.001f)
+								.MinDesiredValueWidth(60.0f)
+								.Label()
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("Time", "Time"))
+								]
+							]
+						]
+					
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SBorder)
+							.BorderImage( FEditorStyle::GetBrush("NoBorder") )
+							.Visibility(this, &SCurveEditor::GetEditVisibility)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SNumericEntryBox<float>)
+								.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+								.Value(this, &SCurveEditor::OnGetValue)
+								.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
+								.OnValueCommitted(this, &SCurveEditor::OnValueComitted)
+								.OnValueChanged(this, &SCurveEditor::OnValueChanged)
+								.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetValue", "Set New Value"))
+								.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
+								.LabelVAlign(VAlign_Center)
+								.AllowSpin(true)
+								.MinValue(TOptional<float>())
+								.MaxValue(TOptional<float>())
+								.MaxSliderValue(TOptional<float>())
+								.MinSliderValue(TOptional<float>())
+								.Delta(.001f)
+								.MinDesiredValueWidth(60.0f)
+								.Label()
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("Value", "Value"))
+								]
 							]
 						]
 					]
 				]
 			]
-		]
+		
 
-		+ SVerticalBox::Slot()
-		.VAlign(VAlign_Bottom)
-		.FillHeight(.75f)
-		[
-			SNew( SBorder )
-			.Visibility( this, &SCurveEditor::GetColorGradientVisibility )
-			.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-			.BorderBackgroundColor( FLinearColor( .8f, .8f, .8f, .60f ) )
-			.Padding(1.0f)
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Bottom)
+			.FillHeight(.75f)
 			[
-				SAssignNew( GradientViewer, SColorGradientEditor )
-				.ViewMinInput( ViewMinInput )
-				.ViewMaxInput( ViewMaxInput )
-				.IsEditingEnabled( this, &SCurveEditor::IsEditingEnabled )
+				SNew( SBorder )
+				.Visibility( this, &SCurveEditor::GetColorGradientVisibility )
+				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+				.BorderBackgroundColor( FLinearColor( .8f, .8f, .8f, .60f ) )
+				.Padding(1.0f)
+				[
+					SAssignNew( GradientViewer, SColorGradientEditor )
+					.ViewMinInput( ViewMinInput )
+					.ViewMaxInput( ViewMaxInput )
+					.IsEditingEnabled( this, &SCurveEditor::IsEditingEnabled )
+				]
 			]
 		]
 	];
@@ -235,6 +289,72 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	if (GEditor != NULL)
 	{
 		GEditor->RegisterForUndo(this);
+	}
+}
+
+FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
+{
+	return CurveViewModel->bIsVisible ?
+		FText::Format(LOCTEXT("HideFormat", "Hide {0} curve"), FText::FromName(CurveViewModel->CurveInfo.CurveName)) :
+		FText::Format(LOCTEXT("ShowFormat", "Show {0} curve"), FText::FromName(CurveViewModel->CurveInfo.CurveName));
+}
+
+ESlateCheckBoxState::Type SCurveEditor::IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const
+{
+	return CurveViewModel->bIsVisible ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SCurveEditor::OnCurveIsVisibleChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
+{
+	if (NewCheckboxState == ESlateCheckBoxState::Checked)
+	{
+		CurveViewModel->bIsVisible = true;
+	}
+	else
+	{
+		CurveViewModel->bIsVisible = false;
+		RemoveCurveKeysFromSelection(CurveViewModel);
+	}
+}
+
+FText SCurveEditor::GetIsCurveLockedToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
+{
+	return CurveViewModel->bIsLocked ?
+		FText::Format(LOCTEXT("UnlockFormat", "Unlock {0} curve for editing"), FText::FromName(CurveViewModel->CurveInfo.CurveName)) :
+		FText::Format(LOCTEXT("LockFormat", "Lock {0} curve for editing"), FText::FromName(CurveViewModel->CurveInfo.CurveName));
+}
+
+ESlateCheckBoxState::Type SCurveEditor::IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const
+{
+	return CurveViewModel->bIsLocked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SCurveEditor::OnCurveIsLockedChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
+{
+	if (NewCheckboxState == ESlateCheckBoxState::Checked)
+	{
+		CurveViewModel->bIsLocked = true;
+		RemoveCurveKeysFromSelection(CurveViewModel);
+	}
+	else
+	{
+		CurveViewModel->bIsLocked = false;
+	}
+}
+
+void SCurveEditor::RemoveCurveKeysFromSelection(TSharedPtr<FCurveViewModel> CurveViewModel)
+{
+	TArray<FSelectedCurveKey> SelectedKeysForLockedCurve;
+	for (auto SelectedKey : SelectedKeys)
+	{
+		if (SelectedKey.Curve == CurveViewModel->CurveInfo.CurveToEdit)
+		{
+			SelectedKeysForLockedCurve.Add(SelectedKey);
+		}
+	}
+	for (auto KeyToDeselect : SelectedKeysForLockedCurve)
+	{
+		RemoveFromSelection(KeyToDeselect);
 	}
 }
 
@@ -248,33 +368,73 @@ SCurveEditor::~SCurveEditor()
 
 TSharedRef<SWidget> SCurveEditor::CreateCurveSelectionWidget() const
 {
-	TSharedRef<SVerticalBox> Box = SNew(SVerticalBox);
-
-	//Curve selection buttons only useful if you have more then 1 curve
-	if(Curves.Num() > 1)
+	TSharedRef<SVerticalBox> CurveBox = SNew(SVerticalBox);
+	if (CurveViewModels.Num() > 1)
 	{
-		for ( const FRichCurveEditInfo& CurveInfo : Curves )
+		// Only create curve controls if there are more than one.
+		for (auto CurveViewModel : CurveViewModels)
 		{
-			FRichCurve* Curve = CurveInfo.CurveToEdit;
-
-			Box->AddSlot()
+			CurveBox->AddSlot()
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+
+				+ SHorizontalBox::Slot()
+				.Padding(0, 0, 5, 0)
+				.FillWidth(1.0f)
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
+					.ColorAndOpacity(CurveViewModel->Color)
+					.Text(CurveViewModel->CurveInfo.CurveName.ToString())
+				]
+
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(SCheckBox)
-					.ForegroundColor(GetCurveColor(Curve))
-					.IsChecked(this, &SCurveEditor::GetCheckState, Curve)
-					.OnCheckStateChanged(this, &SCurveEditor::OnUserSelectedCurve, Curve)
-					.ToolTipText(this, &SCurveEditor::GetCurveCheckBoxToolTip, Curve)
+					.IsChecked(this, &SCurveEditor::IsCurveVisible, CurveViewModel)
+					.OnCheckStateChanged(this, &SCurveEditor::OnCurveIsVisibleChanged, CurveViewModel)
+					.ToolTipText(this, &SCurveEditor::GetIsCurveVisibleToolTip, CurveViewModel)
+					.CheckedImage(FEditorStyle::GetBrush("CurveEd.Visible"))
+					.CheckedHoveredImage(FEditorStyle::GetBrush("CurveEd.VisibleHighlight"))
+					.CheckedPressedImage(FEditorStyle::GetBrush("CurveEd.Visible"))
+					.UncheckedImage(FEditorStyle::GetBrush("CurveEd.Invisible"))
+					.UncheckedHoveredImage(FEditorStyle::GetBrush("CurveEd.InvisibleHighlight"))
+					.UncheckedPressedImage(FEditorStyle::GetBrush("CurveEd.Invisible"))
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(2, 0, 0, 0)
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &SCurveEditor::IsCurveLocked, CurveViewModel)
+					.OnCheckStateChanged(this, &SCurveEditor::OnCurveIsLockedChanged, CurveViewModel)
+					.ToolTipText(this, &SCurveEditor::GetIsCurveLockedToolTip, CurveViewModel)
+					.CheckedImage(FEditorStyle::GetBrush("CurveEd.Locked"))
+					.CheckedHoveredImage(FEditorStyle::GetBrush("CurveEd.LockedHighlight"))
+					.CheckedPressedImage(FEditorStyle::GetBrush("CurveEd.Locked"))
+					.UncheckedImage(FEditorStyle::GetBrush("CurveEd.Unlocked"))
+					.UncheckedHoveredImage(FEditorStyle::GetBrush("CurveEd.UnlockedHighlight"))
+					.UncheckedPressedImage(FEditorStyle::GetBrush("CurveEd.Unlocked"))
+					.Visibility(bCanEditTrack ? EVisibility::Visible : EVisibility::Collapsed)
 				]
 			];
 		}
 	}
 
-	return Box;
+	TSharedRef<SBorder> Border = SNew(SBorder)
+		.Padding(FMargin(3, 2, 2, 2))
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderBackgroundColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.3f))
+		[
+			CurveBox
+		];
+
+	return Border;
 }
 
 void SCurveEditor::PushWarningMenu( FVector2D Position, const FText& Message )
@@ -289,47 +449,31 @@ void SCurveEditor::PushWarningMenu( FVector2D Position, const FText& Message )
 }
 
 
-void SCurveEditor::PushInterpolationMenu(FVector2D Position)
+void SCurveEditor::PushKeyMenu(const FGeometry& InMyGeometry, FVector2D Position)
 {
-	FText Heading = (SelectedKeys.Num() > 0) ? FText::Format( LOCTEXT("KeyInterpolationMode", "Key Interpolation({0})"), GetInterpolationModeText()) : LOCTEXT("CurveInterpolationMode", "Curve Interpolation");
+	FMenuBuilder MenuBuilder(true, Commands.ToSharedRef());
 
-	FMenuBuilder MenuBuilder(true, NULL);
-	MenuBuilder.BeginSection("CurveEditorInterpolation", Heading);
+	if (SelectedKeys.Num() == 0)
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateLinearMode", "Linear"),
-			LOCTEXT("LinearInterpolationToolTip", "Use Linear interpolation"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Linear, RCTM_Auto) ,
-			FCanExecuteAction()));
+		MenuBuilder.BeginSection("EditCurveEditorActions", LOCTEXT("Actions", "Actions"));
+		{
+			FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::AddNewKey, InMyGeometry, Position));
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("AddKey", "Add Key"),
+				LOCTEXT("AddKey_ToolTip", "Create a new point in the curve.  You can also use (Shift + Left Mouse Button)"),
+				FSlateIcon(),
+				Action);
+		}
+		MenuBuilder.EndSection();
+	}
 
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateClampMode", "Clamp"),
-			LOCTEXT("ClampInterpolationToolTip", "Clamp to value"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Constant, RCTM_Auto) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateCubicAutoMode", "Cubic-auto"),
-			LOCTEXT("CubicAutoInterpolationToolTip", "Cubic interpolation with automatic tangents"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Auto) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateCubicLockedMode", "Cubic-locked"),
-			LOCTEXT("CubicLockedInterpolationToolTip", "Cubic interpolation, with user controlled tangent"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_User) ,
-			FCanExecuteAction()));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("InterpolateCubicBreakMode", "Cubic-break"),
-			LOCTEXT("CubicBreakInterpolationToolTip", "Cubic interpolation with seperate user controlled tangents for arrive and leave"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SCurveEditor::OnSelectInterpolationMode, RCIM_Cubic, RCTM_Break) ,
-			FCanExecuteAction()));
+	MenuBuilder.BeginSection("CurveEditorInterpolation", LOCTEXT("KeyInterpolationMode", "Key Interpolation"));
+	{
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationCubicAuto);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationCubicUser);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationCubicBreak);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationLinear);
+		MenuBuilder.AddMenuEntry(FRichCurveEditorCommands::Get().InterpolationConstant);
 	}
 	MenuBuilder.EndSection(); //CurveEditorInterpolation
 
@@ -353,7 +497,7 @@ EVisibility SCurveEditor::GetCurveAreaVisibility() const
 
 EVisibility SCurveEditor::GetControlVisibility() const
 {
-	return (IsHovered() || (false == bHideUI)) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (IsHovered() || (false == bHideUI)) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 EVisibility SCurveEditor::GetEditVisibility() const
@@ -364,6 +508,11 @@ EVisibility SCurveEditor::GetEditVisibility() const
 EVisibility SCurveEditor::GetColorGradientVisibility() const
 {
 	return bIsGradientEditorVisible && IsLinearColorCurve() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SCurveEditor::GetZoomButtonVisibility() const
+{
+	return bShowZoomButtons ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 bool SCurveEditor::GetInputEditEnabled() const
@@ -388,29 +537,44 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	float ZeroInputX = ScaleInfo.InputToLocalX(0.f);
 	float ZeroOutputY = ScaleInfo.OutputToLocalY(0.f);
 
+	// timeline background
+	int32 BackgroundLayerId = LayerId;
+	float TimelineMaxX = ScaleInfo.InputToLocalX(TimelineLength.Get());
+	FSlateDrawElement::MakeBox
+		(
+		OutDrawElements,
+		BackgroundLayerId,
+		CurveAreaGeometry.ToPaintGeometry(FVector2D(ZeroInputX, 0), FVector2D(TimelineMaxX - ZeroInputX, CurveAreaGeometry.Size.Y)),
+		TimelineAreaBrush,
+		MyClippingRect,
+		DrawEffects,
+		TimelineAreaBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
+		);
+
+	// grid lines.
+	int32 GridLineLayerId = BackgroundLayerId + 1;
+	PaintGridLines(CurveAreaGeometry, ScaleInfo, OutDrawElements, GridLineLayerId, MyClippingRect, DrawEffects);
 
 	// time=0 line
-	{
-		FSlateDrawElement::MakeBox
-		(
-			OutDrawElements,
-			LayerId,
-			CurveAreaGeometry.ToPaintGeometry( FVector2D(ZeroInputX, 0), FVector2D(1, CurveAreaGeometry.Size.Y) ),
-			WhiteBrush,
-			MyClippingRect,
-			DrawEffects,
-			WhiteBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
-		);
-	}
-	
+	int32 ZeroLineLayerId = GridLineLayerId + 1;
+	FSlateDrawElement::MakeBox
+	(
+		OutDrawElements,
+		ZeroLineLayerId,
+		CurveAreaGeometry.ToPaintGeometry(FVector2D(ZeroInputX, 0), FVector2D(1, CurveAreaGeometry.Size.Y)),
+		WhiteBrush,
+		MyClippingRect,
+		DrawEffects,
+		WhiteBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
+	);
 
+	// value=0 line
 	if( AreCurvesVisible() )
 	{
-		// value=0 line
 		FSlateDrawElement::MakeBox
 		(
 			OutDrawElements,
-			LayerId,
+			ZeroLineLayerId,
 			CurveAreaGeometry.ToPaintGeometry( FVector2D(0, ZeroOutputY), FVector2D(CurveAreaGeometry.Size.X, 1) ),
 			WhiteBrush,
 			MyClippingRect,
@@ -419,68 +583,57 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		);
 	}
 
-	// timeline background
-	float TimelineMaxX = ScaleInfo.InputToLocalX(TimelineLength.Get());
+	int32 LockedCurveLayerID = ZeroLineLayerId + 1;
+	int32 CurveLayerId = LockedCurveLayerID + 1;
 
-	FSlateDrawElement::MakeBox
-	(
-		OutDrawElements,
-		LayerId,
-		CurveAreaGeometry.ToPaintGeometry( FVector2D(ZeroInputX, 0), FVector2D(TimelineMaxX-ZeroInputX, CurveAreaGeometry.Size.Y) ),
-		TimelineAreaBrush,
-		MyClippingRect,
-		DrawEffects,
-		TimelineAreaBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
-	);
-
-
-	LayerId++; // Ensure we draw line on top of background
-
+	int32 KeyLayerId = CurveLayerId + 1;
+	int32 SelectedKeyLayerId = KeyLayerId + 1;
+	
 	if( AreCurvesVisible() )
 	{
+		//Paint the curves, unlocked curves will be on top
+		for ( auto CurveViewModel : CurveViewModels )
 		{
-			const int32 SelectedCurveLayer = LayerId;
-			const int32 UnSelectedCurveLayer = LayerId+1;
-
-			//Paint the curves, any selected curves will be on top
-			for ( const FRichCurveEditInfo& CurveInfo : Curves )
+			if (CurveViewModel->bIsVisible)
 			{
-				FRichCurve* Curve = CurveInfo.CurveToEdit;
-				int32 LayerToUse = (SelectedCurves.Find(Curve) != INDEX_NONE) ? SelectedCurveLayer : UnSelectedCurveLayer;
-				{
-					PaintCurve(Curve, CurveAreaGeometry, ScaleInfo, OutDrawElements, LayerToUse, MyClippingRect, DrawEffects, InWidgetStyle);
-				}
+				PaintCurve(CurveViewModel, CurveAreaGeometry, ScaleInfo, OutDrawElements, CurveViewModel->bIsLocked ? LockedCurveLayerID : CurveLayerId, MyClippingRect, DrawEffects, InWidgetStyle);
 			}
-			LayerId = LayerId + 2;
 		}
 
 		//Paint the keys on top of the curve
-		for ( const FRichCurveEditInfo& CurveInfo : Curves )
+		for (auto CurveViewModel : CurveViewModels)
 		{
-			FRichCurve* Curve = CurveInfo.CurveToEdit;
-			LayerId = PaintKeys(Curve, ScaleInfo, OutDrawElements, LayerId, CurveAreaGeometry, MyClippingRect, DrawEffects, InWidgetStyle);
+			if (CurveViewModel->bIsVisible)
+			{
+				PaintKeys(CurveViewModel, ScaleInfo, OutDrawElements, KeyLayerId, SelectedKeyLayerId, CurveAreaGeometry, MyClippingRect, DrawEffects, InWidgetStyle);
+			}
 		}
 	}
 
 	// Paint children
-	SCompoundWidget::OnPaint(Args, CurveAreaGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 ChildrenLayerId = SelectedKeyLayerId + 1;
+	int32 MarqueeLayerId = SCompoundWidget::OnPaint(Args, CurveAreaGeometry, MyClippingRect, OutDrawElements, ChildrenLayerId, InWidgetStyle, bParentEnabled);
 
-	PaintGridLines(CurveAreaGeometry, ScaleInfo, OutDrawElements, LayerId++, MyClippingRect, DrawEffects);
+	// Paint marquee
+	if (DragState == EDragState::MarqueeSelect)
+	{
+		PaintMarquee(AllottedGeometry, MyClippingRect, OutDrawElements, MarqueeLayerId);
+	}
 
-	return LayerId;
+	return MarqueeLayerId + 1;
 }
 
-void SCurveEditor::PaintCurve( FRichCurve* Curve, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, 
+void SCurveEditor::PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements,
 	int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle )const
 {
-	if (Curve != NULL)
+	if (CurveViewModel.IsValid())
 	{
 		if (bDrawCurve)
 		{
-			FLinearColor Color = InWidgetStyle.GetColorAndOpacityTint() * GetCurveColor(Curve);
+			FLinearColor Color = InWidgetStyle.GetColorAndOpacityTint() * CurveViewModel->Color;
 
-			//If there are multiple curves, alpha fade out non-selected curves
-			if(Curves.Num() > 1 && SelectedCurves.Num() > 0 && INDEX_NONE == SelectedCurves.Find(Curve))
+			// Fade out curves which are locked.
+			if(CurveViewModel->bIsLocked)
 			{
 				Color *= FLinearColor(1.0f,1.0f,1.0f,0.35f); 
 			}
@@ -488,6 +641,7 @@ void SCurveEditor::PaintCurve( FRichCurve* Curve, const FGeometry &AllottedGeome
 			TArray<FVector2D> LinePoints;
 			int32 CurveDrawInterval = 1;
 
+			FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 			if (Curve->GetNumKeys() < 2) 
 			{
 				//Not enough point, just draw flat line
@@ -584,31 +738,32 @@ void SCurveEditor::CreateLinesForSegment( FRichCurve* Curve, const FRichCurveKey
 	}
 }
 
-int32 SCurveEditor::PaintKeys( FRichCurve* Curve, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle ) const
+void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, int32 SelectedLayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, const FWidgetStyle &InWidgetStyle ) const
 {
-	const int32 UnSelectedLayerID = LayerId;
-	const int32 SelectedLayerID = LayerId+1; //selected keys should be on top
+	FLinearColor KeyColor = CurveViewModel->bIsLocked ? FLinearColor(0.1f,0.1f,0.1f,1.f) : InWidgetStyle.GetColorAndOpacityTint();
 
-	FLinearColor KeyColor = IsEditingEnabled() ? InWidgetStyle.GetColorAndOpacityTint() : FLinearColor(0.1f,0.1f,0.1f,1.f);
 	// Iterate over each key
 	ERichCurveInterpMode LastInterpMode = RCIM_Linear;
+	FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 	for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 	{
 		FKeyHandle KeyHandle = It.Key();
 
 		// Work out where it is
-		const float KeyX = ScaleInfo.InputToLocalX( Curve->GetKeyTime(KeyHandle) ) - CONST_KeySize.X/2;
-		const float KeyY = ScaleInfo.OutputToLocalY( Curve->GetKeyValue(KeyHandle) ) - CONST_KeySize.Y/2;
+		FVector2D KeyLocation(
+			ScaleInfo.InputToLocalX(Curve->GetKeyTime(KeyHandle)),
+			ScaleInfo.OutputToLocalY(Curve->GetKeyValue(KeyHandle)));
+		FVector2D KeyIconLocation = KeyLocation - (CONST_KeySize / 2);
 
 		// Get brush
 		bool IsSelected = IsKeySelected(FSelectedCurveKey(Curve,KeyHandle));
 		const FSlateBrush* KeyBrush = IsSelected ? FEditorStyle::GetBrush("CurveEd.CurveKeySelected") : FEditorStyle::GetBrush("CurveEd.CurveKey");
-		int32 LayerToUse	=  IsSelected ? SelectedLayerID: UnSelectedLayerID;
+		int32 LayerToUse = IsSelected ? SelectedLayerId: LayerId;
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerToUse,
-			AllottedGeometry.ToPaintGeometry( FVector2D(KeyX, KeyY), CONST_KeySize ),
+			AllottedGeometry.ToPaintGeometry( KeyIconLocation, CONST_KeySize ),
 			KeyBrush,
 			MyClippingRect,
 			DrawEffects,
@@ -618,34 +773,29 @@ int32 SCurveEditor::PaintKeys( FRichCurve* Curve, FTrackScaleInfo &ScaleInfo, FS
 		//Handle drawing the tangent controls for curve
 		if(IsSelected && (Curve->GetKeyInterpMode(KeyHandle) == RCIM_Cubic || LastInterpMode == RCIM_Cubic))
 		{
-			PaintTangent(ScaleInfo, Curve, KeyHandle, KeyX, KeyY, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle);
+			PaintTangent(ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle);
 		}
 
 		LastInterpMode = Curve->GetKeyInterpMode(KeyHandle);
 	}
-	return LayerId+2;
 }
 
 
-void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, const float KeyX, const float KeyY, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle ) const
+void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect::Type DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle ) const
 {
-	FVector2D ArriveTangentPos, LeaveTangentPos;
-	GetTangentPoints(ScaleInfo, FSelectedCurveKey(Curve,KeyHandle), ArriveTangentPos, LeaveTangentPos);
+	FVector2D ArriveTangentLocation, LeaveTangentLocation;
+	GetTangentPoints(ScaleInfo, FSelectedCurveKey(Curve,KeyHandle), ArriveTangentLocation, LeaveTangentLocation);
 
-	FVector2D OffsetKeySize(CONST_KeySize.X,CONST_KeySize.Y);
-	OffsetKeySize *= 0.5f;
-
-	ArriveTangentPos -= OffsetKeySize;
-	LeaveTangentPos  -= OffsetKeySize;
+	FVector2D ArriveTangentIconLocation = ArriveTangentLocation - (CONST_TangentSize / 2);
+	FVector2D LeaveTangentIconLocation = LeaveTangentLocation - (CONST_TangentSize / 2);
 
 	const FSlateBrush* TangentBrush = FEditorStyle::GetBrush("CurveEd.Tangent");
-
-	FVector2D KeyOffset(CONST_KeySize.X*0.5f, CONST_KeySize.Y*0.5f);
+	const FLinearColor TangentColor = FEditorStyle::GetColor("CurveEd.TangentColor");
 
 	//Add lines from tangent control point to 'key'
 	TArray<FVector2D> LinePoints;
-	LinePoints.Add(FVector2D(KeyX, KeyY)+KeyOffset );
-	LinePoints.Add(ArriveTangentPos+KeyOffset);
+	LinePoints.Add(KeyLocation);
+	LinePoints.Add(ArriveTangentLocation);
 	FSlateDrawElement::MakeLines(
 		OutDrawElements,
 		LayerId,
@@ -653,12 +803,12 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LinePoints,
 		MyClippingRect,
 		DrawEffects,
-		FLinearColor(0.0f,0.66f,0.7f)
+		TangentColor
 		);
 
 	LinePoints.Empty();
-	LinePoints.Add(FVector2D(KeyX, KeyY)+KeyOffset);
-	LinePoints.Add(LeaveTangentPos+KeyOffset);
+	LinePoints.Add(KeyLocation);
+	LinePoints.Add(LeaveTangentLocation);
 	FSlateDrawElement::MakeLines(
 		OutDrawElements,
 		LayerId,
@@ -666,14 +816,14 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 		LinePoints,
 		MyClippingRect,
 		DrawEffects,
-		FLinearColor(0.0f,0.66f,0.7f)
+		TangentColor
 		);
 
 	//Arrive tangent control
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerToUse,
-		AllottedGeometry.ToPaintGeometry(ArriveTangentPos, CONST_KeySize ),
+		AllottedGeometry.ToPaintGeometry(ArriveTangentIconLocation, CONST_TangentSize ),
 		TangentBrush,
 		MyClippingRect,
 		DrawEffects,
@@ -683,7 +833,7 @@ void SCurveEditor::PaintTangent( FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, 
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerToUse,
-		AllottedGeometry.ToPaintGeometry(LeaveTangentPos, CONST_KeySize ),
+		AllottedGeometry.ToPaintGeometry(LeaveTangentIconLocation, CONST_TangentSize ),
 		TangentBrush,
 		MyClippingRect,
 		DrawEffects,
@@ -715,7 +865,7 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 
 	const float GridPixelSpacing = FMath::Min(ScaleInfo.WidgetSize.GetMin()/1.5f, MaxGridPixelSpacing);
 
-	const FLinearColor GridColor = FLinearColor(0.0f,0.0f,0.0f, 0.25f) ;
+	const FLinearColor GridColor = FLinearColor(0.0f,0.0f,0.0f, 0.30f) ;
 	const FLinearColor GridTextColor = FLinearColor(1.0f,1.0f,1.0f, 0.75f) ;
 
 	//Vertical grid(time)
@@ -801,12 +951,32 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 	}
 }
 
+void SCurveEditor::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+{
+	FVector2D MarqueTopLeft(
+		FMath::Min(MouseDownLocation.X, MouseMoveLocation.X),
+		FMath::Min(MouseDownLocation.Y, MouseMoveLocation.Y)
+		);
+
+	FVector2D MarqueBottomRight(
+		FMath::Max(MouseDownLocation.X, MouseMoveLocation.X),
+		FMath::Max(MouseDownLocation.Y, MouseMoveLocation.Y)
+		);
+
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId,
+		AllottedGeometry.ToPaintGeometry(MarqueTopLeft, MarqueBottomRight - MarqueTopLeft),
+		FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
+		MyClippingRect
+		);
+}
+
 void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEdit)
 {
 	if(InCurveOwner != CurveOwner)
 	{
 		EmptySelection();
-		SelectedCurves.Empty();
 	}
 
 	GradientViewer->SetCurveOwner(InCurveOwner);
@@ -818,33 +988,37 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 	bAreCurvesVisible = !IsLinearColorCurve();
 	bIsGradientEditorVisible = IsLinearColorCurve();
 
-	Curves.Empty();
+	CurveViewModels.Empty();
 	if(CurveOwner != NULL)
 	{
-		Curves = InCurveOwner->GetCurves();
-
-		//Auto select first curve
-		if(Curves.Num() > 0)
+		int curveIndex = 0;
+		for (auto CurveInfo : CurveOwner->GetCurves())
 		{
-			SelectCurve(Curves[0].CurveToEdit, false);
+			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveColors[curveIndex % CurveColors.Num()], !bCanEdit)));
+			curveIndex++;
 		}
 		CurveOwner->MakeTransactional();
 	}
 
 	SelectedKeys.Empty();
 
-	if( bZoomToFit )
+	if( bZoomToFitVertical )
 	{
-		ZoomToFitVertical();
-		ZoomToFitHorizontal();
+		ZoomToFitVertical(false);
+	}
+
+	if ( bZoomToFitHorizontal )
+	{
+		ZoomToFitHorizontal(false);
 	}
 
 	CurveSelectionWidget.Pin()->SetContent(CreateCurveSelectionWidget());
 }
 
-void SCurveEditor::SetZoomToFit(bool bNewZoomToFit)
+void SCurveEditor::SetZoomToFit(bool bNewZoomToFitVertical, bool bNewZoomToFitHorizontal)
 {
-	bZoomToFit = bNewZoomToFit;
+	bZoomToFitVertical = bNewZoomToFitVertical;
+	bZoomToFitHorizontal = bNewZoomToFitHorizontal;
 }
 
 FCurveOwnerInterface* SCurveEditor::GetCurveOwner() const
@@ -854,9 +1028,9 @@ FCurveOwnerInterface* SCurveEditor::GetCurveOwner() const
 
 FRichCurve* SCurveEditor::GetCurve(int32 CurveIndex) const
 {
-	if(CurveIndex < Curves.Num())
+	if(CurveIndex < CurveViewModels.Num())
 	{
-		return Curves[CurveIndex].CurveToEdit;
+		return CurveViewModels[CurveIndex]->CurveInfo.CurveToEdit;
 	}
 	return NULL;
 }
@@ -877,102 +1051,19 @@ void SCurveEditor::DeleteSelectedKeys()
 			Key.Curve->DeleteKey(Key.KeyHandle);
 		}
 	}
+
+	CurveOwner->OnCurveChanged();
 }
 
-
-FReply SCurveEditor::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+FReply SCurveEditor::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
 	const bool bLeftMouseButton = InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 	const bool bRightMouseButton = InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
-	const bool bControlDown = InMouseEvent.IsControlDown();
-	const bool bShiftDown = InMouseEvent.IsShiftDown();
 
-	// See if we hit a key
-	FSelectedCurveKey HitKey = HitTestKeys(InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-
-	//Turn off error msg
-	//WarningMessageText->SetError(FString());
-
-	if( bLeftMouseButton || bRightMouseButton )
+	DragState = EDragState::PreDrag;
+	if (bLeftMouseButton || bRightMouseButton)
 	{
-		bMovingTangent = false;
-		// Hit a key
-		if( IsEditingEnabled() && HitKey.IsValid())
-		{
-			if(bLeftMouseButton)
-			{
-				if(!IsKeySelected(HitKey))
-				{
-					// If control is down, add to current selection
-					if(!bControlDown)
-					{
-						EmptySelection();
-					}
-
-					AddToSelection(HitKey);
-				}
-				else if(bControlDown)
-				{
-					RemoveFromSelection(HitKey);
-				}
-
-				// If th key we clicked on is now selected, start movement mode
-				if(IsKeySelected(HitKey))
-				{
-					BeginDragTransaction();
-					bMovingKeys = true;
-				}
-			}
-			else
-			{
-				// Make sure key is selected in readyness for context menu
-				if(!IsKeySelected(HitKey))
-				{
-					EmptySelection();
-					AddToSelection(HitKey);
-				}
-				
-				PushInterpolationMenu(InMouseEvent.GetScreenSpacePosition());
-			}
-		}
-		// Hit background
-		else
-		{
-			if( bLeftMouseButton && IsEditingEnabled() )
-			{
-				// shift click on background = add new key
-				if(bShiftDown)
-				{
-					AddNewKey(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
-				}
-				else
-				{
-					// clicking on background clears selection
-					FSelectedTangent Tangent = HitTestCubicTangents(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
-					if(Tangent.IsValid())
-					{
-						BeginDragTransaction();
-						SelectedTangent = Tangent;
-						bMovingTangent = true;
-					}
-					else
-					{
-						// clicking on background clears key selection
-						EmptySelection();
-
-						//select any curve that is nearby
-						if(Curves.Num() > 1)
-						{
-							HitTestCurves(InMyGeometry, InMouseEvent);
-						}
-					}
-				}
-			}
-			else if(bRightMouseButton)
-			{
-				bPanning = true;
-			}
-		}
+		MouseDownLocation = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 
 		// Set keyboard focus to this so that selected text box doesn't try to apply to newly selected keys
 		if(!HasKeyboardFocus())
@@ -989,94 +1080,66 @@ FReply SCurveEditor::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPo
 
 void SCurveEditor::AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition)
 {
-	if ( SelectedCurves.Num() == 0 )
+	bool bKeyAdded = false;
+	for (auto CurveViewModel : CurveViewModels)
 	{
-		if ( Curves.Num() == 1 )
+		if (!CurveViewModel->bIsLocked)
 		{
-			SelectCurve(Curves[0].CurveToEdit, false);
-		}
-		else
-		{
-			PushWarningMenu(ScreenPosition, LOCTEXT("NoCurveSelected", "Please select a curve"));
+			FRichCurve* SelectedCurve = CurveViewModel->CurveInfo.CurveToEdit;
+			if ( IsValidCurve(SelectedCurve) )
+			{
+				const FScopedTransaction Transaction(LOCTEXT("CurveEditor_AddKey", "Add Key(s)"));
+				CurveOwner->ModifyOwner();
+
+				FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput, ViewMaxOutput, InMyGeometry.Size);
+
+				FVector2D LocalClickPos = InMyGeometry.AbsoluteToLocal(ScreenPosition);
+
+				FVector2D NewKeyLocation = SnapLocation(FVector2D
+				(
+					ScaleInfo.LocalXToInput(LocalClickPos.X),
+					ScaleInfo.LocalYToOutput(LocalClickPos.Y))
+				);
+				FKeyHandle NewKeyHandle = SelectedCurve->AddKey(NewKeyLocation.X, NewKeyLocation.Y);
+
+				EmptySelection();
+				AddToSelection(FSelectedCurveKey(SelectedCurve, NewKeyHandle));
+				bKeyAdded = true;
+			}
 		}
 	}
 
-	for ( auto It = SelectedCurves.CreateIterator(); It; ++It )
+	if (bKeyAdded)
 	{
-		FRichCurve* SelectedCurve = *It;
-		if ( IsValidCurve(SelectedCurve) )
-		{
-			const FScopedTransaction Transaction(LOCTEXT("CurveEditor_AddKey", "Add Key(s)"));
-			CurveOwner->ModifyOwner();
-
-			FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput, ViewMaxOutput, InMyGeometry.Size);
-
-			FVector2D LocalClickPos = InMyGeometry.AbsoluteToLocal(ScreenPosition);
-
-			float NewInput = ScaleInfo.LocalXToInput(LocalClickPos.X);
-			float NewOutput = ScaleInfo.LocalYToOutput(LocalClickPos.Y);
-			FKeyHandle NewKeyHandle = SelectedCurve->AddKey(NewInput, NewOutput);
-
-			EmptySelection();
-			AddToSelection(FSelectedCurveKey(SelectedCurve, NewKeyHandle));
-		}
+		CurveOwner->OnCurveChanged();
 	}
-}
-
-void SCurveEditor::ResetDragValues()
-{
-	TotalDragDist = 0.f;
-	bPanning = false;
-	bMovingKeys = false;
-	bMovingTangent = false;
 }
 
 void SCurveEditor::OnMouseCaptureLost()
 {
 	// if we began a drag transaction we need to finish it to make sure undo doesn't get out of sync
-	if ( IsEditingEnabled() && ( bMovingTangent || bMovingKeys ) )
+	if (DragState == EDragState::DragKey || DragState == EDragState::DragTangent)
 	{
 		EndDragTransaction();
-
-		ResetDragValues();
 	}
+	DragState = EDragState::None;
 }
 
 FReply SCurveEditor::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	const bool bLeftMouseButton = InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
-	const bool bRightMouseButton = InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
-
-	if( this->HasMouseCapture() && (bLeftMouseButton || bRightMouseButton) )
+	if (this->HasMouseCapture())
 	{
-		if( IsEditingEnabled() )
+		if (DragState == EDragState::PreDrag)
 		{
-			EndDragTransaction();
+			// If the user didn't start dragging, handle the mouse operation as a click.
+			ProcessClick(InMyGeometry, InMouseEvent);
 		}
-
-		//Allow context menu to appear if drag distance is less than threshold distance.
-		const float DragThresholdDist = 5.0f;
-		if( bRightMouseButton && TotalDragDist < DragThresholdDist )
+		else
 		{
-			FVector2D ScreenPos = InMouseEvent.GetScreenSpacePosition();
-
-			if( IsEditingEnabled() && SelectedKeys.Num() == 0 && HitTestCurves(InMyGeometry, InMouseEvent))
-			{
-				PushInterpolationMenu(InMouseEvent.GetScreenSpacePosition());
-			}
-			else if(
-				!HitTestCubicTangents(InMyGeometry, ScreenPos).IsValid() && 
-				!HitTestKeys(InMyGeometry, ScreenPos).IsValid())
-			{
-				CreateContextMenu(InMyGeometry, ScreenPos);
-			}
+			EndDrag(InMyGeometry, InMouseEvent);
 		}
-
-		ResetDragValues();
-
 		return FReply::Handled().ReleaseMouseCapture();
 	}
-
 	return FReply::Unhandled();
 }
 
@@ -1102,49 +1165,19 @@ void ClampViewRangeToDataIfBound( float & NewViewMin, float & NewViewMax, const 
 FReply SCurveEditor::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
 	FRichCurve* Curve = GetCurve(0);
-	if( Curve != NULL)
+	if( Curve != NULL && this->HasMouseCapture())
 	{
-		// When mouse moves, if we are moving a key, update its 'input' position
-		if (bPanning || bMovingKeys || bMovingTangent)
+		if (DragState == EDragState::PreDrag)
 		{
-			FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput, ViewMaxOutput, InMyGeometry.Size);
-			FVector2D ScreenDelta = InMouseEvent.GetCursorDelta();
-			TotalDragDist += ScreenDelta.Size(); // accumulate distance moved
-
-			FVector2D InputDelta;
-			InputDelta.X = ScreenDelta.X/ScaleInfo.PixelsPerInput;
-			InputDelta.Y = -ScreenDelta.Y/ScaleInfo.PixelsPerOutput;
-
-			if( IsEditingEnabled() &&  bMovingKeys)
-			{
-				MoveSelectedKeysByDelta(InputDelta);
-			}
-			else if( IsEditingEnabled() &&  bMovingTangent)
-			{
-				FVector2D MousePositionScreen = InMouseEvent.GetScreenSpacePosition();
-				MousePositionScreen -= InMyGeometry.AbsolutePosition;
-				FVector2D MousePositionCurve(ScaleInfo.LocalXToInput(MousePositionScreen.X), ScaleInfo.LocalYToOutput(MousePositionScreen.Y));
-				OnMoveTangent(MousePositionCurve);
-			}
-			else if(bPanning)
-			{
-				// we don't filter Output
-				ViewMinOutput = (ViewMinOutput-InputDelta.Y);
-				ViewMaxOutput = (ViewMaxOutput-InputDelta.Y);
-
-				// we clamped to Data in/output if set
-				float NewMinInput = ViewMinInput.Get() - InputDelta.X;
-				float NewMaxInput = ViewMaxInput.Get() - InputDelta.X;
-
-				// clamp to data input if set
-				ClampViewRangeToDataIfBound(NewMinInput, NewMaxInput, DataMinInput, DataMaxInput, ScaleInfo.ViewInputRange);
-				SetInputMinMax(NewMinInput, NewMaxInput);
-			}
-
-			return FReply::Handled();
+			TryStartDrag(InMyGeometry, InMouseEvent);
 		}
+		if (DragState != EDragState::None)
+		{
+			ProcessDrag(InMyGeometry, InMouseEvent);
+		}
+		MouseMoveLocation = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		return FReply::Handled();
 	}
-
 	return FReply::Unhandled();
 }
 
@@ -1176,7 +1209,7 @@ FReply SCurveEditor::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEv
 
 FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
-	if ( IsEditingEnabled() && InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+	if (InKeyboardEvent.GetKey() == EKeys::Platform_Delete && SelectedKeys.Num() != 0)
 	{
 		DeleteSelectedKeys();
 		return FReply::Handled();
@@ -1188,6 +1221,220 @@ FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 			return FReply::Handled();
 		}
 		return FReply::Unhandled();
+	}
+}
+
+void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	const bool bLeftMouseButton = InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton);
+	const bool bRightMouseButton = InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton);
+	const bool bControlDown = InMouseEvent.IsControlDown();
+
+	FVector2D DragVector = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()) - MouseDownLocation;
+	if (DragVector.Size() >= DragThreshold)
+	{
+		if (bLeftMouseButton)
+		{
+			// Check if we should start dragging keys.
+			FSelectedCurveKey HitKey = HitTestKeys(InMyGeometry, InMyGeometry.LocalToAbsolute(MouseDownLocation));
+			if (HitKey.IsValid())
+			{
+				if (IsKeySelected(HitKey) == false)
+				{
+					if (!bControlDown)
+					{
+						EmptySelection();
+					}
+					AddToSelection(HitKey);
+				}
+
+				BeginDragTransaction();
+				DragState = EDragState::DragKey;
+				DraggedKeyHandle = HitKey.KeyHandle;
+				PreDragKeyLocations.Empty();
+				for (auto selectedKey : SelectedKeys)
+				{
+					PreDragKeyLocations.Add(selectedKey.KeyHandle, FVector2D
+					(
+						selectedKey.Curve->GetKeyTime(selectedKey.KeyHandle),
+						selectedKey.Curve->GetKeyValue(selectedKey.KeyHandle)
+					));
+				}
+			}
+			else
+			{
+				// Check if we should start dragging a tangent.
+				FSelectedTangent Tangent = HitTestCubicTangents(InMyGeometry, InMyGeometry.LocalToAbsolute(MouseDownLocation));
+				if (Tangent.IsValid())
+				{
+					BeginDragTransaction();
+					SelectedTangent = Tangent;
+					DragState = EDragState::DragTangent;
+				}
+				else
+				{
+					// Otherwise if the user left clicked on nothing and start a marquee select.
+					DragState = EDragState::MarqueeSelect;
+				}
+			}
+		}
+		else if (bRightMouseButton)
+		{
+			DragState = EDragState::Pan;
+		}
+		else
+		{
+			DragState = EDragState::None;
+		}
+	}
+}
+
+void SCurveEditor::ProcessDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput, ViewMaxOutput, InMyGeometry.Size);
+	FVector2D ScreenDelta = InMouseEvent.GetCursorDelta();
+
+	FVector2D InputDelta;
+	InputDelta.X = ScreenDelta.X / ScaleInfo.PixelsPerInput;
+	InputDelta.Y = -ScreenDelta.Y / ScaleInfo.PixelsPerOutput;
+
+	if (DragState == EDragState::DragKey)
+	{
+		FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		MoveSelectedKeys(FVector2D(ScaleInfo.LocalXToInput(MousePosition.X), ScaleInfo.LocalYToOutput(MousePosition.Y)));
+	}
+	else if (DragState == EDragState::DragTangent)
+	{
+		FVector2D MousePositionScreen = InMouseEvent.GetScreenSpacePosition();
+		MousePositionScreen -= InMyGeometry.AbsolutePosition;
+		FVector2D MousePositionCurve(ScaleInfo.LocalXToInput(MousePositionScreen.X), ScaleInfo.LocalYToOutput(MousePositionScreen.Y));
+		OnMoveTangent(MousePositionCurve);
+	}
+	else if (DragState == EDragState::Pan)
+	{
+		// Output is not clamped.
+		ViewMinOutput = (ViewMinOutput - InputDelta.Y);
+		ViewMaxOutput = (ViewMaxOutput - InputDelta.Y);
+
+		// Input maybe clamped if DataMinInput or DataMaxOutput was set.
+		float NewMinInput = ViewMinInput.Get() - InputDelta.X;
+		float NewMaxInput = ViewMaxInput.Get() - InputDelta.X;
+		ClampViewRangeToDataIfBound(NewMinInput, NewMaxInput, DataMinInput, DataMaxInput, ScaleInfo.ViewInputRange);
+
+		SetInputMinMax(NewMinInput, NewMaxInput);
+	}
+}
+
+void SCurveEditor::EndDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	const bool bControlDown = InMouseEvent.IsControlDown();
+
+	if (DragState == EDragState::DragKey || DragState == EDragState::DragTangent)
+	{
+		EndDragTransaction();
+	}
+	else if (DragState == EDragState::MarqueeSelect)
+	{
+		FVector2D MarqueTopLeft
+		(
+			FMath::Min(MouseDownLocation.X, MouseMoveLocation.X),
+			FMath::Min(MouseDownLocation.Y, MouseMoveLocation.Y)
+		);
+
+		FVector2D MarqueBottomRight
+		(
+			FMath::Max(MouseDownLocation.X, MouseMoveLocation.X),
+			FMath::Max(MouseDownLocation.Y, MouseMoveLocation.Y)
+		);
+
+		TArray<FSelectedCurveKey> SelectedCurveKeys = GetEditableKeysWithinMarquee(InMyGeometry, MarqueTopLeft, MarqueBottomRight);
+
+		if (!bControlDown)
+		{
+			EmptySelection();
+		}
+
+		for (auto SelectedCurveKey : SelectedCurveKeys)
+		{
+			
+			if (IsKeySelected(SelectedCurveKey))
+			{
+				RemoveFromSelection(SelectedCurveKey);
+			}
+			else
+			{
+				AddToSelection(SelectedCurveKey);
+			}
+		}
+	}
+	DragState = EDragState::None;
+}
+
+void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	const bool bLeftMouseButton = InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
+	const bool bRightMouseButton = InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
+	const bool bControlDown = InMouseEvent.IsControlDown();
+	const bool bShiftDown = InMouseEvent.IsShiftDown();
+
+	FSelectedCurveKey HitKey = HitTestKeys(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
+	if (bLeftMouseButton)
+	{
+		// If the user left clicked a key, update selection based on modifier key state.
+		if (HitKey.IsValid())
+		{
+			if (!IsKeySelected(HitKey))
+			{
+				if (!bControlDown)
+				{
+					EmptySelection();
+				}
+				AddToSelection(HitKey);
+			}
+			else if (bControlDown)
+			{
+				RemoveFromSelection(HitKey);
+			}
+		}
+		else
+		{
+			// If the user didn't click a key, add a new one if shift is held down, or try to select a curve.
+			if (bShiftDown)
+			{
+				AddNewKey(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
+			}
+			else
+			{
+				// clicking on background clears key selection
+				EmptySelection();
+			}
+		}
+	}
+	else if (bRightMouseButton)
+	{
+		// If the user right clicked, handle opening context menus.
+		if (HitKey.IsValid())
+		{
+			// Make sure key is selected in readiness for context menu
+			if (!IsKeySelected(HitKey))
+			{
+				EmptySelection();
+				AddToSelection(HitKey);
+			}
+			PushKeyMenu(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
+		}
+		else
+		{
+			FVector2D ScreenPos = InMouseEvent.GetScreenSpacePosition();
+			if (!HitTestCubicTangents(InMyGeometry, ScreenPos).IsValid())
+			{
+				CreateContextMenu(InMyGeometry, ScreenPos);
+			}
+			else
+			{
+				EmptySelection();
+			}
+		}
 	}
 }
 
@@ -1216,6 +1463,7 @@ void SCurveEditor::OnTimeComitted(float NewTime, ETextCommit::Type CommitType)
 				CurveOwner->ModifyOwner();
 				Key.Curve->SetKeyTime(Key.KeyHandle, NewTime);
 			}
+			CurveOwner->OnCurveChanged();
 		}
 
 		FSlateApplication::Get().DismissAllMenus();
@@ -1234,6 +1482,7 @@ void SCurveEditor::OnTimeChanged(float NewTime)
 				CurveOwner->ModifyOwner();
 				Key.Curve->SetKeyTime(Key.KeyHandle, NewTime);
 			}
+			CurveOwner->OnCurveChanged();
 		}
 	}
 }
@@ -1279,6 +1528,8 @@ void SCurveEditor::OnValueComitted(float NewValue, ETextCommit::Type CommitType)
 			}
 		}
 
+		CurveOwner->OnCurveChanged();
+
 		FSlateApplication::Get().DismissAllMenus();
 	}
 }
@@ -1301,6 +1552,8 @@ void SCurveEditor::OnValueChanged(float NewValue)
 				Key.Curve->SetKeyValue(Key.KeyHandle, NewValue);
 			}
 		}
+
+		CurveOwner->OnCurveChanged();
 	}
 }
 
@@ -1330,27 +1583,24 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition );
 
 
-		for(auto CurveIt = Curves.CreateConstIterator();CurveIt;++CurveIt)
+		for(auto CurveViewModel : CurveViewModels)
 		{
-			FRichCurve* Curve = CurveIt->CurveToEdit;
-			if(Curve != NULL)
+			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
 			{
-				for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
+				if(Curve != NULL)
 				{
-					float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
-					float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
-
-					if(	HitPosition.X > (KeyScreenX - (0.5f * CONST_KeySize.X)) && 
-						HitPosition.X < (KeyScreenX + (0.5f * CONST_KeySize.X)) &&
-						HitPosition.Y > (KeyScreenY - (0.5f * CONST_KeySize.Y)) &&
-						HitPosition.Y < (KeyScreenY + (0.5f * CONST_KeySize.Y)) )
+					for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 					{
-						SelectedKey =  FSelectedCurveKey(Curve, It.Key());
+						float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
+						float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
 
-						//prioritize selected curves
-						if(SelectedCurves.Contains(Curve))
+						if(	HitPosition.X > (KeyScreenX - (0.5f * CONST_KeySize.X)) && 
+							HitPosition.X < (KeyScreenX + (0.5f * CONST_KeySize.X)) &&
+							HitPosition.Y > (KeyScreenY - (0.5f * CONST_KeySize.Y)) &&
+							HitPosition.Y < (KeyScreenY + (0.5f * CONST_KeySize.Y)) )
 						{
-							return SelectedKey;
+							return  FSelectedCurveKey(Curve, It.Key());
 						}
 					}
 				}
@@ -1361,7 +1611,7 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 	return SelectedKey;
 }
 
-void SCurveEditor::MoveSelectedKeysByDelta(FVector2D InputDelta)
+void SCurveEditor::MoveSelectedKeys(FVector2D NewLocation)
 {
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
 	CurveOwner->ModifyOwner();
@@ -1369,29 +1619,35 @@ void SCurveEditor::MoveSelectedKeysByDelta(FVector2D InputDelta)
 	// track all unique curves encountered so their tangents can be updated later
 	TSet<FRichCurve*> UniqueCurves;
 
-	for(int32 i=0; i<SelectedKeys.Num(); i++)
+	FVector2D SnappedNewLocation = SnapLocation(NewLocation);
+
+	// The total move distance for all keys is the difference between the current snapped location
+	// and the start location of the key which was actually dragged.
+	FVector2D TotalMoveDistance = SnappedNewLocation - PreDragKeyLocations[DraggedKeyHandle];
+
+	for (int32 i = 0; i < SelectedKeys.Num(); i++)
 	{
 		FSelectedCurveKey OldKey = SelectedKeys[i];
 
-		if(!IsValidCurve(OldKey.Curve))
+		if (!IsValidCurve(OldKey.Curve))
 		{
 			continue;
 		}
 
-		FKeyHandle OldKeyHandle	= OldKey.KeyHandle;
-		FRichCurve* Curve		= OldKey.Curve;
+		FKeyHandle OldKeyHandle = OldKey.KeyHandle;
+		FRichCurve* Curve = OldKey.Curve;
 
-		// Update output - easy
-		float OldOutput = Curve->GetKeyValue(OldKeyHandle);
-		// set the key value, but don't update the tangents yet
-		Curve->SetKeyValue(OldKeyHandle, OldOutput + InputDelta.Y, false);
+		FVector2D PreDragLocation = PreDragKeyLocations[OldKeyHandle];
+		FVector2D NewLocation = PreDragLocation + TotalMoveDistance;
 
-		// Update input - hard
-		float OldInput = Curve->GetKeyTime(OldKeyHandle);
-		FKeyHandle KeyHandle = Curve->SetKeyTime(OldKeyHandle, OldInput + InputDelta.X);
+		// Update the key's value without updating the tangents.
+		Curve->SetKeyValue(OldKeyHandle, NewLocation.Y, false);
 
-		// Update this key
+		// Changing the time of a key returns a new handle, so make sure to update existing references.
+		FKeyHandle KeyHandle = Curve->SetKeyTime(OldKeyHandle, NewLocation.X);
 		SelectedKeys[i] = FSelectedCurveKey(Curve, KeyHandle);
+		PreDragKeyLocations.Remove(OldKeyHandle);
+		PreDragKeyLocations.Add(KeyHandle, PreDragLocation);
 
 		UniqueCurves.Add(Curve);
 	}
@@ -1453,15 +1709,11 @@ TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 {
 	TArray<FRichCurve*> FitCurves;
 
-	if(SelectedCurves.Num() > 0)
+	for(auto CurveViewModel : CurveViewModels)
 	{
-		FitCurves = SelectedCurves;
-	}
-	else
-	{
-		for(auto It = Curves.CreateConstIterator();It;++It)
+		if (CurveViewModel->bIsVisible)
 		{
-			FitCurves.Add(It->CurveToEdit);
+			FitCurves.Add(CurveViewModel->CurveInfo.CurveToEdit);
 		}
 	}
 
@@ -1469,29 +1721,44 @@ TArray<FRichCurve*> SCurveEditor::GetCurvesToFit() const
 }
 
 
-FReply SCurveEditor::ZoomToFitHorizontal()
+void SCurveEditor::ZoomToFitHorizontal(bool OnlySelected)
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
-	if(Curves.Num() > 0)
+	if(CurveViewModels.Num() > 0)
 	{
-		float InMin = FLT_MAX, InMax = -FLT_MAX;
+		float InMin = FLT_MAX;
+		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
-		for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+
+		if (OnlySelected)
 		{
-			FRichCurve* Curve = *It;
-			float MinTime, MaxTime;
-			Curve->GetTimeRange(MinTime, MaxTime);
-			InMin = FMath::Min(MinTime, InMin);
-			InMax = FMath::Max(MaxTime, InMax);
-			TotalKeys += Curve->GetNumKeys();
+			for (auto SelectedKey : SelectedKeys)
+			{
+				TotalKeys++;
+				float KeyTime = SelectedKey.Curve->GetKeyTime(SelectedKey.KeyHandle);
+				InMin = FMath::Min(KeyTime, InMin);
+				InMax = FMath::Max(KeyTime, InMax);
+			}
 		}
-		
-		if(TotalKeys > 0)
+		else
+		{
+			for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+			{
+				FRichCurve* Curve = *It;
+				float MinTime, MaxTime;
+				Curve->GetTimeRange(MinTime, MaxTime);
+				InMin = FMath::Min(MinTime, InMin);
+				InMax = FMath::Max(MaxTime, InMax);
+				TotalKeys += Curve->GetNumKeys();
+			}
+		}
+
+		if (TotalKeys > 0)
 		{
 			// Clamp the minimum size
 			float Size = InMax - InMin;
-			if( Size < CONST_MinViewRange )
+			if (Size < CONST_MinViewRange)
 			{
 				InMin -= (0.5f*CONST_MinViewRange);
 				InMax += (0.5f*CONST_MinViewRange);
@@ -1510,6 +1777,11 @@ FReply SCurveEditor::ZoomToFitHorizontal()
 
 		SetInputMinMax(InMin, InMax);
 	}
+}
+
+FReply SCurveEditor::ZoomToFitHorizontalClicked()
+{
+	ZoomToFitHorizontal(false);
 	return FReply::Handled();
 }
 
@@ -1520,23 +1792,39 @@ void SCurveEditor::SetDefaultOutput(const float MinZoomRange)
 	ViewMaxOutput = (ViewMaxOutput + (0.5f*MinZoomRange));
 }
 
-FReply SCurveEditor::ZoomToFitVertical()
+void SCurveEditor::ZoomToFitVertical(bool OnlySelected)
 {
 	TArray<FRichCurve*> CurvesToFit = GetCurvesToFit();
 
 	if(CurvesToFit.Num() > 0)
 	{
-		float InMin = FLT_MAX, InMax = -FLT_MAX;
+		float InMin = FLT_MAX;
+		float InMax = -FLT_MAX;
 		int32 TotalKeys = 0;
-		for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+
+		if (OnlySelected)
 		{
-			FRichCurve* Curve = *It;
-			float MinVal, MaxVal;
-			Curve->GetValueRange(MinVal, MaxVal);
-			InMin = FMath::Min(MinVal, InMin);
-			InMax = FMath::Max(MaxVal, InMax);
-			TotalKeys += Curve->GetNumKeys();
+			for (auto SelectedKey : SelectedKeys)
+			{
+				TotalKeys++;
+				float KeyValue = SelectedKey.Curve->GetKeyValue(SelectedKey.KeyHandle);
+				InMin = FMath::Min(KeyValue, InMin);
+				InMax = FMath::Max(KeyValue, InMax);
+			}
 		}
+		else
+		{
+			for(auto It = CurvesToFit.CreateConstIterator();It;++It)
+			{
+				FRichCurve* Curve = *It;
+				float MinVal, MaxVal;
+				Curve->GetValueRange(MinVal, MaxVal);
+				InMin = FMath::Min(MinVal, InMin);
+				InMax = FMath::Max(MaxVal, InMax);
+				TotalKeys += Curve->GetNumKeys();
+			}
+		}
+
 		const float MinZoomRange = (TotalKeys > 0 ) ? CONST_MinViewRange: CONST_DefaultZoomRange;
 
 		ViewMinOutput = (InMin);
@@ -1554,7 +1842,33 @@ FReply SCurveEditor::ZoomToFitVertical()
 		ViewMinOutput = (ViewMinOutput - CONST_FitMargin*Size);
 		ViewMaxOutput = (ViewMaxOutput + CONST_FitMargin*Size);
 	}
+}
+
+FReply SCurveEditor::ZoomToFitVerticalClicked()
+{
+	ZoomToFitVertical(false);
 	return FReply::Handled();
+}
+
+void SCurveEditor::ZoomToFitAll(bool OnlySelected)
+{
+	if (OnlySelected && SelectedKeys.Num() == 0)
+	{
+		// Don't zoom to selected if there is no selection.
+		return;
+	}
+	ZoomToFitHorizontal(OnlySelected);
+	ZoomToFitVertical(OnlySelected);
+}
+
+void SCurveEditor::ToggleSnapping()
+{
+	bSnappingEnabled = !bSnappingEnabled;
+}
+
+bool SCurveEditor::IsSnappingEnabled()
+{
+	return bSnappingEnabled;
 }
 
 void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FVector2D& ScreenPosition)
@@ -1651,14 +1965,19 @@ void SCurveEditor::AddReferencedObjects( FReferenceCollector& Collector )
 	Collector.AddReferencedObject( CurveFactory );
 }
 
+TSharedPtr<FUICommandList> SCurveEditor::GetCommands()
+{
+	return Commands;
+}
+
 bool SCurveEditor::IsValidCurve( FRichCurve* Curve ) const
 {
 	bool bIsValid = false;
 	if(Curve)
 	{
-		for(auto It = Curves.CreateConstIterator();It;++It)
+		for(auto CurveViewModel : CurveViewModels)
 		{
-			if(It->CurveToEdit == Curve)
+			if(CurveViewModel->CurveInfo.CurveToEdit == Curve)
 			{
 				bIsValid = true;
 				break;
@@ -1666,48 +1985,6 @@ bool SCurveEditor::IsValidCurve( FRichCurve* Curve ) const
 		}
 	}
 	return bIsValid;
-}
-
-FLinearColor SCurveEditor::GetCurveColor( FRichCurve* TestCurve ) const
-{
-	check(TestCurve);
-	for(int32 I = 0;I != Curves.Num() && I < CurveColors.Num();I++)
-	{
-		FRichCurve* Curve = Curves[I].CurveToEdit;
-		if(Curve == TestCurve)
-		{
-			return CurveColors[I];
-		}
-	}
-
-	return FLinearColor::Black;
-}
-
-void SCurveEditor::OnUserSelectedCurve( ESlateCheckBoxState::Type State, FRichCurve* Curve )
-{
-	if(IsValidCurve(Curve))
-	{
-		if(State == ESlateCheckBoxState::Checked)
-		{
-			SelectCurve(Curve, false);
-		}
-		else
-		{
-			SelectedCurves.Remove(Curve);
-		}	
-	}
-}
-
-FText SCurveEditor::GetCurveName( FRichCurve* Curve ) const
-{
-	for(auto It = Curves.CreateConstIterator();It;++It)
-	{
-		if(It->CurveToEdit == Curve)
-		{
-			return FText::FromName( It->CurveName );
-		}
-	}
-	return FText::GetEmpty();
 }
 
 void SCurveEditor::SetInputMinMax(float NewMin, float NewMax)
@@ -1731,23 +2008,20 @@ void SCurveEditor::SetInputMinMax(float NewMin, float NewMax)
 	}
 }
 
-bool SCurveEditor::HitTestCurves(  const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+TSharedPtr<FCurveViewModel> SCurveEditor::HitTestCurves(  const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	bool bHit = false;
-
 	if( AreCurvesVisible() )
 	{
-		const bool bControlDown = InMouseEvent.IsControlDown();
-
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput, ViewMaxOutput, InMyGeometry.Size);
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition()  );
 
 		TArray<FRichCurve*> CurvesHit;
 
-		for(auto It = Curves.CreateConstIterator();It;++It)
+		for(auto CurveViewModel : CurveViewModels)
 		{
-			FRichCurve* Curve = It->CurveToEdit;
+
+			FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 			if(Curve != NULL)
 			{
 				float Time		 = ScaleInfo.LocalXToInput(HitPosition.X);
@@ -1756,55 +2030,13 @@ bool SCurveEditor::HitTestCurves(  const FGeometry& InMyGeometry, const FPointer
 				if( HitPosition.Y > (KeyScreenY - (0.5f * CONST_CurveSize.Y)) &&
 					HitPosition.Y < (KeyScreenY + (0.5f * CONST_CurveSize.Y)))
 				{
-					CurvesHit.Add(Curve);
-					bHit = true;
-				}
-			}
-		}
-
-		// Select the curves that were hit
-		if ( bHit )
-		{
-			if ( bControlDown )
-			{
-				// If control is down and we have to do multi-selection then don't worry about order, select everything that was hit.
-				for ( FRichCurve* Curve : CurvesHit )
-				{
-					SelectCurve(Curve, bControlDown);
-				}
-			}
-			else
-			{
-				FRichCurve* AlreadySelectedCurve = NULL;
-
-				// Without control down we want to bias the decision towards the curve that is already selected.
-				for ( FRichCurve* Curve : CurvesHit )
-				{
-					if ( SelectedCurves.Contains(Curve) )
-					{
-						AlreadySelectedCurve = Curve;
-						break;
-					}
-				}
-
-				if ( AlreadySelectedCurve != NULL )
-				{
-					// Select the already selected curve
-					SelectCurve(AlreadySelectedCurve, bControlDown);
-				}
-				else
-				{
-					// Select which ever curve was hit last
-					for ( FRichCurve* Curve : CurvesHit )
-					{
-						SelectCurve(Curve, bControlDown);
-					}
+					return CurveViewModel;
 				}
 			}
 		}
 	}
 
-	return bHit;
+	return TSharedPtr<FCurveViewModel>();
 }
 
 SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeometry& InMyGeometry, const FVector2D& HitScreenPosition )
@@ -1830,8 +2062,8 @@ SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeomet
 
 				if( HitPosition.Y > (Arrive.Y - (0.5f * CONST_CurveSize.Y)) &&
 					HitPosition.Y < (Arrive.Y + (0.5f * CONST_CurveSize.Y)) &&
-					HitPosition.X > (Arrive.X - (0.5f * CONST_KeySize.X)) && 
-					HitPosition.X < (Arrive.X + (0.5f * CONST_KeySize.X)))
+					HitPosition.X > (Arrive.X - (0.5f * CONST_TangentSize.X)) && 
+					HitPosition.X < (Arrive.X + (0.5f * CONST_TangentSize.X)))
 				{
 					Tangent.Key = Key;
 					Tangent.bIsArrival = true;
@@ -1839,8 +2071,8 @@ SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeomet
 				}
 				if( HitPosition.Y > (Leave.Y - (0.5f * CONST_CurveSize.Y)) &&
 					HitPosition.Y < (Leave.Y  + (0.5f * CONST_CurveSize.Y)) &&
-					HitPosition.X > (Leave.X - (0.5f * CONST_KeySize.X)) && 
-					HitPosition.X < (Leave.X + (0.5f * CONST_KeySize.X)))
+					HitPosition.X > (Leave.X - (0.5f * CONST_TangentSize.X)) && 
+					HitPosition.X < (Leave.X + (0.5f * CONST_TangentSize.X)))
 				{
 					Tangent.Key = Key;
 					Tangent.bIsArrival = false;
@@ -1853,50 +2085,12 @@ SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeomet
 	return Tangent;
 }
 
-
-
-void SCurveEditor::SelectCurve( FRichCurve* Curve, bool bMultiple )
-{
-	if(bMultiple)
-	{
-		SelectedCurves.AddUnique(Curve);
-	}
-	else
-	{
-		SelectedCurves.Empty();
-		SelectedCurves.Add(Curve);
-	}	
-}
-
-ESlateCheckBoxState::Type SCurveEditor::GetCheckState( FRichCurve* Curve ) const
-{
-	return (SelectedCurves.Find(Curve) == INDEX_NONE) ?  ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
-}
-
-FText SCurveEditor::GetCurveCheckBoxToolTip( FRichCurve* Curve ) const
-{
-	FText Result;
-	if ( IsValidCurve(Curve) )
-	{
-		if(SelectedCurves.Find(Curve) != INDEX_NONE)
-		{
-			Result = FText::Format( LOCTEXT("CurveIndexSelectorToolTipChecked", "Toggle to Disable Adding Keys to Curve '{0}': shift + left mouse to Add Keys"), GetCurveName(Curve) );
-		}
-		else
-		{
-			Result = FText::Format( LOCTEXT("CurveIndexSelectorToolTipUnChecked", "Toggle to Enable Adding Keys to Curve '{0}'"), GetCurveName(Curve) );
-		}
-	}
-
-	return Result;
-}
-
 void SCurveEditor::OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode)
 {
-	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_SetInterpolationMode", "Select Interpolation Mode") );
-	CurveOwner->ModifyOwner();
 	if(SelectedKeys.Num() > 0)
 	{
+		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetInterpolationMode", "Select Interpolation Mode"));
+		CurveOwner->ModifyOwner();
 		for(auto It = SelectedKeys.CreateIterator();It;++It)
 		{
 			FSelectedCurveKey& Key = *It;
@@ -1904,21 +2098,27 @@ void SCurveEditor::OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ER
 			Key.Curve->SetKeyInterpMode(Key.KeyHandle,InterpMode );
 			Key.Curve->SetKeyTangentMode(Key.KeyHandle,TangentMode );
 		}
+		CurveOwner->OnCurveChanged();
+	}
+}
+
+bool SCurveEditor::IsInterpolationModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode)
+{
+	if (SelectedKeys.Num() > 0)
+	{
+		for (auto SelectedKey : SelectedKeys)
+		{
+			if (SelectedKey.Curve->GetKeyInterpMode(SelectedKey.KeyHandle) != InterpMode || SelectedKey.Curve->GetKeyTangentMode(SelectedKey.KeyHandle) != TangentMode)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 	else
 	{
-		for(auto CurveIt = SelectedCurves.CreateIterator();CurveIt;++CurveIt)
-		{
-			FRichCurve* Curve = *CurveIt;
-			check(IsValidCurve(Curve));
-			for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
-			{
-				Curve->SetKeyInterpMode(It.Key(),InterpMode );
-				Curve->SetKeyTangentMode(It.Key(),TangentMode );
-			}
-		}
+		return false;
 	}
-
 }
 
 /* Given a tangent value for a key, calculates the 2D delta vector from that key in curve space */
@@ -2000,6 +2200,40 @@ void SCurveEditor::GetTangentPoints(  FTrackScaleInfo &ScaleInfo, const FSelecte
 	Leave = KeyScreenPosition + ToLeave*CONST_KeyTangentOffset;
 }
 
+TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarquee(const FGeometry& InMyGeometry, FVector2D MarqueeTopLeft, FVector2D MarqueeBottomRight) const
+{
+	TArray<FSelectedCurveKey> KeysWithinMarquee;
+	if (AreCurvesVisible())
+	{
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput, ViewMaxOutput, InMyGeometry.Size);
+		for (auto CurveViewModel : CurveViewModels)
+		{
+			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			{
+				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
+				if (Curve != NULL)
+				{
+					for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+					{
+						float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
+						float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
+
+						if (KeyScreenX >= (MarqueeTopLeft.X - (0.5f * CONST_KeySize.X)) &&
+							KeyScreenX <= (MarqueeBottomRight.X + (0.5f * CONST_KeySize.X)) &&
+							KeyScreenY >= (MarqueeTopLeft.Y - (0.5f * CONST_KeySize.Y)) &&
+							KeyScreenY <= (MarqueeBottomRight.Y + (0.5f * CONST_KeySize.Y)))
+						{
+							KeysWithinMarquee.Add(FSelectedCurveKey(Curve, It.Key()));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return KeysWithinMarquee;
+}
+
 void SCurveEditor::BeginDragTransaction()
 {
 	TransactionIndex = GEditor->BeginTransaction( LOCTEXT("CurveEditor_Drag", "Mouse Drag") );
@@ -2011,8 +2245,10 @@ void SCurveEditor::EndDragTransaction()
 {
 	if ( TransactionIndex >= 0 )
 	{
-		GEditor->EndTransaction( );
+		GEditor->EndTransaction();
 		TransactionIndex = -1;
+
+		CurveOwner->OnCurveChanged();
 	}
 }
 
@@ -2050,51 +2286,14 @@ bool SCurveEditor::IsLinearColorCurve() const
 	return CurveOwner && CurveOwner->GetOwner() && CurveOwner->GetOwner()->IsA<UCurveLinearColor>();
 }
 
-FText SCurveEditor::GetInterpolationModeText() const
+FVector2D SCurveEditor::SnapLocation(FVector2D InLocation)
 {
-	FString Results;
-
-	const int32 LastValidKeyIndex = SelectedKeys.Num()-1;
-	for (int32 i = 0; i<SelectedKeys.Num(); ++i)
+	if (bSnappingEnabled)
 	{
-		FSelectedCurveKey Key = SelectedKeys[i];
-		switch(Key.Curve->GetKeyInterpMode(Key.KeyHandle))
-		{
-		case RCIM_Linear:
-			{
-				Results += LOCTEXT("InterpolateLinearMode", "Linear").ToString();
-			}break;
-		case RCIM_Constant:
-			{
-				Results += LOCTEXT("InterpolateClampMode", "Clamp").ToString();
-			}break;
-		case RCIM_Cubic:
-			{
-				switch(Key.Curve->GetKey(Key.KeyHandle).TangentMode)
-				{
-				case RCTM_Auto:
-					{
-						Results += LOCTEXT("InterpolateCubicAutoMode", "Cubic-auto").ToString();
-					}break;
-				case RCTM_User:
-					{
-						Results += LOCTEXT("InterpolateCubicLockedMode", "Cubic-locked").ToString();
-					}break;
-				case RCTM_Break:
-					{
-						Results += LOCTEXT("InterpolateCubicBreakMode", "Cubic-break").ToString();
-					}break;
-				}
-			}break;
-		}
-
-		if(i != LastValidKeyIndex)
-		{
-			Results += ", ";
-		}
+		InLocation.X = InputSnap != 0 ? FMath::RoundToInt(InLocation.X / InputSnap.Get()) * InputSnap.Get() : InLocation.X;
+		InLocation.Y = OutputSnap != 0 ? FMath::RoundToInt(InLocation.Y / OutputSnap.Get()) * OutputSnap.Get() : InLocation.Y;
 	}
-
-	return FText::FromString( Results );
+	return InLocation;
 }
 
 #undef LOCTEXT_NAMESPACE

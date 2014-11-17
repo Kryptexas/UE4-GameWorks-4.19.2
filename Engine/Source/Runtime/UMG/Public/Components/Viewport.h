@@ -154,7 +154,7 @@ public:
 		if ( bRecalculateView )
 		{
 			FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
-			OrbitMatrix = OrbitMatrix.Inverse();
+			OrbitMatrix = OrbitMatrix.InverseFast();
 
 			ViewTransform.SetRotation(OrbitMatrix.Rotator());
 			ViewTransform.SetLocation(OrbitMatrix.GetOrigin());
@@ -238,7 +238,7 @@ protected:
 /**
  * 
  */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UViewport : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -265,13 +265,14 @@ class UMG_API UViewport : public UContentWidget
 	AActor* Spawn(TSubclassOf<AActor> ActorClass);
 
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 #endif
 
 protected:

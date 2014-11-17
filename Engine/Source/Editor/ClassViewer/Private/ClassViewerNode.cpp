@@ -7,12 +7,11 @@
 #include "PropertyEditorModule.h"
 #include "PropertyHandle.h"
 
-FClassViewerNode::FClassViewerNode( const FString& InClassName, const FString& InClassDisplayName, bool bInIsPlaceable )
+FClassViewerNode::FClassViewerNode( const FString& InClassName, const FString& InClassDisplayName )
 {
 	ClassName = MakeShareable(new FString(InClassName));
 	ClassDisplayName = MakeShareable(new FString(InClassDisplayName));
 	bPassesFilter = false;
-	bIsClassPlaceable = bInIsPlaceable;
 	bIsBPNormalType = false;
 
 	Class = NULL;
@@ -24,7 +23,6 @@ FClassViewerNode::FClassViewerNode( const FClassViewerNode& InCopyObject)
 	ClassName = InCopyObject.ClassName;
 	ClassDisplayName = InCopyObject.ClassDisplayName;
 	bPassesFilter = InCopyObject.bPassesFilter;
-	bIsClassPlaceable = InCopyObject.bIsClassPlaceable;
 
 	Class = InCopyObject.Class;
 	Blueprint = InCopyObject.Blueprint;
@@ -87,4 +85,26 @@ void FClassViewerNode::AddUniqueChild(TSharedPtr<FClassViewerNode> NewChild)
 bool FClassViewerNode::IsRestricted() const
 {
 	return PropertyHandle.IsValid() && PropertyHandle->IsRestricted(*ClassName);
+}
+
+bool FClassViewerNode::IsClassPlaceable() const
+{
+	const UClass* LoadedClass = Class.Get();
+	if (LoadedClass)
+	{
+		const bool bPlaceableFlags = !LoadedClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable);
+		const bool bBasedOnActor = LoadedClass->IsChildOf(AActor::StaticClass());
+		const bool bNotABrush = !LoadedClass->IsChildOf(ABrush::StaticClass());
+		return bPlaceableFlags && bBasedOnActor && bNotABrush;
+	}
+
+	if (UnloadedBlueprintData.IsValid())
+	{
+		const bool bPlaceableFlags = !UnloadedBlueprintData->HasAnyClassFlags(CLASS_Abstract | CLASS_NotPlaceable);
+		const bool bBasedOnActor = UnloadedBlueprintData->IsChildOf(AActor::StaticClass());
+		const bool bNotABrush = !UnloadedBlueprintData->IsChildOf(ABrush::StaticClass());
+		return bPlaceableFlags && bBasedOnActor && bNotABrush;
+	}
+
+	return false;
 }

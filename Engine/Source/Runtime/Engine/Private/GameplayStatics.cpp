@@ -29,26 +29,29 @@ UGameInstance* UGameplayStatics::GetGameInstance(UObject* WorldContextObject)
 
 APlayerController* UGameplayStatics::GetPlayerController(UObject* WorldContextObject, int32 PlayerIndex ) 
 {
-	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	uint32 Index = 0;
-	for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
+	if (WorldContextObject)
 	{
-		APlayerController* PlayerController = *Iterator;
-		if( Index == PlayerIndex )
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		uint32 Index = 0;
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			return PlayerController;			
+			APlayerController* PlayerController = *Iterator;
+			if (Index == PlayerIndex)
+			{
+				return PlayerController;
+			}
+			Index++;
 		}
-		Index++;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 ACharacter* UGameplayStatics::GetPlayerCharacter(UObject* WorldContextObject, int32 PlayerIndex)
 {
-	ACharacter* Character = NULL;
+	ACharacter* Character = nullptr;
 	APlayerController* PC = GetPlayerController(WorldContextObject, PlayerIndex );
-	if (PC != NULL)
+	if (PC != nullptr)
 	{
 		Character = Cast<ACharacter>(PC->GetPawn());
 	}
@@ -100,6 +103,12 @@ class UClass* UGameplayStatics::GetObjectClass(const UObject* Object)
 	return Object ? Object->GetClass() : NULL;
 }
 
+float UGameplayStatics::GetGlobalTimeDilation(UObject* WorldContextObject)
+{
+	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	return World->GetWorldSettings()->TimeDilation;
+}
+
 void UGameplayStatics::SetGlobalTimeDilation(UObject* WorldContextObject, float TimeDilation)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
@@ -126,6 +135,12 @@ bool UGameplayStatics::SetGamePaused(UObject* WorldContextObject, bool bPaused)
 		World->GetAuthGameMode()->ClearPause();
 		return true;
 	}
+}
+
+bool UGameplayStatics::IsGamePaused(UObject* WorldContextObject)
+{
+	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	return World->IsPaused();
 }
 
 /** @RETURN True if weapon trace from Origin hits component VictimComp.  OutHitResult will contain properties of the hit. */
@@ -313,8 +328,7 @@ AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& S
 {
 	if (Actor)
 	{
-		Actor->ExecuteConstruction(SpawnTransform, NULL);
-		Actor->PostActorConstruction();
+		Actor->FinishSpawning(SpawnTransform);
 	}
 
 	return Actor;
@@ -354,7 +368,7 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 			// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
 			// Like Saved/Autosaves/PackageName
 			if (LevelStreaming && 
-				LevelStreaming->PackageName.ToString().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
+				LevelStreaming->GetWorldAssetPackageName().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
 			{
 				return LevelStreaming;
 			}
@@ -444,28 +458,12 @@ void UGameplayStatics::GetAllActorsOfClass(UObject* WorldContextObject, TSubclas
 	// We do nothing if not class provided, rather than giving ALL actors!
 	if(ActorClass != NULL)
 	{
-		// If it's a pawn class, use pawn iterator, that is more efficient
-		if(ActorClass->IsChildOf(APawn::StaticClass()))
+		for(TActorIterator<AActor> It(World, ActorClass); It; ++It)
 		{
-			for(FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
+			AActor* Actor = *It;
+			if(!Actor->IsPendingKill())
 			{
-				APawn* Pawn = *Iterator;
-				if(Pawn != NULL && !Pawn->IsPendingKill() && Pawn->IsA(ActorClass))
-				{
-					OutActors.Add(Pawn);
-				}
-			}
-		}
-		// Non-pawn, so use actor iterator in the world
-		else
-		{
-			for(FActorIterator It(World); It; ++It)
-			{
-				AActor* Actor = *It;
-				if(Actor != NULL && !Actor->IsPendingKill() && Actor->IsA(ActorClass))
-				{
-					OutActors.Add(Actor);
-				}
+				OutActors.Add(Actor);
 			}
 		}
 	}
@@ -597,9 +595,9 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 	const bool bIsInGameWorld = ThisWorld->IsGameWorld();
 
-	if (GEngine && GEngine->UseSound() && ThisWorld->GetNetMode() != NM_DedicatedServer)
+	if (GEngine && GEngine->UseSound() && ThisWorld->bAllowAudioPlayback && ThisWorld->GetNetMode() != NM_DedicatedServer)
 	{
-		if( Sound->IsAudibleSimple( Location ) )
+		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
 		{
 			FActiveSound NewActiveSound;
 			NewActiveSound.World = ThisWorld;
@@ -649,12 +647,12 @@ void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class
 		return;
 	}
 
-	if (GEngine && GEngine->UseSound())
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (GEngine && GEngine->UseSound() && ThisWorld->bAllowAudioPlayback)
 	{
-		UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
 		const bool bIsInGameWorld = ThisWorld->IsGameWorld();
 
-		if( Sound->IsAudibleSimple( Location ) )
+		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
 		{
 			FActiveSound NewActiveSound;
 			NewActiveSound.World = ThisWorld;
@@ -703,7 +701,14 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		return NULL;
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed );
+	// Location used to check whether to create a component if out of range
+	FVector TestLocation = Location;
+	if (LocationType != EAttachLocation::KeepWorldPosition)
+	{
+		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+	}
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings );
 	if(AudioComponent)
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
@@ -723,7 +728,6 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		AudioComponent->bIsUISound				= !bIsInGameWorld;
 		AudioComponent->bAutoDestroy			= true;
 		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-		AudioComponent->AttenuationSettings		= AttenuationSettings;
 		AudioComponent->Play(StartTime);
 	}
 
@@ -749,7 +753,14 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 		return NULL;
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed );
+	// Location used to check whether to create a component if out of range
+	FVector TestLocation = Location;
+	if (LocationType != EAttachLocation::KeepWorldPosition)
+	{
+		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+	}
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings );
 	if(AudioComponent)
 	{
 		const bool bIsGameWorld = AudioComponent->GetWorld()->IsGameWorld();
@@ -769,7 +780,6 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 		AudioComponent->bIsUISound				= !bIsGameWorld;
 		AudioComponent->bAutoDestroy			= true;
 		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-		AudioComponent->AttenuationSettings		= AttenuationSettings;
 		AudioComponent->Play(StartTime);
 	}
 
@@ -1107,11 +1117,11 @@ FString UGameplayStatics::GetPlatformName()
 bool UGameplayStatics::BlueprintSuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector StartLocation, FVector EndLocation, float LaunchSpeed, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, float CollisionRadius, bool bFavorHighArc, bool bDrawDebug)
 {
 	// simple pass-through to the C++ interface
-	return UGameplayStatics::SuggestProjectileVelocity(WorldContextObject, OutTossVelocity, StartLocation, EndLocation, LaunchSpeed, bFavorHighArc, CollisionRadius, OverrideGravityZ, TraceOption, bDrawDebug);
+	return UGameplayStatics::SuggestProjectileVelocity(WorldContextObject, OutTossVelocity, StartLocation, EndLocation, LaunchSpeed, bFavorHighArc, CollisionRadius, OverrideGravityZ, TraceOption, FCollisionResponseParams::DefaultResponseParam, TArray<AActor*>(), bDrawDebug);
 }
 
 // Based on analytic solution to ballistic angle of launch http://en.wikipedia.org/wiki/Trajectory_of_a_projectile#Angle_required_to_hit_coordinate_.28x.2Cy.29
-bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bFavorHighArc, float CollisionRadius, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, bool bDrawDebug)
+bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bFavorHighArc, float CollisionRadius, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, const FCollisionResponseParams& ResponseParam, const TArray<AActor*>& ActorsToIgnore, bool bDrawDebug)
 {
 	const FVector FlightDelta = End - Start;
 	const FVector DirXY = FlightDelta.SafeNormal2D();
@@ -1236,7 +1246,10 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 				{
 					// note: this will automatically fall back to line test if radius is small enough
 					static const FName NAME_SuggestProjVelTrace = FName(TEXT("SuggestProjVelTrace"));
-					if ( World->SweepTest( TraceStart, TraceEnd, FQuat::Identity, FCollisionShape::MakeSphere(CollisionRadius), FCollisionQueryParams(NAME_SuggestProjVelTrace, true), FCollisionObjectQueryParams(ECC_WorldStatic) ) )
+
+					FCollisionQueryParams QueryParams(NAME_SuggestProjVelTrace, true);
+					QueryParams.AddIgnoredActors(ActorsToIgnore);
+					if (World->SweepTest(TraceStart, TraceEnd, FQuat::Identity, ECC_WorldDynamic, FCollisionShape::MakeSphere(CollisionRadius), QueryParams, ResponseParam))
 					{
 						// hit something, failed
 						bFailedTrace = true;
@@ -1277,4 +1290,16 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 	}
 
 	return bFoundAValidSolution;
+}
+
+FIntVector UGameplayStatics::GetWorldOriginLocation(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	return World->OriginLocation;
+}
+
+void UGameplayStatics::SetWorldOriginLocation(UObject* WorldContextObject, FIntVector NewLocation)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	return World->RequestNewWorldOrigin(NewLocation);
 }

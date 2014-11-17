@@ -16,7 +16,7 @@ FScopedTransaction::FScopedTransaction(const TCHAR* TransactionContext, const FT
 
 void FScopedTransaction::Construct (const TCHAR* TransactionContext, const FText& SessionName, UObject* PrimaryObject, const bool bShouldActuallyTransact)
 {
-	if( bShouldActuallyTransact && GEditor && GEditor->Trans )
+	if( bShouldActuallyTransact && GEditor && GEditor->Trans && !GEditor->bIsSimulatingInEditor)
 	{
 		FSlateApplication::Get().OnLogSlateEvent(EEventLog::BeginTransaction, SessionName );
 		Index = GEditor->BeginTransaction( TransactionContext, SessionName, PrimaryObject );

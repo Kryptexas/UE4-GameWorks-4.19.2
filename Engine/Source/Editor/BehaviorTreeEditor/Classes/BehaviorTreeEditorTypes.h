@@ -86,6 +86,7 @@ struct FClassBrowseHelper
 	void OnAssetAdded(const class FAssetData& AssetData);
 	void OnAssetRemoved(const class FAssetData& AssetData);
 	void InvalidateCache();
+	void OnHotReload( bool bWasTriggeredAutomatically );
 	
 	static void AddUnknownClass(const FClassData& ClassData);
 	static bool IsClassKnown(const FClassData& ClassData);

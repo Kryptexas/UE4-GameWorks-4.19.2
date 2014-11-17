@@ -21,7 +21,6 @@ namespace EAIDebugDrawDataView
 		GameView4,
 		GameView5,
 		NavMesh,
-		EditorDebugAIFlag,
 		MAX UMETA(Hidden)
 	};
 }
@@ -54,3 +53,5 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerSettings
 
 GAMEPLAYDEBUGGER_API
 FGameplayDebuggerSettings  GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator = NULL);
+
+DECLARE_MULTICAST_DELEGATE(FOnChangeEQSQuery);

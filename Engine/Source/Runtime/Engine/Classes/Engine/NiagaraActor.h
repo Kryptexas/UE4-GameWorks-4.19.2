@@ -3,7 +3,7 @@
 #pragma once
 #include "NiagaraActor.generated.h"
 
-UCLASS()
+UCLASS(notplaceable)
 class ANiagaraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

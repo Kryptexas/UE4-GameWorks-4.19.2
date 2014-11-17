@@ -14,7 +14,7 @@ FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FWidgetBlueprintEditor
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("WidgetDetails_TabLabel", "Details");
-	//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
 
 	bIsSingleton = true;
 
@@ -26,10 +26,8 @@ TSharedRef<SWidget> FDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 {
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
-	return SNew(STutorialWrapper, TEXT("Details"))
-		[
-			SNew(SWidgetDetailsView, BlueprintEditorPtr)
-		];
+	return SNew(SWidgetDetailsView, BlueprintEditorPtr)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Details")));
 }
 
 #undef LOCTEXT_NAMESPACE 

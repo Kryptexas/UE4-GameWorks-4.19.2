@@ -15,13 +15,13 @@ class AIMODULE_API UEnvQueryGenerator : public UObject
 	/** type of generated items */
 	TSubclassOf<class UEnvQueryItemType> ItemType;
 
-	FGenerateItemsSignature GenerateDelegate;
+	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
 
 	/** get description of generator */
 	virtual FText GetDescriptionTitle() const;
 	virtual FText GetDescriptionDetails() const;
 
-#if WITH_EDITOR
+#if WITH_EDITOR && USE_EQS_DEBUGGER
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif //WITH_EDITOR
+#endif //WITH_EDITOR && USE_EQS_DEBUGGER
 };

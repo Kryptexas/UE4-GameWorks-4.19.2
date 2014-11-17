@@ -81,8 +81,11 @@ public:
 
 	/** 
 	 * Does a simple range check to all listeners to test hearability
+	 *
+	 * @param Location				Location to check against
+	 * @param AttenuationSettings	Optional Attenuation override if not using settings from the sound
 	 */
-	bool IsAudibleSimple( const FVector Location );
+	bool IsAudibleSimple( const FVector Location, USoundAttenuation* AttenuationSettings = NULL );
 
 	/** 
 	 * Returns the farthest distance at which the sound could be heard

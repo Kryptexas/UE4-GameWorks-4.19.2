@@ -13,6 +13,8 @@
 #include "AnimGraphNode_StateResult.h"
 #include "AnimationStateGraphSchema.h"
 
+#define LOCTEXT_NAMESPACE "AnimStateNode"
+
 /////////////////////////////////////////////////////
 // UAnimStateNode
 
@@ -47,9 +49,9 @@ FText UAnimStateNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(GetStateName());
 }
 
-FString UAnimStateNode::GetTooltip() const
+FText UAnimStateNode::GetTooltipText() const
 {
-	return TEXT("This is a state");
+	return LOCTEXT("AnimStateNode_Tooltip", "This is a state");
 }
 
 void UAnimStateNode::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -176,3 +178,5 @@ void UAnimStateNode::DestroyNode()
 		FBlueprintEditorUtils::RemoveGraph(Blueprint, GraphToRemove, EGraphRemoveFlags::Recompile);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

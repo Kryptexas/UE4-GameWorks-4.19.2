@@ -5,14 +5,21 @@
 #if WITH_FANCY_TEXT
 
 #include "ITextEditorWidget.h"
+#include "IVirtualKeyboardEntry.h"
 #include "ITextInputMethodSystem.h"
+#include "ITextLayoutMarshaller.h"
+#include "SScrollBar.h"
 
 /** An editable text widget that supports multiple lines and soft word-wrapping. */
-class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget
+class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget, public IVirtualKeyboardEntry
 {
 public:
+	/** Called when the cursor is moved within the text area */
+	DECLARE_DELEGATE_OneParam( FOnCursorMoved, const FTextLocation& );
+
 	SLATE_BEGIN_ARGS( SMultiLineEditableText )
 		: _Text()
+		, _Marshaller()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
 		, _TextStyle( &FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>( "NormalText" ) )
@@ -23,10 +30,14 @@ public:
 		, _IsReadOnly(false)
 		, _OnTextChanged()
 		, _OnTextCommitted()
+		, _OnCursorMoved()
 		, _ContextMenuExtender()
 	{}
 		/** The initial text that will appear in the widget. */
 		SLATE_ATTRIBUTE(FText, Text)
+
+		/** The marshaller used to get/set the raw text to/from the text layout. */
+		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
 
 		/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 		SLATE_ATTRIBUTE(float, WrapTextAt)
@@ -54,11 +65,20 @@ public:
 		/** Sets whether this text box can actually be modified interactively by the user */
 		SLATE_ATTRIBUTE(bool, IsReadOnly)
 
+		/** The horizontal scroll bar widget */
+		SLATE_ARGUMENT(TSharedPtr< SScrollBar >, HScrollBar)
+
+		/** The vertical scroll bar widget */
+		SLATE_ARGUMENT(TSharedPtr< SScrollBar >, VScrollBar)
+
 		/** Called whenever the text is changed interactively by the user */
 		SLATE_EVENT(FOnTextChanged, OnTextChanged)
 
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+
+		/** Called when the cursor is moved within the text area */
+		SLATE_EVENT(FOnCursorMoved, OnCursorMoved)
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT(FMenuExtensionDelegate, ContextMenuExtender)
@@ -71,20 +91,46 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/**
-	 * Gets the text assigned to this text block
-	 */
-	const FText& GetText() const
-	{
-		return BoundText.Get();
-	}
-
-	/**
 	 * Sets the text for this text block
 	 */
 	void SetText(const TAttribute< FText >& InText);
 
 	virtual bool GetIsReadOnly() const override;
 	virtual void ClearSelection() override;
+
+	/** Get the currently selected text */
+	FText GetSelectedText() const;
+
+	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
+	void InsertTextAtCursor(const FText& InText);
+	void InsertTextAtCursor(const FString& InString);
+
+	/** Insert the given run at the current cursor position */
+	void InsertRunAtCursor(TSharedRef<IRun> InRun);
+
+	/** Move the cursor to the given location in the document (will also scroll to this point) */
+	void GoTo(const FTextLocation& NewLocation);
+
+	/** Scroll to the given location in the document (without moving the cursor) */
+	void ScrollTo(const FTextLocation& NewLocation);
+
+	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
+	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
+
+	/** Get the run currently under the cursor, or null if there is no run currently under the cursor */
+	TSharedPtr<const IRun> GetRunUnderCursor() const;
+
+	/** Get the runs currently that are current selected, some of which may be only partially selected */
+	const TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
+
+	/** Get the horizontal scroll bar widget */
+	TSharedPtr<const SScrollBar> GetHScrollBar() const;
+
+	/** Get the vertical scroll bar widget */
+	TSharedPtr<const SScrollBar> GetVScrollBar() const;
+
+	/** Refresh this text box immediately, rather than wait for the usual caching mechanisms to take affect on the text Tick */
+	void Refresh();
 
 private:
 	
@@ -224,6 +270,28 @@ private:
 		}
 	};
 
+	/** Information needed to be able to scroll to a given point */
+	struct FScrollInfo
+	{
+		FScrollInfo()
+			: Position()
+			, Alignment(ECursorAlignment::Left)
+		{
+		}
+
+		FScrollInfo(const FTextLocation InPosition, const ECursorAlignment InAlignment)
+			: Position(InPosition)
+			, Alignment(InAlignment)
+		{
+		}
+
+		/** The location in the document to scroll to (in line model space) */
+		FTextLocation Position;
+
+		/** The alignment at the given position. This may affect which line view the character maps to when converted from line model space */
+		ECursorAlignment Alignment;
+	};
+
 	/** Run highlighter used to draw the cursor */
 	class FCursorLineHighlighter : public ISlateLineHighlighter
 	{
@@ -292,16 +360,16 @@ private:
 	virtual void DeleteChar() override;
 	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const override;
 	virtual void TypeChar( const int32 Character ) override;
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) override;
-	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) override;
+	virtual FReply MoveCursor( FMoveCursor Args ) override;
+	virtual void JumpTo(ETextLocation JumpLocation, ECursorAction Action) override;
 	virtual void SelectAllText() override;
 	virtual bool SelectAllTextWhenFocused() override;
-	virtual void SelectWordAt(const FVector2D& LocalPosition) override;
+	virtual void SelectWordAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) override;
 	virtual void BeginDragSelection() override;
 	virtual bool IsDragSelecting() const override;
 	virtual void EndDragSelection() override;
 	virtual bool AnyTextSelected() const override;
-	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const override;
+	virtual bool IsTextSelectedAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) const override;
 	virtual void SetWasFocusedByLastMouseDown( bool Value ) override;
 	virtual bool WasFocusedByLastMouseDown() const override;
 	virtual void SetHasDragSelectedSinceFocused( bool Value ) override;
@@ -322,6 +390,30 @@ private:
 	virtual void LoadText() override;
 	// END ITextEditorWidget interface
 
+public:
+	// BEGIN IVirtualKeyboardEntry interface
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+
+	virtual const FText& GetText() const override
+	{
+		return BoundText.Get();
+	}
+
+	virtual const FText GetHintText() const override
+	{
+		return FText();
+	}
+
+	virtual EKeyboardType GetVirtualKeyboardType() const override
+	{
+		return EKeyboardType::Keyboard_Default;
+	}
+
+	virtual bool IsMultilineEntry() const override
+	{
+		return true;
+	}
+	// END IVirtualKeyboardEntry interface
 
 private:
 	// BEGIN SWidget interface
@@ -340,6 +432,7 @@ private:
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	// END SWidget interface
@@ -361,7 +454,7 @@ private:
 	bool DoesClipboardHaveAnyText() const;
 
 	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
-	void InsertTextAtCursor(const FString& InString);
+	void InsertTextAtCursorImpl(const FString& InString);
 
 	/**
 	 * Given a location and a Direction to offset, return a new location.
@@ -374,12 +467,13 @@ private:
 	/**
 	 * Given a location and a Direction to offset, return a new location.
 	 *
-	 * @param Location				Cursor location from which to offset
-	 * @param Direction				Positive means down, negative means up.
-	 * @param OutCursorPosition		Fill with the updated cursor position.
-	 * @param OutCursorAlignment	Optionally fill with a new cursor alignment (will be auto-calculated if not set).
+	 * @param Location              Cursor location from which to offset
+	 * @param Direction             Positive means down, negative means up.
+	 * @param GeometryScale         Geometry DPI scale at which the widget is being rendered
+	 * @param OutCursorPosition     Fill with the updated cursor position.
+	 * @param OutCursorAlignment    Optionally fill with a new cursor alignment (will be auto-calculated if not set).
 	 */
-	void TranslateLocationVertical( const FTextLocation& Location, int8 Direction, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const;
+	void TranslateLocationVertical( const FTextLocation& Location, int8 Direction, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const;
 
 	/** Find the closest word boundary */
 	FTextLocation ScanForWordBoundary( const FTextLocation& Location, int8 Direction ) const; 
@@ -433,13 +527,24 @@ private:
 	 */
 	FText GetEditableText() const;
 
+	/**
+	 * Force the text layout to be updated from the marshaller
+	 */
+	void ForceRefreshTextLayout(const FText& CurrentText);
+
+	void OnHScrollBarMoved(const float InScrollOffsetFraction);
+	void OnVScrollBarMoved(const float InScrollOffsetFraction);
+
 private:
 
 	/** The text displayed in this text block */
 	TAttribute<FText> BoundText;
 
-	/** The state of BoundText last Tick() (only used when BoundText is bound to a delegate providing the source text) */
-	FText BoundTextLastTick;
+	/** The state of BoundText last Tick() (used to allow updates when the text is changed) */
+	FTextSnapshot BoundTextLastTick;
+
+	/** The marshaller used to get/set the BoundText text to/from the text layout. */
+	TSharedPtr< ITextLayoutMarshaller > Marshaller;
 
 	/** In control of the layout and wrapping of the BoundText */
 	TSharedPtr< FSlateTextLayout > TextLayout;
@@ -453,8 +558,11 @@ private:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute< bool > AutoWrapText;
 
-	/** Cached auto-wrap width that this text is using. This is used when determining if the cached string size should be updated */
-	mutable float CachedAutoWrapTextWidth;
+	/** The last known size of the control from the previous OnPaint, used to recalculate wrapping. */
+	mutable FVector2D CachedSize;
+
+	/** The scroll offset (in Slate units) for this text */
+	FVector2D ScrollOffset;
 
 	TAttribute< FMargin > Margin;
 	TAttribute< ETextJustify::Type > Justification; 
@@ -485,6 +593,9 @@ private:
 	/** True if characters were selected by dragging since the last keyboard focus.  Used for text selection. */
 	bool bHasDragSelectedSinceFocused;
 
+	/** If set, the pending data containing a position that should be scrolled into view */
+	TOptional< FScrollInfo > PositionToScrollIntoView;
+
 	/** Undo states */
 	TArray< FUndoState > UndoStates;
 
@@ -509,6 +620,15 @@ private:
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 	FOnTextCommitted OnTextCommitted;
 
+	/** Called when the cursor is moved within the text area */
+	FOnCursorMoved OnCursorMoved;
+
+	/** The horizontal scroll bar widget */
+	TSharedPtr< SScrollBar > HScrollBar;
+
+	/** The vertical scroll bar widget */
+	TSharedPtr< SScrollBar > VScrollBar;
+
 	/** Menu extender for right-click context menu */
 	TSharedPtr<FExtender> MenuExtender;
 
@@ -520,6 +640,9 @@ private:
 
 	/** Notification interface object for text input method systems. */
 	TSharedPtr<ITextInputMethodChangeNotifier> TextInputMethodChangeNotifier;
+
+	/** Whether the text has been changed by a virtual keyboard */
+	bool bTextChangedByVirtualKeyboard;
 };
 
 

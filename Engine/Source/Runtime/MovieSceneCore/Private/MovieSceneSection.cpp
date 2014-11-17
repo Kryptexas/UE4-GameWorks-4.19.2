@@ -57,3 +57,12 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 		}
 	}
 }
+
+void UMovieSceneSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value )
+{
+	if(IsTimeWithinSection(Time))
+	{
+		Modify();
+		InCurve.UpdateOrAddKey(Time, Value);
+	}
+}

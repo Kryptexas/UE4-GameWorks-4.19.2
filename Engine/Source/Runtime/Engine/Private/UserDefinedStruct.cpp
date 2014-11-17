@@ -53,9 +53,14 @@ UProperty* UUserDefinedStruct::CustomFindProperty(const FName Name) const
 	return Property;
 }
 
+void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
+{
+	FStructureEditorUtils::Fill_MakeStructureDefaultValue(this, StructData);
+}
+
 #endif	// WITH_EDITOR
 
-void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults) const
+void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
 #if WITH_EDITOR
 	/*	The following code is responsible for UUserDefinedStruct's default values serialization.	*/

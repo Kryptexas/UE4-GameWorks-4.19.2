@@ -17,9 +17,9 @@ UAnimGraphNode_BlendListByInt::UAnimGraphNode_BlendListByInt(const FPostConstruc
 {
 }
 
-FString UAnimGraphNode_BlendListByInt::GetTooltip() const
+FText UAnimGraphNode_BlendListByInt::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_BlendListByInt_Tooltip", "Blend List (by int)").ToString();
+	return LOCTEXT("AnimGraphNode_BlendListByInt_Tooltip", "Blend List (by int)");
 }
 
 FText UAnimGraphNode_BlendListByInt::GetNodeTitle(ENodeTitleType::Type TitleType) const

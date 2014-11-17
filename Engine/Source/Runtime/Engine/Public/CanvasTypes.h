@@ -47,12 +47,12 @@ public:
 	/** 
 	* Constructor.
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** 
 	* Constructor. For situations where a world is not available, but time information is
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** 
 	* Destructor.
@@ -163,7 +163,7 @@ public:
 	*/
 	ENGINE_API FMatrix GetTransform() const
 	{ 
-		return TransformStack.Top().GetMatrix() * TransformStack[0].GetMatrix().Inverse(); 
+		return TransformStack.Top().GetMatrix() * TransformStack[0].GetMatrix().InverseFast(); 
 	}
 
 	/** 
@@ -208,7 +208,7 @@ public:
 	 * Sets a rect that should be used to offset rendering into the viewport render target
 	 * If not set the canvas will render to the full target
 	 *
- 	 * @param ViewRect The rect to use
+	 * @param ViewRect The rect to use
 	 */
 	ENGINE_API void SetRenderTargetRect( const FIntRect& ViewRect );
 
@@ -298,6 +298,25 @@ public:
 	 */
 	bool HasBatchesToRender() const;
 
+	/**
+	* Access current feature level
+	*
+	* @return feature level that this canvas is rendering at
+	*/
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+
+	/**
+	* Access current shader platform
+	*
+	* @return shader platform that this canvas is rendering at
+	*/
+	EShaderPlatform GetShaderPlatform() const { return ShaderPlatform; }
+
+	// Get/Set if this Canvas allows its batched elements to switch vertical axis (e.g., rendering to back buffer should never flip)
+	bool GetAllowSwitchVerticalAxis() const { return bAllowsToSwitchVerticalAxis; }
+
+	void SetAllowSwitchVerticalAxis(bool bInAllowsToSwitchVerticalAxis) { bAllowsToSwitchVerticalAxis = bInAllowsToSwitchVerticalAxis; }
+
 public:
 	float AlphaModulate;
 
@@ -368,6 +387,12 @@ private:
 	float CurrentDeltaWorldTime;
 	/** true, if Canvas should be scaled to whole render target */
 	bool bScaledToRenderTarget;
+	// True if canvas allows switching vertical axis; false will ignore any flip
+	bool bAllowsToSwitchVerticalAxis;
+	/** Feature level that we are currently rendering with */
+	ERHIFeatureLevel::Type FeatureLevel;
+	/** Shader platform that we are currently rendering with */
+	EShaderPlatform ShaderPlatform;
 
 	/** 
 	* Shared construction function
@@ -376,22 +401,22 @@ private:
 
 public:	
 
-	/*
+	/**
 	 * Access current real time 
 	 */
 	float GetCurrentRealTime() const { return CurrentRealTime; }
 
-	/*
+	/**
 	 * Access current world time 
 	 */
 	float GetCurrentWorldTime() const { return CurrentWorldTime; }
 
-	/*
+	/**
 	 * Access current delta time 
 	 */
 	float GetCurrentDeltaWorldTime() const { return CurrentDeltaWorldTime; }
 
-	/* 
+	/** 
 	 * Draw a CanvasItem
 	 *
 	 * @param Item			Item to draw
@@ -400,7 +425,7 @@ public:
 	{
 		Item.Draw( this );
 	}
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw
@@ -411,7 +436,7 @@ public:
 		Item.Draw( this, InPosition );
 	}
 	
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw

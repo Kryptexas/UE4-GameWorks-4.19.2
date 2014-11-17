@@ -13,94 +13,6 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
-	public class PrecompileHeaderEnvironment
-	{
-		/** The name of the module this PCH header is a member of */
-		public readonly string ModuleName;
-
-		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
-			This is needed by some compilers to use PCH features. */
-		public string PCHHeaderNameInCode;
-
-		/** The source header file that this precompiled header will be generated for */
-		public readonly FileItem PrecompiledHeaderIncludeFilename;
-
-		/** Whether this precompiled header will be built with CLR features enabled.  We won't mix and match CLR PCHs with non-CLR PCHs */
-		public readonly CPPCLRMode CLRMode;
-
-		/** Whether this precompiled header will be built with code optimization enabled. */
-		public readonly ModuleRules.CodeOptimization OptimizeCode;
-
-		/** The PCH file we're generating */
-		public FileItem PrecompiledHeaderFile = null;
-
-		/** Object files emitted from the compiler when generating this precompiled header.  These will be linked into modules that
-			include this PCH */
-		public readonly List<FileItem> OutputObjectFiles = new List<FileItem>();
-
-		public PrecompileHeaderEnvironment( string InitModuleName, string InitPCHHeaderNameInCode, FileItem InitPrecompiledHeaderIncludeFilename, CPPCLRMode InitCLRMode, ModuleRules.CodeOptimization InitOptimizeCode )
-		{
-			ModuleName = InitModuleName;
-			PCHHeaderNameInCode = InitPCHHeaderNameInCode;
-			PrecompiledHeaderIncludeFilename = InitPrecompiledHeaderIncludeFilename;
-			CLRMode = InitCLRMode;
-			OptimizeCode = InitOptimizeCode;
-		}
-
-		/// <summary>
-		/// Creates a precompiled header action to generate a new pch file 
-		/// </summary>
-		/// <param name="PCHHeaderNameInCode">The precompiled header name as it appeared in an #include statement</param>
-		/// <param name="PrecompiledHeaderIncludeFilename">Name of the header used for pch.</param>
-		/// <param name="ProjectCPPEnvironment">The environment the C/C++ files in the project are compiled with.</param>
-		/// <param name="OutputDirectory">The folder to save the generated PCH file to</param>
-		/// <param name="ModuleName">Name of the module this PCH is being generated for</param>
-		/// <param name="bAllowDLLExports">True if we should allow DLLEXPORT definitions for this PCH</param>
-		/// <returns>the compilation output result of the created pch.</returns>
-		public static CPPOutput GeneratePCHCreationAction(string PCHHeaderNameInCode, FileItem PrecompiledHeaderIncludeFilename, CPPEnvironment ProjectCPPEnvironment, string OutputDirectory, string ModuleName, bool bAllowDLLExports )
-		{
-			// Find the header file to be precompiled. Don't skip external headers
-			if (PrecompiledHeaderIncludeFilename.bExists)
-			{
-				// Create a Dummy wrapper around the PCH to avoid problems with #pragma once on clang
-				var ToolChain = UEToolChain.GetPlatformToolChain(ProjectCPPEnvironment.Config.Target.Platform);
-				string PCHGuardDefine = Path.GetFileNameWithoutExtension(PrecompiledHeaderIncludeFilename.AbsolutePath).ToUpper();
-				string LocalPCHHeaderNameInCode = ToolChain.ConvertPath(PrecompiledHeaderIncludeFilename.AbsolutePath);
-				string TmpPCHHeaderContents = String.Format("#ifndef __AUTO_{0}_H__\n#define __AUTO_{0}_H__\n//Last Write: {2}\n#include \"{1}\"\n#endif//__AUTO_{0}_H__", PCHGuardDefine, LocalPCHHeaderNameInCode, PrecompiledHeaderIncludeFilename.LastWriteTime);
-				string DummyPath = Path.Combine(
-					ProjectCPPEnvironment.Config.OutputDirectory,
-					Path.GetFileName(PrecompiledHeaderIncludeFilename.AbsolutePath));
-				FileItem DummyPCH = FileItem.CreateIntermediateTextFile(DummyPath, TmpPCHHeaderContents);
-
-				// Create a new C++ environment that is used to create the PCH.
-				var ProjectPCHEnvironment = ProjectCPPEnvironment.DeepCopy();
-				ProjectPCHEnvironment.Config.PrecompiledHeaderAction = PrecompiledHeaderAction.Create;
-				ProjectPCHEnvironment.Config.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFilename.AbsolutePath;
-				ProjectPCHEnvironment.Config.PCHHeaderNameInCode = PCHHeaderNameInCode;
-				ProjectPCHEnvironment.Config.OutputDirectory = OutputDirectory;
-
-				if( !bAllowDLLExports )
-				{
-					for( var CurDefinitionIndex = 0; CurDefinitionIndex < ProjectPCHEnvironment.Config.Definitions.Count; ++CurDefinitionIndex )
-					{
-						// We change DLLEXPORT to DLLIMPORT for "shared" PCH headers
-						var OldDefinition = ProjectPCHEnvironment.Config.Definitions[ CurDefinitionIndex ];
-						if( OldDefinition.EndsWith( "=DLLEXPORT" ) )
-						{
-							ProjectPCHEnvironment.Config.Definitions[ CurDefinitionIndex ] = OldDefinition.Replace( "DLLEXPORT", "DLLIMPORT" );
-						}
-					}
-				}
-
-				Log.TraceVerbose( "Found PCH file \"{0}\".", PrecompiledHeaderIncludeFilename );
-
-				// Create the action to compile the PCH file.
-				return ProjectPCHEnvironment.CompileFiles(new List<FileItem>() { DummyPCH }, ModuleName);
-			}
-			throw new BuildException( "Couldn't find PCH file \"{0}\".", PrecompiledHeaderIncludeFilename );
-		}
-	}
-
 	public abstract class Utils
 	{
 		/// <summary>
@@ -257,6 +169,7 @@ namespace UnrealBuildTool
 		 */
 		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName)
 		{
+			// @todo fastubt: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
 			if( File.Exists( BatchFileName ) )
 			{
 				// Create a wrapper batch file that echoes environment variables to a text file
@@ -383,6 +296,17 @@ namespace UnrealBuildTool
 			return ExitCode;
 		}
 
+		/**
+		 * Runs a local process and pipes the output to the log
+		 */
+		public static int RunLocalProcessAndLogOutput(ProcessStartInfo StartInfo)
+		{
+			Process LocalProcess = new Process();
+			LocalProcess.StartInfo = StartInfo;
+			LocalProcess.OutputDataReceived += (Sender, Line) => { if(Line != null && Line.Data != null) Log.TraceInformation(Line.Data); };
+			LocalProcess.ErrorDataReceived += (Sender, Line) => { if(Line != null && Line.Data != null) Log.TraceError(Line.Data); };
+			return RunLocalProcess(LocalProcess);
+		}
 
 		/// <summary>
 		/// Given a list of supported platforms, returns a list of names of platforms that should not be supported
@@ -464,7 +388,7 @@ namespace UnrealBuildTool
 		/// <returns>File path with consistent separators</returns>
 		public static string CleanDirectorySeparators( string FilePath, char UseDirectorySeparatorChar = '\0' )
 		{
-			StringBuilder CleanPath = new StringBuilder(FilePath.Length);
+			StringBuilder CleanPath = null;
 			if (UseDirectorySeparatorChar == '\0')
 			{
 				UseDirectorySeparatorChar = Environment.OSVersion.Platform == PlatformID.Unix ? '/' : '\\';
@@ -477,9 +401,21 @@ namespace UnrealBuildTool
 				char C = FilePath[Index];				
 				if (C == '/' || C == '\\')
 				{
-					C = UseDirectorySeparatorChar;
+					if( C != UseDirectorySeparatorChar )
+					{ 
+						C = UseDirectorySeparatorChar;
+						if( CleanPath == null )
+						{ 
+							CleanPath = new StringBuilder( FilePath.Substring( 0, Index ), FilePath.Length );
+						}
+					}
+
 					if (bCanCheckDoubleSeparators && C == PrevC)
 					{
+						if( CleanPath == null )
+						{ 
+							CleanPath = new StringBuilder( FilePath.Substring( 0, Index ), FilePath.Length );
+						}
 						continue;
 					}
 				}
@@ -488,10 +424,14 @@ namespace UnrealBuildTool
 					// First non-separator character, safe to check double separators
 					bCanCheckDoubleSeparators = true;
 				}
-				CleanPath.Append(C);
+
+				if( CleanPath != null )
+				{ 
+					CleanPath.Append(C);
+				}
 				PrevC = C;
 			}
-			return CleanPath.ToString();
+			return CleanPath != null ? CleanPath.ToString() : FilePath;
 		}
 
 	
@@ -1196,6 +1136,24 @@ namespace UnrealBuildTool
 		{
 			WriteLine(1, TraceEventType.Error, Message);
 		}
+
+		/// <summary>
+		/// Writes a message with the specified verbosity to the console.
+		/// </summary>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceEvent(TraceEventType Verbosity, string Message)
+		{
+			WriteLine(1, Verbosity, Message);
+		}
+
+		/// <summary>
+		/// Writes a formatted message with the specified verbosity to the console.
+		/// </summary>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceEvent(TraceEventType Verbosity, string Format, params object[] Args)
+		{
+			WriteLine(1, Verbosity, Format, Args);
+		}
 	}
 
     #region StreamUtils
@@ -1385,4 +1343,126 @@ namespace UnrealBuildTool
         }
     }
     #endregion
+
+	#region Scoped Timers
+
+	/// <summary>
+	/// Scoped timer, start is in the constructor, end in Dispose. Best used with using(var Timer = new ScopedTimer()). Suports nesting.
+	/// </summary>
+	public class ScopedTimer : IDisposable
+	{
+		DateTime StartTime;
+		string TimerName;
+		TraceEventType Verbosity;
+		static int Indent = 0;
+		static object IndentLock = new object();
+
+		public ScopedTimer(string Name, TraceEventType InVerbosity = TraceEventType.Verbose)
+		{
+			TimerName = Name;
+			lock (IndentLock)
+			{
+				Indent++;
+			}
+			Verbosity = InVerbosity;
+			StartTime = DateTime.UtcNow;
+		}
+
+		public void Dispose()
+		{
+			var TotalSeconds = (DateTime.UtcNow - StartTime).TotalSeconds;
+			var LogIndent = 0;
+			lock (IndentLock)
+			{
+				LogIndent = --Indent;
+			}
+			var IndentText = new StringBuilder(LogIndent * 2);
+			IndentText.Append(' ', LogIndent * 2);
+			
+			Log.TraceEvent(Verbosity, "{0}{1} took {2}s", IndentText.ToString(), TimerName, TotalSeconds);
+		}
+	}
+
+	/// <summary>
+	/// Scoped, accumulative timer. Can have multiple instances. Best used as a static variable with Start() and End() 
+	/// </summary>
+	public class ScopedCounter : IDisposable
+	{
+		class Accumulator
+		{
+			public double Time;
+			public TraceEventType Verbosity;
+		}
+		DateTime StartTime;
+		Accumulator ScopedAccumulator;
+		string CounterName;
+		
+		static Dictionary<string, Accumulator> Accumulators = new Dictionary<string, Accumulator>();
+
+		public ScopedCounter(string Name, TraceEventType InVerbosity = TraceEventType.Verbose)
+		{
+			CounterName = Name;
+			if (!Accumulators.TryGetValue(CounterName, out ScopedAccumulator))
+			{
+				ScopedAccumulator = new Accumulator();
+				Accumulators.Add(CounterName, ScopedAccumulator);
+			}
+			ScopedAccumulator.Verbosity = InVerbosity;
+			StartTime = DateTime.UtcNow;
+		}
+
+		/// <summary>
+		/// (Re-)Starts time measuring
+		/// </summary>
+		/// <returns></returns>
+		public ScopedCounter Start()
+		{
+			StartTime = DateTime.UtcNow;
+			return this;
+		}
+
+		/// <summary>
+		/// Ends measuring time
+		/// </summary>
+		public void Dispose()
+		{
+			var TotalSeconds = (DateTime.UtcNow - StartTime).TotalSeconds;
+			ScopedAccumulator.Time += TotalSeconds;
+		}
+
+		/// <summary>
+		/// Logs the specified counters timings to the output
+		/// </summary>
+		/// <param name="Name">Timer name</param>
+		static public void LogCounter(string Name)
+		{
+			Accumulator ExistingAccumulator;
+			if (Accumulators.TryGetValue(Name, out ExistingAccumulator))
+			{
+				LogAccumulator(Name, ExistingAccumulator);
+			}
+			else
+			{
+				throw new Exception(String.Format("ScopedCounter {0} does not exist!", Name));
+			}
+		}
+
+		static private void LogAccumulator(string Name, Accumulator Counter)
+		{
+			Log.TraceEvent(Counter.Verbosity, "{0} took {1}s", Name, Counter.Time);
+		}
+
+		/// <summary>
+		/// Dumps all counters to the log
+		/// </summary>
+		static public void DumpAllCounters()
+		{
+			foreach (var Counter in Accumulators)
+			{
+				LogAccumulator(Counter.Key, Counter.Value);
+			}
+		}
+	}
+
+	#endregion
 }

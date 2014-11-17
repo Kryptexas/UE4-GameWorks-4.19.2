@@ -18,6 +18,8 @@ public:
 	virtual void GenerateTotals( const TArray< TWeakObjectPtr<UObject> >& InObjects, TMap<FString, FText>& OutTotals ) const override;
 	/** End IStatsPage interface */
 
+	virtual ~FLightingBuildInfoStatsPage() {}
+
 private:
 
 	/** 

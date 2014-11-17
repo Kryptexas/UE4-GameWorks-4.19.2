@@ -8,6 +8,7 @@
 #include "BlueprintGraphDefinitions.h"
 #include "IDocumentation.h"
 #include "SListViewSelectorDropdownMenu.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "ComponentClassCombo"
 
@@ -35,35 +36,56 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 	SComboButton::FArguments Args;
 	Args.ButtonContent()
 	[
-		SNew(STextBlock)
-		.Text( LOCTEXT("AddComponentButtonLabel", "Add Component") )
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(2.f,1.f)
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush(TEXT("SCSEditor.NewComponentIcon")))
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(1.f)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AddComponentButtonLabel", "Add Component"))
+			.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+		]
 	]
 	.MenuContent()
 	[
 
 		SNew(SListViewSelectorDropdownMenu<FComponentClassComboEntryPtr>, SearchBox, ComponentClassListView)
 		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			.Padding(2)
 			[
-				SearchBox.ToSharedRef()
-			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SSeparator)
-				.Orientation(EOrientation::Orient_Horizontal)
-			]
-			+SVerticalBox::Slot()
-			.MaxHeight(400)
-			[
-				ComponentClassListView.ToSharedRef()
+				SNew(SBox)
+				.WidthOverride(250)
+				[				
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.Padding(1.f)
+					.AutoHeight()
+					[
+						SearchBox.ToSharedRef()
+					]
+					+SVerticalBox::Slot()
+					.MaxHeight(400)
+					[
+						ComponentClassListView.ToSharedRef()
+					]
+				]
 			]
 		]
 	]
 	.IsFocusable(true)
 	.ContentPadding(FMargin(2))
+	.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.NewAsset.Style")
+	.ForegroundColor(FLinearColor::White)
 	.OnComboBoxOpened(this, &SComponentClassCombo::ClearSelection);
 
 	SComboButton::Construct(Args);
@@ -193,8 +215,13 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
 				.ShowSelection(false)
 			[
-				SNew(STextBlock)
-				.Text(Entry->GetHeadingText())
+				SNew(SBox)
+				.Padding(1.f)
+				[
+					SNew(STextBlock)
+					.Text(Entry->GetHeadingText())
+					.TextStyle(FEditorStyle::Get(), TEXT("Menu.Heading"))
+				]
 			];
 	}
 	else if ( Entry->IsSeparator() )
@@ -203,7 +230,13 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
 				.ShowSelection(false)
 			[
-				SNew(SSeparator)
+				SNew(SBox)
+				.Padding(1.f)
+				[
+					SNew(SBorder)
+					.Padding(FEditorStyle::GetMargin(TEXT("Menu.Separator.Padding")))
+					.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Separator")))
+				]
 			];
 	}
 	else
@@ -253,13 +286,9 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 			FriendlyComponentName += FString(" (") + AssetName + FString(")");
 		}
 
-		// Get info for rich tooltip
-		FString DocLink = TEXT("Shared/Editor/Blueprint/VariableTypes");
-		FString DocExcerptName = FString::Printf(TEXT("object'%s'"), *Entry->GetComponentClass()->GetName());
-
 		return
 			SNew( SComboRow< TSharedPtr<FString> >, OwnerTable )
-			.ToolTip( IDocumentation::Get()->CreateToolTip(Entry->GetComponentClass()->GetToolTipText(), NULL, DocLink, DocExcerptName) )
+			.ToolTip( FEditorClassUtils::GetTooltip(Entry->GetComponentClass()) )
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
@@ -285,6 +314,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 					.HighlightText(this, &SComponentClassCombo::GetCurrentSearchString)

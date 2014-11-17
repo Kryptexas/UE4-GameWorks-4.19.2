@@ -3,7 +3,7 @@
 #pragma once
 
 
-/* Dependencies
+/* Public dependencies
  *****************************************************************************/
 
 #include "CoreUObject.h"
@@ -12,7 +12,7 @@
 class SWidget;
 
 
-/* Interfaces
+/* Public includes
  *****************************************************************************/
 
 #include "ISettingsSection.h"

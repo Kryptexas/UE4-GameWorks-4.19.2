@@ -886,7 +886,7 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 		for( int32 i = 0; i < Linker->NameMap.Num(); ++i )
 		{
 			FName& name = Linker->NameMap[ i ];
-			UE_LOG(LogPackageUtilities, Warning, TEXT("\t%d: Name '%s' Index %d [Internal: %s, %d]"), i, *name.ToString(), name.GetIndex(), *name.GetPlainNameString(), name.GetNumber() );
+			UE_LOG(LogPackageUtilities, Warning, TEXT("\t%d: Name '%s' Comparison Index %d Display Index %d [Internal: %s, %d]"), i, *name.ToString(), name.GetComparisonIndex(), name.GetDisplayIndex(), *name.GetPlainNameString(), name.GetNumber() );
 		}
 	}
 
@@ -2374,7 +2374,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 				World->UpdateWorldComponents( true, false );
 
 				// iterate through all the actors in the world, looking for matches with the class to replace (must have exact match, not subclass)
-				for (FActorIterator It(World); It; ++It)
+				for (TActorIterator<AActor> It(World, ClassToReplace); It; ++It)
 				{
 					AActor* OldActor = *It;
 					if (OldActor->GetClass() == ClassToReplace)

@@ -289,6 +289,7 @@ void USoundCueGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) const
 	USoundCueGraphNode_Root* ResultRootNode = NodeCreator.CreateNode();
 	ResultRootNode->NodePosY = RootNodeHeightOffset;
 	NodeCreator.Finalize();
+	SetNodeMetaData(ResultRootNode, FNodeMetadata::DefaultGraphNode);
 }
 
 const FPinConnectionResponse USoundCueGraphSchema::CanCreateConnection(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const

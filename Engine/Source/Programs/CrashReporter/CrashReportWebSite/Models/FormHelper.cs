@@ -15,28 +15,42 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	{
 		/// <summary>The user search query.</summary>
 		public string SearchQuery = "";
+
 		/// <summary>The page to display from the list.</summary>
 		public int Page = 1;
+
 		/// <summary>The number of items to display per page.</summary>
 		public int PageSize = 100;
+
 		/// <summary>The term to sort by. e.g. TTPID.</summary>
 		public string SortTerm = "";
+
 		/// <summary>The types of crashes we wish to see.</summary>
 		public string CrashType = "CrashesAsserts";
+
 		/// <summary>Whether to sort ascending or descending.</summary>
 		public string SortOrder = "Descending";
+
 		/// <summary>The previous sort order.</summary>
 		public string PreviousOrder = "";
+
 		/// <summary>The user group to filter by.</summary>
 		public string UserGroup = "General";
+
 		/// <summary>The earliest date we are interested in.</summary>
 		public DateTime DateFrom = DateTime.UtcNow;
+
 		/// <summary>The most recent date we are interested in.</summary>
 		public DateTime DateTo = DateTime.UtcNow;
+
 		/// <summary>The branch name to filter by.</summary>
 		public string BranchName = "";
+
 		/// <summary>The game to filter by.</summary>
 		public string GameName = "";
+
+		/// <summary> The build version to filter by. </summary>
+		public string BuildVersion = "";
 
 		private string PreviousTerm = "";
 
@@ -138,6 +152,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			GetFormParameter( Request, Form, "BranchName", BranchName, out BranchName );
 
 			GetFormParameter( Request, Form, "GameName", GameName, out GameName );
+
+			GetFormParameter( Request, Form, "BuildVersion", BuildVersion, out BuildVersion );
 
 			DateFrom = DateTime.Today.AddDays(-7).ToUniversalTime();
 			TryParseDate(Request, Form, "DateFrom", ref DateFrom);

@@ -9,6 +9,17 @@ typedef TSharedPtr<class FDeviceBrowserFilter> FDeviceBrowserFilterPtr;
 /** Type definition for shared references to instances of FDeviceBrowserFilter. */
 typedef TSharedRef<class FDeviceBrowserFilter> FDeviceBrowserFilterRef;
 
+class FDeviceBrowserFilterEntry
+{
+public:
+	FDeviceBrowserFilterEntry(FString InPlatformName, FName InPlatformLookup)
+		: PlatformName(InPlatformName)
+		, PlatformLookup(InPlatformLookup)
+	{
+	}
+	FString PlatformName;
+	FName PlatformLookup;
+};
 
 /**
  * Implements a filter for the device browser's target device service list.
@@ -27,7 +38,7 @@ public:
 	{
 		if (DeviceService.IsValid())
 		{
-			if (DisabledPlatforms.Contains(DeviceService->GetDeviceId().GetPlatformName()))
+			if (DisabledPlatforms.Contains(DeviceService->GetDevicePlatformDisplayName()))
 			{
 				return false;
 			}
@@ -37,7 +48,7 @@ public:
 				return true;
 			}
 
-			return (DeviceService->GetCachedDeviceName().Contains(DeviceSearchText.ToString()) );
+			return (DeviceService->GetDeviceName().Contains(DeviceSearchText.ToString()) );
 		}
 
 		return false;
@@ -69,7 +80,7 @@ public:
 	 *
 	 * @return List of platform names.
 	 */
-	const TArray<TSharedPtr<FString> >& GetFilteredPlatforms( ) const
+	const TArray<TSharedPtr<FDeviceBrowserFilterEntry>> & GetFilteredPlatforms() const
 	{
 		return PlatformList;
 	}
@@ -100,12 +111,12 @@ public:
 			const ITargetDeviceServicePtr& DeviceService = DeviceServices[DeviceServiceIndex];
 
 			// populate platforms
-			const FString& Platform = DeviceService->GetDeviceId().GetPlatformName();
+			const FString Platform = DeviceService->GetDevicePlatformDisplayName();
 			int32& PlatformCounter = PlatformCounters.FindOrAdd(Platform);
 
 			if (PlatformCounter == 0)
 			{
-				PlatformList.Add(MakeShareable(new FString(Platform)));
+				PlatformList.Add(MakeShareable(new FDeviceBrowserFilterEntry(Platform, DeviceService->GetDevicePlatformName())));
 			}
 
 			++PlatformCounter;
@@ -188,7 +199,7 @@ private:
 	TMap<FString, int32> PlatformCounters;
 
 	// Holds the list of platform filters.
-	TArray<TSharedPtr<FString>> PlatformList;
+	TArray<TSharedPtr<FDeviceBrowserFilterEntry>> PlatformList;
 
 private:
 

@@ -3,8 +3,9 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "MakeStructHandler.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -116,22 +117,70 @@ void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog
 	{
 		MessageLog.Error(*LOCTEXT("NoStruct_Error", "No Struct in @@").ToString(), this);
 	}
+	else
+	{
+		bool bHasAnyBlueprintVisibleProperty = false;
+		for (TFieldIterator<UProperty> It(StructType); It; ++It)
+		{
+			const UProperty* Property = *It;
+			if (CanBeExposed(Property))
+			{
+				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible) || (Property->GetOwnerStruct() && Property->GetOwnerStruct()->IsA<UUserDefinedStruct>());
+				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
+
+				const UEdGraphPin* Pin = Property ? FindPin(Property->GetName()) : NULL;
+
+				if (Pin && !bIsBlueprintVisible)
+				{
+					MessageLog.Warning(*LOCTEXT("PropertyIsNotBPVisible_Warning", "@@ - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.").ToString(), Pin);
+				}
+
+				if (Property->ArrayDim > 1)
+				{
+					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
+				}
+			}
+		}
+
+		if (!bHasAnyBlueprintVisibleProperty)
+		{
+			MessageLog.Warning(*LOCTEXT("StructHasNoBPVisibleProperties_Warning", "@@ has no property tagged as BlueprintReadWrite. The node will be removed in a future release.").ToString(), this);
+		}
+	}
 }
 
 
 FText UK2Node_MakeStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const 
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
-	return FText::Format(LOCTEXT("MakeNodeTitle", "Make {StructName}"), Args);
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("MakeNullStructTitle", "Make <unknown struct>");
+	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("StructName"), FText::FromName(StructType->GetFName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("MakeNodeTitle", "Make {StructName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
-FString UK2Node_MakeStruct::GetTooltip() const
+FText UK2Node_MakeStruct::GetTooltipText() const
 {
-	return FString::Printf(
-		*LOCTEXT("MakeStruct_Tooltip", "Adds a node that create a '%s' from its members").ToString(),
-		*(StructType ? StructType->GetName() : FString())
+	if (StructType == nullptr)
+	{
+		return LOCTEXT("MakeNullStruct_Tooltip", "Adds a node that create an '<unknown struct>' from its members");
+	}
+	else if (CachedTooltip.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(
+			LOCTEXT("MakeStruct_Tooltip", "Adds a node that create a '{0}' from its members"),
+			FText::FromName(StructType->GetFName())
 		);
+	}
+	return CachedTooltip;
 }
 
 FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const
@@ -155,7 +204,9 @@ bool UK2Node_MakeStruct::CanBeExposed(const UProperty* Property)
 
 		FEdGraphPinType DumbGraphPinType;
 		const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
-		const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit);
+
+		//TODO: remove CPF_Edit in a future release
+		const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit) && !(Property->ArrayDim > 1);
 		const bool bBlueprintReadOnly = Property->HasAllPropertyFlags(CPF_BlueprintReadOnly);
 		if(bVisible && bConvertable && !bBlueprintReadOnly)
 		{
@@ -188,7 +239,11 @@ FNodeHandlingFunctor* UK2Node_MakeStruct::CreateNodeHandler(FKismetCompilerConte
 UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	if ((ERedirectType_None == Result) && NewPin && OldPin)
+	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, false))
+	{
+		Result = ERedirectType_Custom;
+	}
+	else if ((ERedirectType_None == Result) && NewPin && OldPin)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
@@ -215,36 +270,40 @@ UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UE
 	return Result;
 }
 
-void UK2Node_MakeStruct::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	auto SetNodeStructLambda = [](UEdGraphNode* NewNode, UField const* /*StructField*/, TWeakObjectPtr<UScriptStruct> NonConstStructPtr)
+	{
+		UK2Node_MakeStruct* MakeNode = CastChecked<UK2Node_MakeStruct>(NewNode);
+		MakeNode->StructType = NonConstStructPtr.Get();
+	};
+
 	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
 	{
 		UScriptStruct const* Struct = (*StructIt);
-		// we only want to add autonomous structs here; those belonging to a 
-		// certain class should instead be associated with that class (so when 
-		// the class is modified we can easily handle any structs that were changed).
-		bool bIsStandaloneStruct = Struct->GetOuter()->IsA(UPackage::StaticClass());
-
-		if (!bIsStandaloneStruct || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeMade(Struct))
+		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeMade(Struct))
 		{
 			continue;
 		}
 
-		auto CustomizeMakeNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UScriptStruct> StructPtr)
+		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(Struct))
 		{
-			UK2Node_MakeStruct* MakeNode = CastChecked<UK2Node_MakeStruct>(NewNode);
-			if (StructPtr.IsValid())
-			{
-				MakeNode->StructType = StructPtr.Get();
-			}
-		};
+			continue;
+		}
 
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Struct);
 		check(NodeSpawner != nullptr);
-		ActionListOut.Add(NodeSpawner);
+		TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
+		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeStructLambda, NonConstStructPtr);
 
-		TWeakObjectPtr<UScriptStruct> StructPtr = Struct;
-		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMakeNodeLambda, StructPtr);
+		// this struct could belong to a class, or is a user defined struct 
+		// (asset), that's why we want to make sure to register it along with 
+		// the action (so the action knows to refresh when the class/asset is).
+		ActionRegistrar.AddBlueprintAction(Struct, NodeSpawner);
 	}
 }
 

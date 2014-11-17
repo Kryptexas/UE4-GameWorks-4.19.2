@@ -56,14 +56,19 @@ class ENGINE_API UInputSettings
 	FStringAssetReference DefaultTouchInterface;
 
 	/** The key which opens the console. */
-	UPROPERTY(config, EditAnywhere, Category="Console")
-	FKey ConsoleKey;
+	UPROPERTY(config)
+	FKey ConsoleKey_DEPRECATED;
 
+	/** The keys which open the console. */
+	UPROPERTY(config, EditAnywhere, Category="Console")
+	TArray<FKey> ConsoleKeys;
 
 	// UObject interface
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
+
+	virtual void PostInitProperties() override;
 	// End of UObject interface
 
 	void AddActionMapping(const FInputActionKeyMapping& KeyMapping);

@@ -82,7 +82,7 @@ public:
 	 */
 	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const override;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	/**
 	* Return maximum dimension for this texture type.
 	*/

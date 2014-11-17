@@ -2,6 +2,8 @@
 
 #include "ContentBrowserPCH.h"
 #include "NewAssetContextMenu.h"
+#include "IDocumentation.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -108,7 +110,8 @@ public:
 			]
 		];
 
-		SetToolTipText( Factory->GetToolTip() );
+		
+		SetToolTip(IDocumentation::Get()->CreateToolTip(Factory->GetToolTip(), nullptr, Factory->GetToolTipDocumentationPage(), Factory->GetToolTipDocumentationExcerpt()));
 	}
 
 private:
@@ -157,13 +160,13 @@ void FNewAssetContextMenu::MakeContextMenu(FMenuBuilder& MenuBuilder, const FStr
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("ContentBrowserNewBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Basic Assets") );
+	MenuBuilder.BeginSection("ContentBrowserNewBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Create Basic Asset") );
 	{
 		CreateNewAssetMenuCategory(MenuBuilder, EAssetTypeCategories::Basic, InPath, InOnNewAssetRequested);
 	}
 	MenuBuilder.EndSection(); //ContentBrowserNewBasicAsset
 
-	MenuBuilder.BeginSection("ContentBrowserNewAdvancedAsset", LOCTEXT("AdvancedAssetsMenuHeading", "Other Assets"));
+	MenuBuilder.BeginSection("ContentBrowserNewAdvancedAsset", LOCTEXT("AdvancedAssetsMenuHeading", "Create Advanced Asset"));
 	{
 		{
 			TArray<FFactoryItem> AnimationFactories = FindFactoriesInCategory(EAssetTypeCategories::Animation);

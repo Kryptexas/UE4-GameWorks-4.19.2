@@ -11,23 +11,22 @@ namespace EFileDialogFlags
 	};
 }
 
-namespace EFontImportFlags
+enum class EFontImportFlags
 {
-	enum Type
-	{
-		None = 0x0,						// No flags
-		EnableAntialiasing = 0x1,		// Whether the font should be antialiased or not.  Usually you should leave this enabled.
-		EnableBold = 0x2,				// Whether the font should be generated in bold or not
-		EnableItalic = 0x4,				// Whether the font should be generated in italics or not
-		EnableUnderline = 0x8,			// Whether the font should be generated with an underline or not
-		AlphaOnly = 0x10,				// Forces PF_G8 and only maintains Alpha value and discards color
-		CreatePrintableOnly = 0x20,		// Skips generation of glyphs for any characters that are not considered 'printable'
-		IncludeASCIIRange = 0x40,		// When specifying a range of characters and this is enabled, forces ASCII characters (0 thru 255) to be included as well
-		EnableDropShadow = 0x80,		// Enables a very simple, 1-pixel, black colored drop shadow for the generated font
-		EnableLegacyMode = 0x100,		// Enables legacy font import mode.  This results in lower quality antialiasing and larger glyph bounds, but may be useful when debugging problems
-		UseDistanceFieldAlpha = 0x200	// Alpha channel of the font textures will store a distance field instead of a color mask
-	};
+	None = 0x0,						// No flags
+	EnableAntialiasing = 0x1,		// Whether the font should be antialiased or not.  Usually you should leave this enabled.
+	EnableBold = 0x2,				// Whether the font should be generated in bold or not
+	EnableItalic = 0x4,				// Whether the font should be generated in italics or not
+	EnableUnderline = 0x8,			// Whether the font should be generated with an underline or not
+	AlphaOnly = 0x10,				// Forces PF_G8 and only maintains Alpha value and discards color
+	CreatePrintableOnly = 0x20,		// Skips generation of glyphs for any characters that are not considered 'printable'
+	IncludeASCIIRange = 0x40,		// When specifying a range of characters and this is enabled, forces ASCII characters (0 thru 255) to be included as well
+	EnableDropShadow = 0x80,		// Enables a very simple, 1-pixel, black colored drop shadow for the generated font
+	EnableLegacyMode = 0x100,		// Enables legacy font import mode.  This results in lower quality antialiasing and larger glyph bounds, but may be useful when debugging problems
+	UseDistanceFieldAlpha = 0x200	// Alpha channel of the font textures will store a distance field instead of a color mask
 };
+
+ENUM_CLASS_FLAGS(EFontImportFlags)
 
 
 /**
@@ -122,7 +121,15 @@ public:
 	 * @param OutFlags					Any special flags the font has been tagged with
 	 * @return true if font choice was successfully selected
 	 */
-	virtual bool OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags) = 0;
+	virtual bool OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags) = 0;
+
+	/**
+	 * Determines whether the launcher can be opened.
+	 *
+	 * @param Install					Whether to include the possibility of installing the launcher in the check.
+	 * @return true if the launcher can be opened (or installed).
+	 */
+	virtual bool CanOpenLauncher(bool Install) = 0;
 
 	/**
 	 * Opens the marketplace user interface.
@@ -323,6 +330,27 @@ public:
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
 
 	/**
+	* Determines whether UnrealBuildTool is available
+	*
+	* @return true if UnrealBuildTool is available
+	*/
+	virtual bool IsUnrealBuildToolAvailable() = 0;
+
+	/**
+	 * Invokes UnrealBuildTool with the given arguments
+	 *
+	 * @return true if tool was invoked properly
+	 */
+	virtual bool InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput) = 0;
+
+	/** 
+	 * Launches UnrealBuildTool with the specified command line parameters 
+	 * 
+	 * @return process handle to the new UBT process
+	 */
+	virtual FProcHandle InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT = false) = 0;
+
+	/**
 	* Runs UnrealBuildTool with the given arguments.
 	*
 	* @param Description		Task description for FFeedbackContext
@@ -332,6 +360,22 @@ public:
 	* @return true if the task completed successfully.
 	*/
 	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Checks if an instance of UnrealBuildTool is running.
+	*
+	* @return true if an instance of UnrealBuildTool is running.
+	*/
+	virtual bool IsUnrealBuildToolRunning() = 0;
+
+
+	/**
+	* Gets the path to the solution for the current project
+	*
+	* @param OutSolutionPath	Receives the string 
+	* @return True if a solution file exists and OutSolutionPath has been updated
+	*/
+	virtual bool GetSolutionPath(FString& OutSolutionPath) = 0;
 
 	/**
 	* Gets a feedback context which can display progress information using the native platform GUI.
@@ -355,19 +399,4 @@ public:
 	* @return Path to the folder
 	*/
 	virtual FString GetDefaultProjectCreationPath() = 0;
-
-	/** 
-	 * Get (or create) the unique ID used to identify this computer
-	 */
-	virtual FGuid GetMachineId() = 0;
-
-	/**
-	 * Get the Epic account ID for the user who last used the Launcher
-	 */
-	virtual FString GetEpicAccountId() = 0;
-
-	/**
-	 * Set the Epic account ID for the user who last used the Launcher
-	 */
-	virtual void SetEpicAccountId(const FString& AccountId) = 0;
 };

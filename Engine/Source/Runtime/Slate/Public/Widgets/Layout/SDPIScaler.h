@@ -26,6 +26,8 @@ public:
 
 	SLATE_END_ARGS()
 
+	SDPIScaler();
+
 	void Construct( const FArguments& InArgs );
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
@@ -33,6 +35,12 @@ public:
 	virtual FVector2D ComputeDesiredSize() const override;
 
 	virtual FChildren* GetChildren() override;
+
+	/** See the Content attribute */
+	void SetContent(TSharedRef<SWidget> InContent);
+
+	/** See the DPIScale attribute */
+	void SetDPIScale(TAttribute<float> InDPIScale);
 
 protected:
 

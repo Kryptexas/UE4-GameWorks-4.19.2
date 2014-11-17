@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "LightRendering.h"
+#include "SceneUtils.h"
 
 /**
  * A vertex shader for projecting a light function onto the scene.
@@ -23,7 +24,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FLightFunctionVS( )	{ }
@@ -80,7 +81,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FLightFunctionPS() {}
@@ -149,6 +150,8 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionPS,TEXT("LightFunctionPixelShader"
 /** Returns a fade fraction for a light function and a given view based on the appropriate fade settings. */
 static float GetLightFunctionFadeFraction(const FViewInfo& View, FSphere LightBounds)
 {
+	extern float CalculateShadowFadeAlpha(float MaxUnclampedResolution, int32 ShadowFadeResolution, int32 MinShadowResolution);
+
 	// Override the global settings with the light's settings if the light has them specified
 	static auto CVarMinShadowResolution = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.MinResolution"));
 	static auto CVarShadowFadeResolution = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.FadeResolution"));
@@ -168,8 +171,7 @@ static float GetLightFunctionFadeFraction(const FViewInfo& View, FSphere LightBo
 		FMath::Max(ScreenPosition.W, 1.0f);
 
 	static auto CVarShadowTexelsPerPixel = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.TexelsPerPixel"));
-	const uint32 UnclampedResolution = FMath::TruncToInt(ScreenRadius * CVarShadowTexelsPerPixel->GetValueOnRenderThread());
-	extern float CalculateShadowFadeAlpha(int32 MaxUnclampedResolution, int32 ShadowFadeResolution, int32 MinShadowResolution);
+	const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixel->GetValueOnRenderThread();
 	const float ResolutionFadeAlpha = CalculateShadowFadeAlpha(UnclampedResolution, ShadowFadeResolution, MinShadowResolution);
 	return ResolutionFadeAlpha;
 }
@@ -243,7 +245,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 		bRenderedLightFunction = true;
 
 		const FMaterial* Material = MaterialProxy->GetMaterial(Scene->GetFeatureLevel());
-		SCOPED_DRAW_EVENTF(LightFunction, DEC_SCENE_ITEMS, TEXT("LightFunction Material=%s"), *Material->GetFriendlyName());
+		SCOPED_DRAW_EVENTF(RHICmdList, LightFunction, DEC_SCENE_ITEMS, TEXT("LightFunction Material=%s"), *Material->GetFriendlyName());
 
 		const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
 		FLightFunctionVS* VertexShader = MaterialShaderMap->GetShader<FLightFunctionVS>();
@@ -256,7 +258,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 		// Render to the light attenuation buffer for all views.
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
 			const FViewInfo& View = Views[ViewIndex];
 

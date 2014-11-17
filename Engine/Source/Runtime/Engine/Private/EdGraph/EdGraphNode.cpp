@@ -13,6 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
+FName const FNodeMetadata::DefaultGraphNode(TEXT("DefaultGraphNode"));
+
 /////////////////////////////////////////////////////
 // FGraphNodeContextMenuBuilder
 
@@ -159,7 +161,13 @@ void UEdGraphNode::DestroyNode()
 
 const class UEdGraphSchema* UEdGraphNode::GetSchema() const
 {
-	return GetGraph()->GetSchema();
+	UEdGraph* ParentGraph = GetGraph();
+	return ParentGraph ? ParentGraph->GetSchema() : NULL;
+}
+
+bool UEdGraphNode::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	return CanCreateUnderSpecifiedSchema(Graph->GetSchema());
 }
 
 FLinearColor UEdGraphNode::GetNodeTitleColor() const
@@ -172,9 +180,9 @@ FLinearColor UEdGraphNode::GetNodeCommentColor() const
 	return FLinearColor::White;
 }
 
-FString UEdGraphNode::GetTooltip() const
+FText UEdGraphNode::GetTooltipText() const
 {
-	return GetClass()->GetToolTipText().ToString();
+	return GetClass()->GetToolTipText();
 }
 
 FString UEdGraphNode::GetDocumentationExcerptName() const
@@ -235,6 +243,13 @@ void UEdGraphNode::PostLoad()
 			UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
 		}
 
+		// Generate new one
+		CreateNewGuid();
+	}
+
+	// Duplicating a Blueprint needs to have a new Node Guid generated, which was not occuring before this version
+	if(GetLinkerUE4Version() < VER_UE4_POST_DUPLICATE_NODE_GUID)
+	{
 		// Generate new one
 		CreateNewGuid();
 	}

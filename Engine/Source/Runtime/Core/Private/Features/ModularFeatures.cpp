@@ -30,14 +30,14 @@ IModularFeature* FModularFeatures::GetModularFeatureImplementation( const FName 
 void FModularFeatures::RegisterModularFeature( const FName Type, IModularFeature* ModularFeature )
 {
 	ModularFeaturesMap.AddUnique( Type, ModularFeature );
-	ModularFeatureRegisteredEvent.Broadcast( Type );
+	ModularFeatureRegisteredEvent.Broadcast( Type, ModularFeature );
 }
 
 
 void FModularFeatures::UnregisterModularFeature( const FName Type, IModularFeature* ModularFeature )
 {
 	ModularFeaturesMap.RemoveSingle( Type, ModularFeature );
-	ModularFeatureUnregisteredEvent.Broadcast( Type );
+	ModularFeatureUnregisteredEvent.Broadcast( Type, ModularFeature );
 }
 
 IModularFeatures::FOnModularFeatureRegistered& FModularFeatures::OnModularFeatureRegistered()

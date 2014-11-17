@@ -416,70 +416,6 @@ void FAudioDevice::ShowSoundClassHierarchy( FOutputDevice& Ar, USoundClass* InSo
 	}
 }
 
-struct FSimpleIntCompare
-{
-	FORCEINLINE bool operator()( const int32 A, const int32 B ) const { return B < A; }
-};
-
-bool FAudioDevice::HandleSoundTemplateInfoCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	int32 NumCues = 0;
-	TMap<FString, int32> UniqueCues;
-
-	for( TObjectIterator<USoundCue> It; It; ++It )
-	{
-		TArray<USoundNode*> SoundNodes;
-
-		USoundCue* Cue = *It;
-		if( Cue )
-		{
-			if( Cue->FirstNode )
-			{
-				Cue->FirstNode->GetAllNodes( SoundNodes );
-
-				FString Unique = TEXT( "" );
-				for( int32 SoundNodeIndex = 0; SoundNodeIndex < SoundNodes.Num(); SoundNodeIndex++ )
-				{
-					USoundNode* SoundNode = SoundNodes[ SoundNodeIndex ];
-					Unique += SoundNode->GetUniqueString();
-				}
-
-				if( !FCString::Stristr( *Unique, TEXT( "Complex" ) ) )
-				{
-					int32 Count = 1;
-					if( UniqueCues.Find( Unique ) )
-					{
-						Count = UniqueCues.FindRef( Unique ) + 1;
-					}
-					UniqueCues.Add( Unique, Count );
-				}
-
-				Ar.Logf( TEXT( "Cue: %s : %s" ), *Cue->GetFullName(), *Unique );
-				NumCues++;
-			}
-			else
-			{
-				Ar.Logf( TEXT( "No FirstNode : %s" ), *Cue->GetFullName() );
-			}
-		}
-	}
-
-	Ar.Logf( TEXT( "Potential Templates -" ) );
-
-	UniqueCues.ValueSort( FSimpleIntCompare() );
-
-	for( TMap<FString, int32>::TIterator It( UniqueCues ); It; ++It )
-	{
-		FString Template = It.Key();
-		int32 TemplateCount = It.Value();
-		Ar.Logf( TEXT( "%05d : %s" ), TemplateCount, *Template );
-	}
-
-	Ar.Logf( TEXT( "SoundCues processed: %d" ), NumCues );
-	Ar.Logf( TEXT( "Unique SoundCues   : %d" ), UniqueCues.Num() );
-	return true;
-}
-
 int32 PrecachedRealtime = 0;
 int32 PrecachedNative = 0;
 int32 TotalNativeSize = 0;
@@ -822,10 +758,6 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command( &Cmd, TEXT( "ListSoundDurations" ) ) )
 	{
 		return HandleListSoundDurationsCommand( Cmd, Ar );
-	}
-	else if( FParse::Command( &Cmd, TEXT( "SoundTemplateInfo" ) ) )
-	{
-		return HandleSoundTemplateInfoCommand( Cmd, Ar );
 	}
 	else if( FParse::Command( &Cmd, TEXT( "PlaySoundCue" ) ) )
 	{
@@ -1841,7 +1773,9 @@ void FAudioDevice::StartSources( TArray<FWaveInstance*>& WaveInstances, int32 Fi
 		if(	bGameTicking || WaveInstance->bIsUISound )
 		{
 			FSoundSource* Source = WaveInstanceSourceMap.FindRef( WaveInstance );
-			if( !Source )
+			if( !Source &&
+			  ( !WaveInstance->IsStreaming() ||
+				IStreamingManager::Get().GetAudioStreamingManager().CanCreateSoundSource(WaveInstance) ) )
 			{
 				check( FreeSources.Num() );
 				Source = FreeSources.Pop();
@@ -1866,9 +1800,15 @@ void FAudioDevice::StartSources( TArray<FWaveInstance*>& WaveInstances, int32 Fi
 					FreeSources.Add( Source );
 				}
 			}
-			else
+			else if (Source)
 			{
 				Source->Update();
+			}
+			else
+			{
+				// This can happen if the streaming manager determines that this sound should not be started.
+				// We stop the wave instance to prevent it from attempting to initialize every frame
+				WaveInstance->StopWithoutNotification();
 			}
 		}
 	}
@@ -2133,7 +2073,7 @@ bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )
 	return( false );
 }
 
-UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location )
+UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings )
 {
 	UAudioComponent* AudioComponent = NULL;
 
@@ -2145,7 +2085,7 @@ UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World
 			// Don't create component on destroyed actor.
 		}
 		// Either no actor or actor is still alive.
-		else if( Location && !Sound->IsAudibleSimple( *Location ) )
+		else if( Location && !Sound->IsAudibleSimple( *Location, AttenuationSettings ) )
 		{
 			// Don't create a sound component for short sounds that start out of range of any listener
 			UE_LOG(LogAudio, Log, TEXT( "AudioComponent not created for out of range Sound %s" ), *Sound->GetName() );
@@ -2171,6 +2111,7 @@ UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World
 			AudioComponent->bAutoDestroy = bPlay;
 			AudioComponent->bStopWhenOwnerDestroyed = bStopWhenOwnerDestroyed;
 			AudioComponent->bVisualizeComponent	= false;
+			AudioComponent->AttenuationSettings = AttenuationSettings;
 			if (Location)
 			{
 				AudioComponent->SetWorldLocation(*Location);
@@ -2198,17 +2139,17 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 {
 	// Stop all audio components attached to the scene
 	bool bFoundIgnoredComponent = false;
-	for( int32 Index = ActiveSounds.Num() - 1; Index >= 0; Index-- )
+	for( int32 Index = ActiveSounds.Num() - 1; Index >= 0; --Index )
 	{
 		FActiveSound* ActiveSound = ActiveSounds[Index];
 		// if we are in the editor we want to always flush the ActiveSounds
-		if( ActiveSound->bIgnoreForFlushing && !GIsEditor )
+		if( ActiveSound->bIgnoreForFlushing )
 		{
 			bFoundIgnoredComponent = true;
 		}
 		else
 		{
-			if( WorldToFlush == NULL || ActiveSound->World == NULL || ActiveSound->World == WorldToFlush )
+			if( WorldToFlush == nullptr || ActiveSound->World == nullptr || ActiveSound->World == WorldToFlush )
 			{
 				ActiveSound->Stop(this);
 			}
@@ -2223,10 +2164,10 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 	if (bClearActivatedReverb)
 	{
 		ActivatedReverbs.Empty();
-		HighestPriorityReverb = NULL;
+		HighestPriorityReverb = nullptr;
 	}
 
-	if( WorldToFlush == NULL )
+	if( WorldToFlush == nullptr )
 	{
 		// Make sure sounds are fully stopped.
 		if( bFoundIgnoredComponent )
@@ -2509,9 +2450,11 @@ void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioC
 	for (int32 ActiveSoundIndex = ActiveSounds.Num() - 1; ActiveSoundIndex >= 0; --ActiveSoundIndex)
 	{
 		FActiveSound* ActiveSound = ActiveSounds[ActiveSoundIndex];
-		if (ActiveSound->Sound->IsA(USoundWave::StaticClass()))
+		for (auto WaveInstanceIt(ActiveSound->WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
 		{
-			if (ActiveSound->Sound == SoundWave)
+			// If anything the ActiveSound uses the wave then we stop the sound
+			FWaveInstance* WaveInstance = WaveInstanceIt.Value();
+			if (WaveInstance->WaveData == SoundWave)
 			{
 				if (ActiveSound->AudioComponent.IsValid())
 				{
@@ -2519,26 +2462,7 @@ void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioC
 				}
 				ActiveSound->Stop(this);
 				bStoppedSounds = true;
-			}
-		}
-		else
-		{
-			check(ActiveSound->Sound->IsA(USoundCue::StaticClass()));
-
-			for (auto WaveInstanceIt(ActiveSound->WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
-			{
-				// If anything in the SoundCue uses the wave we're going to stop the whole thing for simplicity
-				FWaveInstance* WaveInstance = WaveInstanceIt.Value();
-				if (WaveInstance->WaveData == SoundWave)
-				{
-					if (ActiveSound->AudioComponent.IsValid())
-					{
-						StoppedComponents.Add(ActiveSound->AudioComponent.Get());
-					}
-					ActiveSound->Stop(this);
-					bStoppedSounds = true;
-					break;
-				}
+				break;
 			}
 		}
 	}

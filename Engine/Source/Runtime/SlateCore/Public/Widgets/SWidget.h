@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWidget.h: Declares the SWidget class.
-=============================================================================*/
-
 #pragma once
 
+#include "SlateRenderTransform.h"
 
 class SLATECORE_API FSlateControlledConstruction
 {
@@ -70,21 +67,27 @@ public:
 	 * Construct a SWidget based on initial parameters.
 	 */
 	void Construct(
-		const TAttribute<FString> & InToolTipText ,
+		const TAttribute<FText> & InToolTipText ,
 		const TSharedPtr<IToolTip> & InToolTip ,
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
-		const FName& InTag );
+		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
+		const TAttribute<FVector2D>& InTransformPivot,
+		const FName& InTag,
+		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
-	void SWidgetConstruct( const TAttribute<FString> & InToolTipText ,
+	void SWidgetConstruct( const TAttribute<FText> & InToolTipText ,
 		const TSharedPtr<IToolTip> & InToolTip ,
 		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
-		const FName& InTag )
+		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
+		const TAttribute<FVector2D>& InTransformPivot,
+		const FName& InTag,
+		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
 	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTag);
+		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InMetaData);
 	}
 
 	//
@@ -104,7 +107,6 @@ public:
 	 * @param LayerId           The Layer onto which this widget should be rendered.
 	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
 	 * @param bParentEnabled	True if the parent of this widget is enabled.
-	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
 	int32 Paint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
@@ -119,18 +121,14 @@ public:
 	 * @param  InCurrentTime  Current absolute real time
 	 * @param  InDeltaTime  Real time passed since last tick
 	 */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) { }
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 
 	/**
-	 * Called when a widget is being hit tested and has passed the bounding box test to determine
-	 * if the precise widget geometry is under the cursor.
-	 *
-	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param InAbsoluteCursorPosition	The absolute cursor position
-	 *
-	 * @return true if this widget considers itself hit by the passed in cursor position.
+	 * DEPRECATED: This function caused a lot of confusion, and we found that all known uses of it were unnecessary.
+	 * We will provide a less confusing API for supporting non-rectangular hittesting and pixel-perfect hit testing.
 	 */
-	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition );
+	DEPRECATED(4.5, "OnHitTest is no longer called. It will be replaced by more robust hit testing logic in the near future.")
+	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ){return false;}
 
 	//
 	// KEYBOARD INPUT
@@ -141,7 +139,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent );
@@ -151,17 +148,16 @@ public:
 	 *
 	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
 	 */
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) { }
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent );
 
 	/** Called whenever a focus path is changing on all the widgets within the old and new focus paths */
-	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) { }
+	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath );
 
 	/**
 	 * Called after a character is entered while this widget has keyboard focus
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InCharacterEvent  Character event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent );
@@ -175,7 +171,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardEvent  Keyboard event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -185,7 +180,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardEvent  Keyboard event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -195,7 +189,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InKeyboardEvent  Keyboard event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -209,7 +202,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -228,7 +220,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -238,7 +229,6 @@ public:
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
-	 *
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -262,7 +252,6 @@ public:
 	 * Called when the mouse wheel is spun. This event is bubbled.
 	 *
 	 * @param  MouseEvent  Mouse event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
@@ -279,7 +268,6 @@ public:
 	 *
 	 * @param  InMyGeometry  Widget geometry
 	 * @param  InMouseEvent  Mouse button event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
@@ -290,7 +278,6 @@ public:
 	 * If you override this event, you should probably return true.
 	 * 
 	 * @param  TooltipContent    The TooltipContent that I may want to visualize.
-	 *
 	 * @return true if this widget visualized the tooltip content; i.e., the event is handled.
 	 */
 	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent );
@@ -307,7 +294,6 @@ public:
 	 *
 	 * @param  InMyGeometry  Widget geometry
 	 * @param  InMouseEvent  MouseMove that triggered the drag
-	 * 
 	 */
 	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
@@ -346,7 +332,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
@@ -356,7 +341,6 @@ public:
 	 *
 	 * @param MyGeometry      The geometry of the widget receiving the event.
 	 * @param DragDropEvent   The drag and drop event.
-	 *
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
@@ -386,7 +370,6 @@ public:
 	 * Called when the user performs a gesture on trackpad. This event is bubbled.
 	 *
 	 * @param  GestureEvent  gesture event
-	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent );
@@ -466,7 +449,7 @@ public:
 	 *
 	 * @return The desired size.
 	 */
-	protected: virtual FVector2D ComputeDesiredSize() const = 0;
+	private: virtual FVector2D ComputeDesiredSize() const = 0;
 
 	public:
 
@@ -515,9 +498,7 @@ public:
 	 */
 	bool HasMouseCapture() const;
 
-	/**
-	 * Called when this widget had captured the mouse, but that capture has been revoked for some reason.
-	 */
+	/** Called when this widget had captured the mouse, but that capture has been revoked for some reason. */
 	virtual void OnMouseCaptureLost();
 
 	/**
@@ -549,7 +530,7 @@ public:
 	virtual TSharedPtr<IToolTip> GetToolTip();
 
 	/** Called when a tooltip displayed from this widget is being closed */
-	virtual void OnToolTipClosing() { }
+	virtual void OnToolTipClosing();
 
 	/**
 	 * Sets whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
@@ -578,9 +559,33 @@ public:
 	}
 
 	/** @param InVisibility  should this widget be */
-	void SetVisibility( TAttribute<EVisibility> InVisibility )
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility )
 	{
 		Visibility = InVisibility;
+	}
+
+	/** @return the render transform of the widget. */
+	const TOptional<FSlateRenderTransform>& GetRenderTransform() const
+	{
+		return RenderTransform.Get();
+	}
+
+	/** @param InTransform the render transform to set for the widget (tranforms from widget's local space). TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
+	void SetRenderTransform( TAttribute<TOptional<FSlateRenderTransform>> InTransform )
+	{
+		RenderTransform = InTransform;
+	}
+
+	/** @return the pivot point of the render transform. */
+	const FVector2D& GetRenderTransformPivot() const
+	{
+		return RenderTransformPivot.Get();
+	}
+
+	/** @param InTransformPivot Sets the pivot point of the widget's render transform (in normalized local space). */
+	void SetRenderTransformPivot( TAttribute<FVector2D> InTransformPivot )
+	{
+		RenderTransformPivot = InTransformPivot;
 	}
 
 	/**
@@ -610,11 +615,71 @@ public:
 	 * Used by Slate to set the runtime debug info about this widget.
 	 */
 	void SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine );
+	
+	/**
+	 * Get the metadata of the type provided.
+	 * @return the first metadata of the type supplied that we encounter
+	 */
+	template<typename MetaDataType>
+	TSharedPtr<MetaDataType> GetMetaData() const
+	{
+		for (const auto& MetaDataEntry : MetaData)
+		{
+			if (MetaDataEntry->IsOfType<MetaDataType>())
+			{
+				return StaticCastSharedRef<MetaDataType>(MetaDataEntry);
+			}
+		}
+		return TSharedPtr<MetaDataType>();	
+	}
+
+	/**
+	 * Get all metadata of the type provided.
+	 * @return all the metadata found of the specified type.
+	 */
+	template<typename MetaDataType>
+	TArray<TSharedRef<MetaDataType>> GetAllMetaData() const
+	{
+		TArray<TSharedRef<MetaDataType>> FoundMetaData;
+		for (const auto& MetaDataEntry : MetaData)
+		{
+			if (MetaDataEntry->IsOfType<MetaDataType>())
+			{
+				FoundMetaData.Add(StaticCastSharedRef<MetaDataType>(MetaDataEntry));
+			}
+		}
+		return FoundMetaData;
+	}
+
+private:
+	/**
+	 * Add metadata to the widget unless this type of metadata is already present.
+	 *
+	 * MIGHT BE REMOVED ! ! !
+	 *
+	 * Not sure we want to allow such mutation of metadata yet.
+	 * We might remove this method, so it is only exposed to the
+	 * one used case at the moment; thus the 'friend FTabManager'
+	 */
+	friend class FTabManager;
+
+	template<typename MetaDataType>
+	void AddMetadataIfMissing( const TSharedRef<MetaDataType>& AddMe )
+	{
+		const bool bMetadataAlreadyPresent = MetaData.ContainsByPredicate([]( const TSharedRef<ISlateMetaData>& Candidate )
+		{
+			return Candidate->IsOfType<MetaDataType>();
+		});
+
+		if (!bMetadataAlreadyPresent)
+		{
+			MetaData.Add( AddMe );
+		}		
+	}
 
 public:
-	//
+
 	// Widget Inspector and debugging methods
-	//
 
 	/** @return A String representation of the widget */
 	virtual FString ToString() const;
@@ -633,6 +698,9 @@ public:
 
 	/** @return The line number of the widgets location */
 	virtual int32 GetCreatedInLineNumber() const;
+
+	/** @return The name this widget was tagged with */
+	virtual FName GetTag() const;
 
 	/** @return the Foreground color that this widget sets; unset options if the widget does not set a foreground color */
 	virtual FSlateColor GetForegroundColor() const;
@@ -655,7 +723,6 @@ protected:
 	 * @param MyGeometry      The geometry of this widget.
 	 * @param WidgetsToFind   The widgets whose geometries we wish to discover.
 	 * @param OutResult       A map of widget references to their respective geometries.
-	 *
 	 * @return True if all the WidgetGeometries were found. False otherwise.
 	 */
 	bool FindChildGeometries( const FGeometry& MyGeometry, const TSet< TSharedRef<SWidget> >& WidgetsToFind, TMap<TSharedRef<SWidget>, FArrangedWidget>& OutResult ) const;
@@ -674,7 +741,6 @@ protected:
 	 *
 	 * @param MyGeometry   The geometry of this widget.
 	 * @param WidgetToFind The widget whose geometry we wish to discover.
-	 *
 	 * @return the geometry of WidgetToFind.
 	 */
 	FGeometry FindChildGeometry( const FGeometry& MyGeometry, TSharedRef<SWidget> WidgetToFind ) const;
@@ -695,33 +761,33 @@ protected:
 	}
 
 private:
+
 	/**
-	* The widget should respond by populating the OutDrawElements array with FDrawElements
-	* that represent it and any of its children. Called by the non-virtual OnPaint to enforce pre/post conditions
-	* during OnPaint.
-	*
-	* @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
-	* @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	* @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
-	* @param OutDrawElements   A list of FDrawElements to populate with the output.
-	* @param LayerId           The Layer onto which this widget should be rendered.
-	* @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
-	* @param bParentEnabled	True if the parent of this widget is enabled.
-	*
-	* @return The maximum layer ID attained by this widget or any of its children.
-	*/
+	 * The widget should respond by populating the OutDrawElements array with FDrawElements
+	 * that represent it and any of its children. Called by the non-virtual OnPaint to enforce pre/post conditions
+	 * during OnPaint.
+	 *
+	 * @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
+	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
+	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
+	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
+	 * @param LayerId           The Layer onto which this widget should be rendered.
+	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
+	 * @param bParentEnabled	True if the parent of this widget is enabled.
+	 * @return The maximum layer ID attained by this widget or any of its children.
+	 */
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
 
 	DEPRECATED(4.4, "OnPaint() now requires an extra FPaintArgs parameter. When calling Superclass::OnPaint() you can simply pass through the existing Args.")
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const { return 0; }
 
 	/**
-	* Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
-	* Each type of Layout panel should arrange children based on desired behavior.
-	*
-	* @param AllottedGeometry    The geometry allotted for this widget by its parent.
-	* @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
-	*/
+	 * Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
+	 * Each type of Layout panel should arrange children based on desired behavior.
+	 *
+	 * @param AllottedGeometry    The geometry allotted for this widget by its parent.
+	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
+	 */
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const = 0;
 
 protected:
@@ -736,6 +802,12 @@ protected:
 	/** Line number on which this widget was created */
 	int32 CreatedOnLine;
 
+	/** Tag for this widget */
+	FName Tag;
+
+	/** Metadata associated with this widget */
+	TArray<TSharedRef<ISlateMetaData>> MetaData;
+
 	/** The cursor to show when the mouse is hovering over this widget. */
 	TAttribute< TOptional<EMouseCursor::Type> > Cursor;
 
@@ -745,6 +817,11 @@ protected:
 	/** Is this widget visible, hidden or collapsed */
 	TAttribute< EVisibility > Visibility;
 
+	/** Render transform of this widget. TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
+	TAttribute< TOptional<FSlateRenderTransform> > RenderTransform;
+
+	/** Render transform pivot of this widget (in normalized local space) */
+	TAttribute< FVector2D > RenderTransformPivot;
 private:
 
 	/**
@@ -763,13 +840,4 @@ private:
 
 	/** Is this widget hovered? */
 	bool bIsHovered;
-
-	// @see UseLegacyHittest()
-	static int32 bUseLegacyHittest;
-	static FAutoConsoleVariableRef CVarUseLegacyHittest;
-
-public:
-	/** For perf testing. Old hittest schema does not support widgets outside their parents' bounds. */
-	static bool UseLegacyHittest();
-
 };

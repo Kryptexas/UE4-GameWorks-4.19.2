@@ -13,8 +13,14 @@ FORCEINLINE_DEBUGGABLE void FRHICommandListBase::Flush()
 	if (HasCommands())
 	{
 		check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData);
+		check(!IsImmediate());
 		GRHICommandList.ExecuteList(*this);
 	}
+}
+
+FORCEINLINE_DEBUGGABLE bool FRHICommandListBase::IsImmediate()
+{
+	return this == &FRHICommandListExecutor::GetImmediateCommandList();
 }
 
 FORCEINLINE_DEBUGGABLE bool FRHICommandListBase::Bypass()
@@ -23,12 +29,56 @@ FORCEINLINE_DEBUGGABLE bool FRHICommandListBase::Bypass()
 }
 
 
-FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::Flush()
+FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::ImmediateFlush(EImmediateFlushType::Type FlushType)
 {
-	if (HasCommands())
+	check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData);
+	switch (FlushType)
 	{
-		check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData);
-		GRHICommandList.ExecuteList(*this);
+	case EImmediateFlushType::WaitForOutstandingTasksOnly:
+		{
+			WaitForTasks();
+		}
+		break;
+	case EImmediateFlushType::DispatchToRHIThread:
+		{
+			if (HasCommands())
+			{
+				GRHICommandList.ExecuteList(*this);
+			}
+		}
+		break;
+	case EImmediateFlushType::WaitForRHIThread:
+		{
+			check(GRHIThread);
+			WaitForRHIThreadTasks();
+		}
+		break;
+	case EImmediateFlushType::FlushRHIThread:
+		{
+			if (HasCommands())
+			{
+				GRHICommandList.ExecuteList(*this);
+			}
+			if (GRHIThread)
+			{
+				WaitForRHIThreadTasks();
+			}
+			WaitForTasks(true); // these are already done, but this resets the outstanding array
+		}
+		break;
+	case EImmediateFlushType::FlushRHIThreadFlushResources:
+		{
+			if (HasCommands())
+			{
+				GRHICommandList.ExecuteList(*this);
+			}
+			WaitForRHIThreadTasks();
+			WaitForTasks(true); // these are already done, but this resets the outstanding array
+			FRHIResource::FlushPendingDeletes();
+		}
+		break;
+	default:
+		check(0);
 	}
 }
 

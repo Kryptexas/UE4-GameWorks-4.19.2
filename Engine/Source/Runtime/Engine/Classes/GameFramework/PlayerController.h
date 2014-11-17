@@ -4,15 +4,23 @@
 
 #include "GameFramework/PlayerMuteList.h"
 #include "Camera/PlayerCameraManager.h"
-#include "GameFramework/GameMode.h"
+#include "Camera/CameraTypes.h"
+#include "Camera/CameraActor.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
 #include "Engine/LatentActionManager.h"
+#include "GenericPlatform/IForceFeedbackSystem.h"
+#include "SlateCore.h"
+
 #include "PlayerController.generated.h"
 
+
 class FPrimitiveComponentId;
+
+/** Default delegate that provides an implementation for those that don't have special needs other than a toggle */
+DECLARE_DELEGATE_RetVal(bool, FCanUnpause);
 
 /** delegate used to override default viewport audio listener position calculated from camera */
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);
@@ -47,38 +55,94 @@ struct FDynamicForceFeedbackDetails
 		, Intensity(0.f)
 	{}
 
-	void Update(FForceFeedbackValues& Values) const
-	{
-		if (bAffectsLeftLarge)
-		{
-			Values.LeftLarge = FMath::Clamp(Intensity, Values.LeftLarge, 1.f);
-		}
-		if (bAffectsLeftSmall)
-		{
-			Values.LeftSmall = FMath::Clamp(Intensity, Values.LeftSmall, 1.f);
-		}
-		if (bAffectsRightLarge)
-		{
-			Values.RightLarge = FMath::Clamp(Intensity, Values.RightLarge, 1.f);
-		}
-		if (bAffectsRightSmall)
-		{
-			Values.RightSmall = FMath::Clamp(Intensity, Values.RightSmall, 1.f);
-		}
-	}
+	void Update(FForceFeedbackValues& Values) const;
 };
+
+/** Abstract base class for Input Mode structures */
+struct ENGINE_API FInputModeDataBase
+{
+protected:
+	/** Derived classes override this function to apply the necessary settings for the desired input mode */
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
+
+	/** Utility functions for derived classes. */
+	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
+
+	friend class APlayerController;
+};
+
+/** Data structure used to setup an input mode that allows only the UI to respond to user input. */
+struct ENGINE_API FInputModeUIOnly : public FInputModeDataBase
+{
+	/** Widget to focus */
+	FInputModeUIOnly& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
+
+	/** Whether to lock the mouse to the viewport */
+	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+
+	FInputModeUIOnly()
+		: WidgetToFocus()
+		, bLockMouseToViewport(false)
+	{}
+
+protected:
+	TSharedPtr<SWidget> WidgetToFocus;
+	bool bLockMouseToViewport;
+
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
+};
+
+/** Data structure used to setup an input mode that allows the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
+struct ENGINE_API FInputModeGameAndUI : public FInputModeDataBase
+{
+	/** Widget to focus */
+	FInputModeGameAndUI& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
+
+	/** Whether to lock the mouse to the viewport */
+	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+
+	/** Whether to hide the cursor during temporary mouse capture caused by a mouse down */
+	FInputModeGameAndUI& SetHideCursorDuringCapture(bool InHideCursorDuringCapture) { bHideCursorDuringCapture = InHideCursorDuringCapture; return *this; }
+
+	FInputModeGameAndUI()
+		: WidgetToFocus()
+		, bLockMouseToViewport(false)
+		, bHideCursorDuringCapture(true)
+	{}
+
+protected:
+
+	TSharedPtr<SWidget> WidgetToFocus;
+	bool bLockMouseToViewport;
+	bool bHideCursorDuringCapture;
+
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
+};
+
+/** Data structure used to setup an input mode that allows only the player input / player controller to respond to user input. */
+struct ENGINE_API FInputModeGameOnly : public FInputModeDataBase
+{
+	FInputModeGameOnly()
+	{}
+
+protected:
+	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
+};
+
 
 //=============================================================================
 /**
  * PlayerControllers are used by human players to control Pawns.
  *
- * The control rotation (accessed via GetControlRotation()), determines the aiming
+ * ControlRotation (accessed via GetControlRotation()), determines the aiming
  * orientation of the controlled Pawn.
  *
- * PlayerControllers exist on the server for every player-controlled pawn,
- * and also on the controlling client's machine.
+ * In networked games, PlayerControllers exist on the server for every player-controlled pawn,
+ * and also on the controlling client's machine. They do NOT exist on a client's
+ * machine for pawns controlled by remote players elsewhere on the network.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/
  */
-//=============================================================================
 
 UCLASS(config=Game, BlueprintType, Blueprintable)
 class ENGINE_API APlayerController : public AController
@@ -114,11 +178,11 @@ class ENGINE_API APlayerController : public AController
 	// Camera/view related variables
 
 	/** Camera manager associated with this Player Controller. */
-	UPROPERTY(EditInline, BlueprintReadOnly, Category=PlayerController)
+	UPROPERTY(BlueprintReadOnly, Category=PlayerController)
 	class APlayerCameraManager* PlayerCameraManager;
 
-	/** PlayerCamera class should be set for each game, otherwise Engine.PlayerCamera is used */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerController)
+	/** PlayerCamera class should be set for each game, otherwise Engine.PlayerCameraManager is used */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PlayerController)
 	TSubclassOf<class APlayerCameraManager> PlayerCameraManagerClass;
 
 	/** 
@@ -373,13 +437,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(bTraceComplex=true))
 	bool GetHitResultUnderFingerForObjects(ETouchIndex::Type FingerIndex, const  TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, FHitResult& HitResult) const;
 
-	/** Convert current mouse 2D position to World Space 3D position and direction. **/
+	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(FriendlyName="ConvertMouseLocationToWorldSpace"))
-	void DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const;
+	bool DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const;
 
-	/** Convert current mouse 2D position to World Space 3D position and direction. **/
+	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertScreenLocationToWorldSpace"))
-	void DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
+	bool DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
 
 	/**
 	 * Convert a World Space 3D position into a 2D Screen Space position.
@@ -602,7 +666,7 @@ public:
 	 * @param CustomPlaySpace - Matrix used when Space = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category = "Game|Feedback")
-	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=0, float Rate=0, float BlendInTime=0, float BlendOutTime=0, bool bLoop=false, bool bRandomStartTime=false, enum ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
+	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=0, float Rate=0, float BlendInTime=0, float BlendOutTime=0, bool bLoop=false, bool bRandomStartTime=false, ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
 
 	/** 
 	 * Play Camera Shake 
@@ -722,6 +786,10 @@ public:
 	/** Spawn a camera lens effect (e.g. blood). */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
 	void ClientSpawnCameraLensEffect(TSubclassOf<class AEmitterCameraLensEffectBase>  LensEffectEmitterClass);
+
+	/** Removes all Camera Lens Effects. */
+	UFUNCTION(reliable, client, BlueprintCallable, Category="Game|Feedback")
+	virtual void ClientClearCameraLensEffects();
 
 	/** Stop camera animation on client. */
 	UFUNCTION(reliable, client)
@@ -959,6 +1027,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
 	virtual void ActivateTouchInterface(class UTouchInterface* NewTouchInterface);
 
+	/** Set the virtual joystick visibility. */
+	UFUNCTION(BlueprintCallable, Category = "Game|Player")
+	virtual void SetVirtualJoystickVisibility(bool bVisible);
+
+public:
+
+	/** Setup an input mode. */
+	virtual void SetInputMode(const FInputModeDataBase& InData);
+
+protected:
+
+	/** Utility function for Input Mode functions. */
+	void SetFocusAndLocking(TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedPtr<class SViewport> InViewportWidget);
+
 public:
 	/**
 	 * Change Camera mode
@@ -1140,6 +1222,7 @@ public:
 protected:
 
 	/** Internal. */
+	void TickPlayerInput(const float DeltaSeconds, const bool bGamePaused);
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedback(const float DeltaTime, const bool bGamePaused);
@@ -1401,4 +1484,10 @@ public:
 	/** The value of SeamlessTravelCount, upon the last call to GameMode::HandleSeamlessTravelPlayer; used to detect seamless travel */
 	UPROPERTY()
 	uint16		LastCompletedSeamlessTravelCount;
+
+	/** Stores the last input mode set */
+	//EInputMode  InputMode; right now we don't save this as it could be a half truth.
+
+	/** FReply used to defer some slate operations. */
+	FReply		SlateOperations;
 };

@@ -10,6 +10,8 @@
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
+#define LOCTEXT_NAMESPACE "TLinuxTargetPlatform"
+
 /**
  * Template for Linux target platforms
  */
@@ -18,8 +20,9 @@ class TLinuxTargetPlatform
 	: public TTargetPlatformBase<FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> >
 {
 public:
-
-	typedef TTargetPlatformBase<FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
+	
+	typedef FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> TProperties;
+	typedef TTargetPlatformBase<TProperties> TSuper;
 
 	/**
 	 * Default constructor.
@@ -32,11 +35,27 @@ public:
 		LocalDevice = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, FPlatformProcess::ComputerName()));
 #endif
 	
-		#if WITH_ENGINE
-			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
-			TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
-			StaticMeshLODSettings.Initialize(EngineSettings);
-		#endif
+#if WITH_ENGINE
+		FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *this->PlatformName());
+		TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
+		StaticMeshLODSettings.Initialize(EngineSettings);
+
+		// Get the Target RHIs for this platform, we do not always want all those that are supported.
+		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+		for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+			if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				TargetedShaderFormats.Remove(ShaderFormat);
+			}
+		}
+#endif // WITH_ENGINE
 	}
 
 
@@ -45,6 +64,17 @@ public:
 	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
+
+	virtual bool AddDevice(const FString& DeviceName, bool bDefault) override
+	{
+		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceName);
+		FLinuxTargetDevicePtr Device = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceName));
+		if (Device.IsValid())
+		{
+			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
+		}
+		return true;
+	}
 
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const override
 	{
@@ -82,17 +112,16 @@ public:
 		{
 			return LocalDevice;
 		}
-
-		FTargetDeviceId UATFriendlyId(TEXT("linux"), DeviceId.GetDeviceName());
-		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceId.GetDeviceName()));
+		return nullptr;
 	}
 
 	virtual bool IsRunningPlatform( ) const override
 	{
-		return false;
+		// Must be Linux platform as editor for this to be considered a running platform
+		return PLATFORM_LINUX && !UE_SERVER && !UE_GAME && WITH_EDITOR && HAS_EDITOR_DATA;
 	}
 
-	bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const override
+	virtual bool SupportsFeature(ETargetPlatformFeatures::Type Feature) const override
 	{
 		if (Feature == ETargetPlatformFeatures::UserCredentials || Feature == ETargetPlatformFeatures::Packaging)
 		{
@@ -118,7 +147,10 @@ public:
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
-		GetAllPossibleShaderFormats( OutFormats );
+		for(const FString& ShaderFormat : TargetedShaderFormats)
+		{
+			OutFormats.AddUnique(FName(*ShaderFormat));
+		}
 	}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
@@ -131,7 +163,7 @@ public:
 		if (!IS_DEDICATED_SERVER)
 		{
 			// just use the standard texture format name for this texture
-			OutFormats.Add(GetDefaultTextureFormatName(InTexture, EngineSettings));
+			OutFormats.Add(this->GetDefaultTextureFormatName(InTexture, EngineSettings));
 		}
 	}
 
@@ -143,18 +175,59 @@ public:
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const override
 	{
 		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+
+		if (Wave->IsStreaming())
+		{
+			return NAME_OPUS;
+		}
 
 		return NAME_OGG;
 	}
 #endif //WITH_ENGINE
 
-	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
+	virtual bool SupportsVariants() const override
+	{
+		return true;
+	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		if (IS_DEDICATED_SERVER)
+		{
+			return LOCTEXT("LinuxServerVariantTitle", "Dedicated Server");
+		}
+
+		if (HAS_EDITOR_DATA)
+		{
+			return LOCTEXT("LinuxClientEditorDataVariantTitle", "Client with Editor Data");
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return LOCTEXT("LinuxClientOnlyVariantTitle", "Client only");
+		}
+
+		return LOCTEXT("LinuxClientVariantTitle", "Client");
+	}
+
+	virtual FText GetVariantTitle() const override
+	{
+		return LOCTEXT("LinuxVariantTitle", "Build Type");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return TProperties::GetVariantPriority();
+	}
+
+	DECLARE_DERIVED_EVENT(TLinuxTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{
 		return DeviceDiscoveredEvent;
 	}
-
-	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceLost, FOnTargetDeviceLost);
+	
+	DECLARE_DERIVED_EVENT(TLinuxTargetPlatform, ITargetPlatform::FOnTargetDeviceLost, FOnTargetDeviceLost);
 	virtual FOnTargetDeviceLost& OnDeviceLost( ) override
 	{
 		return DeviceLostEvent;
@@ -176,6 +249,9 @@ private:
 
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
+
+	// List of shader formats specified as targets
+	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:
@@ -186,3 +262,5 @@ private:
 	// Holds an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	FOnTargetDeviceLost DeviceLostEvent;
 };
+
+#undef LOCTEXT_NAMESPACE

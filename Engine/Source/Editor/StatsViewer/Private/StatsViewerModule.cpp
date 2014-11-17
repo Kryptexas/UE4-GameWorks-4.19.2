@@ -2,6 +2,7 @@
 
 #include "StatsViewerPrivatePCH.h"
 #include "StatsPageManager.h"
+#include "CookerStatsPage.h"
 #include "LightingBuildInfoStatsPage.h"
 #include "PrimitiveStatsPage.h"
 #include "StaticMeshLightingInfoStatsPage.h"
@@ -14,6 +15,8 @@
 IMPLEMENT_MODULE( FStatsViewerModule, StatsViewer );
 
 const FName StatsViewerApp = FName("StatsViewerApp");
+
+static const FName CookerStatsPage = FName("CookerStats");
 static const FName LightingBuildInfoPage = FName("LightingBuildInfo");
 static const FName PrimitiveStatsPage = FName("PrimitiveStats");
 static const FName StaticMeshLightingInfoPage = FName("StaticMeshLightingInfo");
@@ -21,6 +24,7 @@ static const FName TextureStatsPage = FName("TextureStats");
 
 void FStatsViewerModule::StartupModule()
 {
+	FStatsPageManager::Get().RegisterPage( MakeShareable(&FCookerStatsPage::Get()) );
 	FStatsPageManager::Get().RegisterPage( MakeShareable(&FLightingBuildInfoStatsPage::Get()) );
 	FStatsPageManager::Get().RegisterPage( MakeShareable(&FPrimitiveStatsPage::Get()) );
 	FStatsPageManager::Get().RegisterPage( MakeShareable(&FStaticMeshLightingInfoStatsPage::Get()) );
@@ -57,6 +61,8 @@ TSharedPtr< IStatsPage > FStatsViewerModule::GetPage( EStatsPage::Type InType )
 {
 	switch( InType )
 	{
+	case EStatsPage::CookerStats:
+		return GetPage(CookerStatsPage);
 	case EStatsPage::LightingBuildInfo:
 		return GetPage(LightingBuildInfoPage);
 	case EStatsPage::PrimitiveStats:

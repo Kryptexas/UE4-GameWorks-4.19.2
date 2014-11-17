@@ -9,6 +9,8 @@
 #include "ModelLight.h"
 #include "Collision.h"
 #include "Model.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 //
 //	Static vars

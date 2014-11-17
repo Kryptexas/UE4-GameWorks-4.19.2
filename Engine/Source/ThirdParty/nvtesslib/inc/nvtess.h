@@ -189,11 +189,11 @@ namespace nv {
 		{
 			const ToType& second;
 
-			__forceinline explicit FToRef( const ToType* Ptr ) : second( *Ptr )
+			FORCEINLINE explicit FToRef( const ToType* Ptr ) : second( *Ptr )
 			{
 			}
 
-			__forceinline const FToRef* operator->() const
+			FORCEINLINE const FToRef* operator->() const
 			{
 				return this;
 			}
@@ -203,21 +203,21 @@ namespace nv {
 		{
 			const ToType* To;
 
-			__forceinline explicit iterator( const ToType* Ptr ) : To( Ptr )
+			FORCEINLINE explicit iterator( const ToType* Ptr ) : To( Ptr )
 			{
 			}
 
-			__forceinline bool operator==( const iterator& Other ) const
+			FORCEINLINE bool operator==( const iterator& Other ) const
 			{
 				return To == Other.To;
 			}
 
-			__forceinline bool operator!=( const iterator& Other ) const
+			FORCEINLINE bool operator!=( const iterator& Other ) const
 			{
 				return To != Other.To;
 			}
 
-			__forceinline const FToRef operator->() const
+			FORCEINLINE const FToRef operator->() const
 			{
 				return FToRef( To );
 			}
@@ -269,7 +269,7 @@ namespace nv {
 			EntryCount++;
 		}
 
-		__forceinline const iterator end() const
+		FORCEINLINE const iterator end() const
 		{
 			return iterator( 0 );
 		}
@@ -398,7 +398,7 @@ namespace nv {
 
 			// ------------------------------------------------------------------------------------
 			// When comparing edges, compare the vertices--not the indices.
-			__forceinline bool operator<(const Edge& rhs) const
+			FORCEINLINE bool operator<(const Edge& rhs) const
 			{
 				// Quick out, otherwise we have to compare vertices. 
 				if (mIndexFrom == rhs.mIndexFrom && mIndexTo == rhs.mIndexTo) { 
@@ -409,7 +409,7 @@ namespace nv {
 					|| mVertexTo < rhs.mVertexTo;
 			}
 
-			__forceinline bool operator==( const Edge& Other ) const
+			FORCEINLINE bool operator==( const Edge& Other ) const
 			{
 				return (mIndexFrom == Other.mIndexFrom && mIndexTo == Other.mIndexTo) ||
 					(mVertexFrom == Other.mVertexFrom && mVertexTo == Other.mVertexTo);

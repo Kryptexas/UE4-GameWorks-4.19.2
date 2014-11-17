@@ -55,7 +55,6 @@ FOnlineFriendsFacebook::FOnlineFriendsFacebook(FOnlineSubsystemFacebook* InSubsy
 	
 	// always required fields
 	FriendsFields.AddUnique(TEXT("name"));
-	FriendsFields.AddUnique(TEXT("username"));
 }
 
 
@@ -180,7 +179,7 @@ void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum,
 	else
 	{
 		// Permissions werent applied so we cannot read friends.
-		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, EFriendsLists::ToString(EFriendsLists::Default), TEXT("no read permissions"));
+		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, EFriendsLists::ToString(EFriendsLists::Default), TEXT("No read permissions"));
 	}
 }
 
@@ -192,12 +191,12 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 		{
 			// We need to determine what the graph path we are querying is.
 			NSMutableString* GraphPath = [[NSMutableString alloc] init];
-			[GraphPath appendString:@"me/friends"];
+			[GraphPath appendString:@"/me/friends"];
 
 			// Optional list of fields to query for each friend
 			if(FriendsFields.Num() > 0)
 			{
-				[GraphPath appendString:@"?fields="];
+				[GraphPath appendString:@"?fields={"];
 
 				FString FieldsStr;
 				for (int32 Idx=0; Idx < FriendsFields.Num(); Idx++)
@@ -210,6 +209,8 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 				}
 
 				[GraphPath appendString:[NSString stringWithFString:FieldsStr]];
+                
+				[GraphPath appendString:@"}"];
 			}
 
 			UE_LOG(LogOnline, Verbose, TEXT("GraphPath=%s"), *FString(GraphPath));
@@ -218,11 +219,10 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 				completionHandler:^(FBRequestConnection *connection, id result, NSError *error)
 				{
 					bool bSuccess = error == nil && result;
-					UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::startWithGraphPath() - %d"), bSuccess);
-						
+
 					if(bSuccess)
 					{
-						NSArray* friends = [[NSArray alloc] initWithArray:[result objectForKey:@"data"]];
+                        NSArray* friends = [[NSArray alloc] initWithArray:[result objectForKey:@"data"]];
 
 						UE_LOG(LogOnline, Verbose, TEXT("Found %i friends"), [friends count]);
 
@@ -232,7 +232,7 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 						for( int32 FriendIdx = 0; FriendIdx < [friends count]; FriendIdx++ )
 						{	
 							NSDictionary<FBGraphUser>* user = friends[ FriendIdx ];		
-							const FString Id([user objectForKey : @"id"]);
+							const FString Id([user objectForKey : @"objectID"]);
 							// Add new friend entry to list
 							TSharedRef<FOnlineFriendFacebook> FriendEntry(
 								new FOnlineFriendFacebook(*Id)
@@ -244,7 +244,7 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 								TEXT("name"), *FString([user objectForKey:@"name"])
 								);
 							FriendEntry->AccountData.Add(
-								TEXT("username"), *FString([user objectForKey:@"username"])
+								TEXT("username"), *FString([user objectForKey:@"name"])
 								);
 							CachedFriends.Add(FriendEntry);
 

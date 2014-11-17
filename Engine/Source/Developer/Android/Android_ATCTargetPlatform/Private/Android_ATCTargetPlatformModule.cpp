@@ -45,6 +45,16 @@ class FAndroid_ATCTargetPlatform
 	{
 		return (ExtensionsString.Contains(TEXT("GL_ATI_texture_compression_atitc")) || ExtensionsString.Contains(TEXT("GL_AMD_compressed_ATC_texture")));
 	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return LOCTEXT("Android_ATC_ShortName", "ATC");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.5f;
+	}
 };
 
 

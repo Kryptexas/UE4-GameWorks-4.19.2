@@ -14,10 +14,10 @@
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 
 FPlacementMode::FPlacementMode()
-	: PlacementsChanged( false )
-	, CreatedPreviewActors( false )
-	, AssetsToPlace()
+	: AssetsToPlace()
 	, ActiveTransactionIndex( INDEX_NONE )
+	, PlacementsChanged( false )
+	, CreatedPreviewActors( false )
 {
 }
 
@@ -449,7 +449,6 @@ bool FPlacementMode::IsCompatibleWith(FEditorModeID OtherModeID) const
 		OtherModeID == FBuiltinEditorModes::EM_Geometry		||
 		OtherModeID == FBuiltinEditorModes::EM_InterpEdit	||
 		OtherModeID == FBuiltinEditorModes::EM_MeshPaint	||
-		OtherModeID == FBuiltinEditorModes::EM_Landscape	||
 		OtherModeID == FBuiltinEditorModes::EM_Foliage		||
 		OtherModeID == FBuiltinEditorModes::EM_Level		||
 		OtherModeID == FBuiltinEditorModes::EM_Physics		||

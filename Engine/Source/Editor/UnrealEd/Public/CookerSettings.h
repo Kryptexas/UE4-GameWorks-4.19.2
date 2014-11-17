@@ -8,7 +8,6 @@
 
 #include "CookerSettings.generated.h"
 
-
 /**
  * Implements per-project cooker settings exposed to the editor
  */
@@ -23,12 +22,4 @@ public:
 	/** Quality of 0 means fastest, 4 means best */
 	UPROPERTY(config, EditAnywhere, Category=Textures)
 	int32 DefaultPVRTCQuality;
-
-	/** Whether or not to add support for Metal API (requires IOS8 and A7 processors) */
-	UPROPERTY(config, EditAnywhere, Category=IOS)
-	bool bSupportMetal;
-
-	/** Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version and A7, in the plist) */
-	UPROPERTY(config, EditAnywhere, Category = IOS)
-	bool bSupportOpenGLES2;
 };

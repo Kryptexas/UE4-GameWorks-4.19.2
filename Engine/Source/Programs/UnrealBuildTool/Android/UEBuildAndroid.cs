@@ -15,8 +15,6 @@ namespace UnrealBuildTool
 		/// Android settings.
 		/// </summary>
 		[XmlConfig]
-		public static string AndroidArchitecture = "-armv7";
-		[XmlConfig]
 		public static string AndroidNdkApiTarget = "latest";
 		[XmlConfig]
 		public static string AndroidSdkApiTarget = "latest";
@@ -24,14 +22,14 @@ namespace UnrealBuildTool
 		// The current architecture - affects everything about how UBT operates on Android
 		public override string GetActiveArchitecture()
 		{
-			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return AndroidArchitecture;
+			// internal architectures are handled inside the toolchain to be able to build all at once, so we no longer need an architecture here
+			return base.GetActiveArchitecture();
 		}
 
-        public override bool CanUseXGE()
-        {
-            return false;
-        }
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
 
         protected override bool PlatformSupportsAutoSDKs()
         {
@@ -152,6 +150,11 @@ namespace UnrealBuildTool
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
+		public override bool ShouldUsePCHFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration)
+		{
+			return true;
+		}
+
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			return "";
@@ -161,6 +164,8 @@ namespace UnrealBuildTool
 		{
 			ValidateUEBuildConfiguration();
 			//BuildConfiguration.bDeployAfterCompile = true;
+        
+            UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateUEBuildConfiguration()
@@ -170,6 +175,7 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 			UEBuildConfiguration.bCompilePhysX = true;
 			UEBuildConfiguration.bCompileAPEX = false;
+            UEBuildConfiguration.bRuntimePhysicsCooking = false;
 
 			UEBuildConfiguration.bBuildEditor = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
@@ -230,6 +236,10 @@ namespace UnrealBuildTool
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
+//                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
+							// @todo es31: Put this back in for ES31 support
+							// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
+							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                         }
 					}
 					else if (InModule.ToString() == "UnrealEd")
@@ -258,6 +268,10 @@ namespace UnrealBuildTool
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
+//                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
+					// @todo es31: Put this back in for ES31 support
+					// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
+					// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                 }
 
 				if (bBuildShaderFormats)
@@ -297,28 +311,28 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
-			if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-armv7")
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
-				InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
-				InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
-			}
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
+			
+			// the toolchain will actually filter these out
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
 
-			InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
-			InBuildTarget.GlobalCompileEnvironment.Config.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
 
-			// link with Android libraries.
-			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/stlport/libs/armeabi-v7a");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
 
             // Add path to statically compiled version of cxa_demangle
-            InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
 
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("stdc++");
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
+			//@TODO: Tegra Gfx Debugger
+//			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
+//			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Tegra_gfx_debugger");
+
+            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
+            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("c");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("m");
@@ -347,68 +361,22 @@ namespace UnrealBuildTool
 			};
 		}
 
-		public override void SetupBinaries(UEBuildTarget InBuildTarget)
+		public override string[] FinalizeBinaryPaths(string BinaryName)
 		{
-			// dangerously fast mode doesn't generate stub files
-			if (!IOSToolChain.bUseDangerouslyFastMode)
+			string[] Architectures = AndroidToolChain.GetAllArchitectures();
+			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+
+			// make multiple output binaries
+			List<string> AllBinaries = new List<string>();
+			foreach (string Architecture in Architectures)
 			{
-				List<UEBuildBinary> NewBinaries = new List<UEBuildBinary>();
-				// add the .apk to the binaries
-				foreach (var Binary in InBuildTarget.AppBinaries)
+				foreach (string GPUArchitecture in GPUArchitectures)
 				{
-					// make a binary that just points to the .stub of this executable
-					UEBuildBinaryConfiguration NewConfig = new UEBuildBinaryConfiguration(
-																	InType: Binary.Config.Type,
-																	InOutputFilePath: Path.ChangeExtension(Binary.Config.OutputFilePath, ".apk"),
-																	InIntermediateDirectory: Binary.Config.IntermediateDirectory,
-																	bInCreateImportLibrarySeparately: Binary.Config.bCreateImportLibrarySeparately,
-																	bInAllowExports: Binary.Config.bAllowExports,
-																	InModuleNames: Binary.Config.ModuleNames);
-
-					NewBinaries.Add(new UEStubDummyBinary(InBuildTarget, NewConfig));
+					AllBinaries.Add(AndroidToolChain.InlineArchName(BinaryName, Architecture, GPUArchitecture));
 				}
-
-				InBuildTarget.AppBinaries.AddRange(NewBinaries);
 			}
-		}
-	}
 
-	/// <summary>
-	/// A .stub that has the executable and metadata included
-	/// Note that this doesn't actually build anything. It just makes the .apk get checked in
-	/// THis could be shared with IOS, etc
-	/// </summary>
-	class UEApkDummyBinary : UEBuildBinary
-	{
-		/// <summary>
-		/// Create an instance initialized to the given configuration
-		/// </summary>
-		/// <param name="InConfig">The build binary configuration to initialize the instance to</param>
-		public UEApkDummyBinary(UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig)
-			: base(InTarget, InConfig)
-		{
-		}
-
-		/// <summary>
-		/// Builds the binary.
-		/// </summary>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-		{
-			// generate the .apk!
-			return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };
-		}
-
-		/// <summary>
-		/// Writes an XML summary of the build environment for this binary
-		/// </summary>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <returns></returns>
-		public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, XmlWriter Writer)
-		{
+			return AllBinaries.ToArray();
 		}
 	}
 }

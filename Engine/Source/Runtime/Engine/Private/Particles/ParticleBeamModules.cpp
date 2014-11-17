@@ -1853,7 +1853,7 @@ bool UParticleModuleBeamSource::ResolveSourceData(FParticleBeam2EmitterInstance*
 				// Use the value as a world space position
 				BeamData->SourcePoint	= Source.GetValue(BeamInst->EmitterTime, BeamInst->Component);
 				// Take into account current world origin offset
-				BeamData->SourcePoint  -= FVector(BeamInst->Component->GetWorld()->GlobalOriginOffset);
+				BeamData->SourcePoint  -= FVector(BeamInst->Component->GetWorld()->OriginLocation);
 			}
 			else
 			{
@@ -2227,7 +2227,7 @@ bool UParticleModuleBeamTarget::ResolveTargetData(FParticleBeam2EmitterInstance*
 			{
 				BeamData->TargetPoint	= Target.GetValue(BeamInst->EmitterTime, BeamInst->Component);
 				// Take into account current world origin offset
-				BeamData->TargetPoint  -= FVector(BeamInst->Component->GetWorld()->GlobalOriginOffset);
+				BeamData->TargetPoint  -= FVector(BeamInst->Component->GetWorld()->OriginLocation);
 			}
 			else
 			{

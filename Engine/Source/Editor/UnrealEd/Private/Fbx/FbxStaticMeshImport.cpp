@@ -394,8 +394,20 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	//
 	// build collision
 	//
-	bool bEnableCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace( Node ) )
-		|| (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
+	bool bImportedCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace(Node));
+
+	if (false && !bImportedCollision && StaticMesh)	//if didn't import collision automatically generate one
+	{
+		StaticMesh->CreateBodySetup();
+
+		const int32 NumDirs = 18;
+		TArray<FVector> Dirs;
+		Dirs.AddUninitialized(NumDirs);
+		for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
+		GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
+	}
+
+	bool bEnableCollision = bImportedCollision || (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
 	for(int32 SectionIndex=MaterialIndexOffset; SectionIndex<MaterialIndexOffset+MaterialCount; SectionIndex++)
 	{
 		FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
@@ -414,6 +426,13 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	TotalMatrixForNormal = TotalMatrix.Inverse();
 	TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
 	int32 TriangleCount = Mesh->GetPolygonCount();
+
+	if(TriangleCount == 0)
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_NoTrianglesFoundInMesh", "No triangles were found on mesh  '{0}'"), FText::FromString(Mesh->GetName()))), FFbxErrors::StaticMesh_NoTriangles);
+		return false;
+	}
+
 	int32 VertexCount = Mesh->GetControlPointsCount();
 	int32 WedgeCount = TriangleCount * 3;
 	bool OddNegativeScale = IsOddNegativeScale(TotalMatrix);
@@ -787,6 +806,20 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 	return NewMesh;
 }
 
+void UnFbx::FFbxImporter::VerifyGeometry(UStaticMesh* StaticMesh)
+{
+	// Calculate bounding box to check if too small
+	{
+		FVector Center, Extents;
+		ComputeBoundingBox(StaticMesh, Center, Extents);
+
+		if (Extents.GetAbsMax() < 5.f)
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Prompt_MeshVerySmall", "Warning: The imported mesh is very small. This is most likely an issue with the units used when exporting to FBX.")), FFbxErrors::Generic_Mesh_SmallGeometry);
+		}
+	}
+}
+
 UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex)
 {
 	bool bBuildStatus = true;
@@ -928,7 +961,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	StaticMesh->LightingGuid = FGuid::NewGuid();
 
 	// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-	StaticMesh->LightMapResolution = 32;
+	StaticMesh->LightMapResolution = 64;
 	StaticMesh->LightMapCoordinateIndex = 1;
 
 	TArray<FFbxMaterial> MeshMaterials;
@@ -1060,6 +1093,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		
 		// Remap material indices.
 		int32 MaxMaterialIndex = 0;
+		int32 FirstOpenUVChannel = 1;
 		{
 			FRawMesh RawMesh;
 			SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
@@ -1097,6 +1131,15 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			for (int32 TriIndex = 0; TriIndex < RawMesh.FaceMaterialIndices.Num(); ++TriIndex)
 			{
 				MaxMaterialIndex = FMath::Max<int32>(MaxMaterialIndex,RawMesh.FaceMaterialIndices[TriIndex]);
+			}
+
+			for( int32 i = 0; i < MAX_MESH_TEXTURE_COORDS; i++ )
+			{
+				if( RawMesh.WedgeTexCoords[i].Num() == 0 )
+				{
+					FirstOpenUVChannel = i;
+					break;
+				}
 			}
 
 			SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -1151,6 +1194,17 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		SrcModel.BuildSettings.bRecomputeNormals = ImportOptions->NormalImportMethod == FBXNIM_ComputeNormals;
 		SrcModel.BuildSettings.bRecomputeTangents = ImportOptions->NormalImportMethod != FBXNIM_ImportNormalsAndTangents;
 
+		if( ImportOptions->bGenerateLightmapUVs )
+		{
+			SrcModel.BuildSettings.bGenerateLightmapUVs = true;
+			SrcModel.BuildSettings.DstLightmapIndex = FirstOpenUVChannel;
+			StaticMesh->LightMapCoordinateIndex = FirstOpenUVChannel;
+		}
+		else
+		{
+			SrcModel.BuildSettings.bGenerateLightmapUVs = false;
+		}
+
 		StaticMesh->LODGroup = ImportOptions->StaticMeshLODGroup;
 		StaticMesh->Build(false);
 		
@@ -1174,6 +1228,26 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	else
 	{
 		StaticMesh = NULL;
+	}
+
+	if (StaticMesh)
+	{
+
+		//collision generation
+		if (StaticMesh->bCustomizedCollision == false && ImportOptions->bAutoGenerateCollision)
+		{
+			FKAggregateGeom & AggGeom = StaticMesh->BodySetup->AggGeom;
+			AggGeom.ConvexElems.Empty(1);	//if no custom collision is setup we just regenerate collision when reimport
+
+			const int32 NumDirs = 18;
+			TArray<FVector> Dirs;
+			Dirs.AddUninitialized(NumDirs);
+			for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
+			GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
+		}
+		
+		//warnings based on geometry
+		VerifyGeometry(StaticMesh);
 	}
 
 	return StaticMesh;
@@ -1350,6 +1424,8 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 	}
 
 	TSharedPtr< FbxArray<FbxNode*> > Models = Record->GetValue();
+
+	StaticMesh->bCustomizedCollision = true;
 
 	StaticMesh->CreateBodySetup();
 

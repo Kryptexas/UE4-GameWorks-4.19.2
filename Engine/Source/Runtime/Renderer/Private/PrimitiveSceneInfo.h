@@ -28,7 +28,7 @@ public:
 		CurrentDirectionalShadowing(1),
 		CurrentSkyBentNormal(FVector4(0, 0, 1, 1)),
 		bHasEverUpdatedSingleSample(false),
-		bOpaqueRelevance(true),
+		bPointSample(true),
 		bIsDirty(false)
 	{
 		for (int32 VectorIndex = 0; VectorIndex < ARRAY_COUNT(TargetSamplePacked); VectorIndex++)
@@ -83,8 +83,8 @@ public:
 	/** Whether SingleSamplePacked has ever been populated with valid results, used to initialize. */
 	bool bHasEverUpdatedSingleSample;
 
-	/** Whether the primitive this allocation is used for has opaque relevance. */
-	bool bOpaqueRelevance;
+	/** Whether this allocation is a point sample and therefore was not put into the volume texture atlas. */
+	bool bPointSample;
 
 	/** Whether the primitive allocation is dirty and should be updated regardless of having moved. */
 	bool bIsDirty;
@@ -99,7 +99,7 @@ public:
 		return MinTexel.X >= 0 && MinTexel.Y >= 0 && MinTexel.Z >= 0 && AllocationTexelSize > 0;
 	}
 
-	void SetParameters(FIntVector InMinTexel, int32 InAllocationTexelSize, FVector InScale, FVector InAdd, FVector InMinUV, FVector InMaxUV, bool bInOpaqueRelevance)
+	void SetParameters(FIntVector InMinTexel, int32 InAllocationTexelSize, FVector InScale, FVector InAdd, FVector InMinUV, FVector InMaxUV, bool bInPointSample)
 	{
 		Add = InAdd;
 		Scale = InScale;
@@ -108,7 +108,7 @@ public:
 		MinTexel = InMinTexel;
 		AllocationTexelSize = InAllocationTexelSize;
 		bIsDirty = false;
-		bOpaqueRelevance = bInOpaqueRelevance;
+		bPointSample = bInPointSample;
 	}
 };
 
@@ -234,8 +234,23 @@ public:
 	/** Removes the primitive from the scene. */
 	void RemoveFromScene(bool bUpdateStaticDrawLists);
 
+	/** return true if we need to call ConditionalUpdateStaticMeshes */
+	FORCEINLINE bool NeedsUpdateStaticMeshes()
+	{
+		return bNeedsStaticMeshUpdate;
+	}
+
 	/** Updates the primitive's static meshes in the scene. */
-	void ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
+	void UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
+
+	/** Updates the primitive's static meshes in the scene. */
+	FORCEINLINE void ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
+	{
+		if (NeedsUpdateStaticMeshes())
+		{
+			UpdateStaticMeshes(RHICmdList);
+		}
+	}
 
 	/** Sets a flag to update the primitive's static meshes before it is next rendered. */
 	void BeginDeferredUpdateStaticMeshes();
@@ -278,7 +293,7 @@ public:
 	inline int32 GetIndex() const { return PackedIndex; }
 
 	/* @return true if the object needs to be rendered in the velocity pass (is not moving like the world, needed for motionblur and TemporalAA) */
-	bool ShouldRenderVelocity(const FViewInfo& View) const;
+	bool ShouldRenderVelocity(const FViewInfo& View, bool bCheckVisibility = true) const;
 	
 	/**
 	 * Shifts primitive position and all relevant data by an arbitrary delta.

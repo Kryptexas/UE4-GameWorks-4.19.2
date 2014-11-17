@@ -57,6 +57,7 @@
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLightmapUVs.h"
 #include "Materials/MaterialExpressionLightmassReplace.h"
@@ -122,7 +123,6 @@
 #include "Materials/MaterialExpressionAntialiasedTextureMask.h"
 #include "Materials/MaterialExpressionTextureSampleParameterSubUV.h"
 #include "Materials/MaterialExpressionTextureSampleParameterCube.h"
-#include "Materials/MaterialExpressionTextureSampleParameterMovie.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionTransform.h"
@@ -174,6 +174,7 @@ bool IsAllowedExpressionType(UClass* Class, bool bMaterialFunction)
 			&& !Class->IsChildOf(UMaterialExpressionDynamicParameter::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionFontSampleParameter::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerWeight::StaticClass())
+			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerSample::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerSwitch::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeLayerBlend::StaticClass())
 			&& !Class->IsChildOf(UMaterialExpressionLandscapeVisibilityMask::StaticClass());
@@ -368,6 +369,7 @@ void UMaterialExpression::CopyMaterialExpressions(const TArray<UMaterialExpressi
 			}
 
 			NewExpression->UpdateParameterGuid(true, true);
+			NewExpression->UpdateMaterialExpressionGuid(true, true);
 
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>( NewExpression );
 			if( FunctionInput )
@@ -434,28 +436,12 @@ void UMaterialExpression::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() < VER_UE4_CHANGED_MATERIAL_REFACTION_TYPE)
+	const TArray<FExpressionInput*> Inputs = GetInputs();
+	for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
 	{
-		const TArray<FExpressionInput*> Inputs = GetInputs();
-		for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
-		{
-			FExpressionInput* Input = Inputs[InputIndex];
-			if (Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING)
-			{
-				DoMaterialAttributeReorder(Input);
-			}
-			if (Input->Expression
-				&& Input->OutputIndex == 13
-				&& Input->Expression->IsA(UMaterialExpressionBreakMaterialAttributes::StaticClass())
-				&& Input->MaskB)
-			{
-				Input->Mask = 1;
-				Input->MaskR = 1;
-				Input->MaskG = 1;
-				Input->MaskB = 0;
-				Input->MaskA = 0;
-			}
-		}
+		FExpressionInput* Input = Inputs[InputIndex];
+
+		DoMaterialAttributeReorder(Input, Ar.UE4Ver());
 	}
 }
 
@@ -464,6 +450,8 @@ void UMaterialExpression::PostInitProperties()
 	Super::PostInitProperties();
 
 	UpdateParameterGuid(false, false);
+	
+	UpdateMaterialExpressionGuid(false, true);
 }
 
 void UMaterialExpression::PostLoad()
@@ -481,6 +469,8 @@ void UMaterialExpression::PostLoad()
 	}
 
 	UpdateParameterGuid(false, false);
+	
+	UpdateMaterialExpressionGuid(false, false);
 }
 
 void UMaterialExpression::PostDuplicate(bool bDuplicateForPIE)
@@ -490,6 +480,7 @@ void UMaterialExpression::PostDuplicate(bool bDuplicateForPIE)
 	// We do not force a guid regen here because this function is used when the Material Editor makes a copy of a material to edit.
 	// If we forced a GUID regen, it would cause all of the guids for a material to change everytime a material was edited.
 	UpdateParameterGuid(false, true);
+	UpdateMaterialExpressionGuid(false, true);
 }
 
 #if WITH_EDITOR
@@ -865,6 +856,25 @@ void UMaterialExpression::ConnectExpression( FExpressionInput* Input, int32 Outp
 		Input->MaskG = Output.MaskG;
 		Input->MaskB = Output.MaskB;
 		Input->MaskA = Output.MaskA;
+	}
+}
+
+void UMaterialExpression::UpdateMaterialExpressionGuid(bool bForceGeneration, bool bAllowMarkingPackageDirty)
+{
+	// If we are in the editor, and we don't have a valid GUID yet, generate one.
+	if (GIsEditor && !FApp::IsGame())
+	{
+		FGuid& Guid = GetMaterialExpressionId();
+
+		if (bForceGeneration || !Guid.IsValid())
+		{
+			Guid = FGuid::NewGuid();
+
+			if (bAllowMarkingPackageDirty)
+			{
+				MarkPackageDirty();
+			}
+		}
 	}
 }
 
@@ -1461,7 +1471,7 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		}
 	}
 
-	if (!ParameterName.IsValid() || (ParameterName.GetIndex() == NAME_None))
+	if (!ParameterName.IsValid() || ParameterName.IsNone())
 	{
 		return UMaterialExpressionTextureSample::Compile(Compiler, OutputIndex, MultiplexIndex);
 	}
@@ -1819,48 +1829,6 @@ const TCHAR* UMaterialExpressionTextureSampleParameterCube::GetRequirements()
 void UMaterialExpressionTextureSampleParameterCube::SetDefaultTexture()
 {
 	Texture = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EngineResources/DefaultTextureCube.DefaultTextureCube"), NULL, LOAD_None, NULL);
-}
-
-UMaterialExpressionTextureSampleParameterMovie::UMaterialExpressionTextureSampleParameterMovie(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FString NAME_Texture;
-		FString NAME_Parameters;
-		FConstructorStatics()
-			: NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-	MenuCategories.Empty();
-	MenuCategories.Add(ConstructorStatics.NAME_Texture);
-	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
-}
-
-void UMaterialExpressionTextureSampleParameterMovie::GetCaption(TArray<FString>& OutCaptions) const
-{
-	OutCaptions.Add(TEXT("ParamMovie")); 
-	OutCaptions.Add(FString::Printf(TEXT("'%s'"), *ParameterName.ToString()));
-}
-
-bool UMaterialExpressionTextureSampleParameterMovie::TextureIsValid( UTexture* InTexture )
-{
-	bool Result=false;
-	if (InTexture)
-	{
-		Result = (InTexture->GetClass() == UTextureMovie::StaticClass());
-	}
-	return Result;
-}
-
-const TCHAR* UMaterialExpressionTextureSampleParameterMovie::GetRequirements()
-{
-	return TEXT("Requires TextureMovie");
 }
 
 /** 
@@ -3232,7 +3200,7 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 		case 15: Ret = Refraction.Compile(Compiler); Expression = Refraction.Expression; break; 
 	};
 
-	const int32 CustomUVStart = 14;
+	const int32 CustomUVStart = 16;
 
 	if (MultiplexIndex >= CustomUVStart && MultiplexIndex <= CustomUVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0)
 	{
@@ -3289,9 +3257,9 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	Outputs.Add(FExpressionOutput(TEXT("ClearCoat"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("ClearCoatRoughness"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("AmbientOcclusion"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 1, 0));
 
-	for (int32 UVIndex = 0; UVIndex < MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
+	for (int32 UVIndex = 0; UVIndex <= MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
 	}
@@ -3301,17 +3269,17 @@ void  UMaterialExpressionBreakMaterialAttributes::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
 
- 	//Switch the connection over to the new input.
- 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX )
- 	{
- 		MaterialAttributes.Expression = Struct.Expression;
- 		MaterialAttributes.OutputIndex = Struct.OutputIndex;
- 		MaterialAttributes.Mask = Struct.Mask;
- 		MaterialAttributes.MaskR = Struct.MaskR;
- 		MaterialAttributes.MaskG = Struct.MaskG;
- 		MaterialAttributes.MaskB = Struct.MaskB;
- 		MaterialAttributes.MaskA = Struct.MaskA;
- 	}
+	//Switch the connection over to the new input.
+	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX )
+	{
+		MaterialAttributes.Expression = Struct.Expression;
+		MaterialAttributes.OutputIndex = Struct.OutputIndex;
+		MaterialAttributes.Mask = Struct.Mask;
+		MaterialAttributes.MaskR = Struct.MaskR;
+		MaterialAttributes.MaskG = Struct.MaskG;
+		MaterialAttributes.MaskB = Struct.MaskB;
+		MaterialAttributes.MaskA = Struct.MaskA;
+	}
 }
 
 int32 UMaterialExpressionBreakMaterialAttributes::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -4089,6 +4057,16 @@ bool UMaterialExpressionFeatureLevelSwitch::IsResultMaterialAttributes(int32 Out
 	}
 
 	return false;
+}
+
+void UMaterialExpressionFeatureLevelSwitch::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_RENAME_SM3_TO_ES3_1)
+	{
+		// Copy the ES2 input to SM3 (since SM3 will now become ES3_1 and we don't want broken content)
+		Inputs[ERHIFeatureLevel::ES3_1] = Inputs[ERHIFeatureLevel::ES2];
+	}
 }
 
 //
@@ -5520,7 +5498,7 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 {
 	int32 Result = -1;
 	if( !ParameterName.IsValid() || 
-		ParameterName.GetIndex() == NAME_None || 
+		ParameterName.IsNone() || 
 		!Font ||
 		!Font->Textures.IsValidIndex(FontTexturePage) )
 	{
@@ -6187,7 +6165,7 @@ UMaterialFunction::UMaterialFunction(const class FPostConstructInitializePropert
 
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 UMaterial* UMaterialFunction::GetPreviewMaterial()
 {
 	if( NULL == PreviewMaterial )
@@ -6292,13 +6270,12 @@ void UMaterialFunction::PostLoad()
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (CombinedOutputTypes == 0)
 	{
 		UpdateInputOutputTypes();
 	}
-#endif
-#if WITH_EDITOR
+
 	if (GIsEditor)
 	{
 		// Clean up any removed material expression classes	
@@ -6660,7 +6637,7 @@ void UMaterialFunction::AppendReferencedTextures(TArray<UTexture*>& InOutTexture
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 bool UMaterialFunction::HasFlippedCoordinates() const
 {
 	uint32 ReversedInputCount = 0;
@@ -8471,7 +8448,7 @@ int32 UMaterialExpressionAntialiasedTextureMask::Compile(class FMaterialCompiler
 
 	int32 TextureCodeIndex;
 
-	if (!ParameterName.IsValid() || (ParameterName.GetIndex() == NAME_None))
+	if (!ParameterName.IsValid() || ParameterName.IsNone())
 	{
 		TextureCodeIndex = Compiler->Texture(Texture);
 	}
@@ -8519,6 +8496,53 @@ const TCHAR* UMaterialExpressionAntialiasedTextureMask::GetRequirements()
 void UMaterialExpressionAntialiasedTextureMask::SetDefaultTexture()
 {
 	Texture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"), NULL, LOAD_None, NULL);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionLandscapeLayerSample
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionLandscapeLayerSample::UMaterialExpressionLandscapeLayerSample(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FString NAME_Landscape;
+		FConstructorStatics()
+			: NAME_Landscape(LOCTEXT("Landscape", "Landscape").ToString())
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	bIsParameterExpression = true;
+	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
+}
+
+int32 UMaterialExpressionLandscapeLayerSample::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	const int32 WeightCode = Compiler->StaticTerrainLayerWeight(ParameterName, Compiler->Constant(PreviewWeight));
+
+	return WeightCode;
+}
+
+UTexture* UMaterialExpressionLandscapeLayerSample::GetReferencedTexture()
+{
+	return GEngine->WeightMapPlaceholderTexture;
+}
+
+void UMaterialExpressionLandscapeLayerSample::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString::Printf(TEXT("Sample '%s'"), *ParameterName.ToString()));
+}
+
+void UMaterialExpressionLandscapeLayerSample::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+{
+	if (!OutParameterNames.Contains(ParameterName))
+	{
+		OutParameterNames.Add(ParameterName);
+		OutParameterIds.Add(ExpressionGUID);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -8826,36 +8850,36 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 		// LB_AlphaBlend layers are blended last
 		if (Layer.BlendType != LB_AlphaBlend)
 		{
-		    // Height input
-		    const int32 HeightCode = Layer.HeightInput.Expression ? Layer.HeightInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant(Layer.ConstHeightInput);
-    
-		    const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName,Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
-		    if( WeightCode != INDEX_NONE )
-		    {
-			    switch( Layer.BlendType )
-			    {
-			    case LB_WeightBlend:
-				    {
-					    // Store the weight plus accumulate the sum of all weights so far
-					    WeightCodes[LayerIdx] = WeightCode;
-					    WeightSumCode = Compiler->Add(WeightSumCode, WeightCode);
-				    }
-				    break;
-			    case LB_HeightBlend:
-				    {
-					    bNeedsRenormalize = true;
-    
-					    // Modify weight with height
-					    int32 ModifiedWeightCode = Compiler->Clamp(
-						    Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
-						    Compiler->Constant(0.f), Compiler->Constant(1.f) );
-    
-					    // Store the final weight plus accumulate the sum of all weights so far
-					    WeightCodes[LayerIdx] = ModifiedWeightCode;
-					    WeightSumCode = Compiler->Add(WeightSumCode, ModifiedWeightCode);
-				    }
-				    break;
-			    }
+			// Height input
+			const int32 HeightCode = Layer.HeightInput.Expression ? Layer.HeightInput.Compile(Compiler, MultiplexIndex) : Compiler->Constant(Layer.ConstHeightInput);
+	
+			const int32 WeightCode = Compiler->StaticTerrainLayerWeight(Layer.LayerName,Layer.PreviewWeight > 0.0f ? Compiler->Constant(Layer.PreviewWeight) : INDEX_NONE);
+			if( WeightCode != INDEX_NONE )
+			{
+				switch( Layer.BlendType )
+				{
+				case LB_WeightBlend:
+					{
+						// Store the weight plus accumulate the sum of all weights so far
+						WeightCodes[LayerIdx] = WeightCode;
+						WeightSumCode = Compiler->Add(WeightSumCode, WeightCode);
+					}
+					break;
+				case LB_HeightBlend:
+					{
+						bNeedsRenormalize = true;
+	
+						// Modify weight with height
+						int32 ModifiedWeightCode = Compiler->Clamp(
+							Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
+							Compiler->Constant(0.f), Compiler->Constant(1.f) );
+	
+						// Store the final weight plus accumulate the sum of all weights so far
+						WeightCodes[LayerIdx] = ModifiedWeightCode;
+						WeightSumCode = Compiler->Add(WeightSumCode, ModifiedWeightCode);
+					}
+					break;
+				}
 			}
 		}
 	}

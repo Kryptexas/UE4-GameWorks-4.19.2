@@ -24,7 +24,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
  */
 #define INDEFINITELY_LOOPING_DURATION	10000.0f
 
-/*
+/**
  * Some defaults to help cross platform consistency
  */
 #define SPEAKER_COUNT					6
@@ -262,6 +262,11 @@ struct ENGINE_API FWaveInstance
 
 	/** Returns the actual volume the wave instance will play at */
 	float GetActualVolume() const;
+
+	/**
+	 * Checks whether wave is streaming and streaming is supported
+	 */
+	bool IsStreaming() const;
 };
 
 inline uint32 GetTypeHash( FWaveInstance* A ) { return A->TypeHash; }

@@ -145,10 +145,45 @@ VARARG_BODY( void, FOutputDevice::Logf, const TCHAR*, VARARG_NONE )
 	GROWABLE_LOGF(Serialize(Buffer, TLS->Verbosity, TLS->Category))
 }
 
+#define FILE_LINE_DESC TEXT(" [File:%s] [Line: %i] ")
 
-void FailDebug(const TCHAR* Error, const ANSICHAR* File, int32 Line, const TCHAR* Description)
+
+/** Critical errors. */
+CORE_API FOutputDeviceError* GError = NULL;
+
+/** Lock used to synchronize the fail debug calls. */
+static FCriticalSection	FailDebugCriticalSection;
+
+/**
+ *	Prints error to the debug output, 
+ *	prompts for the remote debugging if there is not debugger, breaks into the debugger 
+ *	and copies the error into the global error message.
+ */
+void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, const TCHAR* Description, bool bIsEnsure = false )
 {
-	FPlatformMisc::LowLevelOutputDebugStringf( TEXT("%s(%i): %s\n%s\n"), ANSI_TO_TCHAR(File), Line, Error, Description );
+	// For ensure log should be flushed in the engine loop.
+	if( !bIsEnsure )
+	{
+		GLog->PanicFlushThreadedLogs();
+	}
+
+	FScopeLock Lock( &FailDebugCriticalSection );
+
+	FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "%s" ) FILE_LINE_DESC TEXT("\n%s\n" ), Error, ANSI_TO_TCHAR( File ), Line, Description );
+
+	// Copy the detailed error into the error message.
+	FCString::Snprintf( GErrorMessage, ARRAY_COUNT( GErrorMessage ), TEXT( "%s" ) FILE_LINE_DESC TEXT( "\n%s\n" ), Error, ANSI_TO_TCHAR( File ), Line, Description );
+
+	// Copy the error message to the error history.
+	FCString::Strncpy( GErrorHist, GErrorMessage, ARRAY_COUNT( GErrorHist ) );
+	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
+
+	if( !FPlatformMisc::IsDebuggerPresent() )
+	{
+		FPlatformMisc::PromptForRemoteDebugging( false );
+	}
+
+	FPlatformMisc::DebugBreak();
 }
 
 #if DO_CHECK || DO_GUARD_SLOW
@@ -158,51 +193,31 @@ void FailDebug(const TCHAR* Error, const ANSICHAR* File, int32 Line, const TCHAR
 //
 void VARARGS FDebug::AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ... )
 {
-	TCHAR DescriptionString[4096];
-	GET_VARARGS( DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString)-1, Format, Format );
-	
-	if(FPlatformMisc::IsDebuggerPresent())
-	{
-		TCHAR ErrorString[4096];
-		FCString::Sprintf(ErrorString,TEXT("Assertion failed: %s"),ANSI_TO_TCHAR(Expr));
-
-		FailDebug(ErrorString,File,Line,DescriptionString);
-
-		FPlatformMisc::DebugBreak();
-	}
-	else
-	{
-		FPlatformMisc::PromptForRemoteDebugging(false);
-	}
-
-	// Ignore this assert if we're already forcibly shutting down because of a critical error.
-	// Note that appFailAssertFuncDebug() is still called.
-	if ( !GIsCriticalError )
-	{
-		const SIZE_T StackTraceSize = 65535;
-		ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
-		if( StackTrace != NULL )
-		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			// Walk the script stack, if any
-			if (GScriptStack.Num() > 0)
-			{
-				FString ScriptStack = TEXT("\n\nScript Stack:\n");
-				while (GScriptStack.Num())
-				{
-					ScriptStack += GScriptStack.Pop().GetStackDescription() + TEXT("\n");
-				}
+	// Walk the script stack, if any
+	if( GScriptStack.Num() > 0 )
+	{
+		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
+		while( GScriptStack.Num() )
+		{
+			ScriptStack += GScriptStack.Pop().GetStackDescription() + TEXT( "\n" );
+		}
 
-				UE_LOG(LogOutputDevice, Warning, TEXT("%s"), *ScriptStack);
-			}
+		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );
+	}
 #endif
 
-			StackTrace[0] = 0;
-			// Walk the stack and dump it to the allocated memory.
-			FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );
-			UE_LOG(LogOutputDevice, Fatal, TEXT("Assertion failed: %s [File:%s] [Line: %i]\n%s\nStack:\n%s"), ANSI_TO_TCHAR(Expr), ANSI_TO_TCHAR(File), Line, DescriptionString, ANSI_TO_TCHAR(StackTrace) );
-			FMemory::SystemFree( StackTrace );
-		}
+	// Ignore this assert if we're already forcibly shutting down because of a critical error.
+	if( !GIsCriticalError )
+	{
+		TCHAR DescriptionString[4096];
+		GET_VARARGS( DescriptionString, ARRAY_COUNT( DescriptionString ), ARRAY_COUNT( DescriptionString ) - 1, Format, Format );
+
+		TCHAR ErrorString[MAX_SPRINTF];
+		FCString::Sprintf( ErrorString, TEXT( "Assertion failed: %s" ), ANSI_TO_TCHAR( Expr ) );
+
+		StaticFailDebug( ErrorString, File, Line, DescriptionString );
+		GError->Logf( TEXT( "Assertion failed: %s" ) FILE_LINE_DESC TEXT( "\n%s\n" ), ErrorString, ANSI_TO_TCHAR( File ), Line, DescriptionString );
 	}
 }
 
@@ -226,9 +241,10 @@ void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Lin
 	else
 	{
 		// Print initial debug message for this error
-		TCHAR ErrorString[4096];
+		TCHAR ErrorString[MAX_SPRINTF];
 		FCString::Sprintf(ErrorString,TEXT("Ensure condition failed: %s"),ANSI_TO_TCHAR(Expr));
-		FailDebug( ErrorString, File, Line, Msg );
+
+		StaticFailDebug( ErrorString, File, Line, Msg, true );
 
 		// Is there a debugger attached?  If so we'll just break, otherwise we'll submit an error report.
 		if( FPlatformMisc::IsDebuggerPresent() )
@@ -256,14 +272,14 @@ void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Lin
 
 				// Create a final string that we'll output to the log (and error history buffer)
 				TCHAR ErrorMsg[16384];
-				FCString::Sprintf( ErrorMsg, TEXT("Ensure condition failed: %s [File:%s] [Line: %i]") LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR TEXT("Stack: "), ANSI_TO_TCHAR(Expr), ANSI_TO_TCHAR(File), Line, Msg );
+				FCString::Snprintf( ErrorMsg, ARRAY_COUNT( ErrorMsg ), TEXT( "Ensure condition failed: %s [File:%s] [Line: %i]" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR TEXT( "Stack: " ) LINE_TERMINATOR, ANSI_TO_TCHAR( Expr ), ANSI_TO_TCHAR( File ), Line, Msg );
 
 				// Also append the stack trace
 				FCString::Strncat( ErrorMsg, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(ErrorMsg) - 1 );
 				FMemory::SystemFree( StackTrace );
 
 				// Dump the error and flush the log.
-				UE_LOG(LogOutputDevice, Log, TEXT("=== Handled error: ===") LINE_TERMINATOR TEXT("%s"), ErrorMsg);
+				UE_LOG(LogOutputDevice, Log, TEXT("=== Handled error: ===") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), ErrorMsg);
 				GLog->Flush();
 
 				// Submit the error report to the server! (and display a balloon in the system tray)
@@ -319,7 +335,7 @@ void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Lin
 			if ( bShouldSendNewReport )
 			{
 #if PLATFORM_DESKTOP
-				NewReportEnsure( ErrorString );
+				NewReportEnsure( GErrorMessage );
 #endif
 			}
 		}
@@ -328,22 +344,12 @@ void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Lin
 
 #endif // DO_CHECK || DO_GUARD_SLOW
 
-//appLowLevelFatalErrorFunc
 void VARARGS FError::LowLevelFatal(const ANSICHAR* File, int32 Line, const TCHAR* Format, ... )
 {
 	TCHAR DescriptionString[4096];
-
 	GET_VARARGS( DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString)-1, Format, Format );
 
-	FailDebug(TEXT("LowLevelFatalError"),File,Line,DescriptionString);
-
-	if(!FPlatformMisc::IsDebuggerPresent())
-	{
-		FPlatformMisc::PromptForRemoteDebugging(false);
-	}
-
-	FPlatformMisc::DebugBreak();
-
+	StaticFailDebug(TEXT("LowLevelFatalError"),File,Line,DescriptionString);
 	GError->Log(DescriptionString);
 }
 
@@ -459,33 +465,12 @@ VARARG_BODY( void VARARGS, FError::Throwf, const TCHAR*, VARARG_NONE )
 #else
 	UE_LOG(LogOutputDevice, Error, TEXT("THROW: %s"), TempStr);
 #endif
-}
+}					
 
-// Null output device.
-FOutputDeviceNull NullOut;
-/** Global output device redirector, can be static as FOutputDeviceRedirector explicitly empties TArray on TearDown */
-static FOutputDeviceRedirector LogRedirector;
-
-// Exception thrower.
-class FThrowOut : public FOutputDevice
-{
-public:
-	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
-	{
-#if PLATFORM_EXCEPTIONS_DISABLED
-		FPlatformMisc::DebugBreak();
-#else
-		throw( V );
-#endif
-	}
-} ThrowOut;
-
-CORE_API FOutputDeviceError*			GError							= NULL;						/* Critical errors */
-CORE_API FOutputDevice*					GThrow							= &ThrowOut;				/* Exception thrower */
-
-// Statics to prevent FMsg::Logf from allocating too much stack memory
+/** Statics to prevent FMsg::Logf from allocating too much stack memory. */
 static FCriticalSection					MsgLogfStaticBufferGuard;
-static TCHAR							MsgLogfStaticBuffer[8192]; // Increased from 4096 to fix crashes in the renderthread without autoreporter
+/** Increased from 4096 to fix crashes in the renderthread without autoreporter. */
+static TCHAR							MsgLogfStaticBuffer[8192];
 
 VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) VARARG_EXTRA(int32 Line) VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity))
 {
@@ -516,9 +501,6 @@ VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) V
 	}
 	else
 	{
-		// Flush logs queued by threads when we hit an assert because they will not make it to the log otherwise
-		GLog->PanicFlushThreadedLogs();
-
 		// Keep Message buffer small, in some cases, this code is executed with 16KB stack.
 		TCHAR Message[4096];
 		{
@@ -533,14 +515,7 @@ VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) V
 			Message[ARRAY_COUNT(Message) - 1] = '\0';
 		}
 
-		FailDebug(TEXT("Fatal error:"), File, Line, Message);
-		if (!FPlatformMisc::IsDebuggerPresent())
-		{
-			FPlatformMisc::PromptForRemoteDebugging(false);
-		}
-
-		FPlatformMisc::DebugBreak();
-
+		StaticFailDebug(TEXT("Fatal error:"), File, Line, Message);
 		GError->Log(Category, Verbosity, Message);
 	}
 #endif

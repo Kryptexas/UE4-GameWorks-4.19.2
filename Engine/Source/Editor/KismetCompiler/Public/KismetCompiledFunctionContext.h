@@ -508,7 +508,7 @@ public:
 	}
 
 	/** Checks to see if a pin is of the requested type */
-	bool ValidatePinType(const UEdGraphPin* Pin, const FString& Category, const FString& SubCategory = TEXT(""))
+	bool ValidatePinType(const UEdGraphPin* Pin, const FEdGraphPinType& TestType)
 	{
 		if (Pin == NULL)
 		{
@@ -517,18 +517,13 @@ public:
 		}
 		else
 		{
-			FEdGraphPinType TestType;
-			TestType.PinCategory = Category;
-			TestType.PinSubCategory = SubCategory;
-
-			check(Pin);
 			if (Pin->PinType == TestType)
 			{
 				return true;
 			}
 			else
 			{
-				MessageLog.Error(*FString::Printf(TEXT("Expected @@ to %s instead of %s"), *Schema->TypeToString(TestType), *Schema->TypeToString(Pin->PinType)), Pin);
+				MessageLog.Error(*FString::Printf(TEXT("Expected @@ to %s instead of %s"), *Schema->TypeToText(TestType).ToString(), *Schema->TypeToText(Pin->PinType).ToString()), Pin);
 				return false;
 			}
 		}

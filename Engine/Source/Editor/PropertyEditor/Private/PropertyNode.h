@@ -649,6 +649,18 @@ public:
 
 	FPropertyChangedEvent& FixPropertiesInEvent(FPropertyChangedEvent& Event);
 
+	/** Returns true if this property node should be highlighted by the view */
+	bool IsHighlighted() const { return bIsHighlighted; }
+
+	/** Sets the highlighted flag to the requested value */
+	void SetIsHighlighted( bool bInIsHighlighted ) { bIsHighlighted = bInIsHighlighted; }
+
+	/** Returns the IDetailTreeNode associated with this property node */
+	TSharedPtr< class IDetailTreeNode > GetTreeNode() { return TreeNode.Pin(); }
+
+	/** Sets the IDetailTreeNode associated with this property node */
+	void SetTreeNode( TSharedPtr< class IDetailTreeNode > InTreeNode ) { TreeNode = InTreeNode; }
+
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -694,7 +706,7 @@ protected:
 	*/
 	FString GetDefaultValueAsString();
 
-	/*
+	/**
 	 * Helper function to obtain the display name for an enum property
 	 * @param InEnum		The enum whose metadata to pull from
 	 * @param DisplayName	The name of the enum value to adjust
@@ -763,8 +775,14 @@ protected:
 	/** If true, children of this node will be rebuilt next tick. */
 	bool bRebuildChildrenRequested;
 
+	/** Used to display a highlight on this node */
+	bool bIsHighlighted;
+
 	/** An array of restrictions limiting this property's potential values in property editors.*/
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;
+
+	/** Optional reference to a tree node that is displaying this property */
+	TWeakPtr< class IDetailTreeNode > TreeNode;
 };
 
 class FComplexPropertyNode : public FPropertyNode

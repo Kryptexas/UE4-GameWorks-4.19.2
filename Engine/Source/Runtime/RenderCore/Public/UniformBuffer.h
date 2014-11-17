@@ -48,6 +48,7 @@ public:
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
 	{
+		check(IsInRenderingThread());
 		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
 	}
 	virtual void ReleaseDynamicRHI()
@@ -85,6 +86,11 @@ public:
 	{
 		check(IsInRenderingThread());
 		return TUniformBufferRef<TBufferStruct>(RHICreateUniformBuffer(&Value,TBufferStruct::StaticStruct.GetLayout(),Usage));
+	}
+	/** Creates a uniform buffer with the given value, and returns a structured reference to it. */
+	static FLocalUniformBuffer CreateLocalUniformBuffer(FRHICommandList& RHICmdList, const TBufferStruct& Value, EUniformBufferUsage Usage)
+	{
+		return RHICmdList.BuildLocalUniformBuffer(&Value, sizeof(TBufferStruct), TBufferStruct::StaticStruct.GetLayout());
 	}
 
 private:
@@ -574,12 +580,13 @@ private:
 	sizeof(StructTypeName), \
 	StructTypeName::zzGetMembers(), \
 	true);
-	
+
 /** Begins a uniform buffer struct declaration. */
-#define BEGIN_UNIFORM_BUFFER_STRUCT(StructTypeName,PrefixKeywords) \
+#define BEGIN_UNIFORM_BUFFER_STRUCT_EX(StructTypeName,PrefixKeywords,ConstructorSuffix) \
 	MS_ALIGN(UNIFORM_BUFFER_STRUCT_ALIGNMENT) class PrefixKeywords StructTypeName \
 	{ \
 	public: \
+		StructTypeName () ConstructorSuffix \
 		static FUniformBufferStruct StaticStruct; \
 		static FShaderUniformBufferParameter* ConstructUniformBufferParameter() { return new TShaderUniformBufferParameter<StructTypeName>(); } \
 		static FUniformBufferRHIRef CreateUniformBuffer(const StructTypeName& InContents, EUniformBufferUsage InUsage) \
@@ -663,6 +670,8 @@ private:
 		static const FUniformBufferStruct* GetStruct() { return &Name::StaticStruct; } \
 	};
 
+#define BEGIN_UNIFORM_BUFFER_STRUCT(StructTypeName,PrefixKeywords) BEGIN_UNIFORM_BUFFER_STRUCT_EX(StructTypeName,PrefixKeywords,{})
+#define BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(StructTypeName,PrefixKeywords) BEGIN_UNIFORM_BUFFER_STRUCT_EX(StructTypeName,PrefixKeywords,;)
 
 /** Finds the FUniformBufferStruct corresponding to the given name, or NULL if not found. */
 extern RENDERCORE_API FUniformBufferStruct* FindUniformBufferStructByName(const TCHAR* StructName);

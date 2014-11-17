@@ -69,7 +69,10 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 	}
 	else
 	{
-		Message_Warn(*FString::Printf(TEXT("CreatePinForVariable: '%s' variable not found. Base class was probably changed."), *GetVarNameString()));
+		if (!VariableReference.IsLocalScope())
+		{
+			Message_Warn(*FString::Printf(TEXT("CreatePinForVariable: '%s' variable not found. Base class was probably changed."), *GetVarNameString()));
+		}
 		return false;
 	}
 
@@ -302,6 +305,11 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableDeprecated", "Variable '%s' for @@ was deprecated.  Please update it.").ToString(), *VariableReference.GetMemberName().ToString()), this);
 		}
 	}
+
+	if (VariableProperty && (VariableProperty->ArrayDim > 1))
+	{
+		MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), this);
+	}
 }
 
 FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
@@ -506,6 +514,30 @@ FString UK2Node_Variable::GetDocumentationLink() const
 FString UK2Node_Variable::GetDocumentationExcerptName() const
 {
 	return GetVarName().ToString();
+}
+
+FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() const
+{
+	FName const& VarName = VariableReference.GetMemberName();
+	UStruct const* VariableScope = VariableReference.GetMemberScope(this);
+
+	bool const bIsLocalVariable = (VariableScope != nullptr);
+	if (bIsLocalVariable)
+	{
+		return FBlueprintEditorUtils::FindLocalVariable(GetBlueprint(), VariableScope, VarName);
+	}
+	else if (UProperty const* VarProperty = GetPropertyForVariable())
+	{
+		UClass const* SourceClass = VarProperty->GetOwnerClass();
+		UBlueprint const* SourceBlueprint = (SourceClass != nullptr) ? Cast<UBlueprint>(SourceClass->ClassGeneratedBy) : nullptr;
+
+		if (SourceBlueprint != nullptr)
+		{
+			int32 const VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(SourceBlueprint, VarName);
+			return &SourceBlueprint->NewVariables[VarIndex];
+		}
+	}
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

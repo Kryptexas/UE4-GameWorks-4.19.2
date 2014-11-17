@@ -22,14 +22,22 @@ class UAbilityTask_WaitGameplayEffectRemoved : public UAbilityTask
 	UPROPERTY(BlueprintAssignable)
 	FWaitGameplayEffectRemovedDelegate	OnRemoved;
 
+	UPROPERTY(BlueprintAssignable)
+	FWaitGameplayEffectRemovedDelegate	InvalidHandle;
+
 	virtual void Activate() override;
 
 	UFUNCTION()
 	void OnGameplayEffectRemoved();
 
 	/** Wait until an overlap occurs. This will need to be better fleshed out so we can specify game specific collision requirements */
-	UFUNCTION(BlueprintCallable, Category=Abilities, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitGameplayEffectRemoved* WaitForGameplayEffectRemoved(UObject* WorldContextObject, FActiveGameplayEffectHandle Handle);
 
 	FActiveGameplayEffectHandle Handle;
+
+protected:
+
+	virtual void OnDestroy(bool AbilityIsEnding) override;
+	bool Registered;
 };

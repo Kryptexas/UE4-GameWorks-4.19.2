@@ -391,7 +391,6 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 				Mask,
 				GL_NEAREST
 				);
-
 		}
 		else
 		{
@@ -606,9 +605,13 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 		int32 FloatBGRADataSize = sizeof(float) * PixelComponentCount;
 		float* FloatBGRAData = (float*)FMemory::Malloc( FloatBGRADataSize );
 		if ( FOpenGL::SupportsBGRA8888() )
+		{
 			glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_BGRA, GL_FLOAT, FloatBGRAData );
+		}
 		else 
+		{
 			glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatBGRAData );
+		}
 		// Determine minimal and maximal float values present in received data. Treat each component separately.
 		float MinValue[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		float MaxValue[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -643,12 +646,39 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 
 		FMemory::Free( FloatBGRAData );
 	}
+#if PLATFORM_ANDROID
+	else
+	{
+		// OpenGL ES is limited in what it can do with ReadPixels
+		int32 PixelComponentCount = 4 * SizeX * SizeY;
+		int32 RGBADataSize = sizeof(GLubyte)* PixelComponentCount;
+		GLubyte* RGBAData = (GLubyte*)FMemory::Malloc(RGBADataSize);
+
+		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_UNSIGNED_BYTE, RGBAData);
+		
+		GLubyte* DataPtr = RGBAData;
+		uint8* TargetPtr = TargetBuffer;
+		for (int32 PixelIndex = 0; PixelIndex < PixelComponentCount / 4; ++PixelIndex)
+		{
+			TargetPtr[0] = DataPtr[2];
+			TargetPtr[1] = DataPtr[1];
+			TargetPtr[2] = DataPtr[0];
+			TargetPtr[3] = DataPtr[3];
+			DataPtr += 4;
+			TargetPtr += 4;
+		}
+
+		FMemory::Free(RGBAData);
+
+	}
+#else
 	else
 	{
 		// It's a simple int format. OpenGL converts them internally to what we want.
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_BGRA, UGL_ABGR8, TargetBuffer );
 		// @to-do HTML5. 
 	}
+#endif
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
@@ -708,11 +738,10 @@ void FOpenGLDynamicRHI::RHIUnmapStagingSurface(FTextureRHIParamRef TextureRHI)
 
 void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<FFloat16Color>& OutData,ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex)
 {
-	VERIFY_GL_SCOPE();
-	// Not supported on older APIs
-	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ArrayIndex == 0);
+	VERIFY_GL_SCOPE();	
 
-	check( FOpenGL::SupportsFloatReadSurface() );
+	//reading from arrays only supported on SM5 and up.
+	check(FOpenGL::SupportsFloatReadSurface() && (ArrayIndex == 0 || GRHIFeatureLevel >= ERHIFeatureLevel::SM5));	
 	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(TextureRHI);
 	check(TextureRHI->GetFormat() == PF_FloatRGBA);
 
@@ -747,8 +776,26 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 
 	glBindFramebuffer(UGL_READ_FRAMEBUFFER, SourceFramebuffer);
 	FOpenGL::ReadBuffer(SourceFramebuffer == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-	glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_HALF_FLOAT, OutData.GetData());
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);	
+
+	if (FOpenGL::GetReadHalfFloatPixelsEnum() == GL_FLOAT)
+	{
+		// Slow path: Some Adreno devices won't work with HALF_FLOAT ReadPixels
+		TArray<FLinearColor> FloatData;
+		// 4 float components per texel (RGBA)
+		FloatData.AddUninitialized(SizeX * SizeY);
+		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatData.GetData());
+		FLinearColor* FloatDataPtr = FloatData.GetTypedData();
+		for (int32 Index = 0; Index < (int32)(SizeX * SizeY); ++Index, ++FloatDataPtr)
+		{
+			OutData[Index] = FFloat16Color(*FloatDataPtr);
+		}
+	}
+	else
+	{
+		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, FOpenGL::GetReadHalfFloatPixelsEnum(), OutData.GetData());
+	}
+
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
 	if (bTempFBO)
@@ -770,9 +817,9 @@ void FOpenGLDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 	FRHITexture3D* Texture3DRHI = TextureRHI->GetTexture3D();
 	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(TextureRHI);
 
- 	uint32 SizeX = Rect.Width();
- 	uint32 SizeY = Rect.Height();
- 	uint32 SizeZ = ZMinMax.Y - ZMinMax.X;
+	uint32 SizeX = Rect.Width();
+	uint32 SizeY = Rect.Height();
+	uint32 SizeZ = ZMinMax.Y - ZMinMax.X;
 
 	// Allocate the output buffer.
 	OutData.Empty(SizeX * SizeY * SizeZ * sizeof(FFloat16Color));
@@ -811,7 +858,7 @@ void FOpenGLDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 	glBindTexture(GL_TEXTURE_3D, (TextureState.Target == GL_TEXTURE_3D) ? TextureState.Resource : 0);
 	glActiveTexture( GL_TEXTURE0 + ContextState.ActiveTexture );
 	glDeleteFramebuffers( 1, &SourceFramebuffer);
-	glDeleteTextures( 1, &TempTexture );
+	FOpenGL::DeleteTextures( 1, &TempTexture );
 	ContextState.Framebuffer = (GLuint)-1;
 }
 

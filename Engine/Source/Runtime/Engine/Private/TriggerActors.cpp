@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/TriggerBox.h"
+#include "Engine/TriggerCapsule.h"
+#include "Engine/TriggerSphere.h"
 #include "Net/UnrealNetwork.h"
 namespace
 {

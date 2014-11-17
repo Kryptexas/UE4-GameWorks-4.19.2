@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_Event.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_ComponentBoundEvent.generated.h"
 
 UCLASS(MinimalAPI)
@@ -20,7 +21,7 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 
 	// Begin UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	// End UEdGraphNode interface
@@ -36,6 +37,10 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 	/** Return the delegate property that this event is bound to */
 	BLUEPRINTGRAPH_API UMulticastDelegateProperty* GetTargetDelegateProperty() const;
 
-	BLUEPRINTGRAPH_API void InitializeComponentBoundEventParams(UObjectProperty* InComponentProperty, const UMulticastDelegateProperty* InDelegateProperty);
+	BLUEPRINTGRAPH_API void InitializeComponentBoundEventParams(UObjectProperty const* InComponentProperty, const UMulticastDelegateProperty* InDelegateProperty);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

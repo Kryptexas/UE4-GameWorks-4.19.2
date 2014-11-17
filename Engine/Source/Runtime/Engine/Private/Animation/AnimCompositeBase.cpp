@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "AnimationUtils.h"
 #include "Animation/AnimCompositeBase.h"
+#include "Animation/AnimSequence.h"
 
 ///////////////////////////////////////////////////////
 // FAnimSegment

@@ -14,6 +14,8 @@ public:
 	
 	/* Create a listing for a search result*/
 	FFindInBlueprintsResult(const FText& InDisplayText, TSharedPtr<FFindInBlueprintsResult> InParent);
+
+	virtual ~FFindInBlueprintsResult() {}
 	
 	/* Called when user clicks on the search item */
 	virtual FReply OnClick();
@@ -112,6 +114,7 @@ class FFindInBlueprintsGraphNode : public FFindInBlueprintsResult
 {
 public:
 	FFindInBlueprintsGraphNode(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent);
+	virtual ~FFindInBlueprintsGraphNode() {}
 
 	/** FFindInBlueprintsResult Interface */
 	virtual FReply OnClick() override;
@@ -144,6 +147,7 @@ class FFindInBlueprintsPin : public FFindInBlueprintsResult
 {
 public:
 	FFindInBlueprintsPin(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent, FString InSchemaName);
+	virtual ~FFindInBlueprintsPin() {}
 
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
@@ -170,6 +174,7 @@ class FFindInBlueprintsProperty : public FFindInBlueprintsResult
 {
 public:
 	FFindInBlueprintsProperty(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent);
+	virtual ~FFindInBlueprintsProperty() {}
 
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
@@ -193,6 +198,7 @@ class FFindInBlueprintsGraph : public FFindInBlueprintsResult
 {
 public:
 	FFindInBlueprintsGraph(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent, EGraphType InGraphType);
+	virtual ~FFindInBlueprintsGraph() {}
 
 	/** FFindInBlueprintsResult Interface */
 	virtual FReply OnClick() override;

@@ -96,6 +96,7 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const class FPostConstructInitial
 {
 
 	PC_Float = TEXT("float");
+	PC_Struct = TEXT("struct");
 }
 
 TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
@@ -111,7 +112,8 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 	UNiagaraScriptSource* Source = NiagaraGraph->GetSource();
 
 	TArray<FName> InputAttributeNames;
-	Source->GetUpdateInputs(InputAttributeNames);
+	Source->GetParticleAttributes(InputAttributeNames);
+	Source->GetEmitterAttributes(InputAttributeNames);
 	for(int32 i=0; i<InputAttributeNames.Num(); i++)
 	{
 		const FName AttrName = InputAttributeNames[i];
@@ -193,6 +195,10 @@ FLinearColor UEdGraphSchema_Niagara::GetPinTypeColor(const FEdGraphPinType& PinT
 	if (TypeString == PC_Float)
 	{
 		return Settings->FloatPinTypeColor;
+	}
+	else if (TypeString == PC_Struct)
+	{
+		return Settings->StructPinTypeColor;
 	}
 
 	return Settings->DefaultPinTypeColor;

@@ -59,6 +59,17 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 		return -1;
 	}
 
+	if (FPaths::IsRelative(SourcePath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			SourcePath = FPaths::Combine( *( FPaths::GameDir() ), *SourcePath );
+		}
+		else
+		{
+			SourcePath = FPaths::Combine( *( FPaths::EngineDir() ), *SourcePath );
+		}
+	}
 	// Get manifest name.
 	FString ManifestName;
 	if( !( GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, GatherTextConfigPath ) ) )
@@ -91,6 +102,18 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 	{
 		UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("No destination path specified."));
 		return -1;
+	}
+
+	if (FPaths::IsRelative(DestinationPath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
+		}
+		else
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
+		}
 	}
 
 	// Get resource name.
@@ -136,11 +159,14 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 		}
 
 		TAutoPtr<FArchive> TextLocalizationResourceArchive(IFileManager::Get().CreateFileWriter(*TextLocalizationResourcePath));
-		if( !(FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, CultureName, TextLocalizationResourceArchive)) )
+		if (TextLocalizationResourceArchive)
 		{
-			IFileManager::Get().Delete( *TextLocalizationResourcePath );
+			if( !(FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, CultureName, TextLocalizationResourceArchive)) )
+			{
+				IFileManager::Get().Delete( *TextLocalizationResourcePath );
+			}
+			TextLocalizationResourceArchive->Close();
 		}
-		TextLocalizationResourceArchive->Close();
 	}
 
 	return 0;

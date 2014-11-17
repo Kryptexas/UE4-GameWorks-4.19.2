@@ -617,9 +617,11 @@ static void BuildMetalShaderOutput(
 		BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.ShaderResourceViewMap);
 		BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.SamplerMap);
 		BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.UnorderedAccessViewMap);
+
+		Header.Bindings.NumUniformBuffers = FMath::Max((uint8)GetNumUniformBuffersUsed(GenericSRT), Header.Bindings.NumUniformBuffers);
 	}
 
-	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
+	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::ES3_1);
 
 	if (Header.Bindings.NumSamplers > MaxSamplers)
 	{
@@ -649,7 +651,7 @@ static void BuildMetalShaderOutput(
 
 		// metal commandlines
 		FString Params = FString::Printf(TEXT("-std=ios-metal1.0 %s -o %s"), *InputFilename, *ObjFilename);
-		FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/local/bin/metal"), *Params, &ReturnCode, &Results, &Errors );
+		FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin/metal"), *Params, &ReturnCode, &Results, &Errors );
 
 		// handle compile error
 		if (ReturnCode != 0 || IFileManager::Get().FileSize(*ObjFilename) <= 0)
@@ -662,7 +664,7 @@ static void BuildMetalShaderOutput(
 		else
 		{
 			Params = FString::Printf(TEXT("r %s %s"), *ArFilename, *ObjFilename);
-			FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/local/bin/metal-ar"), *Params, &ReturnCode, &Results, &Errors );
+			FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin/metal-ar"), *Params, &ReturnCode, &Results, &Errors );
 
 			// handle compile error
 			if (ReturnCode != 0 || IFileManager::Get().FileSize(*ArFilename) <= 0)
@@ -675,7 +677,7 @@ static void BuildMetalShaderOutput(
 			else
 			{
 				Params = FString::Printf(TEXT("-o %s %s"), *OutputFilename, *ArFilename);
-				FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/local/bin/metallib"), *Params, &ReturnCode, &Results, &Errors );
+				FPlatformProcess::ExecProcess( TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin/metallib"), *Params, &ReturnCode, &Results, &Errors );
 		
 				// handle compile error
 				if (ReturnCode != 0 || IFileManager::Get().FileSize(*OutputFilename) <= 0)
@@ -819,7 +821,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1;
 	AdditionalDefines.SetDefine(TEXT("IOS"), 1);
 	AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
-	AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
+	AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
 	AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
@@ -852,6 +854,13 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 			return;
 		}
 
+
+		// This requires removing the HLSLCC_NoPreprocess flag later on!
+		if (!RemoveUniformBuffersFromSource(PreprocessedShader))
+		{
+			return;
+		}
+
 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 		if (bDumpDebugInfo)
 		{
@@ -878,6 +887,9 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CrossCompile.bat")));
 			}
 		}
+
+		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
+		CCFlags &= ~HLSLCC_NoPreprocess;
 
 		FMetalCodeBackend MetalBackEnd(CCFlags);
 		FMetalLanguageSpec MetalLanguageSpec;

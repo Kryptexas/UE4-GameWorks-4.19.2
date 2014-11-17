@@ -326,8 +326,12 @@ typedef uint64 EClassCastFlags;
 #define CPF_BlueprintCallable				DECLARE_UINT64(0x0000100000000000)		// MC Delegates only.  Property should be exposed for calling in blueprint code
 #define CPF_BlueprintAuthorityOnly			DECLARE_UINT64(0x0000200000000000)		// MC Delegates only.  This delegate accepts (only in blueprint) only events with BlueprintAuthorityOnly.
 #define CPF_TextExportTransient				DECLARE_UINT64(0x0000400000000000)		// Property shouldn't be exported to text format (e.g. copy/paste)
-#define CPF_NonPIETransient					DECLARE_UINT64(0x0000800000000000)		// Property should only be copied in PIE
+#define CPF_NonPIEDuplicateTransient		DECLARE_UINT64(0x0000800000000000)		// Property should only be copied in PIE
 #define CPF_ExposeOnSpawn					DECLARE_UINT64(0x0001000000000000)		// Property is exposed on spawn
+
+#define CPF_NonPIETransient \
+	EMIT_DEPRECATED_WARNING_MESSAGE("CPF_NonPIETransient is deprecated. Please use CPF_NonPIEDuplicateTransient instead.") \
+	CPF_NonPIEDuplicateTransient
 
 /** @name Combinations flags */
 //@{
@@ -725,17 +729,17 @@ namespace UP
 		/// Property should always be reset to the default value during any type of duplication (copy/paste, binary duplication, etc.)
 		DuplicateTransient,
 
-		/// Property should always be reset to the default value unless it's being duplicated for a PIE session
+		/// Property should always be reset to the default value unless it's being duplicated for a PIE session - deprecated, use NonPIEDuplicateTransient instead
 		NonPIETransient,
+
+		/// Property should always be reset to the default value unless it's being duplicated for a PIE session
+		NonPIEDuplicateTransient,
 
 		/// Value is copied out after function call. Only valid on function param declaration.
 		Ref,
 
 		/// Object property can be exported with it's owner.
 		Export,
-
-		/// Edit this object reference inline in the editor.
-		EditInline,
 
 		/// Hide clear (and browse) button in the editor.
 		NoClear,
@@ -871,9 +875,9 @@ namespace UM
 		/// [ClassMetadata] Used by BlueprintFunctionLibrary classes to restrict the graphs the functions in the library can be used in to the classes specified.
 		RestrictedToClasses,
 
-		/// [ClassMetadata] Indicates that when placing blueprint nodes in graphs owned by this class that any hidden self pins (generally used to determine the world) should be visible because the self context of the class cannot
+		/// [ClassMetadata] Indicates that when placing blueprint nodes in graphs owned by this class that the hidden world context pin should be visible because the self context of the class cannot
 		///                 provide the world context and it must be wired in manually
-		ShowHiddenSelfPins,
+		ShowWorldContextPin,
 
 	};
 
@@ -934,6 +938,9 @@ namespace UM
 
 		/// [PropertyMetadata] Used for FStringClassReference properties.  Indicates whether only blueprint classes should be shown in the class picker.
 		IsBlueprintBaseOnly,
+
+		/// [PropertyMetadata] Used for Subclass properties. Indicates whether only placeable classes should be shown in the class picker.
+		OnlyPlaceable,
 
 		/// [PropertyMetadata]
 		MakeEditWidget,
@@ -1028,6 +1035,9 @@ namespace UM
 		/// [FunctionMetadata] This function can only be called on 'this' in a blueprint. It cannot be called on another instance.
 		BlueprintProtected,
 
+		/// [FunctionMetadata] Used for BlueprintCallable functions that have a WorldContext pin to indicate that the function can be called even if the class does not implement the virtual function GetWorld().
+		CallableWithoutWorldContext,
+
 		/// [FunctionMetadata] Indicates that a BlueprintCallable function should use the Commutative Associative Binary node.
 		CommutativeAssociativeBinaryOperator,
 
@@ -1076,8 +1086,11 @@ namespace UM
 		/// [FunctionMetadata] For BlueprintCallable functions indicates that the function should be displayed the same as the implicit Make Struct nodes
 		NativeMakeFunc,
 
-		// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
+		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
 		UnsafeDuringActorConstruction,
+
+		/// [FunctionMetadta] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
+		WorldContext,
 
 	};
 
@@ -1173,8 +1186,8 @@ public: \
 	TWithinClass* GetOuter##TWithinClass() const { return (TWithinClass*)GetOuter(); }
 
 // Register a class at startup time.
-#define IMPLEMENT_CLASS(TClass) \
-	static UClass* AutoInitialize##TClass = TClass::StaticClass(); \
+#define IMPLEMENT_CLASS(TClass, TClassCrc) \
+	static TClassCompiledInDefer<TClass> AutoInitialize##TClass(TEXT(#TClass), sizeof(TClass), TClassCrc); \
 	UClass* TClass::GetPrivateStaticClass(const TCHAR* Package) \
 	{ \
 		static UClass* PrivateStaticClass = NULL; \
@@ -1193,7 +1206,7 @@ public: \
 
 // Used for intrinsics, this sets up the boiler plate, plus an initialization singleton, which can create properties and GC tokens
 #define IMPLEMENT_INTRINSIC_CLASS(TClass, TRequiredAPI, TSuperClass, TSuperRequiredAPI, InitCode) \
-	IMPLEMENT_CLASS(TClass) \
+	IMPLEMENT_CLASS(TClass, 0) \
 	TRequiredAPI UClass* Z_Construct_UClass_##TClass(); \
 	UClass* Z_Construct_UClass_##TClass() \
 	{ \
@@ -1211,7 +1224,7 @@ public: \
 		check(Class->GetClass()); \
 		return Class; \
 	} \
-	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass);
+	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass, TEXT(#TClass));
 
 #define IMPLEMENT_CORE_INTRINSIC_CLASS(TClass, TSuperClass, InitCode) \
 	IMPLEMENT_INTRINSIC_CLASS(TClass, COREUOBJECT_API, TSuperClass, COREUOBJECT_API, InitCode)

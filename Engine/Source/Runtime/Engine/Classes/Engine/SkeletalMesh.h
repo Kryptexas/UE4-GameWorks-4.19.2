@@ -501,7 +501,7 @@ struct FClothingAssetData
 #if WITH_APEX_CLOTHING
 	TSharedPtr<FClothingAssetWrapper> ApexClothingAsset;
 
-	/* Collision volume data for showing to the users whether collision shape is correct or not */
+	/** Collision volume data for showing to the users whether collision shape is correct or not */
 	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
 	TArray<uint32> ClothCollisionConvexPlaneIndices;
 	TArray<FClothBonePlane> ClothCollisionVolumePlanes;
@@ -513,7 +513,8 @@ struct FClothingAssetData
 	 * Num of this array means LOD number of clothing physical meshes 
 	 */
 	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
-
+	/** currently mapped morph target name */
+	FName PreparedMorphTargetName;
 #endif// #if WITH_APEX_CLOTHING
 
 	// serialization
@@ -554,6 +555,13 @@ struct FSkeletalMaterial
 
 class FSkeletalMeshResource;
 
+/**
+ * SkeletalMesh is geometry bound to a hierarchical skeleton of bones which can be animated for the purpose of deforming the mesh.
+ * Skeletal Meshes are built up of two parts; a set of polygons composed to make up the surface of the mesh, and a hierarchical skeleton which can be used to animate the polygons.
+ * The 3D models, rigging, and animations are created in an external modeling and animation application (3DSMax, Maya, Softimage, etc).
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
+ */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USkeletalMesh : public UObject
 {
@@ -622,7 +630,7 @@ public:
 	class UPhysicsAsset* BoundsPreviewAsset_DEPRECATED;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, editinline, Category=Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this skeletal mesh */
@@ -634,7 +642,7 @@ public:
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** Optimization settings used to simplify LODs of this mesh. */
@@ -685,6 +693,10 @@ public:
 	/** Height offset for the floor mesh in the editor */
 	UPROPERTY()
 	float FloorOffset;
+
+	/** This is buffer that saves pose that is used by retargeting*/
+	UPROPERTY()
+	TArray<FTransform> RetargetBasePose;
 
 #endif
 

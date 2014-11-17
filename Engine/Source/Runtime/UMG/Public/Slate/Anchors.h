@@ -7,17 +7,17 @@
 /**
  * Describes how a widget is anchored.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAnchors
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Holds the minimum anchors, left + top. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FVector2D Minimum;
 
 	/** Holds the maximum anchors, right + bottom. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FVector2D Maximum;
 
 public:
@@ -45,9 +45,9 @@ public:
 	{ }
 
 	/** Construct Anchors where the spacing on each side is individually specified. */
-	FAnchors(float InLeft, float InTop, float InRight, float InBottom)
-		: Minimum(InLeft, InTop)
-		, Maximum(InRight, InBottom)
+	FAnchors(float MinX, float MinY, float MaxX, float MaxY)
+		: Minimum(MinX, MinY)
+		, Maximum(MaxX, MaxY)
 	{ }
 
 	/** Returns true if the anchors represent a stretch along the vertical axis */

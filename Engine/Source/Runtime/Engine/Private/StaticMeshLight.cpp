@@ -8,6 +8,8 @@
 #include "StaticMeshResources.h"
 #include "Raster.h"
 #include "StaticMeshLight.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.
@@ -72,7 +74,7 @@ FStaticMeshStaticLightingMesh::FStaticMeshStaticLightingMesh(const UStaticMeshCo
 void FStaticMeshStaticLightingMesh::SetLocalToWorld(const FMatrix& InLocalToWorld)
 {
 	LocalToWorld = InLocalToWorld;
-	LocalToWorldInverseTranspose = LocalToWorld.Inverse().GetTransposed();
+	LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 	LocalToWorldDeterminant = LocalToWorld.Determinant();
 }
 

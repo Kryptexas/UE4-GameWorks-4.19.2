@@ -8,7 +8,9 @@ class SLATE_API FSlateHyperlinkRun : public ISlateRun, public TSharedFromThis< F
 public:
 
 	typedef TMap< FString, FString > FMetadata;
-	DECLARE_DELEGATE_OneParam( FOnClick, const FMetadata& /*Metadata*/ )
+	DECLARE_DELEGATE_OneParam( FOnClick, const FMetadata& /*Metadata*/ );
+	DECLARE_DELEGATE_RetVal_OneParam( FText, FOnGetTooltipText, const FMetadata& /*Metadata*/ );
+	DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<IToolTip>, FOnGenerateTooltip, const FMetadata& /*Metadata*/ );
 
 public:
 
@@ -30,9 +32,9 @@ public:
 
 public:
 
-	static TSharedRef< FSlateHyperlinkRun > Create( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& Metadata, FOnClick NavigateDelegate );
+	static TSharedRef< FSlateHyperlinkRun > Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate );
 																																	 
-	static TSharedRef< FSlateHyperlinkRun > Create( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& Metadata, FOnClick NavigateDelegate, const FTextRange& InRange );
+	static TSharedRef< FSlateHyperlinkRun > Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate, const FTextRange& InRange );
 
 public:
 
@@ -54,7 +56,7 @@ public:
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
-	virtual FChildren* GetChildren() override;
+	virtual const TArray< TSharedRef<SWidget> >& GetChildren() override;
 
 	virtual void ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
@@ -68,14 +70,18 @@ public:
 	virtual void Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange) override;
 	virtual TSharedRef<IRun> Clone() const override;
 
-	virtual void AppendText(FString& AppendToText) const override;
-	virtual void AppendText(FString& AppendToText, const FTextRange& PartialRange) const override;
+	virtual void AppendTextTo(FString& AppendToText) const override;
+	virtual void AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const override;
+
+	virtual const FRunInfo& GetRunInfo() const override;
+
+	virtual ERunAttributes GetRunAttributes() const override;
 
 private:
 
-	FSlateHyperlinkRun( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& InMetadata, FOnClick InNavigateDelegate );
+	FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate );
 																										 
-	FSlateHyperlinkRun( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& InMetadata, FOnClick InNavigateDelegate, const FTextRange& InRange );
+	FSlateHyperlinkRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick InNavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate, const FTextRange& InRange );
 
 	FSlateHyperlinkRun( const FSlateHyperlinkRun& Run );
 
@@ -85,14 +91,16 @@ private:
 
 private:
 
+	FRunInfo RunInfo;
 	TSharedRef< const FString > Text;
 	FTextRange Range;
 	FHyperlinkStyle Style;
-	TMap<FString,FString> Metadata;
 	FOnClick NavigateDelegate;
+	FOnGenerateTooltip TooltipDelegate;
+	FOnGetTooltipText TooltipTextDelegate;
 
 	TSharedRef< FWidgetViewModel > ViewModel;
-	TSlotlessChildren< SWidget > Children;
+	TArray< TSharedRef<SWidget> > Children;
 };
 
 #endif //WITH_FANCY_TEXT

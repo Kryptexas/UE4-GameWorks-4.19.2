@@ -75,7 +75,8 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef< SPlug
 	}
 
 
-	ChildSlot.Widget = 
+	ChildSlot
+	[
 		SNew( SBorder )
 		.BorderImage( FEditorStyle::GetBrush( "NoBorder" ) )
 		.Padding( PaddingAmount )
@@ -248,7 +249,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef< SPlug
 				]
 			]
 		]
-	;
+	];
 }
 
 

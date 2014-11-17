@@ -31,8 +31,16 @@ FOutputDeviceConsole*	GLogConsole						= NULL;						/* Console log hook */
 CORE_API FMalloc*		GMalloc							= NULL;						/* Memory allocator */
 
 class UPropertyWindowManager*	GPropertyWindowManager	= NULL;						/* Manages and tracks property editing windows */
-TCHAR					GErrorHist[16384]				= TEXT("");					/* For building call stack text dump in guard/unguard mechanism */
-TCHAR					GErrorExceptionDescription[1024] = TEXT("");				/* For building exception description text dump in guard/unguard mechanism */
+
+/** For building call stack text dump in guard/unguard mechanism. */
+TCHAR GErrorHist[16384]	= TEXT("");
+
+/** For building exception description text dump in guard/unguard mechanism. */
+TCHAR GErrorExceptionDescription[4096] = TEXT( "" );
+
+/** The error message, can be assertion message, ensure message or message from the fatal error. */
+TCHAR GErrorMessage[4096] = TEXT( "" );
+
 
 CORE_API const FText GYes	= LOCTEXT("Yes",	"Yes");
 CORE_API const FText GNo	= LOCTEXT("No",		"No");
@@ -309,6 +317,7 @@ DEFINE_LOG_CATEGORY(LogContentComparisonCommandlet);
 DEFINE_LOG_CATEGORY(LogNetPackageMap);
 DEFINE_LOG_CATEGORY(LogNetSerialization);
 DEFINE_LOG_CATEGORY(LogMemory);
+DEFINE_LOG_CATEGORY(LogProfilingDebugging);
 
 DEFINE_LOG_CATEGORY(LogTemp);
 

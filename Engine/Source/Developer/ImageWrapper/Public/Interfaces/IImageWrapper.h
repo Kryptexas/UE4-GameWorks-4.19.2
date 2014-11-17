@@ -24,6 +24,9 @@ namespace EImageFormat
 
 		/** Windows Icon resource */
 		ICO,
+
+		/** OpenEXR (HDR) image file format */
+		EXR,
 	};
 };
 

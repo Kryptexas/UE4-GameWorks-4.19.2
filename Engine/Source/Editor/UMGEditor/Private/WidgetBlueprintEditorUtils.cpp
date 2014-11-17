@@ -89,7 +89,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 
 
 		// Rename Preview before renaming the template widget so the preview widget can be found
-		UWidget* WidgetPreview = FWidgetReference::FromTemplate(BlueprintEditor, Widget).GetPreview();
+		UWidget* WidgetPreview = BlueprintEditor->GetReferenceFromTemplate(Widget).GetPreview();
 		if(WidgetPreview)
 		{
 			WidgetPreview->Rename(*NewNameStr);
@@ -147,9 +147,9 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 		}
 
 		// Update widget blueprint names
-		for( FWidgetAnimation& WidgetAnimation : Blueprint->AnimationData )
+		for( UWidgetAnimation* WidgetAnimation : Blueprint->Animations )
 		{
-			for( FWidgetAnimationBinding& AnimBinding : WidgetAnimation.AnimationBindings )
+			for( FWidgetAnimationBinding& AnimBinding : WidgetAnimation->AnimationBindings )
 			{
 				if( AnimBinding.WidgetName == OldName )
 				{
@@ -176,7 +176,7 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 	TSet<FWidgetReference> Widgets = BlueprintEditor->GetSelectedWidgets();
 	UWidgetBlueprint* BP = BlueprintEditor->GetWidgetBlueprintObj();
 
-	MenuBuilder.PushCommandList(BlueprintEditor->WidgetCommandList.ToSharedRef());
+	MenuBuilder.PushCommandList(BlueprintEditor->DesignerCommandList.ToSharedRef());
 
 	MenuBuilder.BeginSection("Edit", LOCTEXT("Edit", "Edit"));
 	{
@@ -283,10 +283,17 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 		UPanelWidget* CurrentParent = BP->WidgetTree->FindWidgetParent(Item.GetTemplate(), OutIndex);
 		if ( CurrentParent )
 		{
+			CurrentParent->Modify();
 			CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
-
-			NewWrapperWidget->AddChild(Item.GetTemplate());
 		}
+		else
+		{
+			BP->WidgetTree->Modify();
+
+			BP->WidgetTree->RootWidget = NewWrapperWidget;
+		}
+
+		NewWrapperWidget->AddChild(Item.GetTemplate());
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);

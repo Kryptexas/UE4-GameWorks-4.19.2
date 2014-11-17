@@ -7,10 +7,11 @@ class SLATE_API SUniformGridPanel : public SPanel
 {
 public:
 	/** Stores the per-child info for this panel type */
-	struct FSlot : public TSupportsOneChildMixin<SWidget, FSlot>, public TSupportsContentAlignmentMixin<FSlot>
+	struct FSlot : public TSlotBase<FSlot>, public TSupportsContentAlignmentMixin<FSlot>
 	{
 		FSlot( int32 InColumn, int32 InRow )
-		: TSupportsContentAlignmentMixin<FSlot>(HAlign_Fill, VAlign_Fill)
+		: TSlotBase<FSlot>()
+		, TSupportsContentAlignmentMixin<FSlot>(HAlign_Fill, VAlign_Fill)
 		, Column( InColumn )
 		, Row( InRow )
 		{
@@ -19,6 +20,8 @@ public:
 		int32 Column;
 		int32 Row;
 	};
+
+	SUniformGridPanel();
 
 	/**
 	 * Used by declarative syntax to create a Slot in the specified Column, Row.

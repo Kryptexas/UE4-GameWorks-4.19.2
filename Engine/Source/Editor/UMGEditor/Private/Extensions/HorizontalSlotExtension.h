@@ -9,6 +9,8 @@ class FHorizontalSlotExtension : public FDesignerExtension
 public:
 	FHorizontalSlotExtension();
 
+	virtual ~FHorizontalSlotExtension() {}
+
 	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const override;
 	
 	virtual void ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements) override;

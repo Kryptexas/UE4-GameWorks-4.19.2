@@ -4,6 +4,7 @@
 //=============================================================================
 
 #pragma once
+#include "Engine/StaticMeshActor.h"
 #include "InteractiveFoliageActor.generated.h"
 
 UCLASS(MinimalAPI)

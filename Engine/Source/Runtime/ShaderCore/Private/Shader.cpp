@@ -90,7 +90,7 @@ FShaderType::FShaderType(
 
 	// This will trigger if an IMPLEMENT_SHADER_TYPE was in a module not loaded before InitializeShaderTypes
 	// Shader types need to be implemented in modules that are loaded before that
-	check(!bInitializedSerializationHistory);
+	checkf(!bInitializedSerializationHistory, TEXT("Shader type was loaded after engine init, use ELoadingPhase::PostConfigInit on your module to cause it to load earlier."));
 
 	//make sure the name is shorter than the maximum serializable length
 	check(FCString::Strlen(InName) < NAME_SIZE);
@@ -306,7 +306,7 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output)
 	checkSlow(OutputHash != FSHAHash());
 
 	ShaderResourceIdMap.Add(GetId(), this);
-	INC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), Code.Num());
+	INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
@@ -314,7 +314,7 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output)
 
 FShaderResource::~FShaderResource()
 {
-	DEC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), Code.Num());
+	DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	DEC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
@@ -336,7 +336,7 @@ void FShaderResource::Serialize(FArchive& Ar)
 	
 	if (Ar.IsLoading())
 	{
-		INC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), (int64)Code.Num());
+		INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), (int64)Code.Num());
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	}
 }
@@ -392,21 +392,53 @@ void FShaderResource::FinishCleanup()
 	delete this;
 }
 
+bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform)
+{
+	bool bFeatureLevelCompatible = CurrentPlatform == TargetPlatform;
+	
+	if (!bFeatureLevelCompatible && IsPCPlatform(CurrentPlatform) && IsPCPlatform(TargetPlatform) )
+	{
+		if (CurrentPlatform == SP_OPENGL_SM4_MAC || TargetPlatform == SP_OPENGL_SM4_MAC)
+		{
+			// prevent SP_OPENGL_SM4 == SP_OPENGL_SM4_MAC, allow SP_OPENGL_SM4_MAC == SP_OPENGL_SM4_MAC,
+			// allow lesser feature levels on SP_OPENGL_SM4_MAC device.
+			// do not allow MAC targets to work on non MAC devices.
+			bFeatureLevelCompatible = CurrentPlatform == SP_OPENGL_SM4_MAC && 
+				GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
+		}
+		else
+		{
+			bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
+		}
+
+		bool bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
+								TargetPlatform == SP_PCD3D_SM4 ||
+								TargetPlatform == SP_PCD3D_ES2;
+
+		bool bIsCurrentPlatformD3D = CurrentPlatform == SP_PCD3D_SM5 ||
+								CurrentPlatform == SP_PCD3D_SM4 ||
+								CurrentPlatform == SP_PCD3D_ES2;
+
+		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D);
+	}
+
+	return bFeatureLevelCompatible;
+}
 
 void FShaderResource::InitRHI()
 {
 	checkf(Code.Num() > 0, TEXT("FShaderResource::InitRHI was called with empty bytecode, which can happen if the resource is initialized multiple times on platforms with no editor data."));
 
 	// we can't have this called on the wrong platform's shaders
-	if (Target.Platform != GRHIShaderPlatform)
-	{
-		if (FPlatformProperties::RequiresCookedData())
-		{
-			UE_LOG(LogShaders, Fatal, TEXT("FShaderResource::InitRHI got platform %s but expected %s"), 
-				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString() );
-		}
-		return;
-	}
+	if (!ArePlatformsCompatible(GMaxRHIShaderPlatform, (EShaderPlatform)Target.Platform))
+ 	{
+ 		if (FPlatformProperties::RequiresCookedData())
+ 		{
+ 			UE_LOG(LogShaders, Fatal, TEXT("FShaderResource::InitRHI got platform %s but it is not compatible with %s"), 
+ 				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString() );
+ 		}
+ 		return;
+ 	}
 
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShadersUsedForRendering, 1);
 	SCOPE_CYCLE_COUNTER(STAT_Shaders_RTShaderLoadTime);
@@ -438,7 +470,7 @@ void FShaderResource::InitRHI()
 
 	if (!FPlatformProperties::HasEditorOnlyData())
 	{
-		DEC_DWORD_STAT_BY_FName(*GetMemoryStatType((EShaderFrequency)Target.Frequency), Code.Num());
+		DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 		DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, Code.GetAllocatedSize());
 		Code.Empty();
 	}
@@ -668,7 +700,7 @@ FShader::FShader() :
 {
 	// set to undefined (currently shared with SF_Vertex)
 	Target.Frequency = 0;
-	Target.Platform = GRHIShaderPlatform;
+	Target.Platform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
 }
 
 /**
@@ -908,7 +940,8 @@ void FShader::VerifyBoundUniformBufferParameters()
 {
 	// Support being called on a NULL pointer
 // TODO: doesn't work with uniform buffer parameters on helper structs like FDeferredPixelShaderParameters
-	if (0&&this)
+	//@todo parallelrendering
+	if (0)//&&this)
 	{
 		for (int32 StructIndex = 0; StructIndex < UniformBufferParameters.Num(); StructIndex++)
 		{
@@ -1086,13 +1119,6 @@ const TArray<FName>& GetTargetShaderFormats()
 	return Results;
 }
 
-
-FName GetRuntimeShaderFormat()
-{
-	static FName RuntimeFormat = LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform);
-	return RuntimeFormat;
-}
-
 void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 {
 	// Globals that should cause all shaders to recompile when changed must be appended to the key here
@@ -1117,6 +1143,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		const bool bValue = CVar ? CVar->GetValueOnGameThread() != 0 : true;
 		KeyString += bValue ? TEXT("_SL") : TEXT("_NoSL");
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
+		if(CVar ? CVar->GetValueOnGameThread() == 0 : false)
+		{
+			KeyString += TEXT("_NoGB");
+		}
 	}
 
 	{

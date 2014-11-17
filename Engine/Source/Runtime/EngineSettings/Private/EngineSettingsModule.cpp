@@ -99,5 +99,12 @@ void UGameMapsSettings::SetGameDefaultMap( const FString& NewMap )
 	}
 }
 
+void UGameMapsSettings::SetGlobalDefaultGameMode( const FString& NewGameMode )
+{
+	UGameMapsSettings* GameMapsSettings = Cast<UGameMapsSettings>(UGameMapsSettings::StaticClass()->GetDefaultObject());
+	
+	GameMapsSettings->GlobalDefaultGameMode = NewGameMode;
+}
+
 
 IMPLEMENT_MODULE(FEngineSettingsModule, EngineSettings);

@@ -81,8 +81,9 @@
 #define FEATURE_LEVEL_ES2	1
 #define FEATURE_LEVEL_ES3_1	2
 #define FEATURE_LEVEL_SM3	3
-#define FEATURE_LEVEL_SM4	4	 
+#define FEATURE_LEVEL_SM4	4
 #define FEATURE_LEVEL_SM5	5
+#define FEATURE_LEVEL_MAX	6
 
 // A8 textures when sampled either have their component in R or A. D3D uses A and that is the default.
 #define A8_SAMPLE_MASK .a
@@ -119,8 +120,8 @@
 #elif METAL_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
-#elif ES2_PROFILE
-
+#elif ES2_PROFILE || ES3_1_PROFILE
+	//@todo ES3_1 GL
 	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
 
 	#if COMPILER_GLSL_ES2 
@@ -138,7 +139,7 @@
 
 	#error Add your platform here
 
-	#define FEATURE_LEVEL FEATURE_LEVEL_SM3
+	#define FEATURE_LEVEL FEATURE_LEVEL_MAX
 
 #endif
 
@@ -591,24 +592,24 @@ float ConvertToDeviceZ(float SceneDepth)
 /** Returns clip space W, which is world space distance along the View Z axis. */
 float CalcSceneDepth( float2 ScreenUV )
 {
-	#if FEATURE_LEVEL > FEATURE_LEVEL_ES2
-		return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+#else
+	#if COMPILER_GLSL_ES2
+		#if IOS
+			// Only call FramebufferFetch when actually compiling for IOS ES2.
+			return FramebufferFetchES2().w;
+		#elif WEBGL
+			return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
+		#else 
+			return 65000.0f; 
+		#endif 
+	#elif METAL_PROFILE
+			return FramebufferFetchES2().w;
 	#else
-		#if COMPILER_GLSL_ES2
-			#if IOS
-				// Only call FramebufferFetch when actually compiling for IOS ES2.
-				return FramebufferFetchES2().w;
-			#elif WEBGL
-				return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
-			#else 
-				return 65000.0f; 
-			#endif 
-		#elif METAL_PROFILE
-				return FramebufferFetchES2().w;
-		#else
-			return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
-		#endif
+		return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
 	#endif
+#endif
 }
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4

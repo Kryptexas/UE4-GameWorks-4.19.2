@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing bloom threshold pixel shader. */
 class FPostProcessBloomSetupPS : public FGlobalShader
@@ -138,7 +139,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupVS,TEXT("PostProcessBloom"),TEXT("M
 
 void FRCPassPostProcessBloomSetup::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessBloomSetup, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBloomSetup, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -175,13 +176,13 @@ void FRCPassPostProcessBloomSetup::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessBloomSetupVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBloomSetupPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);

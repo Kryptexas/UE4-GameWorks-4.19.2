@@ -21,9 +21,10 @@ class UBehaviorTreeGraphNode_Root : public UBehaviorTreeGraphNode
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	/** gets icon resource name for title bar */
 	virtual FName GetNameIcon() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
 	virtual FString	GetDescription() const override;
 
 	/** notify behavior tree about blackboard change */

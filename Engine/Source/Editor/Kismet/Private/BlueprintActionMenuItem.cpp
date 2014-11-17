@@ -6,10 +6,7 @@
 #include "KismetEditorUtilities.h"	// for BringKismetToFocusAttentionOnObject()
 #include "BlueprintEditorUtils.h"	// for AnalyticsTrackNewNode(), MarkBlueprintAsModified(), etc.
 #include "ScopedTransaction.h"
-#include "BlueprintPropertyNodeSpawner.h"
-#include "BPVariableDragDropAction.h"
-#include "BPDelegateDragDropAction.h"
-#include "BlueprintEditor.h"		// for GetVarIconAndColor()
+#include "SNodePanel.h"				// for GetSnapGridSize()
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuItem"
 
@@ -56,13 +53,23 @@ static void FBlueprintMenuActionItemImpl::DirtyBlueprintFromNewNode(UEdGraphNode
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTintIn, int32 MenuGrouping/* = 0*/)
-	: Action(NodeSpawner)
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTintIn, int32 MenuGrouping/* = 0*/)
+	: IconBrush(MenuIcon)
+	, IconTint(IconTintIn)
+	, Action(NodeSpawner)
 {
 	check(Action != nullptr);
 	Grouping  = MenuGrouping;
-	IconBrush = MenuIcon;
-	IconTint  = IconTintIn;
+}
+
+//------------------------------------------------------------------------------
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, IBlueprintNodeBinder::FBindingSet const& InBindings)
+	: IconBrush(nullptr)
+	, IconTint(FLinearColor::White)
+	, Action(NodeSpawner)
+	, Bindings(InBindings)
+{
+	check(Action != nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -71,48 +78,48 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 	using namespace FBlueprintMenuActionItemImpl;
 	FScopedTransaction Transaction(LOCTEXT("AddNodeTransaction", "Add Node"));
 	
+	FVector2D ModifiedLocation = Location;
+	if (FromPin != nullptr)
+	{
+		// for input pins, a new node will generally overlap the node being
+		// dragged from... work out if we want add in some spacing from the connecting node
+		if (FromPin->Direction == EGPD_Input)
+		{
+			UEdGraphNode* FromNode = FromPin->GetOwningNode();
+			check(FromNode != nullptr);
+			float const FromNodeX = FromNode->NodePosX;
+
+			static const float MinNodeDistance = 60.f; // min distance between spawned nodes (to keep them from overlapping)
+			if (MinNodeDistance > FMath::Abs(FromNodeX - Location.X))
+			{
+				ModifiedLocation.X = FromNodeX - MinNodeDistance;
+			}
+		}
+	}
+
 	// this could return an existing node
-	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph);
+	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Bindings, Location);
 	
 	// if a returned node hasn't been added to the graph yet (it must have been freshly spawned)
 	if (ParentGraph->Nodes.Find(SpawnedNode) == INDEX_NONE)
 	{
 		check(SpawnedNode != nullptr);
-		
+
+		// @TODO: Move Modify()/AddNode() into UBlueprintNodeSpawner and pull selection functionality out here
 		ParentGraph->Modify();
-		ParentGraph->AddNode(SpawnedNode, /*bool bFromUI =*/true, bSelectNewNode);
-		
-		SpawnedNode->PostPlacedNewNode();
-		SpawnedNode->NodePosX = Location.X;
-		SpawnedNode->NodePosY = Location.Y;
+		ParentGraph->AddNode(SpawnedNode, /*bFromUI =*/true, bSelectNewNode);
+		// @TODO: if this spawned multiple nodes, then we should be selecting all of them
+
+		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
 		
 		if (FromPin != nullptr)
 		{
-			// for input pins, a new node will generally overlap the node being
-			// dragged from... work out if we want add in some spacing from the connecting node
-			if (FromPin->Direction == EGPD_Input)
-			{
-				UEdGraphNode* FromNode = FromPin->GetOwningNode();
-				check(FromNode != nullptr);
-				float const FromNodeX = FromNode->NodePosX;
-				
-				static const float MinNodeDistance = 60.f; // min distance between spawned nodes (to keep them from overlapping)
-				if (MinNodeDistance > FMath::Abs(FromNodeX - Location.X))
-				{
-					SpawnedNode->NodePosX = FromNodeX - MinNodeDistance;
-				}
-			}
-			
 			// modify before the call to AutowireNewNode() below
 			FromPin->Modify();
+			// make sure to auto-wire after we position the new node (in case
+			// the auto-wire creates a conversion node to put between them)
+			SpawnedNode->AutowireNewNode(FromPin);
 		}
-		
-		static const float GridSnapSize = 16.f; // @TODO: ensure this is the same as SNodePanel::GetSnapGridSize()
-		SpawnedNode->SnapToGrid(GridSnapSize);
-		
-		// make sure to auto-wire after we position the new node (in case
-		// the auto-wire creates a conversion node to put between them)
-		SpawnedNode->AutowireNewNode(FromPin);
 		
 		FBlueprintEditorUtils::AnalyticsTrackNewNode(SpawnedNode);
 		DirtyBlueprintFromNewNode(SpawnedNode);
@@ -122,6 +129,10 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 	else if (SpawnedNode != nullptr)
 	{
 		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(SpawnedNode);
+		if (FromPin != nullptr)
+		{
+			SpawnedNode->AutowireNewNode(FromPin);
+		}
 	}
 	
 	return SpawnedNode;
@@ -159,49 +170,14 @@ void FBlueprintActionMenuItem::AddReferencedObjects(FReferenceCollector& Collect
 //------------------------------------------------------------------------------
 FSlateBrush const* FBlueprintActionMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 {
-	// if this brush is invalid
-	if ((IconBrush == nullptr) || !IconBrush->HasUObject())
-	{
-		if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
-		{
-			UProperty const* Property = PropertySpawner->GetProperty();
-			FName const PropertyName = Property->GetFName();
-			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-
-			IconBrush = FBlueprintEditor::GetVarIconAndColor(PropertyOwner, PropertyName, IconTint);
-		}
-	}
-
 	ColorOut = IconTint;
 	return IconBrush;
 }
 
 //------------------------------------------------------------------------------
-TSharedPtr<FDragDropOperation> FBlueprintActionMenuItem::OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const
+UBlueprintNodeSpawner const* FBlueprintActionMenuItem::GetRawAction() const
 {
-	TSharedPtr<FDragDropOperation> DragDropAction = nullptr;
-
-	if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
-	{
-		if (PropertySpawner->NodeClass == nullptr)
-		{
-			UProperty const* Property = PropertySpawner->GetProperty();
-			FName const PropertyName = Property->GetFName();
-			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-
-			if (PropertySpawner->IsDelegateProperty())
-			{
-				TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(PropertyName, PropertyOwner, AnalyticsDelegate);
-				DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
-			}
-			else
-			{
-				TSharedRef<FDragDropOperation> DragDropOpRef = FKismetVariableDragDropAction::New(PropertyName, PropertyOwner, AnalyticsDelegate);
-				DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
-			}
-		}
-	}
-	return DragDropAction;
+	return Action;
 }
 
 #undef LOCTEXT_NAMESPACE

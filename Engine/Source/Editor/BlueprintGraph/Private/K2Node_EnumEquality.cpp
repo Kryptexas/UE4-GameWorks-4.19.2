@@ -8,6 +8,9 @@
 #include "K2Node_EnumEquality.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+
+#define LOCTEXT_NAMESPACE "K2Node_EnumEquality"
 
 UK2Node_EnumEquality::UK2Node_EnumEquality(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -28,9 +31,9 @@ void UK2Node_EnumEquality::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_EnumEquality::GetTooltip() const
+FText UK2Node_EnumEquality::GetTooltipText() const
 {
-	return TEXT("Returns true if A is equal to B (A == B)");
+	return LOCTEXT("EnumEqualityTooltip", "Returns true if A is equal to B (A == B)");
 }
 
 FText UK2Node_EnumEquality::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -124,6 +127,24 @@ void UK2Node_EnumEquality::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 	}
 }
 
+bool UK2Node_EnumEquality::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool const bOtherPinIsEnum = (OtherPin->PinType.PinCategory == K2Schema->PC_Byte) &&
+		(OtherPin->PinType.PinSubCategoryObject.IsValid()) &&
+		(OtherPin->PinType.PinSubCategoryObject.Get()->IsA(UEnum::StaticClass()));
+
+
+	bool bIsDisallowed = false;
+	if (!bOtherPinIsEnum && (MyPin->Direction == EGPD_Input))
+	{
+		bIsDisallowed = true;
+		OutReason = LOCTEXT("InputIsNotEnum", "Cannot use the enum equality operator on anything but enums.").ToString();
+	}
+	return bIsDisallowed;
+}
+
 UEdGraphPin* UK2Node_EnumEquality::GetReturnValuePin() const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -183,14 +204,11 @@ void UK2Node_EnumEquality::GetMenuEntries(FGraphContextMenuBuilder& Context) con
 
 	if (bShowEnumEquality)
 	{
-		//@TODO: Promote the categories into the schema and remove this duplication with the code in EdGraphSchema_K2.cpp
-		const FString FunctionCategory(TEXT("Call Function"));
-
 		UK2Node* EnumNodeTemplate = Context.CreateTemplateNode<UK2Node_EnumEquality>();
 
-		const FString Category = FunctionCategory + TEXT("|Utilities| Enum");
+		const FString Category = TEXT("Utilities| Enum");
 		const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-		const FString Tooltip = EnumNodeTemplate->GetTooltip();
+		const FString Tooltip = EnumNodeTemplate->GetTooltipText().ToString();
 		const FString Keywords = EnumNodeTemplate->GetKeywords();
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
@@ -239,15 +257,29 @@ void UK2Node_EnumEquality::ExpandNode(class FKismetCompilerContext& CompilerCont
 	}
 }
 
-void UK2Node_EnumEquality::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_EnumEquality::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
-	
-	ActionListOut.Add(NodeSpawner);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_EnumEquality::GetMenuCategory() const
 {
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Enum);
 }
+
+#undef LOCTEXT_NAMESPACE

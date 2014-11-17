@@ -2,28 +2,141 @@
 
 #include "OutputLogPrivatePCH.h"
 #include "SOutputLog.h"
-#include "OutputLogActions.h"
 #include "SScrollBorder.h"
+#include "BaseTextLayoutMarshaller.h"
+
+/** Custom console editable text box whose only purpose is to prevent some keys from being typed */
+class SConsoleEditableTextBox : public SEditableTextBox
+{
+public:
+	SLATE_BEGIN_ARGS( SConsoleEditableTextBox ) {}
+		
+		/** Hint text that appears when there is no text in the text box */
+		SLATE_ATTRIBUTE(FText, HintText)
+
+		/** Called whenever the text is changed interactively by the user */
+		SLATE_EVENT(FOnTextChanged, OnTextChanged)
+
+		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
+		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+
+	SLATE_END_ARGS()
+
+
+	void Construct( const FArguments& InArgs )
+	{
+		SetStyle(&FCoreStyle::Get().GetWidgetStyle< FEditableTextBoxStyle >("NormalEditableTextBox"));
+
+		SBorder::Construct(SBorder::FArguments()
+			.BorderImage(this, &SConsoleEditableTextBox::GetConsoleBorder)
+			.BorderBackgroundColor(Style->BackgroundColor)
+			.ForegroundColor(Style->ForegroundColor)
+			.Padding(Style->Padding)
+			[
+				SAssignNew( EditableText, SConsoleEditableText )
+				.HintText( InArgs._HintText )
+				.OnTextChanged( InArgs._OnTextChanged )
+				.OnTextCommitted( InArgs._OnTextCommitted )
+			] );
+	}
+
+private:
+	class SConsoleEditableText : public SEditableText
+	{
+	public:
+		SLATE_BEGIN_ARGS( SConsoleEditableText ) {}
+			/** The text that appears when there is nothing typed into the search box */
+			SLATE_ATTRIBUTE(FText, HintText)
+			/** Called whenever the text is changed interactively by the user */
+			SLATE_EVENT(FOnTextChanged, OnTextChanged)
+
+			/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
+			SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+		SLATE_END_ARGS()
+
+		void Construct( const FArguments& InArgs )
+		{
+			SEditableText::Construct
+			( 
+				SEditableText::FArguments()
+				.HintText( InArgs._HintText )
+				.OnTextChanged( InArgs._OnTextChanged )
+				.OnTextCommitted( InArgs._OnTextCommitted ) 
+				.ClearKeyboardFocusOnCommit( false )
+				.IsCaretMovedWhenGainFocus( false ) 
+				.MinDesiredWidth( 400.0f )
+			);
+		}
+
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+		{
+			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
+			if( InKeyboardEvent.GetKey() == EKeys::Tilde )
+			{
+				return FReply::Unhandled();
+			}
+			else
+			{
+				return SEditableText::OnKeyDown( MyGeometry, InKeyboardEvent );
+			}
+		}
+
+		virtual FReply OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
+		{
+			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
+			if( InCharacterEvent.GetCharacter() != 0x60 )
+			{
+				return SEditableText::OnKeyChar( MyGeometry, InCharacterEvent );
+			}
+			else
+			{
+				return FReply::Unhandled();
+			}
+		}
+
+	};
+
+	/** @return Border image for the text box based on the hovered and focused state */
+	const FSlateBrush* GetConsoleBorder() const
+	{
+		if (EditableText->HasKeyboardFocus())
+		{
+			return &Style->BackgroundImageFocused;
+		}
+		else
+		{
+			if (EditableText->IsHovered())
+			{
+				return &Style->BackgroundImageHovered;
+			}
+			else
+			{
+				return &Style->BackgroundImageNormal;
+			}
+		}
+	}
+
+};
 
 SConsoleInputBox::SConsoleInputBox()
-	: bIgnoreUIUpdate(false)
-	, SelectedSuggestion(-1)
+	: SelectedSuggestion(-1)
+	, bIgnoreUIUpdate(false)
 {
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SConsoleInputBox::Construct( const FArguments& InArgs )
 {
+	OnConsoleCommandExecuted = InArgs._OnConsoleCommandExecuted;
+
 	ChildSlot
 	[
 		SAssignNew( SuggestionBox, SMenuAnchor )
 			.Placement( InArgs._SuggestionListPlacement )
 			[
-				SAssignNew(InputText, SEditableTextBox)
+				SAssignNew(InputText, SConsoleEditableTextBox)
 					.OnTextCommitted(this, &SConsoleInputBox::OnTextCommitted)
 					.HintText( NSLOCTEXT( "ConsoleInputBox", "TypeInConsoleHint", "Enter console command" ) )
-					.ClearKeyboardFocusOnCommit(false)
-					.IsCaretMovedWhenGainFocus(false)
 					.OnTextChanged(this, &SConsoleInputBox::OnTextChanged)
 			]
 			.MenuContent
@@ -266,6 +379,8 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 		}
 
 		ClearSuggestions();
+
+		OnConsoleCommandExecuted.ExecuteIfBound();
 	}
 }
 
@@ -426,42 +541,137 @@ FString SConsoleInputBox::GetSelectionText() const
 	return ret;
 }
 
+/** Output log text marshaller to convert an array of FLogMessages into styled lines to be consumed by an FTextLayout */
+class FOutputLogTextLayoutMarshaller : public FBaseTextLayoutMarshaller
+{
+public:
+
+	static TSharedRef< FOutputLogTextLayoutMarshaller > Create(TArray< TSharedPtr<FLogMessage> > InMessages);
+
+	virtual ~FOutputLogTextLayoutMarshaller();
+	
+	// ITextLayoutMarshaller
+	virtual void SetText(const FString& SourceString, FTextLayout& TargetTextLayout) override;
+	virtual void GetText(FString& TargetString, const FTextLayout& SourceTextLayout) override;
+
+	bool AppendMessage(const TCHAR* InText, const ELogVerbosity::Type InVerbosity, const FName& InCategory);
+	void ClearMessages();
+	int32 GetNumMessages() const;
+
+protected:
+
+	FOutputLogTextLayoutMarshaller(TArray< TSharedPtr<FLogMessage> > InMessages);
+
+	void AppendMessageToTextLayout(const TSharedPtr<FLogMessage>& Message);
+
+	/** All log messages to show in the text box */
+	TArray< TSharedPtr<FLogMessage> > Messages;
+
+	FTextLayout* TextLayout;
+};
+
+TSharedRef< FOutputLogTextLayoutMarshaller > FOutputLogTextLayoutMarshaller::Create(TArray< TSharedPtr<FLogMessage> > InMessages)
+{
+	return MakeShareable(new FOutputLogTextLayoutMarshaller(MoveTemp(InMessages)));
+}
+
+FOutputLogTextLayoutMarshaller::~FOutputLogTextLayoutMarshaller()
+{
+}
+
+void FOutputLogTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout& TargetTextLayout)
+{
+	TextLayout = &TargetTextLayout;
+
+	for(const auto& Message : Messages)
+	{
+		AppendMessageToTextLayout(Message);
+	}
+}
+
+void FOutputLogTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout& SourceTextLayout)
+{
+	SourceTextLayout.GetAsText(TargetString);
+}
+
+bool FOutputLogTextLayoutMarshaller::AppendMessage(const TCHAR* InText, const ELogVerbosity::Type InVerbosity, const FName& InCategory)
+{
+	TArray< TSharedPtr<FLogMessage> > NewMessages;
+	if(SOutputLog::CreateLogMessages(InText, InVerbosity, InCategory, NewMessages))
+	{
+		const bool bWasEmpty = Messages.Num() == 0;
+		Messages.Append(NewMessages);
+
+		if(TextLayout)
+		{
+			// If we were previously empty, then we'd have inserted a dummy empty line into the document
+			// We need to remove this line now as it would cause the message indices to get out-of-sync with the line numbers, which would break auto-scrolling
+			if(bWasEmpty)
+			{
+				TextLayout->ClearLines();
+			}
+
+			// If we've already been given a text layout, then append these new messages rather than force a refresh of the entire document
+			for(const auto& Message : NewMessages)
+			{
+				AppendMessageToTextLayout(Message);
+			}
+		}
+		else
+		{
+			MakeDirty();
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void FOutputLogTextLayoutMarshaller::AppendMessageToTextLayout(const TSharedPtr<FLogMessage>& Message)
+{
+	const FTextBlockStyle& MessageTextStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(Message->Style);
+
+	TSharedRef<FString> LineText = Message->Message;
+
+	TArray<TSharedRef<IRun>> Runs;
+	Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, MessageTextStyle));
+
+	TextLayout->AddLine(LineText, Runs);
+}
+
+void FOutputLogTextLayoutMarshaller::ClearMessages()
+{
+	Messages.Empty();
+	MakeDirty();
+}
+
+int32 FOutputLogTextLayoutMarshaller::GetNumMessages() const
+{
+	return Messages.Num();
+}
+
+FOutputLogTextLayoutMarshaller::FOutputLogTextLayoutMarshaller(TArray< TSharedPtr<FLogMessage> > InMessages)
+	: Messages(MoveTemp(InMessages))
+	, TextLayout(nullptr)
+{
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SOutputLog::Construct( const FArguments& InArgs )
 {
-	Messages = InArgs._Messages;
-	OutputLogActions = MakeShareable( new FUICommandList );
-	OutputLogScrollBar = SNew( SScrollBar );
+	// Force scroll in the first Tick() once we've been sized and populated correctly
+	bPendingForceScroll = true;
 
-	const FOutputLogCommandsImpl& Commands = FOutputLogCommands::Get();
+	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(MoveTemp(InArgs._Messages));
 
-	OutputLogActions->MapAction(
-		Commands.CopyOutputLog,
-		FExecuteAction::CreateRaw( this, &SOutputLog::OnCopy ),
-		FCanExecuteAction::CreateSP( this, &SOutputLog::CanCopy ));
-
-	OutputLogActions->MapAction(
-		Commands.SelectAllInOutputLog,
-		FExecuteAction::CreateRaw( this, &SOutputLog::OnSelectAll ),
-		FCanExecuteAction::CreateSP( this, &SOutputLog::CanSelectAll ));
-
-	OutputLogActions->MapAction(
-		Commands.SelectNoneInOutputLog,
-		FExecuteAction::CreateRaw( this, &SOutputLog::OnSelectNone ),
-		FCanExecuteAction::CreateSP( this, &SOutputLog::CanSelectNone ));
-
-	OutputLogActions->MapAction(
-		Commands.ClearOutputLog,
-		FExecuteAction::CreateRaw( this, &SOutputLog::OnClearLog ),
-		FCanExecuteAction::CreateSP( this, &SOutputLog::CanClearLog ));
-
-	MessageListView = SNew(SListView< TSharedPtr<FLogMessage> >)	// Ideally we start appending the items at the bottom, not at the top
-		.ListItemsSource(&Messages)
-		.OnGenerateRow(this, &SOutputLog::MakeLogListItemWidget)
-		.SelectionMode(ESelectionMode::Multi)
-		.ItemHeight(14)
-		.OnContextMenuOpening(this, &SOutputLog::BuildMenuWidget)
-		.ExternalScrollbar(OutputLogScrollBar);
+	MessagesTextBox = SNew(SMultiLineEditableTextBox)
+		.Style(FEditorStyle::Get(), "Log.TextBox")
+		.TextStyle(FEditorStyle::Get(), "Log.Normal")
+		.Marshaller(MessagesTextMarshaller)
+		.IsReadOnly(true)
+		.AlwaysShowScrollbars(true)
+		.ContextMenuExtender(this, &SOutputLog::ExtendTextBoxMenu);
 
 	ChildSlot
 	[
@@ -471,37 +681,15 @@ void SOutputLog::Construct( const FArguments& InArgs )
 			+SVerticalBox::Slot()
 			.FillHeight(1)
 			[
-				SNew( SHorizontalBox )
-				+SHorizontalBox::Slot()
-				.FillWidth(1)
-				[
-					SNew(SScrollBorder, MessageListView.ToSharedRef())
-					[
-						MessageListView.ToSharedRef()
-					]
-				]
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew( SBox )
-					.WidthOverride( FOptionalSize( 16 ) )
-					[
-						SNew(SVerticalBox)						
-						+SVerticalBox::Slot()
-						.FillHeight(1)
-						[
-							// Output log area
-							OutputLogScrollBar->AsShared()
-						]
-					]
-				]
+				MessagesTextBox.ToSharedRef()
 			]
-
 			// The console input box
 			+SVerticalBox::Slot()
 			.AutoHeight()
+			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
 			[
 				SNew( SConsoleInputBox )
+				.OnConsoleCommandExecuted(this, &SOutputLog::OnConsoleCommandExecuted)
 
 				// Always place suggestions above the input line for the output log widget
 				.SuggestionListPlacement( MenuPlacement_AboveAnchor )
@@ -509,12 +697,6 @@ void SOutputLog::Construct( const FArguments& InArgs )
 	];
 	
 	GLog->AddOutputDevice(this);
-
-	// If there's already been messages logged, scroll down to the last one
-	if (Messages.Num() > 0)
-	{
-		MessageListView->RequestScrollIntoView(Messages.Last());
-	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -524,6 +706,16 @@ SOutputLog::~SOutputLog()
 	{
 		GLog->RemoveOutputDevice(this);
 	}
+}
+
+void SOutputLog::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	if(bPendingForceScroll && MessagesTextMarshaller->GetNumMessages() > 0)
+	{
+		MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
+	}
+
+	bPendingForceScroll = false;
 }
 
 bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, TArray< TSharedPtr<FLogMessage> >& OutMessages )
@@ -538,178 +730,92 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 		FName Style;
 		if (Category == NAME_Cmd)
 		{
-			Style = FName(TEXT("LogTableRow.Command"));
+			Style = FName(TEXT("Log.Command"));
 		}
 		else if (Verbosity == ELogVerbosity::Error)
 		{
-			Style = FName(TEXT("LogTableRow.Error"));
+			Style = FName(TEXT("Log.Error"));
 		}
 		else if (Verbosity == ELogVerbosity::Warning)
 		{
-			Style = FName(TEXT("LogTableRow.Warning"));
+			Style = FName(TEXT("Log.Warning"));
 		}
 		else
 		{
-			Style = FName(TEXT("LogTableRow.Normal"));
+			Style = FName(TEXT("Log.Normal"));
 		}
+
+		const int32 OldNumMessages = OutMessages.Num();
 
 		// handle multiline strings by breaking them apart by line
-		TArray< FString > MessageLines;
+		TArray<FTextRange> LineRanges;
 		FString CurrentLogDump = V;
-		CurrentLogDump.ParseIntoArray(&MessageLines, TEXT("\n"), false);
+		FTextRange::CalculateLineRangesFromString(CurrentLogDump, LineRanges);
 
-		for (int32 i = 0; i < MessageLines.Num(); ++i)
+		bool bIsFirstLineInMessage = true;
+		for (const FTextRange& LineRange : LineRanges)
 		{
-			FString Line = MessageLines[i];
-			if (Line.EndsWith(TEXT("\r")))
-			{
-				Line = Line.LeftChop(1);
-			}
+			if (LineRange.IsEmpty())
+				continue;
+
+			FString Line = CurrentLogDump.Mid(LineRange.BeginIndex, LineRange.Len());
 			Line = Line.ConvertTabsToSpaces(4);
-			OutMessages.Add(MakeShareable(new FLogMessage((i == 0) ? FOutputDevice::FormatLogLine(Verbosity, Category, *Line) : Line, Style)));
+
+			OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString((bIsFirstLineInMessage) ? FOutputDevice::FormatLogLine(Verbosity, Category, *Line) : Line)), Style)));
+
+			bIsFirstLineInMessage = false;
 		}
 
-		return (MessageLines.Num() > 0);
+		return OldNumMessages != OutMessages.Num();
 	}
-}
-
-FReply SOutputLog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
-{
-	FReply Reply = FReply::Unhandled();
-
-	if( OutputLogActions->ProcessCommandBindings( InKeyboardEvent ) )
-	{
-		// handle the event if a command was processed
-		Reply = FReply::Handled();
-	}
-	return Reply;
 }
 
 void SOutputLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
-	if (CreateLogMessages(V, Verbosity, Category, Messages))
+	if ( MessagesTextMarshaller->AppendMessage(V, Verbosity, Category) )
 	{
-		MessageListView->RequestListRefresh();
 		// Don't scroll to the bottom automatically when the user is scrolling the view or has scrolled it away from the bottom.
-		if( OutputLogScrollBar->DistanceFromBottom() <= 0.f )
+		const float DistanceFromBottom = MessagesTextBox->GetVScrollBar()->DistanceFromBottom();
+		if( DistanceFromBottom <= KINDA_SMALL_NUMBER )
 		{
-			MessageListView->RequestScrollIntoView(Messages.Last());
+			// Force a refresh so that the message has been added before we try and jump to it
+			//MessagesTextBox->Refresh();
+
+			MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
 		}
 	}
 }
 
-TSharedRef<ITableRow> SOutputLog::MakeLogListItemWidget(TSharedPtr<FLogMessage> Message, const TSharedRef<STableViewBase>& OwnerTable)
+void SOutputLog::ExtendTextBoxMenu(FMenuBuilder& Builder)
 {
-	check(Message.IsValid());
+	FUIAction ClearOutputLogAction(
+		FExecuteAction::CreateRaw( this, &SOutputLog::OnClearLog ),
+		FCanExecuteAction::CreateSP( this, &SOutputLog::CanClearLog )
+		);
 
-	return
-	SNew(STableRow< TSharedPtr<FLogMessage> >, OwnerTable)
-	.Style( FEditorStyle::Get(), Message->Style )
-	[
-		SNew(SHorizontalBox) //.ToolTipText(Message->Message)		showing the line as tooltip is a workaround to show very long lines as we don't have horizontal scrolling yet
-		+SHorizontalBox::Slot().AutoWidth() .Padding(0)
-		[
-			SNew(STextBlock) .Text(Message->Message) .TextStyle( FEditorStyle::Get(), TEXT("Log.Normal") )
-		]
-	];
-}
-
-TSharedPtr<SWidget> SOutputLog::BuildMenuWidget()
-{
-	FOutputLogModule& OutputLogModule = FModuleManager::GetModuleChecked<FOutputLogModule>( TEXT("OutputLog") );
-
-	FMenuBuilder MenuBuilder( true, OutputLogActions );
-	{ 
-		MenuBuilder.BeginSection("OutputLogEdit");
-		{
-			MenuBuilder.AddMenuEntry(FOutputLogCommands::Get().CopyOutputLog);
-			MenuBuilder.AddMenuEntry(FOutputLogCommands::Get().SelectAllInOutputLog);
-			MenuBuilder.AddMenuEntry(FOutputLogCommands::Get().SelectNoneInOutputLog);
-		}
-		MenuBuilder.EndSection();
-		
-		MenuBuilder.AddMenuEntry(FOutputLogCommands::Get().ClearOutputLog);
-
-	}
-
-	return MenuBuilder.MakeWidget();
-}
-
-void SOutputLog::OnCopy()
-{
-	TArray<TSharedPtr<FLogMessage>> SelectedItems = MessageListView->GetSelectedItems();
-
-	if (SelectedItems.Num())
-	{
-		// Make sure the selected range is sorted in descending index order
-		SelectedItems.Sort([this](const TSharedPtr<FLogMessage>& Item1, const TSharedPtr<FLogMessage>& Item2) -> bool
-		{
-			const int32 Item1Index = Messages.IndexOfByKey(Item1);
-			const int32 Item2Index = Messages.IndexOfByKey(Item2);
-			return Item1Index < Item2Index;
-		});
-
-		FString SelectedText;
-
-		for (int32 SelectedItemIdx = 0; SelectedItemIdx < SelectedItems.Num(); SelectedItemIdx++)
-		{
-			SelectedText += SelectedItems[SelectedItemIdx]->Message + LINE_TERMINATOR;
-		}
-
-		SelectedText = SelectedText.LeftChop(FCString::Strlen(LINE_TERMINATOR));
-
-		// Copy text to clipboard
-		FPlatformMisc::ClipboardCopy( *SelectedText );
-	}
-}
-
-bool SOutputLog::CanCopy() const
-{
-	const int32 NumSelected = MessageListView->GetNumItemsSelected();
-	return NumSelected != 0;
+	Builder.AddMenuEntry(
+		NSLOCTEXT("OutputLog", "ClearLogLabel", "Clear Log"), 
+		NSLOCTEXT("OutputLog", "ClearLogTooltip", "Clears all log messages"), 
+		FSlateIcon(), 
+		ClearOutputLogAction
+		);
 }
 
 void SOutputLog::OnClearLog()
 {
-	Messages.Empty();
-	MessageListView->RequestListRefresh();
+	// Make sure the cursor is back at the start of the log before we clear it
+	MessagesTextBox->GoTo(FTextLocation(0));
+
+	MessagesTextMarshaller->ClearMessages();
+	MessagesTextBox->Refresh();
 }
 
 bool SOutputLog::CanClearLog() const
 {
-	return Messages.Num() != 0;
+	return MessagesTextMarshaller->GetNumMessages() > 0;
 }
 
-void SOutputLog::OnSelectAll()
+void SOutputLog::OnConsoleCommandExecuted()
 {
-	for (int32 ItemIdx = 0; ItemIdx < Messages.Num(); ItemIdx++)
-	{
-		if (!MessageListView->IsItemSelected(Messages[ItemIdx]))
-		{
-			MessageListView->SetItemSelection(Messages[ItemIdx], true);
-		}
-	}
-}
-
-bool SOutputLog::CanSelectAll() const
-{
-	const int32 NumSelected = MessageListView->GetNumItemsSelected();
-	return Messages.Num() && NumSelected != Messages.Num();
-}
-
-void SOutputLog::OnSelectNone()
-{
-	for (int32 ItemIdx = 0; ItemIdx < Messages.Num(); ItemIdx++)
-	{
-		if (MessageListView->IsItemSelected(Messages[ItemIdx]))
-		{
-			MessageListView->SetItemSelection(Messages[ItemIdx], false);
-		}
-	}
-}
-
-bool SOutputLog::CanSelectNone() const
-{
-	const int32 NumSelected = MessageListView->GetNumItemsSelected();
-	return Messages.Num() && NumSelected;
+	RequestForceScroll();
 }

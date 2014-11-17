@@ -7,7 +7,7 @@
 #include "EnvironmentQuery/EnvQueryOption.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
-
+#include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #if WITH_EDITOR
 #include "Engine/Brush.h"
 #include "Editor/EditorEngine.h"
@@ -61,7 +61,7 @@ int32 FEnvQueryRequest::Execute(EEnvQueryRunMode::Type RunMode, FQueryFinishedSi
 		}
 	}
 
-	UEnvQueryManager* EnvQueryManager = UAISystem::GetCurrentEQSManager(World);
+	UEnvQueryManager* EnvQueryManager = UEnvQueryManager::GetCurrent(World);
 	if (EnvQueryManager == NULL)
 	{
 		UE_LOG(LogEQS, Warning, TEXT("Missing EQS manager!"));
@@ -77,7 +77,7 @@ int32 FEnvQueryRequest::Execute(EEnvQueryRunMode::Type RunMode, FQueryFinishedSi
 
 TArray<TSubclassOf<UEnvQueryItemType> > UEnvQueryManager::RegisteredItemTypes;
 
-UEnvQueryManager::UEnvQueryManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryManager::UEnvQueryManager(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -95,18 +95,21 @@ void UEnvQueryManager::FinishDestroy()
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 {
-	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
+	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
 }
 
-UEnvQueryManager* UEnvQueryManager::GetCurrent(class UObject* WorldContextObject)
+UEnvQueryManager* UEnvQueryManager::GetCurrent(UObject* WorldContextObject)
 {
-	UWorld* World = WorldContextObject ? GEngine->GetWorldFromContextObject(WorldContextObject) : NULL;
-	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
 }
 
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 void UEnvQueryManager::NotifyAssetUpdate(UEnvQuery* Query)
 {
+#if WITH_EDITOR
 	if (GEditor == NULL)
 	{
 		return;
@@ -115,7 +118,7 @@ void UEnvQueryManager::NotifyAssetUpdate(UEnvQuery* Query)
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (World)
 	{
-		UEnvQueryManager* EQS = UAISystem::GetCurrentEQSManager(World);
+		UEnvQueryManager* EQS = UEnvQueryManager::GetCurrent(World);
 		if (EQS)
 		{
 			EQS->InstanceCache.Reset();
@@ -137,8 +140,9 @@ void UEnvQueryManager::NotifyAssetUpdate(UEnvQuery* Query)
 			}
 		}
 	}
+#endif //WITH_EDITOR
 }
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 TStatId UEnvQueryManager::GetStatId() const
 {
@@ -148,6 +152,11 @@ TStatId UEnvQueryManager::GetStatId() const
 int32 UEnvQueryManager::RunQuery(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode, FQueryFinishedSignature const& FinishDelegate)
 {
 	TSharedPtr<FEnvQueryInstance> QueryInstance = PrepareQueryInstance(Request, RunMode);
+	return RunQuery(QueryInstance, FinishDelegate);
+}
+
+int32 UEnvQueryManager::RunQuery(TSharedPtr<struct FEnvQueryInstance> QueryInstance, FQueryFinishedSignature const& FinishDelegate)
+{
 	if (QueryInstance.IsValid() == false)
 	{
 		return INDEX_NONE;
@@ -171,6 +180,8 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 	{
 		QueryInstance->ExecuteOneStep((double)FLT_MAX);
 	}
+
+	UE_VLOG_EQS(QueryInstance.Get(), LogEQS, All);
 
 #if USE_EQS_DEBUGGER
 	EQSDebugger.StoreQuery(QueryInstance);
@@ -237,10 +248,14 @@ void UEnvQueryManager::Tick(float DeltaTime)
 			const double StartTime = FPlatformTime::Seconds();
 
 			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
+			//SCOPE_LOG_TIME(*FString::Printf(TEXT("Query %s step"), *QueryInstance->QueryName), nullptr);
+
 			QueryInstance->ExecuteOneStep(TimeLeft);
 			
 			if (QueryInstance->Status != EEnvQueryStatus::Processing)
 			{
+				UE_VLOG_EQS(QueryInstance.Get(), LogEQS, All);
+
 #if USE_EQS_DEBUGGER
 				EQSDebugger.StoreQuery(QueryInstance);
 #endif // USE_EQS_DEBUGGER
@@ -370,7 +385,7 @@ UEnvQuery* UEnvQueryManager::FindQueryTemplate(const FString& QueryName) const
 	return NULL;
 }
 
-TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
+TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
 {
 	if (Template == NULL)
 	{
@@ -471,18 +486,18 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const class 
 	return NewInstance;
 }
 
-void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, struct FEnvQueryInstance& Instance)
+void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, struct FEnvQueryInstance& Instance)
 {
 	FEnvQueryOptionInstance OptionInstance;
-	OptionInstance.GenerateDelegate = OptionTemplate->Generator->GenerateDelegate;
+	OptionInstance.Generator = OptionTemplate->Generator;
 	OptionInstance.ItemType = OptionTemplate->Generator->ItemType;
 	OptionInstance.bShuffleItems = true;
 
-	OptionInstance.TestDelegates.AddZeroed(SortedTests.Num());
+	OptionInstance.TestsToPerform.AddZeroed(SortedTests.Num());
 	for (int32 TestIndex = 0; TestIndex < SortedTests.Num(); TestIndex++)
 	{
 		const UEnvQueryTest* TestOb = SortedTests[TestIndex];
-		OptionInstance.TestDelegates[TestIndex] = TestOb->ExecuteDelegate;
+		OptionInstance.TestsToPerform[TestIndex] = TestOb;
 
 		// HACK!  TODO: Is this the correct replacement here?  or should it check just if SCORING ONLY?
 		// always randomize when asking for single result
@@ -508,18 +523,38 @@ void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplat
 
 void FEQSDebugger::StoreQuery(TSharedPtr<FEnvQueryInstance>& Query)
 {
-	TSharedPtr<FEnvQueryInstance>& StoredQuery = StoredQueries.FindOrAdd(Query->Owner.Get());
-	StoredQuery = Query;
+	StoredQueries.Remove(NULL);
+	if (!Query.IsValid())
+	{
+		return;
+	}
+	TArray<FEnvQueryInfo>& AllQueries = StoredQueries.FindOrAdd(Query->Owner.Get());
+		
+	bool bFoundQuery = false;
+	for (auto It = AllQueries.CreateIterator(); It; ++It)
+	{
+		auto& CurrentQuery = (*It);
+		if (CurrentQuery.Instance.IsValid() && Query->QueryName == CurrentQuery.Instance->QueryName)
+		{
+			CurrentQuery.Instance = Query;
+			CurrentQuery.Timestamp = GWorld->GetTimeSeconds();
+			bFoundQuery = true;
+			break;
+		}
+	}
+	if (!bFoundQuery)
+	{
+		FEnvQueryInfo Info;
+		Info.Instance = Query;
+		Info.Timestamp = GWorld->GetTimeSeconds();
+		AllQueries.AddUnique(Info);
+	}
 }
 
-TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject* Owner)
+TArray<FEQSDebugger::FEnvQueryInfo>&  FEQSDebugger::GetAllQueriesForOwner(const UObject* Owner)
 {
-	return StoredQueries.FindRef(Owner);
-}
-
-const TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject* Owner) const
-{
-	return StoredQueries.FindRef(Owner);
+	TArray<FEnvQueryInfo>& AllQueries = StoredQueries.FindOrAdd(Owner);
+	return AllQueries;
 }
 
 #endif // USE_EQS_DEBUGGER

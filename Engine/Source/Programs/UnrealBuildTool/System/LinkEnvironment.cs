@@ -21,7 +21,20 @@ namespace UnrealBuildTool
 		public string LocalShadowDirectory = null;
 
 		/** The file path for the executable file that is output by the linker. */
-		public string OutputFilePath;
+		public string[] OutputFilePaths = null;
+
+		/** Returns the OutputFilePath is there is only one entry in OutputFilePaths */
+		public string OutputFilePath
+		{
+			get
+			{
+				if (OutputFilePaths.Length != 1)
+				{
+					throw new BuildException("Attempted to use LinkEnvironmentConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+				}
+				return OutputFilePaths[0];
+			}
+		}
 
 		/** A list of the paths used to find libraries. */
 		public List<string> LibraryPaths = new List<string>();
@@ -43,6 +56,9 @@ namespace UnrealBuildTool
 		/** The iOS/Mac frameworks to link in */
 		public List<string> Frameworks = new List<string>();
 		public List<string> WeakFrameworks = new List<string>();
+
+		/** iOS/Mac resources that should be copied to the app bundle */
+		public List<UEBuildBundleResource> AdditionalBundleResources = new List<UEBuildBundleResource>();
 
 		/**
 		 * A list of the dynamically linked libraries that shouldn't be loaded until they are first called
@@ -101,7 +117,7 @@ namespace UnrealBuildTool
 			OutputDirectory = InCopyEnvironment.OutputDirectory;
 			IntermediateDirectory = InCopyEnvironment.IntermediateDirectory;
 			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
-			OutputFilePath = InCopyEnvironment.OutputFilePath;
+			OutputFilePaths = InCopyEnvironment.OutputFilePaths != null ? (string[])InCopyEnvironment.OutputFilePaths.Clone() : null;
 			LibraryPaths.AddRange(InCopyEnvironment.LibraryPaths);
 			ExcludedLibraries.AddRange(InCopyEnvironment.ExcludedLibraries);
 			AdditionalLibraries.AddRange(InCopyEnvironment.AdditionalLibraries);
@@ -109,6 +125,7 @@ namespace UnrealBuildTool
 			AdditionalShadowFiles.AddRange( InCopyEnvironment.AdditionalShadowFiles );
 			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
 			WeakFrameworks.AddRange(InCopyEnvironment.WeakFrameworks);
+			AdditionalBundleResources.AddRange(InCopyEnvironment.AdditionalBundleResources);
 			DelayLoadDLLs.AddRange(InCopyEnvironment.DelayLoadDLLs);
 			AdditionalArguments = InCopyEnvironment.AdditionalArguments;
 			bCreateDebugInfo = InCopyEnvironment.bCreateDebugInfo;
@@ -164,9 +181,9 @@ namespace UnrealBuildTool
 		}
 
 		/** Links the input files into an executable. */
-		public FileItem LinkExecutable( bool bBuildImportLibraryOnly )
+		public FileItem[] LinkExecutable( bool bBuildImportLibraryOnly )
 		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).LinkFiles(this, bBuildImportLibraryOnly);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).LinkAllFiles(this, bBuildImportLibraryOnly);
 		}
 
 		/// <summary>

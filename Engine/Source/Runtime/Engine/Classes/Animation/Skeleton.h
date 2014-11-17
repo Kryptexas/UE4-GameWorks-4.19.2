@@ -7,6 +7,7 @@
 
 #pragma once
 #include "PreviewAssetAttachComponent.h"
+#include "SmartName.h"
 #include "Skeleton.generated.h"
 
 class UAnimSequence;
@@ -140,6 +141,49 @@ struct FBoneReductionSetting
 		return (BonesToRemove.Contains(BoneName));
 	}
 };
+
+USTRUCT()
+struct FNameMapping
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FName NodeName;
+
+	UPROPERTY()
+	FName BoneName;
+
+	FNameMapping()
+		: NodeName(NAME_None)
+		, BoneName(NAME_None)
+	{
+	}
+
+	FNameMapping(FName InNodeName)
+		: NodeName(InNodeName)
+		, BoneName(NAME_None)
+	{
+	}
+
+	FNameMapping(FName InNodeName, FName InBoneName)
+		: NodeName(InNodeName)
+		, BoneName(InBoneName)
+	{
+	}
+};
+
+USTRUCT()
+struct FRigConfiguration
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	class URig * Rig;
+
+	// @todo in the future we can make this to be run-time data
+	UPROPERTY()
+	TArray<FNameMapping> BoneMappingTable;
+};
 /**
  *	USkeleton : that links between mesh and animation
  *		- Bone hierarchy for animations
@@ -191,6 +235,16 @@ public:
 	/** Serializable retarget sources for this skeleton **/
 	TMap< FName, FReferencePose > AnimRetargetSources;
 
+	// Typedefs for greater smartname UID readability, add one for each smartname category 
+	typedef FSmartNameMapping::UID AnimCurveUID;
+
+	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
+	static ENGINE_API const FName AnimCurveMappingName;
+
+	// Container for smart name mappings
+	UPROPERTY()
+	FSmartNameContainer SmartNames;
+
 #if WITH_EDITORONLY_DATA
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */
@@ -205,7 +259,24 @@ private:
 	UPROPERTY()
 	TArray<FName> SlotGroupNames;
 
+	UPROPERTY()
+	FRigConfiguration RigConfig;
+
+	/** rig property will be saved separately */
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+
 public:
+
+	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
+	// return bool - Whether a name was added (false if already present)
+	ENGINE_API bool AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid);
+
+	// Renames a smartname in the specified container and modifies the skeleton
+	// return bool - Whether the rename was sucessful
+	ENGINE_API bool RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName);
+
+	// Removes a smartname from the specified container and modifies the skeleton
+	ENGINE_API void RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid);
 
 	/** AnimNotifiers that has been created. Right now there is no delete step for this, but in the future we'll supply delete**/
 	UPROPERTY()
@@ -256,7 +327,7 @@ public:
 #if WITH_EDITORONLY_DATA
 
 	// @todo document
-	void CollectAnimationNotifies();
+	ENGINE_API void CollectAnimationNotifies();
 
 	// @todo document
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);
@@ -274,6 +345,7 @@ public:
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
+	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
@@ -547,14 +619,31 @@ public:
 	/** Removes the supplied bones from the skeleton */
 	ENGINE_API void RemoveBonesFromSkeleton(const TArray<FName>& BonesToRemove, bool bRemoveChildBones);
 
+	// Asset registry information for animation notifies
 	static const FName AnimNotifyTag;
-	static const TCHAR AnimNotifyTagDeliminator;
+	static const TCHAR AnimNotifyTagDelimiter;
+
+	// Asset registry information for animation curves
+	ENGINE_API static const FName CurveTag;
+	ENGINE_API static const TCHAR CurveTagDelimiter;
+
+	// rig Configs
+	ENGINE_API static const FName RigTag;
+	ENGINE_API void SetRigConfig(URig * Rig);
+	ENGINE_API FName GetRigBoneMapping(const FName & NodeName) const;
+	ENGINE_API bool SetRigBoneMapping(const FName & NodeName, FName BoneName);
+	ENGINE_API FName GetRigNodeNameFromBoneName(const FName & BoneName) const;
+	// this make sure it stays within the valid range
+	ENGINE_API int32 GetMappedValidNodes(TArray<FName> &OutValidNodeNames);
+	// verify if it has all latest data
+	ENGINE_API void RefreshRigConfig();
+	int32 FindRigBoneMapping(const FName & NodeName) const;
+	ENGINE_API URig * GetRig() const;
 #endif
 
 public:
 	// this should be outside of editor because slot node is initialize to it
 	ENGINE_API static const FName DefaultSlotGroupName;
-
 private:
 	void RegenerateGuid();
 };

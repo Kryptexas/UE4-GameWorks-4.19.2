@@ -11,6 +11,8 @@
 #include "../SystemTextures.h"
 #include "RHIStaticStates.h"
 
+struct IPooledRenderTarget;
+
 /** Number of cube map shadow depth surfaces that will be created and used for rendering one pass point light shadows. */
 static const int32 NumCubeShadowDepthSurfaces = 5;
 
@@ -74,9 +76,6 @@ inline int SelectTranslucencyVolumeTarget(ETranslucencyVolumeCascade InCascade)
 /** Number of surfaces used for translucent shadows. */
 static const int32 NumTranslucencyShadowSurfaces = 2;
 
-/** Downsample factor to use on the volume texture used for computing GI on translucency. */
-static const int32 TranslucentVolumeGISratchDownsampleFactor = 1;
-
 BEGIN_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferATexture )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D,			GBufferBTexture )
@@ -127,15 +126,31 @@ protected:
 		CurrentTranslucencyLightingVolumeDim(64),
 		CurrentMobile32bpp(0),
 		bCurrentLightPropagationVolume(false),
-		CurrentFeatureLevel(ERHIFeatureLevel::Num)
-		{}
+		CurrentFeatureLevel(ERHIFeatureLevel::Num),
+		CurrentShadingPath(EShadingPath::Num)
+		{
+		}
 public:
+
+	enum class EShadingPath
+	{
+		Forward,
+		Deferred,
+
+		Num,
+	};
 
 	/**
 	 * Checks that scene render targets are ready for rendering a view family of the given dimensions.
 	 * If the allocated render targets are too small, they are reallocated.
 	 */
 	void Allocate(const FSceneViewFamily& ViewFamily);
+
+	/**
+	 * Forward shading can't know how big the optimal atlased shadow buffer will be, so provide a set it up per frame.
+	 */
+	void AllocateForwardShadingShadowDepthTarget(const FIntPoint& ShadowBufferResolution);
+
 	/**
 	 *
 	 */
@@ -148,7 +163,7 @@ public:
 	 * Sets the scene color target and restores its contents if necessary
 	 * @param bGBufferPass - Whether the pass about to be rendered is the GBuffer population pass
 	 */
-	void BeginRenderingSceneColor(FRHICommandListImmediate& RHICmdList, bool bGBufferPass = false);
+	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, bool bGBufferPass = false);
 	/**
 	 * Called when finished rendering to the scene color surface
 	 * @param bKeepChanges - if true then the SceneColorSurface is resolved to the SceneColorTexture
@@ -185,9 +200,9 @@ public:
 	/** Resolves the appropriate shadow depth cube map and restores default state. */
 	void FinishRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution, const FResolveParams& ResolveParams = FResolveParams());
 	
-	void BeginRenderingTranslucency(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
+	void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View);
 
-	bool BeginRenderingSeparateTranslucency(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
+	bool BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
 	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View);
 	void FreeSeparateTranslucency();
 
@@ -200,8 +215,8 @@ public:
 	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 	void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingLightAttenuation(FRHICommandListImmediate& RHICmdList);
-	void FinishRenderingLightAttenuation(FRHICommandListImmediate& RHICmdList);
+	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList);
+	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
 
 	/**
 	 * Cleans up editor primitive targets that we no longer need
@@ -230,7 +245,6 @@ public:
 
 
 	// FRenderResource interface.
-	virtual void InitDynamicRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 
 	// Texture Accessors -----------
@@ -258,7 +272,7 @@ public:
 	const FTexture2DRHIRef* GetActualDepthTexture() const
 	{
 		const FTexture2DRHIRef* DepthTexture = NULL;
-		if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GRHIShaderPlatform))
+		if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GShaderPlatformForFeatureLevel[CurrentFeatureLevel]))
 		{
 			if(GSupportsDepthFetchDuringDepthTest)
 			{
@@ -312,6 +326,10 @@ public:
 	{ 
 		return (const FTexture2DRHIRef&)ShadowDepthZ->GetRenderTargetItem().TargetableTexture; 
 	}
+	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface() const 
+	{ 
+		return (const FTexture2DRHIRef&)OptionalShadowDepthColor->GetRenderTargetItem().TargetableTexture; 
+	}
 
 	const FTexture2DRHIRef& GetReflectiveShadowMapNormalSurface() const { return (const FTexture2DRHIRef&)ReflectiveShadowMapNormal->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetReflectiveShadowMapDiffuseSurface() const { return (const FTexture2DRHIRef&)ReflectiveShadowMapDiffuse->GetRenderTargetItem().TargetableTexture; }
@@ -339,16 +357,18 @@ public:
 	// ---
 
 	/** Get the current translucent ambient lighting volume texture. Can vary depending on whether volume filtering is enabled */
-	TRefCountPtr<IPooledRenderTarget> GetTranslucencyVolumeAmbient(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeAmbient[SelectTranslucencyVolumeTarget(Cascade)]; }
+	IPooledRenderTarget* GetTranslucencyVolumeAmbient(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeAmbient[SelectTranslucencyVolumeTarget(Cascade)].GetReference(); }
 
 	/** Get the current translucent directional lighting volume texture. Can vary depending on whether volume filtering is enabled */
-	TRefCountPtr<IPooledRenderTarget> GetTranslucencyVolumeDirectional(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeDirectional[SelectTranslucencyVolumeTarget(Cascade)]; }
+	IPooledRenderTarget* GetTranslucencyVolumeDirectional(ETranslucencyVolumeCascade Cascade) { return TranslucencyLightingVolumeDirectional[SelectTranslucencyVolumeTarget(Cascade)].GetReference(); }
 
 	// ---
 	/** Get the uniform buffer containing GBuffer resources. */
 	FUniformBufferRHIParamRef GetGBufferResourcesUniformBuffer() const 
 	{ 
+		// if this triggers you need to make sure the GBuffer is not getting released before (using AdjustGBufferRefCount(1) and AdjustGBufferRefCount(-1))
 		check(IsValidRef(GBufferResourcesUniformBuffer));
+
 		return GBufferResourcesUniformBuffer; 
 	}
 	/** */
@@ -396,10 +416,15 @@ public:
 	//
 	void AllocGBufferTargets();
 
+	void AllocLightAttenuation();
+
+	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
+
 private: // Get...() methods instead of direct access
 
-	// 0 before BeginRenderingSceneColor and after tone mapping, for ES2 it's not released during the frame
-	TRefCountPtr<IPooledRenderTarget> SceneColor;
+	// 0 before BeginRenderingSceneColor and after tone mapping in deferred shading
+	// Permanently allocated for forward shading
+	TRefCountPtr<IPooledRenderTarget> SceneColor[(int32)EShadingPath::Num];
 	// also used as LDR scene color
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
 public:
@@ -431,6 +456,8 @@ public:
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
 	// Render target for per-object shadow depths.
 	TRefCountPtr<IPooledRenderTarget> ShadowDepthZ;
+	// optional in case this RHI requires a color render target
+	TRefCountPtr<IPooledRenderTarget> OptionalShadowDepthColor;
 	// Cache of preshadow depths
 	//@todo - this should go in FScene
 	TRefCountPtr<IPooledRenderTarget> PreShadowCacheDepthZ;
@@ -453,15 +480,15 @@ public:
 	/** Temporary storage during SH irradiance map generation. */
 	TRefCountPtr<IPooledRenderTarget> SkySHIrradianceMap;
 
-	/** Temporary storage, used during reflection capture filtering. */
-	TRefCountPtr<IPooledRenderTarget> ReflectionBrightness;
+	/** Temporary storage, used during reflection capture filtering. 
+	  * 0 - R32 version for > ES2
+	  * 1 - RGBAF version for ES2
+	  */
+	TRefCountPtr<IPooledRenderTarget> ReflectionBrightness[2];
 
 	/** Volume textures used for lighting translucency. */
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeAmbient[NumTranslucentVolumeRenderTargetSets];
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeDirectional[NumTranslucentVolumeRenderTargetSets];
-
-	/** Volume texture used to gather GI at a lower resolution than the rest of translucent lighting. */
-	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeGIScratch;
 
 	/** Color and opacity for editor primitives (i.e editor gizmos). */
 	TRefCountPtr<IPooledRenderTarget> EditorPrimitivesColor;
@@ -502,17 +529,23 @@ private:
 	void InitEditorPrimitivesDepth();
 
 	/** Allocates render targets for use with the forward shading path. */
-	void AllocateForwardShadingPathRenderTargets();
+	void AllocateForwardShadingPathRenderTargets();	
 
 	/** Allocates render targets for use with the deferred shading path. */
 	void AllocateDeferredShadingPathRenderTargets();
+
+	/** Allocates render targets for use with the current shading path. */
+	void AllocateRenderTargets();
+
+	void AllocateReflectionTargets();
+
+	/** Allocates common depth render targets that are used by both forward and deferred rendering paths */
+	void AllocateCommonDepthTargets();
 
 	/** Determine the appropriate render target dimensions. */
 	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily & ViewFamily) const;
 
 	void AllocSceneColor();
-
-	void AllocLightAttenuation();
 
 	// internal method, used by AdjustGBufferRefCount()
 	void ReleaseGBufferTargets();
@@ -521,6 +554,16 @@ private:
 	void ReleaseAllTargets();
 
 	EPixelFormat GetSceneColorFormat() const;
+
+	/** Get the current scene color target based on our current shading path. Will return a null ptr if there is no valid scene color target  */
+	const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
+	TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
+
+	/** Determine whether the render targets for a particular shading path have been allocated */
+	bool AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const;
+
+	/** Determine whether the render targets for any shading path have been allocated */
+	bool AreAnyShadingPathRenderTargetsAllocated() const { return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) || AreShadingPathRenderTargetsAllocated(EShadingPath::Forward); }
 
 private:
 	/** Uniform buffer containing GBuffer resources. */
@@ -553,6 +596,8 @@ private:
 	bool bCurrentLightPropagationVolume;
 	/** Feature level we were initialized for */
 	ERHIFeatureLevel::Type CurrentFeatureLevel;
+	/** Shading path that we are currently drawing through. Set when calling Allocate at the start of a scene render. */
+	EShadingPath CurrentShadingPath;
 };
 
 /** The global render targets used for scene rendering. */

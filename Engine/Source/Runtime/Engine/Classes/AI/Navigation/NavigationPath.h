@@ -5,6 +5,7 @@
 #include "NavigationPath.generated.h"
 
 class UNavigationPath;
+struct FNavigationPath;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNavigationPathUpdated, UNavigationPath*, AffectedPath, TEnumAsByte<ENavPathEvent::Type>, PathEvent);
 
@@ -53,7 +54,7 @@ public:
 	void EnableRecalculationOnInvalidation(TEnumAsByte<ENavigationOptionFlag::Type> DoRecalculation);
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
-	float GetPathLenght() const;
+	float GetPathLength() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	float GetPathCost() const;
@@ -73,4 +74,6 @@ public:
 protected:
 	void DrawDebug(UCanvas* Canvas, APlayerController*);
 	void OnPathEvent(FNavigationPath* Path, ENavPathEvent::Type PathEvent);
+
+	void SetPathPointsFromPath(FNavigationPath& NativePath);
 };

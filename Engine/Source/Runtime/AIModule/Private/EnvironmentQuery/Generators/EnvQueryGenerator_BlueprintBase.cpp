@@ -14,8 +14,6 @@
 UEnvQueryGenerator_BlueprintBase::UEnvQueryGenerator_BlueprintBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_BlueprintBase::GenerateItems);
-
 	Context = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Actor::StaticClass();
 	Radius.Value = 1000.0f;
@@ -33,7 +31,7 @@ UWorld* UEnvQueryGenerator_BlueprintBase::GetWorld() const
 	return CachedQueryInstance ? CachedQueryInstance->World : NULL;
 }
 
-void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryInstance)
+void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
 	float RadiusValue = 0.f;
 	if (QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) == false)

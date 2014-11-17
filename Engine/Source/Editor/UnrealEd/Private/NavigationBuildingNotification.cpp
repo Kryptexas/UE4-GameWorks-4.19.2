@@ -4,53 +4,7 @@
 #include "MainFrame.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "EditorBuildUtils.h"
-
-/** Notification class for asynchronous shader compiling. */
-class FNavigationBuildingNotificationImpl
-	: public FTickableEditorObject
-{
-
-public:
-
-	FNavigationBuildingNotificationImpl()
-	{
-		bPreviouslyDetectedBuild = false;
-		LastEnableTime = 0;
-	}
-
-	/** Starts the notification. */
-	void BuildStarted();
-
-	/** Ends the notification. */
-	void BuildFinished();
-
-protected:
-	/** FTickableEditorObject interface */
-	virtual void Tick(float DeltaTime);
-	virtual bool IsTickable() const
-	{
-		return true;
-	}
-	virtual TStatId GetStatId() const override;
-
-private:
-	void ClearCompleteNotification();
-
-	bool bPreviouslyDetectedBuild;
-	double TimeOfStartedBuild;
-	double TimeOfStoppedBuild;
-
-	/** Tracks the last time the notification was started, used to avoid spamming. */
-	double LastEnableTime;
-
-	TWeakPtr<SNotificationItem> NavigationBuiltCompleteNotification;
-
-	/** The source code symbol query in progress message */
-	TWeakPtr<SNotificationItem> NavigationBuildNotificationPtr;
-};
-
-/** Instance. */
-FNavigationBuildingNotificationImpl GNavigationBuildingNotification;
+#include "NavigationBuildingNotification.h"
 
 void FNavigationBuildingNotificationImpl::BuildStarted()
 {
@@ -90,6 +44,7 @@ void FNavigationBuildingNotificationImpl::BuildStarted()
 void FNavigationBuildingNotificationImpl::BuildFinished()
 {
 	// Finished all requests! Notify the UI.
+	UEditorEngine* const EEngine = Cast<UEditorEngine>(GEngine);
 	TSharedPtr<SNotificationItem> NotificationItem = NavigationBuildNotificationPtr.Pin();
 	if (NotificationItem.IsValid())
 	{
@@ -97,10 +52,22 @@ void FNavigationBuildingNotificationImpl::BuildFinished()
 		NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
 		NotificationItem->ExpireAndFadeout();
 
+		if (EEngine)
+		{
+			// request update for all viewports with disabled real time but with visible navmesh
+			for (auto Viewport : EEngine->AllViewportClients)
+			{
+				if (Viewport && Viewport->IsRealtime() == false && Viewport->EngineShowFlags.Navigation)
+				{
+					Viewport->bNeedsRedraw = true;
+					EEngine->UpdateSingleViewportClient(Viewport, true, false);
+				}
+			}
+		}
+
 		NavigationBuildNotificationPtr.Reset();
 	}
 
-	UEditorEngine* const EEngine = Cast<UEditorEngine>(GEngine);
 	if (EEngine != NULL && (FEditorBuildUtils::IsBuildingNavigationFromUserRequest()))
 	{
 		FNotificationInfo Info( NSLOCTEXT("NavigationBuild", "NavigationBuildDoneMessage", "Navigation building completed.") );

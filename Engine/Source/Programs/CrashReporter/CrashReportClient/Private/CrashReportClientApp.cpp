@@ -1,17 +1,24 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "CrashDescription.h"
+#include "CrashReportAnalytics.h"
+
 #if !CRASH_REPORT_UNATTENDED_ONLY
 	#include "SCrashReportClient.h"
 	#include "CrashReportClient.h"
 	#include "CrashReportClientStyle.h"
 	#include "SlateReflector.h"
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
+
 #include "CrashReportClientUnattended.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "AsyncWork.h"
 
 #include "MainLoopTiming.h"
+
+#include "PlatformErrorReport.h"
+#include "XmlFile.h"
 
 /** Default main window size */
 const FVector2D InitialWindowDimensions(640, 560);
@@ -23,23 +30,20 @@ const float IdealTickRate = 30.f;
 const bool RunWidgetReflector = false;
 
 IMPLEMENT_APPLICATION(CrashReportClient, "CrashReportClient");
-
 DEFINE_LOG_CATEGORY(CrashReportClientLog);
 
-namespace
-{
-	/** Directory containing the report */
-	FString ReportDirectoryAbsolutePath;
+/** Directory containing the report */
+static FString ReportDirectoryAbsolutePath;
 
-	/** Name of crashed app to display */
-	FString CrashedAppName;
-}
+/** Name of the game passed via the command line. */
+static FString GameNameFromCmd;
+
 /**
  * Upload the crash report with no user interaction
  */
 void RunCrashReportClientUnattended(FMainLoopTiming& MainLoop, const FPlatformErrorReport& ErrorReport)
 {
-	FCrashReportClientUnattended CrashReportClient(ErrorReport);
+	FCrashReportClientUnattended CrashReportClient( ErrorReport );
 
 	// loop until the app is ready to quit
 	while (!GIsRequestingExit)
@@ -62,7 +66,7 @@ void ParseCommandLine(const TCHAR* CommandLine)
 		{
 			ReportDirectoryAbsolutePath = FParse::Token(CommandLineAfterExe, true /* handle escaped quotes */);
 		}
-		FParse::Value(CommandLineAfterExe, TEXT("AppName="), CrashedAppName);
+		FParse::Value( CommandLineAfterExe, TEXT( "AppName=" ), GameNameFromCmd );
 	}
 
 	if (ReportDirectoryAbsolutePath.IsEmpty())
@@ -83,16 +87,16 @@ FPlatformErrorReport LoadErrorReport()
 	}
 
 	FPlatformErrorReport ErrorReport(ReportDirectoryAbsolutePath);
+	
+	FString XMLWerFilename;
+	ErrorReport.FindFirstReportFileWithExtension( XMLWerFilename, TEXT( ".xml" ) );
+
+	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );
+
 #if CRASH_REPORT_UNATTENDED_ONLY
 	return ErrorReport;
 #else
-	auto AppNameInReport = ErrorReport.FindCrashedAppName();
-	if (CrashedAppName.IsEmpty())
-	{
-		// If no app name was provided on the command line, assume the report is the correct one
-		CrashedAppName = AppNameInReport;
-	}
-	else if (CrashedAppName != AppNameInReport)
+	if( !GameNameFromCmd.IsEmpty() && GameNameFromCmd != GetCrashDescription().GameName )
 	{
 		// Don't display or upload anything if it's not the report we expected
 		ErrorReport = FPlatformErrorReport();
@@ -106,7 +110,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	// Set up the main loop
 	GEngineLoop.PreInit(CommandLine);
 
-	bool bUnattended = 
+	const bool bUnattended = 
 #if CRASH_REPORT_UNATTENDED_ONLY
 		true;
 #else
@@ -122,8 +126,15 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
 	
+	if( ErrorReport.HasFilesToUpload() )
+	{
+		// Send analytics.
+		GetCrashDescription().SendAnalytics();
+	}
+
 	if (bUnattended)
 	{
+		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ) );
 		RunCrashReportClientUnattended(MainLoop, ErrorReport);
 	}
 	else
@@ -136,7 +147,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		FCrashReportClientStyle::Initialize();
 
 		// Create the main implementation object
-		TSharedRef<FCrashReportClient> CrashReportClient = MakeShareable(new FCrashReportClient(ErrorReport, CrashedAppName));
+		TSharedRef<FCrashReportClient> CrashReportClient = MakeShareable(new FCrashReportClient(ErrorReport));
 
 		// open up the app window	
 		TSharedRef<SCrashReportClient> ClientControl = SNew(SCrashReportClient, CrashReportClient);
@@ -184,8 +195,8 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 	}
 
+	FPlatformProcess::Sleep( 2.0f );
 	GEngineLoop.AppExit();
-
 	FPlatformErrorReport::ShutDown();
 }
 
@@ -196,4 +207,3 @@ void CrashReportClientCheck(bool bCondition, const TCHAR* Location)
 		UE_LOG(CrashReportClientLog, Warning, TEXT("CHECK FAILED at %s"), Location);
 	}
 }
-

@@ -143,6 +143,11 @@ private:
 	ESlateCheckBoxState::Type ShouldRecomputeTangents() const;
 	ESlateCheckBoxState::Type ShouldRemoveDegenerates() const;
 	ESlateCheckBoxState::Type ShouldUseFullPrecisionUVs() const;
+	ESlateCheckBoxState::Type ShouldGenerateLightmapUVs() const;
+	ESlateCheckBoxState::Type ShouldGenerateDistanceFieldAsIfTwoSided() const;
+	int32 GetMinLightmapResolution() const;
+	int32 GetSrcLightmapIndex() const;
+	int32 GetDstLightmapIndex() const;
 	TOptional<float> GetBuildScaleX() const;
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
@@ -152,6 +157,11 @@ private:
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
+	void OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState);
+	void OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState);
+	void OnMinLightmapResolutionChanged( int32 NewValue );
+	void OnSrcLightmapIndexChanged( int32 NewValue );
+	void OnDstLightmapIndexChanged( int32 NewValue );
 	void OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType );
 	void OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType );
 	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );
@@ -321,101 +331,4 @@ private:
 	bool bBuildSettingsExpanded[MAX_STATIC_MESH_LODS];
 	bool bReductionSettingsExpanded[MAX_STATIC_MESH_LODS];
 	bool bSectionSettingsExpanded[MAX_STATIC_MESH_LODS];
-};
-
-/** 
- * Window for generating unique UVs for the static mesh.
- */
-class SGenerateUniqueUVs : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SGenerateUniqueUVs ) :
-	  _StaticMeshEditorPtr()
-	  {
-	  }
-	  /** The Static Mesh Editor this tool is associated with. */
-	  SLATE_ARGUMENT( TWeakPtr< IStaticMeshEditor >, StaticMeshEditorPtr )
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs);
-
-	virtual ~SGenerateUniqueUVs();
-
-	/** Refreshes the tool's LOD and UV channel options. */
-	void RefreshTool();
-
-private:
-	/** Decides if the radio button should be checked. */
-	ESlateCheckBoxState::Type IsCreationModeChecked( enum ECreationModeChoice ButtonId ) const;
-
-	/** Handles the Creation mode being changed and manages the radio buttons. */
-	void OnCreationModeChanged( ESlateCheckBoxState::Type NewRadioState, enum ECreationModeChoice RadioThatChanged );
-
-	/** Decides if the radio button should be checked. */
-	ESlateCheckBoxState::Type IsLimitModeChecked( enum ELimitModeChoice ButtonId ) const;
-
-	/** Handles the Limit mode being changed and manages the radio buttons. */
-	void OnLimitModeChanged( ESlateCheckBoxState::Type NewRadioState, enum ELimitModeChoice RadioThatChanged );
-
-	/** Checks the state of the Creation Mode, TRUE if Create New is selected. */
-	bool IsCreateNew() const;
-
-	/** Checks the state of the limit mode, TRUE if charts is selected. */
-	bool IsChartLimit() const;
-
-	/** Checks the state of the limit mode, TRUE if stretching is selected. */
-	bool IsStretchingLimit() const;
-
-	/** Callback for the Apply button. */
-	FReply OnApply();
-
-	/** Callback for spinbox to set the MaxStretching variable. */
-	void OnMaxStretchingChanged(float InValue);
-
-	/** Callback for spinbox to set the MaxStretching variable. */
-	void OnMaxStretchingCommitted(float InValue, ETextCommit::Type CommitInfo);
-
-	/** Callback for spinbox to set the MaxCharts variable. Reduces the value to an int32 */
-	void OnMaxChartsChanged(float InValue);
-
-	/** Callback for spinbox to set the MaxCharts variable. Reduces the value to an int32 */
-	void OnMaxChartsCommitted(float InValue, ETextCommit::Type CommitInfo);
-	
-	/** Retrieves the current value for MaxCharts for a spinbox, important because the value is limited to an int32. */
-	float GetMaxCharts() const;
-
-	/** Callback for spinbox to set the MinSpacing variable. */
-	void OnMinSpacingChanged(float InValue);
-
-	/** Callback for spinbox to set the MinSpacing variable. */
-	void OnMinSpacingCommitted(float InValue, ETextCommit::Type CommitInfo);
-
-	/** Refreshes the UV Channel list. */
-	void RefreshUVChannelList();
-
-private:
-	/** The Static Mesh Editor this tool is associated with. */
-	TWeakPtr< IStaticMeshEditor > StaticMeshEditorPtr;
-
-	/** Drop down menu for selecting the UV Channel to save to. */
-	TSharedPtr<class STextComboBox> UVChannelCombo;
-
-	/** Options list for the UV Channel options. */
-	TArray< TSharedPtr< FString > > UVChannels;
-
-	/** The current Creation mode selected by the radio buttons. */
-	ECreationModeChoice CurrentCreationModeChoice;
-
-	/** The current Limit mode selected by the radio buttons. */
-	ELimitModeChoice CurrentLimitModeChoice;
-
-	/** Modified by a spinbox, user setting for max stretching. */
-	float MaxStretching;
-
-	/** Modified by a spinbox, user setting for max charts, clamped to be an int32. */
-	float MaxCharts;
-
-	/** Modified by a spinbox, user setting for the min spacing between charts. */
-	float MinSpacingBetweenCharts;
 };

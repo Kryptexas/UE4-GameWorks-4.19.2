@@ -14,6 +14,7 @@
 #include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
+#include "SceneUtils.h"
 
 /** The texture size allocated for particle curves. */
 extern const int32 GParticleCurveTextureSizeX = 256;
@@ -183,7 +184,7 @@ static void InjectCurves(
 
 	check( IsInRenderingThread() );
 
-	SCOPED_DRAW_EVENT(InjectParticleCurves, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, InjectParticleCurves, DEC_PARTICLE);
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
@@ -221,14 +222,15 @@ static void InjectCurves(
 			(float)Curve.TexelAllocation.Y / GParticleCurveTextureSizeY );
 
 		// Grab shaders.
-		TShaderMapRef<FParticleCurveInjectionVS> VertexShader( GetGlobalShaderMap() );
-		TShaderMapRef<FParticleCurveInjectionPS> PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef<FParticleCurveInjectionVS> VertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+		TShaderMapRef<FParticleCurveInjectionPS> PixelShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 
 		// Bound shader state.
 		
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(
 			RHICmdList,
+			GMaxRHIFeatureLevel,
 			BoundShaderState,
 			GParticleCurveInjectionVertexDeclaration.VertexDeclarationRHI,
 			*VertexShader,

@@ -13,9 +13,4 @@ UGameplayAbilityBlueprintGeneratedClass::UGameplayAbilityBlueprintGeneratedClass
 {
 }
 
-void UGameplayAbilityBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
-{
-	Super::Link(Ar, bRelinkExistingProperties);
-}
-
 #undef LOCTEXT_NAMESPACE

@@ -11,6 +11,7 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 static float TemporalHalton( int32 Index, int32 Base )
 {
@@ -63,6 +64,7 @@ public:
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter SampleWeights;
 	FShaderParameter LowpassWeights;
+	FShaderParameter PlusWeights;
 	FCameraMotionParameters CameraMotionParams;
 	FShaderParameter RandomOffset;
 
@@ -74,6 +76,7 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		SampleWeights.Bind(Initializer.ParameterMap, TEXT("SampleWeights"));
 		LowpassWeights.Bind(Initializer.ParameterMap, TEXT("LowpassWeights"));
+		PlusWeights.Bind(Initializer.ParameterMap, TEXT("PlusWeights"));
 		CameraMotionParams.Bind(Initializer.ParameterMap);
 		RandomOffset.Bind(Initializer.ParameterMap, TEXT("RandomOffset"));
 	}
@@ -82,7 +85,7 @@ public:
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << CameraMotionParams << RandomOffset;
+		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << CameraMotionParams << RandomOffset;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -134,8 +137,10 @@ public:
 
 			float Weights[9];
 			float WeightsLow[9];
+			float WeightsPlus[5];
 			float TotalWeight = 0.0f;
 			float TotalWeightLow = 0.0f;
+			float TotalWeightPlus = 0.0f;
 			for( int32 i = 0; i < 9; i++ )
 			{
 				// Exponential fit to Blackman-Harris 3.3
@@ -156,11 +161,23 @@ public:
 				WeightsLow[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
 				TotalWeightLow += WeightsLow[i];
 			}
+
+			WeightsPlus[0] = Weights[1];
+			WeightsPlus[1] = Weights[3];
+			WeightsPlus[2] = Weights[4];
+			WeightsPlus[3] = Weights[5];
+			WeightsPlus[4] = Weights[7];
+			TotalWeightPlus = Weights[1] + Weights[3] + Weights[4] + Weights[5] + Weights[7];
 			
 			for( int32 i = 0; i < 9; i++ )
 			{
 				SetShaderValue(Context.RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
 				SetShaderValue(Context.RHICmdList, ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
+			}
+
+			for( int32 i = 0; i < 5; i++ )
+			{
+				SetShaderValue(Context.RHICmdList, ShaderRHI, PlusWeights, WeightsPlus[i] / TotalWeightPlus, i );
 			}
 			
 			FVector2D RandomOffsetValue;
@@ -188,7 +205,7 @@ IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(4, 1, TEXT("MainFastTemporalAAPS"));
 
 void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(SSRTemporalAA, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, SSRTemporalAA, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -198,7 +215,7 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 		return;
 	}
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
+	const FViewInfo& View = Context.View;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -225,13 +242,13 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-	TShaderMapRef< FPostProcessTemporalAAPS<2,0> >	PixelShader( GetGlobalShaderMap() );
+	TShaderMapRef< FPostProcessTonemapVS >			VertexShader(Context.GetShaderMap());
+	TShaderMapRef< FPostProcessTemporalAAPS<2, 0> >	PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetParameters(Context);
@@ -262,7 +279,7 @@ FPooledRenderTargetDesc FRCPassPostProcessSSRTemporalAA::ComputeOutputDesc(EPass
 
 void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(DOFTemporalAA, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, DOFTemporalAA, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -272,8 +289,8 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 		return;
 	}
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	const FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -302,13 +319,13 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-	TShaderMapRef< FPostProcessTemporalAAPS<0,0> >	PixelShader( GetGlobalShaderMap() );
+	TShaderMapRef< FPostProcessTonemapVS >			VertexShader(Context.GetShaderMap());
+	TShaderMapRef< FPostProcessTemporalAAPS<0, 0> >	PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetParameters(Context);
@@ -351,10 +368,10 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 		return;
 	}
 
-	SCOPED_DRAW_EVENT(LSTemporalAA, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, LSTemporalAA, DEC_SCENE_ITEMS);
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	const FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -383,13 +400,13 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-	TShaderMapRef< FPostProcessTemporalAAPS<3,0> >	PixelShader( GetGlobalShaderMap() );
+	TShaderMapRef< FPostProcessTonemapVS >			VertexShader(Context.GetShaderMap());
+	TShaderMapRef< FPostProcessTemporalAAPS<3, 0> >	PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetParameters(Context);
@@ -421,7 +438,7 @@ FPooledRenderTargetDesc FRCPassPostProcessLightShaftTemporalAA::ComputeOutputDes
 
 void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(TemporalAA, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, TemporalAA, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -431,8 +448,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		return;
 	}
 
-	FViewInfo& View = const_cast< FViewInfo& >( Context.View );
-	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -472,27 +489,27 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		// Normal temporal feedback
 		Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-		TShaderMapRef< FPostProcessTonemapVS >			VertexShader(GetGlobalShaderMap());
+		TShaderMapRef< FPostProcessTonemapVS >			VertexShader(Context.GetShaderMap());
 		if (bUseFast)
 		{
-			TShaderMapRef< FPostProcessTemporalAAPS<4,1> >	PixelShader( GetGlobalShaderMap() );
+			TShaderMapRef< FPostProcessTemporalAAPS<4, 1> >	PixelShader(Context.GetShaderMap());
 
 			static FGlobalBoundShaderState BoundShaderState;
 			
 
-			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			VertexShader->SetVS(Context);
 			PixelShader->SetParameters(Context);
 		}
 		else
 		{
-			TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
+			TShaderMapRef< FPostProcessTemporalAAPS<1, 1> >	PixelShader(Context.GetShaderMap());
 
 			static FGlobalBoundShaderState BoundShaderState;
 			
 
-			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			VertexShader->SetVS(Context);
 			PixelShader->SetParameters(Context);
@@ -517,27 +534,27 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			// Draw to pixels where stencil == 0
 			Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Equal,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
 	
-			TShaderMapRef< FPostProcessTonemapVS >			VertexShader(GetGlobalShaderMap());
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader(Context.GetShaderMap());
 			if (bUseFast)
 			{
-				TShaderMapRef< FPostProcessTemporalAAPS<4,0> >	PixelShader( GetGlobalShaderMap() );
+				TShaderMapRef< FPostProcessTemporalAAPS<4, 0> >	PixelShader(Context.GetShaderMap());
 	
 				static FGlobalBoundShaderState BoundShaderState;
 				
 	
-				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	
 				VertexShader->SetVS(Context);
 				PixelShader->SetParameters(Context);
 			}
 			else
 			{
-				TShaderMapRef< FPostProcessTemporalAAPS<1,0> >	PixelShader( GetGlobalShaderMap() );
+				TShaderMapRef< FPostProcessTemporalAAPS<1, 0> >	PixelShader(Context.GetShaderMap());
 	
 				static FGlobalBoundShaderState BoundShaderState;
 				
 	
-				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	
 				VertexShader->SetVS(Context);
 				PixelShader->SetParameters(Context);
@@ -560,27 +577,27 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			// Draw to pixels where stencil != 0
 			Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
 			
-			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader(Context.GetShaderMap());
 			if(bUseFast)
 			{
-				TShaderMapRef< FPostProcessTemporalAAPS<4,1> >	PixelShader( GetGlobalShaderMap() );
+				TShaderMapRef< FPostProcessTemporalAAPS<4, 1> >	PixelShader(Context.GetShaderMap());
 	
 				static FGlobalBoundShaderState BoundShaderState;
 				
 	
-				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	
 				VertexShader->SetVS(Context);
 				PixelShader->SetParameters(Context);
 			}
 			else
 			{
-				TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
+				TShaderMapRef< FPostProcessTemporalAAPS<1, 1> >	PixelShader(Context.GetShaderMap());
 	
 				static FGlobalBoundShaderState BoundShaderState;
 				
 	
-				SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	
 				VertexShader->SetVS(Context);
 				PixelShader->SetParameters(Context);
@@ -621,9 +638,9 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	// Compute a transform from view origin centered world-space to clip space.
 	View.ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-	View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 
-	View.InitRHIResources();
+	View.InitRHIResources(nullptr);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const

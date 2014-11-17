@@ -26,12 +26,12 @@ public:
 
 private:
 
-	TSharedRef<SWidget> OnGenerateComboWidget(TSharedPtr<FKey> Key);
-	void OnSelectionChanged(TSharedPtr<FKey> SelectedItem, ESelectInfo::Type SelectInfo);
+	/** Gets the current Key being edited. */
+	FKey GetCurrentKey() const;
 
-	// Holds a handle to the property being edited.
+	/** Updates the property when a new key is selected. */
+	void OnKeyChanged(TSharedPtr<FKey> SelectedKey);
+
+	/** Holds a handle to the property being edited. */
 	TSharedPtr<IPropertyHandle> PropertyHandle;
-	TSharedPtr<STextBlock> TextBlock;
-
-	TArray<TSharedPtr<FKey>> InputKeys;
 };

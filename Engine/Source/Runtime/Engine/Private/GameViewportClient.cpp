@@ -21,6 +21,8 @@
 #include "HighResScreenshot.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
+#include "BufferVisualizationData.h"
+#include "RendererInterface.h"
 
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
@@ -80,6 +82,8 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 	, EngineShowFlags(ESFIM_Game)
 	, CurrentBufferVisualizationMode(NAME_None)
 	, HighResScreenshotDialog(NULL)
+	, bIgnoreInput(false)
+	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -115,7 +119,7 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 	SplitscreenInfo[ESplitScreenType::FourPlayer].PlayerData.Add(FPerPlayerSplitscreenData(0.5f, 0.5f, 0.5f, 0.5f));
 
 	MaxSplitscreenPlayers = 4;
-	bSuppressTransitionMessage = false;
+	bSuppressTransitionMessage = true;
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
@@ -173,6 +177,17 @@ FSceneViewport* UGameViewportClient::GetGameViewport()
 	return static_cast<FSceneViewport*>(Viewport);
 }
 
+TSharedPtr<class SViewport> UGameViewportClient::GetGameViewportWidget()
+{
+	FSceneViewport* SceneViewport = GetGameViewport();
+	if (SceneViewport != nullptr)
+	{
+		TWeakPtr<SViewport> WeakViewportWidget = SceneViewport->GetViewportWidget();
+		TSharedPtr<SViewport> ViewportWidget = WeakViewportWidget.Pin();
+		return ViewportWidget;
+	}
+	return nullptr;
+}
 
 void UGameViewportClient::Tick( float DeltaTime )
 {
@@ -207,6 +222,11 @@ UGameInstance* UGameViewportClient::GetGameInstance() const
 
 bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
@@ -246,6 +266,11 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 
 bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	bool bResult = false;
 
 	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
@@ -296,6 +321,11 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 
 bool UGameViewportClient::InputChar(FViewport* InViewport, int32 ControllerId, TCHAR Character)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	// should probably just add a ctor to FString that takes a TCHAR
 	FString CharacterString;
 	CharacterString += Character;
@@ -314,6 +344,11 @@ bool UGameViewportClient::InputChar(FViewport* InViewport, int32 ControllerId, T
 
 bool UGameViewportClient::InputTouch(FViewport* InViewport, int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	// route to subsystems that care
 	bool bResult = (ViewportConsole ? ViewportConsole->InputTouch(ControllerId, Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex) : false);
 	if (!bResult)
@@ -330,6 +365,11 @@ bool UGameViewportClient::InputTouch(FViewport* InViewport, int32 ControllerId, 
 
 bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId, const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration)
 {
+	if (IgnoreInput())
+	{
+		return false;
+	}
+
 	// route to subsystems that care
 	bool bResult = false;
 
@@ -391,18 +431,33 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 	}
 }
 
-FVector2D UGameViewportClient::GetMousePosition()
+bool UGameViewportClient::GetMousePosition(FVector2D& MousePosition) const
 {
-	if (Viewport == NULL)
-	{
-		return FVector2D(0.f, 0.f);
-	}
-	else
+	bool bGotMousePosition = false;
+
+	if (Viewport && FSlateApplication::Get().IsMouseAttached())
 	{
 		FIntPoint MousePos;
 		Viewport->GetMousePos(MousePos);
-		return FVector2D(MousePos);
+		if (MousePos.X >= 0 && MousePos.Y >= 0)
+		{
+			MousePosition = FVector2D(MousePos);
+			bGotMousePosition = true;
+		}
 	}
+
+	return bGotMousePosition;
+}
+
+FVector2D UGameViewportClient::GetMousePosition() const
+{
+	FVector2D MousePosition;
+	if (!GetMousePosition(MousePosition))
+	{
+		MousePosition = FVector2D::ZeroVector;
+	}
+
+	return MousePosition;
 }
 
 
@@ -539,9 +594,7 @@ void UGameViewportClient::SetViewport( FViewport* InViewport )
 	}
 }
 
-
-
-void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize )
+void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize ) const
 {
 	if ( Viewport != NULL )
 	{
@@ -550,12 +603,10 @@ void UGameViewportClient::GetViewportSize( FVector2D& out_ViewportSize )
 	}
 }
 
-bool UGameViewportClient::IsFullScreenViewport()
+bool UGameViewportClient::IsFullScreenViewport() const
 {
 	return Viewport->IsFullscreen();
 }
-
-
 
 bool UGameViewportClient::ShouldForceFullscreenViewport() const
 {
@@ -610,12 +661,15 @@ static UCanvas* GetCanvasByName(FName CanvasName)
 
 void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 {
+	//Valid SceneCanvas is required.  Make this explicit.
+	check(SceneCanvas);
+
 	FCanvas* DebugCanvas = InViewport->GetDebugCanvas();
 
 	// Create a temporary canvas if there isn't already one.
 	static FName CanvasObjectName(TEXT("CanvasObject"));
 	UCanvas* CanvasObject = GetCanvasByName(CanvasObjectName);
-	CanvasObject->Canvas = SceneCanvas;	
+	CanvasObject->Canvas = SceneCanvas;		
 
 	// Create temp debug canvas object
 	static FName DebugCanvasObjectName(TEXT("DebugCanvasObject"));
@@ -729,16 +783,6 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 					if (View)
 					{
-						// Add depth of field override regions.
-						if (PlayerController->MyHUD)
-						{
-							if( !PlayerController->bCinematicMode )
-							{
-								View->UIBlurOverrideRectangles = PlayerController->MyHUD->GetUIBlurRectangles();
-							}
-							PlayerController->MyHUD->ClearUIBlurOverrideRects();
-						}
-					
 						if (View->Family->EngineShowFlags.Wireframe)
 						{
 							// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...
@@ -908,7 +952,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	// Draw FX debug information.
-	GetWorld()->FXSystem->DrawDebug( DebugCanvas );	
+	GetWorld()->FXSystem->DrawDebug(SceneCanvas);
 
 	// Render the UI.
 	{
@@ -933,8 +977,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 
 						// Set the canvas transform for the player's view rectangle.
-						SceneCanvas->PushAbsoluteTransform(FTranslationMatrix(CanvasOrigin));						
-						CanvasObject->ApplySafeZoneTransform();
+						SceneCanvas->PushAbsoluteTransform(FTranslationMatrix(CanvasOrigin));
+						CanvasObject->ApplySafeZoneTransform();						
 
 						// Render the player's HUD.
 						if( PlayerController->MyHUD )
@@ -965,7 +1009,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						}
 
 						CanvasObject->PopSafeZoneTransform();
-						SceneCanvas->PopTransform();
+						SceneCanvas->PopTransform();						
 
 						// draw subtitles
 						if (!bDisplayedSubtitles)
@@ -2429,8 +2473,7 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		}
 		if( X && Y )
 		{
-			FIntPoint Dims = FIntPoint(X,Y);
-			return SetDisplayConfiguration(&Dims, WindowMode);
+			FSystemResolution::RequestResolutionChange(X, Y, WindowMode);
 		}
 	}
 	return true;

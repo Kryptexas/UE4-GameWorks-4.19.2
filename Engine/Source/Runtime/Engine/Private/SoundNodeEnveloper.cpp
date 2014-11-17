@@ -67,11 +67,6 @@ void USoundNodeEnveloper::Serialize(FArchive& Ar)
 	}
 }
 
-FString USoundNodeEnveloper::GetUniqueString() const
-{
-	return TEXT("Enveloper");
-}
-
 void USoundNodeEnveloper::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {
 	RETRIEVE_SOUNDNODE_PAYLOAD( sizeof( float ) + sizeof(float) + sizeof(float) + sizeof(int32) );

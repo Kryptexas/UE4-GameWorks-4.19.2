@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessagingPrivatePCH.h: Pre-compiled header file for the UdpMessaging module.
-=============================================================================*/
-
 #pragma once
 
 #include "UdpMessaging.h"
@@ -24,14 +20,10 @@
 /* Private Constants
  *****************************************************************************/
 
-/**
- * Defines the default IP endpoint for multicast traffic.
- */
+/** Defines the default IP endpoint for multicast traffic. */
 #define UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT FIPv4Endpoint(FIPv4Address(230, 0, 0, 1), 6666)
 
-/**
- * Defines the protocol version of the UDP message transport.
- */
+/** Defines the protocol version of the UDP message transport. */
 #define UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION 9
 
 

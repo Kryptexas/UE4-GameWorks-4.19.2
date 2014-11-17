@@ -18,6 +18,8 @@
 #include "SPropertyTreeCategoryRow.h"
 #include "ScopedTransaction.h"
 #include "PropertyEditorHelpers.h"
+#include "SColorPicker.h"
+
 
 class FPropertyUtilitiesTreeView : public IPropertyUtilities
 {

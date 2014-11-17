@@ -31,6 +31,7 @@ private:
 	const FSlateBrush* GetBorderImage() const;
 	TSharedRef<SWidget> CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode );
 	FReply OnAddKeyframeClicked();
+	bool IsHighlighted() const;
 private:
 	/** Customization for this widget */
 	FDetailLayoutCustomization* Customization;

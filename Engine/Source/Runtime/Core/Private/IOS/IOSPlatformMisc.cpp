@@ -10,6 +10,7 @@
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
+#include "GenericPlatformChunkInstall.h"
 
 /** Amount of free memory in MB reported by the system at starup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -58,9 +59,9 @@ void FIOSPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Free Memory at startup: %d MB"), GStartupFreeMemoryMB);
 }
 
-void FIOSPlatformMisc::PlatformPostInit(bool IsMoviePlaying)
+void FIOSPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 {
-    GShowSplashScreen = !IsMoviePlaying;
+    GShowSplashScreen = ShowSplashScreen;
 }
 
 GenericApplication* FIOSPlatformMisc::CreateApplication()
@@ -79,6 +80,42 @@ void FIOSPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* 
 	{
 		*Result = 0;
 	}
+}
+
+// Make sure that SetStoredValue and GetStoredValue generate the same key
+static NSString* MakeStoredValueKeyName(const FString& SectionName, const FString& KeyName)
+{
+	return [NSString stringWithFString:(SectionName + "/" + KeyName)];
+}
+
+bool FIOSPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
+{
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+
+	// convert input to an NSString
+	NSString* StoredValue = [NSString stringWithFString:InValue];
+
+	// store it
+	[UserSettings setObject:StoredValue forKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
+
+	return true;
+}
+
+bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
+{
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+	
+	// get the stored NSString
+	NSString* StoredValue = [UserSettings objectForKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
+
+	// if it was there, convert back to FString
+	if (StoredValue != nil)
+	{
+		OutValue = StoredValue;
+		return true;
+	}
+
+	return false;
 }
 
 //void FIOSPlatformMisc::LowLevelOutputDebugStringf(const TCHAR *Fmt, ... )
@@ -122,6 +159,23 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 	{
 		Result = TEXT("");
 	}
+}
+
+
+FString FIOSPlatformMisc::GetDefaultLocale()
+{
+	CFLocaleRef loc = CFLocaleCopyCurrent();
+    
+	TCHAR langCode[20];
+	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
+	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
+	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
+    
+	TCHAR countryCode[20];
+	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
+	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
+    
+	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
 }
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
@@ -322,13 +376,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		// get major revision number
 		int Major = [DeviceIDString characterAtIndex:4] - '0';
 
-		// iPod4,1 is iPod Touch 4th gen
-		if (Major == 4)
-		{
-			DeviceType = IOS_IPodTouch4;
-		}
-		// iPod5 is iPod Touch 5th gen, anything higher will use 5th gen settings until released
-		else if (Major >= 5)
+		if (Major >= 5)
 		{
 			DeviceType = IOS_IPodTouch5;
 		}
@@ -402,9 +450,22 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		{
 			DeviceType = IOS_IPhone5;
 		}
-		else if (Major >= 6)
+		else if (Major == 6)
 		{
 			DeviceType = IOS_IPhone5S;
+		}
+		else if (Major >= 7)
+		{
+			// this could just check the minor where 1 == 6Plus, and 2 == 6, but that won't help going forward (7/7+?)
+			// so treat devices with a scale > 2.5 to be 6Plus type devices, < 2.5 to be 6 type devices
+			if ([UIScreen mainScreen].scale > 2.5f)
+			{
+				DeviceType = IOS_IPhone6Plus;
+			}
+			else
+			{
+				DeviceType = IOS_IPhone6;
+			}
 		}
 	}
 	// simulator
@@ -495,5 +556,181 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 		}
 	}
 	return FPlatformMisc::GetHashedMacAddressString();
+}
+
+class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
+{
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+	if(!ChunkInstall)
+	{
+		if(PlatformChunkInstallModule != NULL)
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		} else
+		{
+			// Placeholder instance
+			ChunkInstall = new FGenericPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
+
+}
+
+
+struct FFontHeader
+{
+	int32 Version;
+	uint16 NumTables;
+	uint16 SearchRange;
+	uint16 EntrySelector;
+	uint16 RangeShift;
+};
+
+struct FFontTableEntry
+{
+	uint32 Tag;
+	uint32 CheckSum;
+	uint32 Offset;
+	uint32 Length;
+};
+
+
+static uint32 CalcTableCheckSum(const uint32 *Table, uint32 NumberOfBytesInTable)
+{
+	uint32 Sum = 0;
+	uint32 NumLongs = (NumberOfBytesInTable + 3) / 4;
+	while (NumLongs-- > 0)
+	{
+		Sum += CFSwapInt32HostToBig(*Table++);
+	}
+	return Sum;
+}
+
+static uint32 CalcTableDataRefCheckSum(CFDataRef DataRef)
+{
+	const uint32 *DataBuff = (const uint32 *)CFDataGetBytePtr(DataRef);
+	uint32 DataLength = (uint32)CFDataGetLength(DataRef);
+	return CalcTableCheckSum(DataBuff, DataLength);
+}
+
+/**
+ * In order to get a system font from IOS we need to build one from the data we can gather from a CGFontRef
+ * @param InFontName - The name of the system font we are seeking to load.
+ * @param OutBytes - The data we have built for the font.
+ */
+void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
+{
+	CGFontRef cgFont = CGFontCreateWithFontName((CFStringRef)InFontName);
+
+	if (cgFont)
+	{
+		CFRetain(cgFont);
+
+		// Gather information on the font tags
+		CFArrayRef Tags = CGFontCopyTableTags(cgFont);
+		int TableCount = CFArrayGetCount(Tags);
+
+		// Collate the table sizes
+		TArray<size_t> TableSizes;
+
+		bool bContainsCFFTable = false;
+
+		size_t TotalSize = sizeof(FFontHeader)+sizeof(FFontTableEntry)* TableCount;
+		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
+		{
+			size_t TableSize = 0;
+			
+			uint32 aTag = (uint32)CFArrayGetValueAtIndex(Tags, TableIndex);
+			if (aTag == 'CFF ' && !bContainsCFFTable)
+			{
+				bContainsCFFTable = true;
+			}
+
+			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
+			if (TableDataRef != NULL)
+			{
+				TableSize = CFDataGetLength(TableDataRef);
+				CFRelease(TableDataRef);
+			}
+
+			TotalSize += (TableSize + 3) & ~3;
+			TableSizes.Add( TableSize );
+		}
+
+		OutBytes.Reserve( TotalSize );
+		OutBytes.AddZeroed( TotalSize );
+
+		// Start copying the table data into our buffer
+		uint8* DataStart = OutBytes.GetTypedData();
+		uint8* DataPtr = DataStart;
+
+		// Compute font header entries
+		uint16 EntrySelector = 0;
+		uint16 SearchRange = 1;
+		while (SearchRange < TableCount >> 1)
+		{
+			EntrySelector++;
+			SearchRange <<= 1;
+		}
+		SearchRange <<= 4;
+
+		uint16 RangeShift = (TableCount << 4) - SearchRange;
+
+		// Write font header (also called sfnt header, offset subtable)
+		FFontHeader* OffsetTable = (FFontHeader*)DataPtr;
+
+		// OpenType Font contains CFF Table use 'OTTO' as version, and with .otf extension
+		// otherwise 0001 0000
+		OffsetTable->Version = bContainsCFFTable ? 'OTTO' : CFSwapInt16HostToBig(1);
+		OffsetTable->NumTables = CFSwapInt16HostToBig((uint16)TableCount);
+		OffsetTable->SearchRange = CFSwapInt16HostToBig((uint16)SearchRange);
+		OffsetTable->EntrySelector = CFSwapInt16HostToBig((uint16)EntrySelector);
+		OffsetTable->RangeShift = CFSwapInt16HostToBig((uint16)RangeShift);
+
+		DataPtr += sizeof(FFontHeader);
+
+		// Write tables
+		FFontTableEntry* CurrentTableEntry = (FFontTableEntry*)DataPtr;
+		DataPtr += sizeof(FFontTableEntry) * TableCount;
+
+		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
+		{
+			uint32 aTag = (uint32)CFArrayGetValueAtIndex(Tags, TableIndex);
+			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
+			uint32 TableSize = CFDataGetLength(TableDataRef);
+
+			FMemory::Memcpy(DataPtr, CFDataGetBytePtr(TableDataRef), TableSize);
+
+			CurrentTableEntry->Tag = CFSwapInt32HostToBig((uint32_t)aTag);
+			CurrentTableEntry->CheckSum = CFSwapInt32HostToBig(CalcTableCheckSum((uint32 *)DataPtr, TableSize));
+
+			uint32 Offset = DataPtr - DataStart;
+			CurrentTableEntry->Offset = CFSwapInt32HostToBig((uint32)Offset);
+			CurrentTableEntry->Length = CFSwapInt32HostToBig((uint32)TableSize);
+
+			DataPtr += (TableSize + 3) & ~3;
+			++CurrentTableEntry;
+
+			CFRelease(TableDataRef);
+		}
+
+		CFRelease(cgFont);
+	}
+}
+
+
+TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
+{
+	// Gather some details about the system font
+	uint32 SystemFontSize = [UIFont systemFontSize];
+	NSString* SystemFontName = [UIFont systemFontOfSize:SystemFontSize].fontName;
+
+	TArray<uint8> FontBytes;
+	GetBytesForFont(SystemFontName, FontBytes);
+
+	return FontBytes;
 }
 

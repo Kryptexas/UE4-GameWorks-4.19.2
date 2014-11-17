@@ -41,9 +41,11 @@ enum EShaderPlatform
 	SP_OPENGL_ES2_WEBGL = 9, 
 	SP_OPENGL_ES2_IOS	= 10,
 	SP_METAL			= 11,
+	SP_OPENGL_SM4_MAC	= 12,
+	SP_OPENGL_ES31_EXT	= 13,
 
-	SP_NumPlatforms		= 12,
-	SP_NumBits			= 4,
+	SP_NumPlatforms		= 14,
+	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
 
@@ -83,8 +85,8 @@ namespace ERHIFeatureLevel
 	{
 		/** Feature level defined by the core capabilities of OpenGL ES2. */
 		ES2,
-		/** Feature level defined by the capabilities of DX9 Shader Model 3. */
-		SM3,
+		/** Feature level defined by the core capabilities of OpenGL ES3.1 & Metal. */
+		ES3_1,
 		/** Feature level defined by the capabilities of DX10 Shader Model 4. */
 		SM4,
 		/** Feature level defined by the capabilities of DX11 Shader Model 5. */
@@ -516,9 +518,29 @@ enum ETextureReallocationStatus
 	TexRealloc_InProgress,
 };
 
+/**
+ * Action to take when a rendertarget is set.
+ */
+enum class ERenderTargetLoadAction
+{
+	ENoAction,
+	ELoad,
+	EClear,
+};
+
+/**
+ * Action to take when a rendertarget is unset or at the end of a pass. 
+ */
+enum class ERenderTargetStoreAction
+{
+	ENoAction,
+	EStore,
+	EMultisampleResolve,
+};
+
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -527,9 +549,16 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL; 
 }
 
+/** Whether the shader platform corresponds to the ES2 feature level. */
+inline bool IsMobilePlatform(const EShaderPlatform Platform)
+{
+	return IsES2Platform(Platform) || Platform == SP_METAL;
+}
+
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS;
+	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2
+		|| Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -545,9 +574,11 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_SM5:
 	case SP_PS4:
 	case SP_XBOXONE:
+	case SP_OPENGL_ES31_EXT:
 		return ERHIFeatureLevel::SM5;
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
+	case SP_OPENGL_SM4_MAC:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 	case SP_OPENGL_PCES2:
@@ -583,6 +614,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_SM4:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
+	case SP_OPENGL_SM4_MAC:
+		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_OPENGL_SM5:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_PS4:
@@ -591,6 +624,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL: 
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+	case SP_OPENGL_ES31_EXT:
+		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	default:
 		return false;
 	}	
@@ -600,15 +635,27 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
 	{
-		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5));
+		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT));
 	}
 	return false;
+}
+
+inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
+{
+	// ES2 needs to flip when rendering to an RT that will be post processed
+	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL;
 }
 
 inline bool RHISupportsInstancing(const EShaderPlatform Platform)
 {
 	//@todo-rco: Add Metal support
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);// || (Platform == SP_METAL);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);// || (Platform == SP_METAL);
+}
+
+inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
+{
+	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
+	return Platform != SP_METAL;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
@@ -628,8 +675,8 @@ inline int32 GetFeatureLevelMaxNumberOfBones(ERHIFeatureLevel::Type FeatureLevel
 	switch (FeatureLevel)
 	{
 	case ERHIFeatureLevel::ES2:
-	case ERHIFeatureLevel::SM3:
 		return 75;
+	case ERHIFeatureLevel::ES3_1:
 	case ERHIFeatureLevel::SM4:
 	case ERHIFeatureLevel::SM5:
 		return 256;

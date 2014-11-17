@@ -11,8 +11,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Struct"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Struct"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	UStruct* Struct;
 
@@ -98,11 +98,14 @@ public:
 	/** The specified parameter should be used as the context object when retrieving a UWorld pointer (implies hidden and default-to-self) */
 	static const FName MD_WorldContext;
 
+	/** For functions that have the MD_WorldContext metadata but are safe to be called from contexts that do not have the ability to provide the world context (either through GetWorld() or ShowWorldContextPin class metadata */
+	static const FName MD_CallableWithoutWorldContext;
+
 	/** If true, an unconnected pin will generate a UPROPERTY under the hood to connect as the input, which will be set to the literal value for the pin.  Only valid for reference parameters. */
 	static const FName MD_AutoCreateRefTerm;
 
-	/** If true, the hidden default to self pins will be visible when the function is placed in a child blueprint of the class. */
-	static const FName MD_ShowHiddenSelfPins;
+	/** If true, the hidden world context pin will be visible when the function is placed in a child blueprint of the class. */
+	static const FName MD_ShowWorldContextPin;
 
 	static const FName MD_BlueprintInternalUseOnly;
 	static const FName MD_NeedsLatentFixup;
@@ -136,6 +139,8 @@ public:
 	/** Metadata string that indicates the specified event can be triggered in editor */
 	static const FName MD_CallInEditor;
 
+	/** Metadata to identify an DataTable Pin. Depending on which DataTable is selected, we display different RowName options */
+	static const FName MD_DataTablePin;
 private:
 	// This class should never be instantiated
 	FBlueprintMetadata() {}
@@ -214,126 +219,52 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	GENERATED_UCLASS_BODY()
 
 	// Allowable PinType.PinCategory values
-	UPROPERTY()
-	FString PC_Exec;
-
-	UPROPERTY()
-	FString PC_Meta;
-
-	// PC_Array - not implemented yet
-	UPROPERTY()
-	FString PC_Boolean;
-
-	UPROPERTY()
-	FString PC_Byte;
-
-	UPROPERTY()
-	FString PC_Class;    // SubCategoryObject is the MetaClass of the Class passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
-
-	UPROPERTY()
-	FString PC_Int;
-
-	UPROPERTY()
-	FString PC_Float;
-
-	UPROPERTY()
-	FString PC_Name;
-
-	UPROPERTY()
-	FString PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
-
-	UPROPERTY()
-	FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
-
-	UPROPERTY()
-	FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
-
-	UPROPERTY()
-	FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
-
-	UPROPERTY()
-	FString PC_String;
-
-	UPROPERTY()
-	FString PC_Text;
-
-	UPROPERTY()
-	FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
-
-	UPROPERTY()
-	FString PC_Wildcard;    // Special matching rules are imposed by the node itself
+	static const FString PC_Exec;
+	static const FString PC_Boolean;
+	static const FString PC_Byte;
+	static const FString PC_Class;    // SubCategoryObject is the MetaClass of the Class passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	static const FString PC_Int;
+	static const FString PC_Float;
+	static const FString PC_Name;
+	static const FString PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
+	static const FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
+	static const FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	static const FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
+	static const FString PC_String;
+	static const FString PC_Text;
+	static const FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
+	static const FString PC_Wildcard;    // Special matching rules are imposed by the node itself
 
 	// Common PinType.PinSubCategory values
-	UPROPERTY()
-	FString PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
+	static const FString PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
 
-	UPROPERTY()
-	FString PSC_Index;	// Category=PC_Wildcard, indicates the wildcard will only accept Int, Bool, Byte and Enum pins (used when a pin represents indexing a list)
+	static const FString PSC_Index;	// Category=PC_Wildcard, indicates the wildcard will only accept Int, Bool, Byte and Enum pins (used when a pin represents indexing a list)
 
 	// Pin names that have special meaning and required types in some contexts (depending on the node type)
-	UPROPERTY()
-	FString PN_Execute;    // Category=PC_Exec, singleton, input
-
-	UPROPERTY()
-	FString PN_Then;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_Completed;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_DelegateEntry;    // Category=PC_Exec, singleton, output; entry point for a dynamically bound delegate
-
-	UPROPERTY()
-	FString PN_EntryPoint;	// entry point to the ubergraph
-
-	UPROPERTY()
-	FString PN_Self;    // Category=PC_Object, singleton, input
-
-	UPROPERTY()
-	FString PN_Else;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_Loop;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_After;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_ReturnValue;		// Category=PC_Object, singleton, output
-
-	UPROPERTY()
-	FString PN_ObjectToCast;    // Category=PC_Object, singleton, input
-
-	UPROPERTY()
-	FString PN_Condition;    // Category=PC_Boolean, singleton, input
-
-	UPROPERTY()
-	FString PN_Start;    // Category=PC_Int, singleton, input
-
-	UPROPERTY()
-	FString PN_Stop;    // Category=PC_Int, singleton, input
-
-	UPROPERTY()
-	FString PN_Index;    // Category=PC_Int, singleton, output
-
-	UPROPERTY()
-	FString PN_CastSucceeded;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_CastFailed;    // Category=PC_Exec, singleton, output
-
-	UPROPERTY()
-	FString PN_CastedValuePrefix;    // Category=PC_Object, singleton, output; actual pin name varies depending on the type to be casted to, this is just a prefix
-
-	UPROPERTY()
-	FString PN_MatineeFinished;    // Category=PC_Exec, singleton, output
+	static const FString PN_Execute;    // Category=PC_Exec, singleton, input
+	static const FString PN_Then;    // Category=PC_Exec, singleton, output
+	static const FString PN_Completed;    // Category=PC_Exec, singleton, output
+	static const FString PN_DelegateEntry;    // Category=PC_Exec, singleton, output; entry point for a dynamically bound delegate
+	static const FString PN_EntryPoint;	// entry point to the ubergraph
+	static const FString PN_Self;    // Category=PC_Object, singleton, input
+	static const FString PN_Else;    // Category=PC_Exec, singleton, output
+	static const FString PN_Loop;    // Category=PC_Exec, singleton, output
+	static const FString PN_After;    // Category=PC_Exec, singleton, output
+	static const FString PN_ReturnValue;		// Category=PC_Object, singleton, output
+	static const FString PN_ObjectToCast;    // Category=PC_Object, singleton, input
+	static const FString PN_Condition;    // Category=PC_Boolean, singleton, input
+	static const FString PN_Start;    // Category=PC_Int, singleton, input
+	static const FString PN_Stop;    // Category=PC_Int, singleton, input
+	static const FString PN_Index;    // Category=PC_Int, singleton, output
+	static const FString PN_Item;    // Category=PC_Int, singleton, output
+	static const FString PN_CastSucceeded;    // Category=PC_Exec, singleton, output
+	static const FString PN_CastFailed;    // Category=PC_Exec, singleton, output
+	static const FString PN_CastedValuePrefix;    // Category=PC_Object, singleton, output; actual pin name varies depending on the type to be casted to, this is just a prefix
+	static const FString PN_MatineeFinished;    // Category=PC_Exec, singleton, output
 
 	// construction script function names
-	UPROPERTY()
-	FName FN_UserConstructionScript;
-
-	UPROPERTY()
-	FName FN_ExecuteUbergraphBase;
+	static const FName FN_UserConstructionScript;
+	static const FName FN_ExecuteUbergraphBase;
 
 	// metadata keys
 
@@ -341,23 +272,21 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 
 
 	// graph names
-	UPROPERTY()
-	FName GN_EventGraph;
-
-	UPROPERTY()
-	FName GN_AnimGraph;
+	static const FName GN_EventGraph;
+	static const FName GN_AnimGraph;
 
 	// variable names
-	UPROPERTY()
-	FName VR_DefaultCategory;
+	static const FName VR_DefaultCategory;
 
 	// action grouping values
-	UPROPERTY()
-	int32 AG_LevelReference;
+	static const int32 AG_LevelReference;
 
-	/** Whether this schema should use the old (legacy) menu building, or the new (experimental) menu building */
+	// Somewhat hacky mechanism to prevent tooltips created for pins from including the display name and type when generating BP API documentation
+	static bool bGeneratingDocumentation;
+
+	/** DEPRECATED - Use UEditorExperimentalSettings::bUseRefactoredBlueprintMenuingSystem instead */
 	UPROPERTY(GlobalConfig)
-	bool bUseLegacyActionMenus;
+	bool bUseLegacyActionMenus; 
 
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
@@ -374,7 +303,7 @@ public:
 		{
 		}
 
-		void Init(const FString& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly);
+		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly);
 	
 	private:
 		/** The pin type corresponding to the schema type */
@@ -391,10 +320,10 @@ public:
 		bool bReadOnly;
 
 		/** Friendly display name of pin type; also used to see if it has subtypes */
-		FString FriendlyName;
+		FText FriendlyName;
 
 		/** Text for regular tooltip */
-		FString Tooltip;
+		FText Tooltip;
 
 	public:
 		const FEdGraphPinType& GetPinType(bool bForceLoadedSubCategoryObject);
@@ -403,10 +332,9 @@ public:
 			PinType.PinSubCategory = SubCategory;
 		}
 
-		FPinTypeTreeInfo(const FString& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
-		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FText& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
@@ -418,42 +346,17 @@ public:
 		}
 		
 		/** Returns a succinct menu description of this type */
-		FString GetDescription() const
-		{
-			if ((PinType.PinCategory != FriendlyName) && !FriendlyName.IsEmpty())
-			{
-				return FriendlyName;
-			}
-			else if( PinType.PinSubCategoryObject.IsValid() )
-			{
-				FString DisplayName = PinType.PinSubCategoryObject->GetName();
-				//@todo:  Fix this once the XX_YYYY names in the schema are static!  This is mirrored to PC_Class
-				if( (PinType.PinCategory == TEXT("class")) && PinType.PinSubCategoryObject->IsA(UClass::StaticClass()) )
-				{
-					DisplayName = FString::Printf(TEXT("class'%s'"), *DisplayName);
-				}
+		FText GetDescription() const;
 
-				return DisplayName;
-			}
-			else if( !PinType.PinCategory.IsEmpty() )
-			{
-				return PinType.PinCategory;
-			}
-			else
-			{
-				return TEXT("Error!");
-			}
-		}
-
-		FString GetToolTip() const
+		FText GetToolTip() const
 		{
 			if (PinType.PinSubCategoryObject.IsValid())
 			{
-				if (Tooltip.IsEmpty() || (PinType.PinSubCategoryObject->GetName() == Tooltip))
+				if (Tooltip.IsEmpty())
 				{
-					if ( (PinType.PinCategory == TEXT("struct")) && PinType.PinSubCategoryObject->IsA(UScriptStruct::StaticClass()) )
+					if ( (PinType.PinCategory == UEdGraphSchema_K2::PC_Struct) && PinType.PinSubCategoryObject->IsA(UScriptStruct::StaticClass()) )
 					{
-						return PinType.PinSubCategoryObject->GetPathName();
+						return FText::FromString(PinType.PinSubCategoryObject->GetPathName());
 					}
 				}
 			}
@@ -479,7 +382,7 @@ public:
 	virtual bool ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
 	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const override;
-	virtual void ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FString& PinDescription, FString& TooltipOut) const override;
+	virtual void ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const override;
 	virtual EGraphType GetGraphType(const UEdGraph* TestEdGraph) const override;
 	virtual bool IsTitleBarPin(const UEdGraphPin& Pin) const override;
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const override;
@@ -499,6 +402,7 @@ public:
 	virtual UEdGraphNode* CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph) const override;
 	virtual int32 GetNodeSelectionCount(const UEdGraph* Graph) const override;
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const override;
+	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateDocumentNodeAction() const override;
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const override;
 	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const override;
 	virtual void SplitPin(UEdGraphPin* Pin) const override;
@@ -825,6 +729,7 @@ public:
 	 *
 	 * @return	The converted type string.
 	 */
+	DEPRECATED(4.5, "UEdGraphSchema_K2::TypeToString is deprecated.  Use TypeToText instead.")
 	static FString TypeToString(const FEdGraphPinType& Type);
 
 	/**
@@ -834,7 +739,17 @@ public:
 	 *
 	 * @return	The converted type string.
 	 */
+	DEPRECATED(4.5, "UEdGraphSchema_K2::TypeToString is deprecated.  Use TypeToText instead.")
 	static FString TypeToString(UProperty* const Property);
+
+	/**
+	 * Converts the type of a property into a fully qualified string (e.g., object'ObjectName').
+	 *
+	 * @param	Property	The property to convert into a string.
+	 *
+	 * @return	The converted type string.
+	 */
+	static FText TypeToText(UProperty* const Property);
 
 	/**
 	 * Converts a pin type into a fully qualified FText (e.g., object'ObjectName').
@@ -844,6 +759,16 @@ public:
 	 * @return	The converted type text.
 	 */
 	static FText TypeToText(const FEdGraphPinType& Type);
+
+	/**
+	 * Returns the FText to use for a given schema category
+	 *
+	 * @param	Category	The category to convert into a FText.
+	 * @param	bForMenu	Indicates if this is for display in tooltips or menu
+	 *
+	 * @return	The text to display for the category.
+	 */
+	static FText GetCategoryText(const FString& Category, const bool bForMenu = false);
 
 	/**
 	 * Get the type tree for all of the property types valid for this schema
@@ -1027,10 +952,10 @@ private:
 	 */
 	bool DoesFunctionHaveOutParameters( const UFunction* Function ) const;
 
-	const UScriptStruct* VectorStruct;
-	const UScriptStruct* RotatorStruct;
-	const UScriptStruct* TransformStruct;
-	const UScriptStruct* LinearColorStruct;
-	const UScriptStruct* ColorStruct;
+	static const UScriptStruct* VectorStruct;
+	static const UScriptStruct* RotatorStruct;
+	static const UScriptStruct* TransformStruct;
+	static const UScriptStruct* LinearColorStruct;
+	static const UScriptStruct* ColorStruct;
 };
 

@@ -29,12 +29,12 @@ public:
 		if (bUsePositionOnlyStream)
 		{
 			return VertexFactoryType->SupportsPositionOnly() && Material->IsSpecialEngineMaterial() 
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 		}
 
 		// Only compile for the default material and masked materials
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
-			 && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+			 && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView& View)
@@ -106,7 +106,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Compile for materials that are masked.
-		return Material->IsMasked() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return Material->IsMasked() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -169,7 +169,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 
 }
 
-void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View);
@@ -185,7 +185,7 @@ void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSce
 	}
 
 	// Set the shared mesh resources.
-	FMeshDrawingPolicy::DrawShared(RHICmdList, View);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext);
 }
 
 /** 
@@ -211,7 +211,8 @@ void FDepthDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	const ElementDataType& ElementData
+	const ElementDataType& ElementData,
+	const ContextDataType PolicyContext
 	) const
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
@@ -226,7 +227,7 @@ void FDepthDrawingPolicy::SetMeshRenderState(
 	{
 		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 	}
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData);
+	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData,PolicyContext);
 }
 
 int32 CompareDrawingPolicy(const FDepthDrawingPolicy& A,const FDepthDrawingPolicy& B)
@@ -254,7 +255,7 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<true> >(InVertexFactory->GetType());
 }
 
-void FPositionOnlyDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+void FPositionOnlyDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
 {
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View);
@@ -284,11 +285,12 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
-	const ElementDataType& ElementData
+	const ElementDataType& ElementData,
+	const ContextDataType PolicyContext
 	) const
 {
 	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,Mesh.Elements[BatchElementIndex]);
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData);
+	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData,PolicyContext);
 }
 
 int32 CompareDrawingPolicy(const FPositionOnlyDepthDrawingPolicy& A,const FPositionOnlyDepthDrawingPolicy& B)
@@ -324,7 +326,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 	else
 	{
 		if (StaticMesh->VertexFactory->SupportsPositionOnlyStream() 
-			&& !Material->MaterialModifiesMeshPosition())
+			&& !Material->MaterialModifiesMeshPosition_RenderThread())
 		{
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			// Add the static mesh to the position-only depth draw list.
@@ -343,7 +345,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 		}
 		else
 		{
-			if (!Material->MaterialModifiesMeshPosition())
+			if (!Material->MaterialModifiesMeshPosition_RenderThread())
 			{
 				// Override with the default material for everything but opaque two sided materials
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -393,13 +395,13 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 		if ( BlendMode == BLEND_Opaque 
 			&& Mesh.VertexFactory->SupportsPositionOnlyStream() 
-			&& !Material->MaterialModifiesMeshPosition())
+			&& !Material->MaterialModifiesMeshPosition_RenderThread())
 		{
 			//render opaque primitives that support a separate position-only vertex buffer
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			FPositionOnlyDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, DefaultProxy, *DefaultProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided(), Material->IsWireframe());
 			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-			DrawingPolicy.SetSharedState(RHICmdList, &View);
+			DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType());
 
 			int32 BatchElementIndex = 0;
 			uint64 Mask = BatchElementMask;
@@ -407,7 +409,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 			{
 				if(Mask & 1)
 				{
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FPositionOnlyDepthDrawingPolicy::ElementDataType());
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FPositionOnlyDepthDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 				Mask >>= 1;
@@ -435,7 +437,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			if(bDraw)
 			{
-				if (!bMaterialMasked && !Material->MaterialModifiesMeshPosition())
+				if (!bMaterialMasked && !Material->MaterialModifiesMeshPosition_RenderThread())
 				{
 					// Override with the default material for opaque materials that are not two sided
 					MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -443,7 +445,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 				FDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided());
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-				DrawingPolicy.SetSharedState(RHICmdList, &View);
+				DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType());
 
 				int32 BatchElementIndex = 0;
 				uint64 Mask = BatchElementMask;
@@ -451,7 +453,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 				{
 					if(Mask & 1)
 					{
-						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
 						DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 					}
 					Mask >>= 1;

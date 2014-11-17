@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "NavigationSystem.h"
+#include "GameFramework/Actor.h"
 
 #include "NavigationGraphNode.generated.h"
 

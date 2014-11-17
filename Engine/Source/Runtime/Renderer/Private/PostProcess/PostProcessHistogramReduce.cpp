@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessHistogramReduce.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing histogram reduce compute shader. */
 class FPostProcessHistogramReducePS : public FGlobalShader
@@ -88,7 +89,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramReducePS,TEXT("PostProcessHistogramR
 
 void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessHistogramReduce, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessHistogramReduce, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -113,13 +114,13 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessHistogramReducePS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessHistogramReducePS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	// we currently assume the input is half res, one full res pixel less to avoid getting bilinear filtered input
 	FIntPoint GatherExtent = (View.ViewRect.Size() - FIntPoint(1, 1)) / 2;

@@ -37,7 +37,6 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	{
 		Box->AddSlot()
 		.AutoWidth()
-		.AspectRatio()
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -57,7 +56,6 @@ void SSearchBox::Construct( const FArguments& InArgs )
 		];
 		Box->AddSlot()
 		.AutoWidth()
-		.AspectRatio()
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -80,7 +78,6 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	// Add a search glass image so that the user knows this text box is for searching
 	Box->AddSlot()
 	.AutoWidth()
-	.AspectRatio()
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[
@@ -93,7 +90,6 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	// Add an X to clear the search whenever there is some text typed into it
 	Box->AddSlot()
 	.AutoWidth()
-	.AspectRatio()
 	[
 		SNew(SButton)
 		.Visibility(this, &SSearchBox::GetXVisibility)

@@ -53,6 +53,7 @@
 
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 #if PLATFORM_WINDOWS
 // For WAVEFORMATEXTENSIBLE
@@ -86,6 +87,8 @@
 
 // AIMdule
 #include "BehaviorTree/BehaviorTreeManager.h"
+
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -135,6 +138,8 @@ FEditorDelegates::FOnEditorCameraMoved					FEditorDelegates::OnEditorCameraMoved
 FEditorDelegates::FOnDollyPerspectiveCamera				FEditorDelegates::OnDollyPerspectiveCamera;
 FEditorDelegates::FOnBlueprintContextMenuCreated		FEditorDelegates::OnBlueprintContextMenuCreated;
 FSimpleMulticastDelegate								FEditorDelegates::OnShutdownPostPackagesSaved;
+FEditorDelegates::FOnAssetsPreDelete					FEditorDelegates::OnAssetsPreDelete;
+FEditorDelegates::FOnAssetsDeleted						FEditorDelegates::OnAssetsDeleted;
 
 /*-----------------------------------------------------------------------------
 	Globals.
@@ -422,8 +427,11 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	FBSPOps::GFastRebuild = 0;
 
 	// Setup delegate callbacks for SavePackage()
-	GIsPackageOKToSaveDelegate.BindUObject( this, &UEditorEngine::IsPackageOKToSave );
-	GAutoPackageBackupDelegate.BindStatic( &FAutoPackageBackup::BackupPackage );
+	FCoreUObjectDelegates::IsPackageOKToSaveDelegate.BindUObject(this, &UEditorEngine::IsPackageOKToSave);
+	FCoreUObjectDelegates::AutoPackageBackupDelegate.BindStatic(&FAutoPackageBackup::BackupPackage);
+
+	extern void SetupDistanceFieldBuildNotification();
+	SetupDistanceFieldBuildNotification();
 
 	// Update recents
 	UpdateRecentlyLoadedProjectFiles();
@@ -542,7 +550,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
 //		FModuleManager::Get().LoadModule(TEXT("Search"));
 		FModuleManager::Get().LoadModule(TEXT("SessionFrontend"));
-		FModuleManager::Get().LoadModule(TEXT("SessionLauncher"));
+		FModuleManager::Get().LoadModule(TEXT("ProjectLauncher"));
 		FModuleManager::Get().LoadModule(TEXT("SettingsEditor"));
 		FModuleManager::Get().LoadModule(TEXT("EditorSettingsViewer"));
 		FModuleManager::Get().LoadModule(TEXT("ProjectSettingsViewer"));
@@ -559,6 +567,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
+		FModuleManager::Get().LoadModule(TEXT("HardwareTargeting"));
 
 		if (!IsRunningCommandlet())
 		{
@@ -579,11 +588,13 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		}
 
 		bool bGameplayAbilitiesEnabled = false;
-		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
 		if (bGameplayAbilitiesEnabled)
 		{
 			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
 		}
+
+		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 	}
 
 	float BSPTexelScale = 100.0f;
@@ -762,6 +773,9 @@ void UEditorEngine::FinishDestroy()
 		// Destroy selection sets.
 		PrivateDestroySelectedSets();
 
+		extern void TearDownDistanceFieldBuildNotification();
+		TearDownDistanceFieldBuildNotification();
+
 		// Remove editor array from root.
 		UE_LOG(LogExit, Log, TEXT("Editor shut down") );
 	}
@@ -816,8 +830,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	// Tick the module manager
-	FModuleManager::Get().Tick();
+	// Tick the hot reload interface
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
+	{
+		HotReload->Tick();
+	}
 
 	// Tick the remote config IO manager
 	FRemoteConfigAsyncTaskManager::Get()->Tick();
@@ -986,12 +1004,14 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Tick the asset registry
 	FAssetRegistryModule::TickAssetRegistry(DeltaSeconds);
 
-	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	static FName SourceCodeAccessName("SourceCodeAccess");
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>(SourceCodeAccessName);
 	SourceCodeAccessModule.GetAccessor().Tick(DeltaSeconds);
 
 	// tick the directory watcher
 	// @todo: Put me into an FTicker that is created when the DW module is loaded
-	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	static FName DirectoryWatcherName("DirectoryWatcher");
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(DirectoryWatcherName);
 	DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
 
 	if( bShouldTickEditorWorld )
@@ -1337,7 +1357,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 					continue;
 				}
 
-				if (!ViewportClient->IsLevelEditorClient() || ViewportClient->IsVisible())
+				if ( ViewportClient->IsVisible() )
 				{
 					// Only update ortho viewports if that mode is turned on, the viewport client we are about to update is orthographic and the current editing viewport is orthographic and tracking mouse movement.
 					bUpdateLinkedOrthoViewports = GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports && ViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient->IsTracking();
@@ -1391,10 +1411,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				GPlayInEditorID = -1;
 			}
 		}
-
-		// Update resource streaming after both regular Editor viewports and PIE had a chance to add viewers.
-		IStreamingManager::Get().Tick( DeltaSeconds );
 	}
+
+	// Update resource streaming after both regular Editor viewports and PIE had a chance to add viewers.
+	IStreamingManager::Get().Tick(DeltaSeconds);
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
 	if (GetAudioDevice())
@@ -1444,7 +1464,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	FUnrealEdMisc::Get().TickAssetAnalytics();
 
-	FUnrealEdMisc::Get().TickPerformanceSurvey();
+	FUnrealEdMisc::Get().TickPerformanceAnalytics();
 
 	// If the fadeout animation has completed for the undo/redo notification item, allow it to be deleted
 	if(UndoRedoNotificationItem.IsValid() && UndoRedoNotificationItem->GetCompletionState() == SNotificationItem::CS_None)
@@ -1689,6 +1709,15 @@ void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 {
 	// Propagate the callback up to the superclass.
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if( PropertyName == FName( TEXT( "MaximumLoopIterationCount" )))
+	{
+		// Clamp to a reasonable range and feed the new value to the script core
+		MaximumLoopIterationCount = FMath::Clamp( MaximumLoopIterationCount, 100, 10000000 );
+		FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( MaximumLoopIterationCount );
+	}
 }
 
 void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& TransReset )
@@ -1992,7 +2021,7 @@ bool UEditorEngine::WarnAboutHiddenLevels( UWorld* InWorld, bool bIncludePersist
 		FString HiddenLevelNames;
 		for ( int32 LevelIndex = 0 ; LevelIndex < HiddenLevels.Num() ; ++LevelIndex )
 		{
-			HiddenLevelNames += FString::Printf( TEXT("\n    %s"), *HiddenLevels[LevelIndex]->PackageName.ToString() );
+			HiddenLevelNames += FString::Printf( TEXT("\n    %s"), *HiddenLevels[LevelIndex]->GetWorldAssetPackageName() );
 		}
 
 		FFormatNamedArguments Args;
@@ -2104,7 +2133,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		}
 	}
 
-	FNavigationLockContext LockNavigationUpdates;
+	FNavigationLockContext LockNavigationUpdates(InActor->GetWorld(), ENavigationLockReason::ContinuousEditorMove);
 
 	bool bTranslationOnly = true;
 
@@ -2603,7 +2632,9 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 						GEditor->BroadcastObjectReimported(Obj);
 						if (FEngineAnalytics::IsAvailable())
 						{
-							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.AssetReimported"));
+							TArray<FAnalyticsEventAttribute> Attributes;
+							Attributes.Add( FAnalyticsEventAttribute( TEXT( "ObjectType" ), Obj->GetClass()->GetName() ) );
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.AssetReimported"), Attributes);
 						}
 						bSuccess = true;
 					}
@@ -2674,6 +2705,8 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 
 	// Let listeners know whether the reimport was successful or not
 	PostReimport.Broadcast( Obj, bSuccess );
+
+	GEditor->RedrawAllViewports();
 
 	return bSuccess;
 }
@@ -3255,7 +3288,7 @@ void UEditorEngine::SelectAllActorsWithClass( bool bArchetype )
 		// For this function to have been called in the first place, all of the selected actors should be of the same type
 		// and with the same archetype; however, it's safest to confirm the assumption first
 		bool bAllSameClassAndArchetype = false;
-		UClass* FirstClass = NULL;
+		TSubclassOf<AActor> FirstClass;
 		UObject* FirstArchetype = NULL;
 
 		// Find the class and archetype of the first selected actor; they will be used to check that all selected actors
@@ -3864,15 +3897,6 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 		return false;
 	}
 
-	FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("MatineeUndoWarningBody","Opening the Matinee Editor will reset all current Undo data. (Undo/Redo will only be available on matinee actions while it remains open)"), LOCTEXT("MatineeUndoWarningTitle","Matinee Undo Warning"), "MatineeUndoWarning" );
-	Info.ConfirmText =  LOCTEXT( "Continue", "Continue");
-	Info.CancelText =  LOCTEXT( "Cancel", "Cancel");	
-	Info.bDefaultToSupressInTheFuture = true;
-	FSuppressableWarningDialog MatineeUndoWarning( Info );
-	if( MatineeUndoWarning.ShowModal() == FSuppressableWarningDialog::Cancel )
-	{
-		return false;
-	}
 	return true;
 }
 
@@ -3914,12 +3938,17 @@ void UEditorEngine::UpdateSkyCaptures()
 
 void UEditorEngine::EditorAddModalWindow( TSharedRef<SWindow> InModalWindow ) const
 {
-	TSharedPtr<SWindow> ParentWindow;
-	// Check if the main frame is loaded.  When using the old main frame it may not be.
-	if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
+	// If there is already a modal window active, parent this new modal window to the existing window so that it doesnt fall behind
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveModalWindow();
+
+	if( !ParentWindow.IsValid() )
 	{
-		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
-		ParentWindow = MainFrame.GetParentWindow();
+		// Parent to the main frame window
+		if(FModuleManager::Get().IsModuleLoaded("MainFrame"))
+		{
+			IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+			ParentWindow = MainFrame.GetParentWindow();
+		}
 	}
 
 	FSlateApplication::Get().AddModalWindow( InModalWindow, ParentWindow );
@@ -4396,6 +4425,9 @@ void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
 	{
 		FLevelUtils::RemoveEditorTransform(LevelStreaming);
 	}
+
+	// Make sure the public and standalone flags are set on this world to allow it to work properly with the editor
+	World->SetFlags(RF_Public | RF_Standalone);
 }
 
 void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 OriginalPackageFlags, bool bSuccess)
@@ -4488,14 +4520,10 @@ void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 Orig
 APlayerStart* UEditorEngine::CheckForPlayerStart()
 {
 	UWorld* IteratorWorld = GWorld;
-	for( FActorIterator It(IteratorWorld); It; ++It )
+	for( TActorIterator<APlayerStart> It(IteratorWorld); It; ++It )
 	{
-		APlayerStart* Start = Cast<APlayerStart>(*It);
-		if (Start)
-		{
-			// Return the found start.
-			return Start;
-		}
+		// Return the found start.
+		return *It;
 	}
 
 	// No player start was found, return NULL.
@@ -5240,7 +5268,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 		// Now Copy the light component properties.
 		for( UProperty* Property = CommonLightComponentClass->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext )
 		{
-			bool bIsTransient = !!(Property->PropertyFlags & (CPF_Transient | CPF_DuplicateTransient | CPF_NonPIETransient));
+			bool bIsTransient = !!(Property->PropertyFlags & (CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient));
 			// Properties are identical if they have not changed from the light component on the default source actor
 			bool bIsIdentical = Property->Identical_InContainer(LightComponentToCopy, DefaultLightComponent);
 			bool bIsComponent = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));
@@ -5955,7 +5983,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 	if( !bIsForeground )
 	{
 		const UEditorUserSettings* Settings = GetDefault<UEditorUserSettings>();
-		bShouldThrottle = Settings->bThrottleWhenNotForeground;
+		bShouldThrottle = Settings->bThrottleCPUWhenNotForeground;
 
 		// Check if we should throttle due to all windows being minimized
 		if ( !bShouldThrottle )
@@ -6215,7 +6243,7 @@ UActorFactory* UEditorEngine::FindActorFactoryByClassForActorClass( const UClass
 	return NULL;
 }
 
-void UEditorEngine::PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin)
+void UEditorEngine::PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin)
 {
 	// In case we simulating world in the editor, 
 	// we need to shift current viewport as well, 
@@ -6448,7 +6476,7 @@ void UEditorEngine::UpdateRecentlyLoadedProjectFiles()
 		for ( int32 FileIdx = RecentlyOpenedProjectFiles.Num() - 1; FileIdx >= 0; --FileIdx )
 		{
 			const FString FileExtension = FPaths::GetExtension(RecentlyOpenedProjectFiles[FileIdx]);
-			if ( FileExtension != IProjectManager::GetProjectFileExtension() )
+			if ( FileExtension != FProjectDescriptor::GetExtension() )
 			{
 				RecentlyOpenedProjectFiles.RemoveAt(FileIdx, 1);
 			}
@@ -6495,24 +6523,160 @@ void UEditorEngine::UpdateAutoLoadProject()
 #if PLATFORM_MAC
 	if ( !GIsBuildMachine )
 	{
-		SCOPED_AUTORELEASE_POOL;
-		NSDictionary* SystemVersion = [NSDictionary dictionaryWithContentsOfFile: @"/System/Library/CoreServices/SystemVersion.plist"];
-		NSString* OSVersion = (NSString*)[SystemVersion objectForKey: @"ProductVersion"];
-		NSArray* Components = [OSVersion componentsSeparatedByString:@"."];
-		NSInteger ComponentValues[3] = {0};
-		for(uint32 i = 0; i < [Components count] && i < 3; i++)
+		FString OSVersion, OSSubVersion;
+		FPlatformMisc::GetOSVersions(OSVersion, OSSubVersion);
+		
+		TArray<FString> Components;
+		OSVersion.ParseIntoArray(&Components, TEXT("."), true);
+		uint8 ComponentValues[3] = {0};
+		
+		for(uint32 i = 0; i < Components.Num() && i < 3; i++)
 		{
-			NSString* Component = [Components objectAtIndex:i];
-			ComponentValues[i] = [Component integerValue];
+			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
 		}
 		
 		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || (ComponentValues[1] == 9 && ComponentValues[2] < 4))
 		{
-			FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorGameAgnosticIni );
-			Info.ConfirmText = LOCTEXT( "OK", "OK");
-			Info.bDefaultToSupressInTheFuture = true;
-			FSuppressableWarningDialog OSUpdateWarning( Info );
-			OSUpdateWarning.ShowModal();
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorGameAgnosticIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSupressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of Mac OS X for best performance."));
+			}
+		}
+		
+		NSOpenGLContext* Context = [NSOpenGLContext currentContext];
+		const bool bTemporaryContext = (!Context);
+		if(bTemporaryContext)
+		{
+			NSOpenGLPixelFormatAttribute Attribs[] = {NSOpenGLPFAOpenGLProfile, (NSOpenGLPixelFormatAttribute)NSOpenGLProfileVersion3_2Core, (NSOpenGLPixelFormatAttribute)0};
+			NSOpenGLPixelFormat* PixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:Attribs];
+			if(PixelFormat)
+			{
+				Context = [[NSOpenGLContext alloc] initWithFormat:PixelFormat shareContext:nil];
+				[PixelFormat release];
+				if(Context)
+				{
+					[Context makeCurrentContext];
+				}
+			}
+		}
+		
+		GLint RendererID = 0;
+		if(Context)
+		{
+			[Context getValues:&RendererID forParameter:NSOpenGLCPCurrentRendererID];
+		}
+		
+		if(bTemporaryContext && Context)
+		{
+			[Context release];
+		}
+		
+		// This is quite a coarse test, alerting users who are running on GPUs which run on older drivers only - this is what we want to tell people running the only barely working OpenGL 3.3 cards.
+		// They can run, but they are largely on their own in terms of rendering performance and bugs as Apple/vendors won't fix OpenGL drivers for them.
+		const bool bOldGpuDriver = ((RendererID & 0x00022000 && RendererID < kCGLRendererGeForceID) || (RendererID & 0x00021000 && RendererID < kCGLRendererATIRadeonX3000ID) || (RendererID & 0x00024000 && RendererID < kCGLRendererIntelHD4000ID));
+		if(bOldGpuDriver)
+		{
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UnsupportedGPUWarning_Body","The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."), LOCTEXT("UnsupportedGPUWarning_Title","Unsupported Graphics Card"), TEXT("UnsupportedGPUWarning"), GEditorGameAgnosticIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSupressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."));
+			}
+		}
+		
+		// The editor is much more demanding than people realise, so warn them when they are beneath the official recommended specs.
+		// Any GPU slower than the Nvidia 470 GTX or AMD 6870 will receive a warning so that it is clear that the performance will not be stellar.
+		// This will affect all MacBooks, MacBook Pros and Mac Minis, none of which have shipped with a powerful GPU.
+		// Low-end or older iMacs and some older Mac Pros will also see this warning, though Mac Pro owners can upgrade their GPUs to something better if they choose.
+		// Newer, high-end iMacs and the new Mac Pros, or old Mac Pros with top-end/aftermarket GPUs shouldn't see this at all.
+
+		bool bSlowGpu = false;
+		// The 6970 and the 5870 were the only Apple supplied cards that are fast enough for the Editor supported by the kCGLRendererATIRadeonX3000ID driver
+		// All the kCGLRendererATIRadeonX4000ID supported cards should be more than sufficiently fast AFAICT
+		if(RendererID & 0x00021000 && RendererID == kCGLRendererATIRadeonX3000ID) // AMD
+		{
+			if(!GRHIAdapterName.Contains(TEXT("6970")) && !GRHIAdapterName.Contains(TEXT("5870")))
+			{
+				bSlowGpu = true;
+			}
+		}
+		else if(RendererID & 0x00022000 && RendererID == kCGLRendererGeForceID) // Nvidia
+		{
+			// Most of the 600 & 700 series Nvidia or later cards Apple use in iMacs should be fast enough
+			// but the ones in MacBook Pros are not.
+			if(GRHIAdapterName.Contains(TEXT("640")) || GRHIAdapterName.Contains(TEXT("650")) || GRHIAdapterName.Contains(TEXT("660")) || GRHIAdapterName.Contains(TEXT("750")) || GRHIAdapterName.Contains(TEXT("755")))
+			{
+				bSlowGpu = true;
+			}
+		}
+		else if(RendererID & 0x00024000 && RendererID == kCGLRendererIntelHD5000ID) // Intel
+		{
+			// Only the Iris Pro is even approaching fast enough - but even that is slower than our recommended specs by a wide margin
+			bSlowGpu = true;
+		}
+		
+		if(bSlowGpu)
+		{
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowGPUWarning_Body","The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."), LOCTEXT("SlowGPUWarning_Title","Slow Graphics Card"), TEXT("SlowGPUWarning"), GEditorGameAgnosticIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSupressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."));
+			}
+		}
+		
+		// Warn about low-memory configurations as they harm performance in the Editor
+		if(FPlatformMemory::GetPhysicalGBRam() < 8)
+		{
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("LowRAMWarning_Body","For best performance install at least 8GB of RAM."), LOCTEXT("LowRAMWarning_Title","Low RAM"), TEXT("LowRAMWarning"), GEditorGameAgnosticIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSupressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("For best performance install at least 8GB of RAM."));
+			}
+		}
+		
+		// And also warn about machines with fewer than 4 cores as they will also struggle
+		if(FPlatformMisc::NumberOfCores() < 4)
+		{
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowCPUWarning_Body","For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."), LOCTEXT("SlowCPUWarning_Title","CPU Performance Warning"), TEXT("SlowCPUWarning"), GEditorGameAgnosticIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSupressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."));
+			}
 		}
 	}
 #endif
@@ -7172,6 +7336,11 @@ namespace EditorUtilities
 
 		return CopiedPropertyCount;
 	}
+}
+
+bool UEditorEngine::IsUsingWorldAssets()
+{
+	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
 }
 
 void UEditorEngine::OnAssetLoaded(UObject* Asset)

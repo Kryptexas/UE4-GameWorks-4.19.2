@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ThrottleManager.h: Declares the FSlateThrottleManager class.
-=============================================================================*/
-
 #pragma once
 
 

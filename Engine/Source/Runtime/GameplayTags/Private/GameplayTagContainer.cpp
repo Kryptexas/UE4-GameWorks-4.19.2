@@ -162,6 +162,11 @@ void FGameplayTagContainer::AddTag(const FGameplayTag& TagToAdd)
 	}
 }
 
+void FGameplayTagContainer::AddTagFast(const FGameplayTag& TagToAdd)
+{
+	GameplayTags.Add(TagToAdd);
+}
+
 void FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
 {
 	GameplayTags.Remove(TagToRemove);

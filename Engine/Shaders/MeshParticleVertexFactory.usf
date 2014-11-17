@@ -17,6 +17,8 @@ float4x4 PreviousLocalToWorld;
 	float4 Transform3;
 	float4 SubUVParams;
 	float SubUVLerp;
+	float4 ParticleDirection;
+	float RelativeTime;
 	float4 DynamicParameter;
 	float4 ParticleColor;
 #endif
@@ -65,7 +67,7 @@ struct FVertexFactoryInterpolantsVSToPS
 	float4 SubUV1AndLerp : TEXCOORD2;
 #else
 	#if NUM_MATERIAL_TEXCOORDS
-			#if ES2_PROFILE
+			#if (ES2_PROFILE || ES3_1_PROFILE)
 				// Avoid dependent texture fetches, put all UVs in xy
 				float2	TexCoords[NUM_MATERIAL_TEXCOORDS] : TEXCOORD0;
 			#else
@@ -130,6 +132,16 @@ struct FVertexFactoryIntermediates
 	float RelativeTime;
 };
 
+float4x4 GetParticleTransform(FVertexFactoryInput Input)
+{
+	//Transform is transposed on CPU and position is packed into W. Transpose again to get the correct transform back.
+#if PARTICLE_MESH_INSTANCED
+	return transpose(float4x4(Input.Transform1, Input.Transform2, Input.Transform3, float4(0, 0, 0, 1)));
+#else
+	return transpose(float4x4(Transform1, Transform2, Transform3, float4(0, 0, 0, 1)));
+#endif
+}
+
 /** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
 FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 PixelPosition)
 {
@@ -148,7 +160,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	Result.Particle.SubUVCoords[1] = Interpolants.SubUV1AndLerp.xy;
 	Result.Particle.SubUVLerp = Interpolants.SubUV1AndLerp.z;
 #elif NUM_MATERIAL_TEXCOORDS
-	#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 		UNROLL
 		for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++ )
 		{
@@ -218,14 +230,10 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 	Result.Particle.DynamicParameter = Intermediates.DynamicParameter;
 #endif	//USE_DYNAMIC_PARAMETERS
 
-#if PARTICLE_MESH_INSTANCED
-	float4x4 Transform = float4x4( Input.Transform1, Input.Transform2, Input.Transform3, float4(0 ,0, 0, 1));
-#else
-	float4x4 Transform = float4x4( Transform1, Transform2, Transform3, float4(0 ,0, 0, 1));
-#endif
+	float4x4 Transform = GetParticleTransform(Input);
 	Result.InstanceLocalToWorld = Transform;
 
-	Result.TangentToWorld = mul(TangentToLocal, transpose( (float3x3)Transform ) ); 
+	Result.TangentToWorld = mul(TangentToLocal, (float3x3)Transform ); 
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 	for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
@@ -250,11 +258,11 @@ half2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 #endif
 
 
-float4 CalcWorldPosition(float4 Position, float4 Transform1, float4 Transform2, float4 Transform3)
+float4 CalcWorldPosition(FVertexFactoryInput Input)
 {
-	float3x4 Transform = float3x4(Transform1, Transform2, Transform3);
-	float3 WorldPosition = mul(Transform, Position) + View.PreViewTranslation;
-	return float4(WorldPosition,Position.w);
+	float4x4 Transform = GetParticleTransform(Input);
+	float3 WorldPosition = mul(Input.Position, Transform).xyz + View.PreViewTranslation;
+	return float4(WorldPosition, Input.Position.w);
 }
 
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
@@ -311,8 +319,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.ParticleVelocity = Input.ParticleVelocity;
 	Intermediates.RelativeTime = Input.SubUVLerpAndRelTime.y;
 #else
-	Intermediates.ParticleVelocity = float4(0,1,0,0); // TODO: We don't have this data when instancing is disabled. Should we? 
-	Intermediates.RelativeTime = 0;
+	Intermediates.ParticleVelocity = ParticleDirection;
+	Intermediates.RelativeTime = RelativeTime;
 #endif
 
 	return Intermediates;
@@ -349,11 +357,7 @@ float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFacto
 // @return translated world position
 float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
-#if PARTICLE_MESH_INSTANCED
-	return CalcWorldPosition(Input.Position, Input.Transform1, Input.Transform2, Input.Transform3);
-#else
-	return CalcWorldPosition(Input.Position, Transform1, Transform2, Transform3);
-#endif
+	return CalcWorldPosition(Input);
 }
 
 float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float4 InWorldPosition)
@@ -365,12 +369,8 @@ void CalcTangentToWorld(FVertexFactoryInput Input, FVertexFactoryIntermediates I
 {
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, Intermediates);
 
-#if PARTICLE_MESH_INSTANCED
-	float3x3 Transform = float3x3(Input.Transform1.xyz, Input.Transform2.xyz, Input.Transform3.xyz);
-#else
-	float3x3 Transform = float3x3(Transform1.xyz, Transform2.xyz, Transform3.xyz);
-#endif
-	float3x3 TangentToWorld = mul(TangentToLocal, transpose(Transform));
+	float4x4 Transform = GetParticleTransform(Input);
+	float3x3 TangentToWorld = mul(TangentToLocal, (float3x3)Transform);
 
 	// Normalize to remove scaling. Incorrect but faster than computing the inverse-transpose.
 	TangentToWorld0 = normalize(TangentToWorld[0]);
@@ -382,7 +382,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	FVertexFactoryInterpolantsVSToPS Interpolants;
 
 #if USE_PARTICLE_SUBUVS
-    Interpolants.SubUV0AndTexCoord0.xy = Intermediates.SubUVCoords.xy;
+	Interpolants.SubUV0AndTexCoord0.xy = Intermediates.SubUVCoords.xy;
 	Interpolants.SubUV1AndLerp.xy = Intermediates.SubUVCoords.zw;
 	Interpolants.SubUV1AndLerp.zw = Intermediates.SubUVLerp.xx;
 
@@ -394,7 +394,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 		Interpolants.SubUV0AndTexCoord0.zw = 0;
 	#endif
 #elif NUM_MATERIAL_TEXCOORDS
-	#if ES2_PROFILE
+	#if (ES2_PROFILE || ES3_1_PROFILE)
 		GetMaterialCustomizedUVs(VertexParameters, Interpolants.TexCoords);
 	#else
 		// Ensure the unused components of the last packed texture coordinate are initialized.
@@ -444,11 +444,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 	// The previous local to world instance transform isn't available.
-#if PARTICLE_MESH_INSTANCED
-	return CalcWorldPosition(Input.Position, Input.Transform1, Input.Transform2, Input.Transform3);
-#else
-	return CalcWorldPosition(Input.Position, Transform1, Transform2, Transform3);
-#endif
+	return CalcWorldPosition(Input);
 }
 
 #if USING_TESSELLATION

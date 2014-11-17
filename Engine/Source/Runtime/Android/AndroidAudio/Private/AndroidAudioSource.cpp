@@ -45,7 +45,7 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 
 		// Switch to the next buffer and decode for the next time the callback fires
 		BufferInUse = !BufferInUse;
-		bHasLooped = Buffer->ReadCompressedData( AudioBuffers[BufferInUse].AudioData, WaveInstance->LoopingMode != LOOP_Never );
+		bHasLooped = ReadMorePCMData(BufferInUse);
 	}
 }
 
@@ -118,7 +118,7 @@ bool FSLESSoundSource::EnqueuePCMBuffer( bool bLoop)
 		result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, OpenSLBufferQueueCallback, (void*)this);
 		if(result != SL_RESULT_SUCCESS) { UE_LOG( LogAndroidAudio, Fatal,TEXT("FAILED OPENSL BUFFER QUEUE RegisterCallback 0x%x "), result); return false;}
 	}
-		
+	
 	result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, Buffer->AudioData, Buffer->GetSize() );
 	if(result != SL_RESULT_SUCCESS) { UE_LOG( LogAndroidAudio, Fatal,TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, Buffer->AudioData, int32(Buffer->GetSize())); return false;}
 
@@ -129,6 +129,32 @@ bool FSLESSoundSource::EnqueuePCMBuffer( bool bLoop)
 	return true;
 }
 
+bool FSLESSoundSource::ReadProceduralData(const int32 BufferIndex)
+{
+	ensure(WaveInstance);
+	const int32 MaxSamples = BufferSize / sizeof(int16);
+	const int32 BytesWritten = WaveInstance->WaveData->GeneratePCMData(AudioBuffers[BufferIndex].AudioData, MaxSamples);
+	
+	AudioBuffers[BufferIndex].AudioDataSize = BytesWritten;
+
+	// convenience return value: we're never actually "looping" here.
+	return false;
+}
+
+bool FSLESSoundSource::ReadMorePCMData(const int32 BufferIndex)
+{
+	USoundWave *WaveData = WaveInstance->WaveData;
+	if (WaveData && WaveData->bProcedural)
+	{
+		return ReadProceduralData(BufferIndex);
+	}
+	else
+	{
+		return Buffer->ReadCompressedData(AudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never);
+	}
+}
+
+
 bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 {
 	if (AudioBuffers[0].AudioData || AudioBuffers[1].AudioData)
@@ -138,15 +164,17 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	FMemory::Memzero( AudioBuffers, sizeof( SLESAudioBuffer ) * 2 );
 
 	// Set up double buffer area to decompress to
-	AudioBuffers[0].AudioData = ( uint8* )FMemory::Malloc( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels );
-	AudioBuffers[0].AudioDataSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	BufferSize = Buffer->GetRTBufferSize() * Buffer->NumChannels;
 
-	AudioBuffers[1].AudioData = ( uint8* )FMemory::Malloc( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels );
-	AudioBuffers[1].AudioDataSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	AudioBuffers[0].AudioData = (uint8*)FMemory::Malloc(BufferSize);
+	AudioBuffers[0].AudioDataSize = BufferSize;
+
+	AudioBuffers[1].AudioData = (uint8*)FMemory::Malloc(BufferSize);
+	AudioBuffers[1].AudioDataSize = BufferSize;
 
 	// Decompress two buffers worth of data to fill up the queue
-	Buffer->ReadCompressedData( AudioBuffers[0].AudioData, bLoop );
-	Buffer->ReadCompressedData( AudioBuffers[1].AudioData, bLoop );
+	ReadMorePCMData(0);
+	ReadMorePCMData(1);
 
 	SLresult result;
 
@@ -197,6 +225,8 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 		UE_LOG( LogAndroidAudio, Warning, TEXT(" InitSoundSouce with PlayerObject not NULL, possible leak"));
 	}
 	
+	WaveInstance = InWaveInstance;
+
 	// Find matching buffer.
 	Buffer = FSLESSoundBuffer::Init( (FSLESAudioDevice *)AudioDevice, InWaveInstance->WaveData );
 
@@ -233,9 +263,6 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 			return false;
 		}
 		
-		WaveInstance = InWaveInstance;
-		
-		
 		Update();
 		
 		// Initialization was successful.
@@ -265,6 +292,7 @@ FSLESSoundSource::FSLESSoundSource( class FAudioDevice* InAudioDevice )
 		Buffer( NULL ),
 		bStreamedSound(false),
 		bBuffersToFlush(false),
+		BufferSize(0),
 		BufferInUse(0),
 		bHasLooped(false),
 		SL_PlayerObject(NULL),

@@ -21,7 +21,13 @@ IMPLEMENT_MODULE(FMeshBoneReductionModule, IMeshBoneReductionModule);
 
 class FMeshBoneReduction : public IMeshBoneReduction
 {
-	bool GetBoneReductionData( const USkeletalMesh* SkeletalMesh, int32 DesiredLOD, TMap<FBoneIndexType, FBoneIndexType> &OutBonesToReplace )
+public:
+
+	virtual ~FMeshBoneReduction()
+	{
+	}
+
+	bool GetBoneReductionData( const USkeletalMesh* SkeletalMesh, int32 DesiredLOD, TMap<FBoneIndexType, FBoneIndexType> &OutBonesToReplace ) override
 	{
 		const TArray<FMeshBoneInfo> & RefBoneInfo = SkeletalMesh->RefSkeleton.GetRefBoneInfo();
 
@@ -65,7 +71,7 @@ class FMeshBoneReduction : public IMeshBoneReduction
 		return ( OutBonesToReplace.Num() > 0 );
 	}
 
-	void FixUpChunkBoneMaps( FSkelMeshChunk & Chunk, const TMap<FBoneIndexType, FBoneIndexType> &BonesToRepair )
+	void FixUpChunkBoneMaps( FSkelMeshChunk & Chunk, const TMap<FBoneIndexType, FBoneIndexType> &BonesToRepair ) override
 	{
 		// now you have list of bones, remove them from vertex influences
 		{
@@ -204,7 +210,7 @@ class FMeshBoneReduction : public IMeshBoneReduction
 		}
 	}
 
-	void ReduceBoneCounts( USkeletalMesh* SkeletalMesh, int32 DesiredLOD )
+	void ReduceBoneCounts( USkeletalMesh* SkeletalMesh, int32 DesiredLOD ) override
 	{
 		check (SkeletalMesh);
 		USkeleton * Skeleton = SkeletalMesh->Skeleton;

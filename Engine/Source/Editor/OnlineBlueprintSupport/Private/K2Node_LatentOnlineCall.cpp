@@ -4,6 +4,7 @@
 #include "OnlineBlueprintCallProxyBase.h"
 #include "K2Node_LatentOnlineCall.h"
 #include "BlueprintFunctionNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -16,7 +17,8 @@ UK2Node_LatentOnlineCall::UK2Node_LatentOnlineCall(const FPostConstructInitializ
 void UK2Node_LatentOnlineCall::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	const bool bAllowLatentFuncs = (K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph) == GT_Ubergraph);
+	EGraphType GraphType = K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph);
+	const bool bAllowLatentFuncs = (GraphType == GT_Ubergraph || GraphType == GT_Macro);
 
 
 	if (bAllowLatentFuncs)
@@ -50,7 +52,7 @@ void UK2Node_LatentOnlineCall::GetMenuEntries(FGraphContextMenuBuilder& ContextM
 	}
 }
 
-void UK2Node_LatentOnlineCall::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_LatentOnlineCall::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// these nested loops are combing over the same classes/functions the
 	// FBlueprintActionDatabase does; ideally we save on perf and fold this in
@@ -67,6 +69,15 @@ void UK2Node_LatentOnlineCall::GetMenuActions(TArray<UBlueprintNodeSpawner*>& Ac
 		{
 			UFunction* Function = *FuncIt;
 			if (!Function->HasAnyFunctionFlags(FUNC_Static))
+			{
+				continue;
+			}
+
+			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+			// check to make sure that the registrar is looking for actions of this type
+			// (could be regenerating actions for a specific asset, and therefore the 
+			// registrar would only accept actions corresponding to that asset)
+			if (!ActionRegistrar.IsOpenForRegistration(Function))
 			{
 				continue;
 			}
@@ -100,7 +111,7 @@ void UK2Node_LatentOnlineCall::GetMenuActions(TArray<UBlueprintNodeSpawner*>& Ac
 				
 				// @TODO: since this can't be folded into FBlueprintActionDatabase, we
 				//        need a way to associate these spawners with a certain class
-				ActionListOut.Add(NodeSpawner);
+				ActionRegistrar.AddBlueprintAction(Function, NodeSpawner);
 			}
 		}
 	}

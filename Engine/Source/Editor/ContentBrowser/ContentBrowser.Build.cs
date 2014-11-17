@@ -12,6 +12,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"EditorWidgets",
+                "MainFrame",
 				"SourceControl",
 				"SourceControlWindows",
                 "ReferenceViewer"
@@ -20,6 +21,7 @@ public class ContentBrowser : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
                 "InputCore",
@@ -43,8 +45,15 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"EditorWidgets",
+                "MainFrame",
                 "ReferenceViewer"
 			}
 		);
+		
+		PublicIncludePathModuleNames.AddRange(
+            new string[] {                
+                "IntroTutorials"
+            }
+        );
 	}
 }

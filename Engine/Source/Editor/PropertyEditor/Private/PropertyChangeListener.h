@@ -8,6 +8,7 @@
 class FPropertyChangeListener : public IPropertyChangeListener
 {
 public:
+	virtual ~FPropertyChangeListener() {}
 	/** IPropertyChangeListener interface */
 	virtual void SetObject( UObject& Object, const FPropertyListenerSettings& InPropertyListenerSettings ) override;
 	virtual bool ScanForChanges( bool bRecacheNewValues = true ) override;

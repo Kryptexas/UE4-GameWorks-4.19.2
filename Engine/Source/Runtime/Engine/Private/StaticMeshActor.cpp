@@ -9,6 +9,7 @@
 #include "StaticMeshResources.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Engine/StaticMeshActor.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshActor"
 
@@ -125,20 +126,16 @@ void AStaticMeshActor::CheckForErrors()
 
 	if( !StaticMeshComponent.IsValid() )
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_StaticMeshComponent", "{ActorName}: Static mesh actor has NULL StaticMeshComponent property - please delete" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete" ) ))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
 	}
 	else if( StaticMeshComponent->StaticMesh == NULL )
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_StaticMeshNull", "{ActorName} : Static mesh actor has NULL StaticMesh property" ), Arguments ) ))
+			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshNull", "Static mesh actor has NULL StaticMesh property" ) ))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
 	}
 	else

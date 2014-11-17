@@ -11,12 +11,8 @@ LandscapeRender.h: New terrain rendering
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeProxy.h"
 #include "LightMap.h"
+#include "MeshBatch.h"
 #include "ShadowMap.h"
-
-
-class FLandscapeVertexFactory;
-class FLandscapeVertexBuffer;
-class FLandscapeComponentSceneProxy;
 
 // This defines the number of border blocks to surround terrain by when generating lightmaps
 #define TERRAIN_PATCH_EXPAND_SCALAR	1
@@ -87,7 +83,7 @@ END_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters)
 struct FLandscapeBatchElementParams
 {
 	const TUniformBuffer<FLandscapeUniformShaderParameters>* LandscapeUniformShaderParametersResource;
-	FMatrix* LocalToWorldNoScalingPtr;
+	const FMatrix* LocalToWorldNoScalingPtr;
 
 	// LOD calculation-related params
 	const class FLandscapeComponentSceneProxy* SceneProxy;
@@ -96,6 +92,11 @@ struct FLandscapeBatchElementParams
 	int32	CurrentLOD;
 };
 
+class FLandscapeElementParamArray : public FOneFrameResource
+{
+public:
+	TArray<FLandscapeBatchElementParams, SceneRenderingAllocator> ElementParams;
+};
 
 /** Pixel shader parameters for use with FLandscapeVertexFactory */
 class FLandscapeVertexFactoryPixelShaderParameters : public FVertexFactoryShaderParameters
@@ -160,7 +161,7 @@ public:
 	{
 		// only compile landscape materials for landscape vertex factory
 		// The special engine materials must be compiled for the landscape vertex factory because they are used with it for wireframe, etc.
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) &&
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) &&
 			(Material->IsUsedWithLandscape() || Material->IsSpecialEngineMaterial());
 	}
 
@@ -294,11 +295,12 @@ public:
 	FIndexBuffer** IndexBuffers;
 	FLandscapeIndexRanges* IndexRanges;
 	FLandscapeSharedAdjacencyIndexBuffer* AdjacencyIndexBuffers;
+	bool bUse32BitIndices;
 
-	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type InFeatureLevel);
+	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
 
 	template <typename INDEX_TYPE>
-	void CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel);
+	void CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
 
 	virtual ~FLandscapeSharedBuffers();
 };
@@ -376,9 +378,9 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 		// FLightCacheInterface
 		virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const;
 
-		virtual FLightMapInteraction GetLightMapInteraction() const
+		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 		{
-			return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
+			return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
 		}
 
 		virtual FShadowMapInteraction GetShadowMapInteraction() const
@@ -450,8 +452,6 @@ protected:
 
 	const ULandscapeComponent* LandscapeComponent;
 
-	FLinearColor LevelColor;
-
 	FVector2D				NeighborPosition[LANDSCAPE_NEIGHBOR_NUM];
 	int32					ForcedLOD;
 	int32					LODBias;
@@ -481,6 +481,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;

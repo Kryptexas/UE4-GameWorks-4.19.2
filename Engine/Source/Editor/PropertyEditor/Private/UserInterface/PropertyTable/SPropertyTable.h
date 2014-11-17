@@ -60,7 +60,7 @@ public:
 
 		if ( Table->GetIsUserAllowedToChangeRoot() )
 		{
-			TSharedRef< SWidget > TreeContent = ChildSlot.Widget;
+			TSharedRef< SWidget > TreeContent = ChildSlot.GetWidget();
 
 			ChildSlot
 			[

@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphPin.h"
 #include "EdGraph/EdGraphSchema.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
@@ -365,6 +366,19 @@ void UEdGraphSchema::BreakNodeLinks(UEdGraphNode& TargetNode) const
 #endif	//#if WITH_EDITOR
 }
 
+bool UEdGraphSchema::SetNodeMetaData(UEdGraphNode* Node, FName const& KeyValue)
+{
+	if (UPackage* Package = Node->GetOutermost())
+	{
+		if (UMetaData* MetaData = Package->GetMetaData())
+		{
+			MetaData->SetValue(Node, KeyValue, TEXT("true"));
+			return true;
+		}
+	}
+	return false;
+}
+
 void UEdGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifcation) const
 {
 #if WITH_EDITOR
@@ -481,9 +495,9 @@ FString UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	return !Pin->PinFriendlyName.IsEmpty() ? Pin->PinFriendlyName.ToString() : Pin->PinName;
 }
 
-void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FString const& PinDescription, FString& TooltipOut) const
+void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FText const& PinDescription, FString& TooltipOut) const
 {
-	TooltipOut = PinDescription;
+	TooltipOut = PinDescription.ToString();
 }
 
 void UEdGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const
@@ -639,6 +653,11 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 		}
 	}
 #endif
+}
+
+FString UEdGraphSchema::IsCurrentPinDefaultValid(const UEdGraphPin* Pin) const
+{
+	return IsPinDefaultValid(Pin, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue);
 }
 
 #undef LOCTEXT_NAMESPACE

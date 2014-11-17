@@ -390,6 +390,11 @@ void FTabManager::FPrivateApi::OnTabManagerClosing()
 	TabManager.OnTabManagerClosing();
 }
 
+bool FTabManager::FPrivateApi::CanTabLeaveTabWell(const TSharedRef<const SDockTab>& TabToTest) const
+{
+	return TabToTest != TabManager.MainNonCloseableTab.Pin();
+}
+
 const TArray< TWeakPtr<SDockingArea> >& FTabManager::FPrivateApi::GetLiveDockAreas() const
 {
 	return TabManager.DockAreas;
@@ -490,6 +495,16 @@ void FTabManager::UpdateMainMenu(bool const bForce)
 		}
 	}
 #endif
+}
+
+void FTabManager::SetMainTab(const TSharedRef<const SDockTab>& InTab)
+{
+	MainNonCloseableTab = InTab;
+}
+
+bool FTabManager::IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const
+{
+	return !(MainNonCloseableTab.Pin() == InTab);
 }
 
 TSharedPtr<FTabManager::FStack> FTabManager::FLayoutNode::AsStack()
@@ -1151,6 +1166,10 @@ TSharedRef<SDockTab> FTabManager::SpawnTab( const FTabId& TabId, const TSharedPt
 		NewTabWidget->SetLayoutIdentifier( TabId );
 		NewTabWidget->ProvideDefaultLabel( Spawner->GetDisplayName().IsEmpty() ? FText::FromName( Spawner->TabType ) : Spawner->GetDisplayName() );
 		NewTabWidget->ProvideDefaultIcon( Spawner->GetIcon().GetIcon() );
+
+		// If this tabs' content was not tagged for tutorials by its creator, we can provide an automated tag based  on the TabId.
+		// NOTE: relying on this is bad because it couples tutorials to the internals of tab management!
+		NewTabWidget->GetContent()->AddMetadataIfMissing<FTagMetaData>( MakeShareable(new FTagMetaData( *TabId.ToString() ) ) );
 
 		// The spawner tracks that last tab it spawned
 		Spawner->SpawnedTabPtr = NewTabWidget;

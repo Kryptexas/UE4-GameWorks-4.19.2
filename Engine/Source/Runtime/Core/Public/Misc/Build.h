@@ -137,6 +137,12 @@
 	#error UBT should always define IS_PROGRAM to be 0 or 1
 #endif
 
+/**
+* Whether we support hot-reload. Currently requires a non-monolithic build and non-shipping configuration.
+*/
+#ifndef WITH_HOT_RELOAD
+	#define WITH_HOT_RELOAD (!IS_MONOLITHIC && !UE_BUILD_SHIPPING)
+#endif
 
 /*----------------------------------------------------------------------------
 	Optional bridge options coming from UBT, do not modify directly!

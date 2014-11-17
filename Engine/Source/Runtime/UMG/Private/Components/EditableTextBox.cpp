@@ -28,11 +28,13 @@ UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCI
 	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
+
+	WidgetStyle = *Defaults._Style;
 }
 
-void UEditableTextBox::ReleaseNativeWidget()
+void UEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyEditableTextBlock.Reset();
 }
@@ -47,6 +49,7 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 	}
 
 	MyEditableTextBlock = SNew(SEditableTextBox)
+		.Style(&WidgetStyle)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)
@@ -65,18 +68,15 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 	return MyEditableTextBlock.ToSharedRef();
 }
 
-void UEditableTextBox::SyncronizeProperties()
+void UEditableTextBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
-	const FEditableTextBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextBoxStyle>() : NULL;
-	if ( StylePtr )
-	{
-		MyEditableTextBlock->SetStyle(StylePtr);
-	}
+	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
 
-	MyEditableTextBlock->SetText(Text);
-	MyEditableTextBlock->SetHintText(HintText);
+	MyEditableTextBlock->SetText(TextBinding);
+	MyEditableTextBlock->SetHintText(HintTextBinding);
 	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
@@ -129,11 +129,35 @@ void UEditableTextBox::HandleOnTextCommitted(const FText& Text, ETextCommit::Typ
 	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
+void UEditableTextBox::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FEditableTextBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FEditableTextBoxStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UEditableTextBox::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.EditableTextBox");
+}
+
+const FText UEditableTextBox::GetPaletteCategory()
+{
+	return LOCTEXT("Common", "Common");
 }
 
 #endif

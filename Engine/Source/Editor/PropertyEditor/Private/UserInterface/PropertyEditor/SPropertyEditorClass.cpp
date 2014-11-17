@@ -104,6 +104,7 @@ void SPropertyEditorClass::Construct(const FArguments& InArgs, const TSharedPtr<
 		}
 		
 		bAllowAbstract = Property->GetOwnerProperty()->HasMetaData(TEXT("AllowAbstract"));
+		bAllowOnlyPlaceable = Property->GetOwnerProperty()->HasMetaData(TEXT("OnlyPlaceable"));
 		bIsBlueprintBaseOnly = Property->GetOwnerProperty()->HasMetaData(TEXT("BlueprintBaseOnly"));
 		RequiredInterface = Property->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement"));
 		bAllowNone = !(Property->PropertyFlags & CPF_NoClear);
@@ -119,6 +120,7 @@ void SPropertyEditorClass::Construct(const FArguments& InArgs, const TSharedPtr<
 		bAllowAbstract = InArgs._AllowAbstract;
 		bIsBlueprintBaseOnly = InArgs._IsBlueprintBaseOnly;
 		bAllowNone = InArgs._AllowNone;
+		bAllowOnlyPlaceable = false;
 
 		SelectedClass = InArgs._SelectedClass;
 		OnSetClass = InArgs._OnSetClass;
@@ -191,6 +193,7 @@ TSharedRef<SWidget> SPropertyEditorClass::GenerateClassPicker()
 	ClassFilter->InterfaceThatMustBeImplemented = RequiredInterface;
 	ClassFilter->bAllowAbstract = bAllowAbstract;
 	Options.bIsBlueprintBaseOnly = bIsBlueprintBaseOnly;
+	Options.bIsPlaceableOnly = bAllowOnlyPlaceable;
 
 	FOnClassPicked OnPicked(FOnClassPicked::CreateRaw(this, &SPropertyEditorClass::OnClassPicked));
 

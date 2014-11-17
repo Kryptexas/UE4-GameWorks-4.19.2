@@ -23,25 +23,36 @@ FString UAnimGraphNode_LookAt::GetKeywords() const
 	return TEXT("Look At, Follow, Trace, Track");
 }
 
-FString UAnimGraphNode_LookAt::GetTooltip() const
+FText UAnimGraphNode_LookAt::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_LookAt_Tooltip", "This node allow a bone to trace or follow another bone").ToString();
+	return LOCTEXT("AnimGraphNode_LookAt_Tooltip", "This node allow a bone to trace or follow another bone");
 }
 
 FText UAnimGraphNode_LookAt::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
+	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.BoneToModify.BoneName == NAME_None))
+	{
+		return GetControllerDescription();
+	}
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+		Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
 
-	if(TitleType == ENodeTitleType::ListView)
-	{
-		return FText::Format(LOCTEXT("AnimGraphNode_LookAt_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_LookAt_ListTitle", "{ControllerDescription} - Bone: {BoneName}"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_LookAt_Title", "{ControllerDescription}\nBone: {BoneName}"), Args));
+		}
 	}
-	else
-	{
-		return FText::Format(LOCTEXT("AnimGraphNode_LookAt_Title", "{ControllerDescription}\nBone: {BoneName}"), Args);
-	}
+	return CachedNodeTitles[TitleType];		
 }
 
 void UAnimGraphNode_LookAt::Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const

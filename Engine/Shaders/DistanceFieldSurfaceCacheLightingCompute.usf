@@ -1,14 +1,14 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-
+	DistanceFieldSurfaceCacheLightingCompute.usf
 =============================================================================*/
 
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
-#include "SHCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "DistanceFieldLightingShared.usf"
+#include "DistanceFieldAOShared.usf"
 
 /** Min and Max depth for this tile. */
 groupshared uint IntegerTileMinZ;
@@ -244,24 +244,24 @@ void DistanceFieldAOBuildTileListMain(
 	{
 		uint StartIndex;
 		uint EndIndex;
-		float StepScale = GetPhaseParameters(0, StartIndex, EndIndex);
-		SmallGroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+		GetPhaseParameters(0, StartIndex, EndIndex);
+		SmallGroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
 	}
 
 	float MediumGroupMaxSampleRadius;
 	{
 		uint StartIndex;
 		uint EndIndex;
-		float StepScale = GetPhaseParameters(1, StartIndex, EndIndex);
-		MediumGroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+		GetPhaseParameters(1, StartIndex, EndIndex);
+		MediumGroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
 	}
 
 	float LargeGroupMaxSampleRadius;
 	{
 		uint StartIndex;
 		uint EndIndex;
-		float StepScale = GetPhaseParameters(2, StartIndex, EndIndex);
-		LargeGroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+		GetPhaseParameters(2, StartIndex, EndIndex);
+		LargeGroupMaxSampleRadius = GetStepOffset(EndIndex) * 2 * RadiusScale;
 	}
 
 	// Compute per-tile lists of affecting objects through bounds culling
@@ -384,7 +384,6 @@ void PopulateCacheCS(
 
 	BRANCH
 	if (GBufferData.ShadingModelID > 0
-		&& GBufferData.HasDistanceFieldRepresentation > 0
 		&& IrradianceCacheSplat.w < .0001f 
 		&& all(DispatchThreadId.xy < AOBufferSize))
 	{
@@ -461,11 +460,23 @@ Buffer<uint> SavedStartIndex;
 RWBuffer<float> RWOccluderRadius;
 RWBuffer<float4> RWIrradianceCacheBentNormal;
 
-#define FINAL_GATHER_THREADGROUP_SIZE 64
-#define SIMULTANEOUSLY_TRACED_OBJECTS 4
+// Whether to use cone tracing or cone stepping
+#define USE_CONE_TRACING 1
+
+// Have to disable surface caching dependencies for this to work
+#define VISUALIZE_ONE_CONE 0
+
+#define FINAL_GATHER_THREADGROUP_SIZE 256
+
+#if USE_CONE_TRACING
+	// Enforce one thread per cone direction
+	#define SIMULTANEOUSLY_TRACED_OBJECTS (FINAL_GATHER_THREADGROUP_SIZE / NUM_CONE_DIRECTIONS)
+#else
+	#define SIMULTANEOUSLY_TRACED_OBJECTS 4
+#endif
 #define THREADS_PER_OBJECT (FINAL_GATHER_THREADGROUP_SIZE / SIMULTANEOUSLY_TRACED_OBJECTS)
 
-groupshared uint SharedConeVisibility[NUM_SAMPLES];
+groupshared uint SharedConeVisibility[NUM_CONE_DIRECTIONS];
 groupshared uint SharedMinOcclusionDistance;
 
 /** Computes ambient occlusion for a surface cache record by cone stepping through the nearby object distance fields. */
@@ -480,7 +491,7 @@ void FinalGatherCS(
 
 	if (ThreadIndex == 0)
 	{
-		for (uint ConeIndex = 0; ConeIndex < NUM_SAMPLES; ConeIndex++) 
+		for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++) 
 		{
 			SharedConeVisibility[ConeIndex] = asuint(1.0f);
 		}
@@ -509,12 +520,30 @@ void FinalGatherCS(
 
 		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
 
+		float3 DebugConeDirection = normalize(float3(.3f, .5f, .4f));
+
+#if USE_CONE_TRACING
+		uint ConeIndex = ThreadIndex % THREADS_PER_OBJECT;
+
+		float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
+		float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
+
+#if VISUALIZE_ONE_CONE
+		RotatedConeDirection = DebugConeDirection;
+#endif
+
+		float MinVisibility = 1;
+		float MinWorldDistanceToOccluder = AOMaxDistance;
+		float MaxWorldStepOffset = GetStepOffset(NUM_CONE_STEPS);
+#endif
 		LOOP 
 		for (uint ListObjectIndex = 0; ListObjectIndex < NumObjectsAffectingTile; ListObjectIndex += SIMULTANEOUSLY_TRACED_OBJECTS)
 		{
 			uint EffectiveListObjectIndex = ListObjectIndex + ObjectOffsetIndex;
 
-			if (EffectiveListObjectIndex < NumObjectsAffectingTile)
+			if (EffectiveListObjectIndex < NumObjectsAffectingTile 
+				// Ignore extra threads
+				&& ObjectOffsetIndex < SIMULTANEOUSLY_TRACED_OBJECTS)
 			{
 #if COHERENT_OBJECT_LIST_WRITES
 
@@ -543,7 +572,7 @@ void FinalGatherCS(
 				float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
 				float3 VolumeShadingPosition = mul(float4(WorldShadingPosition, 1), WorldToVolume).xyz;
 
-				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f;
+				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
 				float BoxDistance = ComputeDistanceFromBoxToPoint(-LocalPositionExtent, LocalPositionExtent, VolumeShadingPosition) * UVScaleAndVolumeScale.w;
 
 				BRANCH
@@ -563,10 +592,56 @@ void FinalGatherCS(
 						StartStepIndex = 5;
 					}
 
+#if USE_CONE_TRACING
+					float WorldStepOffset = GetStepOffset(StartStepIndex);
+
+					LOOP
+					for (uint StepIndex = StartStepIndex; StepIndex < NUM_CONE_STEPS && WorldStepOffset < MaxWorldStepOffset; StepIndex++)
+					{
+						float3 WorldSamplePosition = WorldShadingPosition + RotatedConeDirection * WorldStepOffset;
+						float3 StepSamplePosition = mul(float4(WorldSamplePosition, 1), WorldToVolume).xyz;
+						float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
+						float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
+
+						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+						float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+						float SphereRadius = WorldStepOffset * TanConeHalfAngle;
+						//@todo - have to bias away from surface further for this to work
+						float ShadingSphereRadius = SphereRadius * 1.0f;
+
+						// Derive visibility from 1d intersection
+						float Visibility = saturate(DistanceToOccluder / ShadingSphereRadius);
+
+						BRANCH
+						if (Visibility < MinVisibility)
+						{
+							// Don't allow small objects to fully occlude a cone step
+							Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
+							float OccluderDistanceFraction = (WorldStepOffset + DistanceToOccluder) / AOMaxDistance;
+							// Fade out occlusion based on distance to occluder
+							Visibility = max(Visibility, saturate((OccluderDistanceFraction - 0) / 4));
+							Visibility = max(Visibility, saturate((OccluderDistanceFraction - .7f) / .4f));
+
+							MinVisibility = min(MinVisibility, Visibility);
+
+							if (DistanceToOccluder < .9f * SphereRadius)
+							{
+								// Assuming occluder is straight forward along the cone
+								float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
+								MinWorldDistanceToOccluder = min(MinWorldDistanceToOccluder, WorldDistanceToOccluder);
+							}
+						}
+						
+						float MinStepSize = .6f * (GetStepOffset(StepIndex + 1) - GetStepOffset(StepIndex));
+						WorldStepOffset += max(DistanceToOccluder, MinStepSize);
+					}
+
+#else // Cone stepping
+
 					uint NumConeSteps = NUM_CONE_STEPS - StartStepIndex;
 
 					LOOP
-					for (uint SampleIndex = ThreadIndex % THREADS_PER_OBJECT; SampleIndex < NUM_SAMPLES * NumConeSteps; SampleIndex += THREADS_PER_OBJECT)
+					for (uint SampleIndex = ThreadIndex % THREADS_PER_OBJECT; SampleIndex < NUM_CONE_DIRECTIONS * NumConeSteps; SampleIndex += THREADS_PER_OBJECT)
 					{
 						// Avoid uint divide
 						uint ConeIndex = (uint)(SampleIndex / (float)NumConeSteps);
@@ -575,38 +650,65 @@ void FinalGatherCS(
 						float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
 						float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
 
+						#if VISUALIZE_ONE_CONE
+							RotatedConeDirection = DebugConeDirection;
+						#endif
+
 						float WorldStepOffset = AOStepScale * exp2(AOStepExponentScale * StepIndex);
 						float3 WorldSamplePosition = WorldShadingPosition + RotatedConeDirection * WorldStepOffset;
 						float3 StepSamplePosition = mul(float4(WorldSamplePosition, 1), WorldToVolume).xyz;
 						float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
 						float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
 
-						float LocalStepOffset = length(StepSamplePosition - VolumeShadingPosition);
-
 						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-						float DistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped;
+						float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
 
-						float EffectiveDistanceToOccluder = DistanceToOccluder;
-						float SphereRadius = LocalStepOffset * TanConeHalfAngle;
-						// Allows use of negative distances in the small steps to create full penumbra range, reduces over-occlusion
-						float MinOcclusionFraction = 0;//-.6f * (1 - saturate(4 * StepIndex / (float)NUM_CONE_STEPS));
-						float Visibility = saturate((EffectiveDistanceToOccluder / SphereRadius - MinOcclusionFraction) / (1 - MinOcclusionFraction));
+						float SphereRadius = WorldStepOffset * TanConeHalfAngle;
+						float ShadingSphereRadius = SphereRadius * 1.0f;
+
+						#define CIRCLE_LINE_INTERSECTION 0
+
+						#if CIRCLE_LINE_INTERSECTION
+
+							float Visibility = 1;
+
+							BRANCH
+							if (DistanceToOccluder < SphereRadius)
+							{
+								float SphereRadiusSquared = SphereRadius * SphereRadius;
+								// Area of the circle cut off by an intersecting line segment of distance DistanceToOccluder to the circle center
+								float CircleSegmentArea = SphereRadiusSquared * acos(DistanceToOccluder / SphereRadius) - DistanceToOccluder * sqrt(SphereRadiusSquared - DistanceToOccluder * DistanceToOccluder);
+								Visibility = 1 - saturate(CircleSegmentArea / (.5f * PI * SphereRadiusSquared));
+							}
+
+						#else
+							// Allows use of negative distances in the small steps to create full penumbra range, reduces over-occlusion
+							float MinOcclusionFraction = 0;//-.6f * (1 - saturate(4 * StepIndex / (float)NUM_CONE_STEPS));
+							// Derive visibility from 1d intersection
+							float Visibility = saturate((DistanceToOccluder / ShadingSphereRadius - MinOcclusionFraction) / (1 - MinOcclusionFraction));
+						#endif
 
 						// Don't allow small objects to fully occlude a cone step
 						Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
 
 						InterlockedMin(SharedConeVisibility[ConeIndex], asuint(Visibility));
 
-						if (EffectiveDistanceToOccluder < .9f * SphereRadius)
+						if (DistanceToOccluder < .9f * SphereRadius)
 						{
 							// Assuming occluder is straight forward along the cone
-							float WorldDistanceToOccluder = (LocalStepOffset + DistanceToOccluder) * UVScaleAndVolumeScale.w;
+							float WorldDistanceToOccluder = WorldStepOffset + DistanceToOccluder;
 							InterlockedMin(SharedMinOcclusionDistance, asuint(WorldDistanceToOccluder));
 						}
 					}
+#endif
 				}
 			}
 		}
+
+#if USE_CONE_TRACING
+		InterlockedMin(SharedConeVisibility[ConeIndex], asuint(MinVisibility));
+		InterlockedMin(SharedMinOcclusionDistance, asuint(MinWorldDistanceToOccluder));
+#endif
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -615,8 +717,9 @@ void FinalGatherCS(
 	{
 		float3 UnoccludedDirection = 0;
 		float Visibility = 0;
+		float NumSamplesToDisplay = VISUALIZE_ONE_CONE ? 1 : NUM_CONE_DIRECTIONS;
 
-		for (uint ConeIndex = 0; ConeIndex < NUM_SAMPLES; ConeIndex++)
+		for (uint ConeIndex = 0; ConeIndex < NumSamplesToDisplay; ConeIndex++)
 		{
 			float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
 			float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
@@ -626,17 +729,11 @@ void FinalGatherCS(
 			Visibility += ConeVisibility;
 		}
 
-		UnoccludedDirection = UnoccludedDirection * BentNormalNormalizeFactor / (float)NUM_SAMPLES;
-		Visibility = Visibility / (float)NUM_SAMPLES;
+		UnoccludedDirection = UnoccludedDirection * BentNormalNormalizeFactor / (float)NumSamplesToDisplay;
+		Visibility = Visibility / (float)NumSamplesToDisplay;
 
 		RWOccluderRadius[RecordIndex] = RecordRadiusScale * asfloat(SharedMinOcclusionDistance);
-
-#define USE_DYNAMIC_OCCLUSION_BENT_NORMAL 0
-#if USE_DYNAMIC_OCCLUSION_BENT_NORMAL
-		RWIrradianceCacheBentNormal[RecordIndex] = float4(EncodeNormalForAO(UnoccludedDirection), 0);
-#else
-		RWIrradianceCacheBentNormal[RecordIndex] = float4(Visibility.xxx, 0);
-#endif
+		RWIrradianceCacheBentNormal[RecordIndex] = float4(UnoccludedDirection, 0);
 	}
 }
 
@@ -682,7 +779,8 @@ void SetupCopyIndirectArgumentsCS(
 {
 	uint NumRecords = (1 - TrimFraction) * DrawParameters[1];
 
-	RWDispatchParameters[0] = (NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE;
+	// Make sure we spawn at least one group so RWScatterDrawParameters gets written to
+	RWDispatchParameters[0] = max((NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE, 1);
 	RWDispatchParameters[1] = 1;
 	RWDispatchParameters[2] = 1;
 }

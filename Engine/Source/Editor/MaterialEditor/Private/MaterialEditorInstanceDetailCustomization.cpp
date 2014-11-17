@@ -55,8 +55,20 @@ void FMaterialInstanceParameterDetails::CustomizeDetails( IDetailLayoutBuilder& 
 	DetailLayout.HideProperty("ParameterGroups");
 	DetailLayout.HideProperty("BasePropertyOverrides");
 
-	IDetailPropertyRow& RefractionDepthBias = DefaultCategory.AddProperty("RefractionDepthBias");
-	RefractionDepthBias.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings)));
+	{
+		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("RefractionDepthBias");
+		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings)));
+	}
+
+	{
+		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("bOverrideSubsurfaceProfile");
+		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
+	}
+
+	{
+		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("SubsurfaceProfile");
+		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
+	}
 
 	// Create a new category for a custom layout for the MIC parameters
 	FName GroupsCategoryName = TEXT("ParameterGroups");
@@ -372,4 +384,11 @@ void FMaterialInstanceParameterDetails::ResetToDefault( class UDEditorParameterV
 EVisibility FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings() const
 {
 	return (MaterialEditorInstance->SourceInstance->GetMaterial()->bUsesDistortion) ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile() const
+{
+	EMaterialShadingModel Model = MaterialEditorInstance->SourceInstance->GetMaterial()->GetShadingModel_Internal();
+
+	return (Model == MSM_SubsurfaceProfile) ? EVisibility::Visible : EVisibility::Collapsed;
 }

@@ -54,6 +54,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
+	CapsuleComponent->bCanEverAffectNavigation = false;
 	RootComponent = CapsuleComponent;
 
 	JumpKeyHoldTime = 0.0f;
@@ -89,16 +90,12 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 		Mesh->bCastDynamicShadow = true;
 		Mesh->bAffectDynamicIndirectLighting = true;
 		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-		// force tick after movement component updates
-		if( CharacterMovement )
-		{
-			Mesh->PrimaryComponentTick.AddPrerequisite(this, CharacterMovement->PrimaryComponentTick); 
-		}
 		Mesh->bChartDistanceFactor = true;
 		Mesh->AttachParent = CapsuleComponent;
 		static FName CollisionProfileName(TEXT("CharacterMesh"));
 		Mesh->SetCollisionProfileName(CollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
+		Mesh->bCanEverAffectNavigation = false;
 	}
 }
 
@@ -112,6 +109,12 @@ void ACharacter::PostInitializeComponents()
 		if (Mesh)
 		{
 			BaseTranslationOffset = Mesh->RelativeLocation;
+
+			// force animation tick after movement component updates
+			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement.IsValid())
+			{
+				Mesh->PrimaryComponentTick.AddPrerequisite(CharacterMovement, CharacterMovement->PrimaryComponentTick);
+			}
 		}
 
 		if (CharacterMovement.IsValid() && CapsuleComponent.IsValid())
@@ -152,6 +155,11 @@ void ACharacter::GetSimpleCollisionCylinder(float& CollisionRadius, float& Colli
 	{
 		Super::GetSimpleCollisionCylinder(CollisionRadius, CollisionHalfHeight);
 	}
+}
+
+void ACharacter::UpdateNavigationRelevance()
+{
+	CapsuleComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
 }
 
 void ACharacter::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
@@ -221,9 +229,10 @@ bool ACharacter::IsJumpProvidingForce() const
 	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
+// Deprecated
 bool ACharacter::DoJump( bool bReplayingMoves )
 {
-	return CanJump() && CharacterMovement->DoJump();
+	return CanJump() && CharacterMovement->DoJump(bReplayingMoves);
 }
 
 
@@ -386,7 +395,11 @@ namespace MovementBaseUtility
 	{
 		if (NewBase && MovementBaseUtility::UseRelativeLocation(NewBase))
 		{
-			BasedObjectTick.AddPrerequisite(NewBase, NewBase->PrimaryComponentTick);
+			if (NewBase->PrimaryComponentTick.bCanEverTick)
+			{
+				BasedObjectTick.AddPrerequisite(NewBase, NewBase->PrimaryComponentTick);
+			}
+
 			AActor* NewBaseOwner = NewBase->GetOwner();
 			if (NewBaseOwner)
 			{
@@ -429,10 +442,7 @@ namespace MovementBaseUtility
 					return;
 				}
 
-				if (OldBaseOwner->PrimaryActorTick.bCanEverTick)
-				{
-					BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
-				}
+				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
 				TArray<UActorComponent*> Components;
@@ -653,9 +663,16 @@ void ACharacter::TurnOff()
 void ACharacter::Restart()
 {
 	Super::Restart();
+
 	bPressedJump = false;
 	JumpKeyHoldTime = 0.0f;
 	ClearJumpInput();
+	UnCrouch(true);
+
+	if (CharacterMovement)
+	{
+		CharacterMovement->SetDefaultMovementMode();
+	}
 }
 
 void ACharacter::PawnClientRestart()
@@ -669,6 +686,17 @@ void ACharacter::PawnClientRestart()
 	Super::PawnClientRestart();
 }
 
+void ACharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// If we are controlled remotely, set animation timing to be driven by client's network updates. So timing and events remain in sync.
+	if (Mesh && (GetRemoteRole() == ROLE_AutonomousProxy && GetNetConnection() != nullptr))
+	{
+		Mesh->bAutonomousTickPose = true;
+	}
+}
+
 void ACharacter::UnPossessed()
 {
 	Super::UnPossessed();
@@ -677,6 +705,12 @@ void ACharacter::UnPossessed()
 	{
 		CharacterMovement->ResetPredictionData_Client();
 		CharacterMovement->ResetPredictionData_Server();
+	}
+
+	// We're no longer controlled remotely, resume regular ticking of animations.
+	if (Mesh)
+	{
+		Mesh->bAutonomousTickPose = false;
 	}
 }
 
@@ -689,6 +723,12 @@ void ACharacter::TornOff()
 	{
 		CharacterMovement->ResetPredictionData_Client();
 		CharacterMovement->ResetPredictionData_Server();
+	}
+
+	// We're no longer controlled remotely, resume regular ticking of animations.
+	if (Mesh)
+	{
+		Mesh->bAutonomousTickPose = false;
 	}
 }
 
@@ -810,8 +850,8 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 	{
 		// Increment our timer first so calls to IsJumpProvidingForce() will return true
 		JumpKeyHoldTime += DeltaTime;
-		const bool bDidJump = DoJump(bClientUpdating);
-		if(!bWasJumping && bDidJump)
+		const bool bDidJump = CanJump() && CharacterMovement && CharacterMovement->DoJump(bClientUpdating);
+		if (!bWasJumping && bDidJump)
 		{
 			OnJumped();
 		}
@@ -968,7 +1008,7 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 			if( RestoreReplicatedMove(RootMotionRepMove) )
 			{
 				const float ServerPosition = RootMotionRepMove.RootMotion.Position;
-				const float ClientPosition = ClientMontageInstance->Position;
+				const float ClientPosition = ClientMontageInstance->GetPosition();
 				const float DeltaPosition = (ClientPosition - ServerPosition);
 				if( FMath::Abs(DeltaPosition) > KINDA_SMALL_NUMBER )
 				{
@@ -978,16 +1018,22 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 					// Simulate Root Motion for delta move.
 					if( CharacterMovement )
 					{
+						const float MontagePlayRate = ClientMontageInstance->GetPlayRate();
 						// Guess time it takes for this delta track position, so we can get falling physics accurate.
-						float DeltaTime = DeltaPosition / ClientMontageInstance->PlayRate;
-						check( DeltaTime > 0.f );
-						CharacterMovement->SimulateRootMotion(DeltaTime, LocalRootMotionTransform);
-
-						// After movement correction, smooth out error in position if any.
-						INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
-						if (PredictionInterface)
+						if (!FMath::IsNearlyZero(MontagePlayRate))
 						{
-							PredictionInterface->SmoothCorrection(OldLocation);
+							const float DeltaTime = DeltaPosition / MontagePlayRate;
+
+							// Even with negative playrate deltatime should be positive.
+							check(DeltaTime > 0.f);
+							CharacterMovement->SimulateRootMotion(DeltaTime, LocalRootMotionTransform);
+
+							// After movement correction, smooth out error in position if any.
+							INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
+							if (PredictionInterface)
+							{
+								PredictionInterface->SmoothCorrection(OldLocation);
+							}
 						}
 					}
 				}
@@ -1028,7 +1074,7 @@ bool ACharacter::CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMov
 		{
 			UAnimMontage * AnimMontage = ClientMontageInstance.Montage;
 			const float ServerPosition = RootMotionRepMove.RootMotion.Position;
-			const float ClientPosition = ClientMontageInstance.Position;
+			const float ClientPosition = ClientMontageInstance.GetPosition();
 			const float DeltaPosition = (ClientPosition - ServerPosition);
 			const int32 CurrentSectionIndex = AnimMontage->GetSectionIndexFromPosition(ClientPosition);
 			if( CurrentSectionIndex != INDEX_NONE )
@@ -1040,13 +1086,13 @@ bool ACharacter::CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMov
 				const bool bSameSections = (AnimMontage->GetSectionIndexFromPosition(ServerPosition) == CurrentSectionIndex);
 				// if we are looping and just wrapped over, skip. That's also not easy to handle and not frequent.
 				const bool bHasLooped = (NextSectionIndex == CurrentSectionIndex) && (FMath::Abs(DeltaPosition) > (AnimMontage->GetSectionLength(CurrentSectionIndex) / 2.f));
-				// Can only simulate forward in time, so we need to find a move from the server that is behind the client in time.
-				const bool bClientAheadOfServer = ((DeltaPosition * ClientMontageInstance.PlayRate) >= 0.f);
+				// Can only simulate forward in time, so we need to make sure server move is not ahead of the client.
+				const bool bServerAheadOfClient = ((DeltaPosition * ClientMontageInstance.GetPlayRate()) < 0.f);
 
-				UE_LOG(LogRootMotion, Log,  TEXT("\t\tACharacter::CanUseRootMotionRepMove ServerPosition: %.3f, ClientPosition: %.3f, DeltaPosition: %.3f, bSameSections: %d, bHasLooped: %d, bClientAheadOfServer: %d"), 
-					ServerPosition, ClientPosition, DeltaPosition, bSameSections, bHasLooped, bClientAheadOfServer);
+				UE_LOG(LogRootMotion, Log,  TEXT("\t\tACharacter::CanUseRootMotionRepMove ServerPosition: %.3f, ClientPosition: %.3f, DeltaPosition: %.3f, bSameSections: %d, bHasLooped: %d, bServerAheadOfClient: %d"), 
+					ServerPosition, ClientPosition, DeltaPosition, bSameSections, bHasLooped, bServerAheadOfClient);
 
-				return bSameSections && !bHasLooped && bClientAheadOfServer;
+				return bSameSections && !bHasLooped && !bServerAheadOfClient;
 			}
 		}
 	}
@@ -1161,7 +1207,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		RepRootMotion.MovementBase		= BasedMovement.MovementBase;
 		RepRootMotion.MovementBaseBoneName = BasedMovement.BoneName;
 		RepRootMotion.AnimMontage		= RootMotionMontageInstance->Montage;
-		RepRootMotion.Position			= RootMotionMontageInstance->Position;
+		RepRootMotion.Position			= RootMotionMontageInstance->GetPosition();
 
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, true );
 	}
@@ -1209,7 +1255,7 @@ float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayR
 	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
 	if( AnimMontage && AnimInstance )
 	{
-		float const Duration =  AnimInstance->Montage_Play(AnimMontage, InPlayRate);
+		float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
 
 		if (Duration > 0.f)
 		{
@@ -1230,7 +1276,7 @@ void ACharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 {
 	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
 	UAnimMontage * MontageToStop = (AnimMontage)? AnimMontage : GetCurrentMontage();
-	bool bShouldStopMontage =  AnimInstance && MontageToStop && AnimInstance->Montage_IsPlaying(MontageToStop);
+	bool bShouldStopMontage =  AnimInstance && MontageToStop && !AnimInstance->Montage_GetIsStopped(MontageToStop);
 
 	if ( bShouldStopMontage )
 	{

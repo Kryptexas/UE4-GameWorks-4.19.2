@@ -65,8 +65,13 @@ public:
 
 private:
 
+	bool AddDataToFileCache(const FString& ManifestHash,const TArray<uint8>& Data);
+	bool IsDataInFileCache(const FString& ManifestHash);
+	bool GetDataFromFileCache(const FString& ManifestHash,TArray<uint8>& Data);
+	bool RemoveDataFromFileCache(const FString& ManifestHash);
 	void UpdatePendingInstallQueue();
-	void ParseTitleFileManifest();
+	void BeginChunkInstall(uint32 NextChunkID,IBuildManifestPtr ChunkManifest);
+	void ParseTitleFileManifest(const FString& ManifestFileHash);
 	bool BuildChunkFolderName(IBuildManifestRef Manifest, FString& ChunkFdrName, FString& ManifestName, uint32& ChunkID, bool& bIsPatch);
 	void OSSEnumerateFilesComplete(bool bSuccess);
 	void OSSReadFileComplete(bool bSuccess, const FString& Filename);
@@ -74,24 +79,21 @@ private:
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChunkInstallCompleteMultiDelegate, uint32);
 
-	struct ChunkInstallState
+	enum struct ChunkInstallState
 	{
-		enum Type
-		{
-			Setup,
-			SetupWait,
-			QueryRemoteManifests,
-			MoveInstalledChunks,
-			RequestingTitleFiles,
-			SearchTitleFiles,
-			ReadTitleFiles,
-			WaitingOnRead,
-			ReadComplete,
-			PostSetup,
-			Idle,
-			Installing,
-			CopyToContent,
-		};
+		Setup,
+		SetupWait,
+		QueryRemoteManifests,
+		MoveInstalledChunks,
+		RequestingTitleFiles,
+		SearchTitleFiles,
+		ReadTitleFiles,
+		WaitingOnRead,
+		ReadComplete,
+		PostSetup,
+		Idle,
+		Installing,
+		CopyToContent,
 	};
 
 	struct FChunkPrio
@@ -123,6 +125,7 @@ private:
 	TMultiMap<uint32, IBuildManifestPtr>						InstalledManifests;
 	TMultiMap<uint32, IBuildManifestPtr>						RemoteManifests;
 	TMap<uint32, FPlatformChunkInstallCompleteMultiDelegate>	DelegateMap;
+	TSet<FString>												ManifestsInMemory;
 	TArray<FCloudFileHeader>									TitleFilesToRead;
 	TArray<uint8>												FileContentBuffer;
 	TArray<FChunkPrio>											PriorityQueue;
@@ -135,9 +138,10 @@ private:
 	FString														InstallDir;
 	FString														BackupDir;
 	FString														ContentDir;
+	FString														CacheDir;
 	IBuildPatchServicesModule*									BPSModule;
 	uint32														InstallingChunkID;
-	ChunkInstallState::Type										InstallerState;
+	ChunkInstallState											InstallerState;
 	EChunkInstallSpeed::Type									InstallSpeed;
 	bool														bFirstRun;
 #if !UE_BUILD_SHIPPING

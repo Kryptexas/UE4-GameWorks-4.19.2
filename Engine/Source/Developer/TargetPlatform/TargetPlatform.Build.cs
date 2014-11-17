@@ -10,7 +10,10 @@ public class TargetPlatform : ModuleRules
 		PrivateDependencyModuleNames.Add("Core");		
         PublicDependencyModuleNames.Add("DesktopPlatform");
 
-		if (!UEBuildConfiguration.bBuildRequiresCookedData)
+        PrivateIncludePathModuleNames.Add("PhysXFormats");
+
+		// no need for all these modules if the program doesn't want developer tools at all (like UnrealFileServer)
+		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bBuildDeveloperTools)
 		{
             // these are needed by multiple platform specific target platforms, so we make sure they are built with the base editor
             DynamicallyLoadedModuleNames.Add("ShaderPreprocessor");
@@ -49,6 +52,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+
 					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket() && !UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 					{
 						DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
@@ -101,11 +105,11 @@ public class TargetPlatform : ModuleRules
                     DynamicallyLoadedModuleNames.Add("AudioFormatOpus");
                 }
             }
-
-			if (UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
-			{
-				DynamicallyLoadedModuleNames.Add("PhysXFormats");
-			}
 		}
+        
+        if (UEBuildConfiguration.bBuildDeveloperTools == true && (UEBuildConfiguration.bBuildRequiresCookedData || UEBuildConfiguration.bRuntimePhysicsCooking) && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
+        {
+            DynamicallyLoadedModuleNames.Add("PhysXFormats");
+        }
 	}
 }

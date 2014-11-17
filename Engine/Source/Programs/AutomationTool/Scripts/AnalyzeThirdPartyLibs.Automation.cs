@@ -130,7 +130,7 @@ class AnalyzeThirdPartyLibs : BuildCommand
 		Log("************************* Analyze Third Party Libs");
 
 		// figure out what batch/script to run
-		switch (UnrealBuildTool.ExternalExecution.GetRuntimePlatform())
+		switch (UnrealBuildTool.BuildHostPlatform.Current.Platform)
 		{
 			case UnrealTargetPlatform.Win64:
 			case UnrealTargetPlatform.Mac:

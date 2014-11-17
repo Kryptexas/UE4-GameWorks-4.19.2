@@ -643,6 +643,11 @@ FString FKey::ToString() const
 	return KeyName.ToString(); 
 }
 
+FName FKey::GetFName() const
+{
+	return KeyName;
+}
+
 bool FKey::IsModifierKey() const 
 {
 	ConditionalLookupKeyDetails();

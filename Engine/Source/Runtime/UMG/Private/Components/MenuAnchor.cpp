@@ -13,9 +13,9 @@ UMenuAnchor::UMenuAnchor(const FPostConstructInitializeProperties& PCIP)
 	Placement = MenuPlacement_ComboBox;
 }
 
-void UMenuAnchor::ReleaseNativeWidget()
+void UMenuAnchor::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyMenuAnchor.Reset();
 }
@@ -33,11 +33,6 @@ TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 	}
 	
 	return BuildDesignTimeWidget( MyMenuAnchor.ToSharedRef() );
-}
-
-void UMenuAnchor::SyncronizeProperties()
-{
-	Super::SyncronizeProperties();
 }
 
 void UMenuAnchor::OnSlotAdded(UPanelSlot* Slot)
@@ -106,6 +101,11 @@ bool UMenuAnchor::IsOpen() const
 const FSlateBrush* UMenuAnchor::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.MenuAnchor");
+}
+
+const FText UMenuAnchor::GetPaletteCategory()
+{
+	return LOCTEXT("Advanced", "Advanced");
 }
 
 #endif

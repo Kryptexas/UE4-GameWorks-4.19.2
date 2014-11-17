@@ -512,14 +512,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			FString const DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 			AutoCreateRefTermPinNames.Remove(DefaltToSelfPinName);
 
-			if (Context.Blueprint->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins))
-			{
-				RequiresSetValue.Add(DefaltToSelfPinName);
-			}
-			else
-			{
-				DefaultToSelfParamNames.Add(DefaltToSelfPinName);
-			}
+			DefaultToSelfParamNames.Add(DefaltToSelfPinName);
 		}
 		if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 		{
@@ -532,7 +525,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			{
 				DefaultToSelfParamNames.Add(WorldContextPinName);
 			}
-			else
+			else if (!Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 			{
 				RequiresSetValue.Add(WorldContextPinName);
 			}
@@ -581,7 +574,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 						Term->bIsLocal = true;
 						if (!Pin->PinType.bIsArray)
 						{
-							Term->PropertyDefault = Pin->DefaultObject ? Pin->DefaultObject->GetFullName() : Pin->DefaultValue;
+							Term->PropertyDefault = Pin->DefaultObject ? Pin->DefaultObject->GetPathName() : Pin->DefaultValue;
 						}
 
 						Context.NetMap.Add(Pin, Term);

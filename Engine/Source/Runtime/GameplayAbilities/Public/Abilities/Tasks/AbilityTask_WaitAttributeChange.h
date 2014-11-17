@@ -6,7 +6,7 @@
 #include "AbilityTask_WaitAttributeChange.generated.h"
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitAttributeChangeDelegate);
+
 
 struct FGameplayEffectModCallbackData;
 
@@ -18,18 +18,26 @@ class UAbilityTask_WaitAttributeChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitAttributeChangeDelegate);
+
 	UPROPERTY(BlueprintAssignable)
 	FWaitAttributeChangeDelegate	OnChange;
 
 	virtual void Activate() override;
+
+	
 		
 	void OnAttributeChange(float NewValue, const FGameplayEffectModCallbackData*);
 
 	/** Wait until an attribute changes. */
-	UFUNCTION(BlueprintCallable, Category=Abilities, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitAttributeChange* WaitForAttributeChange(UObject* WorldContextObject, FGameplayAttribute Attribute, FGameplayTag WithTag, FGameplayTag WithoutTag);
 
 	FGameplayTag WithTag;
 	FGameplayTag WithoutTag;
 	FGameplayAttribute	Attribute;
+
+protected:
+
+	virtual void OnDestroy(bool AbilityEnded) override;
 };

@@ -9,6 +9,8 @@ public:
 
 	FColorPropertyTableCellPresenter( const TSharedRef< class FPropertyEditor >& InPropertyEditor, const TSharedRef< class IPropertyTableUtilities >& InPropertyUtilities );
 
+	virtual ~FColorPropertyTableCellPresenter() {}
+
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override;
 
 	virtual bool RequiresDropDown() override;

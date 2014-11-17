@@ -26,6 +26,15 @@ void UBehaviorTreeManager::FinishDestroy()
 {
 	SET_DWORD_STAT(STAT_AI_BehaviorTree_NumTemplates, 0);
 
+	for (int32 Idx = 0; Idx < ActiveComponents.Num(); Idx++)
+	{
+		if (ActiveComponents[Idx] && !ActiveComponents[Idx]->HasAnyFlags(RF_BeginDestroyed))
+		{
+			ActiveComponents[Idx]->Cleanup();
+		}
+	}
+
+	ActiveComponents.Reset();
 	Super::FinishDestroy();
 }
 
@@ -352,4 +361,27 @@ void UBehaviorTreeManager::DumpUsageStats() const
 	
 	UE_LOG(LogBehaviorTree, Display, TEXT("--- Total Nodes class usage:"));
 	AllNodesCounter.Print(TEXT(","));
+}
+
+void UBehaviorTreeManager::AddActiveComponent(UBehaviorTreeComponent* Component)
+{
+	ActiveComponents.AddUnique(Component);
+}
+
+void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent* Component)
+{
+	ActiveComponents.Remove(Component);
+}
+
+UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UWorld* World)
+{
+	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
+}
+
+UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
 }

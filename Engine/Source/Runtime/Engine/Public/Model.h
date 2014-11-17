@@ -6,10 +6,9 @@
 
 #pragma once
 
-#include "RawIndexBuffer.h"
 #include "LocalVertexFactory.h"
-#include "RenderUtils.h"
 #include "SceneTypes.h"
+#include "RawIndexBuffer.h"
 
 struct FLightmassPrimitiveSettings;
 struct FStaticLightingVertex;
@@ -17,6 +16,7 @@ class ABrush;
 class ULevel;
 class ULightComponent;
 class UMaterialInterface;
+class FRawIndexBuffer16or32;
 class UModel;
 class UPolys;
 

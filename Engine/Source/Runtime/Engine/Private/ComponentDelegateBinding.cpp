@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
-
+#include "Engine/ComponentDelegateBinding.h"
 
 UComponentDelegateBinding::UComponentDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

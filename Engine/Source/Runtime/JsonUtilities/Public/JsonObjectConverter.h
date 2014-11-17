@@ -31,10 +31,11 @@ public:
 	 * @param JsonObject Json Object to be filled in with data from the ustruct
 	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
 	 * @param SkipFlags Skip properties that match any of these flags
+	 * @param Indent How many tabs to add to the json serializer
 	 *
 	 * @return True if any properties were written
 	 */
-	static bool UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags);
+	static bool UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent = 0);
 
 	/**
 	 * Converts from a Json Object to a UStruct, using importText

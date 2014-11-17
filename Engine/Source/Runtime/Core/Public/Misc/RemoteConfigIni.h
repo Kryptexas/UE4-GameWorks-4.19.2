@@ -2,7 +2,7 @@
 
 #pragma once
 
-/*
+/**
  * Stores info relating to remote config files
  */
 struct FRemoteConfigAsyncIOInfo
@@ -135,7 +135,7 @@ private:
 };
 
 
-/*
+/**
  * Manages remote config files
  */
 class FRemoteConfig

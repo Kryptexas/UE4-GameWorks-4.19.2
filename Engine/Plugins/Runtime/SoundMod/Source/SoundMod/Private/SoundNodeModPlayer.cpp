@@ -83,11 +83,6 @@ FString USoundNodeModPlayer::GetTitle() const
 }
 #endif
 
-FString USoundNodeModPlayer::GetUniqueString() const
-{
-	return TEXT("");
-}
-
 // A Mod Player is the end of the chain and has no children
 int32 USoundNodeModPlayer::GetMaxChildNodes() const
 {

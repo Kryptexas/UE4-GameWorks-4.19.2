@@ -17,6 +17,7 @@
 #include "PostProcessLpvIndirect.h"
 #include "LightPropagationVolume.h"
 #include "UniformBuffer.h"
+#include "SceneUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLpvReadUniformBufferParameters,TEXT("LpvRead"));
 typedef TUniformBufferRef<FLpvReadUniformBufferParameters> FLpvReadUniformBufferRef;
@@ -129,7 +130,17 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessLpvIndirectPS,TEXT("PostProcessLpvIndirect"),
 
 void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessLpvIndirect, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessLpvIndirect, DEC_SCENE_ITEMS);
+
+	{
+		FRenderingCompositeOutput* OutputOfMyInput = GetInput(ePId_Input0)->GetOutput();
+		PassOutputs[0].PooledRenderTarget = OutputOfMyInput->PooledRenderTarget;
+		OutputOfMyInput->RenderTargetDesc.DebugName = PassOutputs[0].RenderTargetDesc.DebugName;
+		PassOutputs[0].RenderTargetDesc = OutputOfMyInput->RenderTargetDesc;
+
+		check(PassOutputs[0].RenderTargetDesc.Extent.X);
+		check(PassOutputs[0].RenderTargetDesc.Extent.Y);
+	}
 
 	const FPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
 	const FSceneView& View = Context.View;
@@ -168,7 +179,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	FLightPropagationVolume* Lpv = NULL;
@@ -185,13 +196,13 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 		return;
 	}
 
-	TShaderMapRef<FPostProcessLpvIndirectPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessLpvIndirectPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
 	// call it once after setting up the shader data to avoid the warnings in the function
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	FLpvReadUniformBufferParameters	LpvReadUniformBufferParams;
 	FLpvReadUniformBufferRef LpvReadUniformBuffer;

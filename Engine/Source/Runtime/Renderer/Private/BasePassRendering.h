@@ -33,9 +33,7 @@ protected:
 public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		// Opaque and modulated materials shouldn't apply fog volumes in their base pass.
-		const EBlendMode BlendMode = Material->GetBlendMode();
-		return LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -103,6 +101,7 @@ public:
 	{
 		bool bShouldCache = TBasePassVertexShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
 		return bShouldCache 
+			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) || (IsPCPlatform(Platform)))
 			&& (!bEnableAtmosphericFog || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4));
 	}
 
@@ -209,11 +208,12 @@ public:
 		FTexture* SkyLightTextureResource = GBlackTextureCube;
 		float ApplySkyLightMask = 0;
 		float SkyMipCount = 1;
+		bool bSkyLightIsDynamic = false;
 
-		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount);
+		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
-		const FVector2D SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask);
+		const FVector SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f);
 		SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
 	}
 
@@ -229,7 +229,7 @@ private:
 	FShaderResourceParameter SkyLightCubemapSampler;
 	FShaderParameter SkyLightParameters;
 
-	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount);
+	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bSkyLightIsDynamic);
 };
 
 /** Parameters needed for lighting translucency, shared by multiple shaders. */
@@ -255,7 +255,7 @@ public:
 
 	void Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView* View);
 
-	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy);
+	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingParameters& P)
@@ -384,7 +384,7 @@ public:
 		if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
 			&& IsTranslucentBlendMode(BlendMode))
 		{
-			TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy);
+			TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy, View.GetFeatureLevel());
 		}
 
 		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
@@ -425,6 +425,7 @@ public:
 		const bool bCacheShaders = !bEnableSkyLight || (Material->GetShadingModel() != MSM_Unlit);
 
 		return bCacheShaders
+			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) || (IsPCPlatform(Platform)))
 			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
@@ -474,6 +475,7 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
+		ERHIFeatureLevel::Type InFeatureLevel,
 		LightMapPolicyType InLightMapPolicy,
 		EBlendMode InBlendMode,
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
@@ -497,7 +499,7 @@ public:
 	
 		const EMaterialTessellationMode MaterialTessellationMode = InMaterialResource.GetTessellationMode();
 
-		if (RHISupportsTessellation(GRHIShaderPlatform)
+		if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel])
 			&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 			&& MaterialTessellationMode != MTM_NoTessellation)
 		{
@@ -549,7 +551,7 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext) const
 	{
 		// Set the light-map policy.
 		LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
@@ -575,7 +577,7 @@ public:
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 			}
 
-			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(View->ShaderMap);
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
 			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions, NumPixelShaderInstructions, View->GetFeatureLevel());
@@ -625,7 +627,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (bOverrideWithShaderComplexity)
 		{
-			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
 			PixelShaderRHIRef = ShaderComplexityAccumulatePixelShader->GetPixelShader();
 		}
 #endif
@@ -641,12 +643,13 @@ public:
 
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
-		const FSceneView& View,
+		const FViewInfo& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 		) const
 	{
 		// Set the light-map policy's mesh-specific settings.
@@ -681,10 +684,11 @@ public:
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
 
-			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
+			const auto FeatureLevel = View.GetFeatureLevel();
+			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(View.ShaderMap);
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions,NumPixelShaderInstructions, View.GetFeatureLevel());
+			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions,NumPixelShaderInstructions, FeatureLevel);
 		}
 		else
 #endif
@@ -692,7 +696,7 @@ public:
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode);
 		}
 
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)
@@ -755,7 +759,7 @@ public:
 	static void AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
 		FRHICommandList& RHICmdList, 
-		const FSceneView& View,
+		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
 		bool bBackFace,
@@ -873,7 +877,7 @@ void ProcessBasePassMesh(
 		else
 		{
 			const FLightMapInteraction LightMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial) 
-				? Parameters.Mesh.LCI->GetLightMapInteraction() 
+				? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
 				: FLightMapInteraction();
 
 			// force LQ lightmaps based on system settings
@@ -917,23 +921,36 @@ void ProcessBasePassMesh(
 							}
 							else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 								&& Action.AllowIndirectLightingCache()
-								&& Parameters.PrimitiveSceneProxy
+								&& Parameters.PrimitiveSceneProxy)
+							{
+								const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
+								const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
+
 								// Use the indirect lighting cache shaders if the object has a cache allocation
 								// This happens for objects with unbuilt lighting
-								&& ((Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation
-									&& Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation->IsValid())
+								if ((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
 									// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
-									|| Parameters.PrimitiveSceneProxy->IsMovable()))
-							{
-								if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) && Action.AllowIndirectLightingCacheVolumeTexture())
+									// And movable objects are sometimes rendered in the static draw lists
+									|| bPrimitiveIsMovable)
 								{
-									// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
-									Action.template Process<FCachedVolumeIndirectLightingPolicy>(RHICmdList, Parameters, FCachedVolumeIndirectLightingPolicy(), FCachedVolumeIndirectLightingPolicy::ElementDataType());
+									if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) 
+										// Translucency forces point sample for pixel performance
+										&& Action.AllowIndirectLightingCacheVolumeTexture()
+										&& ((IndirectLightingCacheAllocation && !IndirectLightingCacheAllocation->bPointSample)
+											|| (bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume)))
+									{
+										// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
+										Action.template Process<FCachedVolumeIndirectLightingPolicy>(RHICmdList, Parameters, FCachedVolumeIndirectLightingPolicy(), FCachedVolumeIndirectLightingPolicy::ElementDataType());
+									}
+									else
+									{
+										// Use a lightmap policy that supports reading indirect lighting from a single SH sample
+										Action.template Process<FCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FCachedPointIndirectLightingPolicy(), FCachedPointIndirectLightingPolicy::ElementDataType(false));
+									}
 								}
 								else
 								{
-									// Use a lightmap policy that supports reading indirect lighting from a single SH sample
-									Action.template Process<FCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FCachedPointIndirectLightingPolicy(), FCachedPointIndirectLightingPolicy::ElementDataType(false));
+									Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 								}
 							}
 							else

@@ -20,11 +20,10 @@ public:
 		, _HasDownArrow(true)
 		, _ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		, _ButtonColorAndOpacity(FLinearColor::White)
-		, _ContentScale(FVector2D(1,1))
 		, _ContentPadding(FMargin(5))
 		, _MenuPlacement(MenuPlacement_ComboBox)
 		, _HAlign(HAlign_Fill)
-		, _VAlign(VAlign_Fill)
+		, _VAlign(VAlign_Center)
 		, _Method( SMenuAnchor::CreateNewWindow )
 		{}
 
@@ -47,7 +46,6 @@ public:
 
 		SLATE_ATTRIBUTE( FSlateColor, ForegroundColor )
 		SLATE_ATTRIBUTE( FSlateColor, ButtonColorAndOpacity )
-		SLATE_ATTRIBUTE( FVector2D, ContentScale )
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 		SLATE_ATTRIBUTE( EMenuPlacement, MenuPlacement )
 		SLATE_ARGUMENT( EHorizontalAlignment, HAlign )

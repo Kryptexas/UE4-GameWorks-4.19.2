@@ -24,9 +24,7 @@ public:
 	 */
 	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport );
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FMessageBridge( );
 
 public:
@@ -98,27 +96,27 @@ private:
 
 private:
 
-	// Holds the bridge's address.
+	/** Holds the bridge's address. */
 	FMessageAddress Address;
 
-	// Holds the address book.
+	/** Holds the address book. */
 	FMessageAddressBook AddressBook;
 
-	// Holds a reference to the bus that this bridge is attached to.
+	/** Holds a reference to the bus that this bridge is attached to. */
 	IMessageBusPtr Bus;
 
-	// Hold a flag indicating whether this endpoint is active.
+	/** Hold a flag indicating whether this endpoint is active. */
 	bool Enabled;
 
-	// Holds the bridge's unique identifier (for debugging purposes).
+	/** Holds the bridge's unique identifier (for debugging purposes). */
 	const FGuid Id;
 
-	// Holds the message subscription for outbound messages.
+	/** Holds the message subscription for outbound messages. */
 	IMessageSubscriptionPtr MessageSubscription;
 
-	// Holds the message serializer. 
+	/** Holds the message serializer. */
 	ISerializeMessagesPtr Serializer;
 
-	// Holds the message transport object.
+	/** Holds the message transport object. */
 	ITransportMessagesPtr Transport;
 };

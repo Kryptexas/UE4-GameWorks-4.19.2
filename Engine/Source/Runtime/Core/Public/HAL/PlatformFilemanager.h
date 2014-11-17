@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	PlatformFileManager.h: Generic platform file interfaces
-==============================================================================================*/
-
 #pragma once
+
 
 /**
 * Platform File chain manager.
@@ -17,40 +14,40 @@ class CORE_API FPlatformFileManager
 public:
 
 	/** Constructor. */
-	FPlatformFileManager();
+	FPlatformFileManager( );
 
 	/**
 	 * Gets the currently used platform file.
 	 *
 	 * @return Reference to the currently used platform file.
 	 */
-	IPlatformFile& GetPlatformFile();
+	IPlatformFile& GetPlatformFile( );
 
 	/**
 	 * Sets the current platform file.
 	 *
 	 * @param NewTopmostPlatformFile Platform file to be used.
 	 */
-	void SetPlatformFile(IPlatformFile& NewTopmostPlatformFile);
+	void SetPlatformFile( IPlatformFile& NewTopmostPlatformFile );
 
 	/**
 	 * Finds a platform file in the chain of active platform files.
 	 *
 	 * @param Name of the platform file.
-	 * @return Pointer to the active platform file or NULL if the platform file was not found.
+	 * @return Pointer to the active platform file or nullptr if the platform file was not found.
 	 */
-	IPlatformFile* FindPlatformFile(const TCHAR* Name);
+	IPlatformFile* FindPlatformFile( const TCHAR* Name );
 
 	/**
 	 * Creates a new platform file instance.
 	 *
 	 * @param Name of the platform file to create.
-	 * @return Platform file instance of the platform file type was found, NULL otherwise.
+	 * @return Platform file instance of the platform file type was found, nullptr otherwise.
 	 */
-	IPlatformFile* GetPlatformFile(const TCHAR* Name);
+	IPlatformFile* GetPlatformFile( const TCHAR* Name );
 
 	/**
 	 * Gets FPlatformFileManager Singleton.
 	 */
-	static FPlatformFileManager& Get();
+	static FPlatformFileManager& Get( );
 };

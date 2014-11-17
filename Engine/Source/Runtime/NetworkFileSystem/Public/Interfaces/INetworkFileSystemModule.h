@@ -71,7 +71,7 @@ public:
 	 *
 	 * @return The new file server, or nullptr if creation failed.
 	 */
-	virtual INetworkFileServer* CreateNetworkFileServer( int32 Port = -1, const FFileRequestDelegate* InFileRequestDelegate = nullptr, const FRecompileShadersDelegate* InRecompileShadersDelegate = nullptr, const ENetworkFileServerProtocol Protocol = NFSP_Tcp ) const = 0;
+	virtual INetworkFileServer* CreateNetworkFileServer( bool bLoadTargetPlatforms, int32 Port = -1, const FFileRequestDelegate* InFileRequestDelegate = nullptr, const FRecompileShadersDelegate* InRecompileShadersDelegate = nullptr, const ENetworkFileServerProtocol Protocol = NFSP_Tcp ) const = 0;
 
 public:
 

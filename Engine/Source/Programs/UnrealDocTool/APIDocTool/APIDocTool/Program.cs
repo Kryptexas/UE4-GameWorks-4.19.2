@@ -20,6 +20,14 @@ namespace APIDocTool
 {
     public class Program
 	{
+		[Flags]
+		enum BuildActions
+		{
+			Clean = 0x01,
+			Build = 0x02,
+			Archive = 0x04,
+		}
+
 		[DllImport("kernel32.dll")]
 		public static extern uint SetErrorMode(uint hHandle);
 
@@ -34,6 +42,7 @@ namespace APIDocTool
 
 		public const string TabSpaces = "&nbsp;&nbsp;&nbsp;&nbsp;";
         public const string APIFolder = "API";
+		public const string BlueprintAPIFolder = "BlueprintAPI";
 
 		public static bool bIndexOnly = false;
 		public static bool bOutputPublish = false;
@@ -90,6 +99,7 @@ namespace APIDocTool
 			"NO_API= ",
 			"OVERRIDE= ",
 			"CDECL= ",
+			"DEPRECATED(X,Y)= ",
 
 			// Platform
 			"PLATFORM_SUPPORTS_DRAW_MESH_EVENTS=1",
@@ -110,6 +120,8 @@ namespace APIDocTool
 			"NAVOCTREE_CONTAINS_COLLISION_DATA=1",
 			"SOURCE_CONTROL_WITH_SLATE=1",
 			"MATCHMAKING_HACK_FOR_EGP_IE_HOSTING=1",
+			"USE_REMOTE_INTEGRATION=1",
+			"WITH_FANCY_TEXT=1",
 
 			// Online subsystems
 			"PACKAGE_SCOPE:=protected",
@@ -156,15 +168,6 @@ namespace APIDocTool
 			"DECLARE_LOG_CATEGORY_EXTERN(CategoryName, DefaultVerbosity, CompileTimeVerbosity)= ",
 		};
 
-		const string SitemapContentsFileName = "API.hhc";
-		const string SitemapIndexFileName = "API.hhk";
-
-		const string TargetInfoName = "DocumentationEditor";
-		const string TargetInfoPlatform = "Win64";
-		const string TargetInfoConfig = "Debug";
-
-		const string TargetInfoProject = "Documentation\\Extras\\API\\Build\\Documentation.uproject";
-
 		static Program()
 		{
 			List<string> DelegateMacros = new List<string>();
@@ -193,289 +196,289 @@ namespace APIDocTool
 			DoxygenPredefinedMacros = DoxygenPredefinedMacros.Union(DelegateMacros).ToArray();
 		}
 
-		static void Main(string[] Arguments)
+		static int Main(string[] Arguments)
         {
-			string EngineRootDir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..\\..\\..\\..\\..\\..\\..\\.."));
-			string IntermediateRootDir = Path.Combine(EngineRootDir, "Intermediate\\Documentation");
+			List<string> ArgumentList = new List<string>(Arguments);
 
-			bool bValidArgs = true;
+			// Get the default paths
+			string EngineDir = ParseArgumentDirectory(ArgumentList, "-enginedir=", Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..\\..\\..\\..\\..\\..\\..\\.."));
+			string IntermediateDir = ParseArgumentDirectory(ArgumentList, "-intermediatedir=", Path.Combine(EngineDir, "Intermediate\\Documentation"));
+			string DocumentationDir = ParseArgumentDirectory(ArgumentList, "-documentationdir=", Path.Combine(EngineDir, "Documentation"));
 
-			bool bCleanTargetInfo = false;
-			bool bCleanMetadata = false;
-			bool bCleanXml = false;
-			bool bCleanUdn = false;
-			bool bCleanHtml = false;
-			bool bCleanChm = false;
+			// Check if we're just building an index, no actual content
+			bool bIndexOnly = ArgumentList.Remove("-indexonly");
 
-			bool bBuildTargetInfo = false;
-			bool bBuildMetadata = false;
-			bool bBuildXml = false;
-			bool bBuildUdn = false;
-			bool bBuildHtml = false;
-			bool bBuildChm = false;
-
-			string TargetInfoPath = Path.Combine(IntermediateRootDir, "build\\targetinfo.xml");
-			string EngineDir = EngineRootDir;
-			string MetadataDir = Path.Combine(IntermediateRootDir, "metadata");
-			string XmlDir = Path.Combine(IntermediateRootDir, "doxygen");
-			string StatsPath = null;
-
-			bool bVerbose = false;
+			// Remove all the filter arguments
 			List<string> Filters = new List<string>();
-
-			// Parse the command line
-			foreach (string Argument in Arguments)
+			for (int Idx = 0; Idx < ArgumentList.Count; Idx++)
 			{
-				int EqualsIdx = Argument.IndexOf('=');
-				string OptionName = (EqualsIdx == -1)? Argument : Argument.Substring(0, EqualsIdx + 1);
-				string OptionValue = (EqualsIdx == -1)? null : Argument.Substring(EqualsIdx + 1);
-
-				if (OptionName == "-clean")
+				const string FilterPrefix = "-filter=";
+				if (ArgumentList[Idx].StartsWith(FilterPrefix))
 				{
-					bCleanTargetInfo = bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = true;
-				}
-				else if (OptionName == "-build")
-				{
-					bBuildTargetInfo = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = true;
-				}
-				else if (OptionName == "-rebuild")
-				{
-					bCleanTargetInfo = bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = bCleanChm = true;
-					bBuildTargetInfo = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = bBuildChm = true;
-				}
-				else if (OptionName == "-cleantarget")
-				{
-					bCleanTargetInfo = true;
-				}
-				else if (OptionName == "-buildtarget")
-				{
-					bBuildTargetInfo = true;
-				}
-				else if (OptionName == "-cleanmeta")
-				{
-					bCleanMetadata = true;
-				}
-				else if (OptionName == "-buildmeta")
-				{
-					bBuildMetadata = true;
-				}
-				else if (OptionName == "-rebuildmeta")
-				{
-					bCleanMetadata = bBuildMetadata = true;
-				}
-				else if (OptionName == "-cleanxml")
-				{
-					bCleanXml = true;
-				}
-				else if (OptionName == "-buildxml")
-				{
-					bBuildXml = true;
-				}
-				else if (OptionName == "-rebuildxml")
-				{
-					bCleanXml = bBuildXml = true;
-				}
-				else if (OptionName == "-cleanudn")
-				{
-					bCleanUdn = true;
-				}
-				else if (OptionName == "-buildudn")
-				{
-					bBuildUdn = true;
-				}
-				else if (OptionName == "-rebuildudn")
-				{
-					bCleanUdn = bBuildUdn = true;
-				}
-				else if (OptionName == "-cleanhtml")
-				{
-					bCleanHtml = true;
-				}
-				else if (OptionName == "-buildhtml")
-				{
-					bBuildHtml = true;
-				}
-				else if (OptionName == "-rebuildhtml")
-				{
-					bCleanHtml = bBuildHtml = true;
-				}
-				else if (OptionName == "-cleanchm")
-				{
-					bCleanChm = true;
-				}
-				else if (OptionName == "-buildchm")
-				{
-					bBuildChm = true;
-				}
-				else if (OptionName == "-rebuildchm")
-				{
-					bCleanChm = bBuildChm = true;
-				}
-				else if (OptionName == "-targetinfo=")
-				{
-					TargetInfoPath = Path.GetFullPath(OptionValue);
-				}
-				else if (OptionName == "-enginedir=")
-				{
-					EngineDir = Path.GetFullPath(OptionValue);
-				}
-				else if (OptionName == "-xmldir=")
-				{
-					XmlDir = Path.GetFullPath(OptionValue);
-				}
-				else if (OptionName == "-metadatadir=")
-				{
-					MetadataDir = Path.GetFullPath(OptionValue);
-				}
-				else if (OptionName == "-stats=")
-				{
-					StatsPath = Path.GetFullPath(OptionValue);
-				}
-				else if (OptionName == "-verbose")
-				{
-					bVerbose = true;
-				}
-				else if (OptionName == "-indexonly")
-				{
-					bIndexOnly = true;
-				}
-				else if (OptionName == "-filter=")
-				{
-					Filters.AddRange(OptionValue.Split(',').Select(x => x.Replace('\\', '/').Trim()));
-				}
-				else
-				{
-					Console.WriteLine("Invalid argument: '{0}'", OptionName);
-					bValidArgs = false;
+					Filters.AddRange(ArgumentList[Idx].Substring(FilterPrefix.Length).Split(',').Select(x => x.Replace('\\', '/').Trim()));
+					ArgumentList.RemoveAt(Idx--);
 				}
 			}
 
-			// Check we have all the required parameters
-			if (bBuildXml && TargetInfoPath == null)
+			// Remove all the arguments for what to build
+			BuildActions DefaultActions;
+			if(ArgumentList.Count == 0)
 			{
-				Console.WriteLine("Missing -buildenvironment parameter to be able to build XML");
-			}
-			else if (bValidArgs && EngineDir != null)
-			{
-				// If we don't intermediate paths, make them up
-				if (XmlDir == null) XmlDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Xml");
-				if (MetadataDir == null) MetadataDir = Path.Combine(EngineDir, "Intermediate\\Documentation\\Default\\Metadata");
-
-				// Derive all the engine paths we need in one place
-				string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\Doxygen\\bin\\doxygen.exe");
-				string UdnDir = Path.Combine(EngineDir, "Documentation\\Source");
-				string HtmlDir = Path.Combine(EngineDir, "Documentation\\HTML");
-				string ChmDir = Path.Combine(EngineDir, "Documentation\\CHM");
-				string DocToolPath = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealDocTool.exe");
-				string ChmCompilerPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\HTML Help Workshop\\hhc.exe");
-				string SettingsPath = Path.Combine(EngineDir, "Documentation\\Extras\\API\\API.ini");
-				string MetadataPath = Path.Combine(MetadataDir, "metadata.xml");
-
-				// Read the settings file
-				Settings = IniFile.Read(SettingsPath);
-				IgnoredFunctionMacros = new HashSet<string>(Settings.FindValueOrDefault("Input.IgnoredFunctionMacros", "").Split('\n'));
-				IncludedSourceFiles = new HashSet<string>(Settings.FindValueOrDefault("Output.IncludedSourceFiles", "").Split('\n'));
-
-				// Clean the output folders
-				if (bCleanTargetInfo)
-				{
-					CleanTargetInfo(TargetInfoPath);
-				}
-				if (bCleanMetadata)
-				{
-					CleanMetadata(MetadataDir);
-				}
-				if (bCleanXml)
-				{
-					CleanXml(XmlDir);
-				}
-				if (bCleanUdn)
-				{
-					CleanUdn(UdnDir);
-				}
-				if (bCleanHtml)
-				{
-					CleanHtml(HtmlDir);
-				}
-				if (bCleanChm)
-				{
-					CleanChm(ChmDir);
-				}
-
-				// Build the data
-				if (!bBuildTargetInfo || BuildTargetInfo(TargetInfoPath, EngineDir))
-				{
-					if (!bBuildMetadata || BuildMetadata(DoxygenPath, EngineDir, MetadataDir, MetadataPath))
-					{
-						if (!bBuildXml || BuildXml(EngineDir, TargetInfoPath, DoxygenPath, XmlDir, Filters, bVerbose))
-						{
-							if (!bBuildUdn || BuildUdn(XmlDir, UdnDir, ChmDir, MetadataPath, StatsPath, Filters))
-							{
-								if (!bBuildHtml || BuildHtml(EngineDir, DocToolPath, UdnDir, HtmlDir))
-								{
-									if (!bBuildChm || BuildChm(ChmCompilerPath, HtmlDir, ChmDir))
-									{
-										Console.WriteLine("Complete.");
-									}
-								}
-							}
-						}
-					}
-				}
+				DefaultActions = BuildActions.Clean | BuildActions.Build | BuildActions.Archive;
 			}
 			else
 			{
-				// Write the command line options
+				DefaultActions = ParseBuildActions(ArgumentList, "");
+			}
+
+			BuildActions CodeActions = ParseBuildActions(ArgumentList, "code") | DefaultActions;
+			BuildActions CodeTargetActions = ParseBuildActions(ArgumentList, "codetarget") | CodeActions;
+			BuildActions CodeMetadataActions = ParseBuildActions(ArgumentList, "codemeta") | CodeActions;
+			BuildActions CodeXmlActions = ParseBuildActions(ArgumentList, "codexml") | CodeActions;
+			BuildActions CodeUdnActions = ParseBuildActions(ArgumentList, "codeudn") | CodeActions;
+			BuildActions CodeHtmlActions = ParseBuildActions(ArgumentList, "codehtml") | CodeActions;
+			BuildActions CodeChmActions = ParseBuildActions(ArgumentList, "codechm") | CodeActions;
+
+			BuildActions BlueprintActions = ParseBuildActions(ArgumentList, "blueprint") | DefaultActions;
+			BuildActions BlueprintJsonActions = ParseBuildActions(ArgumentList, "blueprintjson") | BlueprintActions;
+			BuildActions BlueprintUdnActions = ParseBuildActions(ArgumentList, "blueprintudn") | BlueprintActions;
+			BuildActions BlueprintHtmlActions = ParseBuildActions(ArgumentList, "blueprinthtml") | BlueprintActions;
+			BuildActions BlueprintChmActions = ParseBuildActions(ArgumentList, "blueprintchm") | BlueprintActions;
+
+			// Print the help message and exit
+			if(Arguments.Length == 0 || ArgumentList.Count > 0)
+			{
+				foreach(string InvalidArgument in ArgumentList)
+				{
+					Console.WriteLine("Invalid argument: {0}", InvalidArgument);
+				}
 				Console.WriteLine("APIDocTool.exe [options] -enginedir=<...>");                                    // <-- 80 character limit to start of comment
 				Console.WriteLine();
 				Console.WriteLine("Options:");
 				Console.WriteLine("    -rebuild:                        Clean and build everything");
-				Console.WriteLine("    -rebuild[meta|xml|udn|html|chm]: Clean and build specific files");
+				Console.WriteLine("    -rebuild<step>:					Clean and build specific steps");
 				Console.WriteLine("    -clean:                          Clean all files");
-				Console.WriteLine("    -clean[meta|xml|udn|html|chm]:   Clean specific files");
+				Console.WriteLine("    -clean<step>:					Clean specific steps");
 				Console.WriteLine("    -build:						    Build everything");
-				Console.WriteLine("    -build[meta|xml|udn|html|chm]:   Build specific output files");
-				Console.WriteLine("    -targetinfo=<...>:			    Specifies the build info, created by");
-				Console.WriteLine("                                     running UBT with -writetargetinfo=<...>");
-				Console.WriteLine("    -xmldir=<...>:				    Output directory for xml files");
-				Console.WriteLine("    -metadatadir=<...>:			    Output directory for metadata files");
+				Console.WriteLine("    -build<step>:					Build specific output steps");
+				Console.WriteLine("    -archive:						Archive everything");
+				Console.WriteLine("    -archive<step>:					Archive specific output steps");
+				Console.WriteLine("    -enginedir=<...>:				Specifies the root engine directory");
+				Console.WriteLine("    -intermediatedir=<...>:			Specifies the intermediate directory");
+				Console.WriteLine("    -documentationdir=<...>:			Specifies the documentation directory");
+				Console.WriteLine("    -indexonly:						Just build index pages");
 				Console.WriteLine("    -filter=<...>,<...>:             Filter conversion, eg.");
 				Console.WriteLine("                                       Folders:  -filter=Core/Containers/...");
 				Console.WriteLine("                                       Entities: -filter=Core/TArray");
+				return 1;
 			}
-		}
 
-		static void CleanTargetInfo(string TargetInfoPath)
-		{
-			Console.WriteLine("Cleaning '{0}'", TargetInfoPath);
-			Utility.SafeDeleteFile(TargetInfoPath);
-		}
+			// Derive all the tool paths
+			string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\Doxygen\\bin\\doxygen.exe");
+			string EditorPath = Path.Combine(EngineDir, "Binaries\\Win64\\UE4Editor-Cmd.exe");
+			string DocToolPath = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealDocTool.exe");
+			string ChmCompilerPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\HTML Help Workshop\\hhc.exe");
 
-		static bool BuildTargetInfo(string TargetInfoPath, string EngineDir)
-		{
-			Console.WriteLine("Building target info...");
+			// Derive all the intermediate paths
+			string CodeSitemapDir = Path.Combine(IntermediateDir, "sitemap");
+			string BlueprintSitemapDir = Path.Combine(IntermediateDir, "blueprintsitemap");
+			string TargetInfoPath = Path.Combine(IntermediateDir, "build\\targetinfo.xml");
+			string MetadataDir = Path.Combine(IntermediateDir, "metadata");
+			string XmlDir = Path.Combine(IntermediateDir, "doxygen");
+			string JsonDir = Path.Combine(IntermediateDir, "json");
+			string MetadataPath = Path.Combine(MetadataDir, "metadata.xml");
 
-			Utility.SafeCreateDirectory(Path.GetDirectoryName(TargetInfoPath));
+			// Derive all the output paths
+			string UdnDir = Path.Combine(DocumentationDir, "Source");
+			string HtmlDir = Path.Combine(DocumentationDir, "HTML");
+			string ChmDir = Path.Combine(DocumentationDir, "CHM");
+			string ArchiveDir = Path.Combine(DocumentationDir, "Builds");
 
-			using (Process BuildToolProcess = new Process())
+			// Read the settings file
+			Settings = IniFile.Read(Path.Combine(DocumentationDir, "Extras\\API\\API.ini"));
+			IgnoredFunctionMacros = new HashSet<string>(Settings.FindValueOrDefault("Input.IgnoredFunctionMacros", "").Split('\n'));
+			IncludedSourceFiles = new HashSet<string>(Settings.FindValueOrDefault("Output.IncludedSourceFiles", "").Split('\n'));
+
+			// Find all the metadata pages
+			AddMetadataKeyword(UdnDir, "UCLASS", "Programming/UnrealArchitecture/Reference/Classes#classdeclaration", "Programming/UnrealArchitecture/Reference/Classes/Specifiers");
+			AddMetadataKeyword(UdnDir, "UFUNCTION", "Programming/UnrealArchitecture/Reference/Functions", "Programming/UnrealArchitecture/Reference/Functions/Specifiers");
+			AddMetadataKeyword(UdnDir, "UPROPERTY", "Programming/UnrealArchitecture/Reference/Properties", "Programming/UnrealArchitecture/Reference/Properties/Specifiers");
+			AddMetadataKeyword(UdnDir, "USTRUCT", "Programming/UnrealArchitecture/Reference/Structs", "Programming/UnrealArchitecture/Reference/Structs/Specifiers");
+
+			// Build all the code docs
+			if (!BuildCodeTargetInfo(TargetInfoPath, EngineDir, Path.Combine(ArchiveDir, "CodeAPI-TargetInfo.tgz"), CodeTargetActions))
 			{
-				BuildToolProcess.StartInfo.WorkingDirectory = EngineDir;
-				BuildToolProcess.StartInfo.FileName = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealBuildTool.exe");
-				BuildToolProcess.StartInfo.Arguments = String.Format("{0} {1} {2} -project=\"{3}\" -writetargetinfo=\"{4}\"", TargetInfoName, TargetInfoPlatform, TargetInfoConfig, Path.Combine(EngineDir, TargetInfoProject), TargetInfoPath);
-				BuildToolProcess.StartInfo.UseShellExecute = false;
-				BuildToolProcess.StartInfo.RedirectStandardOutput = true;
-				BuildToolProcess.StartInfo.RedirectStandardError = true;
+				return 1;
+			}
+			if (!BuildCodeMetadata(DoxygenPath, EngineDir, MetadataDir, MetadataPath, Path.Combine(ArchiveDir, "CodeAPI-Metadata.tgz"), CodeMetadataActions))
+			{
+				return 1;
+			}
+			if (!BuildCodeXml(EngineDir, TargetInfoPath, DoxygenPath, XmlDir, Path.Combine(ArchiveDir, "CodeAPI-XML.tgz"), Filters, CodeXmlActions))
+			{
+				return 1;
+			}
+			if (!BuildCodeUdn(EngineDir, XmlDir, UdnDir, CodeSitemapDir, MetadataPath, Path.Combine(ArchiveDir, "CodeAPI-UDN.tgz"), Path.Combine(ArchiveDir, "CodeAPI-Sitemap.tgz"), Filters, CodeUdnActions))
+			{
+				return 1;
+			}
+			if (!BuildHtml(EngineDir, DocToolPath, HtmlDir, "API", Path.Combine(ArchiveDir, "CodeAPI-HTML.tgz"), CodeHtmlActions))
+			{
+				return 1;
+			}
+			if (!BuildChm(ChmCompilerPath, Path.Combine(ChmDir, "API.chm"), Path.Combine(CodeSitemapDir, "API.hhc"), Path.Combine(CodeSitemapDir, "API.hhk"), HtmlDir, false, CodeChmActions))
+			{
+				return 1;
+			}
 
-				BuildToolProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
-				BuildToolProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+			// Build all the blueprint docs
+			if (!BuildBlueprintJson(JsonDir, EngineDir, EditorPath, Path.Combine(ArchiveDir, "BlueprintAPI-JSON.tgz"), BlueprintJsonActions))
+			{
+				return 1;
+			}
+			if (!BuildBlueprintUdn(JsonDir, UdnDir, BlueprintSitemapDir, Path.Combine(ArchiveDir, "BlueprintAPI-UDN.tgz"), Path.Combine(ArchiveDir, "BlueprintAPI-Sitemap.tgz"), BlueprintUdnActions))
+			{
+				return 1;
+			}
+			if (!BuildHtml(EngineDir, DocToolPath, HtmlDir, "BlueprintAPI", Path.Combine(ArchiveDir, "BlueprintAPI-HTML.tgz"), BlueprintHtmlActions))
+			{
+				return 1;
+			}
+			if (!BuildChm(ChmCompilerPath, Path.Combine(ChmDir, "BlueprintAPI.chm"), Path.Combine(BlueprintSitemapDir, "BlueprintAPI.hhc"), Path.Combine(BlueprintSitemapDir, "BlueprintAPI.hhk"), HtmlDir, true, BlueprintChmActions))
+			{
+				return 1;
+			}
+
+			// Finished!
+			Console.WriteLine("Complete.");
+			return 0;
+		}
+
+		static BuildActions ParseBuildActions(List<string> ArgumentList, string Suffix)
+		{
+			BuildActions Actions = 0;
+			if (ArgumentList.Remove("-rebuild" + Suffix))
+			{
+				Actions |= BuildActions.Clean | BuildActions.Build | BuildActions.Archive;
+			}
+			if (ArgumentList.Remove("-clean" + Suffix))
+			{
+				Actions |= BuildActions.Clean;
+			}
+			if (ArgumentList.Remove("-build" + Suffix))
+			{
+				Actions |= BuildActions.Build;
+			}
+			if (ArgumentList.Remove("-archive" + Suffix))
+			{
+				Actions |= BuildActions.Archive;
+			}
+			return Actions;
+		}
+
+		static string ParseArgumentValue(List<string> ArgumentList, string Prefix, string DefaultValue)
+		{
+			for (int Idx = 0; Idx < ArgumentList.Count; Idx++)
+			{
+				if (ArgumentList[Idx].StartsWith(Prefix))
+				{
+					string Value = ArgumentList[Idx].Substring(Prefix.Length);
+					ArgumentList.RemoveAt(Idx);
+					return Value;
+				}
+			}
+			return DefaultValue;
+		}
+
+		static string ParseArgumentPath(List<string> ArgumentList, string Prefix, string DefaultValue)
+		{
+			string Value = ParseArgumentValue(ArgumentList, Prefix, DefaultValue);
+			if (Value != null)
+			{
+				Value = Path.GetFullPath(Value);
+			}
+			return Value;
+		}
+
+		static string ParseArgumentDirectory(List<string> ArgumentList, string Prefix, string DefaultValue)
+		{
+			string Value = ParseArgumentPath(ArgumentList, Prefix, DefaultValue);
+			if(Value != null && !Directory.Exists(Value))
+			{
+				Directory.CreateDirectory(Value);
+			}
+			return Value;
+		}
+
+
+		static void AddMetadataKeyword(string BaseDir, string Name, string TypeUrl, string SpecifierBaseUrl)
+		{
+			MetadataKeyword Keyword = new MetadataKeyword();
+			Keyword.Url = TypeUrl;
+			foreach (DirectoryInfo Specifier in new DirectoryInfo(Path.Combine(BaseDir, SpecifierBaseUrl.Replace('/', '\\'))).EnumerateDirectories())
+			{
+				Keyword.NodeUrls.Add(Specifier.Name, SpecifierBaseUrl.TrimEnd('/') + "/" + Specifier.Name);
+			}
+			MetadataDirective.AllKeywords.Add(Name, Keyword);
+		}
+
+		static bool BuildCodeTargetInfo(string TargetInfoPath, string EngineDir, string ArchivePath, BuildActions Actions)
+		{
+			if((Actions & BuildActions.Clean) != 0)
+			{
+				Console.WriteLine("Cleaning '{0}'", TargetInfoPath);
+				Utility.SafeDeleteFile(TargetInfoPath);
+			}
+			if ((Actions & BuildActions.Build) != 0)
+			{
+				Console.WriteLine("Building target info...");
+				Utility.SafeCreateDirectory(Path.GetDirectoryName(TargetInfoPath));
+
+				string Arguments = String.Format("DocumentationEditor Win64 Debug -project=\"{0}\"", Path.Combine(EngineDir, "Documentation\\Extras\\API\\Build\\Documentation.uproject"));
+				if (!RunUnrealBuildTool(EngineDir, Arguments + " -clean"))
+				{
+					return false;
+				}
+				foreach (FileInfo Info in new DirectoryInfo(Path.Combine(EngineDir, "Intermediate\\Build")).EnumerateFiles("UBTEXport*.xml"))
+				{
+					File.Delete(Info.FullName);
+				}
+				if (!RunUnrealBuildTool(EngineDir, Arguments + " -disableunity -xgeexport"))
+				{
+					return false;
+				}
+				File.Copy(Path.Combine(EngineDir, "Intermediate\\Build\\UBTExport.0.xge.xml"), TargetInfoPath, true);
+			}
+			if((Actions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+				Utility.CreateTgzFromDir(ArchivePath, Path.GetDirectoryName(TargetInfoPath));
+			}
+			return true;
+		}
+
+		static bool RunUnrealBuildTool(string EngineDir, string Arguments)
+		{
+			using (Process NewProcess = new Process())
+			{
+				NewProcess.StartInfo.WorkingDirectory = EngineDir;
+				NewProcess.StartInfo.FileName = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealBuildTool.exe");
+				NewProcess.StartInfo.Arguments = Arguments;
+				NewProcess.StartInfo.UseShellExecute = false;
+				NewProcess.StartInfo.RedirectStandardOutput = true;
+				NewProcess.StartInfo.RedirectStandardError = true;
+				NewProcess.StartInfo.EnvironmentVariables.Remove("UE_SDKS_ROOT");
+
+				NewProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+				NewProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 
 				try
 				{
-					BuildToolProcess.Start();
-					BuildToolProcess.BeginOutputReadLine();
-					BuildToolProcess.BeginErrorReadLine();
-					BuildToolProcess.WaitForExit();
-					return BuildToolProcess.ExitCode == 0;
+					NewProcess.Start();
+					NewProcess.BeginOutputReadLine();
+					NewProcess.BeginErrorReadLine();
+					NewProcess.WaitForExit();
+					return NewProcess.ExitCode == 0;
 				}
 				catch (Exception Ex)
 				{
@@ -485,20 +488,24 @@ namespace APIDocTool
 			}
 		}
 
-		static void CleanMetadata(string MetadataDir)
+		static bool BuildCodeMetadata(string DoxygenPath, string EngineDir, string MetadataDir, string MetadataPath, string ArchivePath, BuildActions Actions)
 		{
-			Console.WriteLine("Cleaning '{0}'", MetadataDir);
-			Utility.SafeDeleteDirectoryContents(MetadataDir, true);
-		}
-
-		static bool BuildMetadata(string DoxygenPath, string EngineDir, string MetadataDir, string MetadataPath)
-		{
-			string MetadataInputPath = Path.Combine(EngineDir, "Source\\Runtime\\CoreUObject\\Public\\UObject\\ObjectBase.h");
-			Console.WriteLine("Building metadata descriptions from '{0}'...", MetadataInputPath);
-
-			DoxygenConfig Config = new DoxygenConfig("Metadata", MetadataInputPath, MetadataDir);
-			if (Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, true))
+			if((Actions & BuildActions.Clean) != 0)
 			{
+				Console.WriteLine("Cleaning '{0}'", MetadataDir);
+				Utility.SafeDeleteDirectoryContents(MetadataDir, true);
+			}
+			if((Actions & BuildActions.Build) != 0)
+			{
+				string MetadataInputPath = Path.Combine(EngineDir, "Source\\Runtime\\CoreUObject\\Public\\UObject\\ObjectBase.h");
+				Console.WriteLine("Building metadata descriptions from '{0}'...", MetadataInputPath);
+
+				DoxygenConfig Config = new DoxygenConfig("Metadata", new string[]{ MetadataInputPath }, MetadataDir);
+				if (!Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, true))
+				{
+					return false;
+				}
+
 				MetadataLookup.Reset();
 
 				// Parse the xml output
@@ -514,9 +521,13 @@ namespace APIDocTool
 
 				// Write it to a summary file
 				MetadataLookup.Save(MetadataPath);
-				return true;
 			}
-			return false;
+			if ((Actions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+				Utility.CreateTgzFromDir(ArchivePath, MetadataDir);
+			}
+			return true;
 		}
 
 		static bool ParseMetadataTags(string InputFile, Dictionary<string, string> Tags)
@@ -548,300 +559,385 @@ namespace APIDocTool
 			return false;
 		}
 
-		static void CleanXml(string XmlDir)
+		static bool BuildCodeXml(string EngineDir, string TargetInfoPath, string DoxygenPath, string XmlDir, string ArchivePath, List<string> Filters, BuildActions Actions)
 		{
-			Console.WriteLine("Cleaning '{0}'", XmlDir);
-			Utility.SafeDeleteDirectoryContents(XmlDir, true);
-		}
-
-		static bool BuildXml(string EngineDir, string TargetInfoPath, string DoxygenPath, string XmlDir, List<string> Filters = null, bool bVerbose = false)
-		{
-			// Create the output directory
-			Utility.SafeCreateDirectory(XmlDir);
-
-			// Read the target that we're building
-			BuildTarget Target = BuildTarget.Read(TargetInfoPath);
-
-			// Create an invariant list of exclude directories
-			string[] InvariantExcludeDirectories = ExcludeSourceDirectories.Select(x => x.ToLowerInvariant()).ToArray();
-
-			// Flatten the target into a list of modules
-			List<BuildModule> InputModules = new List<BuildModule>();
-			foreach (BuildBinary Binary in Target.Binaries.Where(x => x.Type == "cpp"))
+			if ((Actions & BuildActions.Clean) != 0)
 			{
-				foreach(BuildModule Module in Binary.Modules)
-				{
-					if(Module.Type == "cpp")
-					{
-						if(!Module.Path.ToLowerInvariant().Split('\\', '/').Any(x => InvariantExcludeDirectories.Contains(x)))
-						{
-							InputModules.Add(Module);
-						}
-					}
-				}
+				Console.WriteLine("Cleaning '{0}'", XmlDir);
+				Utility.SafeDeleteDirectoryContents(XmlDir, true);
 			}
-
-			// Just use all the input modules
-			List<BuildModule> ParsedModules = new List<BuildModule>();
-			if(bIndexOnly)
+			if ((Actions & BuildActions.Build) != 0)
 			{
-				ParsedModules.AddRange(InputModules);
-			}
-			else
-			{
-				// Filter the input module list
-				if (Filters != null && Filters.Count > 0)
-				{
-					InputModules = new List<BuildModule>(InputModules.Where(x => Filters.Exists(y => y.StartsWith(x.Name + "/", StringComparison.InvariantCultureIgnoreCase))));
-				}
-
-				// Sort all the modules into the required build order
-				Console.WriteLine("Sorting module parse order...");
-				List<BuildModule> SortedModules = SortModules(InputModules);
-
-				// List all the modules which have circular dependencies
-				foreach (BuildModule Module in SortedModules)
-				{
-					if (SortedModules.Count(x => x == Module) > 1)
-					{
-						Console.WriteLine("  Circular dependency on {0}; module will be parsed twice", Module.Name);
-					}
-				}
-
-				// Set our error mode so as to not bring up the WER dialog if Doxygen crashes (which it often does)
-				SetErrorMode(0x0007);
-
-				// Create the output directory
+				Console.WriteLine("Building XML...");
 				Utility.SafeCreateDirectory(XmlDir);
 
-				// Build all the modules
-				Dictionary<string, string> ModuleToTagfile = new Dictionary<string, string>();
-				for (int Idx = 0; Idx < SortedModules.Count; Idx++)
+				// Read the target that we're building
+				BuildTarget Target = new BuildTarget(Path.Combine(EngineDir, "Source"), TargetInfoPath);
+
+				// Create an invariant list of exclude directories
+				string[] InvariantExcludeDirectories = ExcludeSourceDirectories.Select(x => x.ToLowerInvariant()).ToArray();
+
+				// Get the list of folders to filter against
+				List<string> FolderFilters = new List<string>();
+				if (Filters != null)
 				{
-					BuildModule Module = SortedModules[Idx];
-					Console.WriteLine("Parsing source for {0}... ({1}/{2})", Module.Name, Idx + 1, SortedModules.Count);
-					string ModuleDir = Path.Combine(XmlDir, Module.Name);
-
-					// Build the configuration for this module
-					DoxygenConfig Config = new DoxygenConfig(Module.Name, Module.Path, ModuleDir);
-					Config.Definitions.AddRange(Module.Definitions.Select(x => x.Replace("DLLIMPORT", "").Replace("DLLEXPORT", "")));
-					Config.Definitions.AddRange(DoxygenPredefinedMacros);
-					Config.ExpandAsDefined.AddRange(DoxygenExpandedMacros);
-					Config.IncludePaths.AddRange(Module.IncludePaths.Select(x => ExpandIncludePath(EngineDir, x).TrimEnd('\\')));
-					Config.ExcludePatterns.AddRange(ExcludeSourceDirectories.Select(x => "*/" + x + "/*"));
-					Config.ExcludePatterns.AddRange(ExcludeSourceFiles);
-					Config.OutputTagfile = Path.Combine(ModuleDir, "tags.xml");
-
-					// Add all the valid tagfiles
-					foreach (string Dependency in Module.Dependencies)
+					foreach (string Filter in Filters)
 					{
-						string Tagfile;
-						if (ModuleToTagfile.TryGetValue(Dependency, out Tagfile))
+						int Idx = Filter.IndexOf('/');
+						if (Idx != -1)
 						{
-							Config.InputTagfiles.Add(Tagfile);
+							FolderFilters.Add("\\" + Filter.Substring(0, Idx) + "\\");
 						}
-					}
-
-					// Run doxygen
-					if (Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, bVerbose))
-					{
-						if (!ModuleToTagfile.ContainsKey(Module.Name))
-						{
-							ModuleToTagfile.Add(Module.Name, Config.OutputTagfile);
-							ParsedModules.Add(Module);
-						}
-					}
-					else
-					{
-						Console.WriteLine("  Doxygen crashed. Skipping.");
 					}
 				}
-			}
 
-			// Write the modules file
-			WriteModulesXml(XmlDir, ParsedModules);
+				// Flatten the target into a list of modules
+				List<string> InputModules = new List<string>();
+				foreach (string DirectoryName in Target.DirectoryNames)
+				{
+					for (DirectoryInfo ModuleDirectory = new DirectoryInfo(DirectoryName); ModuleDirectory.Parent != null; ModuleDirectory = ModuleDirectory.Parent)
+					{
+						IEnumerator<FileInfo> ModuleFile = ModuleDirectory.EnumerateFiles("*.build.cs").GetEnumerator();
+						if (ModuleFile.MoveNext() && (FolderFilters.Count == 0 || FolderFilters.Any(x => ModuleFile.Current.FullName.Contains(x))))
+						{
+							InputModules.AddUnique(ModuleFile.Current.FullName);
+							break;
+						}
+					}
+				}
+
+				// Just use all the input modules
+				if (!bIndexOnly)
+				{
+					// Set our error mode so as to not bring up the WER dialog if Doxygen crashes (which it often does)
+					SetErrorMode(0x0007);
+
+					// Create the output directory
+					Utility.SafeCreateDirectory(XmlDir);
+
+					// Build all the modules
+					Console.WriteLine("Parsing source...");
+
+					// Build the list of definitions
+					List<string> Definitions = new List<string>();
+					foreach (string Definition in Target.Definitions)
+					{
+						if (!Definition.StartsWith("ORIGINAL_FILE_NAME="))
+						{
+							Definitions.Add(Definition.Replace("DLLIMPORT", "").Replace("DLLEXPORT", ""));
+						}
+					}
+
+					// Build a list of input paths
+					List<string> InputPaths = new List<string>();
+					foreach (string InputModule in InputModules)
+					{
+						foreach (string DirectoryName in Directory.EnumerateDirectories(Path.GetDirectoryName(InputModule), "*", SearchOption.AllDirectories))
+						{
+							// Find the relative path from the engine directory
+							string NormalizedDirectoryName = DirectoryName;
+							if (NormalizedDirectoryName.StartsWith(EngineDir))
+							{
+								NormalizedDirectoryName = NormalizedDirectoryName.Substring(EngineDir.Length);
+							}
+							if (!NormalizedDirectoryName.EndsWith("\\"))
+							{
+								NormalizedDirectoryName += "\\";
+							}
+
+							// Check we can include it
+							if (!ExcludeSourceDirectories.Any(x => NormalizedDirectoryName.Contains("\\" + x + "\\")))
+							{
+								if (FolderFilters.Count == 0 || FolderFilters.Any(x => NormalizedDirectoryName.Contains(x)))
+								{
+									InputPaths.Add(DirectoryName);
+								}
+							}
+						}
+					}
+
+					// Build the configuration for this module
+					DoxygenConfig Config = new DoxygenConfig("UE4", InputPaths.ToArray(), XmlDir);
+					Config.Definitions.AddRange(Definitions);
+					Config.Definitions.AddRange(DoxygenPredefinedMacros);
+					Config.ExpandAsDefined.AddRange(DoxygenExpandedMacros);
+					Config.IncludePaths.AddRange(Target.IncludePaths);
+					Config.ExcludePatterns.AddRange(ExcludeSourceDirectories.Select(x => "*/" + x + "/*"));
+					Config.ExcludePatterns.AddRange(ExcludeSourceFiles);
+
+					// Run Doxygen
+					if (!Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, true))
+					{
+						Console.WriteLine("  Doxygen crashed. Skipping.");
+						return false;
+					}
+				}
+
+				// Write the modules file
+				File.WriteAllLines(Path.Combine(XmlDir, "modules.txt"), InputModules);
+			}
+			if((Actions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+				Utility.CreateTgzFromDir(ArchivePath, XmlDir);
+			}
 			return true;
 		}
 
-		static string ExpandEnvironmentVariables(string Text)
+		static bool BuildBlueprintJson(string JsonDir, string EngineDir, string EditorPath, string ArchivePath, BuildActions Actions)
 		{
-			int StartIdx = -1;
-			for (int Idx = 0; Idx < Text.Length; Idx++)
+			if((Actions & BuildActions.Clean) != 0)
 			{
-				if (Text[Idx] == '$' && (Idx + 1 < Text.Length && Text[Idx + 1] == '('))
+				Console.WriteLine("Cleaning '{0}'", JsonDir);
+				Utility.SafeDeleteDirectoryContents(JsonDir, true);
+			}
+			if ((Actions & BuildActions.Build) != 0)
+			{
+				// Create the output directory
+				Utility.SafeCreateDirectory(JsonDir);
+
+				using (Process JsonExportProcess = new Process())
 				{
-					// Save the start of a variable name
-					StartIdx = Idx;
-				}
-				else if(Text[Idx] == ')' && StartIdx != -1)
-				{
-					// Replace the variable
-					string Name = Text.Substring(StartIdx + 2, Idx - (StartIdx + 2));
-					string Value = Environment.GetEnvironmentVariable(Name);
-					if (Value != null)
+					JsonExportProcess.StartInfo.WorkingDirectory = EngineDir;
+					JsonExportProcess.StartInfo.FileName = EditorPath;
+					JsonExportProcess.StartInfo.Arguments = "-run=GenerateBlueprintAPI -path=" + JsonDir + " -name=BlueprintAPI";
+					JsonExportProcess.StartInfo.UseShellExecute = false;
+					JsonExportProcess.StartInfo.RedirectStandardOutput = true;
+					JsonExportProcess.StartInfo.RedirectStandardError = true;
+
+					JsonExportProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+					JsonExportProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+
+					try
 					{
-						Text = Text.Substring(0, StartIdx) + Value + Text.Substring(Idx + 1);
-						Idx = StartIdx + Value.Length - 1;
+						JsonExportProcess.Start();
+						JsonExportProcess.BeginOutputReadLine();
+						JsonExportProcess.BeginErrorReadLine();
+						JsonExportProcess.WaitForExit();
+						return JsonExportProcess.ExitCode == 0;
 					}
-					StartIdx = -1;
+					catch (Exception Ex)
+					{
+						Console.WriteLine(Ex.ToString() + "\n" + Ex.StackTrace);
+						return false;
+					}
 				}
 			}
-			return Text;
+			if((Actions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+				Utility.CreateTgzFromDir(ArchivePath, JsonDir);
+			}
+			return true;
 		}
 
-		static string ExpandIncludePath(string EngineDir, string IncludePath)
+		static bool BuildCodeUdn(string EngineDir, string XmlDir, string UdnDir, string SitemapDir, string MetadataPath, string ArchivePath, string SitemapArchivePath, List<string> Filters, BuildActions Actions)
 		{
-			// Expand any environment variables in it
-			string NewIncludePath = ExpandEnvironmentVariables(IncludePath);
-
-			// Convert it to a full path
-			return Path.GetFullPath(Path.Combine(EngineDir, "Source", NewIncludePath));
-		}
-
-		static void WriteModulesXml(string XmlDir, List<BuildModule> ParsedModules)
-		{
-			// Create XML settings for output
-			XmlWriterSettings Settings = new XmlWriterSettings();
-			Settings.Indent = true;
-
-			// Save a list of all the converted modules
-			string ModuleXmlPath = Path.Combine(XmlDir, "modules.xml");
-			using(XmlWriter Writer = XmlWriter.Create(ModuleXmlPath, Settings))
+			string ApiDir = Path.Combine(UdnDir, "API");
+			if((Actions & BuildActions.Clean) != 0)
 			{
-				Writer.WriteStartElement("modules");
-				foreach(BuildModule Module in ParsedModules)
+				Console.WriteLine("Cleaning '{0}'", ApiDir);
+				Utility.SafeDeleteDirectoryContents(ApiDir, true);
+				Utility.SafeDeleteDirectoryContents(SitemapDir, true);
+			}
+			if ((Actions & BuildActions.Build) != 0)
+			{
+				Directory.CreateDirectory(ApiDir);
+				Directory.CreateDirectory(SitemapDir);
+
+				// Read the metadata
+				MetadataLookup.Load(MetadataPath);
+
+				// Read the list of modules
+				List<string> InputModules = new List<string>(File.ReadAllLines(Path.Combine(XmlDir, "modules.txt")));
+
+				// Build the doxygen modules
+				List<DoxygenModule> Modules = new List<DoxygenModule>();
+				foreach (string InputModule in InputModules)
 				{
-					Writer.WriteStartElement("module");
-					Writer.WriteAttributeString("name", Module.Name);
-					Writer.WriteAttributeString("source", Module.Path);
-					Writer.WriteEndElement();
-				}
-				Writer.WriteEndElement();
-			}
-		}
-
-		static void CleanUdn(string UdnDir)
-		{
-			string CleanDir = Path.Combine(UdnDir, "API");
-			Console.WriteLine("Cleaning '{0}'", CleanDir);
-
-			// Delete all the files
-			foreach(string FileName in Directory.EnumerateFiles(CleanDir))
-			{
-				Utility.SafeDeleteFile(Path.Combine(CleanDir, FileName));
-			}
-
-			// Delete all the subdirectories
-			foreach (string SubDir in Directory.EnumerateDirectories(CleanDir))
-			{
-				Utility.SafeDeleteDirectory(SubDir);
-			}
-		}
-
-		static bool BuildUdn(string XmlDir, string UdnDir, string SitemapDir, string MetadataPath, string StatsPath, List<string> Filters = null)
-		{
-			// Create the output directory
-			Utility.SafeCreateDirectory(UdnDir);
-
-			// Read the metadata
-			MetadataLookup.Load(MetadataPath);
-
-			// Read the input module index
-			XmlDocument Document = Utility.ReadXmlDocument(Path.Combine(XmlDir, "modules.xml"));
-
-			// Read the list of modules
-			List<KeyValuePair<string, string>> InputModules = new List<KeyValuePair<string,string>>();
-			using (XmlNodeList NodeList = Document.SelectNodes("modules/module"))
-			{
-				foreach (XmlNode Node in NodeList)
-				{
-					string Name = Node.Attributes["name"].Value;
-					string Source = Node.Attributes["source"].Value;
-					InputModules.Add(new KeyValuePair<string, string>(Name, Source));
-				}
-			}
-
-			List<DoxygenModule> Modules = new List<DoxygenModule>();
-			if(bIndexOnly)
-			{
-				// Just create empty modules
-				for (int Idx = 0; Idx < InputModules.Count; Idx++)
-				{
-					Modules.Add(new DoxygenModule(InputModules[Idx].Key, InputModules[Idx].Value));
-				}
-			}
-			else
-			{
-				// Filter the input module list
-				if (Filters != null && Filters.Count > 0)
-				{
-					InputModules = new List<KeyValuePair<string, string>>(InputModules.Where(x => Filters.Exists(y => y.StartsWith(x.Key + "/", StringComparison.InvariantCultureIgnoreCase))));
+					Modules.Add(new DoxygenModule(Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(InputModule)), Path.GetDirectoryName(InputModule)));
 				}
 
-				// Read all the doxygen modules
-				for(int Idx = 0; Idx < InputModules.Count; Idx++)
+				// Find all the entities
+				if (!bIndexOnly)
 				{
-					Console.WriteLine("Reading module {0}... ({1}/{2})", InputModules[Idx].Key, Idx + 1, InputModules.Count);
-					Modules.Add(DoxygenModule.Read(InputModules[Idx].Key, InputModules[Idx].Value, Path.Combine(XmlDir, InputModules[Idx].Key, "xml")));
+					Console.WriteLine("Reading Doxygen output...");
+
+					// Read the engine module and split it into smaller modules
+					DoxygenModule RootModule = DoxygenModule.Read("UE4", EngineDir, Path.Combine(XmlDir, "xml"));
+					foreach (DoxygenEntity Entity in RootModule.Entities)
+					{
+						DoxygenModule Module = Modules.Find(x => Entity.File.StartsWith(x.BaseSrcDir));
+						Entity.Module = Module;
+						Module.Entities.Add(Entity);
+					}
+					foreach (DoxygenSourceFile SourceFile in RootModule.SourceFiles)
+					{
+						DoxygenModule Module = Modules.Find(x => SourceFile.FileName.Replace('/', '\\').StartsWith(x.BaseSrcDir));
+						Module.SourceFiles.Add(SourceFile);
+					}
+
+					// Now filter all the entities in each module
+					if (Filters != null && Filters.Count > 0)
+					{
+						FilterEntities(Modules, Filters);
+					}
+
+					// Remove all the empty modules
+					Modules.RemoveAll(x => x.Entities.Count == 0);
 				}
 
-				// Now filter all the entities in each module
-				if(Filters != null && Filters.Count > 0)
-				{
-					FilterEntities(Modules, Filters);
-				}
-			}
+				// Create the index page, and all the pages below it
+				APIIndex Index = new APIIndex(Modules);
 
-			// Create the index page, and all the pages below it
-			APIIndex Index = new APIIndex(Modules);
+				// Build a list of pages to output
+				List<APIPage> OutputPages = new List<APIPage>(Index.GatherPages().OrderBy(x => x.LinkPath));
 
-			// Build a list of pages to output
-			List<APIPage> OutputPages = new List<APIPage>(Index.GatherPages().OrderBy(x => x.LinkPath));
-
-			// Dump the output stats
-			if (StatsPath != null)
-			{
-				Console.WriteLine("Writing stats to " + StatsPath + "...");
+				// Dump the output stats
+				string StatsPath = Path.Combine(SitemapDir, "Stats.txt");
+				Console.WriteLine("Writing stats to '" + StatsPath + "'");
 				Stats NewStats = new Stats(OutputPages.OfType<APIMember>());
 				NewStats.Write(StatsPath);
-			}
 
-			// Setup the output directory 
-			Utility.SafeCreateDirectory(UdnDir);
+				// Setup the output directory 
+				Utility.SafeCreateDirectory(UdnDir);
 
-			// Build the manifest
-			Console.WriteLine("Writing manifest...");
-			UdnManifest Manifest = new UdnManifest(Index);
-			Manifest.PrintConflicts();
-			Manifest.Write(Path.Combine(UdnDir, APIFolder + "\\API.manifest"));
+				// Build the manifest
+				Console.WriteLine("Writing manifest...");
+				UdnManifest Manifest = new UdnManifest(Index);
+				Manifest.PrintConflicts();
+				Manifest.Write(Path.Combine(UdnDir, APIFolder + "\\API.manifest"));
 
-			// Write all the pages
-			using (Tracker UdnTracker = new Tracker("Writing UDN pages...", OutputPages.Count))
-			{
-				foreach(int Idx in UdnTracker.Indices)
+				// Write all the pages
+				using (Tracker UdnTracker = new Tracker("Writing UDN pages...", OutputPages.Count))
 				{
-					APIPage Page = OutputPages[Idx];
-
-					// Create the output directory
-					string MemberDirectory = Path.Combine(UdnDir, Page.LinkPath);
-					if (!Directory.Exists(MemberDirectory))
+					foreach (int Idx in UdnTracker.Indices)
 					{
-						Directory.CreateDirectory(MemberDirectory);
+						APIPage Page = OutputPages[Idx];
+
+						// Create the output directory
+						string MemberDirectory = Path.Combine(UdnDir, Page.LinkPath);
+						if (!Directory.Exists(MemberDirectory))
+						{
+							Directory.CreateDirectory(MemberDirectory);
+						}
+
+						// Write the page
+						Page.WritePage(Manifest, Path.Combine(MemberDirectory, "index.INT.udn"));
+					}
+				}
+
+				// Write the sitemap contents
+				Console.WriteLine("Writing sitemap contents...");
+				Index.WriteSitemapContents(Path.Combine(SitemapDir, "API.hhc"));
+
+				// Write the sitemap index
+				Console.WriteLine("Writing sitemap index...");
+				Index.WriteSitemapIndex(Path.Combine(SitemapDir, "API.hhk"));
+			}
+			if ((Actions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+				Utility.CreateTgzFromDir(ArchivePath, ApiDir);
+
+				Console.WriteLine("Creating archive '{0}'", SitemapArchivePath);
+				Utility.CreateTgzFromDir(SitemapArchivePath, SitemapDir);
+			}
+			return true;
+		}
+
+		static bool BuildBlueprintUdn(string JsonDir, string UdnDir, string SitemapDir, string ArchivePath, string SitemapArchivePath, BuildActions ExecActions)
+		{
+			string ApiDir = Path.Combine(UdnDir, "BlueprintAPI");
+			if ((ExecActions & BuildActions.Clean) != 0)
+			{
+				Console.WriteLine("Cleaning '{0}'", ApiDir);
+				Utility.SafeDeleteDirectoryContents(ApiDir, true);
+				Utility.SafeDeleteDirectoryContents(SitemapDir, true);
+			}
+			if ((ExecActions & BuildActions.Build) != 0)
+			{
+				Directory.CreateDirectory(ApiDir);
+				Directory.CreateDirectory(SitemapDir);
+
+				// Read the input json file
+				string JsonFilePath = Path.Combine(JsonDir, "BlueprintAPI.json");
+				var json = (Dictionary<string, object>)fastJSON.JSON.Instance.Parse(File.ReadAllText(JsonFilePath));
+
+				APICategory.LoadTooltips((Dictionary<string, object>)json["Categories"]);
+
+				// TODO: This path is clearly sketchy as hell, but we'll clean it up later maybe
+				var Actions = (Dictionary<string, object>)((Dictionary<string, object>)((Dictionary<string, object>)((Dictionary<string, object>)json["Actor"])["Palette"])["ActionSet"])["Actions"];
+
+				APICategory RootCategory = new APICategory(null, "BlueprintAPI", true);
+
+				foreach (var Action in Actions)
+				{
+					var CategoryList = Action.Key.Split('|');
+					var ActionCategory = RootCategory;
+
+					Debug.Assert(CategoryList.Length > 0);
+					Debug.Assert(CategoryList[0] == "Library");
+
+					for (int CategoryIndex = 1; CategoryIndex < CategoryList.Length - 1; ++CategoryIndex)
+					{
+						ActionCategory = ActionCategory.GetSubCategory(CategoryList[CategoryIndex]);
 					}
 
-					// Write the page
-					Page.WritePage(Manifest, Path.Combine(MemberDirectory, "index.INT.udn"));
+					ActionCategory.AddAction(new APIAction(ActionCategory, CategoryList.Last(), (Dictionary<string, object>)Action.Value));
 				}
+
+				// Build a list of pages to output
+				List<APIPage> OutputPages = new List<APIPage>(RootCategory.GatherPages().OrderBy(x => x.LinkPath));
+
+				// Create the output directory
+				Utility.SafeCreateDirectory(UdnDir);
+				Utility.SafeCreateDirectory(Path.Combine(UdnDir, APIFolder));
+
+				// Build the manifest
+				Console.WriteLine("Writing manifest...");
+				UdnManifest Manifest = new UdnManifest(RootCategory);
+				Manifest.PrintConflicts();
+				Manifest.Write(Path.Combine(UdnDir, BlueprintAPIFolder + "\\API.manifest"));
+
+				Console.WriteLine("Categories: " + OutputPages.Count(page => page is APICategory));
+				Console.WriteLine("Actions: " + OutputPages.Count(page => page is APIAction));
+
+				// Write all the pages
+				using (Tracker UdnTracker = new Tracker("Writing UDN pages...", OutputPages.Count))
+				{
+					foreach (int Idx in UdnTracker.Indices)
+					{
+						APIPage Page = OutputPages[Idx];
+
+						// Create the output directory
+						string MemberDirectory = Path.Combine(UdnDir, Page.LinkPath);
+						if (!Directory.Exists(MemberDirectory))
+						{
+							Directory.CreateDirectory(MemberDirectory);
+						}
+
+						// Write the page
+						Page.WritePage(Manifest, Path.Combine(MemberDirectory, "index.INT.udn"));
+					}
+				}
+
+				// Write the sitemap contents
+				Console.WriteLine("Writing sitemap contents...");
+				RootCategory.WriteSitemapContents(Path.Combine(SitemapDir, "BlueprintAPI.hhc"));
+
+				// Write the sitemap index
+				Console.WriteLine("Writing sitemap index...");
+				RootCategory.WriteSitemapIndex(Path.Combine(SitemapDir, "BlueprintAPI.hhk"));
 			}
+			if ((ExecActions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+				Utility.CreateTgzFromDir(ArchivePath, ApiDir);
 
-			// Write the sitemap contents
-			Console.WriteLine("Writing sitemap contents...");
-			Index.WriteSitemapContents(Path.Combine(SitemapDir, SitemapContentsFileName));
-
-			// Write the sitemap index
-			Console.WriteLine("Writing sitemap index...");
-			Index.WriteSitemapIndex(Path.Combine(SitemapDir, SitemapIndexFileName));
-
+				Console.WriteLine("Creating archive '{0}'", SitemapArchivePath);
+				Utility.CreateTgzFromDir(SitemapArchivePath, SitemapDir);
+			}
 			return true;
 		}
 
@@ -939,196 +1035,167 @@ namespace APIDocTool
 			}
 		}
 
-		public static List<BuildModule> SortModules(IEnumerable<BuildModule> Modules)
+		static bool BuildHtml(string EngineDir, string DocToolPath, string HtmlDir, string HtmlSuffix, string ArchivePath, BuildActions Actions)
 		{
-			List<BuildModule> OutputModules = new List<BuildModule>();
-
-			// Build a set of unbuilt module names
-			HashSet<string> UnbuiltModules = new HashSet<string>();
-			foreach (BuildModule Module in Modules)
+			string HtmlSubDir = Path.Combine(HtmlDir, "INT", HtmlSuffix);
+			if((Actions & BuildActions.Clean) != 0)
 			{
-				UnbuiltModules.Add(Module.Name);
+				Console.WriteLine("Cleaning '{0}'", HtmlSubDir);
+				Utility.SafeDeleteDirectoryContents(HtmlSubDir, true);
 			}
-
-			// Build the output list by iteratively removing modules whose dependencies are met
-			LinkedList<BuildModule> RemainingModules = new LinkedList<BuildModule>(Modules);
-			while(RemainingModules.Count > 0)
+			if ((Actions & BuildActions.Build) != 0)
 			{
-				int InitialOutputModuleCount = OutputModules.Count;
+				Utility.SafeCreateDirectory(HtmlSubDir);
 
-				// Move all the modules whose dependencies are met to the output list
-				for(LinkedListNode<BuildModule> ModuleNode = RemainingModules.First; ModuleNode != null; )
+				using (Process DocToolProcess = new Process())
 				{
-					LinkedListNode<BuildModule> NextModuleNode = ModuleNode.Next;
-					if(HasAllDependencies(ModuleNode.Value, UnbuiltModules))
+					DocToolProcess.StartInfo.WorkingDirectory = EngineDir;
+					DocToolProcess.StartInfo.FileName = DocToolPath;
+					DocToolProcess.StartInfo.Arguments = Path.Combine(HtmlSuffix, "*") + " -lang=INT -t=DefaultAPI.html -v=warn";
+					DocToolProcess.StartInfo.UseShellExecute = false;
+					DocToolProcess.StartInfo.RedirectStandardOutput = true;
+					DocToolProcess.StartInfo.RedirectStandardError = true;
+
+					DocToolProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+					DocToolProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+
+					try
 					{
-						OutputModules.Add(ModuleNode.Value);
-						UnbuiltModules.Remove(ModuleNode.Value.Name);
-						RemainingModules.Remove(ModuleNode);
+						DocToolProcess.Start();
+						DocToolProcess.BeginOutputReadLine();
+						DocToolProcess.BeginErrorReadLine();
+						DocToolProcess.WaitForExit();
 					}
-					ModuleNode = NextModuleNode;
-				}
-
-				// If we didn't manage to build anything on this iteration, we've got a recursive dependency. Try to break it by builting the first module that hasn't been seen 
-				// yet (but still build it a second time later)
-				if(OutputModules.Count == InitialOutputModuleCount)
-				{
-					for (LinkedListNode<BuildModule> ModuleNode = RemainingModules.First; ModuleNode != null; ModuleNode = ModuleNode.Next)
+					catch (Exception Ex)
 					{
-						BuildModule Module = ModuleNode.Value;
-						if(UnbuiltModules.Contains(Module.Name))
-						{
-							OutputModules.Add(Module);
-							UnbuiltModules.Remove(Module.Name);
-							break;
-						}
+						Console.WriteLine(Ex.ToString() + "\n" + Ex.StackTrace);
+						return false;
+					}
+
+					if (DocToolProcess.ExitCode != 0)
+					{
+						return false;
 					}
 				}
 			}
-			return OutputModules;
+			if ((Actions & BuildActions.Archive) != 0)
+			{
+				Console.WriteLine("Creating archive '{0}'", ArchivePath);
+
+				List<string> InputFiles = new List<string>();
+				Utility.FindFilesForTar(HtmlDir, "Include", InputFiles, true);
+				Utility.FindFilesForTar(HtmlDir, "INT\\" + HtmlSuffix, InputFiles, true);
+				Utility.FindFilesForTar(HtmlDir, "Images", InputFiles, false);
+
+				Utility.CreateTgzFromFiles(ArchivePath, HtmlDir, InputFiles);
+			}
+			return true;
 		}
 
-		public static bool HasAllDependencies(BuildModule Module, HashSet<string> UnbuiltModules)
+		static bool BuildChm(string ChmCompilerPath, string ChmFileName, string ContentsFileName, string IndexFileName, string BaseHtmlDir, bool bBlueprint, BuildActions Actions)
 		{
-			foreach (string Dependency in Module.Dependencies)
+			if((Actions & BuildActions.Clean) != 0)
 			{
-				if (UnbuiltModules.Contains(Dependency))
+				Console.WriteLine("Cleaning '{0}'", ChmFileName);
+				Utility.SafeDeleteFile(ChmFileName);
+				Utility.SafeDeleteDirectory(Path.Combine(Path.GetDirectoryName(ChmFileName), Path.GetFileNameWithoutExtension(ChmFileName)));
+			}
+			if ((Actions & BuildActions.Build) != 0)
+			{
+				string ProjectFileName = (bBlueprint ? "BlueprintAPI.hhp" : "API.hhp");
+				Console.WriteLine("Searching for CHM input files...");
+
+				// Build a list of all the files we want to copy
+				List<string> FilePaths = new List<string>();
+				List<string> DirectoryPaths = new List<string>();
+				Utility.FindRelativeContents(BaseHtmlDir, "Include\\*", true, FilePaths, DirectoryPaths);
+
+				// Find all the HTML files
+				if (bBlueprint)
 				{
-					return false;
+					Utility.FindRelativeContents(BaseHtmlDir, "Images\\bp_api*", false, FilePaths, DirectoryPaths);
+					Utility.FindRelativeContents(BaseHtmlDir, "INT\\BlueprintAPI\\*.html", true, FilePaths, DirectoryPaths);
+					CreateChm(ChmCompilerPath, ChmFileName, "UE4 Blueprint API Documentation", "INT\\BlueprintAPI\\index.html", ContentsFileName, IndexFileName, BaseHtmlDir, FilePaths);
+				}
+				else
+				{
+					Utility.FindRelativeContents(BaseHtmlDir, "Images\\api*", false, FilePaths, DirectoryPaths);
+					Utility.FindRelativeContents(BaseHtmlDir, "INT\\API\\*.html", true, FilePaths, DirectoryPaths);
+					CreateChm(ChmCompilerPath, ChmFileName, "UE4 API Documentation", "INT\\API\\index.html", ContentsFileName, IndexFileName, BaseHtmlDir, FilePaths);
 				}
 			}
 			return true;
 		}
 
-		public static void CleanHtml(string HtmlPath)
+		static private void CreateChm(string ChmCompilerPath, string ChmFileName, string Title, string DefaultTopicPath, string ContentsFileName, string IndexFileName, string SourceDir, List<string> FileNames)
 		{
-			string CleanDir = Path.Combine(HtmlPath, "INT\\API");
-			Console.WriteLine("Cleaning '{0}'", CleanDir);
-			Utility.SafeDeleteDirectoryContents(CleanDir, true);
-		}
+			string ProjectName = Path.GetFileNameWithoutExtension(ChmFileName);
 
-		public static bool BuildHtml(string EngineDir, string DocToolPath, string UdnPath, string HtmlDir)
-		{
-			Utility.SafeCreateDirectory(HtmlDir);
-
-			using (Process DocToolProcess = new Process())
-			{
-				DocToolProcess.StartInfo.WorkingDirectory = EngineDir;
-				DocToolProcess.StartInfo.FileName = DocToolPath;
-				DocToolProcess.StartInfo.Arguments = "API\\* -lang=INT -t=DefaultAPI.html";
-				DocToolProcess.StartInfo.UseShellExecute = false;
-				DocToolProcess.StartInfo.RedirectStandardOutput = true;
-				DocToolProcess.StartInfo.RedirectStandardError = true;
-
-				DocToolProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
-				DocToolProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
-
-				try
-				{
-					DocToolProcess.Start();
-					DocToolProcess.BeginOutputReadLine();
-					DocToolProcess.BeginErrorReadLine();
-					DocToolProcess.WaitForExit();
-					return DocToolProcess.ExitCode == 0;
-				}
-				catch (Exception Ex)
-				{
-					Console.WriteLine(Ex.ToString() + "\n" + Ex.StackTrace);
-					return false;
-				}
-			}
-		}
-
-		public static void CleanChm(string ChmPath)
-		{
-			Console.WriteLine("Cleaning '{0}'", ChmPath);
-			if (Directory.Exists(ChmPath))
-			{
-				foreach (string SubDir in Directory.EnumerateDirectories(ChmPath))
-				{
-					Directory.Delete(SubDir, true);
-				}
-			}
-		}
-
-		public static bool BuildChm(string ChmCompilerPath, string BaseHtmlDir, string ChmDir)
-		{
-			const string ProjectFileName = "API.hhp";
-			Console.WriteLine("Searching for CHM input files...");
-
-			// Build a list of all the files we want to copy
-			List<string> FilePaths = new List<string>();
-			List<string> DirectoryPaths = new List<string>();
-			Utility.FindRelativeContents(BaseHtmlDir, "Images\\api*", false, FilePaths, DirectoryPaths);
-			Utility.FindRelativeContents(BaseHtmlDir, "Include\\*", true, FilePaths, DirectoryPaths);
-
-			// Find all the HTML files
-			List<string> HtmlFilePaths = new List<string>();
-			Utility.FindRelativeContents(BaseHtmlDir, "INT\\API\\*.html", true, HtmlFilePaths, DirectoryPaths);
-
-			// Create all the target directories
-			foreach (string DirectoryPath in DirectoryPaths)
-			{
-				Utility.SafeCreateDirectory(Path.Combine(ChmDir, DirectoryPath));
-			}
+			// Create an intermediate directory
+			string IntermediateDir = Path.Combine(Path.GetDirectoryName(ChmFileName), ProjectName);
+			Directory.CreateDirectory(IntermediateDir);
+			Utility.SafeDeleteDirectoryContents(IntermediateDir, true);
 
 			// Copy all the files across
-			using (Tracker CopyTracker = new Tracker("Copying support files...", FilePaths.Count))
+			using (Tracker CopyTracker = new Tracker("Copying files...", FileNames.Count))
 			{
-				foreach(int Idx in CopyTracker.Indices)
+				foreach (int Idx in CopyTracker.Indices)
 				{
-					Utility.SafeCopyFile(Path.Combine(BaseHtmlDir, FilePaths[Idx]), Path.Combine(ChmDir, FilePaths[Idx]));
+					string SourceFileName = Path.Combine(SourceDir, FileNames[Idx]);
+					string TargetFileName = Path.Combine(IntermediateDir, FileNames[Idx]);
+
+					Directory.CreateDirectory(Path.GetDirectoryName(TargetFileName));
+
+					if (SourceFileName.EndsWith(".html", StringComparison.InvariantCultureIgnoreCase))
+					{
+						string HtmlText = File.ReadAllText(SourceFileName);
+
+						HtmlText = HtmlText.Replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", "");
+						HtmlText = HtmlText.Replace("<div id=\"crumbs_bg\"></div>", "");
+
+						const string HeaderEndText = "<!-- end head -->";
+						int HeaderMinIdx = HtmlText.IndexOf("<div id=\"head\">");
+						int HeaderMaxIdx = HtmlText.IndexOf(HeaderEndText);
+						HtmlText = HtmlText.Remove(HeaderMinIdx, HeaderMaxIdx + HeaderEndText.Length - HeaderMinIdx);
+
+						int CrumbsMinIdx = HtmlText.IndexOf("<div class=\"crumbs\">");
+						int HomeMinIdx = HtmlText.IndexOf("<strong>", CrumbsMinIdx);
+						int HomeMaxIdx = HtmlText.IndexOf("&gt;", HomeMinIdx) + 4;
+						HtmlText = HtmlText.Remove(HomeMinIdx, HomeMaxIdx - HomeMinIdx);
+
+						File.WriteAllText(TargetFileName, HtmlText);
+					}
+					else
+					{
+						Utility.SafeCopyFile(SourceFileName, TargetFileName);
+					}
 				}
 			}
 
-			// Copy the HTML files across, fixing up the HTML for display in the CHM window
-			using (Tracker HtmlTracker = new Tracker("Copying html files...", HtmlFilePaths.Count))
-			{
-				foreach(int Idx in HtmlTracker.Indices)
-				{
-					string HtmlFilePath = HtmlFilePaths[Idx];
-					string HtmlText = File.ReadAllText(Path.Combine(BaseHtmlDir, HtmlFilePath));
-
-					HtmlText = HtmlText.Replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", "");
-					HtmlText = HtmlText.Replace("<div id=\"crumbs_bg\"></div>", "");
-
-					const string HeaderEndText = "<!-- end head -->";
-					int HeaderMinIdx = HtmlText.IndexOf("<div id=\"head\">");
-					int HeaderMaxIdx = HtmlText.IndexOf(HeaderEndText);
-					HtmlText = HtmlText.Remove(HeaderMinIdx, HeaderMaxIdx + HeaderEndText.Length - HeaderMinIdx);
-
-					int CrumbsMinIdx = HtmlText.IndexOf("<div class=\"crumbs\">");
-					int HomeMinIdx = HtmlText.IndexOf("<strong>", CrumbsMinIdx);
-					int HomeMaxIdx = HtmlText.IndexOf("&gt;", HomeMinIdx) + 4;
-					HtmlText = HtmlText.Remove(HomeMinIdx, HomeMaxIdx - HomeMinIdx);
-
-					File.WriteAllText(Path.Combine(ChmDir, HtmlFilePath), HtmlText);
-				}
-			}
+			// Copy the contents and index files
+			Utility.SafeCopyFile(ContentsFileName, Path.Combine(IntermediateDir, ProjectName + ".hhc"));
+			Utility.SafeCopyFile(IndexFileName, Path.Combine(IntermediateDir, ProjectName + ".hhk"));
 
 			// Write the project file
-			using (StreamWriter Writer = new StreamWriter(Path.Combine(ChmDir, ProjectFileName)))
+			string ProjectFileName = Path.Combine(IntermediateDir, ProjectName + ".hhp");
+			using (StreamWriter Writer = new StreamWriter(ProjectFileName))
 			{
 				Writer.WriteLine("[OPTIONS]");
-				Writer.WriteLine("Title=UE4 API Documentation");
+				Writer.WriteLine("Title={0}", Title);
 				Writer.WriteLine("Binary TOC=Yes");
 				Writer.WriteLine("Compatibility=1.1 or later");
-				Writer.WriteLine("Compiled file=API.chm");
-				Writer.WriteLine("Contents file=" + SitemapContentsFileName);
-				Writer.WriteLine("Index file=" + SitemapIndexFileName);
-				Writer.WriteLine("Default topic=INT\\API\\index.html");
+				Writer.WriteLine("Compiled file={0}", Path.GetFileName(ChmFileName));
+				Writer.WriteLine("Contents file={0}.hhc", ProjectName);
+				Writer.WriteLine("Index file={0}.hhk", ProjectName);
+				Writer.WriteLine("Default topic={0}", DefaultTopicPath);
 				Writer.WriteLine("Full-text search=Yes");
 				Writer.WriteLine("Display compile progress=Yes");
 				Writer.WriteLine("Language=0x409 English (United States)");
 				Writer.WriteLine();
 				Writer.WriteLine("[FILES]");
-				foreach (string FilePath in FilePaths)
+				foreach (string FileName in FileNames)
 				{
-					Writer.WriteLine(FilePath);
-				}
-				foreach (string HtmlFilePath in HtmlFilePaths)
-				{
-					Writer.WriteLine(HtmlFilePath);
+					Writer.WriteLine(FileName);
 				}
 			}
 
@@ -1136,9 +1203,9 @@ namespace APIDocTool
 			Console.WriteLine("Compiling CHM file...");
 			using (Process CompilerProcess = new Process())
 			{
-				CompilerProcess.StartInfo.WorkingDirectory = ChmDir;
+				CompilerProcess.StartInfo.WorkingDirectory = IntermediateDir;
 				CompilerProcess.StartInfo.FileName = ChmCompilerPath;
-				CompilerProcess.StartInfo.Arguments = ProjectFileName;
+				CompilerProcess.StartInfo.Arguments = Path.GetFileName(ProjectFileName);
 				CompilerProcess.StartInfo.UseShellExecute = false;
 				CompilerProcess.StartInfo.RedirectStandardOutput = true;
 				CompilerProcess.StartInfo.RedirectStandardError = true;
@@ -1149,7 +1216,9 @@ namespace APIDocTool
 				CompilerProcess.BeginErrorReadLine();
 				CompilerProcess.WaitForExit();
 			}
-			return true;
+
+			// Copy it to the final output
+			Utility.SafeCopyFile(Path.Combine(IntermediateDir, ProjectName + ".chm"), ChmFileName);
 		}
 
 		static private void ProcessOutputReceived(Object Sender, DataReceivedEventArgs Line)

@@ -58,8 +58,8 @@ void USoundNodeDistanceCrossFade::ParseNodes( FAudioDevice* AudioDevice, const U
 			float VolumeToSet = 1.0f;
 			//UE_LOG(LogAudio, Log,  TEXT("  USoundNodeDistanceCrossFade.  Distance: %f ChildNodeIndex: %d CurrLoc: %s  ListenerLoc: %s"), Distance, ChildNodeIndex, *AudioComponent->CurrentLocation.ToString(), *AudioComponent->Listener->Location.ToString() );
 
-			// Ignore distance calculations for preview components as they are undefined
-			if( !ActiveSound.bLocationDefined )
+			// Check whether crossfading is allowed
+			if( !AllowCrossfading(ActiveSound) )
 			{
 				VolumeToSet = CrossFadeInput[ ChildNodeIndex ].Volume;
 			}
@@ -148,7 +148,8 @@ float USoundNodeDistanceCrossFade::GetCurrentDistance(FAudioDevice* AudioDevice,
 	return ActiveSound.bLocationDefined ? FVector::Dist( ParseParams.Transform.GetTranslation(), AudioDevice->Listeners[0].Transform.GetTranslation() ) : 0.f;
 }
 
-FString USoundNodeDistanceCrossFade::GetUniqueString() const
+bool USoundNodeDistanceCrossFade::AllowCrossfading(FActiveSound& ActiveSound) const
 {
-	return TEXT( "DistanceCrossFadeComplex/" );
+	// Ignore distance calculations for preview components as they are undefined
+	return ActiveSound.bLocationDefined;
 }

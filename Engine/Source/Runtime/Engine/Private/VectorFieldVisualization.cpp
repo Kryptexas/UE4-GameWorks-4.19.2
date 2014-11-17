@@ -269,3 +269,43 @@ void DrawVectorField(
 		PDI->DrawMesh(MeshBatch);
 	}
 }
+
+void GetVectorFieldMesh(
+	FVectorFieldVisualizationVertexFactory* VertexFactory,
+	FVectorFieldInstance* VectorFieldInstance,
+	int32 ViewIndex,
+	FMeshElementCollector& Collector)
+{
+	FVectorFieldResource* Resource = VectorFieldInstance->Resource;
+
+	if (Resource && IsValidRef(Resource->VolumeTextureRHI))
+	{
+		// Set up parameters.
+		FVectorFieldVisualizationParameters UniformParameters;
+		UniformParameters.VolumeToWorld = VectorFieldInstance->VolumeToWorld;
+		UniformParameters.VolumeToWorldNoScale = VectorFieldInstance->VolumeToWorldNoScale;
+		UniformParameters.VoxelSize = FVector( 1.0f / Resource->SizeX, 1.0f / Resource->SizeY, 1.0f / Resource->SizeZ );
+		UniformParameters.Scale = VectorFieldInstance->Intensity * Resource->Intensity;
+		VertexFactory->SetParameters(UniformParameters, Resource->VolumeTextureRHI);
+
+		// Create a mesh batch for the visualization.
+		FMeshBatch& MeshBatch = Collector.AllocateMesh();
+		MeshBatch.CastShadow = false;
+		MeshBatch.bUseAsOccluder = false;
+		MeshBatch.VertexFactory = VertexFactory;
+		MeshBatch.MaterialRenderProxy = GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false);
+		MeshBatch.Type = PT_LineList;
+
+		// A single mesh element.
+		FMeshBatchElement& MeshElement = MeshBatch.Elements[0];
+		MeshElement.NumPrimitives = 1;
+		MeshElement.NumInstances = Resource->SizeX * Resource->SizeY * Resource->SizeZ;
+		MeshElement.FirstIndex = 0;
+		MeshElement.MinVertexIndex = 0;
+		MeshElement.MaxVertexIndex = 1;
+		MeshElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
+
+		MeshBatch.bCanApplyViewModeOverrides = false;
+		Collector.AddMesh(ViewIndex, MeshBatch);
+	}
+}

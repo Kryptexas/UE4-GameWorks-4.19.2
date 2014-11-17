@@ -11,6 +11,8 @@
 #include "StereoRendering.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
+#include "RendererInterface.h"
+#include "BufferVisualizationData.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -57,6 +59,74 @@ static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
 	TEXT("Allows to scale the ambient occlusion fade radius (SSAO).\n")
 	TEXT(" 0.01:smallest .. 1.0:normal (default), <1:smaller, >1:larger"),
 	ECVF_Cheat | ECVF_RenderThreadSafe);
+
+// Engine default (project settings):
+
+static TAutoConsoleVariable<int32> CVarDefaultBloom(
+	TEXT("r.DefaultFeature.Bloom"),
+	1,
+	TEXT("Engine default (project setting) for Bloom is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, set BloomIntensity to 0\n")
+	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusion(
+	TEXT("r.DefaultFeature.AmbientOcclusion"),
+	1,
+	TEXT("Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets AmbientOcclusionIntensity to 0\n")
+	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultAutoExposure(
+	TEXT("r.DefaultFeature.AutoExposure"),
+	1,
+	TEXT("Engine default (project setting) for AutoExposure is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets AutoExposureMinBrightness and AutoExposureMaxBrightness to 1\n")
+	TEXT(" 1: on (default)"));
+
+static TAutoConsoleVariable<int32> CVarDefaultMotionBlur(
+	TEXT("r.DefaultFeature.MotionBlur"),
+	1,
+	TEXT("Engine default (project setting) for MotionBlur is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets MotionBlurAmount to 0\n")
+	TEXT(" 1: on (default)"));
+
+// off by default for better performance and less distractions
+static TAutoConsoleVariable<int32> CVarDefaultLensFlare(
+	TEXT("r.DefaultFeature.LensFlare"),
+	0,
+	TEXT("Engine default (project setting) for LensFlare is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets LensFlareIntensity to 0\n")
+	TEXT(" 1: on (default)"));
+
+// see EAntiAliasingMethod
+static TAutoConsoleVariable<int32> CVarDefaultAntiAliasing(
+	TEXT("r.DefaultFeature.AntiAliasing"),
+	2,
+	TEXT("Engine default (project setting) for AntiAliasingMethod is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off (no anti-aliasing)\n")
+	TEXT(" 1: FXAA (faster than TemporalAA but much more shimmering for non static cases)\n")
+	TEXT(" 2: TemporalAA (default)"));
+
+static TAutoConsoleVariable<float> CVarMotionBlurScale(
+	TEXT("r.MotionBlur.Scale"),
+	1.0f,
+	TEXT("Allows to scale the postprocess intensity/amount setting in the postprocess.\n")
+	TEXT("1: don't do any scaling (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarMotionBlurMax(
+	TEXT("r.MotionBlur.Max"),
+	-1.0f,
+	TEXT("Allows to clamp the postprocess setting (max distortion caused by motion blur, in percent of the screen width)\n")
+	TEXT("-1: don't clamp (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarSceneColorFringeMax(
+	TEXT("r.SceneColorFringe.Max"),
+	-1.0f,
+	TEXT("Allows to clamp the postprocess setting (in percent, Scene chromatic aberration / color fringe to simulate an artifact that happens in real-world lens, mostly visible in the image corners)\n")
+	TEXT("-1: don't clamp (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
@@ -201,6 +271,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
 #endif
+	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GRHIFeatureLevel)
 {
 	check(UnscaledViewRect.Min.X >= 0);
 	check(UnscaledViewRect.Min.Y >= 0);
@@ -216,7 +287,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 
 	// For precision reasons the view matrix inverse is calculated independently.
-	InvViewMatrix = ViewMatrices.ViewMatrix.InverseSafe();
+	InvViewMatrix = ViewMatrices.ViewMatrix.Inverse();
 	InvViewProjectionMatrix = ViewMatrices.GetInvProjMatrix() * InvViewMatrix;
 
 	bool ApplyPreViewTranslation = true;
@@ -272,7 +343,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	
 	// Compute a transform from view origin centered world-space to clip space.
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 	
 	ShadowViewMatrices = ViewMatrices;
 
@@ -371,7 +442,7 @@ void FSceneView::UpdateViewMatrix()
 	
 	// Compute a transform from view origin centered world-space to clip space.
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
@@ -484,7 +555,7 @@ FVector FSceneView::Deproject(const FPlane& ScreenPoint) const
 
 void FSceneView::DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_WorldOrigin, FVector& out_WorldDirection) const
 {
-	const FMatrix InverseViewMatrix = ViewMatrices.ViewMatrix.Inverse();
+	const FMatrix InverseViewMatrix = ViewMatrices.ViewMatrix.InverseFast();
 	const FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
 	
 	DeprojectScreenToWorld(ScreenPos, UnscaledViewRect, InverseViewMatrix, InvProjectionMatrix, out_WorldOrigin, out_WorldDirection);
@@ -807,6 +878,39 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 	// Set values before any override happens.
 	FinalPostProcessSettings.SetBaseValues();
 
+	// project settings might want to have different defaults
+	{
+		if(!CVarDefaultBloom.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.BloomIntensity = 0;
+		}
+		if (!CVarDefaultAmbientOcclusion.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.AmbientOcclusionIntensity = 0;
+		}
+		if (!CVarDefaultAutoExposure.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.AutoExposureMinBrightness = 1;
+			FinalPostProcessSettings.AutoExposureMaxBrightness = 1;
+		}
+		if (!CVarDefaultMotionBlur.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.MotionBlurAmount = 0;
+		}
+		if (!CVarDefaultLensFlare.GetValueOnGameThread())
+		{
+			FinalPostProcessSettings.LensFlareIntensity = 0;
+		}
+
+		{
+			int32 Value = CVarDefaultAntiAliasing.GetValueOnGameThread();
+			if (Value >= 0 && Value < AAM_MAX)
+			{
+				FinalPostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
+			}
+		}
+	}
+
 	if(State)
 	{
 		State->OnStartPostProcessing(*this);
@@ -826,6 +930,16 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 
 void FSceneView::EndFinalPostprocessSettings()
 {
+	{
+		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+		if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)
+		{
+			// Turn off various features which won't work with mobile MSAA.
+			FinalPostProcessSettings.DepthOfFieldScale = 0.0f;
+			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
+		}
+	}
+
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BloomQuality"));
 
@@ -904,14 +1018,7 @@ void FSceneView::EndFinalPostprocessSettings()
 
 		if(Value >= 0.0)
 		{
-			if (!GEngine->IsStereoscopic3D())
-			{
-				FinalPostProcessSettings.ScreenPercentage = FMath::Min(FinalPostProcessSettings.ScreenPercentage, Value);
-			}
-			else
-			{
-				FinalPostProcessSettings.ScreenPercentage = Value;
-			}
+			FinalPostProcessSettings.ScreenPercentage = Value;
 		}
 
 		// Not supported in ES2.
@@ -967,7 +1074,31 @@ void FSceneView::EndFinalPostprocessSettings()
 		FinalPostProcessSettings.AmbientOcclusionDistance *= Scale;
 	}
 
-	if(!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
+	{
+		float Value = FMath::Clamp(CVarMotionBlurScale.GetValueOnGameThread(), 0.0f, 50.0f);
+
+		FinalPostProcessSettings.MotionBlurAmount *= Value;
+	}
+
+	{
+		float Value = CVarMotionBlurMax.GetValueOnGameThread();
+
+		if(Value >= 0.0f)
+		{
+			FinalPostProcessSettings.MotionBlurMax = FMath::Min(FinalPostProcessSettings.MotionBlurMax, Value);
+		}
+	}
+
+	{
+		float Value = CVarSceneColorFringeMax.GetValueOnGameThread();
+
+		if (Value >= 0.0f)
+		{
+			FinalPostProcessSettings.SceneFringeIntensity = FMath::Min(FinalPostProcessSettings.SceneFringeIntensity, Value);
+		}
+	}
+
+	if (!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
 	{
 		FinalPostProcessSettings.IndirectLightingColor = FLinearColor(0,0,0,0);
 		FinalPostProcessSettings.IndirectLightingIntensity = 0.0f;
@@ -985,8 +1116,8 @@ void FSceneView::EndFinalPostprocessSettings()
 
 		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
-			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
-			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue == 2 || MSAAValue == 4)) )
+			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
+			|| (FeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue > 1)))
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
@@ -1046,7 +1177,7 @@ void FSceneView::EndFinalPostprocessSettings()
 	if (Config.bDisplayCaptureRegion && !GIsHighResScreenshot)
 	{
 		// Only enable the capture region effect if the capture region is different from the view rectangle...
-		if (Config.UnscaledCaptureRegion != ViewRect && Config.UnscaledCaptureRegion.Width() != -1 && Config.UnscaledCaptureRegion.Height() != -1 && State != NULL)
+		if ((Config.UnscaledCaptureRegion != ViewRect) && (Config.UnscaledCaptureRegion.Area() > 0) && (State != NULL))
 		{
 			// ...and if this is the viewport associated with the highres screenshot UI
 			auto ConfigViewport = Config.TargetViewport.Pin();
@@ -1137,16 +1268,9 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 	}
 }
 
-ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
-{ 
-	if (Family->Scene)
-	{
-		return Family->Scene->GetFeatureLevel();
-	}
-	else
-	{
-		return GRHIFeatureLevel;
-	}
+EShaderPlatform FSceneView::GetShaderPlatform() const
+{
+	return GShaderPlatformForFeatureLevel[GetFeatureLevel()];
 }
 
 FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
@@ -1177,7 +1301,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	}
 #endif
 
-#if !WITH_EDITORONLY_DATA
+#if !WITH_EDITOR
 	// Console shader compilers don't set instruction count, 
 	// Also various console-specific rendering paths haven't been tested with shader complexity
 	check(!EngineShowFlags.ShaderComplexity);
@@ -1245,6 +1369,18 @@ void FSceneViewFamily::ComputeFamilySize()
 	FamilySizeY = FMath::TruncToInt(MaxFamilyY);	
 
 	check(bInitializedExtents);
+}
+
+ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
+{ 
+	if (Scene)
+	{
+		return Scene->GetFeatureLevel();
+	}
+	else
+	{
+		return GRHIFeatureLevel;
+	}
 }
 
 FSceneViewFamilyContext::~FSceneViewFamilyContext()

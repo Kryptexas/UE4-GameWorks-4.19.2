@@ -1,14 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "NavigationTypes.h"
-#include "AI/Navigation/NavRelevantActorInterface.h"
+#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavLinkHostInterface.h"
+#include "AI/Navigation/NavRelevantInterface.h"
+#include "GameFramework/Actor.h"
 #include "NavLinkProxy.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FSmartLinkReachedSignature, class AActor*, MovingActor, const FVector&, DestinationPoint );
 
 UCLASS(Blueprintable)
-class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, public INavRelevantActorInterface
+class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, public INavRelevantInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -38,10 +40,11 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
 #endif // WITH_EDITORONLY_DATA
 
-	// BEGIN INavRelevantActorInterface
-	virtual bool UpdateNavigationRelevancy() override;
-	virtual bool GetNavigationRelevantData(struct FNavigationRelevantData& Data) const override;
-	// END INavRelevantActorInterface
+	// BEGIN INavRelevantInterface
+	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const;
+	virtual FBox GetNavigationBounds() const;
+	virtual bool IsNavigationRelevant() const;
+	// END INavRelevantInterface
 
 	// BEGIN INavLinkHostInterface
 	virtual bool GetNavigationLinksClasses(TArray<TSubclassOf<class UNavLinkDefinition> >& OutClasses) const override;
@@ -52,7 +55,6 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
-	virtual void PostInitProperties() override;
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
 
 	//////////////////////////////////////////////////////////////////////////

@@ -130,14 +130,15 @@ public:
 
 	bool GetExcerptContent( const FString& Link, FExcerpt& Excerpt );
 
+	/** Allows a TAttribute to be set to control excerpt wrapat values from outside the parser. */
+	void SetWrapAt( TAttribute<float> InWrapAt );
+
 private:
 	/** UI Callbacks for the widgets */
-	float GetTextWrapSize() const;
-	FOptionalSize GetTutorialWidth() const;
 	FReply OnImageLinkClicked(FString Payload);
 	
 	/** Adds the content text source to the scrollbox */
-	void AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString& ContentSource);
+	void AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString& ContentSource, FExcerpt& Excerpt);
 	
 	/** Gets the dynamic brush for the given filename */
 	TSharedPtr<FSlateDynamicImageBrush> GetDynamicBrushFromImagePath(FString Filename);
@@ -166,7 +167,7 @@ private:
 	void NavigateToLink( FString AdditionalContent );
 
 private:
-	/* 
+	/** 
 	 * Parses a code link embedded in the doc.
 	 * Allows us to specify files in code to link to in one of 2 ways. In both cases the last 2 parameters are line and column.
 	 * [Project based link](CODELINK:Private/[PROJECT]File.cpp, 29, 5)
@@ -178,7 +179,7 @@ private:
 	 */
 	bool ParseCodeLink(FString &InternalLink);
 		
-	/* 
+	/** 
 	 * Parses an asset link embedded in the doc.
 	 * Allows us to specify assets to either highlight or edit in the editor
 	 * (ASSETLINK:SELECT,MyCharacter)
@@ -229,5 +230,9 @@ private:
 	};
 
 	TArray<FTokenConfiguration> LineLibrary;
+	/** Documentation text wrapping control attribute */
+	TAttribute<float> WrapAt;
+	/** Documentation optional width control attribute */
+	TAttribute<FOptionalSize> ContentWidth;
 };
 

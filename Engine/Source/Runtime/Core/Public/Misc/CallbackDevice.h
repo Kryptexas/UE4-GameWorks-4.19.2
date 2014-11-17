@@ -37,6 +37,8 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
+//forward declares
+class FUniqueNetIdString;
 
 class CORE_API FCoreDelegates
 {
@@ -59,6 +61,9 @@ public:
 
 	// Callback for when an asset is loaded (Editor)
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
+	
+	// Callback for when an asset is saved (Editor)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSaved, UObject*);
 	#endif	//WITH_EDITOR
 
 	// delegate type for prompting the pak system to mount a new pak
@@ -91,6 +96,9 @@ public:
 	// Callback for handling safe frame area size changes
 	DECLARE_MULTICAST_DELEGATE(FOnSafeFrameChangedEvent);
 
+	// Callback for handling accepting invitations - generally for engine code
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FUniqueNetIdString&);
+
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
@@ -101,7 +109,7 @@ public:
 
 	// Callback when a user logs in/out of the platform.
 	static FOnUserLoginChangedEvent OnUserLoginChangedEvent;
-	
+
 	// Callback when controllers disconnected / reconnected
 	static FOnUserControllerConnectionChange OnControllerConnectionChange;
 
@@ -132,6 +140,9 @@ public:
 	// Called when an asset is loaded
 	static FOnAssetLoaded OnAssetLoaded;
 
+	// Called when an asset is saved
+	static FOnObjectSaved OnObjectSaved;
+
 	// Called before the editor displays a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
 	static FSimpleMulticastDelegate PreModal;
 
@@ -142,7 +153,7 @@ public:
 	// Called when SetCurrentCulture is called.
 	static FSimpleMulticastDelegate OnCultureChanged;
 
-	// Called when an error occured.
+	// Called when an error occurred.
 	static FSimpleMulticastDelegate OnShutdownAfterError;
 
 	// Called when appInit is called.
@@ -181,8 +192,11 @@ public:
 	/** requests to open a message box */
 	static FOnModalMessageBox ModalErrorMessage;
 
-	/** querries whether an object should be loaded on top ( replace ) an already existing one */
+	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
+
+	/** Called when the user accepts an invitation to the current game */
+	static FOnInviteAccepted OnInviteAccepted;
 
 	/** called when loading a string asset reference */
 	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, FString const& /*LoadedAssetLongPathname*/);
@@ -196,7 +210,7 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam( FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
 	static FStringAssetReferenceSaving StringAssetReferenceSaving;
 		
-	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, const FIntPoint&, const FIntPoint&);
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
 	/** called before world origin shifting */
 	static FWorldOriginOffset PreWorldOriginOffset;
 	/** called after world origin shifting */
@@ -245,6 +259,11 @@ public:
 	/** Sent when all stats need to be disabled */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FStatDisableAll, const bool);
 	static FStatDisableAll StatDisableAll;
+
+	// Called when an application is notified that the application license info has been updated.
+	// The new license data should be polled and steps taken based on the results (i.e. halt application if license is no longer valid).
+	DECLARE_MULTICAST_DELEGATE(FApplicationLicenseChange);
+	static FApplicationLicenseChange ApplicationLicenseChange;
 
 private:
 	// Callbacks for hotfixes

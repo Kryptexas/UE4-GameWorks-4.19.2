@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "IBreakIterator.h"
 #include "TextLayout.generated.h"
 
 #define TEXT_LAYOUT_DEBUG 0
@@ -125,6 +126,7 @@ public:
 };
 
 class SLATE_API FTextLayout
+	: public TSharedFromThis<FTextLayout>
 {
 public:
 
@@ -180,16 +182,16 @@ public:
 
 		uint8 GetKerning( int32 CurrentIndex, float Scale );
 
-		static int BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex );
+		static int32 BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex );
 
-		static int BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex );
+		static int32 BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex );
 
 		TSharedRef< ILayoutBlock > CreateBlock( const FBlockDefinition& BlockDefine, float Scale ) const;
 
 		void ClearCache();
 
-		void AppendText(FString& Text) const;
-		void AppendText(FString& Text, const FTextRange& Range) const;
+		void AppendTextTo(FString& Text) const;
+		void AppendTextTo(FString& Text, const FTextRange& Range) const;
 
 	private:
 
@@ -291,6 +293,11 @@ public:
 	FMargin GetMargin() const;
 	void SetMargin( const FMargin& InMargin );
 
+	void SetVisibleRegion( const FVector2D& InViewSize, const FVector2D& InScrollOffset );
+
+	/** Set the iterator to use to detect appropriate soft-wrapping points for lines (or null to go back to using the default) */
+	void SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator );
+
 	void ClearLines();
 
 	void AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs );
@@ -334,6 +341,12 @@ public:
 
 	virtual void UpdateHighlights();
 
+	void DirtyRunLayout(const TSharedRef<const IRun>& Run);
+
+	void DirtyLayout();
+
+	bool IsLayoutDirty() const;
+
 	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck);
 
 	/**
@@ -351,9 +364,11 @@ public:
 
 	bool InsertAt(const FTextLocation& Location, TCHAR Character);
 
-	bool InsertAt( const FTextLocation& Location, const FString& Text );
+	bool InsertAt(const FTextLocation& Location, const FString& Text);
 
-	bool RemoveAt( const FTextLocation& Location, int32 Count = 1 );
+	bool InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun, const bool bAlwaysKeepRightRun = false);
+
+	bool RemoveAt(const FTextLocation& Location, int32 Count = 1);
 
 	bool RemoveLine(int32 LineIndex);
 
@@ -401,6 +416,11 @@ protected:
 	*/
 	virtual void EndLayout();
 
+	/**
+	 * Called to generate a new empty text run for this text layout
+	 */
+	virtual TSharedRef<IRun> CreateDefaultTextRun(const TSharedRef<FString>& NewText, const FTextRange& NewRange) const = 0;
+
 private:
 
 	void FlowLayout();
@@ -408,8 +428,6 @@ private:
 	void FlowHighlights();
 
 	void JustifyLayout();
-
-	void JustifyHighlights();
 
 	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutRendererIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
 
@@ -456,4 +474,16 @@ protected:
 
 	/** The final size of the text layout on screen. */
 	FVector2D DrawSize;
+
+	/** The size of the text layout that can actually be seen from the parent widget */
+	FVector2D ViewSize;
+
+	/** The scroll offset of the text layout from the parent widget */
+	FVector2D ScrollOffset;
+
+	/** The iterator to use to detect appropriate soft-wrapping points for lines */
+	TSharedPtr<IBreakIterator> LineBreakIterator;
+
+	/** The iterator to use to detect word boundaries */
+	TSharedPtr<IBreakIterator> WordBreakIterator;
 };

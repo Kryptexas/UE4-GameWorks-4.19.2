@@ -16,6 +16,7 @@
 #include "NetworkingDistanceConstants.h"
 #include "VisualLog.h"
 #include "AIController.h"
+#include "Engine/InputDelegateBinding.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -70,6 +71,8 @@ void APawn::PreInitializeComponents()
 			GetWorld()->PersistentLevel->RegisterActorForAutoReceiveInput(this, PlayerIndex);
 		}
 	}
+
+	UpdateNavigationRelevance();
 }
 
 void APawn::PostInitializeComponents()
@@ -90,12 +93,6 @@ void APawn::PostInitializeComponents()
 		// update movement component's nav agent values
 		UpdateNavAgent();
 	}
-}
-
-
-void APawn::PostInitProperties()
-{
-	Super::PostInitProperties();
 }
 
 void APawn::PostLoad()
@@ -129,6 +126,20 @@ void APawn::UpdateNavAgent()
 	}
 }
 
+void APawn::SetCanAffectNavigationGeneration(bool bNewValue)
+{
+	if (bCanAffectNavigationGeneration != bNewValue)
+	{
+		bCanAffectNavigationGeneration = bNewValue;
+
+		// update components 
+		UpdateNavigationRelevance();
+
+		// update entries in navigation octree 
+		UNavigationSystem::UpdateNavOctreeAll(this);
+	}
+}
+
 void APawn::PawnStartFire(uint8 FireModeNum) {}
 
 AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
@@ -143,7 +154,7 @@ AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
 
 bool APawn::CanBeBaseForCharacter(class APawn* APawn) const
 {
-	UPrimitiveComponent* RootPrimitive = GetRootPrimitiveComponent();
+	UPrimitiveComponent* RootPrimitive = Cast<UPrimitiveComponent>(GetRootComponent());
 	if (RootPrimitive && RootPrimitive->CanCharacterStepUpOn != ECB_Owner)
 	{
 		return RootPrimitive->CanCharacterStepUpOn == ECB_Yes;
@@ -562,10 +573,27 @@ void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bFor
 }
 
 
-FVector APawn::GetMovementInputVector() const
+FVector APawn::GetPendingMovementInputVector() const
 {
 	// There's really no point redirecting to the MovementComponent since GetInputVector is not virtual there, and it just comes back to us.
 	return ControlInputVector;
+}
+
+FVector APawn::GetLastMovementInputVector() const
+{
+	return LastControlInputVector;
+}
+
+// TODO: deprecated, remove
+FVector APawn::GetMovementInputVector() const
+{
+	return GetPendingMovementInputVector();
+}
+
+// TODO: deprecated, remove
+FVector APawn::K2_GetMovementInputVector() const
+{
+	return GetPendingMovementInputVector();
 }
 
 
@@ -593,15 +621,15 @@ void APawn::Internal_AddMovementInput(FVector WorldAccel, bool bForce /*=false*/
 
 FVector APawn::Internal_ConsumeMovementInputVector()
 {
-	const FVector OldValue = ControlInputVector;
+	LastControlInputVector = ControlInputVector;
 	ControlInputVector = FVector::ZeroVector;
-	return OldValue;
+	return LastControlInputVector;
 }
 
 
 void APawn::AddControllerPitchInput(float Val)
 {
-	if (Controller && Controller->IsLocalPlayerController())
+	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
 	{
 		APlayerController* const PC = CastChecked<APlayerController>(Controller);
 		PC->AddPitchInput(Val);
@@ -610,7 +638,7 @@ void APawn::AddControllerPitchInput(float Val)
 
 void APawn::AddControllerYawInput(float Val)
 {
-	if (Controller && Controller->IsLocalPlayerController())
+	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
 	{
 		APlayerController* const PC = CastChecked<APlayerController>(Controller);
 		PC->AddYawInput(Val);
@@ -619,7 +647,7 @@ void APawn::AddControllerYawInput(float Val)
 
 void APawn::AddControllerRollInput(float Val)
 {
-	if (Controller && Controller->IsLocalPlayerController())
+	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
 	{
 		APlayerController* const PC = CastChecked<APlayerController>(Controller);
 		PC->AddRollInput(Val);
@@ -1010,36 +1038,26 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( APawn, PlayerState ); 
+	DOREPLIFETIME( APawn, Controller );
 
-	DOREPLIFETIME_CONDITION( APawn, Controller,			COND_OwnerOnly );
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
 }
 
 void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)
 {
-	UPrimitiveComponent * RootPrimitiveComponent = GetRootPrimitiveComponent();
+	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
-		// Remove dead references first
-		RootPrimitiveComponent->MoveIgnoreActors.Remove(NULL);
-		if( ActorToIgnore )
-		{
-			RootPrimitiveComponent->MoveIgnoreActors.AddUnique(ActorToIgnore);
-		}
+		RootPrimitiveComponent->IgnoreActorWhenMoving(ActorToIgnore, true);
 	}
 }
 
 void APawn::MoveIgnoreActorRemove(AActor * ActorToIgnore)
 {
-	UPrimitiveComponent * RootPrimitiveComponent = GetRootPrimitiveComponent();
+	UPrimitiveComponent * RootPrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
 	if( RootPrimitiveComponent )
 	{
-		// Remove dead references first
-		RootPrimitiveComponent->MoveIgnoreActors.Remove(NULL);
-		if( ActorToIgnore )
-		{
-			RootPrimitiveComponent->MoveIgnoreActors.Remove(ActorToIgnore);
-		}
+		RootPrimitiveComponent->IgnoreActorWhenMoving(ActorToIgnore, false);
 	}
 }
 

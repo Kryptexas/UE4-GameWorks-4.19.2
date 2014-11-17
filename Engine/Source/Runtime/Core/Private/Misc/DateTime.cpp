@@ -1,9 +1,5 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DateTime.cpp: Implements the FDateTime class.
-=============================================================================*/
-
 #include "Core.h"
 
 
@@ -52,17 +48,16 @@ FDateTime::FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minu
 }
 
 
-/* FDateTime friend operators
- *****************************************************************************/
-
-FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
-{
-	return Ar << DateTime.Ticks;
-}
-
-
 /* FDateTime interface
  *****************************************************************************/
+
+bool FDateTime::ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
+{
+	ValueStr += ToString();
+
+	return true;
+}
+
 
 void FDateTime::GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const
 {
@@ -152,6 +147,32 @@ int32 FDateTime::GetYear( ) const
 	GetDate(Year, Month, Day);
 
 	return Year;
+}
+
+
+bool FDateTime::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText )
+{
+	if (FPlatformString::Strlen(Buffer) < 19)
+	{
+		return false;
+	}
+
+	if (!Parse(FString(Buffer).Left(19), *this))
+	{
+		return false;
+	}
+
+	Buffer += 19;
+
+	return true;
+}
+
+
+bool FDateTime::Serialize( FArchive& Ar )
+{
+	Ar << *this;
+
+	return true;
 }
 
 
@@ -429,26 +450,10 @@ FDateTime FDateTime::UtcNow( )
 }
 
 
-bool FDateTime::ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const
+/* FDateTime friend functions
+ *****************************************************************************/
+
+FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
 {
-	ValueStr += ToString();
-
-	return true;
-}
-
-bool FDateTime::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText )
-{
-	if (FPlatformString::Strlen(Buffer) < 19)
-	{
-		return false;
-	}
-
-	if (!Parse(FString(Buffer).Left(19), *this))
-	{
-		return false;
-	}
-
-	Buffer += 19;
-
-	return true;
+	return Ar << DateTime.Ticks;
 }

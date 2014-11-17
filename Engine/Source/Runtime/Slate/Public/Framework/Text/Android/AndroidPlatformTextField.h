@@ -7,7 +7,7 @@
 class FAndroidPlatformTextField : public IPlatformTextField
 {
 public:
-	virtual void ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget) override;
+	virtual void ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget) override;
 
 private:
 //	SlateTextField* TextField;

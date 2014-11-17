@@ -12,6 +12,7 @@
 
 #include "Serialization/ArchiveDescribeReference.h"
 #include "FindStronglyConnected.h"
+#include "HotReloadInterface.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
@@ -69,12 +70,22 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	UObject* NameScopeOuter = (Flags & REN_ForceGlobalUnique) ? ANY_PACKAGE : NewOuter;
 
 	// find an object with the same name and same class in the new outer
+	bool bIsCaseOnlyChange = false;
 	if (InName)
 	{
 		UObject* ExistingObject = StaticFindObject(/*Class=*/ NULL, NameScopeOuter ? NameScopeOuter : GetOuter(), InName, true);
 		if (ExistingObject == this)
 		{
-			return true;
+			if (ExistingObject->GetName().Equals(InName, ESearchCase::CaseSensitive))
+			{
+				// The name is exactly the same - there's nothing to change
+				return true;
+			}
+			else
+			{
+				// This rename has only changed the case, so we need to allow it to continue, but won't create a redirector (since the internal FName comparison ignores case)
+				bIsCaseOnlyChange = true;
+			}
 		}
 		else if (ExistingObject)
 		{
@@ -129,12 +140,12 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	if ( HasAnyFlags(RF_Public) )
 	{
 		const bool bUniquePathChanged	= ((NewOuter != NULL && OldOuter != NewOuter) || (OldName != NewName));
-		const bool bRootPackage		= GetClass() == UPackage::StaticClass() && OldOuter == NULL;
+		const bool bRootPackage			= GetClass() == UPackage::StaticClass() && OldOuter == NULL;
 		const bool bRedirectionAllowed = !FApp::IsGame() && ((Flags & REN_DontCreateRedirectors) == 0);
 
 		// We need to create a redirector if we changed the Outer or Name of an object that can be referenced from other packages
 		// [i.e. has the RF_Public flag] so that references to this object are not broken.
-		bCreateRedirector = bRootPackage == false && bUniquePathChanged == true && bRedirectionAllowed == true;
+		bCreateRedirector = bRootPackage == false && bUniquePathChanged == true && bRedirectionAllowed == true && bIsCaseOnlyChange == false;
 	}
 
 	if( NewOuter )
@@ -376,17 +387,18 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 
 	if ( HasAnyFlags(RF_ArchetypeObject|RF_ClassDefaultObject) )
 	{
-		// use an FObjectIterator because we need to evaluate CDOs as well.
+		// we need to evaluate CDOs as well, but nothing pending kill
+		TArray<UObject*> IterObjects;
+		GetObjectsOfClass(GetClass(), IterObjects, true, RF_PendingKill);
 
 		// if this object is the class default object, any object of the same class (or derived classes) could potentially be affected
 		if ( !HasAnyFlags(RF_ArchetypeObject) )
 		{
-			for ( FObjectIterator It; It; ++It )
+			Instances.Reserve(IterObjects.Num()-1);
+			for (auto It : IterObjects)
 			{
-				UObject* Obj = *It;
-
-				// if this object is the correct type
-				if ( Obj != this && Obj->IsA(GetClass()) && !Obj->IsPendingKill() )
+				UObject* Obj = It;
+				if ( Obj != this )
 				{
 					Instances.Add(Obj);
 				}
@@ -394,14 +406,12 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 		}
 		else
 		{
-			// editing an archetype object - objects of child classes won't be affected
-			for ( FObjectIterator It; It; ++It )
+			for (auto It : IterObjects)
 			{
-				UObject* Obj = *It;
-
+				UObject* Obj = It;
+				
 				// if this object is the correct type and its archetype is this object, add it to the list
-				CA_SUPPRESS(6011)
-				if ( Obj != this && Obj->IsA(GetClass()) && Obj->IsBasedOnArchetype(this) && !Obj->IsPendingKill() )
+				if ( Obj != this && Obj && Obj->IsBasedOnArchetype(this) )
 				{
 					Instances.Add(Obj);
 				}
@@ -531,6 +541,7 @@ bool UObject::ConditionalBeginDestroy()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if( DebugBeginDestroyed.Contains(this) )
 		{
+			// class might override BeginDestroy without calling Super::BeginDestroy();
 			UE_LOG(LogObj, Fatal, TEXT("%s failed to route BeginDestroy"), *GetFullName() );
 		}
 #endif
@@ -679,6 +690,13 @@ void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstan
 		}
 	}
 	CheckDefaultSubobjects();
+}
+
+void UObject::PreSave()
+{
+#if WITH_EDITOR
+	FCoreDelegates::OnObjectSaved.Broadcast(this);
+#endif
 }
 
 bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
@@ -853,7 +871,13 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 	if( (Ar.IsLoading() || Ar.IsSaving()) && !Ar.WantBinaryPropertySerialization() )
 	{
 		UObject* DiffObject = GetArchetype();
-		Class->SerializeTaggedProperties( Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? Class->GetSuperClass() : Class, (uint8*)DiffObject );		
+#if WITH_EDITOR
+		static const FBoolConfigValueHelper BreakSerializationRecursion(TEXT("StructSerialization"), TEXT("BreakSerializationRecursion"));
+		const bool bBreakSerializationRecursion = BreakSerializationRecursion && Ar.IsLoading() && Ar.GetLinker();
+#else 
+		const bool bBreakSerializationRecursion = false;
+#endif
+		Class->SerializeTaggedProperties(Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? Class->GetSuperClass() : Class, (uint8*)DiffObject, bBreakSerializationRecursion ? this : NULL);
 	}
 	else if ( Ar.GetPortFlags() != 0 )
 	{
@@ -972,7 +996,7 @@ bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
 		bResult = false; // these aren't in a suitable spot in their lifetime for testing
 		bCanCheck = false;
 	}
-	if (HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_Unreachable | RF_PendingKill) || GIsDuplicatingClassForReinstancing)
+	if (bCanCheck && (HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_Unreachable | RF_PendingKill) || GIsDuplicatingClassForReinstancing))
 	{
 		bResult = true; // these aren't in a suitable spot in their lifetime for testing
 		bCanCheck = false;
@@ -984,55 +1008,64 @@ bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
 
 bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
 {
-	bool Result = true;	
+	bool Result = true;
 	if (CanCheckDefaultSubObjects(bForceCheck, Result))
 	{
-		CompCheck(this);
-		UClass* Class = GetClass();
+		Result = CheckDefaultSubobjectsInternal();
+	}
+	return Result;
+}
 
-		if (Class != UFunction::StaticClass() && Class->GetName() != TEXT("EdGraphPin"))
+bool UObject::CheckDefaultSubobjectsInternal()
+{
+	bool Result = true;	
+
+	CompCheck(this);
+	UClass* Class = GetClass();
+
+	if (Class != UFunction::StaticClass() && Class->GetName() != TEXT("EdGraphPin"))
+	{
+		// Check for references to default subobjects of other objects.
+		// There should never be a pointer to a subobject from outside of the outer (chain) it belongs to.
+		TArray<const UObject*> OtherReferencedSubobjects;
+		FSubobjectReferenceFinder DefaultSubobjectCollector(OtherReferencedSubobjects, this);
+		for (int32 Index = 0; Index < OtherReferencedSubobjects.Num(); ++Index)
 		{
-			// Check for references to default subobjects of other objects.
-			// There should never be a pointer to a subobject from outside of the outer (chain) it belongs to.
-			TArray<const UObject*> OtherReferencedSubobjects;
-			FSubobjectReferenceFinder DefaultSubobjectCollector(OtherReferencedSubobjects, this);
-			for (int32 Index = 0; Index < OtherReferencedSubobjects.Num(); ++Index)
-			{
-				const UObject* TestObject = OtherReferencedSubobjects[Index];
-				UE_LOG(LogCheckSubobjects, Error, TEXT("%s has a reference to default subobject (%s) of %s."), *GetFullName(), *TestObject->GetFullName(), *TestObject->GetOuter()->GetFullName());
-			}
-			CompCheck(OtherReferencedSubobjects.Num() == 0);
+			const UObject* TestObject = OtherReferencedSubobjects[Index];
+			UE_LOG(LogCheckSubobjects, Error, TEXT("%s has a reference to default subobject (%s) of %s."), *GetFullName(), *TestObject->GetFullName(), *TestObject->GetOuter()->GetFullName());
 		}
+		CompCheck(OtherReferencedSubobjects.Num() == 0);
+	}
 
 #if 0 // usually overkill, but valid tests
-		if (!HasAnyFlags(RF_ClassDefaultObject) && Class->HasAnyClassFlags(CLASS_HasInstancedReference))
+	if (!HasAnyFlags(RF_ClassDefaultObject) && Class->HasAnyClassFlags(CLASS_HasInstancedReference))
+	{
+		UObject *Archetype = GetArchetype();
+		CompCheck(this != Archetype);
+		Archetype->CheckDefaultSubobjects();
+		if (Archetype != Class->GetDefaultObject())
 		{
-			UObject *Archetype = GetArchetype();
-			CompCheck(this != Archetype);
-			Archetype->CheckDefaultSubobjects();
-			if (Archetype != Class->GetDefaultObject())
-			{
-				Class->GetDefaultObject()->CheckDefaultSubobjects();
-			}
+			Class->GetDefaultObject()->CheckDefaultSubobjects();
 		}
+	}
 #endif
 
-		if (HasAnyFlags(RF_ClassDefaultObject))
-		{
-			CompCheck(GetFName() == Class->GetDefaultObjectName());
-		}
-
-
-		TArray<UObject *> AllCollectedComponents;
-		CollectDefaultSubobjects(AllCollectedComponents, true);
-		TArray<UObject *> DirectCollectedComponents;
-		CollectDefaultSubobjects(DirectCollectedComponents, false);
-		
-		AllCollectedComponents.Sort();
-		DirectCollectedComponents.Sort();
-
-		CompCheck(ALLOW_SUB_SUB_OBJECTS || AllCollectedComponents == DirectCollectedComponents); // just say no to subobjects of subobjects
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		CompCheck(GetFName() == Class->GetDefaultObjectName());
 	}
+
+
+	TArray<UObject *> AllCollectedComponents;
+	CollectDefaultSubobjects(AllCollectedComponents, true);
+	TArray<UObject *> DirectCollectedComponents;
+	CollectDefaultSubobjects(DirectCollectedComponents, false);
+		
+	AllCollectedComponents.Sort();
+	DirectCollectedComponents.Sort();
+
+	CompCheck(ALLOW_SUB_SUB_OBJECTS || AllCollectedComponents == DirectCollectedComponents); // just say no to subobjects of subobjects
+
 	return Result;
 }
 
@@ -1149,9 +1182,9 @@ bool UObject::IsAsset () const
 bool UObject::IsSafeForRootSet() const
 {
 	if (IsInBlueprint())
- 	{
- 		return false;
- 	}
+	{
+		return false;
+	}
 
 	const ULinkerLoad* LinkerLoad = Cast<const ULinkerLoad>(this);
 	// Exclude linkers from root set if we're using seekfree loading		
@@ -1703,6 +1736,11 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	}
 }
 
+FString UObject::GetDefaultConfigFilename() const
+{
+	return FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
+}
+
 // @todo ini: Verify per object config objects
 void UObject::UpdateDefaultConfigFile()
 {
@@ -1710,7 +1748,7 @@ void UObject::UpdateDefaultConfigFile()
 	FConfigCacheIni Config;
 
 	// add an empty file to the config so it doesn't read in the original file (see FConfigCacheIni.Find())
-	FString DefaultIniName = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
+	FString DefaultIniName = GetDefaultConfigFilename();
 	FConfigFile& NewFile = Config.Add(DefaultIniName, FConfigFile());
 
 	// save the object properties to this file
@@ -1798,7 +1836,9 @@ void StaticShutdownAfterError()
 	{
 		static bool Shutdown=0;
 		if( Shutdown )
+		{
 			return;
+		}
 		Shutdown = 1;
 		UE_LOG(LogExit, Log, TEXT("Executing StaticShutdownAfterError") );
 		for ( FRawObjectIterator It; It; ++It )
@@ -1807,219 +1847,6 @@ void StaticShutdownAfterError()
 		}
 	}
 }
-
-
-/** Type hash for a UObject Function Pointer, maybe not a great choice, but it should be sufficient for the needs here. **/
-inline uint32 GetTypeHash( Native A )
-{
-	return *(uint32*)&A;
-}
-
-/** Map from old function pointer to new function pointer for hot reload. */
-static TMap<Native,Native> HotReloadFunctionRemap;
-
-/** Adds and entry for the UFunction native pointer remap table */
-void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer)
-{
-	Native OtherNewFunction = HotReloadFunctionRemap.FindRef(OldFunctionPointer);
-	check(!OtherNewFunction || OtherNewFunction == NewFunctionPointer);
-	check(NewFunctionPointer);
-	check(OldFunctionPointer);
-	HotReloadFunctionRemap.Add(OldFunctionPointer,NewFunctionPointer);
-}
-
-
-void RebindPackages( TArray<UPackage*> InPackages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar )
-{
-#if !IS_MONOLITHIC
-	bool bCanRebind = InPackages.Num() > 0;
-
-	// Verify that we're going to be able to rebind the specified packages
-	if( bCanRebind )
-	{
-		for( UPackage* Package : InPackages )
-		{
-			check(Package);
-
-			if (Package->GetOuter() != NULL )
-			{
-				Ar.Logf(ELogVerbosity::Warning, TEXT("Could not rebind package for %s, package is either not bound yet or is not a DLL."), *Package->GetName() );
-				bCanRebind = false;
-				break;
-			}
-		}
-	}
-
-
-	// We can only proceed if a compile isn't already in progress
-	if( FModuleManager::Get().IsCurrentlyCompiling() )
-	{
-		Ar.Logf(ELogVerbosity::Warning, TEXT("Could not rebind package because a module compile is already in progress.") );
-		bCanRebind = false;
-	}
-
-	if( bCanRebind )
-	{
-		struct Local
-		{
-			static void DoHotReload( bool bRecompileFinished, bool bRecompileSucceeded, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr )
-			{
-				if( bRecompileSucceeded )
-				{
-					FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
-					ErrorsFC.Errors.Empty();
-					ErrorsFC.Warnings.Empty();
-					// Rebind the hot reload DLL 
-					TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
-					TGuardValue<bool> GuardIsInitialLoad(GIsInitialLoad, true);
-					HotReloadFunctionRemap.Empty(); // redundant
-
-					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS); // we create a new CDO in the transient package...this needs to go away before we try again.
-
-					// Load the new modules up
-					bool bReloadSucceeded = false;
-					for( TArray<UPackage*>::TConstIterator CurPackageIt( Packages ); CurPackageIt; ++CurPackageIt )
-					{
-						UPackage* Package = *CurPackageIt;
-						FName ShortPackageName = FPackageName::GetShortFName(Package->GetFName());
-
-						// Abandon the old module.  We can't unload it because various data structures may be living
-						// that have vtables pointing to code that would become invalidated.
-						FModuleManager::Get().AbandonModule( ShortPackageName );
-
-						// Module should never be loaded at this point
-						check( !FModuleManager::Get().IsModuleLoaded( ShortPackageName ) );
-
-						// Load the newly-recompiled module up (it will actually have a different DLL file name at this point.)
-						FModuleManager::Get().LoadModule( ShortPackageName );
-						bReloadSucceeded = FModuleManager::Get().IsModuleLoaded( ShortPackageName );
-						if( !bReloadSucceeded )
-						{
-							HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, reload failed %s."),*Package->GetName());
-							break;
-						}
-					}
-					// Load dependent modules.
-					for( int32 Nx = 0; Nx < InDependentModules.Num(); ++Nx )
-					{
-						const FName ModuleName = InDependentModules[Nx];
-
-						FModuleManager::Get().UnloadOrAbandonModuleWithCallback( ModuleName, HotReloadAr );
-						const bool bLoaded = FModuleManager::Get().LoadModuleWithCallback( ModuleName, HotReloadAr );
-						if( !bLoaded )
-						{
-							HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Unable to reload module %s"), *ModuleName.GetPlainNameString());
-						}
-					}
-
-					if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
-					{
-						TArray<FString> All;
-						All = ErrorsFC.Errors;
-						All += ErrorsFC.Warnings;
-
-						ErrorsFC.Errors.Empty();
-						ErrorsFC.Warnings.Empty();
-
-						FString AllInOne;
-						for (int32 Index = 0; Index < All.Num(); Index++)
-						{
-							AllInOne += All[Index];
-							AllInOne += TEXT("\n");
-						}
-						HotReloadAr.Logf(ELogVerbosity::Warning, TEXT( "Some classes could not be reloaded:\n%s" ), *AllInOne );
-					}
-
-					if( bReloadSucceeded )
-					{
-						int32 Count = 0;
-						// Remap all native functions (and gather scriptstructs)
-						TArray<UScriptStruct*> ScriptStructs;
-						for ( FRawObjectIterator It; It; ++It )
-						{
-							if (UFunction* Function = Cast<UFunction>(*It))
-							{
-								if (Native NewFunction = HotReloadFunctionRemap.FindRef(Function->GetNativeFunc()))
-								{
-									Count++;
-									Function->SetNativeFunc(NewFunction);
-								}
-							}
-
-							if (UScriptStruct* ScriptStruct = Cast<UScriptStruct>(*It))
-							{
-								if (Packages.ContainsByPredicate([=](UPackage* Package) { return ScriptStruct->IsIn(Package); }) && ScriptStruct->GetCppStructOps())
-								{
-									ScriptStructs.Add(ScriptStruct);
-								}
-							}
-						}
-						// now let's set up the script structs...this relies on super behavior, so null them all, then set them all up. Internally this sets them up hierarchically.
-						for (int32 ScriptIndex = 0; ScriptIndex < ScriptStructs.Num(); ScriptIndex++)
-						{
-							ScriptStructs[ScriptIndex]->ClearCppStructOps();
-						}
-						for (int32 ScriptIndex = 0; ScriptIndex < ScriptStructs.Num(); ScriptIndex++)
-						{
-							ScriptStructs[ScriptIndex]->PrepareCppStructOps();
-							check(ScriptStructs[ScriptIndex]->GetCppStructOps());
-						}
-						HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), Count, ScriptStructs.Num() );
-
-						HotReloadFunctionRemap.Empty();
-					}
-				}
-				else if( bRecompileFinished )
-				{
-					HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, recompile failed") );
-				}
-			}
-		};
-
-
-		const double StartTime = FPlatformTime::Seconds();
-
-		TArray< FName > ModuleNames;
-		for( UPackage* Package : InPackages )
-		{
-			// Attempt to recompile this package's module
-			FName ShortPackageName =  FPackageName::GetShortFName(Package->GetFName());
-			ModuleNames.Add( ShortPackageName );
-		}
-
-		// Add dependent modules.
-		ModuleNames.Append( DependentModules );
-
-		// Start compiling modules
-		const bool bCompileStarted = FModuleManager::Get().RecompileModulesAsync(
-			ModuleNames,
-			FModuleManager::FRecompileModulesCallback::CreateStatic< TArray<UPackage*>, TArray<FName>, FOutputDevice& >( &Local::DoHotReload, InPackages, DependentModules, Ar ),
-			bWaitForCompletion,
-			Ar );
-
-		if( bCompileStarted )
-		{
-			if( bWaitForCompletion )
-			{
-				Ar.Logf(ELogVerbosity::Warning, TEXT("HotReload operation took %4.1fs."), float(FPlatformTime::Seconds() - StartTime) );
-			}
-			else
-			{
-				Ar.Logf(ELogVerbosity::Warning, TEXT("Starting HotReload took %4.1fs."), float(FPlatformTime::Seconds() - StartTime) );
-			}
-		}
-		else
-		{
-			Ar.Logf(ELogVerbosity::Warning, TEXT("RebindPackages failed because the compiler could not be started.") );
-		}
-	}
-	else
-#endif
-	{
-		Ar.Logf(ELogVerbosity::Warning, TEXT("RebindPackages not possible for specified packages (or application was compiled in monolithic mode.)") );
-	}
-}
-
 
 /*-----------------------------------------------------------------------------
    Command line.
@@ -2543,7 +2370,8 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_BlueprintCallable"),
 		TEXT("CPF_BlueprintAuthorityOnly"),
 		TEXT("CPF_TextExportTransient"),
-		TEXT("CPF_NonPIETransient"),
+		TEXT("CPF_NonPIEDuplicateTransient"),
+		TEXT("CPF_ExposeOnSpawn"),
 	};
 
 	for (const TCHAR* FlagName : PropertyFlags)

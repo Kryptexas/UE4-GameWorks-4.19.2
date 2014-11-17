@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessLensFlares.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates a simple copy pixel shader. */
 class FPostProcessLensFlareBasePS : public FGlobalShader
@@ -17,7 +18,7 @@ class FPostProcessLensFlareBasePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -61,7 +62,7 @@ class FPostProcessLensFlaresPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -112,7 +113,7 @@ FRCPassPostProcessLensFlares::FRCPassPostProcessLensFlares(float InSizeScale)
 
 void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(LensFlares, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, LensFlares, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* InputDesc2 = GetInputDesc(ePId_Input1);
@@ -153,16 +154,16 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
 	{
-		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		VertexShader->SetParameters(Context);
 		PixelShader->SetParameters(Context);
@@ -185,11 +186,11 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 
 	// add lens flares on top of that
 	{
-		TShaderMapRef<FPostProcessLensFlaresPS> PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessLensFlaresPS> PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		FVector2D TexScaleValue = FVector2D(TexSize2) / ViewSize2;
 

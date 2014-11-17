@@ -33,8 +33,25 @@
 #endif
 #endif
 
+//FScriptName
 #ifndef XFERNAME
-	#define XFERNAME() XFER(FName)
+	#define XFERNAME() \
+	{ \
+   	    FName Name; \
+		FScriptName ScriptName; \
+        if (!Ar.IsLoading()) \
+		{ \
+			FMemory::Memcpy( &ScriptName, &Script[iCode], sizeof(FScriptName) ); \
+			Name = ScriptNameToName(ScriptName); \
+		} \
+		Ar << Name; \
+		if (!Ar.IsSaving()) \
+		{ \
+			ScriptName = NameToScriptName(Name); \
+			FMemory::Memcpy( &Script[iCode], &ScriptName, sizeof(FScriptName) ); \
+		} \
+		iCode += sizeof(FScriptName); \
+	}
 #endif	//XFERNAME
 
 #ifndef XFERPTR 

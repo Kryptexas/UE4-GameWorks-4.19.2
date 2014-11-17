@@ -15,20 +15,16 @@ class FLauncherUATTask
 {
 public:
 
-	/**
-	 * Creates and initializes a new instance.
-	 *
-	 * @param InCommand - the command used for the task
-	 * @param InTargetPlatform - the target platform for the task
-	 * @param InName - The name of the task.
-	 */
-	FLauncherUATTask( const TSharedPtr<FLauncherUATCommand>& InCommand, const ITargetPlatform& InTargetPlatform, const FString& InName, void* InReadPipe, void* InWritePipe, const FString& InEditorExe )
-		: FLauncherTask(InName, InCommand->GetDesc(), InReadPipe, InWritePipe)
-		, TaskCommand(InCommand)
-		, TargetPlatform(InTargetPlatform)
+	FLauncherUATTask( const FString& InCommandLine, const FString& InName, const FString& InDesc, void* InReadPipe, void* InWritePipe, const FString& InEditorExe, FProcHandle& InProcessHandle, ILauncherWorker* InWorker, const FString& InCommandEnd)
+		: FLauncherTask(InName, InDesc, InReadPipe, InWritePipe)
+		, CommandLine(InCommandLine)
 		, EditorExe(InEditorExe)
+		, ProcessHandle(InProcessHandle)
+		, CommandText(InCommandEnd)
 	{
 		NoCompile = TEXT(" -nocompile");
+		EndTextFound = false;
+		InWorker->OnOutputReceived().AddRaw(this, &FLauncherUATTask::HandleOutputReceived);
 	}
 
 	static bool FirstTimeCompile;
@@ -60,31 +56,6 @@ protected:
 		FString Executable = TEXT("RunUAT.bat");
 #endif
 
-		const PlatformInfo::FPlatformInfo& PlatformInfo = TargetPlatform.GetPlatformInfo();
-
-		// switch server and no editor platforms to the proper type
-		FName PlatformName = PlatformInfo.TargetPlatformName;
-		if (PlatformName == FName("LinuxServer") || PlatformName == FName("LinuxNoEditor"))
-		{
-			PlatformName = FName("Linux");
-		}
-		else if (PlatformName == FName("WindowsServer") || PlatformName == FName("WindowsNoEditor") || PlatformName == FName("Windows"))
-		{
-			PlatformName = FName("Win64");
-		}
-        else if (PlatformName == FName("MacNoEditor"))
-        {
-            PlatformName = FName("Mac");
-        }
-
-		// Append any extra UAT flags specified for this platform flavor
-		FString OptionalParams;
-		if (!PlatformInfo.UATCommandLine.IsEmpty())
-		{
-			OptionalParams += TEXT(" ");
-			OptionalParams += PlatformInfo.UATCommandLine;
-		}
-
         // check for rocket
         FString Rocket;
         if ( FRocketSupport::IsRocket() )
@@ -93,39 +64,32 @@ protected:
         }
         
 		// base UAT command arguments
-		FString CommandLine;
+		FString UATCommandLine;
 		FString ProjectPath = *ChainState.Profile->GetProjectPath();
 		ProjectPath = FPaths::ConvertRelativePathToFull(ProjectPath);
-		CommandLine = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -noP4 -platform=%s -clientconfig=%s -serverconfig=%s"),
+		UATCommandLine = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -noP4 -clientconfig=%s -serverconfig=%s"),
 			*ProjectPath,
-			*PlatformName.ToString(),
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()],
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()]);
 
-		CommandLine += NoCompile;
-        CommandLine += Rocket;
-		CommandLine += OptionalParams;
+		UATCommandLine += NoCompile;
+        UATCommandLine += Rocket;
 
 		// specify the path to the editor exe if necessary
 		if(EditorExe.Len() > 0)
 		{
-			CommandLine += FString::Printf(TEXT(" -ue4exe=\"%s\""), *EditorExe);
+			UATCommandLine += FString::Printf(TEXT(" -ue4exe=\"%s\""), *EditorExe);
 		}
 
 		// specialized command arguments for this particular task
-		CommandLine += TaskCommand->GetArguments(ChainState);
-
-		// pre-execute any command
-		if (!TaskCommand->PreExecute(ChainState))
-		{
-			return false;
-		}
+		UATCommandLine += CommandLine;
 
 		// launch UAT and monitor its progress
-		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*(ExecutablePath / Executable), *CommandLine, false, true, true, NULL, 0, *ExecutablePath, WritePipe);
+		ProcessHandle = FPlatformProcess::CreateProc(*(ExecutablePath / Executable), *UATCommandLine, false, true, true, NULL, 0, *ExecutablePath, WritePipe);
 
-		while (!TaskCommand->IsComplete() || FPlatformProcess::IsProcRunning(ProcessHandle))
+		while (FPlatformProcess::IsProcRunning(ProcessHandle) && !EndTextFound)
 		{
+
 			if (GetStatus() == ELauncherTaskStatus::Canceling)
 			{
 				FPlatformProcess::TerminateProc(ProcessHandle, true);
@@ -135,12 +99,7 @@ protected:
 			FPlatformProcess::Sleep(0.25);
 		}
 
-		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &Result))
-		{
-			return false;
-		}
-
-		if (!TaskCommand->PostExecute(ChainState))
+		if (!EndTextFound && !FPlatformProcess::GetProcReturnCode(ProcessHandle, &Result))
 		{
 			return false;
 		}
@@ -148,17 +107,28 @@ protected:
 		return (Result == 0);
 	}
 
+	void HandleOutputReceived(const FString& InMessage)
+	{
+		EndTextFound |= InMessage.Contains(CommandText);
+	}
+
 private:
 
-	// command for this task
-	const TSharedPtr<FLauncherUATCommand> TaskCommand;
-
-	// Holds a pointer to the target platform.
-	const ITargetPlatform& TargetPlatform;
+	// Command line
+	FString CommandLine;
 
 	// Holds the no compile flag
 	FString NoCompile;
 
 	// The editor executable that UAT should use
 	FString EditorExe;
+
+	// process handle
+	FProcHandle& ProcessHandle;
+
+	// The editor executable that UAT should use
+	FString CommandText;
+
+	bool EndTextFound;
 };
+

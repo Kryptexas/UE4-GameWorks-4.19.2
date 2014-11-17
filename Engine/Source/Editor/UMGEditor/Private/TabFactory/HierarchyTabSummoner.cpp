@@ -14,7 +14,7 @@ FHierarchyTabSummoner::FHierarchyTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("SlateHierarchyTabLabel", "Hierarchy");
-	//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FEditorStyle::Get().GetBrush("Kismet.Tabs.Palette");
 
 	bIsSingleton = true;
 
@@ -26,10 +26,8 @@ TSharedRef<SWidget> FHierarchyTabSummoner::CreateTabBody(const FWorkflowTabSpawn
 {
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
-	return SNew(STutorialWrapper, TEXT("Hierarchy"))
-		[
-			SNew(SHierarchyView, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
-		];
+	return SNew(SHierarchyView, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Hierarchy")));
 }
 
 #undef LOCTEXT_NAMESPACE 

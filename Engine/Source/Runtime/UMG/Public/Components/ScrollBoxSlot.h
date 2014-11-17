@@ -11,29 +11,35 @@ UCLASS()
 class UMG_API UScrollBoxSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 	
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (ScrollBox Slot)")
 	FMargin Padding;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, Category="Layout (ScrollBox Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+public:
+
+	UFUNCTION(BlueprintCallable, Category="Layout (ScrollBox Slot)")
 	void SetPadding(FMargin InPadding);
 
-	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UFUNCTION(BlueprintCallable, Category="Layout (ScrollBox Slot)")
 	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
 
+public:
+
 	// UPanelSlot interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SScrollBox> ScrollBox);
 
-	virtual void ReleaseNativeWidget() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 private:
 	//TODO UMG Slots should hold weak or shared refs to slots.

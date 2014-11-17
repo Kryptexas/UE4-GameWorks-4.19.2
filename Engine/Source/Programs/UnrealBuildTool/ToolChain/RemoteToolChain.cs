@@ -195,7 +195,7 @@ namespace UnrealBuildTool
 				return InitializationErrorCode;
 			}
 
-            if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
             {
             	// If we don't care which machine we're going to build on, query and
             	// pick the one with the most free command slots available
@@ -354,7 +354,7 @@ namespace UnrealBuildTool
         /** Converts the passed in path from UBT host to compiler native format. */
         public override String ConvertPath(String OriginalPath)
         {
-            if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
             {
 				if (OriginalPath[1] != ':')
 				{
@@ -380,7 +380,7 @@ namespace UnrealBuildTool
 
 		protected string GetMacDevSrcRoot()
 		{
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				// figure out the remote version of Engine/Source
 				return ConvertPath(Path.GetFullPath(Path.Combine(BranchDirectory, "Engine/Source/")));
@@ -462,9 +462,9 @@ namespace UnrealBuildTool
             }
         }
 
-		public override void PostCodeGeneration(UEBuildTarget Target, UHTManifest Manifest)
+		public override void PostCodeGeneration(UHTManifest Manifest)
 		{
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				// @todo UHT: Temporary workaround for UBT no longer being able to follow includes from generated headers unless
 				//  the headers already existed before the build started.  We're working on a proper fix.
@@ -478,7 +478,7 @@ namespace UnrealBuildTool
 					// @todo uht: Ideally would only copy exactly the files emitted by UnrealHeaderTool, rather than scanning directory (could copy stale files; not a big deal though)
 					try
 					{
-						var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UObjectModule.BaseDirectory, UObjectModule.Name);
+						var GeneratedCodeDirectory = Path.GetDirectoryName( UObjectModule.GeneratedCPPFilenameBase );
 						var GeneratedCodeFiles     = Directory.GetFiles( GeneratedCodeDirectory, "*", SearchOption.AllDirectories );
 						foreach( var GeneratedCodeFile in GeneratedCodeFiles )
 						{
@@ -549,7 +549,7 @@ namespace UnrealBuildTool
 		public override void PreBuildSync()
         {
 			// no need to sync on the Mac!
-			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				return;
 			}
@@ -789,7 +789,7 @@ namespace UnrealBuildTool
 
 		static public Double GetAdjustedProcessorCountMultiplier()
 		{
-            if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
             {
                 Int32 RemoteCPUCount = RPCUtilHelper.GetCommandSlots();
                 if (RemoteCPUCount == 0)

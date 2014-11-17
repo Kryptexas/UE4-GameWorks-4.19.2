@@ -96,7 +96,7 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
  * @param Ptr	Unaligned memory pointer to the 3 FLOATs
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], undefined)
  */
-#define VectorLoadFloat3( Ptr )		DirectX::XMLoadFloat4( (const DirectX::XMFLOAT4*)(Ptr) )	
+#define VectorLoadFloat3( Ptr )			MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 0.0f )
 
 
 /**
@@ -105,7 +105,7 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
  * @param Ptr	Unaligned memory pointer to the 3 FLOATs
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], 0.0f)
  */
-#define VectorLoadFloat3_W0( Ptr )		DirectX::XMVectorAndInt( VectorLoadFloat3( Ptr ), DirectX::g_XMMask3 )
+#define VectorLoadFloat3_W0( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 0.0f )
 
 
 /**
@@ -114,8 +114,8 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
  * @param Ptr	Unaligned memory pointer to the 3 FLOATs
  * @return		VectorRegister(Ptr[0], Ptr[1], Ptr[2], 1.0f)
  */
-#define VectorLoadFloat3_W1( Ptr )		DirectX::XMVectorPermute<0,1,2,7>( VectorLoadFloat3( Ptr ), VectorOne() )
-	
+#define VectorLoadFloat3_W1( Ptr )		MakeVectorRegister( ((const float*)(Ptr))[0], ((const float*)(Ptr))[1], ((const float*)(Ptr))[2], 1.0f )
+
 /**
  * Loads 4 FLOATs from aligned memory.
  *
@@ -193,7 +193,33 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
  */
 #define VectorStoreFloat1( Vec, Ptr )	DirectX::XMStoreFloat((float*)(Ptr), Vec )
  
+
 /**
+ * Returns an component from a vector.
+ *
+ * @param Vec				Vector register
+ * @param ComponentIndex	Which component to get, X=0, Y=1, Z=2, W=3
+ * @return					The component as a float
+ */
+FORCEINLINE float VectorGetComponent( VectorRegister Vec, uint32 ComponentIndex )
+{
+	switch (ComponentIndex)
+	{
+	case 0:
+		return DirectX::XMVectorGetX(Vec);
+	case 1:
+		return DirectX::XMVectorGetY(Vec);
+	case 2:
+		return DirectX::XMVectorGetZ(Vec);
+	case 3:
+		return DirectX::XMVectorGetW(Vec);
+	}
+
+	return 0.0f;
+}
+
+
+ /**
  * Replicates one element into all four elements and returns the new vector.
  *
  * @param Vec			Source vector

@@ -51,8 +51,35 @@ static const uint16 IgnoredGamepadKeyCodesList[] =
 	AKEYCODE_VOLUME_DOWN
 };
 
+// List of desired gamepad keycodes
+static const uint16 ValidGamepadKeyCodesList[] =
+{
+	AKEYCODE_BUTTON_A,
+	AKEYCODE_DPAD_CENTER,
+	AKEYCODE_BUTTON_B,
+	AKEYCODE_BUTTON_X,
+	AKEYCODE_BUTTON_Y,
+	AKEYCODE_BUTTON_L1,
+	AKEYCODE_BUTTON_R1,
+	AKEYCODE_BUTTON_START,
+	AKEYCODE_MENU,
+	AKEYCODE_BUTTON_SELECT,
+	AKEYCODE_BACK,
+	AKEYCODE_BUTTON_THUMBL,
+	AKEYCODE_BUTTON_THUMBR,
+	AKEYCODE_BUTTON_L2,
+	AKEYCODE_BUTTON_R2,
+	AKEYCODE_DPAD_UP,
+	AKEYCODE_DPAD_DOWN,
+	AKEYCODE_DPAD_LEFT,
+	AKEYCODE_DPAD_RIGHT
+};
+
 // map of gamepad keycodes that should be ignored
 static TSet<uint16> IgnoredGamepadKeyCodes;
+
+// map of gamepad keycodes that should be passed forward
+static TSet<uint16> ValidGamepadKeyCodes;
 
 // -nostdlib means no crtbegin_so.o, so we have to provide our own __dso_handle and atexit()
 extern "C"
@@ -261,6 +288,12 @@ int32 AndroidMain(struct android_app* state)
 		IgnoredGamepadKeyCodes.Add(IgnoredGamepadKeyCodesList[i]);
 	}
 
+	const int ValidGamepadKeyCodeCount = sizeof(ValidGamepadKeyCodesList)/sizeof(uint16);
+	for (int i = 0; i < ValidGamepadKeyCodeCount; ++i)
+	{
+		ValidGamepadKeyCodes.Add(ValidGamepadKeyCodesList[i]);
+	}
+
 	// wait for java activity onCreate to finish
 	while (!GResumeMainInit)
 	{
@@ -289,13 +322,6 @@ int32 AndroidMain(struct android_app* state)
 	GEngineLoop.Init();
 
 	UE_LOG(LogAndroid, Log, TEXT("Passed GEngineLoop.Init()"));
-
-	// Hack to initialize Google Play if enabled until we get the full subsystem online.
-	// GConfig should be valid here.
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GooglePlayConnect);
-	}
 
 	// tick until done
 	while (!GIsRequestingExit)
@@ -372,7 +398,7 @@ static void* AndroidEventThreadWorker( void* param )
 	//continue to process events until the engine is shutting down
 	while (!GIsRequestingExit)
 	{
-		FPlatformMisc::LowLevelOutputDebugString(L"AndroidEventThreadWorker");
+//		FPlatformMisc::LowLevelOutputDebugString(L"AndroidEventThreadWorker");
 
 		AndroidProcessEvents(state);
 
@@ -404,9 +430,14 @@ static void AndroidProcessEvents(struct android_app* state)
 
 pthread_t G_AndroidEventThread;
 
+struct android_app* GNativeAndroidApp = NULL;
+
 void android_main(struct android_app* state)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"Entering native app glue main function");
+	
+	GNativeAndroidApp = state;
+	check(GNativeAndroidApp);
 
 	pthread_attr_t otherAttr; 
 	pthread_attr_init(&otherAttr);
@@ -564,7 +595,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 		FPlatformMisc::LowLevelOutputDebugStringf(L"Received keycode: %d", keyCode);
 
 		//Trap Joystick events first, with fallthrough if there is no joystick support
-		if (((AInputEvent_getSource(event) & (AINPUT_SOURCE_GAMEPAD | AINPUT_SOURCE_DPAD)) != 0) && (GetAxes != NULL))
+		if (((AInputEvent_getSource(event) & (AINPUT_SOURCE_GAMEPAD | AINPUT_SOURCE_DPAD)) != 0) && (GetAxes != NULL) && ValidGamepadKeyCodes.Contains(keyCode))
 		{
 			if (IgnoredGamepadKeyCodes.Contains(keyCode))
 			{
@@ -591,6 +622,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			Message.messageType = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? MessageType_KeyUp : MessageType_KeyDown; 
 			Message.KeyEventData.unichar = keyCode;
 			Message.KeyEventData.keyId = keyCode;
+			Message.KeyEventData.modifier = AKeyEvent_getMetaState(event);
 			Message.KeyEventData.isRepeat = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_MULTIPLE;
 			FAndroidInputInterface::DeferMessage(Message);
 		}
@@ -920,7 +952,7 @@ extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnable
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel )
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel, jstring osLanguage )
 {
 	const char *javaAndroidVersion = jenv->GetStringUTFChars(androidVersion, 0 );
 	FString UEAndroidVersion = FString(UTF8_TO_TCHAR( javaAndroidVersion ));
@@ -931,5 +963,8 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInfor
 	const char *javaPhoneModel = jenv->GetStringUTFChars(phoneModel, 0 );
 	FString UEPhoneModel = FString(UTF8_TO_TCHAR( javaPhoneModel ));
 
-	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel );
+	const char *javaOSLanguage = jenv->GetStringUTFChars(osLanguage, 0);
+	FString UEOSLanguage = FString(UTF8_TO_TCHAR(javaOSLanguage));
+
+	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel, UEOSLanguage );
 }

@@ -142,7 +142,7 @@ namespace BlueprintSearchMetaDataHelpers
 
 	protected:
 		TJsonFindInBlueprintStringWriter( FString* const InOutString )
-			: TJsonStringWriter<PrintPolicy>( InOutString )
+			: TJsonStringWriter<PrintPolicy>( InOutString, 0 )
 		{
 		}
 

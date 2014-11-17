@@ -433,6 +433,13 @@ void FSimpleLinkNavModifier::AddSegmentLink(const FNavigationSegmentLink& InLink
 //----------------------------------------------------------------------//
 // FCompositeNavMeshModifier
 //----------------------------------------------------------------------//
+void FCompositeNavModifier::Shrink()
+{
+	Areas.Shrink();
+	SimpleLinks.Shrink();
+	CustomLinks.Shrink();
+}
+
 void FCompositeNavModifier::Reset()
 {
 	Areas.Reset();
@@ -463,9 +470,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 		return Result;
 	}
 
-	const AActor* ActorOwner = Cast<UNavigationProxy>(ObjectOwner) ? ((UNavigationProxy*)ObjectOwner)->MyOwner :
-		Cast<AActor>(ObjectOwner) ? (AActor*)ObjectOwner : Cast<AActor>(ObjectOwner->GetOuter());
-
+	const AActor* ActorOwner = Cast<AActor>(ObjectOwner) ? (AActor*)ObjectOwner : Cast<AActor>(ObjectOwner->GetOuter());
 	if (ActorOwner == NULL)
 	{
 		return Result;

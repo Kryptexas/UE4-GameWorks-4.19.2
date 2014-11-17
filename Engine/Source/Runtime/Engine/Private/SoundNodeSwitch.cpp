@@ -5,7 +5,7 @@
 #include "SoundDefinitions.h"
 #include "Sound/SoundNodeSwitch.h"
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
 

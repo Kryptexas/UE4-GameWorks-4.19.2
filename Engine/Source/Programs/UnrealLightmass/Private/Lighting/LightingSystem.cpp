@@ -2086,7 +2086,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 
 		{
 			const float InvDistanceRange = 1.0f / (LightSpaceImportanceBounds.Max.Z - LightSpaceImportanceBounds.Min.Z);
-			const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.Inverse();
+			const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.InverseFast();
 
 			for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)
 			{
@@ -2177,7 +2177,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 
 		// Calculate the maximum possible distance for quantization
 		const float MaxPossibleDistance = LightSpaceImportanceBoundMax.Z - LightSpaceImportanceBoundMin.Z;
-		const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.Inverse();
+		const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.InverseFast();
 		const FBoxSphereBounds ImportanceVolume = GetImportanceBounds().SphereRadius > 0.0f ? GetImportanceBounds() : FBoxSphereBounds(AggregateMesh.GetBounds());
 
 		for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)
@@ -2521,12 +2521,6 @@ FGatheredLightSample FStaticLightingSystem::CalculatePointLighting(
 
 		// Compute the incident lighting of the light on the vertex.
 		const FLinearColor LightIntensity = InLightIntensity * InTransmission;
-
-		// Figure out the tangent space normal of this point on the mapping's surface.  This normal is used
-		// when computing lighting for simple light maps.
-		const FVector4 TangentNormal = MaterialSettings.bUseNormalMapsForSimpleLightMaps ?
-			Mapping->Mesh->EvaluateNormal(Vertex.TextureCoordinates[0], ElementIndex) :
-			FVector4( 0.0f, 0.0f, 1.0f, 0.0f );
 
 		// Compute the light-map sample for the front-face of the vertex.
 		FGatheredLightSample FrontFaceSample = FGatheredLightSample::PointLightWorldSpace(LightIntensity, TangentLightVector, WorldLightVector.SafeNormal());

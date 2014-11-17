@@ -4,10 +4,13 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
+SAssetPicker::~SAssetPicker()
+{
+	SaveSettings();
+}
+
 void SAssetPicker::Construct( const FArguments& InArgs )
 {
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
-
 	BindCommands();
 
 	OnAssetsActivated = InArgs._AssetPickerConfig.OnAssetsActivated;
@@ -16,6 +19,8 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	OnAssetEnterPressed = InArgs._AssetPickerConfig.OnAssetEnterPressed;
 	bPendingFocusNextFrame = InArgs._AssetPickerConfig.bFocusSearchBoxWhenOpened;
 	DefaultFilterMenuExpansion = InArgs._AssetPickerConfig.DefaultFilterMenuExpansion;
+	SaveSettingsName = InArgs._AssetPickerConfig.SaveSettingsName;
+	OnFolderEnteredDelegate = InArgs._AssetPickerConfig.OnFolderEntered;
 
 	for (auto DelegateIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
 	{
@@ -51,11 +56,13 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	TAttribute< FText > HighlightText;
 	EThumbnailLabel::Type ThumbnailLabel = InArgs._AssetPickerConfig.ThumbnailLabel;
 
+	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
+
 	// Search box
 	if (!InArgs._AssetPickerConfig.bAutohideSearchBar)
 	{
 		TextFilter = MakeShareable( new FFrontendFilter_Text() );
-		FrontendFilters->Add( TextFilter );
+		TextFilter->SetIncludeClassName(InArgs._AssetPickerConfig.Filter.ClassNames.Num() != 1);
 		HighlightText = TAttribute< FText >( this, &SAssetPicker::GetHighlightedText );
 
 		OtherDevelopersFilter = MakeShareable( new FFrontendFilter_ShowOtherDevelopers(nullptr) );
@@ -69,20 +76,18 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			HorizontalBox->AddSlot()
 			.AutoWidth()
 			[
-				SNew( STutorialWrapper, TEXT("ContentBrowserFiltersCombo") )
+				SNew( SComboButton )
+				.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+				.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
+				.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
+				.HasDownArrow( true )
+				.ContentPadding( FMargin( 1, 0 ) )
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserFiltersCombo")))
+				.ButtonContent()
 				[
-					SNew( SComboButton )
-					.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
-					.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
-					.OnGetMenuContent( this, &SAssetPicker::MakeAddFilterMenu )
-					.HasDownArrow( true )
-					.ContentPadding( FMargin( 1, 0 ) )
-					.ButtonContent()
-					[
-						SNew( STextBlock )
-						.TextStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Text" )
-						.Text( LOCTEXT( "Filters", "Filters" ) )
-					]
+					SNew( STextBlock )
+					.TextStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Text" )
+					.Text( LOCTEXT( "Filters", "Filters" ) )
 				]
 			];
 		}
@@ -206,8 +211,8 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.OnAssetTagWantsToBeDisplayed(InArgs._AssetPickerConfig.OnAssetTagWantsToBeDisplayed)
 		.AllowDragging( InArgs._AssetPickerConfig.bAllowDragging )
 		.CanShowClasses( InArgs._AssetPickerConfig.bCanShowClasses )
-		.CanShowFolders( false )
-		.CanShowOnlyAssetsInSelectedFolders( InArgs._AssetPickerConfig.bCanShowOnlyAssetsInSelectedFolders )
+		.CanShowFolders( InArgs._AssetPickerConfig.bCanShowFolders )
+		.FilterRecursivelyWithBackendFilter( false )
 		.CanShowRealTimeThumbnails( InArgs._AssetPickerConfig.bCanShowRealTimeThumbnails )
 		.CanShowDevelopersFolder( InArgs._AssetPickerConfig.bCanShowDevelopersFolder )
 		.PreloadAssetsForContextMenu( InArgs._AssetPickerConfig.bPreloadAssetsForContextMenu )
@@ -215,7 +220,10 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.ThumbnailLabel( ThumbnailLabel )
 		.AssetShowWarningText( InArgs._AssetPickerConfig.AssetShowWarningText)
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
+		.OnPathSelected(this, &SAssetPicker::FolderEntered)
 	];
+
+	LoadSettings();
 
 	AssetViewPtr->RequestSlowFullListRefresh();
 }
@@ -269,19 +277,47 @@ FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent
 	return FReply::Unhandled();
 }
 
+void SAssetPicker::FolderEntered(const FString& FolderPath)
+{
+	CurrentSourcesData.PackagePaths.Empty();
+	CurrentSourcesData.PackagePaths.Add(FName(*FolderPath));
+
+	AssetViewPtr->SetSourcesData(CurrentSourcesData);
+
+	OnFolderEnteredDelegate.ExecuteIfBound(FolderPath);
+}
+
 FText SAssetPicker::GetHighlightedText() const
 {
 	return TextFilter->GetRawFilterText();
 }
 
+void SAssetPicker::SetSearchBoxText(const FText& InSearchText)
+{
+	if ( !InSearchText.EqualToCaseIgnored(TextFilter->GetRawFilterText()) )
+	{
+		TextFilter->SetRawFilterText(InSearchText);
+		if (InSearchText.IsEmpty())
+		{
+			FrontendFilters->Remove(TextFilter);
+			AssetViewPtr->SetUserSearching(false);
+		}
+		else
+		{
+			FrontendFilters->Add(TextFilter);
+			AssetViewPtr->SetUserSearching(true);
+		}
+	}
+}
+
 void SAssetPicker::OnSearchBoxChanged(const FText& InSearchText)
 {
-	TextFilter->SetRawFilterText( InSearchText );
+	SetSearchBoxText( InSearchText );
 }
 
 void SAssetPicker::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo)
 {
-	TextFilter->SetRawFilterText( InSearchText );
+	SetSearchBoxText( InSearchText );
 
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
@@ -302,6 +338,9 @@ void SAssetPicker::SetNewBackendFilter(const FARFilter& NewFilter)
 
 	CurrentBackendFilter = NewFilter;
 	CurrentBackendFilter.PackagePaths.Empty();
+
+	// Update the Text filter too, since now class names may no longer matter
+	TextFilter->SetIncludeClassName(NewFilter.ClassNames.Num() != 1);
 	
 	OnFilterChanged();
 }
@@ -327,6 +366,10 @@ void SAssetPicker::OnFilterChanged()
 FReply SAssetPicker::OnNoneButtonClicked()
 {
 	OnAssetSelected.ExecuteIfBound(FAssetData());
+	if (AssetViewPtr.IsValid())
+	{
+		AssetViewPtr->ClearSelection(true);
+	}
 	return FReply::Handled();
 }
 
@@ -417,6 +460,38 @@ void SAssetPicker::BindCommands()
 		FExecuteAction::CreateSP( this, &SAssetPicker::OnRenameRequested ),
 		FCanExecuteAction::CreateSP( this, &SAssetPicker::CanExecuteRenameRequested )
 		));
+}
+
+void SAssetPicker::LoadSettings()
+{
+	const FString& SettingsString = SaveSettingsName;
+
+	if ( !SettingsString.IsEmpty() )
+	{
+		// Load all our data using the settings string as a key in the user settings ini
+		if (FilterListPtr.IsValid())
+		{
+			FilterListPtr->LoadSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+		}
+		
+		AssetViewPtr->LoadSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+	}
+}
+
+void SAssetPicker::SaveSettings() const
+{
+	const FString& SettingsString = SaveSettingsName;
+
+	if ( !SettingsString.IsEmpty() )
+	{
+		// Save all our data using the settings string as a key in the user settings ini
+		if (FilterListPtr.IsValid())
+		{
+			FilterListPtr->SaveSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+		}
+
+		AssetViewPtr->SaveSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

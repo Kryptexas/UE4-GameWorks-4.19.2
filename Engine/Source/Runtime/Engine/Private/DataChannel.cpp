@@ -5,10 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
-
-#include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
+#include "Net/DataReplication.h"
+#include "Net/NetworkProfiler.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/ControlChannel.h"
 
@@ -1998,8 +1998,20 @@ void UActorChannel::BeginContentBlock( UObject * Obj, FOutBunch &Bunch )
 	Bunch << Obj;
 	NET_CHECKSUM(Bunch);
 
-	UClass *ObjClass = Obj->GetClass();
-	Bunch << ObjClass;
+	if ( Connection->Driver->IsServer() )
+	{
+		// Only the server can tell clients to create objects, so no need for the client to send this to the server
+		if ( Obj->IsNameStableForNetworking() )
+		{
+			Bunch.WriteBit( 1 );
+		}
+		else
+		{
+			Bunch.WriteBit( 0 );
+			UClass *ObjClass = Obj->GetClass();
+			Bunch << ObjClass;
+		}
+	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (CVarDoReplicationContextString->GetInt() > 0)
@@ -2011,6 +2023,8 @@ void UActorChannel::BeginContentBlock( UObject * Obj, FOutBunch &Bunch )
 
 void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete )
 {
+	check( Connection->Driver->IsServer() );
+
 	// Send a 0 bit to signify we are dealing with sub-objects
 	Bunch.WriteBit( 0 );
 
@@ -2019,6 +2033,9 @@ void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNet
 	//	-Deleted object's NetGUID
 	Bunch << GuidToDelete;
 	NET_CHECKSUM(Bunch);
+
+	// Send a 0 bit to indicate that this is not a stably named object
+	Bunch.WriteBit( 0 );
 
 	//	-Invalid NetGUID (interpreted as delete)
 	FNetworkGUID InvalidNetGUID;
@@ -2040,7 +2057,7 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCa
 
 UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 {
-	const bool IsServer = ( Connection->Driver->ServerConnection == NULL );
+	const bool IsServer = Connection->Driver->IsServer();
 
 	if ( Bunch.ReadBit() )
 	{
@@ -2094,11 +2111,31 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 			return NULL;
 		}
 	}
-	else if ( IsServer )
+
+	if ( IsServer )
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Client attempted to create sub-object. Actor: %s" ), *Actor->GetName() );
-		Bunch.SetError();
-		return NULL;
+		// The server should never need to create sub objects
+		if ( SubObj == NULL )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Client attempted to create sub-object. Actor: %s" ), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
+
+		return SubObj;
+	}
+
+	if ( Bunch.ReadBit() )
+	{
+		// If this is a stably named sub-object, we shouldn't need to create it
+		if ( SubObj == NULL )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Stably named sub-object not found. Actor: %s" ), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
+
+		return SubObj;
 	}
 
 	// Serialize the class in case we have to spawn it.
@@ -2110,13 +2147,6 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 	// Delete sub-object
 	if ( !ClassNetGUID.IsValid() )
 	{
-		if ( IsServer )
-		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Client attempted to delete sub-object. Actor: %s" ), *Actor->GetName() );
-			Bunch.SetError();
-			return NULL;
-		}
-
 		if ( SubObj )
 		{
 			Actor->OnSubobjectDestroyFromReplication( SubObj );
@@ -2127,26 +2157,33 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 
 	UClass * SubObjClass = Cast< UClass >( SubObjClassObj );
 
-	// Valid NetGUID but no class was resolved - this is an error
 	if ( SubObjClass == NULL )
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Unable to read sub-object class. Actor: %s" ), *Actor->GetName() );
-		Bunch.SetError();
-		return NULL;
-	}
+		UE_LOG( LogNetTraffic, Warning, TEXT( "UActorChannel::ReadContentBlockHeader: Unable to read sub-object class. Actor: %s" ), *Actor->GetName() );
 
-	if ( SubObjClass == UObject::StaticClass() )
-	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: SubObjClass == UObject::StaticClass(). Actor: %s" ), *Actor->GetName() );
-		Bunch.SetError();
-		return NULL;
+		// Valid NetGUID but no class was resolved - this is an error
+		if ( SubObj == NULL )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Unable to read sub-object class (SubObj == NULL). Actor: %s" ), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
 	}
-
-	if ( SubObjClass->IsChildOf( AActor::StaticClass() ) )
+	else
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object cannot be actor class. Actor: %s" ), *Actor->GetName() );
-		Bunch.SetError();
-		return NULL;
+		if ( SubObjClass == UObject::StaticClass() )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: SubObjClass == UObject::StaticClass(). Actor: %s" ), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
+
+		if ( SubObjClass->IsChildOf( AActor::StaticClass() ) )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object cannot be actor class. Actor: %s" ), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
 	}
 
 	if ( SubObj == NULL )
@@ -2159,6 +2196,8 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 		Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, SubObj );
 	}
 
+	// Sanity check one last time
+	check( SubObj != NULL );
 	check( Cast< AActor >( SubObj ) == NULL );
 
 	if ( !SubObj->IsIn( Actor ) )

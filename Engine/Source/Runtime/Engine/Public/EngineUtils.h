@@ -7,6 +7,7 @@
 #ifndef _INC_ENGINE_UTILS
 #define _INC_ENGINE_UTILS
 
+#include "Engine/Brush.h"
 #include "Engine/Level.h"
 #include "GameFramework/WorldSettings.h"
 #include "HitProxies.h"
@@ -288,7 +289,7 @@ struct FTickableLevelFilter
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return !Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel;
+		return Level->bIsVisible;
 	}
 };
 

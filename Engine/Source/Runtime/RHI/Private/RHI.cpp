@@ -70,12 +70,15 @@ bool FRHIResource::Bypass()
 }
 #endif
 
+DECLARE_CYCLE_STAT(TEXT("Delete Resources"), STAT_DeleteResources, STATGROUP_RHICMDLIST);
+
 void FRHIResource::FlushPendingDeletes()
 {
-	check(IsInRenderingThread());
-	FRHICommandListExecutor::GetImmediateCommandList().Flush();
-	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+	SCOPE_CYCLE_COUNTER(STAT_DeleteResources);
 
+	check(IsInRenderingThread());
+	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 	while (1)
 	{
 		TArray<FRHIResource*> ToDelete;
@@ -115,14 +118,16 @@ static TAutoConsoleVariable<int32> ResourceTableCachingCvar(
 	TEXT("If 1, the RHI will cache resource table contents within a frame. Otherwise resource tables are rebuilt for every draw call.")
 	);
 static TAutoConsoleVariable<int32> GSaveScreenshotAfterProfilingGPUCVar(
-	TEXT("RHI.SaveScreenshotAfterProfilingGPU"),
+	TEXT("r.ProfileGPU.Screenshot"),
 	1,
-	TEXT("Whether a screenshot should be taken when profiling the GPU."),
+	TEXT("Whether a screenshot should be taken when profiling the GPU. 0:off, 1:on (default)"),
 	ECVF_RenderThreadSafe);
 static TAutoConsoleVariable<int32> GShowProfilerAfterProfilingGPUCVar(
-	TEXT("RHI.ShowProfilerAfterProfilingGPU"),
+	TEXT("r.ProfileGPU.ShowUI"),
 	1,
-	TEXT("Whether the profiler should be displayed after profiling the GPU."),
+	TEXT("Whether the user interface profiler should be displayed after profiling the GPU.\n")
+	TEXT("The results will always go to the log/console\n")
+	TEXT("0:off, 1:on (default)"),
 	ECVF_RenderThreadSafe);
 static TAutoConsoleVariable<float> GGPUHitchThresholdCVar(
 	TEXT("RHI.GPUHitchThreshold"),
@@ -166,8 +171,8 @@ bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
-bool GSupportsGSRenderTargetLayerSwitchingToMips = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
+bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 float GPixelCenterOffset = 0;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
@@ -186,6 +191,7 @@ bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
 bool GRHISupportsBaseVertexIndex = true;
+bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
@@ -217,23 +223,25 @@ void RHIPrivateBeginFrame()
 // The current shader platform.
 //
 
-RHI_API EShaderPlatform GRHIShaderPlatform = SP_PCD3D_SM5;
+RHI_API EShaderPlatform GMaxRHIShaderPlatformValue = SP_PCD3D_SM5;
 
 /** The maximum feature level supported on this machine */
-ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
+RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevelValue = ERHIFeatureLevel::SM5;
 
-/** The current feature level being used on this machine - This is only temporary and will go away when feature level becomes dynamic */
-ERHIFeatureLevel::Type GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM5;
-
-RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel()
+RHI_API ERHIFeatureLevel::Type GetMaxRHIFeatureLevel()
 {
-	return GCurrentRHIFeatureLevel;
+	return GMaxRHIFeatureLevelValue;
+}
+
+RHI_API EShaderPlatform GetMaxRHIShaderPlatform()
+{
+	return GMaxRHIShaderPlatformValue;
 }
 
 FName FeatureLevelNames[] = 
 {
 	FName(TEXT("ES2")),
-	FName(TEXT("SM3")),
+	FName(TEXT("ES3_1")),
 	FName(TEXT("SM4")),
 	FName(TEXT("SM5")),
 };
@@ -280,6 +288,7 @@ static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
+static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -292,11 +301,9 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	case SP_PCD3D_ES2:
 		return NAME_PCD3D_ES2;
 	case SP_OPENGL_SM4:
-#if PLATFORM_MAC
-		return NAME_GLSL_150_MAC;
-#else
 		return NAME_GLSL_150;
-#endif
+	case SP_OPENGL_SM4_MAC:
+		return NAME_GLSL_150_MAC;
 	case SP_PS4:
 		return NAME_SF_PS4;
 	case SP_XBOXONE:
@@ -313,6 +320,9 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_OPENGL_ES2_IOS;
 	case SP_METAL:
 		return NAME_SF_METAL;
+	case SP_OPENGL_ES31_EXT:
+		return NAME_GLSL_310_ES_EXT;
+
 	default:
 		check(0);
 		return NAME_PCD3D_SM5;
@@ -325,7 +335,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_SM4)			return SP_PCD3D_SM4;
 	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
-	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4;
+	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)			return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)		return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
@@ -334,6 +344,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_OPENGL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
 	if (ShaderFormat == NAME_OPENGL_ES2_IOS)	return SP_OPENGL_ES2_IOS;
 	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
+	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
 	return SP_NumPlatforms;
 }
 

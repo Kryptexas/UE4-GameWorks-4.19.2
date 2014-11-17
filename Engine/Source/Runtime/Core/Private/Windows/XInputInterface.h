@@ -2,10 +2,13 @@
 
 #pragma once
 
+
+/** Max number of controllers. */
 #define MAX_NUM_XINPUT_CONTROLLERS 4
 
 /** Max number of controller buttons.  Must be < 256*/
 #define MAX_NUM_CONTROLLER_BUTTONS 24
+
 
 /**
  * Interface class for XInput devices (xbox 360 controller)                 
@@ -106,5 +109,5 @@ private:
 	EControllerButtons::Type Buttons[MAX_NUM_CONTROLLER_BUTTONS];
 
 	/**  */
-	TSharedRef< FGenericApplicationMessageHandler > MessageHandler;
+	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;
 };

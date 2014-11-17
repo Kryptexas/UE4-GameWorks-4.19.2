@@ -14,7 +14,7 @@
 #include "CascadeActions.h"
 #include "Cascade.h"
 #include "PhysicsPublic.h"
-
+#include "SColorPicker.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -1630,7 +1630,7 @@ void FCascade::NotifyPreChange(FEditPropertyChain* PropertyChain)
 	//Needs to stay in-sync with the text in NotifyPostChange
 	FText Transaction = NSLOCTEXT("UnrealEd", "CascadePropertyChange", "Change Property");
 
-	BeginTransaction( Transaction );
+	BeginTransaction(Transaction);
 	ModifyParticleSystem();
 
 	CurveToReplace = NULL;
@@ -1696,6 +1696,7 @@ void FCascade::NotifyPreChange(FEditPropertyChain* PropertyChain)
 			}
 		}
 	}
+
 }
 
 void FCascade::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyChain)
@@ -1884,6 +1885,8 @@ void FCascade::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEven
 
 void FCascade::PreEditCurve(TArray<UObject*> CurvesAboutToChange)
 {
+	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+
 	//Need to keep text in-sync with PostEditCurve
 	BeginTransaction( NSLOCTEXT("UnrealEd", "EditCurve", "Edit Curve") );
 	ModifyParticleSystem();
@@ -2027,6 +2030,7 @@ void FCascade::ExtendToolbar()
 	TSharedRef<SWidget> CurrentLOD = SNew(SBox)
 			[
 				SNew(SHorizontalBox)
+				.AddMetaData<FTagMetaData>(TEXT("Cascade.LODBOx"))
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
@@ -5059,7 +5063,7 @@ void UCascadeParticleSystemComponent::CascadeTickComponent(float DeltaTime, enum
 
 const static FName CascadeParticleSystemComponentParticleLineCheckName(TEXT("ParticleLineCheck"));
 
-bool UCascadeParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent)
+bool UCascadeParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& Extent, const FCollisionObjectQueryParams&)
 {
 	if (bWarmingUp == false)
 	{

@@ -29,10 +29,10 @@ struct FPipelineShadow
 		return Hash;
 	}
 
-	/**
-	 * FOrce a pipeline state for a known hash
-	 */
-	void SetHash(uint64 InHash);
+// 	/**
+// 	 * FOrce a pipeline state for a known hash
+// 	 */
+// 	void SetHash(uint64 InHash);
 	
 	/**
 	 * @return an pipeline state object that matches the current state and the BSS
@@ -99,8 +99,8 @@ public:
 	 */
 	void SetBlendState(FMetalBlendState* BlendState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
-	void SetCurrentRenderTarget(FMetalSurface* RenderSurface);
-	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface);
+	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets);
+	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction LoadAction, MTLStoreAction StoreAction, float ClearDepthValue);
 	
 	/**
 	 * Update the context with the current render targets
@@ -132,6 +132,7 @@ public:
 		CompletedCommandBufferIndex = Index;
 	}
 
+	void SubmitCommandBufferAndWait();
 	bool WaitForCommandBufferComplete(uint64 IndexToWaitFor, double Timeout);
 
 	void SetRasterizerState(const FRasterizerStateInitializerRHI& State);
@@ -142,15 +143,28 @@ public:
 	}
 
 	/**
+	 * Return an auto-released command buffer, caller will need to retain it if it needs to live awhile
+	 */
+	id<MTLCommandBuffer> CreateTempCommandBuffer(bool bRetainReferences)
+	{
+		return bRetainReferences ? [CommandQueue commandBuffer] : [CommandQueue commandBufferWithUnretainedReferences];
+	}
+
+	/**
 	 * Handle rendering thread starting/stopping
 	 */
 	void CreateAutoreleasePool();
 	void DrainAutoreleasePool();
 
+
+
 protected:
 	FMetalManager();
 	void InitFrame();
 	void GenerateFetchShader();
+
+	void CreateCurrentCommandBuffer(bool bWait);
+
 
 	id<MTLDevice> Device;
 
@@ -164,7 +178,25 @@ protected:
 
 	id<MTLRenderCommandEncoder> CurrentContext;
 	
-	id<MTLTexture> CurrentColorRenderTexture, PreviousColorRenderTexture;
+	struct FRenderTargetViewInfo
+	{
+		uint32 MipIndex;
+		uint32 ArraySliceIndex;
+		MTLLoadAction LoadAction;
+		MTLStoreAction StoreAction;
+	};
+
+	struct FDepthRenderTargetViewInfo
+	{
+		float ClearDepthValue;
+		MTLLoadAction LoadAction;
+		MTLStoreAction StoreAction;
+	};
+
+	FRenderTargetViewInfo CurrentRenderTargetsViewInfo[MaxMetalRenderTargets], PreviousRenderTargetsViewInfo[MaxMetalRenderTargets];
+	uint32 CurrentNumRenderTargets, PreviousNumRenderTargets;
+	id<MTLTexture> CurrentColorRenderTextures[MaxMetalRenderTargets], PreviousColorRenderTextures[MaxMetalRenderTargets];
+	FDepthRenderTargetViewInfo CurrentDepthViewInfo, PreviousDepthViewInfo;
 	id<MTLTexture> CurrentDepthRenderTexture, PreviousDepthRenderTexture;
 	id<MTLTexture> CurrentMSAARenderTexture;
 	
@@ -212,6 +244,8 @@ protected:
 
 	void CommitNonComputeShaderConstants();
 
+private:
+    FEvent* FrameReadyEvent;
 };
 
 // Stats

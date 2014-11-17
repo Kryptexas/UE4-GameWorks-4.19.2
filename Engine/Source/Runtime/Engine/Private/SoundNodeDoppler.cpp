@@ -43,8 +43,3 @@ float USoundNodeDoppler::GetDopplerPitchMultiplier(FListener const& InListener, 
 
 	return FinalPitchScale;
 }
-
-FString USoundNodeDoppler::GetUniqueString() const
-{
-	return TEXT( "Doppler/" );
-}

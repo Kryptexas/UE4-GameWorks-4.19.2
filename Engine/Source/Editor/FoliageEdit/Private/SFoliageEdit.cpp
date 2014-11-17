@@ -7,9 +7,9 @@
 #include "FoliageEdMode.h"
 #include "Foliage/FoliageType.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
-
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
+#include "Editor/IntroTutorials/Public/IIntroTutorials.h"
 
 #include "SFoliageEditMeshDisplayItem.h"
 
@@ -101,7 +101,6 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.HAlign(HAlign_Center)
 			.Padding(StandardPadding)
 			[
 				BuildToolBar()
@@ -111,6 +110,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
+				.ToolTipText(LOCTEXT("BrushSize_Tooltip", "The size of the foliage brush"))
 
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -139,6 +139,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
+				.ToolTipText(LOCTEXT("PaintDensity_Tooltip", "The density of foliage to paint. This is a multiplier for the individual foliage type's density specifier."))
 
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -166,6 +167,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
+				.ToolTipText(LOCTEXT("EraseDensity_Tooltip", "The density of foliage to leave behind when erasing with the Shift key held. 0 will remove all foliage."))
 
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -212,6 +214,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
 					.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_Landscape)
 					.IsChecked(this, &SFoliageEdit::GetCheckState_Landscape)
+					.ToolTipText(LOCTEXT("FilterLandscape_Tooltip", "Place foliage on Landscape"))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("Landscape", "Landscape"))
@@ -225,6 +228,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
 					.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_StaticMesh)
 					.IsChecked(this, &SFoliageEdit::GetCheckState_StaticMesh)
+					.ToolTipText(LOCTEXT("FilterStaticMesh_Tooltip", "Place foliage on StaticMeshes"))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("StaticMeshes", "Static Meshes"))
@@ -238,6 +242,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
 					.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_BSP)
 					.IsChecked(this, &SFoliageEdit::GetCheckState_BSP)
+					.ToolTipText(LOCTEXT("FilterBSP_Tooltip", "Place foliage on BSP"))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("BSP", "BSP"))
@@ -251,6 +256,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
 					.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_Translucent)
 					.IsChecked(this, &SFoliageEdit::GetCheckState_Translucent)
+					.ToolTipText(LOCTEXT("FilterTranslucent_Tooltip", "Place foliage on translucent surfaces"))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("Translucent", "Translucent"))
@@ -461,19 +467,34 @@ TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
 		Toolbar.AddToolBarButton(FFoliageEditCommands::Get().SetPaintBucket);
 	}
 
+	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
+
 	return
 		SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-		.AutoWidth()
 		.Padding(4, 0)
 		[
-			SNew(SBorder)
-			.Padding(0)
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+			SNew(SOverlay)
+			+ SOverlay::Slot()
 			[
-				Toolbar.MakeWidget()
+				SNew(SBorder)
+				.HAlign(HAlign_Center)
+				.Padding(0)
+				.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+				.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+				[
+					Toolbar.MakeWidget()
+				]
+			]
+
+			// Tutorial link
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Bottom)
+			.Padding(4)
+			[
+				IntroTutorials.CreateTutorialsWidget(TEXT("FoliageMode"))
 			]
 		];
 }

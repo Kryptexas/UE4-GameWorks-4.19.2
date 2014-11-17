@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessAA.h"
 #include "PostProcessing.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing anti aliasing pixel shader. */
 // Quality 1..6
@@ -163,7 +164,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -215,13 +216,13 @@ IMPLEMENT_SHADER_TYPE(,FFXAAVS,TEXT("FXAAShader"),TEXT("FxaaVS"),SF_Vertex);
 template <uint32 Quality>
 static void SetShaderTemplAA(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FFXAAVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessAntiAliasingPS<Quality> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FFXAAVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessAntiAliasingPS<Quality> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(Context);
 	VertexShader->SetParameters(Context);
@@ -229,7 +230,7 @@ static void SetShaderTemplAA(const FRenderingCompositePassContext& Context)
 
 void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessAA, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessAA, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -271,7 +272,7 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 	}
 	
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FFXAAVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FFXAAVS> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,

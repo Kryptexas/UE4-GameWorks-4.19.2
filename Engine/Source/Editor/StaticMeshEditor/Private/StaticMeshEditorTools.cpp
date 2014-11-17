@@ -379,6 +379,79 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<int32>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(1)
+			.MaxValue(2048)
+			.Value(this, &FMeshBuildSettingsLayout::GetMinLightmapResolution)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnMinLightmapResolutionChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<int32>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0)
+			.MaxValue(8)
+			.Value(this, &FMeshBuildSettingsLayout::GetSrcLightmapIndex)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnSrcLightmapIndexChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<int32>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0)
+			.MaxValue(8)
+			.Value(this, &FMeshBuildSettingsLayout::GetDstLightmapIndex)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDstLightmapIndexChanged)
+		];
+	}
+
+	{
 		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale").ToString())
 		.NameContent()
 		[
@@ -423,6 +496,22 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		];
 	}
 		
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged)
+		];
+	}
+
 	{
 		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
 		.ValueContent()
@@ -472,6 +561,31 @@ ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRemoveDegenerates() co
 ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
 {
 	return BuildSettings.bUseFullPrecisionUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs() const
+{
+	return BuildSettings.bGenerateLightmapUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided() const
+{
+	return BuildSettings.bGenerateDistanceFieldAsIfTwoSided ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+int32 FMeshBuildSettingsLayout::GetMinLightmapResolution() const
+{
+	return BuildSettings.MinLightmapResolution;
+}
+
+int32 FMeshBuildSettingsLayout::GetSrcLightmapIndex() const
+{
+	return BuildSettings.SrcLightmapIndex;
+}
+
+int32 FMeshBuildSettingsLayout::GetDstLightmapIndex() const
+{
+	return BuildSettings.DstLightmapIndex;
 }
 
 TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleX() const
@@ -543,6 +657,68 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bUseFullPrecisionUVs"), bUseFullPrecisionUVs ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bUseFullPrecisionUVs = bUseFullPrecisionUVs;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState)
+{
+	const bool bGenerateLightmapUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bGenerateLightmapUVs != bGenerateLightmapUVs)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bGenerateLightmapUVs"), bGenerateLightmapUVs ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bGenerateLightmapUVs = bGenerateLightmapUVs;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState)
+{
+	const bool bGenerateDistanceFieldAsIfTwoSided = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bGenerateDistanceFieldAsIfTwoSided != bGenerateDistanceFieldAsIfTwoSided)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bGenerateDistanceFieldAsIfTwoSided"), bGenerateDistanceFieldAsIfTwoSided ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnMinLightmapResolutionChanged( int32 NewValue )
+{
+	if (BuildSettings.MinLightmapResolution != NewValue)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("MinLightmapResolution"), FString::Printf(TEXT("%i"), NewValue));
+		}
+		BuildSettings.MinLightmapResolution = NewValue;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnSrcLightmapIndexChanged( int32 NewValue )
+{
+	if (BuildSettings.SrcLightmapIndex != NewValue)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("SrcLightmapIndex"), FString::Printf(TEXT("%i"), NewValue));
+		}
+		BuildSettings.SrcLightmapIndex = NewValue;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnDstLightmapIndexChanged( int32 NewValue )
+{
+	if (BuildSettings.DstLightmapIndex != NewValue)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("DstLightmapIndex"), FString::Printf(TEXT("%i"), NewValue));
+		}
+		BuildSettings.DstLightmapIndex = NewValue;
 	}
 }
 
@@ -1512,15 +1688,9 @@ void FLevelOfDetailSettingsLayout::OnLODScreenSizeChanged( float NewValue, int32
 		}
 
 		// Update Display factors for further LODs
-		float Delta = NewValue - LODScreenSizes[LODIndex];
+		const float MinimumDifferenceInScreenSize = KINDA_SMALL_NUMBER;
 		LODScreenSizes[LODIndex] = NewValue;
-		for (int32 i = LODIndex + 1; i < MAX_STATIC_MESH_LODS; ++i)
-		{
-			LODScreenSizes[i] += Delta;
-		}
-
 		// Make sure we aren't trying to ovelap or have more than one LOD for a value
-		const float MinimumDifferenceInScreenSize = 0.01f;
 		for (int32 i = 1; i < MAX_STATIC_MESH_LODS; ++i)
 		{
 			float MaxValue = FMath::Clamp(LODScreenSizes[i-1] - MinimumDifferenceInScreenSize, 0.0f, 1.0f);
@@ -1814,434 +1984,6 @@ FText FLevelOfDetailSettingsLayout::GetLODCountTooltip() const
 	}
 
 	return LOCTEXT("LODCountTooltip_Disabled", "Auto mesh reduction is unavailable! Please provide a mesh reduction interface such as Simplygon to use this feature or manually import LOD levels.");
-}
-
-/////////////////////////////////
-// SGenerateUniqueUVs
-/////////////////////////////////
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
-{
-	StaticMeshEditorPtr = InArgs._StaticMeshEditorPtr;
-
-	RefreshTool();
-
-	MaxStretching = 0.5f;
-	MaxCharts = 100.0f;
-	MinSpacingBetweenCharts = 1.0f;
-
-	this->ChildSlot
-		[
-			SNew(SVerticalBox)
-			
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-					.Text( LOCTEXT("CreationMode", "Creation Mode") )
-			]
-
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-			[
-				SNew(SHorizontalBox)
-
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(0.0f, 0.0f, 8.0f, 0.0f)
-				[
-					SNew(SCheckBox)	
-						.Style(FEditorStyle::Get(), "RadioButton")
-						.IsChecked( this, &SGenerateUniqueUVs::IsCreationModeChecked, ECreationModeChoice::CreateNew )
-						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnCreationModeChanged, CreateNew )
-						[
-							SNew(STextBlock)
-								.Text( LOCTEXT("CreateNew", "Create New") )
-						]
-				]
-
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-				[
-					SNew(SCheckBox)	
-						.Style(FEditorStyle::Get(), "RadioButton")
-						.IsChecked( this, &SGenerateUniqueUVs::IsCreationModeChecked, ECreationModeChoice::UseChannel0 )
-						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnCreationModeChanged, UseChannel0 )
-						[
-							SNew(STextBlock)
-								.Text( LOCTEXT("LayoutUsing0Channel", "Layout using 0 channel") )
-						]
-				]
-			]
-			
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( 0.0f, 8.0f, 16.0f, 0.0f)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(3.0f)
-				[
-					SNew(STextBlock)
-						.Text( LOCTEXT("UVChannelSaveSelection", "UV channel to save results to:") )
-				]
-
-				+SHorizontalBox::Slot()
-					.HAlign(HAlign_Center)
-					.FillWidth(1.0f)
-				[
-					SAssignNew(UVChannelCombo, STextComboBox)
-						.OptionsSource(&UVChannels)
-						.InitiallySelectedItem(UVChannels.Num() > 1? UVChannels[1] : UVChannels[0])
-				]
-				
-			]
-
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( 0.0f, 8.0f, 0.0f, 0.0f)
-			[
-				SNew(STextBlock)
-					.Text( LOCTEXT("SelectGenerationMethod", "Select Generation Method") )
-					.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
-			]
-
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( 8.0f, 4.0f, 16.0f, 0.0f)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(3.0f)
-				[
-					SNew(SCheckBox)	
-						.Style(FEditorStyle::Get(), "RadioButton")
-						.IsChecked( this, &SGenerateUniqueUVs::IsLimitModeChecked, ELimitModeChoice::Stretching )
-						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnLimitModeChanged, ELimitModeChoice::Stretching )
-						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
-					[
-						SNew(STextBlock)
-							.Text( LOCTEXT("LimitMaxStretching", "Limit maximum stretching") )
-					]
-				]
-
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(1.0f)
-				[
-					SNew(SSpinBox<float>)
-						.MinValue(0.0f)
-						.MaxValue(1.0f)
-						.Value(0.5f)
-						.OnValueCommitted( this, &SGenerateUniqueUVs::OnMaxStretchingCommitted )
-						.OnValueChanged( this, &SGenerateUniqueUVs::OnMaxStretchingChanged )
-						.IsEnabled(this, &SGenerateUniqueUVs::IsStretchingLimit)
-				]
-			]
-
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( 8.0f, 8.0f, 16.0f, 0.0f)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(3.0f)
-				[
-					SNew(SCheckBox)	
-						.Style(FEditorStyle::Get(), "RadioButton")
-						.IsChecked( this, &SGenerateUniqueUVs::IsLimitModeChecked, ELimitModeChoice::Charts )
-						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnLimitModeChanged, ELimitModeChoice::Charts )
-						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
-					[
-						SNew(STextBlock)
-							.Text( LOCTEXT("LimitMaxCharts", "Limit maximum number of charts") )
-					]
-				]
-
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(1.0f)
-				[
-					SNew(SSpinBox<float>)
-						.MinValue(0.0f)
-						.MaxValue(100000.0f)
-						.Value( this, &SGenerateUniqueUVs::GetMaxCharts )
-						.OnValueCommitted( this, &SGenerateUniqueUVs::OnMaxChartsCommitted )
-						.OnValueChanged( this, &SGenerateUniqueUVs::OnMaxChartsChanged )
-						.IsEnabled(this, &SGenerateUniqueUVs::IsChartLimit)
-				]
-			]
-
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( 8.0f, 8.0f, 16.0f, 0.0f)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(3.0f)
-				[
-					SNew(STextBlock)
-						.Text( LOCTEXT("LimitChartSpacing", "Limit spacing between charts:") )
-						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
-				]
-
-				+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.FillWidth(1.0f)
-				[
-					SNew(SSpinBox<float>)
-						.MinValue(0.0f)
-						.MaxValue(100.0f)
-						.Value(1.0f)
-						.OnValueCommitted( this, &SGenerateUniqueUVs::OnMinSpacingCommitted )
-						.OnValueChanged( this, &SGenerateUniqueUVs::OnMinSpacingChanged )
-						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
-				]
-			]
-
-			+SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				.Padding( 0.0f, 8.0f, 0.0f, 0.0f)
-			[
-				SNew(SButton)
-					.Text( LOCTEXT("Apply", "Apply") )
-					.OnClicked( this, &SGenerateUniqueUVs::OnApply )
-			]
-		];
-
-	CurrentCreationModeChoice = CreateNew;
-	CurrentLimitModeChoice = Stretching;
-}
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-SGenerateUniqueUVs::~SGenerateUniqueUVs()
-{
-
-}
-
-ESlateCheckBoxState::Type SGenerateUniqueUVs::IsCreationModeChecked( ECreationModeChoice ButtonId ) const
-{
-	return (CurrentCreationModeChoice == ButtonId)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
-}
-
-void SGenerateUniqueUVs::OnCreationModeChanged( ESlateCheckBoxState::Type NewRadioState, ECreationModeChoice RadioThatChanged )
-{
-	if (NewRadioState == ESlateCheckBoxState::Checked)
-	{
-		CurrentCreationModeChoice = RadioThatChanged;
-	}
-}
-
-ESlateCheckBoxState::Type SGenerateUniqueUVs::IsLimitModeChecked( enum ELimitModeChoice ButtonId ) const
-{
-	return (CurrentLimitModeChoice == ButtonId)
-	? ESlateCheckBoxState::Checked
-	: ESlateCheckBoxState::Unchecked;
-}
-
-void SGenerateUniqueUVs::OnLimitModeChanged( ESlateCheckBoxState::Type NewRadioState, enum ELimitModeChoice RadioThatChanged )
-{
-	if (NewRadioState == ESlateCheckBoxState::Checked)
-	{
-		CurrentLimitModeChoice = RadioThatChanged;
-	}
-}
-
-bool SGenerateUniqueUVs::IsCreateNew() const
-{
-	return CurrentCreationModeChoice == CreateNew;
-}
-
-bool SGenerateUniqueUVs::IsChartLimit() const
-{
-	return (CurrentLimitModeChoice == Charts) && IsCreateNew();
-}
-
-bool SGenerateUniqueUVs::IsStretchingLimit() const
-{
-	return (CurrentLimitModeChoice == Stretching) && IsCreateNew();
-}
-
-FReply SGenerateUniqueUVs::OnApply()
-{
-	int32 ChosenLODIndex = 0;
-	int32 ChosenUVChannel = UVChannels.Find(UVChannelCombo->GetSelectedItem());
-
-	bool bOnlyLayoutUVs = !IsCreateNew();
-	UStaticMesh* StaticMesh = StaticMeshEditorPtr.Pin()->GetStaticMesh();
-
-	if (StaticMesh->SourceModels.IsValidIndex(ChosenLODIndex)
-		&& !StaticMesh->SourceModels[ChosenLODIndex].RawMeshBulkData->IsEmpty())
-	{
-		bool bStatus = false;
-		uint32 Uint32MaxCharts = (uint32)MaxCharts;
-		FText Error;
-		GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "GenerateUVsProgressText", "Generating unique UVs..."), true );
-		{
-			// Detach all instances of the static mesh while generating the UVs, then reattach them.
-			FStaticMeshComponentRecreateRenderStateContext RecreateRenderStateContext(StaticMeshEditorPtr.Pin()->GetStaticMesh());
-
-			// If the user has selected any edges in the static mesh editor, we'll create an array of chart UV
-			// seam edge indices to pass along to the GenerateUVs function.
-			TArray< int32 >* FalseEdgeIndicesPtr = NULL;
-			TArray< int32 > FalseEdgeIndices;
-			TSet< int32 >& SelectedEdgeIndices = StaticMeshEditorPtr.Pin()->GetSelectedEdges();
-
-			if( SelectedEdgeIndices.Num() > 0 &&
-				ChosenLODIndex == 0 )		// @todo: Support other LODs than LOD 0 (edge selection in SME needed)
-			{
-				for( TSet< int32 >::TIterator SelectionIt( SelectedEdgeIndices );
-					SelectionIt;
-					++SelectionIt )
-				{
-					const uint32 EdgeIndex = *SelectionIt;
-
-					FalseEdgeIndices.Add( EdgeIndex );
-				}
-
-				FalseEdgeIndicesPtr = &FalseEdgeIndices;
-			}
-
-			FRawMesh RawMesh;
-			StaticMesh->SourceModels[ChosenLODIndex].RawMeshBulkData->LoadRawMesh(RawMesh);
-
-			//call the utility helper with the user supplied parameters
-			{
-				IMeshUtilities& MeshUtils = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	
-				// Don't display "border spacing" option as there's usually no reason to add border padding
-				float BorderSpacingPercent = 0;
-
-				bool bUseMaxStretch = IsStretchingLimit();
-
-				if(bOnlyLayoutUVs)
-				{
-					uint32 LightmapResolution = StaticMesh->LightMapResolution ? StaticMesh->LightMapResolution : 256;
-					bStatus = MeshUtils.LayoutUVs(RawMesh, LightmapResolution, ChosenUVChannel, Error);
-				}		
-				else 
-				{
-					bStatus = MeshUtils.GenerateUVs(RawMesh, ChosenUVChannel, MinSpacingBetweenCharts, BorderSpacingPercent, bUseMaxStretch, FalseEdgeIndicesPtr, Uint32MaxCharts, MaxStretching, Error);
-				}
-			}
-
-			if (bStatus)
-			{
-				StaticMesh->SourceModels[ChosenLODIndex].RawMeshBulkData->SaveRawMesh(RawMesh);
-				StaticMesh->Build();
-			}
-		}
-		GWarn->EndSlowTask();
-
-		FText StatusMessage;
-		if(bStatus)
-		{
-			FNumberFormattingOptions NumberOptions;
-			NumberOptions.MinimumFractionalDigits = 2;
-			NumberOptions.MaximumFractionalDigits = 2;
-
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("MaxCharts"), Uint32MaxCharts );
-			Args.Add( TEXT("MaxStretching"), FText::AsPercent( MaxStretching, &NumberOptions ) );
-			StatusMessage = FText::Format( NSLOCTEXT("GenerateUVsWindow", "GenerateUniqueUVs_UVGenerationSuccessful", "Finished generating UVs; Charts: {MaxCharts}; Largest stretch: {MaxStretching}"), Args );
-		}
-		else if (!Error.IsEmpty())
-		{
-			StatusMessage = Error;
-		}
-		else
-		{
-			StatusMessage = NSLOCTEXT("GenerateUVsWindow", "GenerateUniqueUVs_UVGenerationFailed", "Mesh UV generation failed.");
-		}
-
-		FNotificationInfo NotificationInfo( StatusMessage );
-		NotificationInfo.ExpireDuration = 3.0f;
-
-		TSharedPtr<SNotificationItem> NotificationItem = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
-		if ( NotificationItem.IsValid() )
-		{
-			NotificationItem->SetCompletionState(bStatus ? SNotificationItem::CS_Success : SNotificationItem::CS_Fail);
-		}
-	}
-
-	StaticMeshEditorPtr.Pin()->RefreshTool();
-	RefreshTool();
-
-	return FReply::Handled();
-}
-
-void SGenerateUniqueUVs::OnMaxStretchingChanged(float InValue)
-{
-	MaxStretching = InValue;
-}
-
-void SGenerateUniqueUVs::OnMaxStretchingCommitted(float InValue, ETextCommit::Type CommitInfo)
-{
-	OnMaxStretchingChanged(InValue);
-}
-
-void SGenerateUniqueUVs::OnMaxChartsChanged(float InValue)
-{
-	MaxCharts = float(int32(InValue));
-}
-
-void SGenerateUniqueUVs::OnMaxChartsCommitted(float InValue, ETextCommit::Type CommitInfo)
-{
-	OnMaxChartsChanged(InValue);
-}
-
-float SGenerateUniqueUVs::GetMaxCharts() const
-{
-	return MaxCharts;
-}
-
-void SGenerateUniqueUVs::OnMinSpacingChanged(float InValue)
-{
-	MinSpacingBetweenCharts = InValue;
-}
-
-void SGenerateUniqueUVs::OnMinSpacingCommitted(float InValue, ETextCommit::Type CommitInfo)
-{
-	OnMinSpacingChanged(InValue);
-}
-
-void SGenerateUniqueUVs::RefreshUVChannelList()
-{
-	UStaticMesh* StaticMesh = StaticMeshEditorPtr.Pin()->GetStaticMesh();
-
-	// Fill out the UV channels combo.
-	UVChannels.Empty();
-	for(int32 UVChannelID = 0; UVChannelID < FMath::Min(StaticMeshEditorPtr.Pin()->GetNumUVChannels() + 1, (int32)MAX_STATIC_TEXCOORDS); ++UVChannelID)
-	{
-		UVChannels.Add( MakeShareable( new FString( FText::Format( LOCTEXT("UVChannel_ID", "UV Channel {0}"), FText::AsNumber( UVChannelID ) ).ToString() ) ) );
-	}
-
-	if(UVChannelCombo.IsValid())
-	{
-		if(UVChannels.Num() > 1)
-		{
-			UVChannelCombo->SetSelectedItem(UVChannels[1]);
-		}
-		else
-		{
-			UVChannelCombo->SetSelectedItem(UVChannels[0]);
-		}
-	}
-	
-}
-
-void SGenerateUniqueUVs::RefreshTool()
-{
-	RefreshUVChannelList();
 }
 
 #undef LOCTEXT_NAMESPACE

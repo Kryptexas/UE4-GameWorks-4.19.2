@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CurveHandle.cpp: Implements the FCurveHandle structure.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 

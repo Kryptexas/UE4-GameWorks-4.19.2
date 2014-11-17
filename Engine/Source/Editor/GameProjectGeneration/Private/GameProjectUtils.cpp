@@ -5,6 +5,7 @@
 #include "UnrealEdMisc.h"
 #include "ISourceControlModule.h"
 #include "MainFrame.h"
+#include "DefaultTemplateProjectDefs.h"
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
@@ -16,6 +17,7 @@
 #include "ClassIconFinder.h"
 
 #include "UProjectInfo.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -316,14 +318,14 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("MaxProjectPathLength"), MaxProjectPathLength );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectPathTooLong", "A projects path must not be longer than {MaxProjectPathLength} characters." ), Args );
+		OutFailReason = FText::Format( LOCTEXT( "ProjectPathTooLong", "A project's path must not be longer than {MaxProjectPathLength} characters." ), Args );
 		return false;
 	}
 
-	if ( FPaths::GetExtension(ProjectFile) != IProjectManager::GetProjectFileExtension() )
+	if ( FPaths::GetExtension(ProjectFile) != FProjectDescriptor::GetExtension() )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( IProjectManager::GetProjectFileExtension() ) );
+		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( FProjectDescriptor::GetExtension() ) );
 		OutFailReason = FText::Format( LOCTEXT( "InvalidProjectFileExtension", "File extension is not {ProjectFileExtension}" ), Args );
 		return false;
 	}
@@ -350,26 +352,21 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 
 	if ( ProjectFileExists(ProjectFile) )
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFile"), FText::FromString( ProjectFile ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectFileAlreadyExists", "{ProjectFile} already exists." ), Args );
+		OutFailReason = LOCTEXT( "ProjectFileAlreadyExists", "This project file already exists." );
 		return false;
 	}
 
 	if ( FPaths::ConvertRelativePathToFull(FPaths::GetPath(ProjectFile)).StartsWith( FPaths::ConvertRelativePathToFull(FPaths::EngineDir())) )
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFile"), FText::FromString( ProjectFile ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectFileCannotBeUnderEngineFolder", "{ProjectFile} cannot be saved under the Engine folder.  Create the project in a different directory." ), Args );
+		OutFailReason = LOCTEXT( "ProjectFileCannotBeUnderEngineFolder", "Project cannot be saved under the Engine folder. Please choose a different directory." );
 		return false;
 	}
 
 	if ( AnyProjectFilesExistInFolder(FPaths::GetPath(ProjectFile)) )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( IProjectManager::GetProjectFileExtension() ) );
-		Args.Add( TEXT("ProjectFilePath"), FText::FromString( FPaths::GetPath(ProjectFile) ) );
-		OutFailReason = FText::Format( LOCTEXT( "AProjectFileAlreadyExistsAtLoction", "Another .{ProjectFileExtension} file already exists in {ProjectFilePath}" ), Args );
+		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( FProjectDescriptor::GetExtension() ) );
+		OutFailReason = FText::Format( LOCTEXT( "AProjectFileAlreadyExistsAtLoction", "Another .{ProjectFileExtension} file already exists in the specified folder" ), Args );
 		return false;
 	}
 
@@ -402,14 +399,14 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("MaxProjectPathLength"), MaxProjectPathLength );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectPathTooLong", "A projects path must not be longer than {MaxProjectPathLength} characters." ), Args );
+		OutFailReason = FText::Format( LOCTEXT( "ProjectPathTooLong", "A project's path must not be longer than {MaxProjectPathLength} characters." ), Args );
 		return false;
 	}
 
-	if ( FPaths::GetExtension(ProjectFile) != IProjectManager::GetProjectFileExtension() )
+	if ( FPaths::GetExtension(ProjectFile) != FProjectDescriptor::GetExtension() )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( IProjectManager::GetProjectFileExtension() ) );
+		Args.Add( TEXT("ProjectFileExtension"), FText::FromString( FProjectDescriptor::GetExtension() ) );
 		OutFailReason = FText::Format( LOCTEXT( "InvalidProjectFileExtension", "File extension is not {ProjectFileExtension}" ), Args );
 		return false;
 	}
@@ -475,6 +472,8 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".sln");
 #elif PLATFORM_MAC
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcodeproj");
+#elif PLATFORM_LINUX
+	STUBBED("Linux solution filename");
 #else
 	OutFailReason = LOCTEXT( "OpenCodeIDE_UnknownPlatform", "could not open the code editing IDE. The operating system is unknown." );
 	return false;
@@ -482,7 +481,7 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 
 	// Open the solution with the default application
 	const FString FullPath = FPaths::Combine(*SolutionFolder, *CodeSolutionFile);
-#if PLATFORM_MAC || PLATFORM_LINUX
+#if PLATFORM_MAC
 	if ( IFileManager::Get().DirectoryExists(*FullPath) )
 #else
 	if ( FPaths::FileExists(FullPath) )
@@ -552,9 +551,9 @@ bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FTex
 }
 
 
-bool GameProjectUtils::CreateProject(const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason)
+bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason)
 {
-	if ( !IsValidProjectFileForCreation(NewProjectFile, OutFailReason) )
+	if ( !IsValidProjectFileForCreation(InProjectInfo.ProjectFilename, OutFailReason) )
 	{
 		return false;
 	}
@@ -564,45 +563,34 @@ bool GameProjectUtils::CreateProject(const FString& NewProjectFile, const FStrin
 
 	bool bProjectCreationSuccessful = false;
 	FString TemplateName;
-	if ( TemplateFile.IsEmpty() )
+	if ( InProjectInfo.TemplateFile.IsEmpty() )
 	{
-		bProjectCreationSuccessful = GenerateProjectFromScratch(NewProjectFile, bShouldGenerateCode, bCopyStarterContent, OutFailReason);
-		TemplateName = bShouldGenerateCode ? TEXT("Basic Code") : TEXT("Blank");
+		bProjectCreationSuccessful = GenerateProjectFromScratch(InProjectInfo, OutFailReason);
+		TemplateName = InProjectInfo.bShouldGenerateCode ? TEXT("Basic Code") : TEXT("Blank");
 	}
 	else
 	{
-		bProjectCreationSuccessful = CreateProjectFromTemplate(NewProjectFile, TemplateFile, bShouldGenerateCode, bCopyStarterContent, OutFailReason);
-		TemplateName = FPaths::GetBaseFilename(TemplateFile);
+		bProjectCreationSuccessful = CreateProjectFromTemplate(InProjectInfo, OutFailReason);
+		TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
 	}
 
 	if( FEngineAnalytics::IsAvailable() )
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Template"), TemplateName));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bShouldGenerateCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), InProjectInfo.bShouldGenerateCode ? TEXT("C++ Code") : TEXT("Content Only")));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Outcome"), bProjectCreationSuccessful ? TEXT("Successful") : TEXT("Failed")));
+
+		UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EHardwareClass"), true);
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HardwareClass"), Enum ? Enum->GetEnumName(InProjectInfo.TargetedHardware) : FString()));
+		Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGraphicsPreset"), true);
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("GraphicsPreset"), Enum ? Enum->GetEnumName(InProjectInfo.DefaultGraphicsPerformance) : FString()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("StarterContent"), InProjectInfo.bCopyStarterContent ? TEXT("Yes") : TEXT("No")));
 
 		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.NewProject.ProjectCreated" ), EventAttributes );
 	}
 
 	return bProjectCreationSuccessful;
-}
-
-bool GameProjectUtils::BuildGameBinaries(const FString& ProjectFilename, FText& OutFailReason)
-{
-	const bool bAllowNewSlowTask = true;
-	FScopedSlowTask SlowTaskMessage( LOCTEXT( "BuildingProjectStatus", "Building project..." ), bAllowNewSlowTask );
-
-	// Compile the *editor* for the project
-	if ( FModuleManager::Get().CompileGameProjectEditor(ProjectFilename, *GLog) )
-	{
-		return true;
-	}
-
-	FFormatNamedArguments Args;
-	Args.Add( TEXT("ProjectFilename"), FText::FromString( ProjectFilename ) );
-	OutFailReason = FText::Format( LOCTEXT("FailedToCompileNewProject", "Failed to compile {ProjectFileName}."), Args );
-	return false;
 }
 
 void GameProjectUtils::CheckForOutOfDateGameProjectFile()
@@ -805,21 +793,38 @@ UTemplateProjectDefs* GameProjectUtils::LoadTemplateDefs(const FString& ProjectD
 	const FString TemplateDefsIniFilename = ProjectDirectory / TEXT("Config") / GetTemplateDefsFilename();
 	if ( FPlatformFileManager::Get().GetPlatformFile().FileExists(*TemplateDefsIniFilename) )
 	{
-		TemplateDefs = ConstructObject<UTemplateProjectDefs>(UTemplateProjectDefs::StaticClass());
+		UClass* ClassToConstruct = UDefaultTemplateProjectDefs::StaticClass();
+
+		// see if template uses a custom project defs object
+		FString ClassName;
+		const bool bFoundValue = GConfig->GetString(*UTemplateProjectDefs::StaticClass()->GetPathName(), TEXT("TemplateProjectDefsClass"), ClassName, TemplateDefsIniFilename);
+		if (bFoundValue && ClassName.Len() > 0)
+		{
+			UClass* OverrideClass = FindObject<UClass>(ANY_PACKAGE, *ClassName, false);
+			if (nullptr != OverrideClass)
+			{
+				ClassToConstruct = OverrideClass;
+			}
+			else
+			{
+				UE_LOG(LogGameProjectGeneration, Error, TEXT("Failed to find template project defs class '%s', using default."), *ClassName);
+			}
+		}
+		TemplateDefs = ConstructObject<UTemplateProjectDefs>(ClassToConstruct);
 		TemplateDefs->LoadConfig(UTemplateProjectDefs::StaticClass(), *TemplateDefsIniFilename);
 	}
 
 	return TemplateDefs;
 }
 
-bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason)
+bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason)
 {
-	const FString NewProjectFolder = FPaths::GetPath(NewProjectFile);
-	const FString NewProjectName = FPaths::GetBaseFilename(NewProjectFile);
+	const FString NewProjectFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
+	const FString NewProjectName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
 	TArray<FString> CreatedFiles;
 
 	// Generate config files
-	if (!GenerateConfigFiles(NewProjectFolder, NewProjectName, bShouldGenerateCode, bCopyStarterContent, CreatedFiles, OutFailReason))
+	if (!GenerateConfigFiles(InProjectInfo, CreatedFiles, OutFailReason))
 	{
 		DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 		return false;
@@ -837,7 +842,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 	}
 
 	TArray<FString> StartupModuleNames;
-	if ( bShouldGenerateCode )
+	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate basic source code files
 		if ( !GenerateBasicSourceCode(NewProjectFolder / TEXT("Source"), NewProjectName, StartupModuleNames, CreatedFiles, OutFailReason) )
@@ -857,9 +862,9 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 	// Generate the project file
 	{
 		FText LocalFailReason;
-		if (IProjectManager::Get().GenerateNewProjectFile(NewProjectFile, StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
+		if (IProjectManager::Get().GenerateNewProjectFile(InProjectInfo.ProjectFilename, StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
 		{
-			CreatedFiles.Add(NewProjectFile);
+			CreatedFiles.Add(InProjectInfo.ProjectFilename);
 		}
 		else
 		{
@@ -869,23 +874,23 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 		}
 	}
 
-	if ( bShouldGenerateCode )
+	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate project files
-		if ( !GenerateCodeProjectFiles(NewProjectFile, OutFailReason) )
+		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason) )
 		{
-			DeleteGeneratedProjectFiles(NewProjectFile);
+			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
 			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
 	}
 
-	if (bCopyStarterContent)
+	if (InProjectInfo.bCopyStarterContent)
 	{
 		// Copy the starter content
 		if ( !CopyStarterContent(NewProjectFolder, OutFailReason) )
 		{
-			DeleteGeneratedProjectFiles(NewProjectFile);
+			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
 			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
@@ -895,34 +900,17 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 	return true;
 }
 
-struct FConfigValue
+bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason)
 {
-	FString ConfigFile;
-	FString ConfigSection;
-	FString ConfigKey;
-	FString ConfigValue;
-	bool bShouldReplaceExistingValue;
+	const FString ProjectName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
+	const FString TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
+	const FString SrcFolder = FPaths::GetPath(InProjectInfo.TemplateFile);
+	const FString DestFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
 
-	FConfigValue(const FString& InFile, const FString& InSection, const FString& InKey, const FString& InValue, bool InShouldReplaceExistingValue)
-		: ConfigFile(InFile)
-		, ConfigSection(InSection)
-		, ConfigKey(InKey)
-		, ConfigValue(InValue)
-		, bShouldReplaceExistingValue(InShouldReplaceExistingValue)
-	{}
-};
-
-bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, const FString& TemplateFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason)
-{
-	const FString ProjectName = FPaths::GetBaseFilename(NewProjectFile);
-	const FString TemplateName = FPaths::GetBaseFilename(TemplateFile);
-	const FString SrcFolder = FPaths::GetPath(TemplateFile);
-	const FString DestFolder = FPaths::GetPath(NewProjectFile);
-
-	if ( !FPlatformFileManager::Get().GetPlatformFile().FileExists(*TemplateFile) )
+	if ( !FPlatformFileManager::Get().GetPlatformFile().FileExists(*InProjectInfo.TemplateFile) )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("TemplateFile"), FText::FromString( TemplateFile ) );
+		Args.Add( TEXT("TemplateFile"), FText::FromString( InProjectInfo.TemplateFile ) );
 		OutFailReason = FText::Format( LOCTEXT("InvalidTemplate_MissingProject", "Template project \"{TemplateFile}\" does not exist."), Args );
 		return false;
 	}
@@ -931,7 +919,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 	if ( TemplateDefs == NULL )
 	{
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("TemplateFile"), FText::FromString( FPaths::GetBaseFilename(TemplateFile) ) );
+		Args.Add( TEXT("TemplateFile"), FText::FromString( FPaths::GetBaseFilename(InProjectInfo.TemplateFile) ) );
 		Args.Add( TEXT("TemplateDefinesFile"), FText::FromString( GetTemplateDefsFilename() ) );
 		OutFailReason = FText::Format( LOCTEXT("InvalidTemplate_MissingDefs", "Template project \"{TemplateFile}\" does not have definitions file: '{TemplateDefinesFile}'."), Args );
 		return false;
@@ -1040,19 +1028,12 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 				FilesThatNeedContentsReplaced.Add(DestFilename);
 			}
 
-			if ( FileExtension == TEXT("h")															// A header file
-				&& FPaths::GetBaseFilename(SrcFilename) != FPaths::GetBaseFilename(DestFilename))	// Whose name changed
+			// Allow project template to extract class renames from this file copy
+			if (FPaths::GetBaseFilename(SrcFilename) != FPaths::GetBaseFilename(DestFilename)
+				&& TemplateDefs->IsClassRename(DestFilename, SrcFilename, FileExtension))
 			{
-				FString FileContents;
-				if( ensure( FFileHelper::LoadFileToString( FileContents, *DestFilename ) ) )
-				{
-					// @todo uht: Checking file contents to see if this is a UObject class.  Sort of fragile here.
-					if( FileContents.Contains( TEXT( ".generated.h\"" ), ESearchCase::IgnoreCase ) )
-					{
-						// Looks like a UObject header!
-						ClassRenames.Add(FPaths::GetBaseFilename(SrcFilename), FPaths::GetBaseFilename(DestFilename));
-					}
-				}
+				// Looks like a UObject file!
+				ClassRenames.Add(FPaths::GetBaseFilename(SrcFilename), FPaths::GetBaseFilename(DestFilename));
 			}
 		}
 		else
@@ -1100,26 +1081,42 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		}
 	}
 
+	const FString ProjectConfigPath = DestFolder / TEXT("Config");
+
+	// Write out the hardware class target settings chosen for this project
+	{
+		const FString DefaultEngineIniFilename = ProjectConfigPath / TEXT("DefaultEngine.ini");
+
+		FString FileContents;
+		// Load the existing file - if it doesn't exist we create it
+		FFileHelper::LoadFileToString(FileContents, *DefaultEngineIniFilename);
+
+		FileContents += LINE_TERMINATOR;
+		FileContents += GetHardwareConfigString(InProjectInfo);
+
+		if ( !WriteOutputFile(DefaultEngineIniFilename, FileContents, OutFailReason) )
+		{
+			return false;
+		}
+	}
+
 	// Fixup specific ini values
-	TArray<FConfigValue> ConfigValuesToSet;
-	const FString ActiveGameNameRedirectsValue_LongName = FString::Printf(TEXT("(OldGameName=\"/Script/%s\",NewGameName=\"/Script/%s\")"), *TemplateName, *ProjectName);
-	const FString ActiveGameNameRedirectsValue_ShortName = FString::Printf(TEXT("(OldGameName=\"%s\",NewGameName=\"/Script/%s\")"), *TemplateName, *ProjectName);
-	new (ConfigValuesToSet) FConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveGameNameRedirects"), *ActiveGameNameRedirectsValue_LongName, /*InShouldReplaceExistingValue=*/false);
-	new (ConfigValuesToSet) FConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveGameNameRedirects"), *ActiveGameNameRedirectsValue_ShortName, /*InShouldReplaceExistingValue=*/false);
-	new (ConfigValuesToSet) FConfigValue(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
+	TArray<FTemplateConfigValue> ConfigValuesToSet;
+	TemplateDefs->AddConfigValues(ConfigValuesToSet, TemplateName, ProjectName, InProjectInfo.bShouldGenerateCode);
+	new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
 
 	// Add all classname fixups
 	for ( auto RenameIt = ClassRenames.CreateConstIterator(); RenameIt; ++RenameIt )
 	{
 		const FString ClassRedirectString = FString::Printf(TEXT("(OldClassName=\"%s\",NewClassName=\"%s\")"), *RenameIt.Key(), *RenameIt.Value());
-		new (ConfigValuesToSet) FConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
+		new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
 	}
 
 	// Fix all specified config values
 	for ( auto ConfigIt = ConfigValuesToSet.CreateConstIterator(); ConfigIt; ++ConfigIt )
 	{
-		const FConfigValue& ConfigValue = *ConfigIt;
-		const FString IniFilename = DestFolder / TEXT("Config") / ConfigValue.ConfigFile;
+		const FTemplateConfigValue& ConfigValue = *ConfigIt;
+		const FString IniFilename = ProjectConfigPath / ConfigValue.ConfigFile;
 		bool bSuccessfullyProcessed = false;
 
 		TArray<FString> FileLines;
@@ -1227,7 +1224,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 	{
 		// Load the source project
 		FProjectDescriptor Project;
-		if(!Project.Load(TemplateFile, OutFailReason))
+		if(!Project.Load(InProjectInfo.TemplateFile, OutFailReason))
 		{
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
@@ -1238,8 +1235,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		Project.EpicSampleNameHash = 0;
 
 		// Fix up module names
-		const FString BaseSourceName = FPaths::GetBaseFilename(TemplateFile);
-		const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFile);
+		const FString BaseSourceName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
+		const FString BaseNewName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
 		for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
 		{
 			FModuleDescriptor& ModuleInfo = *ModuleIt;
@@ -1247,17 +1244,17 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		}
 
 		// Save it to disk
-		if(!Project.Save(NewProjectFile, OutFailReason))
+		if(!Project.Save(InProjectInfo.ProjectFilename, OutFailReason))
 		{
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 
 		// Add it to the list of created files
-		CreatedFiles.Add(NewProjectFile);
+		CreatedFiles.Add(InProjectInfo.ProjectFilename);
 	}
 
-	if ( bShouldGenerateCode )
+	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// resource folder
 		const FString GameModuleSourcePath = DestFolder / TEXT("Source") / ProjectName;
@@ -1268,25 +1265,32 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		}
 
 		// Generate project files
-		if ( !GenerateCodeProjectFiles(NewProjectFile, OutFailReason) )
+		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason) )
 		{
-			DeleteGeneratedProjectFiles(NewProjectFile);
+			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 	}
 
-	if (bCopyStarterContent)
+	if (InProjectInfo.bCopyStarterContent)
 	{
 		// Copy the starter content
 		if ( !CopyStarterContent(DestFolder, OutFailReason) )
 		{
-			DeleteGeneratedProjectFiles(NewProjectFile);
+			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
 	}
 
+	if (!TemplateDefs->PostGenerateProject(DestFolder, SrcFolder, InProjectInfo.ProjectFilename, InProjectInfo.TemplateFile, InProjectInfo.bShouldGenerateCode, OutFailReason))
+	{
+		DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
+		return false;
+	}
+	
 	return true;
 }
 
@@ -1351,7 +1355,7 @@ bool GameProjectUtils::ProjectFileExists(const FString& ProjectFile)
 bool GameProjectUtils::AnyProjectFilesExistInFolder(const FString& Path)
 {
 	TArray<FString> ExistingFiles;
-	const FString Wildcard = FString::Printf(TEXT("%s/*.%s"), *Path, *IProjectManager::GetProjectFileExtension());
+	const FString Wildcard = FString::Printf(TEXT("%s/*.%s"), *Path, *FProjectDescriptor::GetExtension());
 	IFileManager::Get().FindFiles(ExistingFiles, *Wildcard, /*Files=*/true, /*Directories=*/false);
 
 	return ExistingFiles.Num() > 0;
@@ -1411,9 +1415,30 @@ void GameProjectUtils::DeleteGeneratedBuildFiles(const FString& NewProjectFolder
 	}
 }
 
-bool GameProjectUtils::GenerateConfigFiles(const FString& NewProjectPath, const FString& NewProjectName, bool bShouldGenerateCode, bool bCopyStarterContent, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
+FString GameProjectUtils::GetHardwareConfigString(const FProjectInformation& InProjectInfo)
 {
-	FString ProjectConfigPath = NewProjectPath / TEXT("Config");
+	FString HardwareTargeting;
+	
+	FString TargetHardwareAsString;
+	UEnum::GetValueAsString(TEXT("/Script/HardwareTargeting.HardwareTargetingSettings.EHardwareClass"), InProjectInfo.TargetedHardware, /*out*/ TargetHardwareAsString);
+
+	FString GraphicsPresetAsString;
+	UEnum::GetValueAsString(TEXT("/Script/HardwareTargeting.HardwareTargetingSettings.EGraphicsPreset"), InProjectInfo.DefaultGraphicsPerformance, /*out*/ GraphicsPresetAsString);
+
+	HardwareTargeting += TEXT("[/Script/HardwareTargeting.HardwareTargetingSettings]") LINE_TERMINATOR;
+	HardwareTargeting += FString::Printf(TEXT("TargetedHardwareClass=%s") LINE_TERMINATOR, *TargetHardwareAsString);
+	HardwareTargeting += FString::Printf(TEXT("DefaultGraphicsPerformance=%s") LINE_TERMINATOR, *GraphicsPresetAsString);
+	HardwareTargeting += LINE_TERMINATOR;
+
+	return HardwareTargeting;
+}
+
+bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectInfo, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
+{
+	const FString NewProjectFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
+	const FString NewProjectName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
+
+	FString ProjectConfigPath = NewProjectFolder / TEXT("Config");
 
 	// DefaultEngine.ini
 	{
@@ -1424,56 +1449,85 @@ bool GameProjectUtils::GenerateConfigFiles(const FString& NewProjectPath, const 
 		FileContents += FString::Printf(TEXT("GameName=%s") LINE_TERMINATOR, *NewProjectName);
 		FileContents += LINE_TERMINATOR;
 
-		if (bCopyStarterContent)
+		FileContents += GetHardwareConfigString(InProjectInfo);
+		FileContents += LINE_TERMINATOR;
+		
+		if (InProjectInfo.bCopyStarterContent)
 		{
-			// for generated/blank projects with starter content, set startup map to be the starter content map
-			// otherwise, we leave it to be what the template wants.
+			FString StarterContentContentDir = FPaths::StarterContentDir() + TEXT("Content/");
+
 			TArray<FString> StarterContentMapFiles;
 			const FString FileWildcard = FString(TEXT("*")) + FPackageName::GetMapPackageExtension();
 		
-			// assume the first map in the /Maps folder is the default map
-			IFileManager::Get().FindFilesRecursive(StarterContentMapFiles, *FPaths::StarterContentDir(), *FileWildcard, /*Files=*/true, /*Directories=*/false);
+			FString SpecificEditorStartupMap;
+			FString SpecificGameDefaultMap;	
+			FString FullEditorStartupMapPath;
+			FString FullGameDefaultMapPath;
+
+			// First we check if there are maps specified in the DefaultEngine.ini in our starter content folder			
+			const FString StarterContentDefaultEngineIniFilename = FPaths::StarterContentDir() / TEXT("Config/DefaultEngine.ini");
+			if (FPaths::FileExists(StarterContentDefaultEngineIniFilename))
+			{
+				FString StarterFileContents;
+				if (FFileHelper::LoadFileToString(StarterFileContents, *StarterContentDefaultEngineIniFilename))
+				{
+					TArray<FString> StarterIniLines;
+					StarterFileContents.ParseIntoArrayLines(&StarterIniLines);
+					for (int32 Line = 0; Line < StarterIniLines.Num();Line++)
+					{
+						FString EachLine = StarterIniLines[Line];
+						if (EachLine.StartsWith(TEXT("EditorStartupMap")))
+						{
+							EachLine.Split("=", nullptr, &SpecificEditorStartupMap);
+							FullEditorStartupMapPath = (StarterContentContentDir / SpecificEditorStartupMap) + FPackageName::GetMapPackageExtension();
+							FullEditorStartupMapPath = FullEditorStartupMapPath.Replace(TEXT("Game/"), TEXT(""));
+						}
+						if (EachLine.StartsWith(TEXT("GameDefaultMap")))
+						{
+							EachLine.Split("=", nullptr, &SpecificGameDefaultMap);
+							FullGameDefaultMapPath = (StarterContentContentDir / SpecificEditorStartupMap) + FPackageName::GetMapPackageExtension();
+							FullGameDefaultMapPath = FullGameDefaultMapPath.Replace(TEXT("Game/"), TEXT(""));
+						}
+					}					
+				}
+			}
+
+			// Look for maps in the content folder. If we don't specify maps for EditorStartup and GameDefault we will use the first we find in here
+			IFileManager::Get().FindFilesRecursive(StarterContentMapFiles, *FPaths::StarterContentDir(), *FileWildcard, /*Files=*/true, /*Directories=*/false);			
+			FString MapPackagePath;
 			if (StarterContentMapFiles.Num() > 0)
 			{
-				FString StarterContentContentDir = FPaths::StarterContentDir() + TEXT("Content/");
-
 				const FString BaseMapFilename = FPaths::GetBaseFilename(StarterContentMapFiles[0]);
 
 				FString MapPathRelToContent = FPaths::GetPath(StarterContentMapFiles[0]);
 				FPaths::MakePathRelativeTo(MapPathRelToContent, *StarterContentContentDir);
 
-				const FString MapPackagePath = FString(TEXT("/Game/")) + MapPathRelToContent + TEXT("/") + BaseMapFilename;
-				FileContents += TEXT("[/Script/EngineSettings.GameMapsSettings]") LINE_TERMINATOR;
-				FileContents += FString::Printf(TEXT("EditorStartupMap=%s") LINE_TERMINATOR, *MapPackagePath);
-				FileContents += FString::Printf(TEXT("GameDefaultMap=%s") LINE_TERMINATOR, *MapPackagePath);
-				if (bShouldGenerateCode)
-				{
-					FileContents += FString::Printf(TEXT("GlobalDefaultGameMode=\"/Script/%s.%sGameMode\"") LINE_TERMINATOR, *NewProjectName, *NewProjectName);
-				}
+				MapPackagePath = FString(TEXT("/Game/")) + MapPathRelToContent + TEXT("/") + BaseMapFilename;
 			}
+
+			// if either the files we specified don't exist or we didn't specify any, use the first map file we found in the content folder.
+			if (SpecificEditorStartupMap.IsEmpty() || FPaths::FileExists(FullEditorStartupMapPath) == false)
+			{
+				SpecificEditorStartupMap = MapPackagePath;
+			}
+			if (SpecificGameDefaultMap.IsEmpty() || FPaths::FileExists(FullGameDefaultMapPath) == false)
+			{
+				SpecificGameDefaultMap = MapPackagePath;
+			}
+			
+			// Write out the settings for startup map and game default map
+			FileContents += TEXT("[/Script/EngineSettings.GameMapsSettings]") LINE_TERMINATOR;
+			FileContents += FString::Printf(TEXT("EditorStartupMap=%s") LINE_TERMINATOR, *SpecificEditorStartupMap);
+			FileContents += FString::Printf(TEXT("GameDefaultMap=%s") LINE_TERMINATOR, *SpecificGameDefaultMap);
+			if (InProjectInfo.bShouldGenerateCode)
+			{
+				FileContents += FString::Printf(TEXT("GlobalDefaultGameMode=\"/Script/%s.%sGameMode\"") LINE_TERMINATOR, *NewProjectName, *NewProjectName);
+			}			
 		}
 
 		if (WriteOutputFile(DefaultEngineIniFilename, FileContents, OutFailReason))
 		{
 			OutCreatedFiles.Add(DefaultEngineIniFilename);
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	// DefaultGame.ini
-	{
-		const FString DefaultGameIniFilename = ProjectConfigPath / TEXT("DefaultGame.ini");
-		FString FileContents;
-		FileContents += TEXT("[/Script/EngineSettings.GeneralProjectSettings]") LINE_TERMINATOR;
-		FileContents += FString::Printf( TEXT("ProjectID=%s") LINE_TERMINATOR, *FGuid::NewGuid().ToString() );
-		FileContents += LINE_TERMINATOR;
-
-		if ( WriteOutputFile(DefaultGameIniFilename, FileContents, OutFailReason) )
-		{
-			OutCreatedFiles.Add(DefaultGameIniFilename);
 		}
 		else
 		{
@@ -1607,22 +1661,6 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 	NewModuleInfo.ModuleType = EHostType::Runtime;
 	NewModuleInfo.ModuleSourcePath = FPaths::ConvertRelativePathToFull(GameModulePath / ""); // Ensure trailing /
 
-	// MyGamePlayerController.h
-	{
-		const UClass* BaseClass = APlayerController::StaticClass();
-		const FString NewClassName = NewProjectName + BaseClass->GetName();
-		const FString NewHeaderFilename = GameModulePath / NewClassName + TEXT(".h");
-		FString UnusedSyncLocation;
-		if ( GenerateClassHeaderFile(NewHeaderFilename, NewClassName, FNewClassInfo(BaseClass), TArray<FString>(), TEXT(""), TEXT(""), UnusedSyncLocation, NewModuleInfo, OutFailReason) )
-		{
-			OutCreatedFiles.Add(NewHeaderFilename);
-		}
-		else
-		{
-			return false;
-		}
-	}
-
 	// MyGameGameMode.h
 	{
 		const UClass* BaseClass = AGameMode::StaticClass();
@@ -1639,23 +1677,6 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 		}
 	}
 
-	// MyGamePlayerController.cpp
-	FString PrefixedPlayerControllerClassName;
-	{
-		const UClass* BaseClass = APlayerController::StaticClass();
-		const FString NewClassName = NewProjectName + BaseClass->GetName();
-		const FString NewCPPFilename = GameModulePath / NewClassName + TEXT(".cpp");
-		PrefixedPlayerControllerClassName = FString(BaseClass->GetPrefixCPP()) + NewClassName;
-		if ( GenerateClassCPPFile(NewCPPFilename, NewClassName, FNewClassInfo(BaseClass), TArray<FString>(), TArray<FString>(), TEXT(""), NewModuleInfo, OutFailReason) )
-		{
-			OutCreatedFiles.Add(NewCPPFilename);
-		}
-		else
-		{
-			return false;
-		}
-	}
-
 	// MyGameGameMode.cpp
 	{
 		const UClass* BaseClass = AGameMode::StaticClass();
@@ -1663,13 +1684,7 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 		const FString NewCPPFilename = GameModulePath / NewClassName + TEXT(".cpp");
 		
 		TArray<FString> PropertyOverrides;
-		PropertyOverrides.Add( FString::Printf( TEXT("PlayerControllerClass = %s::StaticClass();"), *PrefixedPlayerControllerClassName ) );
-
-		// PropertyOverrides references PlayerController class so we need to include its header to properly compile under non-unity
-		const UClass* PlayerControllerBaseClass = APlayerController::StaticClass();
-		const FString PlayerControllerClassName = NewProjectName + PlayerControllerBaseClass->GetName() + TEXT(".h");
 		TArray<FString> AdditionalIncludes;
-		AdditionalIncludes.Add(PlayerControllerClassName);
 
 		if ( GenerateClassCPPFile(NewCPPFilename, NewClassName, FNewClassInfo(BaseClass), AdditionalIncludes, PropertyOverrides, TEXT(""), NewModuleInfo, OutFailReason) )
 		{
@@ -1686,15 +1701,21 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 
 bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason)
 {
-	if ( FModuleManager::Get().GenerateCodeProjectFiles(ProjectFilename, *GLog) )
+	FStringOutputDevice OutputLog;
+	OutputLog.SetAutoEmitLineTerminator(true);
+	GLog->AddOutputDevice(&OutputLog);
+	bool bHaveProjectFiles = FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), ProjectFilename, GWarn);
+	GLog->RemoveOutputDevice(&OutputLog);
+
+	if(!bHaveProjectFiles)
 	{
-		return true;
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("LogOutput"), FText::FromString(OutputLog) );
+		OutFailReason = FText::Format(LOCTEXT("CouldNotGenerateProjectFiles", "Failed to generate project files. Log output:\n{LogOutput}"), Args);
+		return false;
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add( TEXT("ProjectFilename"), FText::FromString( ProjectFilename ) );
-	OutFailReason = FText::Format( LOCTEXT("FailedToGenerateCodeProjectFiles", "Failed to generate code project files for \"{ProjectFilename}\"."), Args );
-	return false;
+	return true;
 }
 
 bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
@@ -2050,12 +2071,15 @@ bool GameProjectUtils::WriteOutputFile(const FString& OutputFilename, const FStr
 
 FString GameProjectUtils::MakeCopyrightLine()
 {
-	if(FEngineBuildSettings::IsInternalBuild())
+	const FString CopyrightNotice = GetDefault<UGeneralProjectSettings>()->CopyrightNotice;
+	if (!CopyrightNotice.IsEmpty())
 	{
-		return FString(TEXT("// ")) + Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->CopyrightNotice;
+		return FString(TEXT("// ")) + CopyrightNotice;
 	}
-
-	return "";
+	else
+	{
+		return FString();
+	}
 }
 
 FString GameProjectUtils::MakeCommaDelimitedList(const TArray<FString>& InList, bool bPlaceQuotesAroundEveryElement)
@@ -2574,13 +2598,30 @@ FString GameProjectUtils::GetDefaultProjectTemplateFilename()
 	return TEXT("");
 }
 
+void GameProjectUtils::GetProjectCodeFilenames(TArray<FString>& OutProjectCodeFilenames)
+{
+	IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
+	IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
+}
+
 int32 GameProjectUtils::GetProjectCodeFileCount()
 {
 	TArray<FString> Filenames;
-	IFileManager::Get().FindFilesRecursive(Filenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
-	IFileManager::Get().FindFilesRecursive(Filenames, *FPaths::GameSourceDir(), TEXT("*.cpp"), true, false, false);
-
+	GetProjectCodeFilenames(Filenames);
 	return Filenames.Num();
+}
+
+void GameProjectUtils::GetProjectSourceDirectoryInfo(int32& OutNumCodeFiles, int64& OutDirectorySize)
+{
+	TArray<FString> Filenames;
+	GetProjectCodeFilenames(Filenames);
+	OutNumCodeFiles = Filenames.Num();
+
+	OutDirectorySize = 0;
+	for (const auto& filename : Filenames)
+	{
+		OutDirectorySize += IFileManager::Get().FileSize(*filename);
+	}
 }
 
 bool GameProjectUtils::ProjectHasCodeFiles()
@@ -2672,7 +2713,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	}
 
 	// Generate project files if we happen to be using a project file.
-	if ( !FModuleManager::Get().GenerateCodeProjectFiles( FPaths::GetProjectFilePath(), *GLog ) )
+	if ( !FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
 	{
 		OutFailReason = LOCTEXT("FailedToGenerateProjectFiles", "Failed to generate project files.");
 		return false;

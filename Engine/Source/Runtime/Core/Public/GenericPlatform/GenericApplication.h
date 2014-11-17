@@ -43,7 +43,8 @@ public:
 					    const bool bInIsLeftAltDown,
 						const bool bInIsRightAltDown,
 						const bool bInIsLeftCommandDown,
-						const bool bInIsRightCommandDown )
+						const bool bInIsRightCommandDown,
+						const bool bAreCapsLocked)
 		: bIsLeftShiftDown( bInIsLeftShiftDown ),
 		  bIsRightShiftDown( bInIsRightShiftDown ),
 		  bIsLeftControlDown( bInIsLeftControlDown ),
@@ -51,10 +52,23 @@ public:
 		  bIsLeftAltDown( bInIsLeftAltDown ),
 		  bIsRightAltDown( bInIsRightAltDown ),
 		  bIsLeftCommandDown( bInIsLeftCommandDown ),
-		  bIsRightCommandDown( bInIsRightCommandDown )
+		  bIsRightCommandDown( bInIsRightCommandDown ),
+		  bAreCapsLocked( bAreCapsLocked )
 	{
 	}
 
+	FModifierKeysState()
+		: bIsLeftShiftDown(false),
+		  bIsRightShiftDown(false),
+		  bIsLeftControlDown(false),
+		  bIsRightControlDown(false),
+		  bIsLeftAltDown(false),
+		  bIsRightAltDown(false),
+		  bIsLeftCommandDown(false),
+		  bIsRightCommandDown(false),
+		  bAreCapsLocked(false)
+	{
+	}
 	
 	/**
 	 * Returns true if either shift key was down when this event occurred
@@ -177,6 +191,14 @@ public:
 	}
 
 
+	/**
+	 * @return  true if the Caps Lock key has been toggled to the enabled state.
+	 */
+	bool AreCapsLocked() const
+	{
+		return bAreCapsLocked;
+	}
+
 private:
 
 	/** True if the left shift key was down when this event occurred. */
@@ -202,6 +224,9 @@ private:
 	
 	/** True if the right command key was down when this event occurred. */
 	bool bIsRightCommandDown;
+
+	/** True if the Caps Lock key has been toggled to the enabled state. */
+	bool bAreCapsLocked;
 };
 
 struct FPlatformRect
@@ -251,6 +276,8 @@ struct FDisplayMetrics
 
 	/** The safe area for less important spill over on TVs (see TitleSafePaddingSize) */
 	FVector2D ActionSafePaddingSize;
+
+	CORE_API static void GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics);
 };
 
 
@@ -306,7 +333,7 @@ public:
 
 	virtual void* GetCapture( void ) const { return NULL; }
 
-	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState( false, false, false, false, false, false, false, false ); }
+	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState(); }
 
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) { };
 
@@ -333,10 +360,8 @@ public:
 	
 	/** Notifies subscribers when any of the display metrics change: e.g. resolution changes or monitor sare re-arranged. */
 	FOnDisplayMetricsChanged& OnDisplayMetricsChanged(){ return OnDisplayMetricsChangedEvent; }
-	
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { }
 
-	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { GetDisplayMetrics(OutDisplayMetrics); }
+	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
 
 	/** Gets the horizontal alignment of the window title bar's title text. */
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const
@@ -358,6 +383,8 @@ public:
 	virtual bool SupportsSystemHelp() const { return false; }
 
 	virtual void ShowSystemHelp() {}
+
+	virtual bool ApplicationLicenseValid(FPlatformUserId PlatformUser = PLATFORMUSERID_NONE) { return true; }
 
 public:
 

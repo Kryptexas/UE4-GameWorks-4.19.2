@@ -10,53 +10,32 @@
 UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	SCheckBox::FArguments CheckBoxDefaults;
+	SCheckBox::FArguments SlateDefaults;
+	WidgetStyle = *SlateDefaults._Style;
 
 	CheckedState = ESlateCheckBoxState::Unchecked;
 
-	HorizontalAlignment = CheckBoxDefaults._HAlign;
-	Padding = CheckBoxDefaults._Padding.Get();
+	HorizontalAlignment = SlateDefaults._HAlign;
+	Padding = SlateDefaults._Padding.Get();
 
-	ForegroundColor = FLinearColor::White;
 	BorderBackgroundColor = FLinearColor::White;
 }
 
-void UCheckBox::ReleaseNativeWidget()
+void UCheckBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyCheckbox.Reset();
 }
 
 TSharedRef<SWidget> UCheckBox::RebuildWidget()
 {
-	TOptional<FSlateSound> OptionalCheckedSound;
-	if ( CheckedSound.GetResourceObject() )
-	{
-		OptionalCheckedSound = CheckedSound;
-	}
-
-	TOptional<FSlateSound> OptionalUncheckedSound;
-	if ( UncheckedSound.GetResourceObject() )
-	{
-		OptionalUncheckedSound = UncheckedSound;
-	}
-
-	TOptional<FSlateSound> OptionalHoveredSound;
-	if ( HoveredSound.GetResourceObject() )
-	{
-		OptionalHoveredSound = HoveredSound;
-	}
-
 	MyCheckbox = SNew(SCheckBox)
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
+		.Style(&WidgetStyle)
 		.HAlign( HorizontalAlignment )
 		.Padding( Padding )
-		.ForegroundColor( ForegroundColor )
 		.BorderBackgroundColor( BorderBackgroundColor )
-		.CheckedSoundOverride(OptionalCheckedSound)
-		.UncheckedSoundOverride(OptionalUncheckedSound)
-		.HoveredSoundOverride(OptionalHoveredSound)
 		;
 
 	if ( GetChildrenCount() > 0 )
@@ -67,32 +46,11 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 	return MyCheckbox.ToSharedRef();
 }
 
-void UCheckBox::SyncronizeProperties()
+void UCheckBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
-
-	const FCheckBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FCheckBoxStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		SCheckBox::FArguments Defaults;
-		StylePtr = Defaults._Style;
-	}
-
-	MyCheckbox->SetStyle(StylePtr);
+	Super::SynchronizeProperties();
 
 	MyCheckbox->SetIsChecked( OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState) );
-	
-	MyCheckbox->SetUncheckedImage(UncheckedImage ? &UncheckedImage->Brush : nullptr);
-	MyCheckbox->SetUncheckedHoveredImage(UncheckedHoveredImage ? &UncheckedHoveredImage->Brush : nullptr);
-	MyCheckbox->SetUncheckedPressedImage(UncheckedPressedImage ? &UncheckedPressedImage->Brush : nullptr);
-	
-	MyCheckbox->SetCheckedImage(CheckedImage ? &CheckedImage->Brush : nullptr);
-	MyCheckbox->SetCheckedHoveredImage(CheckedHoveredImage ? &CheckedHoveredImage->Brush : nullptr);
-	MyCheckbox->SetCheckedPressedImage(CheckedPressedImage ? &CheckedPressedImage->Brush : nullptr);
-	
-	MyCheckbox->SetUndeterminedImage(UndeterminedImage ? &UndeterminedImage->Brush : nullptr);
-	MyCheckbox->SetUndeterminedHoveredImage(UndeterminedHoveredImage ? &UndeterminedHoveredImage->Brush : nullptr);
-	MyCheckbox->SetUndeterminedPressedImage(UndeterminedPressedImage ? &UndeterminedPressedImage->Brush : nullptr);
 }
 
 void UCheckBox::OnSlotAdded(UPanelSlot* Slot)
@@ -176,11 +134,89 @@ void UCheckBox::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewSt
 	}
 }
 
+void UCheckBox::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FCheckBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FCheckBoxStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+
+		if ( UncheckedImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.UncheckedImage = UncheckedImage_DEPRECATED->Brush;
+			UncheckedImage_DEPRECATED = nullptr;
+		}
+
+		if ( UncheckedHoveredImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.UncheckedHoveredImage = UncheckedHoveredImage_DEPRECATED->Brush;
+			UncheckedHoveredImage_DEPRECATED = nullptr;
+		}
+
+		if ( UncheckedPressedImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.UncheckedPressedImage = UncheckedPressedImage_DEPRECATED->Brush;
+			UncheckedPressedImage_DEPRECATED = nullptr;
+		}
+
+		if ( CheckedImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.CheckedImage = CheckedImage_DEPRECATED->Brush;
+			CheckedImage_DEPRECATED = nullptr;
+		}
+
+		if ( CheckedHoveredImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.CheckedHoveredImage = CheckedHoveredImage_DEPRECATED->Brush;
+			CheckedHoveredImage_DEPRECATED = nullptr;
+		}
+
+		if ( CheckedPressedImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.CheckedPressedImage = CheckedPressedImage_DEPRECATED->Brush;
+			CheckedPressedImage_DEPRECATED = nullptr;
+		}
+
+		if ( UndeterminedImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.UndeterminedImage = UndeterminedImage_DEPRECATED->Brush;
+			UndeterminedImage_DEPRECATED = nullptr;
+		}
+
+		if ( UndeterminedHoveredImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.UndeterminedHoveredImage = UndeterminedHoveredImage_DEPRECATED->Brush;
+			UndeterminedHoveredImage_DEPRECATED = nullptr;
+		}
+
+		if ( UndeterminedPressedImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.UndeterminedPressedImage = UndeterminedPressedImage_DEPRECATED->Brush;
+			UndeterminedPressedImage_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UCheckBox::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.CheckBox");
+}
+
+const FText UCheckBox::GetPaletteCategory()
+{
+	return LOCTEXT("Common", "Common");
 }
 
 #endif

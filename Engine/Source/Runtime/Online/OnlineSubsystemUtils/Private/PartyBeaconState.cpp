@@ -291,6 +291,64 @@ bool UPartyBeaconState::RemoveReservation(const FUniqueNetIdRepl& PartyLeader)
 	return false;
 }
 
+bool UPartyBeaconState::SwapTeams(const FUniqueNetIdRepl& PartyLeader, const FUniqueNetIdRepl& OtherPartyLeader)
+{
+	bool bSuccess = false;
+
+	int32 ResIdx = GetExistingReservation(PartyLeader);
+	int32 OtherResIdx = GetExistingReservation(OtherPartyLeader);
+
+	if (ResIdx != INDEX_NONE && OtherResIdx != INDEX_NONE)
+	{
+		FPartyReservation& PartyRes = Reservations[ResIdx];
+		FPartyReservation& OtherPartyRes = Reservations[OtherResIdx];
+		if (PartyRes.TeamNum != OtherPartyRes.TeamNum)
+		{
+			int32 TeamSize = GetNumPlayersOnTeam(PartyRes.TeamNum);
+			int32 OtherTeamSize = GetNumPlayersOnTeam(OtherPartyRes.TeamNum);
+
+			// Will the new teams fit
+			bool bValidTeamSizeA = (PartyRes.PartyMembers.Num() + (OtherTeamSize - OtherPartyRes.PartyMembers.Num())) <= NumPlayersPerTeam;
+			bool bValidTeamSizeB = (OtherPartyRes.PartyMembers.Num() + (TeamSize - PartyRes.PartyMembers.Num())) <= NumPlayersPerTeam;
+
+			if (bValidTeamSizeA && bValidTeamSizeB)
+			{
+				Swap(PartyRes.TeamNum, OtherPartyRes.TeamNum);
+				bSuccess = true;
+			}
+		}
+	}
+
+	return bSuccess;
+}
+
+bool UPartyBeaconState::ChangeTeam(const FUniqueNetIdRepl& PartyLeader, int32 NewTeamNum)
+{
+	bool bSuccess = false;
+
+	if (NewTeamNum >= 0 && NewTeamNum < NumTeams)
+	{
+		int32 ResIdx = GetExistingReservation(PartyLeader);
+		if (ResIdx != INDEX_NONE)
+		{
+			FPartyReservation& PartyRes = Reservations[ResIdx];
+			if (PartyRes.TeamNum != NewTeamNum)
+			{
+				int32 OtherTeamSize = GetNumPlayersOnTeam(NewTeamNum);
+				bool bValidTeamSize = (PartyRes.PartyMembers.Num() + OtherTeamSize) <= NumPlayersPerTeam;
+
+				if (bValidTeamSize)
+				{
+					PartyRes.TeamNum = NewTeamNum;
+					bSuccess = true;
+				}
+			}
+		}
+	}
+
+	return bSuccess;
+}
+
 bool UPartyBeaconState::RemovePlayer(const FUniqueNetIdRepl& PlayerId)
 {
 	bool bWasRemoved = false;

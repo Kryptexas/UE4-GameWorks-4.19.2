@@ -14,7 +14,7 @@
 PxFoundation*			GPhysXFoundation = NULL;
 PxProfileZoneManager*	GPhysXProfileZoneManager = NULL;
 PxPhysics*				GPhysXSDK = NULL;
-#if WITH_PHYSICS_COOKING
+#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 PxCooking*				GPhysXCooking = NULL;
 #endif
 FPhysXAllocator*		GPhysXAllocator = NULL;
@@ -354,12 +354,15 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 
 		const TMap<uint32, TMap<FRigidBodyIndexPair, bool> *> & CollisionDisableTableLookup = PhysScene->GetCollisionDisableTableLookup();
 		TMap<FRigidBodyIndexPair, bool>* const * DisableTablePtrPtr = CollisionDisableTableLookup.Find(filterData1.word2);
-		check(DisableTablePtrPtr);
-		TMap<FRigidBodyIndexPair,bool>* DisableTablePtr = *DisableTablePtrPtr;
-		FRigidBodyIndexPair BodyPair(filterData0.word0, filterData1.word0); // body indexes are stored in word 0
-		if( DisableTablePtr->Find(BodyPair) )
+		if (DisableTablePtrPtr)		//Since collision table is deferred during sub-stepping it's possible that we won't get the collision disable table until the next frame
 		{
-			return PxFilterFlag::eKILL;
+			TMap<FRigidBodyIndexPair, bool>* DisableTablePtr = *DisableTablePtrPtr;
+			FRigidBodyIndexPair BodyPair(filterData0.word0, filterData1.word0); // body indexes are stored in word 0
+			if (DisableTablePtr->Find(BodyPair))
+			{
+				return PxFilterFlag::eKILL;
+			}
+
 		}
 	}
 	
@@ -446,18 +449,21 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 	check(PhysScene);
 
-	// Allocate and fill in the NotifyInfo struct.
-	FCollisionNotifyInfo* NotifyInfo = new(PhysScene->PendingCollisionNotifies) FCollisionNotifyInfo;
-	NotifyInfo->bCallEvent0 = (BodyInst0->bNotifyRigidBodyCollision);
-	NotifyInfo->Info0.SetFrom(BodyInst0);
-	NotifyInfo->bCallEvent1 = (BodyInst1->bNotifyRigidBodyCollision);
-	NotifyInfo->Info1.SetFrom(BodyInst1);
-
-	FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
+	uint32 PreAddingCollisionNotify = PhysScene->PendingCollisionNotifies.Num() - 1;
+	TArray<int32> PairNotifyMapping = FBodyInstance::AddCollisionNotifyInfo(BodyInst0, BodyInst1, Pairs, NumPairs, PhysScene->PendingCollisionNotifies);
 
 	// Iterate through contact points
 	for(uint32 PairIdx=0; PairIdx<NumPairs; PairIdx++)
 	{
+		int32 NotifyIdx = PairNotifyMapping[PairIdx];
+		if (NotifyIdx == -1)	//the body instance this pair belongs to is not listening for events
+		{
+			continue;
+		}
+
+		FCollisionNotifyInfo * NotifyInfo = &PhysScene->PendingCollisionNotifies[NotifyIdx];
+		FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
+
 		const PxContactPair* Pair = Pairs + PairIdx;
 
 		// Get the two shapes that are involved in the collision
@@ -495,11 +501,16 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 		}	
 	}
 
-	// Discard pairs that don't generate any force (eg. have been rejected through a modify contact callback).
-	if(ImpactInfo->TotalNormalImpulse.SizeSquared() < KINDA_SMALL_NUMBER)
+	for (int32 NotifyIdx = PreAddingCollisionNotify + 1; NotifyIdx < PhysScene->PendingCollisionNotifies.Num(); NotifyIdx++)
 	{
-		PhysScene->PendingCollisionNotifies.RemoveAt(PhysScene->PendingCollisionNotifies.Num()-1);
-		return;
+		FCollisionNotifyInfo * NotifyInfo = &PhysScene->PendingCollisionNotifies[NotifyIdx];
+		FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
+		// Discard pairs that don't generate any force (eg. have been rejected through a modify contact callback).
+		if (ImpactInfo->TotalNormalImpulse.SizeSquared() < KINDA_SMALL_NUMBER)
+		{
+			PhysScene->PendingCollisionNotifies.RemoveAt(NotifyIdx);
+			NotifyIdx--;
+		}
 	}
 }
 

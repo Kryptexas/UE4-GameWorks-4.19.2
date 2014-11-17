@@ -106,88 +106,106 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 			Swap( Start.Y, End.Y );
 		}
 
-		// Extend the endpoint of the rect to get the actual line
-		FIntRect BoxRect( FIntPoint( FMath::Max( 0.0f, Start.X ), FMath::Max( 0.0f, Start.Y ) ), FIntPoint( FMath::Min(ViewportSizeX, FMath::TruncToInt(End.X+1)), FMath::Min( ViewportSizeY, FMath::TruncToInt(End.Y+1) ) ) );
-
-		const TArray<FColor>& RawHitProxyData = ViewportClient->Viewport->GetRawHitProxyData(BoxRect);
-
-		TSet<AActor*> HitActors;
-		TSet<UModel*> HitModels;
-
-
-		// Lower the resolution with massive box selects
-		int32 Step = (BoxRect.Width() > 500 && BoxRect.Height() > 500) ? 4 : 1;
-
-
-		for (int32 Y = BoxRect.Min.Y; Y < BoxRect.Max.Y; Y = Y < BoxRect.Max.Y - 1 ? FMath::Min(BoxRect.Max.Y-1, Y+Step) : ++Y )
+		const bool bTransparentBoxSelection = GetDefault<ULevelEditorViewportSettings>()->bTransparentBoxSelection;
+		if (bTransparentBoxSelection)
 		{
-			const FColor* SourceData = &RawHitProxyData[Y * ViewportSizeX];
-			for (int32 X = BoxRect.Min.X; X < BoxRect.Max.X; X = X < BoxRect.Max.X-1 ? FMath::Min(BoxRect.Max.X-1, X + Step) : ++X )
-			{
-				FHitProxyId HitProxyId(SourceData[X]);
-				HHitProxy* HitProxy = GetHitProxyById(HitProxyId);
-
-				if (HitProxy)
-				{
-					if( HitProxy->IsA(HActor::StaticGetType()) )
-					{
-						AActor* Actor = ((HActor*)HitProxy)->Actor;
-						if (Actor)
-						{
-							HitActors.Add(Actor);
-						}
-					}
-					else if( HitProxy->IsA(HModel::StaticGetType()) )
-					{
-						HitModels.Add( ((HModel*)HitProxy)->GetModel() );
-					}
-					else if( HitProxy->IsA(HBSPBrushVert::StaticGetType()) )
-					{
-						HBSPBrushVert* HitBSPBrushVert = ((HBSPBrushVert*)HitProxy);
-						if( HitBSPBrushVert->Brush.IsValid() )
-						{
-							HitActors.Add( HitBSPBrushVert->Brush.Get() );
-						}
-					}
-				}
-
-			}
-		}
-
-
-		if (HitModels.Num() > 0)
-		{
-			// Check every model to see if its BSP surfaces should be selected
-			for (auto It = HitModels.CreateConstIterator(); It; ++It)
-			{
-				UModel& Model = **It;
-				// Check every node in the model
-				for (int32 NodeIndex = 0; NodeIndex < Model.Nodes.Num(); NodeIndex++)
-				{
-					if (IntersectsFrustum(Model, NodeIndex, Frustum, bStrictDragSelection))
-					{
-						uint32 SurfaceIndex = Model.Nodes[NodeIndex].iSurf;
-						FBspSurf& Surf = Model.Surfs[SurfaceIndex];
-						HitActors.Add( Surf.Actor );
-					}
-				}
-			}
-		}
-
-		if( HitActors.Num() > 0 )
-		{
-			for( auto It = HitActors.CreateConstIterator(); It; ++It )
+			// Get a list of frustum-culled actors
+			for(FActorIterator It(ViewportClient->GetWorld()); It; ++It)
 			{
 				AActor* Actor = *It;
-				if( bStrictDragSelection && IntersectsFrustum( *Actor, Frustum, bStrictDragSelection ) )
+				if (IntersectsFrustum( *Actor, Frustum, bStrictDragSelection))
 				{
-					GEditor->SelectActor(Actor, bShouldSelect, false);
+					// Select the actor if it intersected
+					GEditor->SelectActor( Actor, bShouldSelect, true);
 					bSelectionChanged = true;
 				}
-				else if( !bStrictDragSelection )
+			}
+		}
+		else
+		{
+			// Extend the endpoint of the rect to get the actual line
+			FIntRect BoxRect( FIntPoint( FMath::Max( 0.0f, Start.X ), FMath::Max( 0.0f, Start.Y ) ), FIntPoint( FMath::Min(ViewportSizeX, FMath::TruncToInt(End.X+1)), FMath::Min( ViewportSizeY, FMath::TruncToInt(End.Y+1) ) ) );
+
+			const TArray<FColor>& RawHitProxyData = ViewportClient->Viewport->GetRawHitProxyData(BoxRect);
+
+			TSet<AActor*> HitActors;
+			TSet<UModel*> HitModels;
+
+
+			// Lower the resolution with massive box selects
+			int32 Step = (BoxRect.Width() > 500 && BoxRect.Height() > 500) ? 4 : 1;
+
+
+			for (int32 Y = BoxRect.Min.Y; Y < BoxRect.Max.Y; Y = Y < BoxRect.Max.Y - 1 ? FMath::Min(BoxRect.Max.Y-1, Y+Step) : ++Y )
+			{
+				const FColor* SourceData = &RawHitProxyData[Y * ViewportSizeX];
+				for (int32 X = BoxRect.Min.X; X < BoxRect.Max.X; X = X < BoxRect.Max.X-1 ? FMath::Min(BoxRect.Max.X-1, X + Step) : ++X )
 				{
-					GEditor->SelectActor(Actor, bShouldSelect, false);
-					bSelectionChanged = true;
+					FHitProxyId HitProxyId(SourceData[X]);
+					HHitProxy* HitProxy = GetHitProxyById(HitProxyId);
+
+					if (HitProxy)
+					{
+						if( HitProxy->IsA(HActor::StaticGetType()) )
+						{
+							AActor* Actor = ((HActor*)HitProxy)->Actor;
+							if (Actor)
+							{
+								HitActors.Add(Actor);
+							}
+						}
+						else if( HitProxy->IsA(HModel::StaticGetType()) )
+						{
+							HitModels.Add( ((HModel*)HitProxy)->GetModel() );
+						}
+						else if( HitProxy->IsA(HBSPBrushVert::StaticGetType()) )
+						{
+							HBSPBrushVert* HitBSPBrushVert = ((HBSPBrushVert*)HitProxy);
+							if( HitBSPBrushVert->Brush.IsValid() )
+							{
+								HitActors.Add( HitBSPBrushVert->Brush.Get() );
+							}
+						}
+					}
+
+				}
+			}
+
+
+			if (HitModels.Num() > 0)
+			{
+				// Check every model to see if its BSP surfaces should be selected
+				for (auto It = HitModels.CreateConstIterator(); It; ++It)
+				{
+					UModel& Model = **It;
+					// Check every node in the model
+					for (int32 NodeIndex = 0; NodeIndex < Model.Nodes.Num(); NodeIndex++)
+					{
+						if (IntersectsFrustum(Model, NodeIndex, Frustum, bStrictDragSelection))
+						{
+							uint32 SurfaceIndex = Model.Nodes[NodeIndex].iSurf;
+							FBspSurf& Surf = Model.Surfs[SurfaceIndex];
+							HitActors.Add( Surf.Actor );
+						}
+					}
+				}
+			}
+
+			if( HitActors.Num() > 0 )
+			{
+				for( auto It = HitActors.CreateConstIterator(); It; ++It )
+				{
+					AActor* Actor = *It;
+					if( bStrictDragSelection && IntersectsFrustum( *Actor, Frustum, bStrictDragSelection ) )
+					{
+						GEditor->SelectActor(Actor, bShouldSelect, false);
+						bSelectionChanged = true;
+					}
+					else if( !bStrictDragSelection )
+					{
+						GEditor->SelectActor(Actor, bShouldSelect, false);
+						bSelectionChanged = true;
+					}
 				}
 			}
 		}
@@ -353,9 +371,6 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FCo
 	// Never drag-select hidden actors or builder brushes. 
 	if( !bActorIsHiddenByShowFlags && !InActor.IsHiddenEd() && !FActorEditorUtils::IsABuilderBrush(&InActor) )
 	{
-		// Determine if the user would prefer to use strict selection or not
-		const bool bStrictDragSelection = GetDefault<ULevelEditorViewportSettings>()->bStrictBoxSelection;
-
 		// Iterate over all actor components, selecting out primitive components
 		TArray<UPrimitiveComponent*> Components;
 		InActor.GetComponents(Components);
@@ -404,7 +419,7 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FCo
 							const FVector Location = BrushComponent->ComponentToWorld.TransformPosition( Poly.Vertices[VertexIndex] );
 							const bool bIntersect = InFrustum.IntersectBox( Location, FVector::ZeroVector );
 
-							if( bIntersect && !bStrictDragSelection )
+							if( bIntersect && !bUseStrictSelection )
 							{
 								// If we intersected a vertex and we dont require the box to encompass the entire component
 								// then the actor should be selected and we can stop checking
@@ -412,7 +427,7 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FCo
 								bActorHitByBox = true;
 								break;
 							}
-							else if( !bIntersect && bStrictDragSelection )
+							else if( !bIntersect && bUseStrictSelection )
 							{
 								// If we didnt intersect a vertex but we require the box to encompass the entire component
 								// then this test failed and we can stop checking
@@ -423,7 +438,7 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FCo
 						}
 					}
 
-					if( bStrictDragSelection && !bAlreadyProcessed )
+					if( bUseStrictSelection && !bAlreadyProcessed )
 					{
 						// If we are here then every vert was intersected so we should select the actor
 						bActorHitByBox = true;
@@ -439,7 +454,7 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FCo
 				else
 				{
 					if ( InFrustum.IntersectBox( Origin, Extent, bActorFullyContained) 
-						&& (!bStrictDragSelection || bActorFullyContained))
+						&& (!bUseStrictSelection || bActorFullyContained))
 					{
 						if( PrimitiveComponent->IsA( UStaticMeshComponent::StaticClass() ) || PrimitiveComponent->IsA( USkeletalMeshComponent::StaticClass() ) )
 						{

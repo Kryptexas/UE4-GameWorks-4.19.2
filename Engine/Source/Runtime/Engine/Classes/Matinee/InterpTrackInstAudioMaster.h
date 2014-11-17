@@ -12,7 +12,6 @@ class UInterpTrackInstAudioMaster : public UInterpTrackInst
 
 	// Begin UInterpTrackInst Instance
 	virtual void InitTrackInst(UInterpTrack* Track) override;
-	virtual void TermTrackInst(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

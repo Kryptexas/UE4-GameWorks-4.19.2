@@ -97,6 +97,8 @@ private:
 
 void FAnalyticsET::StartupModule()
 {
+	// Make sure http is loaded so that we can flush events during module shutdown
+	FModuleManager::LoadModuleChecked<FHttpModule>("HTTP");
 }
 
 void FAnalyticsET::ShutdownModule()
@@ -246,58 +248,61 @@ void FAnalyticsProviderET::EndSession()
 
 void FAnalyticsProviderET::FlushEvents()
 {
-	FString Payload;
-
-	FDateTime CurrentTime = FDateTime::UtcNow();
-
-	TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
-	JsonWriter->WriteObjectStart();
-	JsonWriter->WriteArrayStart(TEXT("Events"));
-	for (int32 EventIdx = 0; EventIdx < CachedEvents.Num(); EventIdx++)
+	if(ensure(FModuleManager::Get().IsModuleLoaded("HTTP")))
 	{
-		const FAnalyticsEventEntry& Entry = CachedEvents[EventIdx];
-		// event entry
+		FString Payload;
+
+		FDateTime CurrentTime = FDateTime::UtcNow();
+
+		TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
 		JsonWriter->WriteObjectStart();
-		JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
-		FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
-		JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
-		JsonWriter->WriteValue(TEXT("IsEditor"), FString::FromInt(GIsEditor));
-		if (Entry.Attributes.Num() > 0)
+		JsonWriter->WriteArrayStart(TEXT("Events"));
+		for (int32 EventIdx = 0; EventIdx < CachedEvents.Num(); EventIdx++)
 		{
-			// optional attributes for this event
-			for (int32 AttrIdx = 0; AttrIdx < Entry.Attributes.Num(); AttrIdx++)
+			const FAnalyticsEventEntry& Entry = CachedEvents[EventIdx];
+			// event entry
+			JsonWriter->WriteObjectStart();
+			JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
+			FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
+			JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
+			JsonWriter->WriteValue(TEXT("IsEditor"), FString::FromInt(GIsEditor));
+			if (Entry.Attributes.Num() > 0)
 			{
-				const FAnalyticsEventAttribute& Attr = Entry.Attributes[AttrIdx];				
-				JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
+				// optional attributes for this event
+				for (int32 AttrIdx = 0; AttrIdx < Entry.Attributes.Num(); AttrIdx++)
+				{
+					const FAnalyticsEventAttribute& Attr = Entry.Attributes[AttrIdx];				
+					JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
+				}
 			}
+			JsonWriter->WriteObjectEnd();
 		}
+		JsonWriter->WriteArrayEnd();
 		JsonWriter->WriteObjectEnd();
+		JsonWriter->Close();
+
+		UE_LOG(LogAnalytics, Verbose, TEXT("ET Flush: Payload:\n%s"), *Payload);
+
+		// Create/send Http request for an event
+ 		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+ 		HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+ 		HttpRequest->SetURL(
+			FString::Printf(TEXT("%sCollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&IsEditor=%s"),
+			*APIServer, 
+			*FGenericPlatformHttp::UrlEncode(SessionID),
+			*FGenericPlatformHttp::UrlEncode(APIKey), 
+			*FGenericPlatformHttp::UrlEncode(AppVersion),
+			*FGenericPlatformHttp::UrlEncode(UserID),
+			*FGenericPlatformHttp::UrlEncode(FString::FromInt(GIsEditor))
+			));
+   		HttpRequest->SetVerb(TEXT("POST"));
+ 		HttpRequest->SetContentAsString(Payload);
+ 		HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
+ 		HttpRequest->ProcessRequest();
+
+		FlushEventsCountdown = MaxCachedElapsedTime;
+		CachedEvents.Empty();
 	}
-	JsonWriter->WriteArrayEnd();
-	JsonWriter->WriteObjectEnd();
-	JsonWriter->Close();
-
-	UE_LOG(LogAnalytics, Verbose, TEXT("ET Flush: Payload:\n%s"), *Payload);
-
-	// Create/send Http request for an event
- 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
- 	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
- 	HttpRequest->SetURL(
-		FString::Printf(TEXT("%sCollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&IsEditor=%s"),
-		*APIServer, 
-		*FGenericPlatformHttp::UrlEncode(SessionID),
-		*FGenericPlatformHttp::UrlEncode(APIKey), 
-		*FGenericPlatformHttp::UrlEncode(AppVersion),
-		*FGenericPlatformHttp::UrlEncode(UserID),
-		*FGenericPlatformHttp::UrlEncode(FString::FromInt(GIsEditor))
-		));
-   	HttpRequest->SetVerb(TEXT("POST"));
- 	HttpRequest->SetContentAsString(Payload);
- 	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
- 	HttpRequest->ProcessRequest();
-
-	FlushEventsCountdown = MaxCachedElapsedTime;
-	CachedEvents.Empty();
 }
 
 void FAnalyticsProviderET::SetUserID(const FString& InUserID)

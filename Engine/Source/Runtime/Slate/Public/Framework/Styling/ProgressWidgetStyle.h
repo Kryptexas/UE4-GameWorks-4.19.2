@@ -7,14 +7,14 @@
 
 /**
  */
-UCLASS(hidecategories=Object, MinimalAPI)
+UCLASS(BlueprintType, hidecategories=Object, MinimalAPI)
 class UProgressWidgetStyle : public USlateWidgetStyleContainerBase
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 	/** The actual data describing the button's appearance. */
-	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(Category="Style", EditAnywhere, BlueprintReadWrite, meta=(ShowOnlyInnerProperties))
 	FProgressBarStyle ProgressBarStyle;
 
 	virtual const struct FSlateWidgetStyle* const GetStyle() const override

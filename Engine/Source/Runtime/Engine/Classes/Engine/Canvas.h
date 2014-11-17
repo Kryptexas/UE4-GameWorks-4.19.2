@@ -5,8 +5,7 @@
 //=============================================================================
 
 #pragma once
-#include "WordWrapper.h"
-#include "Engine/EngineTypes.h"
+#include "Internationalization/WordWrapper.h"
 #include "Canvas.generated.h"
 
 class FSceneView;
@@ -349,7 +348,7 @@ public:
 	static void WrapString( FTextSizingParameters& Parameters, const float InCurX, const TCHAR* const pText, TArray<FWrappedStringElement>& out_Lines, FWordWrapper::FWrappedLineData* const OutWrappedLineData = nullptr);
 
 	/** Transforms a 3D world-space vector into 2D screen coordinates. */
-	FVector Project(FVector Location);
+	FVector Project(FVector Location) const;
 
 	/** 
 	 * Transforms 2D screen coordinates into a 3D world-space origin and direction.
@@ -357,7 +356,7 @@ public:
 	 * @param WorldOrigin (out) - world-space origin vector
 	 * @param WorldDirection (out) - world-space direction vector
 	 */
-	void Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection);
+	void Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out*/ FVector& WorldDirection) const;
 
 	/**
 	 * Calculate the length of a string, taking text wrapping into account.
@@ -424,14 +423,14 @@ public:
 	 */
 	virtual void DrawDebugGraph(const FString& Title, float ValueX, float ValueY, float UL_X, float UL_Y, float W, float H, FVector2D RangeX, FVector2D RangeY);
 
-	/* 
+	/** 
 	 * Draw a CanvasItem
 	 *
 	 * @param Item			Item to draw
 	 */
 	void DrawItem( FCanvasItem& Item );
 
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw
@@ -439,7 +438,7 @@ public:
 	 */
 	void DrawItem( FCanvasItem& Item, const FVector2D& InPosition );
 	
-	/* 
+	/** 
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw

@@ -45,7 +45,7 @@ void ALevelStreamingVolume::UpdateStreamingLevelsRefs()
 		{
 			if (LevelStreaming && LevelStreaming->EditorStreamingVolumes.Find(this) != INDEX_NONE)
 			{
-				StreamingLevelNames.Add(LevelStreaming->PackageName);
+				StreamingLevelNames.Add(LevelStreaming->GetWorldAssetPackageFName());
 			}
 		}
 	}

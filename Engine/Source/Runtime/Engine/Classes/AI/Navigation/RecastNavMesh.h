@@ -1,11 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "AI/Navigation/NavigationTypes.h"
-#include "NavAreas/NavArea.h"
-#include "Tickable.h"
 #include "AI/Navigation/NavigationData.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "Tickable.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */
@@ -23,7 +21,6 @@
 #define NAVMESHVER_MIN_COMPATIBLE		NAVMESHVER_CLUSTER_SIMPLIFIED
 
 #define RECAST_MAX_SEARCH_NODES		2048
-#define RECAST_MAX_PATH_VERTS		64
 
 #define RECAST_MIN_TILE_SIZE		300.f
 
@@ -39,6 +36,7 @@ class FRecastQueryFilter;
 class INavLinkCustomInterface;
 class UNavArea;
 class UNavigationSystem;
+struct FAreaNavModifier;
 
 UENUM()
 namespace ERecastPartitioning
@@ -83,7 +81,10 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	FORCEINLINE void SetWantsStringPulling(const bool bNewWantsStringPulling) { bWantsStringPulling = bNewWantsStringPulling; }
 	FORCEINLINE bool WantsStringPulling() const { return bWantsStringPulling; }
-	FORCEINLINE bool IsStringPulled() const { return bStrigPulled; }
+	FORCEINLINE bool IsStringPulled() const { return bStringPulled; }
+	
+	/** find string pulled path from PathCorridor */
+	void PerformStringPulling(const FVector& StartLoc, const FVector& EndLoc);
 
 	FORCEINLINE void SetWantsPathCorridor(const bool bNewWantsPathCorridor) { bWantsPathCorridor = bNewWantsPathCorridor; }
 	FORCEINLINE bool WantsPathCorridor() const { return bWantsPathCorridor; }
@@ -100,6 +101,8 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	void OffsetFromCorners(float Distance);
 
 	void ApplyFlags(int32 NavDataFlags);
+
+	void Reset();
 
 	/** get cost of path, starting from next poly in corridor */
 	virtual float GetCostFromNode(NavNodeRef PathNode) const { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
@@ -124,7 +127,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	FORCEINLINE_DEBUGGABLE float GetTotalPathLength() const
 	{
-		return bStrigPulled ? GetStringPulledLength(0) : GetPathCorridorLength(0);
+		return bStringPulled ? GetStringPulledLength(0) : GetPathCorridorLength(0);
 	}
 
 	FORCEINLINE int32 GetNodeRefIndex(const NavNodeRef NodeRef) const { return PathCorridor.Find(NodeRef); }
@@ -188,7 +191,7 @@ protected:
 	/** does this path contain string pulled path? If true then NumPathVerts > 0 and
 	 *	OutPathVerts contains valid data. If false there's only navigation corridor data
 	 *	available.*/
-	uint32 bStrigPulled : 1;	
+	uint32 bStringPulled : 1;	
 
 	/** If set to true path instance will contain a string pulled version. Otherwise only
 	 *	navigation corridor will be available. Defaults to true */
@@ -403,7 +406,16 @@ struct FTileSetItem
 
 DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
 
-UCLASS(config=Engine, defaultconfig, hidecategories=(Input,Rendering,Tags,Transform,"Utilities|Transformation",Actor,Layers,Replication))
+namespace FNavMeshConfig
+{
+	struct FRecastNamedFiltersCreator
+	{
+		FRecastNamedFiltersCreator(bool bVirtualFilters);
+	};
+}
+
+
+UCLASS(config=Engine, defaultconfig, hidecategories=(Input,Rendering,Tags,Transform,"Utilities|Transformation",Actor,Layers,Replication), notplaceable)
 class ENGINE_API ARecastNavMesh : public ANavigationData
 {
 	GENERATED_UCLASS_BODY()
@@ -452,6 +464,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	
 	UPROPERTY(EditAnywhere, Category=Display)
 	uint32 bDrawClusters:1;
+
+	/** should we draw edges of every navmesh's triangle */
+	UPROPERTY(EditAnywhere, Category = Display)
+	uint32 bDrawOctree : 1;
 
 	UPROPERTY(config)
 	uint32 bDistinctlyDrawTilesBeingBuilt:1;
@@ -518,6 +534,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	/** specifes default limit to A* nodes used when performing hierarchical navigation queries. */
 	UPROPERTY(config)
 	float DefaultMaxHierarchicalSearchNodes;
+
+	/** Indicates whether default navigation filters will use virtual functions. Defaults to true. */
+	UPROPERTY(config)
+	uint32 bUseVirtualFilters : 1;
 
 	/** partitioning method for creating navmesh polys */
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
@@ -662,6 +682,9 @@ public:
 
 	virtual bool ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 	
+	/** Project batch of points using shared search extent and filter */
+	virtual void BatchProjectPoints(TArray<FNavigationProjectionWork>& Workload, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
+	
 	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const override;
 	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const override;
@@ -799,6 +822,9 @@ public:
 	/** Retrieves poly and area flags for specified polygon */
 	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
 
+	/** Finds closest point constrained to given poly */
+	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;
+
 	/** Decode poly ID into tile index and poly index */
 	bool GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const;
 
@@ -829,13 +855,16 @@ public:
 	/** Projects point on navmesh, returning all hits along vertical line defined by min-max Z params */
 	bool ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,
 		float MinZ, float MaxZ, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
-
+	
 	// @todo docuement
 	static FPathFindingResult FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
 	static bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
 	static bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
 	static bool NavMeshRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier, FRaycastResult& Result);
 	static bool NavMeshRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier = NULL);
+	static bool NavMeshRaycast(const ANavigationData* Self, NavNodeRef RayStartNode, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier = NULL);
+
+	virtual void BatchRaycast(TArray<FNavigationRaycastWork>& Workload, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier = NULL) const override;
 
 	/** finds a Filter-passing navmesh location closest to specified StartLoc
 	 *	@return true if adjusting was required, false otherwise */
@@ -843,6 +872,9 @@ public:
 	
 	/** @return true is specified segment is fully on navmesh (respecting the optional filter) */
 	bool IsSegmentOnNavmesh(const FVector& SegmentStart, const FVector& SegmentEnd, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
+
+	/** finds stringpulled path from given corridor */
+	bool FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks = NULL) const;
 
 	/** Runs A* pathfinding on navmesh and collect data for every step */
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
@@ -881,9 +913,6 @@ private:
 	friend class FRecastNavMeshGenerator;
 	friend class FPImplRecastNavMesh;
 	friend class UCrowdManager;
-	// retrieves RecastNavMeshImpl
-	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
-	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
 	// destroys FPImplRecastNavMesh instance if it has been created 
 	void DestroyRecastPImpl();
 	// @todo docuement
@@ -891,6 +920,10 @@ private:
 	void UpdateNavObject();
 
 protected:
+	// retrieves RecastNavMeshImpl
+	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
+	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
+
 	TArray<FTileSetItem> TileSet;
 
 private:

@@ -15,7 +15,7 @@ FSequencerTabSummoner::FSequencerTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 		, BlueprintEditor(InBlueprintEditor)
 {
 	TabLabel = LOCTEXT("SequencerLabel", "Timeline");
-	//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+	TabIcon = FUMGStyle::Get().GetBrush("UMGEditor.Tabs.Timeline");
 
 	bIsSingleton = true;
 
@@ -27,10 +27,8 @@ TSharedRef<SWidget> FSequencerTabSummoner::CreateTabBody(const FWorkflowTabSpawn
 {
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPinned = BlueprintEditor.Pin();
 
-	return SNew(STutorialWrapper, TEXT("Sequencer"))
-		[
-			BlueprintEditorPinned->GetSequencer()->GetSequencerWidget()
-		];
+	return BlueprintEditorPinned->CreateSequencerWidget();
+
 }
 
 #undef LOCTEXT_NAMESPACE 

@@ -341,6 +341,7 @@ FSlateShaderResourceProxy* FSlateD3DTextureManager::GenerateTextureResource( con
 		const uint32 AtlasSize = 1024;
 		// 4 bytes per pixel
 		const uint32 AtlasStride = sizeof(uint8)*4; 
+		// always use one pixel padding.
 		const uint8 Padding = 1;
 		const FAtlasedTextureSlot* NewSlot = NULL;
 
@@ -361,7 +362,7 @@ FSlateShaderResourceProxy* FSlateD3DTextureManager::GenerateTextureResource( con
 		if( !NewSlot )
 		{
 			// A new slot in the atlas could not be found, make a new atlas and add the texture to it
-			Atlas = new FSlateTextureAtlasD3D( AtlasSize, AtlasSize, AtlasStride, Padding );
+			Atlas = new FSlateTextureAtlasD3D( AtlasSize, AtlasSize, AtlasStride, ESlateTextureAtlasPaddingStyle::DilateBorder );
 			TextureAtlases.Add( Atlas );
 			NewSlot = TextureAtlases.Last()->AddTexture( Width, Height, Info.TextureData->GetRawBytes() );
 		}

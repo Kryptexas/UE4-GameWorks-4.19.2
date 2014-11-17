@@ -54,6 +54,3 @@ DECLARE_DELEGATE_RetVal(bool, FIsPropertyEditingEnabled );
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFinishedChangingProperties, const FPropertyChangedEvent&);
 
-/* Deprecated customization delegate support*/
-DECLARE_DELEGATE_RetVal( TSharedRef<class IStructCustomization>, FOnGetStructCustomizationInstance );
-

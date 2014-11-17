@@ -5,11 +5,9 @@
  */
 
 #pragma once
-
 #include "Editor/UnrealEdTypes.h"
-
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
-
+#include "StaticParameterSet.h"
 #include "MaterialEditorInstanceConstant.generated.h"
 
 USTRUCT()
@@ -20,7 +18,7 @@ struct FEditorParameterGroup
 	UPROPERTY()
 	FName GroupName;
 
-	UPROPERTY(EditAnywhere,  editfixedsize, editinline, Category=EditorParameterGroup)
+	UPROPERTY(EditAnywhere, editfixedsize, Instanced, Category=EditorParameterGroup)
 	TArray<class UDEditorParameterValue*> Parameters;
 
 };
@@ -214,14 +212,22 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	UPROPERTY(EditAnywhere, Category=MaterialEditorInstanceConstant)
 	class UMaterialInterface* Parent;
 
-	UPROPERTY(EditAnywhere, editfixedsize, editinline, Category=MaterialEditorInstanceConstant)
+	UPROPERTY(EditAnywhere, editfixedsize, Category=MaterialEditorInstanceConstant)
 	TArray<struct FEditorParameterGroup> ParameterGroups;
 
 	/** This is the refraction depth bias, larger values offset distortion to prevent closer objects from rendering into the distorted surface at acute viewing angles but increases the disconnect between surface and where the refraction starts. */
 	UPROPERTY(EditAnywhere, Category=MaterialEditorInstanceConstant)
 	float RefractionDepthBias;
 
-	UPROPERTY(EditAnywhere, Category=MaterialOverrides)
+	/** SubsurfaceProfile, for Screen Space Subsurface Scattering */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Material, meta = (DisplayName = "Subsurface Profile"))
+	class USubsurfaceProfile* SubsurfaceProfile;
+
+	/** Defines if SubsurfaceProfile from tis instance is used or it uses the parent one. */
+	UPROPERTY(EditAnywhere, Category = MaterialEditorInstanceConstant)
+	uint32 bOverrideSubsurfaceProfile : 1;
+
+	UPROPERTY(EditAnywhere, Category = MaterialOverrides)
 	uint32 bOverrideBaseProperties:1;
 
 	UPROPERTY(EditAnywhere, Category=MaterialOverrides, meta=(editcondition="bOverrideBaseProperties"))

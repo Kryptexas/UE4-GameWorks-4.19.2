@@ -24,6 +24,7 @@ namespace EPropertyButton
 		PickActorInteractive,
 		Clear,
 		Use,
+		NewBlueprint,
 	};
 }
 

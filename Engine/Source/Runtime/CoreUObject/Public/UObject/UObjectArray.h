@@ -90,11 +90,7 @@ public:
 	 * After the initial load, this closes the disregard pool so that new object are GC-able
 	 *
 	 */
-	void CloseDisregardForGC()
-	{
-		OpenForDisregardForGC = false;
-		GIsInitialLoad = false;
-	}
+	void CloseDisregardForGC();
 
 	/**
 	 * indicates if the disregard for GC optimization is active

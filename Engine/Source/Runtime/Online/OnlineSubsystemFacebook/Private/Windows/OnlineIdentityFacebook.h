@@ -34,6 +34,10 @@ public:
 		, AuthTicket(InAuthTicket)
 	{ }
 
+	virtual ~FUserOnlineAccountFacebook()
+	{
+	}
+
 	/** User Id represented as a FUniqueNetId */
 	TSharedRef<FUniqueNetId> UserIdPtr;
 	/** Id associated with the user account provided by the online service during registration */
@@ -105,8 +109,12 @@ public:
 	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
 	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(const FString& Str) override;
 	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const override;
+	virtual ELoginStatus::Type GetLoginStatus(const FUniqueNetId& UserId) const override;
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;
+	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const override;
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
+	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
+	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
 
 	// FOnlineIdentityFacebook
 

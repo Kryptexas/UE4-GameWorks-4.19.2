@@ -52,15 +52,18 @@ namespace ArrangeUtils
  * 
  * @param AllottedSize         The size available to arrange the widget along the given orientation
  * @param ChildToArrange       The widget and associated layout information
+ * @param SlotPadding          The padding to when aligning the child
+ * @param ContentScale         The scale to apply to the child before aligning it.
+ * @param bClampToParent       If true the child's size is clamped to the allotted size before alignment occurs, if false, the child's desired size is used, even if larger than the allotted size.
  * 
  * @return  Offset and Size of widget
  */
 template<EOrientation Orientation, typename SlotType>
-static AlignmentArrangeResult AlignChild( float AllottedSize, const SlotType& ChildToArrange, const FMargin& SlotPadding, const float& ContentScale = 1.0f )
+static AlignmentArrangeResult AlignChild(float AllottedSize, const SlotType& ChildToArrange, const FMargin& SlotPadding, const float& ContentScale = 1.0f, bool bClampToParent = true)
 {
 	float ChildDesiredSize = (Orientation == Orient_Horizontal)
-		? ( ChildToArrange.Widget->GetDesiredSize().X * ContentScale )
-		: ( ChildToArrange.Widget->GetDesiredSize().Y * ContentScale );
+		? ( ChildToArrange.GetWidget()->GetDesiredSize().X * ContentScale )
+		: ( ChildToArrange.GetWidget()->GetDesiredSize().Y * ContentScale );
 
 	const FMargin& Margin = SlotPadding;
 	const float TotalMargin = Margin.GetTotalSpaceAlong<Orientation>();	
@@ -69,7 +72,7 @@ static AlignmentArrangeResult AlignChild( float AllottedSize, const SlotType& Ch
 	
 	const int32 Alignment = ArrangeUtils::GetChildAlignment<Orientation>::AsInt(ChildToArrange);
 		
-	const float ChildSize = FMath::Min(ChildDesiredSize, AllottedSize-TotalMargin);
+	const float ChildSize = bClampToParent ? FMath::Min(ChildDesiredSize, AllottedSize - TotalMargin) : ChildDesiredSize;
 		
 	switch( Alignment )	
 	{
@@ -100,7 +103,7 @@ static AlignmentArrangeResult AlignChild( float AllottedSize, const SlotType& Ch
 template<typename SlotType>
 void ArrangeSingleChild( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren, const SlotType& ChildSlot, const TAttribute<FVector2D>& ContentScale )
 {
-	const EVisibility ChildVisibility = ChildSlot.Widget->GetVisibility();
+	const EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 	if ( ArrangedChildren.Accepts(ChildVisibility) )
 	{
 		const FVector2D ThisContentScale = ContentScale.Get();
@@ -109,7 +112,7 @@ void ArrangeSingleChild( const FGeometry& AllottedGeometry, FArrangedChildren& A
 		AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ChildSlot, SlotPadding, ThisContentScale.Y);
 
 		ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
-				ChildSlot.Widget,
+				ChildSlot.GetWidget(),
 				FVector2D(XResult.Offset,YResult.Offset),
 				FVector2D(XResult.Size, YResult.Size)
 		) );

@@ -6,6 +6,7 @@
 
 #include "TextEditHelper.h"
 #include "SlateWordWrapper.h"
+#include "PlainTextLayoutMarshaller.h"
 
 void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition)
 {
@@ -70,6 +71,9 @@ int32 SMultiLineEditableText::FCursorLineHighlighter::OnPaint(const FPaintArgs& 
 	const float CursorWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 	const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
 
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
+
 	// The cursor is always visible (i.e. not blinking) when we're interacting with it; otherwise it might get lost.
 	const bool bForceCursorVisible = (CurrentTime - CursorInfo->GetLastCursorInteractionTime()) < EditableTextDefs::CaretBlinkPauseTime;
 	float CursorOpacity = (bForceCursorVisible)
@@ -87,7 +91,7 @@ int32 SMultiLineEditableText::FCursorLineHighlighter::OnPaint(const FPaintArgs& 
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
-		FPaintGeometry(AllottedGeometry.AbsolutePosition + Location + OptionalWidth, FVector2D(CursorWidth * AllottedGeometry.Scale, Size.Y), AllottedGeometry.Scale),
+		AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(CursorWidth * AllottedGeometry.Scale, Size.Y)), FSlateLayoutTransform(TransformPoint(InverseScale, Location + OptionalWidth))),
 		CursorBrush,
 		MyClippingRect,
 		bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
@@ -110,6 +114,9 @@ int32 SMultiLineEditableText::FTextCompositionHighlighter::OnPaint( const FPaint
 	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
 	const FVector2D Size(Width, Line.TextSize.Y);
 
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
+
 	if (Size.X)
 	{
 		const FLinearColor LineColorAndOpacity = InWidgetStyle.GetForegroundColor();
@@ -121,7 +128,7 @@ int32 SMultiLineEditableText::FTextCompositionHighlighter::OnPaint( const FPaint
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
-			FPaintGeometry(AllottedGeometry.AbsolutePosition + Location, Size, AllottedGeometry.Scale),
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Size), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			CompositionBrush,
 			MyClippingRect,
 			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
@@ -146,9 +153,13 @@ int32 SMultiLineEditableText::FTextSelectionRunRenderer::OnPaint( const FPaintAr
 	FVector2D Location( Block->GetLocationOffset() );
 	Location.Y = Line.Offset.Y;
 
-	const FLinearColor FocusedSelectionColorAdjustment(-0.2f, -0.05f, 0.15f);
-	const FLinearColor UnfocusedSelectionColorAdjustment(-0.01f, -0.01f, 0.01f);
-	const FColor SelectionBackgroundColorAndOpacity = ((FLinearColor::White - DefaultStyle.ColorAndOpacity.GetColor(InWidgetStyle))*0.5f + (bHasKeyboardFocus ? FocusedSelectionColorAdjustment : UnfocusedSelectionColorAdjustment)) * InWidgetStyle.GetColorAndOpacityTint();
+	// If we've not been set to an explicit color, calculate a suitable one from the linked color
+	const FColor SelectionBackgroundColorAndOpacity = DefaultStyle.SelectedBackgroundColor.IsColorSpecified() 
+		? DefaultStyle.SelectedBackgroundColor.GetSpecifiedColor() * InWidgetStyle.GetColorAndOpacityTint()
+		: ((FLinearColor::White - DefaultStyle.SelectedBackgroundColor.GetColor(InWidgetStyle))*0.5f + FLinearColor(-0.2f, -0.05f, 0.15f)) * InWidgetStyle.GetColorAndOpacityTint();
+
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
 
 	const float HighlightWidth = Block->GetSize().X;
 	if (HighlightWidth)
@@ -157,19 +168,21 @@ int32 SMultiLineEditableText::FTextSelectionRunRenderer::OnPaint( const FPaintAr
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
-			FPaintGeometry(AllottedGeometry.AbsolutePosition + Location, FVector2D(HighlightWidth, Line.Size.Y), AllottedGeometry.Scale),
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(HighlightWidth, Line.Size.Y)), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			&DefaultStyle.HighlightShape,
 			MyClippingRect,
-			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
+			bParentEnabled && bHasKeyboardFocus ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			SelectionBackgroundColorAndOpacity
 		);
 	}
 
-	//FLinearColor InvertedForeground = FLinearColor::White - InWidgetStyle.GetForegroundColor();
-	//InvertedForeground.A = InWidgetStyle.GetForegroundColor().A;
+	/*
+	FLinearColor InvertedForeground = FLinearColor::White - InWidgetStyle.GetForegroundColor();
+	InvertedForeground.A = InWidgetStyle.GetForegroundColor().A;
 
-	//FWidgetStyle WidgetStyle( InWidgetStyle );
-	//WidgetStyle.SetForegroundColor( InvertedForeground );
+	FWidgetStyle WidgetStyle( InWidgetStyle );
+	WidgetStyle.SetForegroundColor( InvertedForeground );
+	*/
 
 	return Run->OnPaint( Args, Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
@@ -189,6 +202,7 @@ SMultiLineEditableText::SMultiLineEditableText()
 	, bIsChangingText(false)
 	, IsReadOnly(false)
 	, UICommandList(new FUICommandList())
+	, bTextChangedByVirtualKeyboard(false)
 {
 	
 }
@@ -198,7 +212,14 @@ SMultiLineEditableText::~SMultiLineEditableText()
 	ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::IsInitialized() ? FSlateApplication::Get().GetTextInputMethodSystem() : nullptr;
 	if(TextInputMethodSystem)
 	{
-		TextInputMethodSystem->UnregisterContext(TextInputMethodContext.ToSharedRef());
+		TSharedRef<FTextInputMethodContext> TextInputMethodContextRef = TextInputMethodContext.ToSharedRef();
+		if(TextInputMethodSystem->IsActiveContext(TextInputMethodContextRef))
+		{
+			// This can happen if an entire tree of widgets is culled, as Slate isn't notified of the focus loss, the widget is just deleted
+			TextInputMethodSystem->DeactivateContext(TextInputMethodContextRef);
+		}
+
+		TextInputMethodSystem->UnregisterContext(TextInputMethodContextRef);
 	}
 }
 
@@ -210,7 +231,23 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
-	CachedAutoWrapTextWidth = 0.0f;
+	CachedSize = FVector2D::ZeroVector;
+
+	ScrollOffset = FVector2D::ZeroVector;
+
+	HScrollBar = InArgs._HScrollBar;
+	if (HScrollBar.IsValid())
+	{
+		HScrollBar->SetUserVisibility(EVisibility::Collapsed);
+		HScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SMultiLineEditableText::OnHScrollBarMoved));
+	}
+
+	VScrollBar = InArgs._VScrollBar;
+	if (VScrollBar.IsValid())
+	{
+		VScrollBar->SetUserVisibility(EVisibility::Collapsed);
+		VScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SMultiLineEditableText::OnVScrollBarMoved));
+	}
 
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
@@ -226,11 +263,18 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	OnTextChanged = InArgs._OnTextChanged;
 	OnTextCommitted = InArgs._OnTextCommitted;
+	OnCursorMoved = InArgs._OnCursorMoved;
+
+	Marshaller = InArgs._Marshaller;
+	if (!Marshaller.IsValid())
+	{
+		Marshaller = FPlainTextLayoutMarshaller::Create();
+	}
 
 	CursorLineHighlighter = FCursorLineHighlighter::Create(&CursorInfo);
 	TextCompositionHighlighter = FTextCompositionHighlighter::Create();
 	TextSelectionRunRenderer = FTextSelectionRunRenderer::Create();
-	TextLayout = FSlateTextLayout::Create();
+	TextLayout = FSlateTextLayout::Create(TextStyle);
 
 	BoundText = InArgs._Text;
 
@@ -241,7 +285,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 		// Update the cached BoundText value to prevent it triggering another SetEditableText update again next Tick
 		if (BoundText.IsBound())
 		{
-			BoundTextLastTick = TextToSet;
+			BoundTextLastTick = FTextSnapshot(TextToSet);
 		}
 	}
 
@@ -304,7 +348,7 @@ void SMultiLineEditableText::SetText(const TAttribute< FText >& InText)
 	// Update the cached BoundText value to prevent it triggering another SetEditableText update again next Tick
 	if (BoundText.IsBound())
 	{
-		BoundTextLastTick = TextToSet;
+		BoundTextLastTick = FTextSnapshot(TextToSet);
 	}
 
 	// Update the internal editable text
@@ -315,80 +359,51 @@ void SMultiLineEditableText::SetText(const TAttribute< FText >& InText)
 	}
 }
 
+void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
+{
+	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
+	// If it is bound, we'll assume that OnTextCommitted will handle the update.
+	if (!BoundText.IsBound())
+	{
+		BoundText.Set(InNewText);
+	}
+
+	// Update the internal editable text
+	if (SetEditableText(InNewText))
+	{
+		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+		// fired on the game thread in Tick.
+		bTextChangedByVirtualKeyboard = true;
+	}
+}
+
 bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool bForce)
 {
 	const FText EditedText = GetEditableText();
+
+	Marshaller->ClearDirty();
 
 	const bool HasTextChanged = !EditedText.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive);
 	if (HasTextChanged || bForce)
 	{
 		const FString& TextToSetString = TextToSet.ToString();
-		const int32 TextToSetLength = TextToSetString.Len();
 
 		ClearSelection();
 		TextLayout->ClearLines();
 
-		if(TextToSetLength)
+		Marshaller->SetText(TextToSetString, *TextLayout);
+
+		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+		if(Lines.Num() == 0)
 		{
-			// Iterate over each line break candidate, adding ranges from after the end of the last line added to before the newline or end of string.
-			FLineBreakIterator LBI(TextToSetString);
-			int32 RangeBegin = LBI.GetCurrentPosition();
-			TSharedPtr< FString > LineText;
-
-			for (;;)
-			{
-				const int32 BreakIndex = LBI.MoveToNext();
-
-				// If beginning or potential end is invalid, cease.
-				if (RangeBegin == INDEX_NONE || BreakIndex == INDEX_NONE)
-				{
-					break;
-				}
-
-				const int32 BreakingCharacterIndex = BreakIndex - 1;
-				if (BreakingCharacterIndex >= RangeBegin) // Valid index check.
-				{
-					const TCHAR BreakingCharacter = TextToSetString[BreakingCharacterIndex];
-					// If line break candidate is after a newline, add the range as a new line.
-					if (FChar::IsLinebreak(BreakingCharacter))
-					{
-						LineText = MakeShareable(new FString(BreakingCharacterIndex - RangeBegin, (*TextToSetString) + RangeBegin));
-					}
-					// If the line break candidate is the end of the string, add the range as a new line.
-					else if (BreakIndex == TextToSetLength)
-					{
-						LineText = MakeShareable(new FString(BreakIndex - RangeBegin, (*TextToSetString) + RangeBegin));
-					}
-					else
-					{
-						continue;
-					}
-
-					if (LineText.IsValid())
-					{
-						// Create run.
-						TArray< TSharedRef< IRun > > Runs;
-						Runs.Add(FSlateTextRun::Create(LineText.ToSharedRef(), TextStyle));
-
-						TextLayout->AddLine(LineText.ToSharedRef(), Runs);
-
-						// Reset the LineText so we don't add it multiple times.
-						LineText.Reset();
-					}
-
-					RangeBegin = BreakIndex; // The next line begins after the end of the current line.
-				}
-			}
-		}
-		else
-		{
-			TSharedPtr< FString > LineText = MakeShareable(new FString());
+			TSharedRef< FString > LineText = MakeShareable(new FString());
 
 			// Create an empty run
 			TArray< TSharedRef< IRun > > Runs;
-			Runs.Add(FSlateTextRun::Create(LineText.ToSharedRef(), TextStyle));
+			Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, TextStyle));
 
-			TextLayout->AddLine(LineText.ToSharedRef(), Runs);
+			TextLayout->AddLine(LineText, Runs);
 		}
 
 		return true;
@@ -399,9 +414,35 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 
 FText SMultiLineEditableText::GetEditableText() const
 {
-	FText EditedText;
-	TextLayout->GetAsText(EditedText);
-	return EditedText;
+	FString EditedText;
+	Marshaller->GetText(EditedText, *TextLayout);
+	return FText::FromString(EditedText);
+}
+
+void SMultiLineEditableText::ForceRefreshTextLayout(const FText& CurrentText)
+{
+	// Marshallers shouldn't inject any visible characters into the text, but SetEditableText will clear the current selection
+	// so we need to back that up here so we don't cause the cursor to jump around
+	const TOptional<FTextLocation> OldSelectionStart = SelectionStart;
+	const FCursorInfo OldCursorInfo = CursorInfo;
+
+	SetEditableText(CurrentText, true);
+
+	SelectionStart = OldSelectionStart;
+	CursorInfo = OldCursorInfo;
+	UpdateCursorHighlight();
+
+	TextLayout->UpdateIfNeeded();
+}
+
+void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
+{
+	ScrollOffset.X = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().X;
+}
+
+void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFraction)
+{
+	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().Y;
 }
 
 FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
@@ -409,13 +450,30 @@ FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeome
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
 	{
-		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if(TextInputMethodSystem)
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+			// @TODO: Create ITextInputMethodSystem derivations for mobile
+			SlateApplication.ShowVirtualKeyboard(true, SharedThis(this));
+		}
+		else
+		{
+			ITextInputMethodSystem* const TextInputMethodSystem = SlateApplication.GetTextInputMethodSystem();
+			if (TextInputMethodSystem)
+			{
+				TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+			}
 		}
 
+
 		UpdateCursorHighlight();
+
+		// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
+		// gain focus since it can cause the scroll position to jump unexpectedly
+		// If we gained focus via a mouse click that moved the cursor, then MoveCursor will already take care
+		// of making sure that gets scrolled into view
+		PositionToScrollIntoView = TOptional<FScrollInfo>();
+
 		return SWidget::OnKeyboardFocusReceived( MyGeometry, InKeyboardFocusEvent );
 	}
 
@@ -427,18 +485,21 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 	// Skip the focus lost code if it's due to the context menu opening
 	if (!ContextMenuWindow.IsValid())
 	{
-		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
-		if (TextInputMethodSystem)
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			SlateApplication.ShowVirtualKeyboard(false);
+		}
+		else
+		{
+			ITextInputMethodSystem* const TextInputMethodSystem = SlateApplication.GetTextInputMethodSystem();
+			if (TextInputMethodSystem)
+			{
+				TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			}
 		}
 
 		// When focus is lost let anyone who is interested that text was committed
-		if (InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::WindowActivate) //Don't clear selection when activating a new window or cant copy and paste on right click )
-		{
-			ClearSelection();
-		}
-		
 		// See if user explicitly tabbed away or moved focus
 		ETextCommit::Type TextAction;
 		switch (InKeyboardFocusEvent.GetCause())
@@ -463,7 +524,11 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 		const FText EditedText = GetEditableText();
 
 		OnTextCommitted.ExecuteIfBound(EditedText, TextAction);
-		RemoveCursorHighlight();
+		UpdateCursorHighlight();
+
+		// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
+		// lose focus since it can cause the scroll position to jump unexpectedly
+		PositionToScrollIntoView = TOptional<FScrollInfo>();
 	}
 }
 
@@ -505,9 +570,18 @@ void SMultiLineEditableText::FinishChangingText()
 
 		// Let outsiders know that the text content has been changed
 		OnTextChanged.ExecuteIfBound(EditedText);
+		
+		OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 
 		// Update the desired cursor position, since typing will have moved it
 		UpdatePreferredCursorScreenOffsetInLine();
+
+		// If the marshaller we're using requires live text updates (eg, because it injects formatting into the source text)
+		// then we need to force a SetEditableText here so that it can update the new editable text with any extra formatting
+		if (Marshaller->RequiresLiveUpdate())
+		{
+			ForceRefreshTextLayout(EditedText);
+		}
 	}
 }
 
@@ -540,7 +614,6 @@ void SMultiLineEditableText::BackspaceChar()
 		FTextLocation FinalCursorLocation = CursorInteractionPosition;
 
 		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
-		const FTextLayout::FLineModel& Line = Lines[CursorInteractionPosition.GetLineIndex()];
 
 		//If we are at the very beginning of the line...
 		if (CursorInteractionPosition.GetOffset() == 0)
@@ -548,26 +621,17 @@ void SMultiLineEditableText::BackspaceChar()
 			//And if the current line isn't the very first line then...
 			if (CursorInteractionPosition.GetLineIndex() > 0)
 			{
-				int32 CachePreviousLinesCurrentLength = Lines[CursorInteractionPosition.GetLineIndex() - 1].Text->Len();
-				if (TextLayout->JoinLineWithNextLine(CursorInteractionPosition.GetLineIndex() - 1))
+				const int32 PreviousLineIndex = CursorInteractionPosition.GetLineIndex() - 1;
+				const int32 CachePreviousLinesCurrentLength = Lines[PreviousLineIndex].Text->Len();
+				if (TextLayout->JoinLineWithNextLine(PreviousLineIndex))
 				{
 					//Update the cursor so it appears at the end of the previous line,
 					//as we're going to delete the imaginary \n separating them
-					FinalCursorLocation = FTextLocation(CursorInteractionPosition.GetLineIndex() - 1, CachePreviousLinesCurrentLength);
+					FinalCursorLocation = FTextLocation(PreviousLineIndex, CachePreviousLinesCurrentLength);
 				}
 			}
 			//else do nothing as the FinalCursorLocation is already correct
 		}
-		//else if (CursorInteractionPosition.GetOffset() == Line.Text->Len())
-		//{
-		//	//And if the current line isn't the very last line then...
-		//	if (Lines.IsValidIndex(CursorInteractionPosition.GetLineIndex() + 1))
-		//	{
-		//		//do nothing to the cursor as the FinalCursorLocation is already correct
-		//		TextLayout->JoinLineWithNextLine(CursorInteractionPosition.GetLineIndex());
-		//	}
-		//	//else do nothing as the FinalCursorLocation is already correct
-		//}
 		else
 		{
 			// Delete character to the left of the caret
@@ -758,15 +822,7 @@ void SMultiLineEditableText::DeleteSelectedText()
 			}
 
 			const FTextLayout::FLineModel& BeginLine = Lines[SelectionBeginningLineIndex];
-
-			if (SelectionBeginningLineOffset == 0)
-			{
-				TextLayout->RemoveLine(SelectionBeginningLineIndex);
-			}
-			else
-			{
-				TextLayout->RemoveAt(FTextLocation(SelectionBeginningLineIndex, SelectionBeginningLineOffset), BeginLine.Text->Len() - SelectionBeginningLineOffset);
-			}
+			TextLayout->RemoveAt(FTextLocation(SelectionBeginningLineIndex, SelectionBeginningLineOffset), BeginLine.Text->Len() - SelectionBeginningLineOffset);
 
 			TextLayout->JoinLineWithNextLine(SelectionBeginningLineIndex);
 
@@ -774,7 +830,7 @@ void SMultiLineEditableText::DeleteSelectedText()
 			{
 				const TSharedRef< FString > EmptyText = MakeShareable(new FString());
 				TArray< TSharedRef< IRun > > Runs;
-				Runs.Add(FSlateTextRun::Create(EmptyText, TextStyle));
+				Runs.Add(FSlateTextRun::Create(FRunInfo(), EmptyText, TextStyle));
 
 				TextLayout->AddLine(EmptyText, Runs);
 			}
@@ -788,10 +844,10 @@ void SMultiLineEditableText::DeleteSelectedText()
 	}
 }
 
-FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action )
+FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 {
 	// We can't use the keyboard to move the cursor while composing, as the IME has control over it
-	if(TextInputMethodContext->IsComposing && Method != ECursorMoveMethod::ScreenPosition)
+	if(TextInputMethodContext->IsComposing && Args.GetMoveMethod() != ECursorMoveMethod::ScreenPosition)
 	{
 		return FReply::Handled();
 	}
@@ -806,9 +862,9 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 	// This is done regardless of whether the selection was made left-to-right, or right-to-left
 	// This also needs to be done *before* moving to word boundaries, or moving vertically, as the 
 	// start point needs to be the start or end of the selection depending on the above rules
-	if (Action == ECursorAction::MoveCursor && Method != ECursorMoveMethod::ScreenPosition && AnyTextSelected())
+	if ( Args.GetAction() == ECursorAction::MoveCursor && Args.GetMoveMethod() != ECursorMoveMethod::ScreenPosition && AnyTextSelected( ) )
 	{
-		if (Method == ECursorMoveMethod::CharacterHorizontal)
+		if (Args.IsHorizontalMovement())
 		{
 			// If we're moving the cursor horizontally, we just snap to the start or end of the selection rather than 
 			// move the cursor by the normal movement rules
@@ -816,21 +872,10 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		}
 
 		// Work out which edge of the selection we need to start at
-		bool bSnapToSelectionStart = false;
-		switch (Method)
-		{
-		case ECursorMoveMethod::CharacterHorizontal:
-		case ECursorMoveMethod::Word:
-			bSnapToSelectionStart = Direction.X < 0.0f;
-			break;
-	
-		case ECursorMoveMethod::CharacterVertical:
-			bSnapToSelectionStart = Direction.Y < 0.0f;
-			break;
+		bool bSnapToSelectionStart =
+			Args.GetMoveMethod() == ECursorMoveMethod::Cardinal &&
+			(Args.GetMoveDirection().X < 0.0f || Args.GetMoveDirection().Y < 0.0f);
 
-		default:
-			break;
-		}
 
 		// Adjust the current cursor position - also set the new cursor position so that the bAllowMoveCursor == false case is handled
 		const FTextSelection Selection(SelectionStart.GetValue(), CursorPosition);
@@ -838,7 +883,7 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		NewCursorPosition = CursorPosition;
 
 		// If we're snapping to a word boundary, but the selection was already at a word boundary, don't let the cursor move any more
-		if (Method == ECursorMoveMethod::Word && IsAtWordStart(NewCursorPosition))
+		if (Args.GetGranularity() == ECursorMoveGranularity::Word && IsAtWordStart(NewCursorPosition))
 		{
 			bAllowMoveCursor = false;
 		}
@@ -848,46 +893,49 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 	bool bUpdatePreferredCursorScreenOffsetInLine = false;
 	if (bAllowMoveCursor)
 	{
-		switch (Method)
+		if ( Args.GetMoveMethod() == ECursorMoveMethod::Cardinal )
 		{
-		case ECursorMoveMethod::CharacterHorizontal:
-			NewCursorPosition = TranslatedLocation( CursorPosition, Direction.X );
-			bUpdatePreferredCursorScreenOffsetInLine = true;
-			break;
-
-		case ECursorMoveMethod::Word:
-			NewCursorPosition = ScanForWordBoundary( CursorPosition, Direction.X );
-			bUpdatePreferredCursorScreenOffsetInLine = true;
-			break;
-	
-		case ECursorMoveMethod::CharacterVertical:
-			TranslateLocationVertical( CursorPosition, Direction.Y, NewCursorPosition, NewCursorAlignment );
-			break;
-	
-		case ECursorMoveMethod::ScreenPosition:
+			if ( Args.GetGranularity() == ECursorMoveGranularity::Character )
 			{
-				ETextHitPoint HitPoint = ETextHitPoint::WithinText;
-				NewCursorPosition = TextLayout->GetTextLocationAt( Direction * TextLayout->GetScale(), &HitPoint );
-				bUpdatePreferredCursorScreenOffsetInLine = true;
-
-				// Moving with the mouse behaves a bit differently to moving with the keyboard, as clicking at the end of a wrapped line needs to place the cursor there
-				// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
-				// We use the HitPoint to work this out and then adjust the cursor position accordingly
-				if (HitPoint == ETextHitPoint::RightGutter)
+				if ( Args.IsHorizontalMovement() )
 				{
-					NewCursorPosition = FTextLocation(NewCursorPosition, -1);
-					NewCursorAlignment = ECursorAlignment::Right;
+					NewCursorPosition = TranslatedLocation( CursorPosition, Args.GetMoveDirection().X );
+					bUpdatePreferredCursorScreenOffsetInLine = true;
+				}
+				else
+				{
+					TranslateLocationVertical( CursorPosition, Args.GetMoveDirection().Y, Args.GetGeometryScale(), NewCursorPosition, NewCursorAlignment );
 				}
 			}
-			break;
+			else
+			{
+				checkSlow( Args.GetGranularity() == ECursorMoveGranularity::Word );
+				NewCursorPosition = ScanForWordBoundary( CursorPosition, Args.GetMoveDirection().X );
+				bUpdatePreferredCursorScreenOffsetInLine = true;
+			}
+		}
+		else if ( Args.GetMoveMethod() == ECursorMoveMethod::ScreenPosition )
+		{
+			ETextHitPoint HitPoint = ETextHitPoint::WithinText;
+			NewCursorPosition = TextLayout->GetTextLocationAt( Args.GetLocalPosition() * Args.GetGeometryScale(), &HitPoint );
+			bUpdatePreferredCursorScreenOffsetInLine = true;
 
-		default:
+			// Moving with the mouse behaves a bit differently to moving with the keyboard, as clicking at the end of a wrapped line needs to place the cursor there
+			// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
+			// We use the HitPoint to work this out and then adjust the cursor position accordingly
+			if ( HitPoint == ETextHitPoint::RightGutter )
+			{
+				NewCursorPosition = FTextLocation( NewCursorPosition, -1 );
+				NewCursorAlignment = ECursorAlignment::Right;
+			}
+		}
+		else
+		{
 			checkSlow(false, "Unknown ECursorMoveMethod value");
-			break;
 		}
 	}
 
-	if (Action == ECursorAction::SelectText)
+	if (Args.GetAction() == ECursorAction::SelectText)
 	{
 		// We are selecting text. Just remember where the selection started.
 		// The cursor is implicitly the other endpoint.
@@ -910,6 +958,8 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 	{
 		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
 	}
+
+	OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 
 	if (bUpdatePreferredCursorScreenOffsetInLine)
 	{
@@ -935,6 +985,8 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 
 void SMultiLineEditableText::UpdateCursorHighlight()
 {
+	PositionToScrollIntoView = FScrollInfo(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment());
+
 	RemoveCursorHighlight();
 
 	static const int32 CompositionRangeZOrder = 1; // draw above the text
@@ -992,7 +1044,7 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 		{
 			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
 
-			for (int LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
+			for (int32 LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
 			{
 				if ( LineIndex == SelectionBeginningLineIndex )
 				{
@@ -1022,6 +1074,7 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 		}
 	}
 	
+	if ( bHasKeyboardFocus )
 	{
 		// The cursor mode uses the literal position rather than the interaction position
 		const FTextLocation CursorPosition = CursorInfo.GetCursorLocation();
@@ -1055,7 +1108,7 @@ void SMultiLineEditableText::UpdatePreferredCursorScreenOffsetInLine()
 	PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right).X;
 }
 
-void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action)
+void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 {
 	switch (JumpLocation)
 	{
@@ -1074,7 +1127,10 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 
 				if (Action == ECursorAction::SelectText)
 				{
-					this->SelectionStart = OldCursorPosition;
+					if (!SelectionStart.IsSet())
+					{
+						this->SelectionStart = OldCursorPosition;
+					}
 				}
 				else
 				{
@@ -1082,6 +1138,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				}
 
 				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
@@ -1095,7 +1152,10 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 
 			if (Action == ECursorAction::SelectText)
 			{
-				this->SelectionStart = OldCursorPosition;
+				if (!SelectionStart.IsSet())
+				{
+					this->SelectionStart = OldCursorPosition;
+				}
 			}
 			else
 			{
@@ -1103,6 +1163,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 			}
 
 			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+			OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 			UpdatePreferredCursorScreenOffsetInLine();
 			UpdateCursorHighlight();
 		}
@@ -1123,7 +1184,10 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 
 				if (Action == ECursorAction::SelectText)
 				{
-					this->SelectionStart = OldCursorPosition;
+					if (!SelectionStart.IsSet())
+					{
+						this->SelectionStart = OldCursorPosition;
+					}
 				}
 				else
 				{
@@ -1131,6 +1195,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				}
 
 				CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, ECursorAlignment::Right);
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
@@ -1148,7 +1213,10 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 
 				if (Action == ECursorAction::SelectText)
 				{
-					this->SelectionStart = OldCursorPosition;
+					if (!SelectionStart.IsSet())
+					{
+						this->SelectionStart = OldCursorPosition;
+					}
 				}
 				else
 				{
@@ -1156,6 +1224,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				}
 
 				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
@@ -1167,6 +1236,307 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 void SMultiLineEditableText::ClearSelection()
 {
 	SelectionStart = TOptional<FTextLocation>();
+}
+
+FText SMultiLineEditableText::GetSelectedText() const
+{
+	FText Text;
+
+	if (AnyTextSelected())
+	{
+		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+		FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
+		FTextSelection Selection(SelectionLocation, CursorInteractionPosition);
+
+		FString SelectedText;
+		TextLayout->GetSelectionAsText(SelectedText, Selection);
+
+		Text = FText::FromString(SelectedText);
+	}
+
+	return Text;
+}
+
+void SMultiLineEditableText::InsertTextAtCursor(const FText& InText)
+{
+	InsertTextAtCursor(InText.ToString());
+}
+
+void SMultiLineEditableText::InsertTextAtCursor(const FString& InString)
+{
+	StartChangingText();
+
+	DeleteSelectedText();
+	InsertTextAtCursorImpl(InString);
+
+	FinishChangingText();
+}
+
+void SMultiLineEditableText::InsertRunAtCursor(TSharedRef<IRun> InRun)
+{
+	StartChangingText();
+
+	DeleteSelectedText();
+
+	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+	TextLayout->InsertAt(CursorInteractionPosition, InRun, true); // true to preserve the run after the insertion point, even if it's empty - this preserves the text formatting correctly
+
+	// Move the cursor along since we've inserted some new text
+	FString InRunText;
+	InRun->AppendTextTo(InRunText);
+
+	const TArray<FTextLayout::FLineModel>& Lines = TextLayout->GetLineModels();
+	const FTextLayout::FLineModel& Line = Lines[CursorInteractionPosition.GetLineIndex()];
+	const FTextLocation FinalCursorLocation = FTextLocation(CursorInteractionPosition.GetLineIndex(), FMath::Min(CursorInteractionPosition.GetOffset() + InRunText.Len(), Line.Text->Len()));
+
+	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
+	UpdateCursorHighlight();
+
+	FinishChangingText();
+}
+
+void SMultiLineEditableText::GoTo(const FTextLocation& NewLocation)
+{
+	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+	if (Lines.IsValidIndex(NewLocation.GetLineIndex()))
+	{
+		const FTextLayout::FLineModel& Line = Lines[NewLocation.GetLineIndex()];
+		if (NewLocation.GetOffset() <= Line.Text->Len())
+		{
+			ClearSelection();
+
+			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewLocation);
+			OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+			UpdatePreferredCursorScreenOffsetInLine();
+			UpdateCursorHighlight();
+		}
+	}
+}
+
+void SMultiLineEditableText::ScrollTo(const FTextLocation& NewLocation)
+{
+	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+	if (Lines.IsValidIndex(NewLocation.GetLineIndex()))
+	{
+		const FTextLayout::FLineModel& Line = Lines[NewLocation.GetLineIndex()];
+		if (NewLocation.GetOffset() <= Line.Text->Len())
+		{
+			PositionToScrollIntoView = FScrollInfo(NewLocation, ECursorAlignment::Left);
+		}
+	}
+}
+
+void SMultiLineEditableText::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
+{
+	StartChangingText();
+
+	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+	const FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
+	const FTextSelection Selection(SelectionLocation, CursorInteractionPosition);
+
+	const int32 SelectionBeginningLineIndex = Selection.GetBeginning().GetLineIndex();
+	const int32 SelectionBeginningLineOffset = Selection.GetBeginning().GetOffset();
+
+	const int32 SelectionEndLineIndex = Selection.GetEnd().GetLineIndex();
+	const int32 SelectionEndLineOffset = Selection.GetEnd().GetOffset();
+
+	if (SelectionBeginningLineIndex == SelectionEndLineIndex)
+	{
+		TSharedRef<FString> SelectedText = MakeShareable(new FString);
+		TextLayout->GetSelectionAsText(*SelectedText, Selection);
+		
+		TextLayout->RemoveAt(Selection.GetBeginning(), SelectionEndLineOffset - SelectionBeginningLineOffset);
+			
+		TSharedRef<IRun> StyledRun = FSlateTextRun::Create(InRunInfo, SelectedText, InStyle);
+		TextLayout->InsertAt(Selection.GetBeginning(), StyledRun);
+	}
+	else
+	{
+		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+
+		{
+			const FTextLayout::FLineModel& Line = Lines[SelectionBeginningLineIndex];
+
+			const FTextLocation LineStartLocation(SelectionBeginningLineIndex, SelectionBeginningLineOffset);
+			const FTextLocation LineEndLocation(SelectionBeginningLineIndex, Line.Text->Len());
+
+			TSharedRef<FString> SelectedText = MakeShareable(new FString);
+			TextLayout->GetSelectionAsText(*SelectedText, FTextSelection(LineStartLocation, LineEndLocation));
+
+			TextLayout->RemoveAt(LineStartLocation, LineEndLocation.GetOffset() - LineStartLocation.GetOffset());
+			
+			TSharedRef<IRun> StyledRun = FSlateTextRun::Create(InRunInfo, SelectedText, InStyle);
+			TextLayout->InsertAt(LineStartLocation, StyledRun);
+		}
+			
+		for (int32 LineIndex = SelectionBeginningLineIndex + 1; LineIndex < SelectionEndLineIndex; ++LineIndex)
+		{
+			const FTextLayout::FLineModel& Line = Lines[LineIndex];
+				
+			const FTextLocation LineStartLocation(LineIndex, 0);
+			const FTextLocation LineEndLocation(LineIndex, Line.Text->Len());
+
+			TSharedRef<FString> SelectedText = MakeShareable(new FString);
+			TextLayout->GetSelectionAsText(*SelectedText, FTextSelection(LineStartLocation, LineEndLocation));
+
+			TextLayout->RemoveAt(LineStartLocation, LineEndLocation.GetOffset() - LineStartLocation.GetOffset());
+			
+			TSharedRef<IRun> StyledRun = FSlateTextRun::Create(InRunInfo, SelectedText, InStyle);
+			TextLayout->InsertAt(LineStartLocation, StyledRun);
+		}
+
+		{
+			const FTextLayout::FLineModel& Line = Lines[SelectionEndLineIndex];
+
+			const FTextLocation LineStartLocation(SelectionEndLineIndex, 0);
+			const FTextLocation LineEndLocation(SelectionEndLineIndex, SelectionEndLineOffset);
+
+			TSharedRef<FString> SelectedText = MakeShareable(new FString);
+			TextLayout->GetSelectionAsText(*SelectedText, FTextSelection(LineStartLocation, LineEndLocation));
+
+			TextLayout->RemoveAt(LineStartLocation, LineEndLocation.GetOffset() - LineStartLocation.GetOffset());
+			
+			TSharedRef<IRun> StyledRun = FSlateTextRun::Create(InRunInfo, SelectedText, InStyle);
+			TextLayout->InsertAt(LineStartLocation, StyledRun);
+		}
+	}
+
+	SelectionStart = SelectionLocation;
+	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, CursorInteractionPosition);
+
+	UpdatePreferredCursorScreenOffsetInLine();
+	UpdateCursorHighlight();
+
+	FinishChangingText();
+}
+
+TSharedPtr<const IRun> SMultiLineEditableText::GetRunUnderCursor() const
+{
+	const TArray<FTextLayout::FLineModel>& Lines = TextLayout->GetLineModels();
+	
+	const FTextLocation CursorInteractionLocation = CursorInfo.GetCursorInteractionLocation();
+	if (Lines.IsValidIndex(CursorInteractionLocation.GetLineIndex()))
+	{
+		const FTextLayout::FLineModel& LineModel = Lines[CursorInteractionLocation.GetLineIndex()];
+		for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); ++RunIndex)
+		{
+			const FTextLayout::FRunModel& RunModel = LineModel.Runs[RunIndex];
+			const FTextRange RunRange = RunModel.GetTextRange();
+
+			const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
+			if (RunRange.Contains(CursorInteractionLocation.GetOffset()) || bIsLastRun)
+			{
+				return RunModel.GetRun();
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+const TArray<TSharedRef<const IRun>> SMultiLineEditableText::GetSelectedRuns() const
+{
+	TArray<TSharedRef<const IRun>> Runs;
+
+	if(AnyTextSelected())
+	{
+		const TArray<FTextLayout::FLineModel>& Lines = TextLayout->GetLineModels();
+		const FTextLocation CursorInteractionLocation = CursorInfo.GetCursorInteractionLocation();
+		if (Lines.IsValidIndex(SelectionStart.GetValue().GetLineIndex()) && Lines.IsValidIndex(CursorInteractionLocation.GetLineIndex()))
+		{
+			const FTextSelection Selection(SelectionStart.GetValue(), CursorInteractionLocation);
+			const int32 StartLine = Selection.GetBeginning().GetLineIndex();
+			const int32 EndLine = Selection.GetEnd().GetLineIndex();
+
+			// iterate over lines
+			for(int32 LineIndex = StartLine; LineIndex <= EndLine; LineIndex++)
+			{
+				const bool bIsFirstLine = LineIndex == StartLine;
+				const bool bIsLastLine = LineIndex == EndLine;
+
+				const FTextLayout::FLineModel& LineModel = Lines[LineIndex];
+				for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); ++RunIndex)
+				{
+					const FTextLayout::FRunModel& RunModel = LineModel.Runs[RunIndex];
+
+					// check what we should be intersecting with
+					if(!bIsFirstLine && !bIsLastLine)
+					{
+						// whole line is inside the range, so just add the run
+						Runs.Add(RunModel.GetRun());
+					}
+					else 
+					{
+						const FTextRange RunRange = RunModel.GetTextRange();
+						if(bIsFirstLine && !bIsLastLine)
+						{
+							// on first line of multi-line selection
+							const FTextRange IntersectedRange = RunRange.Intersect(FTextRange(Selection.GetBeginning().GetOffset(), LineModel.Text->Len()));
+							if (!IntersectedRange.IsEmpty())
+							{
+								Runs.Add(RunModel.GetRun());
+							}
+						}
+						else if(!bIsFirstLine && bIsLastLine)
+						{
+							// on last line of multi-line selection
+							const FTextRange IntersectedRange = RunRange.Intersect(FTextRange(0, Selection.GetEnd().GetOffset()));
+							if (!IntersectedRange.IsEmpty())
+							{
+								Runs.Add(RunModel.GetRun());
+							}
+						}
+						else
+						{
+							// single line selection
+							const FTextRange IntersectedRange = RunRange.Intersect(FTextRange(Selection.GetBeginning().GetOffset(), Selection.GetEnd().GetOffset()));
+							if (!IntersectedRange.IsEmpty())
+							{
+								Runs.Add(RunModel.GetRun());
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return Runs;
+}
+
+TSharedPtr<const SScrollBar> SMultiLineEditableText::GetHScrollBar() const
+{
+	return HScrollBar;
+}
+
+TSharedPtr<const SScrollBar> SMultiLineEditableText::GetVScrollBar() const
+{
+	return VScrollBar;
+}
+
+void SMultiLineEditableText::Refresh()
+{
+	bool bHasSetText = false;
+
+	const FText& TextToSet = BoundText.Get(FText::GetEmpty());
+	if (!BoundTextLastTick.IdenticalTo(TextToSet))
+	{
+		// The pointer used by the bound text has changed, however the text may still be the same - check that now
+		if (!BoundTextLastTick.IsDisplayStringEqualTo(TextToSet))
+		{
+			// The source text has changed, so update the internal editable text
+			bHasSetText = true;
+			SetEditableText(TextToSet);
+		}
+
+		// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
+		BoundTextLastTick = FTextSnapshot(TextToSet);
+	}
+
+	if (!bHasSetText && Marshaller->IsDirty())
+	{
+		ForceRefreshTextLayout(TextToSet);
+	}
 }
 
 bool SMultiLineEditableText::CanExecuteSelectAll() const
@@ -1215,9 +1585,11 @@ bool SMultiLineEditableText::SelectAllTextWhenFocused()
 	return bSelectAllTextWhenFocused.Get();
 }
 
-void SMultiLineEditableText::SelectWordAt(const FVector2D& LocalPosition)
+void SMultiLineEditableText::SelectWordAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition )
 {
-	FTextLocation InitialLocation = TextLayout->GetTextLocationAt(LocalPosition * TextLayout->GetScale());
+	const FVector2D LocalPosition = MyGeometry.AbsoluteToLocal( ScreenSpacePosition );
+
+	FTextLocation InitialLocation = TextLayout->GetTextLocationAt(LocalPosition * MyGeometry.Scale);
 	FTextSelection WordSelection = TextLayout->GetWordAt(InitialLocation);
 
 	FTextLocation WordStart = WordSelection.GetBeginning();
@@ -1261,7 +1633,7 @@ bool SMultiLineEditableText::AnyTextSelected() const
 	return SelectionPosition != CursorInteractionPosition;
 }
 
-bool SMultiLineEditableText::IsTextSelectedAt(const FVector2D& LocalPosition) const
+bool SMultiLineEditableText::IsTextSelectedAt( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition ) const
 {
 	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionPosition = SelectionStart.Get(CursorInteractionPosition);
@@ -1271,7 +1643,8 @@ bool SMultiLineEditableText::IsTextSelectedAt(const FVector2D& LocalPosition) co
 		return false;
 	}
 
-	const FTextLocation ClickedPosition = TextLayout->GetTextLocationAt(LocalPosition * TextLayout->GetScale());
+	const FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(ScreenSpacePosition);
+	const FTextLocation ClickedPosition = TextLayout->GetTextLocationAt(LocalPosition * MyGeometry.Scale);
 
 	FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
 	FTextSelection Selection(SelectionLocation, CursorInteractionPosition);
@@ -1445,20 +1818,19 @@ void SMultiLineEditableText::PasteTextFromClipboard()
 	{
 		StartChangingText(); 
 
-		// Delete currently selected text, if any
 		DeleteSelectedText();
 
 		// Paste from the clipboard
 		FString PastedText;
 		FPlatformMisc::ClipboardPaste(PastedText);
 
-		InsertTextAtCursor(PastedText);
+		InsertTextAtCursorImpl(PastedText);
 
 		FinishChangingText();
 	}
 }
 
-void SMultiLineEditableText::InsertTextAtCursor(const FString& InString)
+void SMultiLineEditableText::InsertTextAtCursorImpl(const FString& InString)
 {
 	if (InString.Len())
 	{
@@ -1478,7 +1850,7 @@ void SMultiLineEditableText::InsertTextAtCursor(const FString& InString)
 
 bool SMultiLineEditableText::CanExecuteUndo() const
 {
-	if(TextInputMethodContext->IsComposing)
+	if(IsReadOnly.Get() || TextInputMethodContext->IsComposing)
 	{
 		return false;
 	}
@@ -1526,6 +1898,8 @@ void SMultiLineEditableText::Undo()
 				CursorInfo = UndoState.CursorInfo.CreateUndo();
 				SelectionStart = UndoState.SelectionStart;
 
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+
 				UpdateCursorHighlight();
 			}
 
@@ -1558,6 +1932,8 @@ void SMultiLineEditableText::Redo()
 
 				CursorInfo.RestoreFromUndo(UndoState.CursorInfo);
 				SelectionStart = UndoState.SelectionStart;
+
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
 
 				UpdateCursorHighlight();
 			}
@@ -1683,12 +2059,24 @@ void SMultiLineEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 
 void SMultiLineEditableText::LoadText()
 {
-	SetText(BoundText);
-	TextLayout->UpdateIfNeeded();
+	// We only need to do this if we're bound to a delegate, otherwise the text layout will already be up-to-date
+	// either from Construct, or a call to SetText
+	if (BoundText.IsBound())
+	{
+		SetText(BoundText);
+		TextLayout->UpdateIfNeeded();
+	}
 }
 
 void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	if (bTextChangedByVirtualKeyboard)
+	{
+		// Let outsiders know that the text content has been changed
+		OnTextCommitted.ExecuteIfBound(GetEditableText(), ETextCommit::OnUserMovedFocus);
+		bTextChangedByVirtualKeyboard = false;
+	}
+
 	if(TextInputMethodChangeNotifier.IsValid() && TextInputMethodContext.IsValid() && TextInputMethodContext->CachedGeometry != AllottedGeometry)
 	{
 		TextInputMethodContext->CachedGeometry = AllottedGeometry;
@@ -1699,52 +2087,112 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 
 	const bool bShouldAppearFocused = HasKeyboardFocus() || ContextMenuWindow.IsValid();
 
-	if (!bShouldAppearFocused && BoundText.IsBound())
+	if (!bShouldAppearFocused)
 	{
-		const FText& TextToSet = BoundText.Get(FText::GetEmpty());
-		if (!BoundTextLastTick.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive))
+		Refresh();
+	}
+
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
+	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
+
+	// If we're auto-wrapping, we need to hide the scrollbars until the first valid auto-wrap has been performed
+	// If we don't do this, then we can get some nasty layout shuffling as the scrollbars appear for one frame and then vanish again
+	const EVisibility ScrollBarVisiblityOverride = (AutoWrapText.Get() && CachedSize != AllottedGeometry.Size) ? EVisibility::Collapsed : EVisibility::Visible;
+
+	// Try and make sure that the line containing the cursor is in view
+	if (PositionToScrollIntoView.IsSet())
+	{
+		const FScrollInfo& ScrollInfo = PositionToScrollIntoView.GetValue();
+
+		const TArray<FTextLayout::FLineView>& LineViews = TextLayout->GetLineViews();
+		const int32 LineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, ScrollInfo.Position, ScrollInfo.Alignment == ECursorAlignment::Right);
+		if (LineViews.IsValidIndex(LineViewIndex))
 		{
-			// The source text has changed, so update the internal editable text
-			SetEditableText(TextToSet);
-			BoundTextLastTick = TextToSet;
+			const FTextLayout::FLineView& LineView = LineViews[LineViewIndex];
+			const FSlateRect LocalLineViewRect(LineView.Offset / TextLayout->GetScale(), (LineView.Offset + LineView.Size) / TextLayout->GetScale());
+
+			const FVector2D LocalCursorLocation = TextLayout->GetLocationAt(ScrollInfo.Position, ScrollInfo.Alignment == ECursorAlignment::Right) / TextLayout->GetScale();
+			const FSlateRect LocalCursorRect(LocalCursorLocation, FVector2D(LocalCursorLocation.X + CaretWidth, LocalCursorLocation.Y + FontMaxCharHeight));
+
+			if (LocalCursorRect.Left < 0.0f)
+			{
+				ScrollOffset.X += LocalCursorRect.Left;
+			}
+			else if (LocalCursorRect.Right > AllottedGeometry.Size.X)
+			{
+				ScrollOffset.X += (LocalCursorRect.Right - AllottedGeometry.Size.X);
+			}
+
+			if (LocalLineViewRect.Top < 0.0f)
+			{
+				ScrollOffset.Y += LocalLineViewRect.Top;
+			}
+			else if (LocalLineViewRect.Bottom > AllottedGeometry.Size.Y)
+			{
+				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.Size.Y);
+			}
+		}
+
+		PositionToScrollIntoView = TOptional<FScrollInfo>();
+	}
+
+	{
+		// Need to account for the caret width too
+		const float ContentSize = TextLayout->GetSize().X + CaretWidth;
+		const float VisibleSize = AllottedGeometry.Size.X;
+
+		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
+		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
+		const float ViewOffset = (ContentSize > 0.0f && ViewFraction < 1.0f) ? FMath::Clamp<float>(ScrollOffset.X / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
+	
+		// Update the scrollbar with the clamped version of the offset
+		ScrollOffset.X = ViewOffset * ContentSize;
+	
+		if (HScrollBar.IsValid())
+		{
+			HScrollBar->SetState(ViewOffset, ViewFraction);
+			HScrollBar->SetUserVisibility(ScrollBarVisiblityOverride);
+			if (!HScrollBar->IsNeeded())
+			{
+				// We cannot scroll, so ensure that there is no offset
+				ScrollOffset.X = 0.0f;
+			}
 		}
 	}
+
+	{
+		const float ContentSize = TextLayout->GetSize().Y;
+		const float VisibleSize = AllottedGeometry.Size.Y;
+
+		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
+		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
+		const float ViewOffset = (ContentSize > 0.0f && ViewFraction < 1.0f) ? FMath::Clamp<float>(ScrollOffset.Y / ContentSize, 0.0f, 1.0f - ViewFraction) : 0.0f;
+	
+		// Update the scrollbar with the clamped version of the offset
+		ScrollOffset.Y = ViewOffset * ContentSize;
+	
+		if (VScrollBar.IsValid())
+		{
+			VScrollBar->SetState(ViewOffset, ViewFraction);
+			VScrollBar->SetUserVisibility(ScrollBarVisiblityOverride);
+			if (!VScrollBar->IsNeeded())
+			{
+				// We cannot scroll, so ensure that there is no offset
+				ScrollOffset.Y = 0.0f;
+			}
+		}
+	}
+
+	TextLayout->SetVisibleRegion(AllottedGeometry.Size, ScrollOffset);
 }
 
 int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
-	if ( AutoWrapText.Get() )
-	{
-		CachedAutoWrapTextWidth = AllottedGeometry.Size.X;
-	}
+	CachedSize = AllottedGeometry.Size;
 
-	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
-
-	if ( TextJustification == ETextJustify::Right )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
-	else if ( TextJustification == ETextJustify::Center )
-	{
-		FVector2D TextLayoutSize = TextLayout->GetSize();
-		float LayoutWidth = TextLayoutSize.X;
-		if (TextLayoutSize.X == 0)
-		{
-			const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-			TextLayoutSize.X = FontMeasureService->Measure(FString(TEXT("  ")), TextStyle.Font).X;
-		}
-
-		const FVector2D Offset((AllottedGeometry.Size.X - TextLayoutSize.X) / 2, 0);
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
-	else
-	{
-		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-	}
+	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 	return LayerId;
 }
@@ -1758,15 +2206,16 @@ void SMultiLineEditableText::CacheDesiredSize()
 
 	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText), or a mixture of both
 	// Take whichever has the smallest value (>1)
-	if(AutoWrapText.Get() && CachedAutoWrapTextWidth >= 1.0f)
+	if(AutoWrapText.Get() && CachedSize.X >= 1.0f)
 	{
-		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedAutoWrapTextWidth) : CachedAutoWrapTextWidth;
+		WrappingWidth = (WrappingWidth >= 1.0f) ? FMath::Min(WrappingWidth, CachedSize.X) : CachedSize.X;
 	}
 
 	TextLayout->SetWrappingWidth( WrappingWidth );
 	TextLayout->SetMargin( OurMargin );
 	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
 	TextLayout->SetJustification( Justification.Get() );
+	TextLayout->SetVisibleRegion( CachedSize, ScrollOffset );
 	TextLayout->UpdateIfNeeded();
 
 	SWidget::CacheDesiredSize();
@@ -1774,9 +2223,7 @@ void SMultiLineEditableText::CacheDesiredSize()
 
 FVector2D SMultiLineEditableText::ComputeDesiredSize() const
 {
-	const FSlateFontInfo& FontInfo = TextStyle.Font;
-	
-	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
 	// The layouts current margin size. We should not report a size smaller then the margins.
@@ -1802,24 +2249,7 @@ FChildren* SMultiLineEditableText::GetChildren()
 
 void SMultiLineEditableText::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
-
-	if ( TextJustification == ETextJustify::Right )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
-	}
-	else if ( TextJustification == ETextJustify::Center )
-	{
-		const FVector2D TextLayoutSize = TextLayout->GetSize();
-		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ) / 2, 0 );
-		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
-	}
-	else
-	{
-		TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
-	}
+	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
 }
 
 bool SMultiLineEditableText::SupportsKeyboardFocus() const
@@ -1868,6 +2298,26 @@ FReply SMultiLineEditableText::OnMouseMove( const FGeometry& MyGeometry, const F
 	return Reply;
 }
 
+FReply SMultiLineEditableText::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if (VScrollBar.IsValid() && VScrollBar->IsNeeded())
+	{
+		const float PreviousScrollOffset = ScrollOffset.Y;
+
+		const float ScrollAmount = -MouseEvent.GetWheelDelta() * WheelScrollAmount;
+		ScrollOffset.Y += ScrollAmount;
+
+		const float ContentSize = TextLayout->GetSize().Y;
+		const float ScrollMin = 0.0f;
+		const float ScrollMax = ContentSize - MyGeometry.Size.Y;
+		ScrollOffset.Y = FMath::Clamp(ScrollOffset.Y, ScrollMin, ScrollMax);
+
+		return (PreviousScrollOffset != ScrollOffset.Y) ? FReply::Handled() : FReply::Unhandled();
+	}
+
+	return FReply::Unhandled();
+}
+
 FReply SMultiLineEditableText::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FReply Reply = FTextEditHelper::OnMouseButtonDoubleClick(MyGeometry, MouseEvent, SharedThis(this));
@@ -1914,7 +2364,7 @@ FTextLocation SMultiLineEditableText::TranslatedLocation( const FTextLocation& L
 	}
 }
 
-void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
+void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
 {
 	const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
 	const int32 NumberOfLineViews = LineViews.Num();
@@ -1928,7 +2378,7 @@ void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Loc
 	
 	// Our horizontal position is the clamped version of whatever the user explicitly set with horizontal movement.
 	ETextHitPoint HitPoint = ETextHitPoint::WithinText;
-	OutCursorPosition = TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * TextLayout->GetScale(), &HitPoint );
+	OutCursorPosition = TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * GeometryScale, &HitPoint );
 
 	// PreferredCursorScreenOffsetInLine can cause the cursor to move to the right hand gutter, and it needs to be placed there
 	// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
@@ -2095,6 +2545,7 @@ void SMultiLineEditableText::FTextInputMethodContext::SetSelectionRange(const ui
 			break;
 		}
 
+		OwningWidgetPtr->OnCursorMoved.ExecuteIfBound(OwningWidgetPtr->CursorInfo.GetCursorInteractionLocation());
 		OwningWidgetPtr->UpdateCursorHighlight();
 	}
 }
@@ -2121,7 +2572,7 @@ void SMultiLineEditableText::FTextInputMethodContext::SetTextInRange(const uint3
 		// We do this as a select, delete, and insert as it's the simplest way to keep the text layout correct
 		SetSelectionRange(BeginIndex, Length, ITextInputMethodContext::ECaretPosition::Beginning);
 		OwningWidgetPtr->DeleteSelectedText();
-		OwningWidgetPtr->InsertTextAtCursor(InString);
+		OwningWidgetPtr->InsertTextAtCursorImpl(InString);
 
 		// Has the text changed?
 		const FText EditedText = OwningWidgetPtr->GetEditableText();
@@ -2181,9 +2632,7 @@ bool SMultiLineEditableText::FTextInputMethodContext::GetTextBounds(const uint32
 
 		// Translate the position (which is in local space) into screen (absolute) space
 		// Note: The local positions are pre-scaled, so we don't scale them again here
-		FGeometry CachedGeometryNoScale = CachedGeometry;
-		CachedGeometryNoScale.Scale = 1.0f;
-		Position = CachedGeometryNoScale.LocalToAbsolute(Position);
+		Position += CachedGeometry.AbsolutePosition;
 	}
 	return IsClipped;
 }
@@ -2253,6 +2702,5 @@ void SMultiLineEditableText::FTextInputMethodContext::EndComposition()
 		IsComposing = false;
 	}
 }
-
 
 #endif //WITH_FANCY_TEXT

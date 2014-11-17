@@ -6,6 +6,7 @@
 #include "Kismet/DataTableFunctionLibrary.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetDataTableRow"
 
@@ -23,7 +24,7 @@ FString UK2Node_GetDataTableRowHelper::RowNamePinName(LOCTEXT("RowNamePinName","
 UK2Node_GetDataTableRow::UK2Node_GetDataTableRow(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to retrieve a TableRow from a DataTable via it's RowName").ToString();
+	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to retrieve a TableRow from a DataTable via it's RowName");
 }
 
 void UK2Node_GetDataTableRow::AllocateDefaultPins()
@@ -41,8 +42,8 @@ void UK2Node_GetDataTableRow::AllocateDefaultPins()
 	SetPinToolTip(*DataTablePin, LOCTEXT("DataTablePinDescription", "The DataTable you want to retreive a row from"));
 
 	// Row Name pin
-	UEdGraphPin* TransformPin = CreatePin(EGPD_Input, K2Schema->PC_Name, TEXT(""), NULL, false, false, UK2Node_GetDataTableRowHelper::RowNamePinName);
-	SetPinToolTip(*TransformPin, LOCTEXT("RowNamePinDescription", "The name of the row to retrieve from the DataTable"));
+	UEdGraphPin* RowNamePin = CreatePin(EGPD_Input, K2Schema->PC_Name, TEXT(""), NULL, false, false, UK2Node_GetDataTableRowHelper::RowNamePinName);
+	SetPinToolTip(*RowNamePin, LOCTEXT("RowNamePinDescription", "The name of the row to retrieve from the DataTable"));
 
 	// Result pin
 	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), FTableRowBase::StaticStruct(), false, false, K2Schema->PN_ReturnValue);
@@ -54,7 +55,7 @@ void UK2Node_GetDataTableRow::AllocateDefaultPins()
 
 void UK2Node_GetDataTableRow::SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const
 {
-	MutatablePin.PinToolTip = UEdGraphSchema_K2::TypeToString(MutatablePin.PinType);
+	MutatablePin.PinToolTip = UEdGraphSchema_K2::TypeToText(MutatablePin.PinType).ToString();
 
 	UEdGraphSchema_K2 const* const K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
 	if (K2Schema != nullptr)
@@ -69,11 +70,45 @@ void UK2Node_GetDataTableRow::SetPinToolTip(UEdGraphPin& MutatablePin, const FTe
 
 void UK2Node_GetDataTableRow::SetReturnTypeForStruct(UScriptStruct* RowStruct)
 {
-	check(RowStruct != NULL);
+	if (RowStruct == NULL)
+	{
+		RowStruct = FTableRowBase::StaticStruct();
+	}
 
-    // Change class of output pin
 	UEdGraphPin* ResultPin = GetResultPin();
-	ResultPin->PinType.PinSubCategoryObject = RowStruct;
+
+	UScriptStruct* NewRowStruct = RowStruct;
+	UScriptStruct* OldRowStruct = GetReturnTypeForStruct();
+
+	// If new Data Table uses a different struct type for it's rows
+	if (NewRowStruct != OldRowStruct)
+	{
+		// Doing this just to force the row name drop down to refresh
+		ReconstructNode();
+
+		// Because the Return Value struct type has changed, we break the output link
+		ResultPin->BreakAllPinLinks();
+
+		// Change class of output pin
+		UEdGraphPin* ResultPin = GetResultPin();
+		ResultPin->PinType.PinSubCategoryObject = RowStruct;
+
+		// When the DataTable pin gets a new value assigned, we need to update the Slate UI so that SGraphNodeCallParameterCollectionFunction will update the ParameterName drop down
+		UEdGraph* Graph = GetGraph();
+		Graph->NotifyGraphChanged();
+
+		UEdGraphPin* OldRowNamePin = GetRowNamePin();
+
+		// Mark dirty
+		FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+	}
+}
+
+UScriptStruct* UK2Node_GetDataTableRow::GetReturnTypeForStruct()
+{
+	UScriptStruct* ReturnStructType = (UScriptStruct*)(GetResultPin()->PinType.PinSubCategoryObject.Get());
+
+	return ReturnStructType;
 }
 
 UScriptStruct* UK2Node_GetDataTableRow::GetDataTableRowStructType(const TArray<UEdGraphPin*>* InPinsToSearch /*=NULL*/) const
@@ -87,11 +122,38 @@ UScriptStruct* UK2Node_GetDataTableRow::GetDataTableRowStructType(const TArray<U
 		if (DataTablePin->DefaultObject->IsA(UDataTable::StaticClass()))
 		{
 			UDataTable* DataTable = (UDataTable*)DataTablePin->DefaultObject;
-			RowStructType = DataTable->RowStruct;
+			if (DataTable)
+			{
+				RowStructType = DataTable->RowStruct;
+			}
 		}
 	}
 
 	return RowStructType;
+}
+
+void UK2Node_GetDataTableRow::GetDataTableRowNameList(TArray<TSharedPtr<FName>>& RowNames, const TArray<UEdGraphPin*>* InPinsToSearch /*= NULL*/) const
+{
+	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
+
+	UEdGraphPin* DataTablePin = GetDataTablePin(PinsToSearch);
+	if (DataTablePin && DataTablePin->DefaultObject != NULL && DataTablePin->LinkedTo.Num() == 0)
+	{
+		if (DataTablePin->DefaultObject->IsA(UDataTable::StaticClass()))
+		{
+			UDataTable* DataTable = (UDataTable*)DataTablePin->DefaultObject;
+			if (DataTable)
+			{
+				/** Extract all the row names from the RowMap */
+				for (TMap<FName, uint8*>::TConstIterator Iterator(DataTable->RowMap); Iterator; ++Iterator)
+				{
+					/** Create a simple array of the row names */
+					TSharedPtr<FName> RowNameItem = MakeShareable(new FName(Iterator.Key()));
+					RowNames.Add(RowNameItem);
+				}
+			}
+		}
+	}
 }
 
 
@@ -106,12 +168,24 @@ void UK2Node_GetDataTableRow::ReallocatePinsDuringReconstruction(TArray<UEdGraph
 	}
 }
 
-void UK2Node_GetDataTableRow::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GetDataTableRow::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_GetDataTableRow::GetMenuCategory() const
@@ -119,57 +193,35 @@ FText UK2Node_GetDataTableRow::GetMenuCategory() const
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Utilities);
 }
 
-bool UK2Node_GetDataTableRow::IsDataTablePin(UEdGraphPin* Pin)
+void UK2Node_GetDataTableRow::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	return(	Pin->PinName != K2Schema->PN_Execute &&
-			Pin->PinName != K2Schema->PN_Then &&
-			Pin->PinName != K2Schema->PN_ReturnValue &&
-			Pin->PinName != UK2Node_GetDataTableRowHelper::DataTablePinName &&
-			Pin->PinName != UK2Node_GetDataTableRowHelper::RowNotFoundPinName &&
-			Pin->PinName != UK2Node_GetDataTableRowHelper::RowNamePinName );
-}
-
-
-void UK2Node_GetDataTableRow::PinDefaultValueChanged(UEdGraphPin* ChangedPin) 
-{
-	if (ChangedPin->PinName == UK2Node_GetDataTableRowHelper::DataTablePinName)
+	if (Pin && Pin->PinName == UK2Node_GetDataTableRowHelper::DataTablePinName)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		// Because the archetype has changed, we break the output link as the output pin type will change
 		UEdGraphPin* ResultPin = GetResultPin();
 		ResultPin->BreakAllPinLinks();
 
-		// Remove all pins related to archetype variables
-		TArray<UEdGraphPin*> OldPins = Pins;
-		for (int32 i = 0; i < OldPins.Num(); i++)
+		// If the pin has been connected, clear the default values so that we don't hold on to references
+		if (Pin->LinkedTo.Num() == 1)
 		{
-			UEdGraphPin* OldPin = OldPins[i];
-			if (IsDataTablePin(OldPin))
-			{
-				OldPin->BreakAllPinLinks();
-				Pins.Remove(OldPin);
-			}
-		}
+			UScriptStruct* RowStruct = GetDataTableRowStructType(&(Pin->LinkedTo));
 
-		UScriptStruct* RowStruct = GetDataTableRowStructType();
-		if (RowStruct != NULL)
-		{
 			SetReturnTypeForStruct(RowStruct);
 		}
-
-		// Refresh the UI for the graph so the pin changes show up
-		UEdGraph* Graph = GetGraph();
-		Graph->NotifyGraphChanged();
-
-		// Mark dirty
-		FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
 	}
 }
 
-FString UK2Node_GetDataTableRow::GetTooltip() const
+void UK2Node_GetDataTableRow::PinDefaultValueChanged(UEdGraphPin* ChangedPin) 
+{
+	if (ChangedPin && ChangedPin->PinName == UK2Node_GetDataTableRowHelper::DataTablePinName)
+	{
+		UScriptStruct* RowStruct = GetDataTableRowStructType();
+
+		SetReturnTypeForStruct(RowStruct);
+	}
+}
+
+FText UK2Node_GetDataTableRow::GetTooltipText() const
 {
 	return NodeTooltip;
 }
@@ -227,32 +279,35 @@ UEdGraphPin* UK2Node_GetDataTableRow::GetResultPin() const
 
 FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	UEdGraphPin* DataTablePin = GetDataTablePin();
-
-	FText DataTableString = NSLOCTEXT("K2Node", "None", "NONE");
-	if (DataTablePin != NULL)
+	if (TitleType == ENodeTitleType::MenuTitle)
 	{
-		if(DataTablePin->LinkedTo.Num() > 0)
+		return LOCTEXT("ListViewTitle", "Get Data Table Row");
+	}
+	else if (UEdGraphPin* DataTablePin = GetDataTablePin())
+	{
+		if (DataTablePin->LinkedTo.Num() > 0)
 		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			DataTableString = FText::GetEmpty();
+			return NSLOCTEXT("K2Node", "DataTable_Title_Unknown", "Get Data Table Row");
 		}
-		else if(DataTablePin->DefaultObject != NULL)
+		else if (DataTablePin->DefaultObject == nullptr)
 		{
-			DataTableString = FText::FromString(DataTablePin->DefaultObject->GetName());
+			return NSLOCTEXT("K2Node", "DataTable_Title_None", "Get Data Table Row NONE");
+		}
+		else if (CachedNodeTitle.IsOutOfDate())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("DataTableName"), FText::FromString(DataTablePin->DefaultObject->GetName()));
+
+			FText LocFormat = NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}");
+			// FText::Format() is slow, so we cache this to save on performance
+			CachedNodeTitle = FText::Format(LocFormat, Args);
 		}
 	}
-
-	FText LocFormat = NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}");
-	if (TitleType == ENodeTitleType::ListView)
+	else
 	{
-		LocFormat = LOCTEXT("ListViewTitle", "Get Data Table Row");
-	}
-
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("DataTableName"), DataTableString);
-	return FText::Format(LocFormat, Args);
+		return NSLOCTEXT("K2Node", "DataTable_Title_None", "Get Data Table Row NONE");
+	}	
+	return CachedNodeTitle;
 }
 
 void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

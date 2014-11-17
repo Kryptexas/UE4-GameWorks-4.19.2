@@ -11,6 +11,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 
+static TAutoConsoleVariable<int32> CVarMaxPlayersOverride( TEXT( "net.MaxPlayersOverride" ), 0, TEXT( "If greater than 0, will override the standard max players count. Useful for testing full servers." ) );
+
 /** 
  * Returns the player controller associated with this net id
  * @param PlayerNetId the id to search for
@@ -195,7 +197,9 @@ bool AGameSession::AtCapacity(bool bSpectator)
 	}
 	else
 	{
-		return ( (MaxPlayers>0) && (GetWorld()->GetAuthGameMode()->GetNumPlayers() >= MaxPlayers) );
+		const int32 MaxPlayersToUse = CVarMaxPlayersOverride.GetValueOnGameThread() > 0 ? CVarMaxPlayersOverride.GetValueOnGameThread() : MaxPlayers;
+
+		return ( (MaxPlayersToUse>0) && (GetWorld()->GetAuthGameMode()->GetNumPlayers() >= MaxPlayersToUse) );
 	}
 }
 

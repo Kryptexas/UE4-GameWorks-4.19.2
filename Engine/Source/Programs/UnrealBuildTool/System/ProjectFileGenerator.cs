@@ -237,7 +237,8 @@ namespace UnrealBuildTool
 				{
 					var RelativeFileName = Utils.MakePathRelativeTo(ProjectFile, MasterProjectRelativePath);
 					var Project = new VCSharpProjectFile(RelativeFileName);
-					AddExistingProjectFile(Project);
+					Project.ShouldBuildForAllSolutionTargets = true;
+					AddExistingProjectFile(Project, bForceDevelopmentConfiguration: true);
 
 					Folder.ChildProjects.Add( Project );
 				}
@@ -269,7 +270,7 @@ namespace UnrealBuildTool
 
 				if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
 				{
-					if (ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
+					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 					{
 						MasterProjectRelativePath = Path.GetFullPath(Path.Combine (Utils.GetExecutingAssemblyDirectory (), "..", "..", "..", "Engine"));
 						GameProjectName = "UE4Game";
@@ -283,7 +284,7 @@ namespace UnrealBuildTool
 
 				IncludeDocumentation = false;
 				IncludeBuildSystemFiles = false;
-				IncludeShaderSource = false;
+				IncludeShaderSource = true;
 				IncludeTemplateFiles = false;
 				IncludeConfigFiles = true;
 			}
@@ -384,6 +385,12 @@ namespace UnrealBuildTool
 				// Add all game projects and game config files
 				AddAllGameProjects(GameProjects, SupportedPlatformNames, RootFolder);
 
+				// Set the game to be the default project
+				if(bGeneratingGameProjectFiles && GameProjects.Count > 0)
+				{
+					DefaultProject = GameProjects.Values.First();
+				}
+
 				// Place projects into root level solution folders
 				if( ( !bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles ) || bAlwaysIncludeEngineModules )
 				{
@@ -472,19 +479,19 @@ namespace UnrealBuildTool
 				if( ( !bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles ) || bAlwaysIncludeEngineModules )
 				{
 					// Add AutomationTool to the master project
-					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool"));
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
 					// Add UnrealAutomationTool (launcher) to the master project
-					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationToolLauncher"));
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationToolLauncher", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
-					// Add automation.csproj files to the master project.
+					// Add automation.csproj files to the master project
 					AddAutomationModules(ProgramsFolder);
 
 					// Add Distill to the master project
-					ProgramsFolder.ChildProjects.Add( AddSimpleCSharpProject( "Distill" ) );
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("Distill"));
 
 					// Add DotNETUtilities to the master project
-					ProgramsFolder.ChildProjects.Add( AddSimpleCSharpProject(  "DotNETCommon/DotNETUtilities" ) );
+					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("DotNETCommon/DotNETUtilities", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
 					// Add all of the IOS C# projects
 					AddIOSProjects( ProgramsFolder );
@@ -1089,6 +1096,7 @@ namespace UnrealBuildTool
 		{
 			var ProjectFileName = Utils.MakePathRelativeTo( Path.Combine( Path.Combine( EngineRelativePath, "Source" ), "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj" ), MasterProjectRelativePath );
 			var UnrealBuildToolProject = new VCSharpProjectFile( ProjectFileName );
+			UnrealBuildToolProject.ShouldBuildForAllSolutionTargets = true;
 
 			// Store it off as we need it when generating target projects.
 			UBTProject = UnrealBuildToolProject;
@@ -1105,9 +1113,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ProjectName">Name of project file to add</param>
 		/// <returns>ProjectFile if the operation was successful, otherwise null.</returns>
-		private ProjectFile AddSimpleCSharpProject(string ProjectName)
+		private VCSharpProjectFile AddSimpleCSharpProject(string ProjectName, bool bShouldBuildForAllSolutionTargets = false, bool bForceDevelopmentConfiguration = false)
 		{
-			ProjectFile Project = null;
+			VCSharpProjectFile Project = null;
 
 			var ProjectFileName = Path.Combine( EngineRelativePath, "Source", "Programs", ProjectName, Path.GetFileName( ProjectName ) + ".csproj" );
 			FileInfo Info = new FileInfo( ProjectFileName );
@@ -1115,7 +1123,8 @@ namespace UnrealBuildTool
 			{
 				var FileNameRelativeToMasterProject = Utils.MakePathRelativeTo( ProjectFileName, MasterProjectRelativePath );
 				Project = new VCSharpProjectFile(FileNameRelativeToMasterProject);
-				AddExistingProjectFile(Project);
+				Project.ShouldBuildForAllSolutionTargets = bShouldBuildForAllSolutionTargets;
+				AddExistingProjectFile(Project, bForceDevelopmentConfiguration: bForceDevelopmentConfiguration);
 			}
 			else
 			{
@@ -1202,7 +1211,7 @@ namespace UnrealBuildTool
 			if( ProjectFolderInfo.Exists )
 			{
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/iPhonePackager" ) );
-				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/DeploymentInterface" ) );
+				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/DeploymentInterface", true ) ); // Build by default; needed for UAT.
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/DeploymentServer" ) );
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/MobileDeviceInterface" ) );
 			}
@@ -1269,10 +1278,19 @@ namespace UnrealBuildTool
 						ArgumentsCopy[ 0 ] = TargetName;
 						Array.Copy(Arguments, 0, ArgumentsCopy, 1, Arguments.Length);
 
+						// CreateTarget mutates the current project setting file if it isn't already set, which prevents other 
+						// projects from being able to do the same. Capture the state beforehand, and reset if after running UBT. 
+						bool bHasProjectFile = UnrealBuildTool.HasUProjectFile();
+
 						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy ) == ECompilationResult.Succeeded;
 						if( !bSuccess )
 						{
 							break;
+						}
+
+						if(!bHasProjectFile)
+						{
+							UnrealBuildTool.ResetProjectFile();
 						}
 
 						// Display progress
@@ -1563,7 +1581,7 @@ namespace UnrealBuildTool
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
-					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(ExternalExecution.GetRuntimePlatform(), UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
+					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
 
 					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
 					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))
@@ -1992,7 +2010,7 @@ namespace UnrealBuildTool
                     // TODO(sbc): See if we can just drop the Encoding.UTF8 argument on all
                     // platforms.  In this case UTF8 encoding will still be used but without the
                     // BOM, which is, AFAICT, desirable in almost all cases.
-					if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
                         File.WriteAllText(FileName, NewFileContents);
                     else
                         File.WriteAllText(FileName, NewFileContents, Encoding.UTF8);
@@ -2101,6 +2119,8 @@ namespace UnrealBuildTool
 			OtherProjectFiles.Add( InProject );
 		}
 
+		/// The default project to be built for the solution.
+		protected ProjectFile DefaultProject;
 
 		/// The project for UnrealBuildTool.  Note that when generating Rocket project files, we won't have
 		/// an UnrealBuildTool project at all.

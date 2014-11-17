@@ -10,13 +10,15 @@
 UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	SEditableText::FArguments Defaults;
+	WidgetStyle = *Defaults._Style;
+
 	ColorAndOpacity = FLinearColor::Black;
 
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
 
 	// Grab other defaults from slate arguments.
-	SEditableTextBox::FArguments Defaults;
 	IsReadOnly = Defaults._IsReadOnly.Get();
 	IsPassword = Defaults._IsReadOnly.Get();
 	MinimumDesiredWidth = Defaults._MinDesiredWidth.Get();
@@ -27,9 +29,9 @@ UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
-void UEditableText::ReleaseNativeWidget()
+void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyEditableText.Reset();
 }
@@ -43,16 +45,8 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 	}
 	
-	SEditableText::FArguments Defaults;
-	
-	const FEditableTextStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		StylePtr = Defaults._Style;
-	}
-	
 	MyEditableText = SNew(SEditableText)
-	.Style(StylePtr)
+	.Style(&WidgetStyle)
 	.Font(FSlateFontInfo(FontPath, Font.Size))
 	.MinDesiredWidth(MinimumDesiredWidth)
 	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
@@ -60,10 +54,6 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 	.RevertTextOnEscape(RevertTextOnEscape)
 	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 	.SelectAllTextOnCommit(SelectAllTextOnCommit)
-	.BackgroundImageSelected(BackgroundImageSelected ? TAttribute<const FSlateBrush*>(&BackgroundImageSelected->Brush) : TAttribute<const FSlateBrush*>())
-	.BackgroundImageSelectionTarget(BackgroundImageSelectionTarget ? TAttribute<const FSlateBrush*>(&BackgroundImageSelectionTarget->Brush) : TAttribute<const FSlateBrush*>())
-	.BackgroundImageComposing(BackgroundImageComposing ? TAttribute<const FSlateBrush*>(&BackgroundImageComposing->Brush) : TAttribute<const FSlateBrush*>())
-	.CaretImage(CaretImage ? TAttribute<const FSlateBrush*>(&CaretImage->Brush) : TAttribute<const FSlateBrush*>())
 	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 	;
@@ -71,12 +61,15 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
 }
 
-void UEditableText::SyncronizeProperties()
+void UEditableText::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
-	MyEditableText->SetText(Text);
-	MyEditableText->SetHintText(HintText);
+	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+
+	MyEditableText->SetText(TextBinding);
+	MyEditableText->SetHintText(HintTextBinding);
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
 	MyEditableText->SetColorAndOpacity(ColorAndOpacity);
@@ -103,6 +96,33 @@ void UEditableText::SetText(FText InText)
 	}
 }
 
+void UEditableText::SetIsPassword(bool InbIsPassword)
+{
+	IsPassword = InbIsPassword;
+	if ( MyEditableText.IsValid() )
+	{
+		MyEditableText->SetIsPassword(IsPassword);
+	}
+}
+
+void UEditableText::SetHintText(FText InHintText)
+{
+	HintText = InHintText;
+	if ( MyEditableText.IsValid() )
+	{
+		MyEditableText->SetHintText(HintText);
+	}
+}
+
+void UEditableText::SetIsReadOnly(bool InbIsReadyOnly)
+{
+	IsReadOnly = InbIsReadyOnly;
+	if ( MyEditableText.IsValid() )
+	{
+		MyEditableText->SetIsReadOnly(IsReadOnly);
+	}
+}
+
 void UEditableText::HandleOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
@@ -113,11 +133,59 @@ void UEditableText::HandleOnTextCommitted(const FText& Text, ETextCommit::Type C
 	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
+void UEditableText::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FEditableTextStyle* StylePtr = Style_DEPRECATED->GetStyle<FEditableTextStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+
+		if ( BackgroundImageSelected_DEPRECATED != nullptr )
+		{
+			WidgetStyle.BackgroundImageSelected = BackgroundImageSelected_DEPRECATED->Brush;
+			BackgroundImageSelected_DEPRECATED = nullptr;
+		}
+
+		if ( BackgroundImageSelectionTarget_DEPRECATED != nullptr )
+		{
+			WidgetStyle.BackgroundImageSelectionTarget = BackgroundImageSelectionTarget_DEPRECATED->Brush;
+			BackgroundImageSelectionTarget_DEPRECATED = nullptr;
+		}
+
+		if ( BackgroundImageComposing_DEPRECATED != nullptr )
+		{
+			WidgetStyle.BackgroundImageComposing = BackgroundImageComposing_DEPRECATED->Brush;
+			BackgroundImageComposing_DEPRECATED = nullptr;
+		}
+
+		if ( CaretImage_DEPRECATED != nullptr )
+		{
+			WidgetStyle.CaretImage = CaretImage_DEPRECATED->Brush;
+			CaretImage_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UEditableText::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.EditableText");
+}
+
+const FText UEditableText::GetPaletteCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

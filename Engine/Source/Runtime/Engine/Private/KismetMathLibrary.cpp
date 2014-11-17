@@ -1,7 +1,30 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "CoreStats.h"
+
+/** Interpolate a linear alpha value using an ease mode and function, BlendExp used in cases where the easing is exponential */
+float EaseAlpha(float InAlpha, uint8 EasingFunc, float BlendExp, int32 Steps)
+{
+	switch (EasingFunc)
+	{
+	case EEasingFunc::Step:					return FMath::Clamp<float>(FMath::InterpStep(0.f, 1.f, InAlpha, Steps), 0.f, 1.f);
+	case EEasingFunc::SinusoidalIn:			return FMath::Clamp<float>(FMath::InterpSinIn<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::SinusoidalOut:		return FMath::Clamp<float>(FMath::InterpSinOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::SinusoidalInOut:		return FMath::Clamp<float>(FMath::InterpSinInOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::EaseIn:				return FMath::Clamp<float>(FMath::InterpEaseIn<float>(0.f, 1.f, InAlpha, BlendExp), 0.f, 1.f);
+	case EEasingFunc::EaseOut:				return FMath::Clamp<float>(FMath::InterpEaseOut<float>(0.f, 1.f, InAlpha, BlendExp), 0.f, 1.f);
+	case EEasingFunc::EaseInOut:			return FMath::Clamp<float>(FMath::InterpEaseInOut<float>(0.f, 1.f, InAlpha, BlendExp), 0.f, 1.f);
+	case EEasingFunc::ExpoIn:				return FMath::Clamp<float>(FMath::InterpExpoIn<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::ExpoOut:				return FMath::Clamp<float>(FMath::InterpExpoOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::ExpoInOut:			return FMath::Clamp<float>(FMath::InterpExpoInOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::CircularIn:			return FMath::Clamp<float>(FMath::InterpCircularIn<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::CircularOut:			return FMath::Clamp<float>(FMath::InterpCircularOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	case EEasingFunc::CircularInOut:		return FMath::Clamp<float>(FMath::InterpCircularInOut<float>(0.f, 1.f, InAlpha), 0.f, 1.f);
+	}
+	return InAlpha;
+}
 
 UKismetMathLibrary::UKismetMathLibrary(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -323,6 +346,22 @@ bool UKismetMathLibrary::InRange_FloatFloat(float Value, float Min, float Max, b
 	return ((InclusiveMin ? (Value >= Min) : (Value > Min)) && (InclusiveMax ? (Value <= Max) : (Value < Max)));
 }	
 
+float UKismetMathLibrary::GetPI()
+{
+    return PI;
+}
+
+float UKismetMathLibrary::DegreesToRadians(float A)
+{
+    return FMath::DegreesToRadians(A);
+}
+
+float UKismetMathLibrary::RadiansToDegrees(float A)
+{
+    return FMath::RadiansToDegrees(A);
+}
+
+
 float UKismetMathLibrary::Abs(float A)
 {
 	return FMath::Abs(A);
@@ -559,9 +598,19 @@ float UKismetMathLibrary::Lerp(float A, float B, float V)
 	return A + V*(B-A);
 }	
 
+float UKismetMathLibrary::Ease(float A, float B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return Lerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
+}
+
 float UKismetMathLibrary::FInterpTo(float Current, float Target, float DeltaTime, float InterpSpeed)
 {
 	return FMath::FInterpTo(Current, Target, DeltaTime, InterpSpeed);
+}
+
+float UKismetMathLibrary::FInterpTo_Constant(float Current, float Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::FInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
 }
 
 FVector UKismetMathLibrary::Multiply_VectorFloat(FVector A, float B)
@@ -679,19 +728,32 @@ FVector UKismetMathLibrary::VLerp(FVector A, FVector B, float V)
 	return A + V*(B-A);
 }	
 
+FVector UKismetMathLibrary::VEase(FVector A, FVector B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return VLerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
+}
+
 FVector UKismetMathLibrary::VInterpTo(FVector Current, FVector Target, float DeltaTime, float InterpSpeed)
 {
 	return FMath::VInterpTo( Current, Target, DeltaTime, InterpSpeed );
 }
+
+FVector UKismetMathLibrary::VInterpTo_Constant(FVector Current, FVector Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::VInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
+}
+
 
 FVector UKismetMathLibrary::RandomUnitVector()
 {
 	return FMath::VRand();
 }
 
-FVector UKismetMathLibrary::RandomPointInBoundingBox(FBox BoundingBox)
+FVector UKismetMathLibrary::RandomPointInBoundingBox(const FVector& Origin, const FVector& BoxExtent)
 {
-	return FMath::RandPointInBox(BoundingBox);
+	const FVector BoxMin = Origin - BoxExtent;
+	const FVector BoxMax = Origin + BoxExtent;
+	return FMath::RandPointInBox(FBox(BoxMin, BoxMax));
 }
 
 FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
@@ -811,12 +873,24 @@ FRotator UKismetMathLibrary::RLerp(FRotator A, FRotator B, float Alpha, bool bSh
 {
 	FRotator DeltaAngle = B - A;
 
+	// if shortest path, we use Quaternion to interpolate instead of using FRotator
 	if( bShortestPath )
 	{
-		DeltaAngle = DeltaAngle.GetNormalized();
+		FQuat AQuat(A);
+		FQuat BQuat(B);
+
+		FQuat Result = FQuat::Slerp(AQuat, BQuat, Alpha);
+		Result.Normalize();
+
+		return Result.Rotator();
 	}
 
 	return A + Alpha*DeltaAngle;
+}
+
+FRotator UKismetMathLibrary::REase(FRotator A, FRotator B, float Alpha, bool bShortestPath, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return RLerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps), bShortestPath);
 }
 
 FRotator UKismetMathLibrary::NormalizedDeltaRotator(FRotator A, FRotator B)
@@ -836,6 +910,16 @@ FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 FRotator UKismetMathLibrary::RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed)
 {
 	return FMath::RInterpTo( Current, Target, DeltaTime, InterpSpeed);
+}
+
+FRotator UKismetMathLibrary::RInterpTo_Constant(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::RInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
+}
+
+FLinearColor UKismetMathLibrary::CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::CInterpTo(Current, Target, DeltaTime, InterpSpeed);
 }
 
 FLinearColor UKismetMathLibrary::LinearColorLerp(FLinearColor A, FLinearColor B, float Alpha)
@@ -893,6 +977,11 @@ FTransform UKismetMathLibrary::TLerp(const FTransform& A, const FTransform& B, f
 	NB.NormalizeRotation();
 	Result.Blend(NA, NB, Alpha);
 	return Result;
+}
+
+FTransform UKismetMathLibrary::TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
+{
+	return TLerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
 }
 
 FTransform UKismetMathLibrary::TInterpTo(const FTransform& Current, const FTransform& Target, float DeltaTime, float InterpSpeed)
@@ -980,6 +1069,368 @@ bool UKismetMathLibrary::ClassIsChildOf(TSubclassOf<class UObject> TestClass, TS
 	return ((*ParentClass != NULL) && (*TestClass != NULL)) ? (*TestClass)->IsChildOf(*ParentClass) : false;
 }
 
+
+/* DateTime functions
+ *****************************************************************************/
+
+FDateTime UKismetMathLibrary::Add_DateTimeTimespan( FDateTime A, FTimespan B )
+{
+	return A + B;
+}
+
+
+FDateTime UKismetMathLibrary::Subtract_DateTimeTimespan( FDateTime A, FTimespan B )
+{
+	return A - B;
+}
+
+
+bool UKismetMathLibrary::EqualEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A == B;
+}
+
+
+bool UKismetMathLibrary::NotEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A != B;
+}
+
+
+bool UKismetMathLibrary::Greater_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A > B;
+}
+
+
+bool UKismetMathLibrary::GreaterEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A >= B;
+}
+
+
+bool UKismetMathLibrary::Less_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A < B;
+}
+
+
+bool UKismetMathLibrary::LessEqual_DateTimeDateTime( FDateTime A, FDateTime B )
+{
+	return A <= B;
+}
+
+
+FDateTime UKismetMathLibrary::GetDate( FDateTime A )
+{
+	return A.GetDate();
+}
+
+
+int32 UKismetMathLibrary::GetDay( FDateTime A )
+{
+	return A.GetDay();
+}
+
+int32 UKismetMathLibrary::GetDayOfYear( FDateTime A )
+{
+	return A.GetDayOfYear();
+}
+
+
+int32 UKismetMathLibrary::GetHour( FDateTime A )
+{
+	return A.GetHour();
+}
+
+
+int32 UKismetMathLibrary::GetHour12( FDateTime A )
+{
+	return A.GetHour12();
+}
+
+
+int32 UKismetMathLibrary::GetMillisecond( FDateTime A )
+{
+	return A.GetMillisecond();
+}
+
+
+int32 UKismetMathLibrary::GetMinute( FDateTime A )
+{
+	return A.GetMinute();
+}
+
+
+int32 UKismetMathLibrary::GetMonth( FDateTime A )
+{
+	return A.GetMonth();
+}
+
+
+int32 UKismetMathLibrary::GetSecond( FDateTime A )
+{
+	return A.GetSecond();
+}
+
+
+FTimespan UKismetMathLibrary::GetTimeOfDay( FDateTime A )
+{
+	return A.GetTimeOfDay();
+}
+
+
+int32 UKismetMathLibrary::GetYear( FDateTime A )
+{
+	return A.GetYear();
+}
+
+
+bool UKismetMathLibrary::IsAfternoon( FDateTime A )
+{
+	return A.IsAfternoon();
+}
+
+
+bool UKismetMathLibrary::IsMorning( FDateTime A )
+{
+	return A.IsMorning();
+}
+
+
+int32 UKismetMathLibrary::DaysInMonth( int32 Year, int32 Month )
+{
+	return FDateTime::DaysInMonth(Year, Month);
+}
+
+
+int32 UKismetMathLibrary::DaysInYear( int32 Year )
+{
+	return FDateTime::DaysInYear(Year);
+}
+
+
+bool UKismetMathLibrary::IsLeapYear( int32 Year )
+{
+	return FDateTime::IsLeapYear(Year);
+}
+
+
+FDateTime UKismetMathLibrary::DateTimeMaxValue( )
+{
+	return FDateTime::MaxValue();
+}
+
+
+FDateTime UKismetMathLibrary::DateTimeMinValue( )
+{
+	return FDateTime::MinValue();
+}
+
+
+FDateTime UKismetMathLibrary::Now( )
+{
+	return FDateTime::Now();
+}
+
+
+FDateTime UKismetMathLibrary::Today( )
+{
+	return FDateTime::Today();
+}
+
+
+FDateTime UKismetMathLibrary::UtcNow( )
+{
+	return FDateTime::UtcNow();
+}
+
+
+/* Timespan functions
+ *****************************************************************************/
+
+FTimespan UKismetMathLibrary::Add_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A + B;
+}
+
+
+FTimespan UKismetMathLibrary::Subtract_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A - B;
+}
+
+
+FTimespan UKismetMathLibrary::Multiply_TimespanFloat( FTimespan A, float Scalar )
+{
+	return A * Scalar;
+}
+
+
+bool UKismetMathLibrary::EqualEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A == B;
+}
+
+
+bool UKismetMathLibrary::NotEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A != B;
+}
+
+
+bool UKismetMathLibrary::Greater_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A > B;
+}
+
+
+bool UKismetMathLibrary::GreaterEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A >= B;
+}
+
+
+bool UKismetMathLibrary::Less_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A < B;
+}
+
+
+bool UKismetMathLibrary::LessEqual_TimespanTimespan( FTimespan A, FTimespan B )
+{
+	return A <= B;
+}
+
+
+int32 UKismetMathLibrary::GetDays( FTimespan A )
+{
+	return A.GetDays();
+}
+
+
+FTimespan UKismetMathLibrary::GetDuration( FTimespan A )
+{
+	return A.GetDuration();
+}
+
+
+int32 UKismetMathLibrary::GetHours( FTimespan A )
+{
+	return A.GetHours();
+}
+
+
+int32 UKismetMathLibrary::GetMilliseconds( FTimespan A )
+{
+	return A.GetMilliseconds();
+}
+
+
+int32 UKismetMathLibrary::GetMinutes( FTimespan A )
+{
+	return A.GetMinutes();
+}
+
+
+int32 UKismetMathLibrary::GetSeconds( FTimespan A )
+{
+	return A.GetSeconds();
+}
+
+
+float UKismetMathLibrary::GetTotalDays( FTimespan A )
+{
+	return A.GetTotalDays();
+}
+
+
+float UKismetMathLibrary::GetTotalHours( FTimespan A )
+{
+	return A.GetTotalHours();
+}
+
+
+float UKismetMathLibrary::GetTotalMilliseconds( FTimespan A )
+{
+	return A.GetTotalMilliseconds();
+}
+
+
+float UKismetMathLibrary::GetTotalMinutes( FTimespan A )
+{
+	return A.GetTotalMinutes();
+}
+
+
+float UKismetMathLibrary::GetTotalSeconds( FTimespan A )
+{
+	return A.GetTotalSeconds();
+}
+
+
+FTimespan UKismetMathLibrary::FromDays( float Days )
+{
+	return FTimespan::FromDays(Days);
+}
+
+
+FTimespan UKismetMathLibrary::FromHours( float Hours )
+{
+	return FTimespan::FromHours(Hours);
+}
+
+
+FTimespan UKismetMathLibrary::FromMilliseconds( float Milliseconds )
+{
+	return FTimespan::FromMilliseconds(Milliseconds);
+}
+
+
+FTimespan UKismetMathLibrary::FromMinutes( float Minutes )
+{
+	return FTimespan::FromMinutes(Minutes);
+}
+
+
+FTimespan UKismetMathLibrary::FromSeconds( float Seconds )
+{
+	return FTimespan::FromSeconds(Seconds);
+}
+
+
+FTimespan UKismetMathLibrary::TimespanMaxValue( )
+{
+	return FTimespan::MaxValue();
+}
+
+
+FTimespan UKismetMathLibrary::TimespanMinValue( )
+{
+	return FTimespan::MinValue();
+}
+
+
+float UKismetMathLibrary::TimespanRatio( FTimespan A, FTimespan B )
+{
+	if (B != FTimespan::Zero())
+	{
+		return (float)A.GetTicks() / (float)B.GetTicks();
+	}
+
+	return 0.0;
+}
+
+
+FTimespan UKismetMathLibrary::TimespanZeroValue( )
+{
+	return FTimespan::Zero();
+}
+
+
+/* K2 Utilities
+ *****************************************************************************/
+
 float UKismetMathLibrary::Conv_ByteToFloat(uint8 InByte)
 {
 	return (float)InByte;
@@ -1033,6 +1484,16 @@ FVector UKismetMathLibrary::Conv_RotatorToVector(FRotator InRot)
 FLinearColor UKismetMathLibrary::Conv_VectorToLinearColor(FVector InVec)
 {
 	return FLinearColor(InVec);	
+}
+
+FVector2D UKismetMathLibrary::Conv_VectorToVector2D(FVector InVec)
+{
+	return FVector2D(InVec);
+}
+
+FVector UKismetMathLibrary::Conv_Vector2DToVector(FVector2D InVec2D, float Z)
+{
+	return FVector(InVec2D, Z);
 }
 
 FVector UKismetMathLibrary::Conv_LinearColorToVector(FLinearColor InLinearColor)

@@ -78,9 +78,13 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultGravityZ;
 
-	/** Default Terminal Velocity. */
+	/** Default terminal velocity for Physics Volumes. */
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultTerminalVelocity;
+	
+	/** Default fluid friction for Physics Volumes. */
+	UPROPERTY(config, EditAnywhere, Category = Constants)
+	float DefaultFluidFriction;
 
 	/** Enables the use of an async scene */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)

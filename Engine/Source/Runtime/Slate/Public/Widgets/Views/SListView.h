@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * A ListView widget observes an array of data items and creates visual representations of these items.
  * ListView relies on the property that holding a reference to a value ensures its existence. In other words,
@@ -37,8 +38,8 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnGenerateRow FOnGenerateRow;
 	typedef typename TSlateDelegates< ItemType >::FOnItemScrolledIntoView FOnItemScrolledIntoView;
 	typedef typename TSlateDelegates< NullableItemType >::FOnSelectionChanged FOnSelectionChanged;
+	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
-
 
 public:
 
@@ -54,15 +55,16 @@ public:
 
 	SLATE_BEGIN_ARGS( SListView<ItemType> )
 		: _OnGenerateRow()
-		, _ListItemsSource( static_cast<const TArray<ItemType>*>(NULL) ) //@todo Slate Syntax: Initializing from NULL without a cast
+		, _ListItemsSource( static_cast<const TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(16)
 		, _OnContextMenuOpening()
+		, _OnMouseButtonClick()
 		, _OnMouseButtonDoubleClick()
 		, _OnSelectionChanged()
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
-	{}
+	{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 
@@ -73,6 +75,8 @@ public:
 		SLATE_ATTRIBUTE( float, ItemHeight )
 
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
+
+		SLATE_EVENT(FOnMouseButtonClick, OnMouseButtonClick)
 
 		SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
 
@@ -102,6 +106,7 @@ public:
 
 		this->ItemsSource = InArgs._ListItemsSource;
 		this->OnContextMenuOpening = InArgs._OnContextMenuOpening;
+		this->OnClick = InArgs._OnMouseButtonClick;
 		this->OnDoubleClick = InArgs._OnMouseButtonDoubleClick;
 		this->OnSelectionChanged = InArgs._OnSelectionChanged;
 		this->SelectionMode = InArgs._SelectionMode;
@@ -116,7 +121,7 @@ public:
 				ErrorString += TEXT("Please specify an OnGenerateRow. \n");
 			}
 
-			if ( this->ItemsSource == NULL )
+			if ( this->ItemsSource == nullptr )
 			{
 				ErrorString += TEXT("Please specify a ListItemsSource. \n");
 			}
@@ -147,16 +152,18 @@ public:
 
 	SListView( ETableViewMode::Type InListMode = ETableViewMode::List )
 		: STableViewBase( InListMode )
-		, SelectorItem( NullableItemType(NULL) )
-		, RangeSelectionStart( NullableItemType(NULL) )
-		, ItemsSource( NULL )
-		, ItemToScrollIntoView( NullableItemType(NULL) )
-		, ItemToNotifyWhenInView( NullableItemType(NULL) ) 
-	{
-	}
+		, WidgetGenerator(this)
+		, SelectorItem( NullableItemType(nullptr) )
+		, RangeSelectionStart( NullableItemType(nullptr) )
+		, ItemsSource( nullptr )
+		, ItemToScrollIntoView( NullableItemType(nullptr) )
+		, ItemToNotifyWhenInView( NullableItemType(nullptr) ) 
+	{ }
 
 public:
-	// Inherited from SWidget
+
+	// SWidget overrides
+
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
@@ -165,7 +172,7 @@ public:
 		if ( ItemsSourceRef.Num() > 0 && !InKeyboardEvent.IsAltDown() )
 		{
 			bool bWasHandled = false;
-			NullableItemType ItemNavigatedTo( NULL );
+			NullableItemType ItemNavigatedTo( nullptr );
 
 			// Check for selection manipulation keys (Up, Down, Home, End, PageUp, PageDown)
 			if ( InKeyboardEvent.GetKey() == EKeys::Home )
@@ -387,23 +394,27 @@ private:
 	class FWidgetGenerator
 	{
 	public:
+		FWidgetGenerator(SListView<ItemType>* OwnerList)
+			: OwnerList(OwnerList)
+		{
+		}
+
 		/**
 		 * Find a widget for this item if it has already been constructed.
 		 *
 		 * @param Item  The item for which to find the widget.
-		 *
-		 * @return A pointer to the corresponding widget if it exists; otherwise NULL.
+		 * @return A pointer to the corresponding widget if it exists; otherwise nullptr.
 		 */
 		TSharedPtr<ITableRow> GetWidgetForItem( const ItemType& Item )
 		{
 			TSharedRef<ITableRow>* LookupResult = ItemToWidgetMap.Find( Item );
-			if ( LookupResult != NULL )
+			if ( LookupResult != nullptr )
 			{
 				return *LookupResult;
 			}
 			else
 			{
-				return TSharedPtr<ITableRow>(NULL);
+				return TSharedPtr<ITableRow>(nullptr);
 			}
 		}
 
@@ -416,7 +427,7 @@ private:
 		void OnItemSeen( ItemType InItem, TSharedRef<ITableRow> InGeneratedWidget)
 		{
 			TSharedRef<ITableRow>* LookupResult = ItemToWidgetMap.Find( InItem );
-			const bool bWidgetIsNewlyGenerated = (LookupResult == NULL);
+			const bool bWidgetIsNewlyGenerated = (LookupResult == nullptr);
 			if ( bWidgetIsNewlyGenerated )
 			{
 				// It's a newly generated item!
@@ -452,7 +463,7 @@ private:
 			{
 				ItemType ItemToBeCleanedUp = ItemsToBeCleanedUp[ItemIndex];
 				const TSharedRef<ITableRow>* FindResult = ItemToWidgetMap.Find( ItemToBeCleanedUp );
-				if ( FindResult != NULL )
+				if ( FindResult != nullptr )
 				{
 					const TSharedRef<ITableRow> WidgetToCleanUp = *FindResult;
 					ItemToWidgetMap.Remove( ItemToBeCleanedUp );
@@ -460,8 +471,8 @@ private:
 				}				
 			}
 
-			checkf( ItemToWidgetMap.Num() == WidgetMapToItem.Num(), TEXT("ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d)"), ItemToWidgetMap.Num(), WidgetMapToItem.Num() );
-			checkf( WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(), TEXT("WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once."), WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num() );
+			checkf(ItemToWidgetMap.Num() == WidgetMapToItem.Num(), TEXT("ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d).  %s"), ItemToWidgetMap.Num(), WidgetMapToItem.Num(), *OwnerList->ToString());
+			checkf(WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(), TEXT("WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once.  %s"), WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num(), *OwnerList->ToString());
 			ItemsToBeCleanedUp.Reset();
 		}
 
@@ -478,7 +489,7 @@ private:
 			{
 				ItemType ItemToBeCleanedUp = ItemsToBeCleanedUp[ItemIndex];
 				const TSharedRef<ITableRow>* FindResult = ItemToWidgetMap.Find( ItemToBeCleanedUp );
-				if ( FindResult != NULL )
+				if ( FindResult != nullptr )
 				{
 					const TSharedRef<ITableRow> WidgetToCleanUp = *FindResult;
 					ItemToWidgetMap.Remove( ItemToBeCleanedUp );
@@ -489,23 +500,27 @@ private:
 			ItemsToBeCleanedUp.Reset();
 		}
 
+		/** We store a pointer to the owner list for error purposes, so when asserts occur we can report which list it happened for. */
+		SListView<ItemType>* OwnerList;
+
 		/** Map of DataItems to corresponding SWidgets */
 		TMap< ItemType, TSharedRef<ITableRow> > ItemToWidgetMap;
+
 		/** Map of SWidgets to DataItems from which they were generated */
 		TMap< const ITableRow*, ItemType > WidgetMapToItem;
+
 		/** A set of Items that currently have a generated widget */
 		TArray< ItemType > ItemsWithGeneratedWidgets;
+
 		/** Total number of DataItems the last time we performed a generation pass. */
 		int32 TotalItemsLastGeneration;
+
 		/** Items that need their widgets destroyed because they are no longer on screen. */
 		TArray<ItemType> ItemsToBeCleanedUp;
 	};
 
-
 public:
-	//
-	// Private Interface
-	//
+
 	// A low-level interface for use various widgets generated by ItemsWidgets(Lists, Trees, etc).
 	// These handle selection, expansion, and other such properties common to ItemsWidgets.
 	//
@@ -596,7 +611,7 @@ public:
 	virtual const ItemType* Private_ItemFromWidget( const ITableRow* TheWidget ) const override
 	{
 		ItemType const * LookupResult = WidgetGenerator.WidgetMapToItem.Find( TheWidget );
-		return LookupResult == NULL ? NULL : LookupResult;
+		return LookupResult == nullptr ? nullptr : LookupResult;
 	}
 
 	virtual bool Private_UsesSelectorFocus() const override
@@ -611,7 +626,7 @@ public:
 
 	virtual bool Private_IsItemSelected( const ItemType& TheItem ) const override
 	{
-		return NULL != SelectedItems.Find(TheItem);
+		return nullptr != SelectedItems.Find(TheItem);
 	}
 
 	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const override
@@ -657,6 +672,16 @@ public:
 		this->OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
 	}
 
+	virtual bool Private_OnItemClicked(ItemType TheItem) override
+	{
+		if (OnClick.ExecuteIfBound(TheItem))
+		{
+			return true;	// Handled
+		}
+
+		return false;	// Not handled
+	}
+	
 	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) override
 	{
 		if( OnDoubleClick.ExecuteIfBound( TheItem ) )
@@ -677,8 +702,6 @@ public:
 		return SharedThis(this);
 	}
 
-
-
 public:	
 
 	/**
@@ -690,7 +713,7 @@ public:
 		if ( TableViewMode != ETableViewMode::Tree )
 		{
 			bool bSelectionChanged = false;
-			if ( ItemsSource == NULL )
+			if ( ItemsSource == nullptr )
 			{
 				// We are no longer observing items so there is no more selection.
 				this->Private_ClearSelection();
@@ -704,7 +727,7 @@ public:
 				for ( int32 ItemIndex = 0; ItemIndex < ItemsSource->Num(); ++ItemIndex )
 				{
 					ItemType CurItem = (*ItemsSource)[ItemIndex];
-					const bool bItemIsSelected = ( NULL != SelectedItems.Find( CurItem ) );
+					const bool bItemIsSelected = ( nullptr != SelectedItems.Find( CurItem ) );
 					if ( bItemIsSelected )
 					{
 						NewSelectedItems.Add( CurItem );
@@ -740,7 +763,7 @@ public:
 		FGenerationPassGuard GenerationPassGuard(WidgetGenerator);
 
 		const TArray<ItemType>* SourceItems = ItemsSource;
-		if ( SourceItems != NULL && SourceItems->Num() > 0 )
+		if ( SourceItems != nullptr && SourceItems->Num() > 0 )
 		{
 			// Items in view, including fractional items
 			float ItemsInView = 0.0f;
@@ -883,7 +906,7 @@ public:
 	/** @return how many items there are in the TArray being observed */
 	virtual int32 GetNumItemsBeingObserved() const
 	{
-		return ItemsSource == NULL ? 0 : ItemsSource->Num();
+		return ItemsSource == nullptr ? 0 : ItemsSource->Num();
 	}
 
 	/**
@@ -980,7 +1003,7 @@ public:
 	 *
 	 * @return Number of selected items.
 	 */
-	int32 GetNumItemsSelected()
+	int32 GetNumItemsSelected() const
 	{
 		return SelectedItems.Num();
 	}
@@ -990,7 +1013,7 @@ public:
 	 *
 	 * @return	List of selected item indices (in no particular order)
 	 */
-	TArray< ItemType > GetSelectedItems()
+	TArray< ItemType > GetSelectedItems() const
 	{
 		TArray< ItemType > SelectedItemArray;
 		SelectedItemArray.Empty( SelectedItems.Num() );
@@ -1041,7 +1064,7 @@ public:
 	 *
 	 * @param InItem  The item for which to find the widget.
 	 *
-	 * @return A pointer to the corresponding widget if it exists; otherwise NULL.
+	 * @return A pointer to the corresponding widget if it exists; otherwise nullptr.
 	*/
 	TSharedPtr<ITableRow> WidgetFromItem( const ItemType& InItem )
 	{
@@ -1068,7 +1091,7 @@ protected:
 	 */
 	virtual void ScrollIntoView( const FGeometry& ListViewGeometry ) override
 	{
-		if ( TListTypeTraits<ItemType>::IsPtrValid(ItemToScrollIntoView) && ItemsSource != NULL )
+		if ( TListTypeTraits<ItemType>::IsPtrValid(ItemToScrollIntoView) && ItemsSource != nullptr )
 		{
 			const int32 IndexOfItem = ItemsSource->Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( ItemToScrollIntoView ) );
 			if (IndexOfItem != INDEX_NONE)
@@ -1146,7 +1169,7 @@ protected:
 			//           Generate widgets on demand so we can figure out how tall they are.
 
 			const TArray<ItemType>* SourceItems = ItemsSource;
-			if ( SourceItems != NULL && SourceItems->Num() > 0 )
+			if ( SourceItems != nullptr && SourceItems->Num() > 0 )
 			{
 				int ItemIndex = StartingItemIndex;
 				while( AbsScrollByAmount != 0 && ItemIndex < SourceItems->Num() && ItemIndex >= 0 )
@@ -1292,6 +1315,7 @@ protected:
 	}
 
 protected:
+
 	/** A widget generator component */
 	FWidgetGenerator WidgetGenerator;
 
@@ -1321,6 +1345,9 @@ protected:
 
 	/** Delegate to invoke when selection changes. */
 	FOnSelectionChanged OnSelectionChanged;
+
+	/** Caled when the user clicks on an element int he list view with the left mouse button */
+	FOnMouseButtonClick OnClick;
 
 	/** Called when the user double-clicks on an element in the list view with the left mouse button */
 	FOnMouseButtonDoubleClick OnDoubleClick;

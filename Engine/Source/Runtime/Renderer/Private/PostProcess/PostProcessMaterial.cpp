@@ -11,6 +11,7 @@
 #include "PostProcessing.h"
 #include "PostProcessEyeAdaptation.h"
 #include "../../../Engine/Public/TileRendering.h"
+#include "SceneUtils.h"
 
 class FPostProcessMaterialVS : public FMaterialShader
 {
@@ -22,7 +23,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FPostProcessMaterialVS( )	{ }
@@ -60,7 +61,7 @@ public:
 	  */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FPostProcessMaterialPS() {}
@@ -91,8 +92,8 @@ private:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FPostProcessMaterialPS,TEXT("PostProcessMaterialShaders"),TEXT("MainPS"),SF_Pixel);
 
-FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface)
-	: MaterialInterface(InMaterialInterface)
+FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, EPixelFormat OutputFormatIN)
+: MaterialInterface(InMaterialInterface), OutputFormat(OutputFormatIN)
 {
 }
 
@@ -106,7 +107,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	
 	check(Material);
 
-	SCOPED_DRAW_EVENTF(PostProcessMaterial, DEC_SCENE_ITEMS, TEXT("PostProcessMaterial Material=%s"), *Material->GetFriendlyName());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessMaterial, DEC_SCENE_ITEMS, TEXT("PostProcessMaterial Material=%s"), *Material->GetFriendlyName());
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -179,6 +180,10 @@ FPooledRenderTargetDesc FRCPassPostProcessMaterial::ComputeOutputDesc(EPassOutpu
 {
 	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
 
+	if (OutputFormat != PF_Unknown)
+	{
+		Ret.Format = OutputFormat;
+	}
 	Ret.Reset();
 	Ret.DebugName = TEXT("PostProcessMaterial");
 

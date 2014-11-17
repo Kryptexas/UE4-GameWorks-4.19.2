@@ -227,13 +227,7 @@ namespace UnrealBuildTool
 		public CPPCLRMode CLRMode = CPPCLRMode.CLRDisabled;
 
 		/** The include paths to look for included files in. */
-		public List<string> IncludePaths = new List<string>();
-
-		/**
-		 * The include paths where changes to contained files won't cause dependent C++ source files to
-		 * be recompiled, unless BuildConfiguration.bCheckSystemHeadersForModification==true.
-		 */
-		public List<string> SystemIncludePaths = new List<string>();
+		public readonly CPPIncludeInfo CPPIncludeInfo = new CPPIncludeInfo();
 
 		/** Paths where .NET framework assembly references are found, when compiling CLR applications. */
 		public List<string> SystemDotNetAssemblyPaths = new List<string>();
@@ -277,8 +271,8 @@ namespace UnrealBuildTool
 			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;
 			bIsBuildingDLL                         = InCopyEnvironment.bIsBuildingDLL;
 			CLRMode                                = InCopyEnvironment.CLRMode;
-			IncludePaths                 .AddRange(InCopyEnvironment.IncludePaths);
-			SystemIncludePaths           .AddRange(InCopyEnvironment.SystemIncludePaths);
+			CPPIncludeInfo.IncludePaths            .UnionWith(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
+			CPPIncludeInfo.SystemIncludePaths      .UnionWith(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
 			SystemDotNetAssemblyPaths    .AddRange(InCopyEnvironment.SystemDotNetAssemblyPaths);
 			FrameworkAssemblyDependencies.AddRange(InCopyEnvironment.FrameworkAssemblyDependencies);
  			PrivateAssemblyDependencies  .AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
@@ -346,9 +340,9 @@ namespace UnrealBuildTool
 		 * @param ModuleName - Name of the module these files are associated with
 		 * @return The object files produced by the actions.
 		 */
-		public CPPOutput CompileFiles(List<FileItem> CPPFiles, string ModuleName)
+		public CPPOutput CompileFiles(UEBuildTarget Target, List<FileItem> CPPFiles, string ModuleName)
 		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileCPPFiles(this, CPPFiles, ModuleName);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileCPPFiles(Target, this, CPPFiles, ModuleName);
 		}
 
 		/**
@@ -356,9 +350,9 @@ namespace UnrealBuildTool
 		 * @param RCFiles - The resource script files to compile.
 		 * @return The compiled resource (.res) files produced by the actions.
 		 */
-		public CPPOutput CompileRCFiles(List<FileItem> RCFiles)
+		public CPPOutput CompileRCFiles(UEBuildTarget Target, List<FileItem> RCFiles)
 		{
-			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileRCFiles(this, RCFiles);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileRCFiles(Target, this, RCFiles);
 		}
 
 		/**
@@ -386,5 +380,7 @@ namespace UnrealBuildTool
 		{
 			return new CPPEnvironment(this);
 		}
+
+
 	};
 }

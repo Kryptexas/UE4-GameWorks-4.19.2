@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
-
+#include "Camera/CameraActor.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -31,6 +30,8 @@ ACameraActor::ACameraActor(const class FPostConstructInitializeProperties& PCIP)
 	AspectRatio_DEPRECATED = 1.777778f;
 	PostProcessBlendWeight_DEPRECATED = 1.0f;
 	// End of deprecated property initialization
+
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ACameraActor::Serialize(FArchive& Ar)

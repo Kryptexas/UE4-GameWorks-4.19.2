@@ -67,7 +67,7 @@ public class IOSPlatform : Platform
 
 	protected static int RunIPP(string[] Args)
 	{
-		return iPhonePackager.Program.RealMain(Args);
+		return 5;//@TODO: Reintegrate IPP to IOS.Automation iPhonePackager.Program.RealMain(Args);
 	}
 
 	public override int RunCommand(string Command)
@@ -82,9 +82,9 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, string ProjectGameExeFilename )
+	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
 	{
-		var ProjectIPA = Path.ChangeExtension(ProjectGameExeFilename, null);
+		string ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName);
 		if (TargetConfiguration != UnrealTargetConfiguration.Development)
 		{
 			ProjectIPA += "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString();
@@ -133,7 +133,7 @@ public class IOSPlatform : Platform
 		//   - IPP needs to be able to take a .app directory instead of a Payload directory when doing RepackageFromStage (which would probably be renamed)
 		//   - Some discrepancy in the loading screen pngs that are getting packaged, which needs to be investigated
 		//   - Code here probably needs to be updated to write 0 byte files as 1 byte (difference with IPP, was required at one point when using Ionic.Zip to prevent issues on device, maybe not needed anymore?)
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			// copy in all of the artwork and plist
 			var DeployHandler = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.IOS);
@@ -161,9 +161,9 @@ public class IOSPlatform : Platform
 				InternalUtils.SafeCopyFile(Filename, DestFilename, true);
 			}
 		}
-		
 
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			if (SC.StageTargetConfigurations.Count != 1) 
 			{
@@ -171,8 +171,8 @@ public class IOSPlatform : Platform
 			}
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-			var ProjectStub = Params.ProjectGameExeFilename;
-			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
+			var ProjectStub = Path.GetFullPath (Params.ProjectGameExeFilename) + "/" + Params.ShortProjectName + Path.GetExtension(Params.ProjectGameExeFilename);
+			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
 
 			// package a .ipa from the now staged directory
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
@@ -183,16 +183,6 @@ public class IOSPlatform : Platform
 			Log("IPPExe={0}", IPPExe);
 
 			bool cookonthefly = Params.CookOnTheFly || Params.SkipCookOnTheFly;
-
-			// rename the .ipa if not code based
-			if (!Params.IsCodeBasedProject)
-			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + ".ipa");
-				if (TargetConfiguration != UnrealTargetConfiguration.Development)
-				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-				}
-			}
 
 			// delete the .ipa to make sure it was made
 			DeleteFile(ProjectIPA);
@@ -676,7 +666,7 @@ public class IOSPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			// copy the icons/launch screens from the engine
 			{
@@ -739,6 +729,9 @@ public class IOSPlatform : Platform
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/IOS/Resources/Movies"), "*", false, null, "", true, false);
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, "", true, false);
 		}
+
+		// stage required icu files
+		SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
@@ -748,22 +741,7 @@ public class IOSPlatform : Platform
 			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 		var TargetConfiguration = SC.StageTargetConfigurations[0];
-
-		string ProjectGameExeFilename = Params.ProjectGameExeFilename;
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
-		{
-			ProjectGameExeFilename = CombinePaths (Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Path.GetFileName (Params.ProjectGameExeFilename));
-		}
-		var ProjectIPA = MakeIPAFileName( TargetConfiguration, ProjectGameExeFilename );
-		// rename the .ipa if not code based
-		if (!Params.IsCodeBasedProject)
-		{
-			ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + ".ipa");
-			if (TargetConfiguration != UnrealTargetConfiguration.Development)
-			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-			}
-		}
+		var ProjectIPA = MakeIPAFileName( TargetConfiguration, Params );
 
 		// verify the .ipa exists
 		if (!FileExists(ProjectIPA))
@@ -776,7 +754,7 @@ public class IOSPlatform : Platform
 
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
     {
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			if (SC.StageTargetConfigurations.Count != 1)
 			{
@@ -787,20 +765,9 @@ public class IOSPlatform : Platform
 				throw new AutomationException("iOS cannot deploy a package made for distribution.");
 			}
 			var TargetConfiguration = SC.StageTargetConfigurations[0];
-
-//			var ProjectStub = Params.ProjectGameExeFilename;	
-			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
-			// rename the .ipa if not code based
-			if (!Params.IsCodeBasedProject)
-			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
-				if (TargetConfiguration != UnrealTargetConfiguration.Development)
-				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-				}
-			}
-
+			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
 			var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
+
 			// verify the .ipa exists
 			if (!FileExists(StagedIPA))
 			{
@@ -830,6 +797,11 @@ public class IOSPlatform : Platform
 		return false;
 	}
 
+    public override PakType RequiresPak(ProjectParams Params)
+    {
+        return PakType.Always;
+    }
+
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{
 		// we shouldn't modify the case on files like Info.plist or the icons
@@ -843,7 +815,7 @@ public class IOSPlatform : Platform
 
 	public override bool IsSupported { get { return true; } }
 
-	public override bool LaunchViaUFE { get { return UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac; } }
+	public override bool LaunchViaUFE { get { return UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac; } }
 
 	public override string Remap(string Dest)
 	{
@@ -856,7 +828,7 @@ public class IOSPlatform : Platform
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			string AppDirectory = string.Format("{0}/Payload/{1}.app",
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
@@ -917,11 +889,16 @@ public class IOSPlatform : Platform
 		get { return false; }
 	}
 
+	public override bool RequiresPackageToDeploy
+	{
+		get { return true; }
+	}
+
 	#region Hooks
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			Agenda.DotNetProjects.Add (@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj");
 		}

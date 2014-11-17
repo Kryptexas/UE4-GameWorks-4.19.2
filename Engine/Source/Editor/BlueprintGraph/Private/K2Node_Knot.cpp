@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2ActionMenuBuilder.h"
 #include "Kismet2NameValidators.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Knot"
 
@@ -28,10 +30,10 @@ void UK2Node_Knot::AllocateDefaultPins()
 	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, /*bIsArray=*/ false, /*bIsReference=*/ false, OutputPinName);
 }
 
-FString UK2Node_Knot::GetTooltip() const
+FText UK2Node_Knot::GetTooltipText() const
 {
 	//@TODO: Should pull the tooltip from the source pin
-	return LOCTEXT("KnotTooltip", "Reroute Node (reroutes wires)").ToString();
+	return LOCTEXT("KnotTooltip", "Reroute Node (reroutes wires)");
 }
 
 FText UK2Node_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -39,6 +41,10 @@ FText UK2Node_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	if (TitleType == ENodeTitleType::EditableTitle)
 	{
 		return FText::FromString(NodeComment);
+	}
+	else if (TitleType == ENodeTitleType::MenuTitle)
+	{
+		return LOCTEXT("KnotListTitle", "Add Reroute Node...");
 	}
 	else
 	{
@@ -54,7 +60,7 @@ void UK2Node_Knot::GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBu
 
 		FString EmptyCategory;
 		FText MenuDesc = LOCTEXT("KnotMenuDescription", "Add Reroute Node...");
-		FString Tooltip = TemplateNode->GetTooltip();//@TODO: Make this work +LOCTEXT("KnotMenuExtraTooltip", "\nYou can also create one by Shift+Dragging off a pin").ToString();
+		FString Tooltip = TemplateNode->GetTooltipText().ToString();//@TODO: Make this work +LOCTEXT("KnotMenuExtraTooltip", "\nYou can also create one by Shift+Dragging off a pin").ToString();
 		FString Keywords = TemplateNode->GetKeywords();
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EmptyCategory, MenuDesc, Tooltip, 0, Keywords);
@@ -137,6 +143,26 @@ void UK2Node_Knot::PostReconstructNode()
 			MyOutputPin->PinType = TypeSource->PinType;
 			break;
 		}
+	}
+}
+
+void UK2Node_Knot::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 

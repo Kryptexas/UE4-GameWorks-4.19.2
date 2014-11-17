@@ -139,7 +139,7 @@ FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,
 
 const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	if (Owner->bHasStaticPermutationResource)
 	{
@@ -176,7 +176,7 @@ const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type F
 
 FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 
 	if (Owner->bHasStaticPermutationResource)
 	{
@@ -205,7 +205,27 @@ bool FMaterialInstanceResource::GetScalarValue(
 	const FMaterialRenderContext& Context
 	) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
+
+	static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
+	if (ParameterName == NameSubsurfaceProfile)
+	{
+		const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+
+		if (SubsurfaceProfileRT)
+		{
+			// can be optimized (cached)
+			*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT) / 255.0f;
+		}
+		else
+		{
+			// no profile specified means we use the default one stored at [0] which is human skin
+			*OutValue = 0.0f;
+		}
+
+		return true;
+	}
+
 	const float* Value = RenderThread_FindParameterByName<float>(ParameterName);
 	if(Value)
 	{
@@ -228,7 +248,7 @@ bool FMaterialInstanceResource::GetVectorValue(
 	const FMaterialRenderContext& Context
 	) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	const FLinearColor* Value = RenderThread_FindParameterByName<FLinearColor>(ParameterName);
 	if(Value)
 	{
@@ -251,7 +271,7 @@ bool FMaterialInstanceResource::GetTextureValue(
 	const FMaterialRenderContext& Context
 	) const
 {
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	const UTexture* const * Value = RenderThread_FindParameterByName<const UTexture*>(ParameterName);
 	if(Value && *Value)
 	{
@@ -278,6 +298,19 @@ void FMaterialInstanceResource::GameThread_UpdateDistanceFieldPenumbraScale(floa
 	{
 		*DistanceFieldPenumbraScale = NewDistanceFieldPenumbraScale;
 	});
+}
+
+void UMaterialInstance::PropagateDataToMaterialProxy()
+{
+	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
+	{
+		if (Resources[i])
+		{
+			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
+
+			UpdateMaterialRenderProxy(*Resources[i]);
+		}
+	}
 }
 
 void FMaterialInstanceResource::GameThread_SetParent(UMaterialInterface* InParent)
@@ -626,11 +659,13 @@ bool UMaterialInstance::GetRefractionSettings(float& OutBiasValue) const
 	FName ParamName;
 	if( GetLinkerUE4Version() >= VER_UE4_REFRACTION_BIAS_TO_REFRACTION_DEPTH_BIAS )
 	{
-		ParamName = FName(TEXT("RefractionDepthBias"));
+		static FName NAME_RefractionDepthBias(TEXT("RefractionDepthBias"));
+		ParamName = NAME_RefractionDepthBias;
 	}
 	else
 	{
-		ParamName = FName(TEXT("RefractionBias"));
+		static FName NAME_RefractionBias(TEXT("RefractionBias"));
+		ParamName = NAME_RefractionBias;
 	}
 
 	const FScalarParameterValue* BiasParameterValue = GameThread_FindParameterByName(ScalarParameterValues, ParamName);
@@ -673,7 +708,7 @@ void UMaterialInstance::GetTextureExpressionValues(const FMaterialResource* Mate
 	}
 }
 
-void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const
+void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const
 {
 	OutTextures.Empty();
 
@@ -698,12 +733,17 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 		{
 			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 			{
-				const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][GRHIFeatureLevel];
-
-				//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
-				if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+				for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 				{
-					GetTextureExpressionValues(CurrentResource, OutTextures);
+					const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
+					if (CurrentResource == nullptr || (FeatureLevelIndex != FeatureLevel && !bAllFeatureLevels))
+						continue;
+
+					//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
+					if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
+					{
+						GetTextureExpressionValues(CurrentResource, OutTextures);
+					}
 				}
 			}
 		}
@@ -714,13 +754,13 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 
 			if (Material)
 			{
-				const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
+				const FMaterialResource* MaterialResource = Material->GetMaterialResource(FeatureLevel, QualityLevel);
 				GetTextureExpressionValues(MaterialResource, OutTextures);
 			}
 			else
 			{
 				// If the material instance has no material, use the default material.
-				UMaterial::GetDefaultMaterial(MD_Surface)->GetUsedTextures(OutTextures, QualityLevel, bAllQualityLevels);
+				UMaterial::GetDefaultMaterial(MD_Surface)->GetUsedTextures(OutTextures, QualityLevel, bAllQualityLevels, FeatureLevel, bAllFeatureLevels);
 			}
 		}
 	}
@@ -728,13 +768,15 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 
 
 
-void UMaterialInstance::OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture )
+void UMaterialInstance::OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel)
 {
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
-	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
+	//ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
+	//int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[1] = { InFeatureLevel };
+	int32 NumFeatureLevelsToUpdate = 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
 	{
@@ -855,12 +897,15 @@ bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage
 
 				FScopedEvent Event;
 				FCallSMU CallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim, bUsageSetSuccessfully, Event);
+
+				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
+					STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,
+					STATGROUP_TaskGraphTasks);
+
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&CallSMU, &FCallSMU::Task)
-					, TEXT("CheckMaterialUsage")
-					, NULL
-					, ENamedThreads::GameThread_Local
-					);
+					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&CallSMU, &FCallSMU::Task),
+					GET_STATID(STAT_FSimpleDelegateGraphTask_CheckMaterialUsage), NULL, ENamedThreads::GameThread_Local
+				);
 			}
 		}
 		return bUsageSetSuccessfully;
@@ -1643,6 +1688,7 @@ void UMaterialInstance::PostLoad()
 			Texture->ConditionalPostLoad();
 		}
 	}
+
 	// do the same for font textures
 	for( int32 ValueIndex=0; ValueIndex < FontParameterValues.Num(); ValueIndex++ )
 	{
@@ -1653,6 +1699,9 @@ void UMaterialInstance::PostLoad()
 			Font->ConditionalPostLoad();
 		}
 	}
+
+	// called before we cache the uniform expression as a call to SubsurfaceProfileRT affects the dta in there
+	PropagateDataToMaterialProxy();
 
 	// Update bHasStaticPermutationResource in case the parent was not found
 	bHasStaticPermutationResource = (!StaticParameters.IsEmpty() || bOverrideBaseProperties) && Parent;
@@ -1677,20 +1726,13 @@ void UMaterialInstance::PostLoad()
 			}
 		}
 	}
+
 	INC_FLOAT_STAT_BY(STAT_ShaderCompiling_MaterialLoading,(float)MaterialLoadTime);
 
 	if (GIsEditor && GEngine != NULL && !IsTemplate() && Parent)
 	{
 		// Ensure that the ReferencedTextureGuids array is up to date.
 		UpdateLightmassTextureTracking();
-	}
-
-	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
-	{
-		if (Resources[i])
-		{
-			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
 	}
 
 	// Fixup for legacy instances which didn't recreate the lighting guid properly on duplication
@@ -1998,13 +2040,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		UpdateLightmassTextureTracking();
 	}
 
-	for (int32 i = 0; i < ARRAY_COUNT(Resources); i++)
-	{
-		if (Resources[i])
-		{
-			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
-		}
-	}
+	PropagateDataToMaterialProxy();
 
 	InitResources();
 
@@ -2025,7 +2061,7 @@ bool UMaterialInstance::UpdateLightmassTextureTracking()
 #if WITH_EDITORONLY_DATA
 	TArray<UTexture*> UsedTextures;
 	
-	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true);
+	GetUsedTextures(UsedTextures, EMaterialQualityLevel::Num, true, GRHIFeatureLevel, true);
 	if (UsedTextures.Num() != ReferencedTextureGuids.Num())
 	{
 		bTexturesHaveChanged = true;
@@ -2224,7 +2260,7 @@ FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProces
 			return 0;
 		}
 
-		if(DataPtr->MID->GetMaterial() == Material && DataPtr->Location == Location && DataPtr->Priority == Priority)
+		if(DataPtr->GetLocation() == Location && DataPtr->GetPriority() == Priority && DataPtr->GetMaterialInterface()->GetMaterial() == Material)
 		{
 			return DataPtr;
 		}
@@ -2282,10 +2318,10 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 
 	if(PostProcessMaterialNode)
 	{
-		UMaterialInstanceDynamic* DestMID = PostProcessMaterialNode->MID;
-		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
-
+		UMaterialInstanceDynamic* DestMID = PostProcessMaterialNode->GetMID();
 		check(DestMID);
+
+		UMaterialInstance* SrcMID = (UMaterialInstance*)this;
 		check(SrcMID);
 
 		// a material already exists, blend with existing ones
@@ -2381,6 +2417,18 @@ bool UMaterialInstance::IsMasked_Internal() const
 		return BasePropertyOverrides.BlendMode == EBlendMode::BLEND_Masked;
 	}
 	return GetMaterial()->IsMasked();
+}
+
+USubsurfaceProfile* UMaterialInstance::GetSubsurfaceProfile_Internal() const
+{
+	checkSlow(IsInGameThread());
+	if (bOverrideSubsurfaceProfile)
+	{
+		return SubsurfaceProfile;
+	}
+
+	// go up the chain if possible
+	return Parent ? Parent->GetSubsurfaceProfile_Internal() : 0;
 }
 
 bool UMaterialInstance::GetOpacityMaskClipValueOverride(float& OutResult) const

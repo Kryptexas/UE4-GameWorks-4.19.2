@@ -12,13 +12,18 @@ UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
+	Orientation = Orient_Vertical;
+
 	SScrollBox::FArguments Defaults;
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+
+	WidgetStyle = *Defaults._Style;
+	WidgetBarStyle = *Defaults._ScrollBarStyle;
 }
 
-void UScrollBox::ReleaseNativeWidget()
+void UScrollBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyScrollBox.Reset();
 }
@@ -52,23 +57,10 @@ void UScrollBox::OnSlotRemoved(UPanelSlot* Slot)
 
 TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
-	const FScrollBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FScrollBoxStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		SScrollBox::FArguments Defaults;
-		StylePtr = Defaults._Style;
-	}
-
-	const FScrollBarStyle* BarStylePtr = ( BarStyle != NULL ) ? BarStyle->GetStyle<FScrollBarStyle>() : NULL;
-	if ( BarStylePtr == NULL )
-	{
-		SScrollBox::FArguments Defaults;
-		BarStylePtr = Defaults._ScrollBarStyle;
-	}
-
 	MyScrollBox = SNew(SScrollBox)
-		.Style(StylePtr)
-		.ScrollBarStyle(BarStylePtr);
+		.Style(&WidgetStyle)
+		.ScrollBarStyle(&WidgetBarStyle)
+		.Orientation(Orientation);
 
 	for ( UPanelSlot* Slot : Slots )
 	{
@@ -82,19 +74,10 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 	return BuildDesignTimeWidget( MyScrollBox.ToSharedRef() );
 }
 
-void UScrollBox::SyncronizeProperties()
+void UScrollBox::SynchronizeProperties()
 {
 	MyScrollBox->SetScrollOffset(DesiredScrollOffset);
-}
-
-void UScrollBox::ClearChildren()
-{
-	Slots.Reset();
-
-	if ( MyScrollBox.IsValid() )
-	{
-		MyScrollBox->ClearChildren();
-	}
+	MyScrollBox->SetOrientation(Orientation);
 }
 
 void UScrollBox::SetScrollOffset(float NewScrollOffset)
@@ -107,11 +90,46 @@ void UScrollBox::SetScrollOffset(float NewScrollOffset)
 	}
 }
 
+void UScrollBox::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FScrollBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FScrollBoxStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+
+		if ( BarStyle_DEPRECATED != nullptr )
+		{
+			const FScrollBarStyle* StylePtr = BarStyle_DEPRECATED->GetStyle<FScrollBarStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetBarStyle = *StylePtr;
+			}
+
+			BarStyle_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UScrollBox::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.ScrollBox");
+}
+
+const FText UScrollBox::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
 }
 
 #endif

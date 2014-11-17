@@ -10,6 +10,7 @@ struct FMessageLogInitializationOptions
 	FMessageLogInitializationOptions()
 		: bShowFilters(false)
 		, bShowPages(false)
+		, bAllowClear(true)
 		, bDiscardDuplicates(false)
 		, MaxPageCount(20)
 	{}
@@ -22,6 +23,11 @@ struct FMessageLogInitializationOptions
 	 * If this is not set & NewPage() is called on the log, the pages widget will show itself
 	 */
 	bool bShowPages;
+
+	/**
+	* Whether to allow the user to clear this log.
+	*/
+	bool bAllowClear;
 
 	/**
 	 * Whether to check for duplicate messages & discard them

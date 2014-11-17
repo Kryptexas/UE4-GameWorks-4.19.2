@@ -20,6 +20,8 @@ public:
 
 protected:
 	static bool ShouldShowTargetLayers();
+	static bool ShouldShowPaintingRestriction();
+	static EVisibility GetVisibility_PaintingRestriction();
 };
 
 class FLandscapeEditorCustomNodeBuilder_TargetLayers : public IDetailCustomNodeBuilder

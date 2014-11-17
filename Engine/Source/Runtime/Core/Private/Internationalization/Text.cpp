@@ -235,7 +235,6 @@ const FText FText::SerializationFailureError = LOCTEXT("Error_SerializationFailu
 FText::FText()
 	: DisplayString( new FString() )
 	, Flags(0)
-	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 }
 
@@ -249,7 +248,6 @@ FText::FText(const FText& Source)
 	: DisplayString(Source.DisplayString)
 	, History(Source.History)
 	, Flags(Source.Flags)
-	, Revision(Source.Revision)
 {
 }
 
@@ -257,7 +255,6 @@ FText::FText(FText&& Source)
 	: DisplayString(MoveTemp(Source.DisplayString))
 	, History(MoveTemp(Source.History))
 	, Flags(MoveTemp(Source.Flags))
-	, Revision(MoveTemp(Source.Revision))
 {
 }
 
@@ -266,7 +263,6 @@ FText& FText::operator=(const FText& Source)
 	DisplayString = Source.DisplayString;
 	History = Source.History;
 	Flags = Source.Flags;
-	Revision = Source.Revision;
 
 	return *this;
 }
@@ -276,7 +272,6 @@ FText& FText::operator=(FText&& Source)
 	DisplayString = MoveTemp(Source.DisplayString);
 	History = MoveTemp(Source.History);
 	Flags = MoveTemp(Source.Flags);
-	Revision = MoveTemp(Source.Revision);
 
 	return *this;
 }
@@ -285,7 +280,6 @@ FText& FText::operator=(FText&& Source)
 FText::FText( FString InSourceString )
 	: DisplayString( new FString( MoveTemp(InSourceString) ))
 	, Flags(0)
-	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 	History = MakeShareable(new FTextHistory_Base(DisplayString));
 }
@@ -293,9 +287,27 @@ FText::FText( FString InSourceString )
 FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
 	: DisplayString( FTextLocalizationManager::Get().GetString(InNamespace, InKey, &InSourceString) )
 	, Flags(InFlags)
-	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 	History = MakeShareable(new FTextHistory_Base(InSourceString));
+}
+
+
+bool FText::IsEmptyOrWhitespace() const
+{
+	if (DisplayString.Get().IsEmpty())
+	{
+		return true;
+	}
+
+	for( const TCHAR Character : DisplayString.Get() )
+	{
+		if (!IsWhitespace(Character))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 FText FText::TrimPreceding( const FText& InText )
@@ -456,7 +468,7 @@ FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText
 // on some platforms (PS4) int64_t is a typedef of long.  However, UE4 typedefs int64 as long long.  Since these are distinct types, and ICU only has a constructor for int64_t, casting to int64 causes a compile error from ambiguous function call, 
 // so cast to int64_t's where appropriate here to avoid problems.
 
-#define DEF_ASNUMBER_CAST(T1, T2) FText FText::AsNumber(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsNumberTemplate<T1, T2>(Val, Options, TargetCulture); }
+#define DEF_ASNUMBER_CAST(T1, T2) FText FText::AsNumber(T1 Val, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture) { return FText::AsNumberTemplate<T1, T2>(Val, Options, TargetCulture); }
 #define DEF_ASNUMBER(T) DEF_ASNUMBER_CAST(T, T)
 DEF_ASNUMBER(float)
 DEF_ASNUMBER(double)
@@ -469,12 +481,12 @@ DEF_ASNUMBER(uint16)
 DEF_ASNUMBER_CAST(uint32, int64_t)
 DEF_ASNUMBER_CAST(uint64, int64_t)
 #undef DEF_ASNUMBER
+#undef DEF_ASNUMBER_CAST
 
 /**
-* Generate an FText that represents the passed number as currency in the current culture
-*/
-
-#define DEF_ASCURRENCY_CAST(T1, T2) FText FText::AsCurrency(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsCurrencyTemplate<T1, T2>(Val, Options, TargetCulture); }
+ * Generate an FText that represents the passed number as currency in the current culture
+ */
+#define DEF_ASCURRENCY_CAST(T1, T2) FText FText::AsCurrency(T1 Val, const FString& CurrencyCode, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture) { return FText::AsCurrencyTemplate<T1, T2>(Val, CurrencyCode, Options, TargetCulture); }
 #define DEF_ASCURRENCY(T) DEF_ASCURRENCY_CAST(T, T)
 DEF_ASCURRENCY(float)
 	DEF_ASCURRENCY(double)
@@ -487,16 +499,18 @@ DEF_ASCURRENCY(float)
 	DEF_ASCURRENCY_CAST(uint32, int64_t)
 	DEF_ASCURRENCY_CAST(uint64, int64_t)
 #undef DEF_ASCURRENCY
+#undef DEF_ASCURRENCY_CAST
 
 /**
 * Generate an FText that represents the passed number as a percentage in the current culture
 */
 
-#define DEF_ASPERCENT_CAST(T1, T2) FText FText::AsPercent(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsPercentTemplate<T1, T2>(Val, Options, TargetCulture); }
+#define DEF_ASPERCENT_CAST(T1, T2) FText FText::AsPercent(T1 Val, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture) { return FText::AsPercentTemplate<T1, T2>(Val, Options, TargetCulture); }
 #define DEF_ASPERCENT(T) DEF_ASPERCENT_CAST(T, T)
 DEF_ASPERCENT(double)
 DEF_ASPERCENT(float)
 #undef DEF_ASPERCENT
+#undef DEF_ASPERCENT_CAST
 
 bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {
@@ -512,11 +526,6 @@ bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutTe
 
 CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 {
-	if( Value.ShouldGatherForLocalization() )
-	{
-		Ar.ThisRequiresLocalizationGather();
-	}
-
 	//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 	//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
 	//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
@@ -565,7 +574,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 				Ar << NoHistory;
 			}
 		}
-		else
+		else if (Ar.IsLoading())
 		{
 			// The type is serialized during the serialization of the history, during deserialization we need to deserialize it and create the correct history
 			int8 HistoryType = INDEX_NONE;
@@ -640,8 +649,6 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 
 	if(Ar.IsLoading())
 	{
-		// Keeps the revision up-to-date
-		Value.Revision = INDEX_NONE;
 		Value.Rebuild();
 	}
 
@@ -650,6 +657,11 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 	//{
 	//	UE_LOG( LogText, Error, TEXT("Loaded an FText from a persistent archive but lacking a key (Namespace:%s, Source:%s)."), Value.Namespace.Get() ? **Value.Namespace : TEXT(""), Value.SourceString.Get() ? **Value.SourceString : TEXT("") );
 	//}
+
+	if( Value.ShouldGatherForLocalization() )
+	{
+		Ar.ThisRequiresLocalizationGather();
+	}
 
 	return Ar;
 }
@@ -739,11 +751,9 @@ FString FText::BuildSourceString() const
 
 void FText::Rebuild() const
 {
-	if(History.IsValid() && History->IsOutOfDate(Revision))
+	if(History.IsValid())
 	{
-		Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
-		
-		DisplayString.Get() = History->ToText(false).DisplayString.Get();
+		History->Rebuild(DisplayString);
 	}
 }
 
@@ -778,6 +788,51 @@ TSharedPtr< FString, ESPMode::ThreadSafe > FText::GetSourceString() const
 	}
 
 	return DisplayString;
+}
+
+bool FText::IdenticalTo( const FText& Other ) const
+{
+	// If both instances point to the same string, then both instances are considered identical
+	// This is fast as it skips a lexical compare, however it can also return true for two instances that have identical strings, but in different pointers
+	return DisplayString == Other.DisplayString;
+}
+
+FTextSnapshot::FTextSnapshot()
+	: DisplayStringPtr()
+	, HistoryRevision(INDEX_NONE)
+	, Flags(0)
+{
+}
+
+FTextSnapshot::FTextSnapshot(const FText& InText)
+	: DisplayStringPtr(InText.DisplayString)
+	, HistoryRevision(InText.History.IsValid() ? InText.History->Revision : INDEX_NONE)
+	, Flags(InText.Flags)
+{
+}
+
+bool FTextSnapshot::IdenticalTo(const FText& InText) const
+{
+	// Make sure the string is up-to-date with the current culture
+	// (this usually happens when ToString() is called)
+	InText.Rebuild();
+
+	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
+	return DisplayStringPtr == InText.DisplayString
+		&& HistoryRevision == InHistoryRevision
+		&& Flags == InText.Flags;
+}
+
+bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
+{
+	// Make sure the string is up-to-date with the current culture
+	// (this usually happens when ToString() is called)
+	InText.Rebuild();
+
+	// We have to assume that the display string has changed if the history of the text has changed
+	// (due to a culture change), as we no longer have the old display string to compare against
+	const int32 InHistoryRevision = InText.History.IsValid() ? InText.History->Revision : INDEX_NONE;
+	return HistoryRevision == InHistoryRevision && DisplayStringPtr.IsValid() && DisplayStringPtr->Equals(InText.ToString(), ESearchCase::CaseSensitive);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -4,6 +4,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "ClassIconFinder.h"
+#include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Literal"
 
@@ -108,16 +110,16 @@ void UK2Node_Literal::PostReconstructNode()
 	}
 }
 
-FString UK2Node_Literal::GetTooltip() const
+FText UK2Node_Literal::GetTooltipText() const
 {
-	return NSLOCTEXT("K2Node", "Literal_Tooltip", "Stores a reference to an actor in the level").ToString();
+	return NSLOCTEXT("K2Node", "Literal_Tooltip", "Stores a reference to an actor in the level");
 }
 
 FText UK2Node_Literal::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	AActor* Actor = Cast<AActor>(ObjectRef);
 	if( ObjectRef != NULL )
 	{
-		AActor* Actor = Cast<AActor>(ObjectRef);
 		if(Actor != NULL)
 		{
 			return FText::FromString(Actor->GetActorLabel());
@@ -145,6 +147,51 @@ FLinearColor UK2Node_Literal::GetNodeTitleColor() const
 	{
 		return Super::GetNodeTitleColor();
 	}
+}
+
+void UK2Node_Literal::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto CanBindObjectLambda = [](UObject const* BindingObject)
+	{
+		if(AActor const* Actor = Cast<AActor>(BindingObject))
+		{
+			// Make sure the Actor has a world
+			if(Actor->GetWorld())
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	auto PostBindSetupLambda = [](UEdGraphNode* NewNode, UObject* BindObject)->bool
+	{
+ 		UK2Node_Literal* LiteralNode = CastChecked<UK2Node_Literal>(NewNode);
+ 		LiteralNode->SetObjectRef(BindObject);
+ 		return true;
+	};
+
+	auto MenuDescriptionLambda = []( const IBlueprintNodeBinder::FBindingSet& BindingContext ) -> FText
+	{
+		if (BindingContext.Num() == 1)
+		{
+			return FText::Format(NSLOCTEXT("K2Node", "LiteralTitle", "Create a Reference to {0}"), FText::FromString((*(BindingContext.CreateConstIterator()))->GetName()));
+		}
+		else if (BindingContext.Num() > 1)
+		{
+			return FText::Format(NSLOCTEXT("K2Node", "FallbackLiteralTitle", "Create References to {0} selected Actors"), FText::AsNumber(BindingContext.Num()));
+		}
+		else
+		{
+			return NSLOCTEXT("K2Node", "FallbackLiteralTitle", "Error: No Actors in Context");
+		}
+	};
+
+	UBlueprintBoundNodeSpawner* NodeSpawner = UBlueprintBoundNodeSpawner::Create(GetClass());
+	NodeSpawner->CanBindObjectDelegate = UBlueprintBoundNodeSpawner::FCanBindObjectDelegate::CreateStatic(CanBindObjectLambda);
+	NodeSpawner->OnBindObjectDelegate = UBlueprintBoundNodeSpawner::FOnBindObjectDelegate::CreateStatic(PostBindSetupLambda);
+	NodeSpawner->OnGenerateMenuDescriptionDelegate = UBlueprintBoundNodeSpawner::FOnGenerateMenuDescriptionDelegate::CreateStatic(MenuDescriptionLambda);
+	ActionRegistrar.AddBlueprintAction(NodeSpawner);
 }
 
 UK2Node::ERedirectType UK2Node_Literal::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
@@ -184,7 +231,7 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 
 	if( ValuePin )
 	{
-		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::ListView);
+		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::FullTitle);
 		ValuePin->PinName = ValuePin->PinFriendlyName.BuildSourceString();
 	}
 }

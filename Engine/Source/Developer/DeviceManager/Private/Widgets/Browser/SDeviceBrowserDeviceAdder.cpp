@@ -212,9 +212,10 @@ void SDeviceBrowserDeviceAdder::RefreshPlatformList( )
 
 FReply SDeviceBrowserDeviceAdder::HandleAddButtonClicked( )
 {
-	FTargetDeviceId DeviceId(*PlatformComboBox->GetSelectedItem(), DeviceIdTextBox->GetText().ToString());
+	ITargetPlatform * TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformComboBox->GetSelectedItem());
 
-	if (DeviceServiceManager->AddStartupService(DeviceId, DeviceNameTextBox->GetText().ToString()))
+	bool bAdded = TargetPlatform->AddDevice(DeviceIdTextBox->GetText().ToString(), false);
+	if (bAdded)
 	{
 		DeviceIdTextBox->SetText(FText::GetEmpty());
 		DeviceNameTextBox->SetText(FText::GetEmpty());

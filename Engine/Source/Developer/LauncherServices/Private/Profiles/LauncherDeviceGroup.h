@@ -15,7 +15,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FLauncherDeviceGroup( ) { }
+	FLauncherDeviceGroup() { }
 
 	/**
 	 * Creates and initializes a new instance.
@@ -23,7 +23,7 @@ public:
 	 * @param InId - The unique group identifier.
 	 * @param InName - The name of the group.
 	 */
-	FLauncherDeviceGroup( const FGuid& InId, const FString& InName )
+	FLauncherDeviceGroup(const FGuid& InId, const FString& InName)
 		: Id(InId)
 		, Name(InName)
 	{ }
@@ -32,51 +32,51 @@ public:
 
 	// Begin ILauncherDeviceGroup interface
 
-	virtual void AddDevice( const FString& Device ) override
+	virtual void AddDevice(const FString& DeviceID) override
 	{
-		Devices.AddUnique(Device);
+		Devices.AddUnique(DeviceID);
 
-		DeviceAddedDelegate.Broadcast(AsShared(), Device);
+		DeviceAddedDelegate.Broadcast(AsShared(), DeviceID);
 	}
 
-	virtual const TArray<FString>& GetDevices( ) override
+	virtual const TArray<FString>& GetDeviceIDs() override
 	{
 		return Devices;
 	}
 
-	virtual FGuid GetId( ) const override
+	virtual FGuid GetId() const override
 	{
 		return Id;
 	}
 
-	virtual const FString& GetName( ) const override
+	virtual const FString& GetName() const override
 	{
 		return Name;
 	}
 
-	virtual int32 GetNumDevices( ) const override
+	virtual int32 GetNumDevices() const override
 	{
 		return Devices.Num();
 	}
 
-	virtual FOnLauncherDeviceGroupDeviceAdded& OnDeviceAdded( ) override
+	virtual FOnLauncherDeviceGroupDeviceAdded& OnDeviceAdded() override
 	{
 		return DeviceAddedDelegate;
 	}
 
-	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved( ) override
+	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved() override
 	{
 		return DeviceRemovedDelegate;
 	}
 
-	virtual void RemoveDevice( const FString& Device ) override
+	virtual void RemoveDevice(const FString& DeviceID) override
 	{
-		Devices.Remove(Device);
+		Devices.Remove(DeviceID);
 
-		DeviceRemovedDelegate.Broadcast(AsShared(), Device);
+		DeviceRemovedDelegate.Broadcast(AsShared(), DeviceID);
 	}
 
-	virtual void SetName( const FString& NewName ) override
+	virtual void SetName(const FString& NewName) override
 	{
 		Name = NewName;
 	}

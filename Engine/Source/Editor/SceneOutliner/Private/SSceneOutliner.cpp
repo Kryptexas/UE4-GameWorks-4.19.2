@@ -187,7 +187,7 @@ namespace SceneOutliner
 		}
 		else
 		{
-			CustomColumn = MakeShareable( new FSceneOutlinerActorInfoColumn( SharedThis( this ), ECustomColumnMode::None ) );
+			CustomColumn = MakeShareable( new FSceneOutlinerActorInfoColumn( SharedThis( this ), ECustomColumnMode::ActorClass ) );
 		}
 
 		TSharedRef< SHeaderRow > HeaderRowWidget =
@@ -418,6 +418,7 @@ namespace SceneOutliner
 		// Register to find out when actors are added or removed
 		// @todo outliner: Might not catch some cases (see: CALLBACK_ActorPropertiesChange, CALLBACK_LayerChange, CALLBACK_LevelDirtied, CALLBACK_OnActorMoved, CALLBACK_UpdateLevelsForAllActors)
 		FEditorDelegates::MapChange.AddSP( this, &SSceneOutliner::OnMapChange );
+		FEditorDelegates::NewCurrentLevel.AddSP( this, &SSceneOutliner::OnNewCurrentLevel );
 		GEngine->OnLevelActorListChanged().AddSP( this, &SSceneOutliner::FullRefresh );
 		FWorldDelegates::LevelAddedToWorld.AddSP( this, &SSceneOutliner::OnLevelAdded );
 		FWorldDelegates::LevelRemovedFromWorld.AddSP( this, &SSceneOutliner::OnLevelRemoved );
@@ -451,6 +452,7 @@ namespace SceneOutliner
 			USelection::SelectObjectEvent.RemoveAll(this);
 		}
 		FEditorDelegates::MapChange.RemoveAll( this );
+		FEditorDelegates::NewCurrentLevel.RemoveAll( this );
 		GEngine->OnLevelActorListChanged().RemoveAll( this );
 		GEditor->UnregisterForUndo( this );
 
@@ -1535,7 +1537,7 @@ namespace SceneOutliner
 			auto ActorTreeItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem);
 			auto* Actor = ActorTreeItem->Actor.Get();
 
-			if (Actor && InLabel.ToString() != Actor->GetActorLabel() && Actor->IsActorLabelEditable())
+			if (Actor && Actor->IsActorLabelEditable() && !InLabel.ToString().Equals(Actor->GetActorLabel(), ESearchCase::CaseSensitive))
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "SceneOutlinerRenameActorTransaction", "Rename Actor" ) );
 				Actor->SetActorLabel( InLabel.ToString() );
@@ -1549,7 +1551,7 @@ namespace SceneOutliner
 		else
 		{
 			auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
-			if (!InLabel.EqualTo(FText::FromName(FolderTreeItem->LeafName)))
+			if (!InLabel.ToString().Equals(FolderTreeItem->LeafName.ToString(), ESearchCase::CaseSensitive))
 			{
 				// Rename the item
 				FName NewPath = FolderTreeItem->GetParentPath();
@@ -1568,7 +1570,6 @@ namespace SceneOutliner
 				}
 			}
 		}
-		
 	}
 
 	bool SSceneOutliner::OnVerifyItemLabelChanged( const FText& InLabel, FText& OutErrorMessage, FOutlinerTreeItemPtr TreeItem )
@@ -2727,6 +2728,14 @@ namespace SceneOutliner
 	void SSceneOutliner::OnMapChange(uint32 MapFlags)
 	{
 		FullRefresh();
+	}
+
+	void SSceneOutliner::OnNewCurrentLevel()
+	{
+		if (IsShowingOnlyCurrentLevel())
+		{
+			FullRefresh();
+		}
 	}
 
 	void SSceneOutliner::PostUndo(bool bSuccess)

@@ -18,6 +18,9 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "LevelUtils.h"
 #include "CrashTracker.h"
 #include "EngineModule.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 
@@ -105,7 +108,7 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 
 	check(StaticLightingSystem);
 
-	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld());
+	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld(), ENavigationLockReason::LightingUpdate);
 
 	if (!bDiscardResults)
 	{
@@ -381,11 +384,11 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 			{
 				if (SkippedLevels.Len() > 0)
 				{
-					SkippedLevels += FString(TEXT(", ")) + CurStreamingLevel->PackageName.ToString();
+					SkippedLevels += FString(TEXT(", ")) + CurStreamingLevel->GetWorldAssetPackageName();
 				}
 				else
 				{
-					SkippedLevels += CurStreamingLevel->PackageName.ToString();
+					SkippedLevels += CurStreamingLevel->GetWorldAssetPackageName();
 				}
 			}
 		}
@@ -419,6 +422,8 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bAllowCropping"), GAllowLightmapCropping, GLightmassIni));
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bRebuildDirtyGeometryForLighting"), bRebuildDirtyGeometryForLighting, GLightmassIni));
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bCompressLightmaps"), GCompressLightmaps, GLightmassIni));
+
+		GCompressLightmaps = GCompressLightmaps && World->GetWorldSettings()->LightmassSettings.bCompressLightmaps;
 
 		GAllowLightmapPadding = true;
 		FMemory::Memzero(&LightingMeshBounds, sizeof(FBox));
@@ -1351,7 +1356,7 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 
 			// fill out the NodeGroup/mapping, as UModelComponent::GetStaticLightingInfo did
 			SomeModelComponent->GetSurfaceLightMapResolution(SurfaceIndex, true, NodeGroup->SizeX, NodeGroup->SizeY, NodeGroup->WorldToMap, &NodeGroup->Nodes);
-			NodeGroup->MapToWorld = NodeGroup->WorldToMap.Inverse();
+			NodeGroup->MapToWorld = NodeGroup->WorldToMap.InverseFast();
 
 			// Cache the surface's vertices and triangles.
 			NodeGroup->BoundingBox.Init();
@@ -1507,7 +1512,7 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 
 			// fill out the NodeGroup/mapping, as UModelComponent::GetStaticLightingInfo did
 			SomeModelComponent->GetSurfaceLightMapResolution(SurfaceIndex, true, NodeGroup->SizeX, NodeGroup->SizeY, NodeGroup->WorldToMap, &NodeGroup->Nodes);
-			NodeGroup->MapToWorld = NodeGroup->WorldToMap.Inverse();
+			NodeGroup->MapToWorld = NodeGroup->WorldToMap.InverseFast();
 
 			// Cache the surface's vertices and triangles.
 			NodeGroup->BoundingBox.Init();
@@ -2051,11 +2056,10 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
 	const bool bInterpEditMode = GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
 	const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
-	const bool bAutomationTesting = GIsAutomationTesting;
 	const bool bIsInteratcting = false;// FSlateApplication::Get().GetMouseCaptor().IsValid() || GUnrealEd->IsUserInteracting();
 	const bool bHasGameOrProjectLoaded = FApp::HasGameName();
 
-	return ( bAutoApplyEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bAutomationTesting && !bIsInteratcting && !GIsDemoMode && bHasGameOrProjectLoaded );
+	return ( bAutoApplyEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bIsInteratcting && !GIsDemoMode && bHasGameOrProjectLoaded );
 }
 
 /**

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateDelegates.h: Declares various common delegate types used in Slate.
-=============================================================================*/
-
 #pragma once
 
 
@@ -99,7 +95,6 @@ DECLARE_DELEGATE_OneParam( FOnTextChanged, const FText& );
 DECLARE_DELEGATE_RetVal_OneParam( bool, FOnIsTypedCharValid, const TCHAR /*TypedCharacter*/ );
 
 
-
 /** Delegate for hooking up to an editable text box's 'OnTextCommitted' 
 
 	The first parameter (NewText) is the new text string.
@@ -125,6 +120,7 @@ DECLARE_DELEGATE_TwoParams( FOnInt32ValueCommitted, int32, ETextCommit::Type);
 
 /** Notification for FLinearColor value change */
 DECLARE_DELEGATE_OneParam( FOnLinearColorValueChanged, FLinearColor )
+
 
 template< typename ArgumentType >
 class TSlateDelegates
@@ -186,6 +182,13 @@ public:
 		bool
 	)
 
+	/** Called when the user clicks on an item in a tree or list */
+	DECLARE_DELEGATE_OneParam(
+		FOnMouseButtonClick,
+			/** param: The item that was double-clicked on */
+			ArgumentType
+			)
+
 	/** Called when the user double-clicks on an item in a tree or list */
 	DECLARE_DELEGATE_OneParam(
 		FOnMouseButtonDoubleClick,
@@ -200,6 +203,7 @@ public:
 		const ArgumentType&
 	)
 };
+
 
 /** Notification for when a keyboard event occurs */
 DECLARE_DELEGATE_RetVal_OneParam( FReply, FOnKeyboardEvent, const FKeyboardEvent& )

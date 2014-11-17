@@ -5,7 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbility.h"
-
+#include "Abilities/Tasks/AbilityTask.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
@@ -39,12 +39,11 @@ UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructIniti
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	ActiveGameplayEffects.Owner = this;
+	ActiveGameplayCues.Owner = this;
 
 	SetIsReplicated(true);
-	ReplicatedPredictionKey = 0;
-	LocalPredictionKey = 0;
+
 	UserAbilityActivationInhibited = false;
-	TargetingAbility = NULL;
 }
 
 UAbilitySystemComponent::~UAbilitySystemComponent()
@@ -73,7 +72,7 @@ void UAbilitySystemComponent::K2_InitStats(TSubclassOf<class UAttributeSet> Attr
 	InitStats(Attributes, DataTable);
 }
 
-const UAttributeSet*	UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
+const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
 {
 	AActor *OwningActor = GetOwner();
 	const UAttributeSet *MyAttributes  = NULL;
@@ -136,7 +135,7 @@ bool UAbilitySystemComponent::AreGameplayEffectApplicationRequirementsSatisfied(
 		Instigator.GetOwnedGameplayTags(InstigatorTags);
 
 		FGameplayTagContainer TargetTags;
-		IGameplayTagAssetInterface* OwnerGTA = InterfaceCast<IGameplayTagAssetInterface>(GetOwner());
+		IGameplayTagAssetInterface* OwnerGTA = InterfaceCast<IGameplayTagAssetInterface>(AbilityActorInfo->Actor.Get());
 		if (OwnerGTA)
 		{
 			OwnerGTA->GetOwnedGameplayTags(TargetTags);
@@ -155,6 +154,11 @@ bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
 	return !IsNetSimulating();
 }
 
+bool UAbilitySystemComponent::HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const
+{
+	return (IsOwnerActorAuthoritative() || QualifierContext.PredictionKey().IsValidForMorePrediction());
+}
+
 void UAbilitySystemComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
 {
 	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
@@ -167,12 +171,12 @@ float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Att
 	return Attribute.GetNumericValueChecked(AttributeSet);
 }
 
-FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffect* GameplayEffect) const
+FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffect* GameplayEffect, float Level) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
 	// Fixme: we should build a map and cache these off. We can invalidate the map when an OutgoingGE modifier is applied or removed from us.
 
-	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, GetOwner(), FGameplayEffectLevelSpec::INVALID_LEVEL, GetCurveDataOverride());
+	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
 	if (ActiveGameplayEffects.ApplyActiveEffectsTo(*NewSpec, FModifierQualifier().Type(EGameplayMod::OutgoingGE)))
 	{
 		return FGameplayEffectSpecHandle(NewSpec);
@@ -185,7 +189,7 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffe
 FGameplayEffectInstigatorContext UAbilitySystemComponent::GetInstigatorContext() const
 {
 	FGameplayEffectInstigatorContext Context;
-	Context.AddInstigator(GetOwner());
+	Context.AddInstigator(AbilityActorInfo->Actor.Get());
 	return Context;
 }
 
@@ -193,10 +197,13 @@ FGameplayEffectInstigatorContext UAbilitySystemComponent::GetInstigatorContext()
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
+	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
+	{
+		FGameplayEffectSpec	Spec(GameplayEffect, AbilityActorInfo->Actor.Get(), Level, GetCurveDataOverride());
+		return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
+	}
 
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
-	
-	return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
+	return FActiveGameplayEffectHandle();
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
@@ -208,11 +215,19 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToSel
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
-	check(GameplayEffect);
+	if (GameplayEffect == nullptr)
+	{
+		ABILITY_LOG(Error, TEXT("UAbilitySystemComponent::ApplyGameplayEffectToSelf called by Instigator %s with a null GameplayEffect."), *GetNameSafe(Instigator));
+		return FActiveGameplayEffectHandle();
+	}
 
-	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, GetCurveDataOverride());
+	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
+	{
+		FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, GetCurveDataOverride());
+		return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+	}
 
-	return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+	return FActiveGameplayEffectHandle();
 }
 
 float UAbilitySystemComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const
@@ -241,22 +256,6 @@ bool UAbilitySystemComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
 }
 
-bool UAbilitySystemComponent::HasAnyTags(FGameplayTagContainer &Tags)
-{
-	// Fixme: we could aggregate our current tags into a map to avoid this type of iteration
-	return ActiveGameplayEffects.HasAnyTags(Tags);
-}
-
-bool UAbilitySystemComponent::HasTag(FGameplayTag Tag)
-{
-	return ActiveGameplayEffects.HasTag(Tag);
-}
-
-bool UAbilitySystemComponent::HasAllTags(FGameplayTagContainer &Tags)
-{
-	return ActiveGameplayEffects.HasAllTags(Tags);
-}
-
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag)
 {
 	return ActiveGameplayEffects.RegisterGameplayTagEvent(Tag);
@@ -266,6 +265,30 @@ FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEv
 {
 	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
 }
+
+// ------------------------------------------------------------------------
+
+void UAbilitySystemComponent::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+{
+	return ActiveGameplayEffects.GetOwnedGameplayTags(TagContainer);
+}
+
+bool UAbilitySystemComponent::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+{
+	return ActiveGameplayEffects.HasMatchingGameplayTag(TagToCheck);
+}
+
+bool UAbilitySystemComponent::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
+{
+	return ActiveGameplayEffects.HasAllMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+}
+
+bool UAbilitySystemComponent::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
+{
+	return ActiveGameplayEffects.HasAnyMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+}
+
+// ------------------------------------------------------------------------
 
 void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()
 {
@@ -281,11 +304,14 @@ void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier)
 {
-	// Apply outgoing Effects to the Spec.
-	// Outgoing immunity may stop the outgoing effect from being applied to the target
-	if (ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE)))
+	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
 	{
-		return Target->ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+		// Apply outgoing Effects to the Spec.
+		// Outgoing immunity may stop the outgoing effect from being applied to the target
+		if (ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE)))
+		{
+			return Target->ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+		}
 	}
 
 	return FActiveGameplayEffectHandle();
@@ -295,7 +321,15 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 {
 	// Temp, only non instant, non periodic GEs can be predictive
 	// Effects with other effects may be a mix so go with non-predictive
-	check((BaseQualifier.PredictionKey() == 0) || (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	check((BaseQualifier.PredictionKey().IsValidKey() == false) || (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+
+	if (!HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
+	{
+		return FActiveGameplayEffectHandle();
+	}
+
+	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
+	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && BaseQualifier.PredictionKey().IsValidKey() && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
@@ -306,14 +340,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 
 	// Make sure we create our copy of the spec in the right place first...
 	FActiveGameplayEffectHandle	MyHandle;
-	bool bInvokeGameplayCueApplied = false;
+	bool bInvokeGameplayCueApplied = UGameplayEffect::INFINITE_DURATION == Spec.GetDuration();
 
 	FGameplayEffectSpec* OurCopyOfSpec = NULL;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
+	float Duration = bTreatAsInfiniteDuration ? UGameplayEffect::INFINITE_DURATION : Spec.GetDuration();
 	{
-	
-		float Duration = Spec.GetDuration();
-
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
 			// recalculating stacking needs to come before creating the new effect
@@ -324,8 +356,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PredictionKey());
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
-
-			bInvokeGameplayCueApplied = true;
 		}
 		
 		if (!OurCopyOfSpec)
@@ -342,6 +372,22 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		// In theory, we don't modify 2nd order modifiers after they are 'attached'
 		// Long complex chains can be created but we never say 'Modify a GE that is modding another GE'
 		OurCopyOfSpec->MakeUnique();
+
+		// if necessary add a modifier to OurCopyOfSpec to force it to have an infinite duration
+		if (bTreatAsInfiniteDuration)
+		{
+			FGameplayModifierInfo ModInfo;
+			ModInfo.ModifierOp = EGameplayModOp::Override;
+			ModInfo.Magnitude.SetValue(UGameplayEffect::INFINITE_DURATION);
+			ModInfo.EffectType = EGameplayModEffect::Duration;
+			ModInfo.ModifierType = EGameplayMod::ActiveGE;
+			TSharedPtr<FGameplayEffectLevelSpec> Level(new FGameplayEffectLevelSpec(0.f, OurCopyOfSpec->Def->LevelInfo, NULL));
+			FModifierSpec Mod(ModInfo, Level, NULL);
+			FModifierQualifier Qualifier;
+			Qualifier.Type(EGameplayMod::ActiveGE);
+
+			OurCopyOfSpec->ApplyModifier(Mod, Qualifier, true);
+		}
 	}
 
 	// Now that we have our own copy, apply our GEs that modify IncomingGEs
@@ -352,7 +398,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}	
 	
 	// Now that we have the final version of this effect, actually apply it if its going to be hanging around
-	if (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION )
+	if (Duration != UGameplayEffect::INSTANT_APPLICATION )
 	{
 		if (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD)
 		{
@@ -375,10 +421,17 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
 	
 	// Execute if this is an instant application effect
-	if (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION)
+	if (Duration == UGameplayEffect::INSTANT_APPLICATION)
 	{
 		ExecuteGameplayEffect(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).IgnoreHandle(MyHandle));
 	}
+	else if (bTreatAsInfiniteDuration)
+	{
+		// This is an instant application but we are treating it as an infinite duration for prediction. We should still predict the execute GameplayCUE.
+		// (in non predictive case, this will happen inside ::ExecuteGameplayEffect)
+		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::Executed);
+	}
+
 
 	if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD && Spec.TargetEffectSpecs.Num() > 0)
 	{
@@ -434,16 +487,16 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
-
-	AActor *ActorOwner = GetOwner();
-	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
+	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
 	{
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent %s on Actor %s that is not IGameplayCueInterface"), *Spec.ToSimpleString(), ActorOwner ? *ActorOwner->GetName() : TEXT("NULL"));
 		return;
 	}
 
 	// FIXME: Replication of level not finished
-	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
+	float ExecuteLevel =  (Spec.ModifierLevel.IsValid() && Spec.ModifierLevel.Get()->IsValid()) ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
 
 	FGameplayCueParameters CueParameters;
 	CueParameters.InstigatorContext = Spec.InstigatorContext;
@@ -461,11 +514,92 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	}
 }
 
-
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayEffectSpec Spec)
+void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
 {
-	InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
+	if (IsOwnerActorAuthoritative())
+	{
+		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag, PredictionKey);
+	}
+	else if (PredictionKey.IsValidKey())
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+	}
 }
+
+void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		ActiveGameplayCues.AddCue(GameplayCueTag);
+		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, PredictionKey);
+	}
+	else if (PredictionKey.IsValidKey())
+	{
+		// Allow for predictive gameplaycue events? Needs more thought
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+	}
+}
+
+void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+{
+	if (IsOwnerActorAuthoritative())
+	{
+		ActiveGameplayCues.RemoveCue(GameplayCueTag);
+	}
+	else if (PredictionKey.IsValidKey())
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+	}
+}
+
+void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType)
+{
+	AActor* ActorOwner = AbilityActorInfo->Actor.Get();
+	IGameplayCueInterface* GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
+	if (!GameplayCueInterface)
+	{
+		return;
+	}
+
+	FGameplayCueParameters CueParameters;
+	CueParameters.InstigatorContext.AddInstigator(ActorOwner);	// Treat ourselves as the instigator for now. We may need to allow this to be passed in eventually.
+
+	const float NormalizedMagnitude = 1.f;
+
+	GameplayCueInterface->HandleGameplayCue(ActorOwner, GameplayCueTag, EventType, CueParameters);
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)
+{
+	if (PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
+	}
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+{
+	if (PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+	}
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+{
+	if (PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+	}
+}
+
+bool UAbilitySystemComponent::IsGameplayCueActive(const FGameplayTag GameplayCueTag) const
+{
+	return (ActiveGameplayEffects.HasMatchingGameplayTag(GameplayCueTag) || ActiveGameplayCues.HasMatchingGameplayTag(GameplayCueTag));
+}
+
+// ----------------------------------------------------------------------------------------
 
 void UAbilitySystemComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
 {
@@ -489,15 +623,39 @@ void UAbilitySystemComponent::OnRestackGameplayEffects()
 
 // ---------------------------------------------------------------------------------------
 
+void UAbilitySystemComponent::TickingTaskStarted(UAbilityTask* NewTask)
+{
+	// If this is our first ticking task, set this component as active so it begins ticking
+	if (TickingTasks.Num() == 0)
+	{
+		SetActive(true);
+	}
+	TickingTasks.AddUnique(NewTask);
+}
+
+void UAbilitySystemComponent::TickingTaskEnded(UAbilityTask* Task)
+{
+	// If we are removing our last ticking task, set this component as inactive so it stops ticking
+	TickingTasks.RemoveSingleSwap(Task);
+	if (TickingTasks.Num() == 0)
+	{
+		SetActive(false);
+	}
+}
+
+// ---------------------------------------------------------------------------------------
+
 void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
-
-	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedInstancedAbilities);
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
+	
 	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
+
+	DOREPLIFETIME(UAbilitySystemComponent, AbilityActor);
 
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 }
@@ -514,7 +672,7 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 		}
 	}
 
-	for (UGameplayAbility* Ability : ReplicatedInstancedAbilities)
+	for (UGameplayAbility* Ability : AllReplicatedInstancedAbilities)
 	{
 		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
 		{
@@ -536,11 +694,6 @@ void UAbilitySystemComponent::GetSubobjectsWithStableNamesForNetworking(TArray<U
 	}
 }
 
-void UAbilitySystemComponent::PostNetReceive()
-{
-	Super::PostNetReceive();
-}
-
 void UAbilitySystemComponent::OnRep_GameplayEffects()
 {
 
@@ -549,56 +702,7 @@ void UAbilitySystemComponent::OnRep_GameplayEffects()
 void UAbilitySystemComponent::OnRep_PredictionKey()
 {
 	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
-	int32 idx = 0;
-	for ( ; idx < PredictionDelegates.Num(); ++idx)
-	{
-		if (PredictionDelegates[idx].Key <= ReplicatedPredictionKey)
-		{
-			PredictionDelegates[idx].Value.Broadcast();
-		}
-		else
-		{
-			break;
-		}
-	}
-	if (idx > 0)
-	{
-		// Remove everyone we called Broadcast on in one call
-		PredictionDelegates.RemoveAt(0, idx);
-	}
-}
-
-FAbilitySystemComponentPredictionKeyClear& UAbilitySystemComponent::GetPredictionKeyDelegate(int32 PredictionKey)
-{
-	// See if we already have one for this key
-	for (TPair<int32, FAbilitySystemComponentPredictionKeyClear> & Item : PredictionDelegates)
-	{
-		if (Item.Key == PredictionKey)
-		{
-			return Item.Value;
-		}
-	}
-
-	// Create a new one
-	TPair<int32, FAbilitySystemComponentPredictionKeyClear> NewPair;
-	NewPair.Key = PredictionKey;
-	
-	PredictionDelegates.Add(NewPair);
-	return PredictionDelegates.Last().Value;
-}
-
-int32 UAbilitySystemComponent::GetNextPredictionKey()
-{
-	return ++LocalPredictionKey;
-}
-
-void UAbilitySystemComponent::DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
-{
-	AbilitySystemComponent_eventBlueprintCustomHandler_Parms Parms;
-	Parms.EventType = EventType;
-	Parms.Parameters = Parameters;
-
-	Actor->ProcessEvent(Func, &Parms);
+	FPredictionKeyDelegates::CatchUpTo(ReplicatedPredictionKey.Current);
 }
 
 // ---------------------------------------------------------------------------------------
@@ -606,7 +710,7 @@ void UAbilitySystemComponent::DispatchBlueprintCustomHandler(AActor* Actor, UFun
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
 {
 	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
-	ABILITY_LOG(Log, TEXT("Owner: %s"), *GetOwner()->GetName());
+	ABILITY_LOG(Log, TEXT("Owner: %s. Avatar: %s"), *GetOwner()->GetName(), *AbilityActorInfo->Actor->GetName());
 	ActiveGameplayEffects.PrintAllGameplayEffects();
 }
 

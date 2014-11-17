@@ -18,6 +18,8 @@ public:
 	virtual void OnHide() override;
 	/** End IStatsPage interface */
 
+	virtual ~FPrimitiveStatsPage() {}
+
 private:
 
 	/**

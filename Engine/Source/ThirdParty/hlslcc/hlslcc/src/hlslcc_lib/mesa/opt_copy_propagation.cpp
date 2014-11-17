@@ -379,6 +379,7 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 		orig_acp->make_empty();
 	}
 
+
 	exec_list *new_kills = this->kills;
 	this->kills = orig_kills;
 	this->acp = orig_acp;
@@ -388,6 +389,28 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 	{
 		kill_entry *k = (kill_entry *)iter.get();
 		kill(k->var);
+	}
+
+	/* Now retraverse with a safe acp list*/
+	if (!this->killed_all)
+	{
+		this->acp = new(mem_ctx)exec_list;
+		this->kills = new(mem_ctx)exec_list;
+
+		foreach_iter(exec_list_iterator, iter, *orig_acp)
+		{
+			acp_entry *a = (acp_entry *)iter.get();
+			if (Debug)
+			{
+				printf("ACP_Second Pass Loop Block: LHS %d RHS_Var %d DeRef %d\n", a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
+			}
+			this->acp->push_tail(new(this->mem_ctx) acp_entry(a->lhs, a->rhs_var, a->array_deref));
+		}
+
+		visit_list_elements(this, &ir->body_instructions);
+
+		this->kills = orig_kills;
+		this->acp = orig_acp;
 	}
 
 	/* already descended into the children. */

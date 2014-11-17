@@ -10,6 +10,7 @@
 #include "Foliage/InstancedFoliageActor.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeComponent.h"
+#include "Engine/LevelBounds.h"
 
 #if WITH_EDITOR
 
@@ -22,6 +23,10 @@ void AActor::PreEditChange(UProperty* PropertyThatWillChange)
 	UnregisterAllComponents();
 }
 
+static FName Name_RelativeLocation = GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeLocation);
+static FName Name_RelativeRotation = GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeRotation);
+static FName Name_RelativeScale3D = GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeScale3D);
+
 void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
@@ -29,7 +34,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 	
 	bool bTransformationChanged = false;
 
-	if ( PropertyName==FName(TEXT("RelativeLocation")) || PropertyName==FName(TEXT("RelativeRotation")) || PropertyName==FName(TEXT("RelativeScale3D")) )
+	if ( PropertyName==Name_RelativeLocation || PropertyName==Name_RelativeRotation || PropertyName==Name_RelativeScale3D )
 	{
 		bTransformationChanged = true;
 
@@ -78,6 +83,7 @@ void AActor::PostEditMove(bool bFinished)
 		UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
 		if(Blueprint && (Blueprint->bRunConstructionScriptOnDrag || bFinished) && !FLevelUtils::IsMovingLevel() )
 		{
+			FNavigationLockContext NavLock(GetWorld(), ENavigationLockReason::AllowUnregister);
 			RerunConstructionScripts();
 		}
 	}
@@ -119,12 +125,9 @@ void AActor::PostEditMove(bool bFinished)
 
 	if (bFinished)
 	{
-		// @todo we could diverse between dynamic and not-that-dynamic actors
-		// and handle updating NavOctree differently
-		if (IsNavigationRelevant() == true && GetWorld() != NULL && GetWorld()->GetNavigationSystem() != NULL)
-		{
-			GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-		}
+		// update actor and all its components in navigation system after finishing move
+		// USceneComponent::UpdateNavigationData works only in game world
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
@@ -311,6 +314,12 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	if (!IsTemplate() && GetLevel()->LevelBoundsActor.IsValid())
 	{
 		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
+	}
+
+	// Restore OwnedComponents array
+	if (!IsPendingKill())
+	{
+		ResetOwnedComponents();
 	}
 
 	Super::PostEditUndo(TransactionAnnotation);

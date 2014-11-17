@@ -56,7 +56,7 @@ private:
 	void OnSearchChanged(const FText& InFilterText);
 
 private:
-	void LoadItemExpanssion();
+	void LoadItemExpansion();
 	void SaveItemExpansion();
 
 	/** Called when a Blueprint is recompiled and live objects are swapped out for replacements */
@@ -66,6 +66,15 @@ private:
 
 	/** Transforms the widget view model into a searchable string. */
 	void TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel> WidgetViewModel, OUT TArray< FString >& Array);
+
+	/** Requests a rebuild of the widget list if a widget blueprint was compiled */
+	void HandleOnBlueprintCompiled(UBlueprint* Blueprint);
+
+	/** Requests a rebuild of the widget list */
+	void HandleOnHotReload(bool bWasTriggeredAutomatically);
+
+	/** Requests a rebuild of the widget list if a widget blueprint was deleted */
+	void HandleOnAssetsDeleted(const TArray<UClass*>& DeletedAssetClasses);
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 
@@ -93,5 +102,5 @@ private:
 	FText SearchText;
 
 	/** Controls rebuilding the list of spawnable widgets */
-	bool bRebuildRquested;
+	bool bRebuildRequested;
 };

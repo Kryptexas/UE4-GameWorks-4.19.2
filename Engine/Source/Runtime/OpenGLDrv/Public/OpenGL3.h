@@ -17,15 +17,16 @@ typedef GLsync UGLsync;
 
 struct FOpenGL3 : public FOpenGLBase
 {
-	static FORCEINLINE bool IsDebugContent()					{ return bDebugContext; }
-	
-	static FORCEINLINE bool SupportsTimestampQueries()			{ return TimestampQueryBits > 0; }
-	static FORCEINLINE bool SupportsSeamlessCubeMap()			{ return bSupportsSeamlessCubemap; }
-	static FORCEINLINE bool SupportsVolumeTextureRendering()	{ return bSupportsVolumeTextureRendering; }
-	static FORCEINLINE bool SupportsGenerateMipmap()			{ return true; }
-	static FORCEINLINE bool AmdWorkaround()						{ return bAmdWorkaround; }
-	static FORCEINLINE bool SupportsTessellation()				{ return bSupportsTessellation; }
-	
+	static FORCEINLINE bool IsDebugContent()						{ return bDebugContext; }
+
+	static FORCEINLINE bool SupportsTimestampQueries()				{ return TimestampQueryBits > 0; }
+	static FORCEINLINE bool SupportsSeamlessCubeMap()				{ return bSupportsSeamlessCubemap; }
+	static FORCEINLINE bool SupportsVolumeTextureRendering()		{ return bSupportsVolumeTextureRendering; }
+	static FORCEINLINE bool SupportsGenerateMipmap()				{ return true; }
+	static FORCEINLINE bool AmdWorkaround()							{ return bAmdWorkaround; }
+	static FORCEINLINE bool SupportsTessellation()					{ return bSupportsTessellation; }
+	static FORCEINLINE bool SupportsTextureSwizzle()				{ return true; }
+
 	// Optional
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
 	{
@@ -479,7 +480,7 @@ struct FOpenGL3 : public FOpenGLBase
 		glGenTextures( n, textures);
 #endif
 	}
-
+	
 	static FORCEINLINE void CompressedTexSubImage3D(GLenum Target, GLint Level, GLint XOffset, GLint YOffset, GLint ZOffset, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLsizei ImageSize, const GLvoid* PixelData)
 	{
 		glCompressedTexSubImage3D( Target, Level, XOffset, YOffset, ZOffset, Width, Height, Depth, Format, ImageSize, PixelData);
@@ -511,7 +512,7 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel()
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
+		if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
 		{
 			return ERHIFeatureLevel::ES2;
 		}
@@ -531,7 +532,7 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{
-		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor;
 		if (bForceFeatureLevelES2)
 		{
 			return SP_OPENGL_PCES2;
@@ -559,6 +560,8 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static void ProcessQueryGLInt();
 	static void ProcessExtensions(const FString& ExtensionsString);
+	
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() { return GL_HALF_FLOAT; }
 
 protected:
 	static GLsizei NextTextureName;

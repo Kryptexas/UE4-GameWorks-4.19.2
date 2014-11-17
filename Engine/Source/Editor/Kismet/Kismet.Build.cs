@@ -20,6 +20,7 @@ public class Kismet : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"CoreUObject",
 				"Slate",
@@ -41,6 +42,8 @@ public class Kismet : ModuleRules
                 "Projects",
                 "JsonUtilities",
                 "DerivedDataCache",
+				"DesktopPlatform",
+				"HotReload"
 			}
 			);
 

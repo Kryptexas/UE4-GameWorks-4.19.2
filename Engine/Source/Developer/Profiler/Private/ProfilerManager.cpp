@@ -398,7 +398,7 @@ void FProfilerManager::SessionManager_OnSelectedSessionChanged( const ISessionIn
 void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
-	const bool SessionIsValid = SelectedSession.IsValid() && (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false));
+	const bool SessionIsValid = SelectedSession.IsValid() && (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(true));
 
 	if( ActiveSession != SelectedSession || FProfilerManager::GetSettings().bSingleInstanceMode )
 	{
@@ -438,7 +438,11 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
 
 				ProfilerSessionInstances.Add( ProfilerSession->GetInstanceID(), ProfilerSession );
 				ProfilerClient->Track( ProfilerInstanceID );
-				GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
+				TSharedPtr<SProfilerWindow> ProfilerWindow = GetProfilerWindow();
+				if (ProfilerWindow.IsValid())
+				{
+					ProfilerWindow->ManageEventGraphTab(ProfilerInstanceID, true, ProfilerSession->GetName());
+				}
 			}
 		}
 	}

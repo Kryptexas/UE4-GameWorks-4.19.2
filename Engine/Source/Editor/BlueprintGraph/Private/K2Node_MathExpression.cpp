@@ -9,6 +9,7 @@
 #include "BasicTokenParser.h"
 #include "UnrealMathUtility.h"
 #include "BlueprintEditorUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -209,6 +210,8 @@ public:
 	{
 	}
 
+	virtual ~FTokenWrapperNode() {}
+
 	/** 
 	 * Gives the FExpressionVisitor access to this node (lets it "visit" this, 
 	 * in tree traversal terms).
@@ -261,6 +264,8 @@ public:
 	{
 	}
 
+	virtual ~FBinaryOperator() {}
+
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
 	 * traverse the children.
@@ -309,6 +314,8 @@ public:
 	{
 	}
 
+	virtual ~FUnaryOperator() {}
+
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
 	 * traverse its child.
@@ -356,6 +363,8 @@ public:
 		, FalsePart(InFalsePart)
 	{
 	}
+
+	virtual ~FConditionalOperator() {}
 
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
@@ -439,7 +448,9 @@ public:
 		}
 		return AsString;
 	}
-    
+
+	virtual ~FExpressionList() {}
+
 public:
 	TArray< TSharedRef<IFExpressionNode> > Children;
 };
@@ -457,6 +468,8 @@ public:
 		, ParamList(InParamList)
 	{
 	}
+
+	virtual ~FFunctionExpression() {}
 
 	/** 
 	 * Gives the FExpressionVisitor access to this node, and passes it along to 
@@ -1011,6 +1024,8 @@ public:
 		check(GeneratedNode != nullptr);
 	}
 
+	virtual ~FCodeGenFragment_VariableGet() {}
+
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
@@ -1048,6 +1063,8 @@ public:
 		check(GeneratedNode != nullptr);
 	}
 
+	virtual ~FCodeGenFragment_FuntionCall() {}
+
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
@@ -1081,6 +1098,8 @@ public:
 		: FCodeGenFragment(ResultType) 
 		, DefaultValue(LiteralVal)
 	{}
+
+	virtual ~FCodeGenFragment_Literal() {}
 
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
@@ -1118,6 +1137,8 @@ public:
 		, TunnelInputPin(InTunnelInputPin)
 	{
 	}
+
+	virtual ~FCodeGenFragment_InputPin() {}
 
 	/// Begin FCodeGenFragment Interface
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
@@ -2281,12 +2302,24 @@ void UK2Node_MathExpression::GetMenuEntries(FGraphContextMenuBuilder& ContextMen
 }
 
 //------------------------------------------------------------------------------
-void UK2Node_MathExpression::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_MathExpression::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
-	
-	ActionListOut.Add(NodeSpawner);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -2301,6 +2334,7 @@ TSharedPtr<class INameValidatorInterface> UK2Node_MathExpression::MakeNameValida
 void UK2Node_MathExpression::OnRenameNode(const FString& NewName)
 {
 	RebuildExpression(NewName);
+	CachedNodeTitle.MarkDirty();
 }
 
 //------------------------------------------------------------------------------
@@ -2419,21 +2453,20 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 //------------------------------------------------------------------------------
 FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FText Result = FText::FromString(Expression);
-	if (Expression.IsEmpty())
+	if (Expression.IsEmpty() && (TitleType == ENodeTitleType::MenuTitle))
 	{
-		//Result = LOCTEXT("NoExpressionTitle", "[Empty]").ToString();
+		return LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
 	}
-	
-	if (TitleType == ENodeTitleType::FullTitle)
+	else if (TitleType != ENodeTitleType::FullTitle)
 	{
-		Result = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), Result);
+		return FText::FromString(Expression);
 	}
-	else if ((TitleType == ENodeTitleType::ListView) && Expression.IsEmpty())
+	else if (CachedNodeTitle.IsOutOfDate())
 	{
-		Result = LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), FText::FromString(Expression));
 	}
-	return Result;
+	return CachedNodeTitle;
 }
 
 //------------------------------------------------------------------------------

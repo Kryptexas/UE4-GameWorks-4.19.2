@@ -161,9 +161,9 @@ namespace UnrealBuildTool
 				}
 
 				ActionStartInfo.UseShellExecute = false;
-				ActionStartInfo.RedirectStandardInput = Action.bShouldBlockStandardInput;
-				ActionStartInfo.RedirectStandardOutput = Action.bShouldBlockStandardOutput;
-				ActionStartInfo.RedirectStandardError = Action.bShouldBlockStandardOutput;
+				ActionStartInfo.RedirectStandardInput = false;
+				ActionStartInfo.RedirectStandardOutput = false;
+				ActionStartInfo.RedirectStandardError = false;
 
 				// Log command-line used to execute task if debug info printing is enabled.
 				if (BuildConfiguration.bPrintDebugInfo)
@@ -339,9 +339,21 @@ namespace UnrealBuildTool
 			int NumCores = 0;
 			if (!Utils.IsRunningOnMono)
 			{
-				foreach(var Item in new System.Management.ManagementObjectSearcher("Select * from Win32_Processor").Get())
+				try
 				{
-					NumCores += int.Parse(Item["NumberOfCores"].ToString());
+					using (var Mos = new System.Management.ManagementObjectSearcher("Select * from Win32_Processor"))
+					{
+						var MosCollection = Mos.Get();
+						foreach (var Item in MosCollection)
+						{
+							NumCores += int.Parse(Item["NumberOfCores"].ToString());
+						}
+					}
+				}
+				catch (Exception Ex)
+				{
+					Log.TraceWarning("Unable to get the number of Cores: {0}", Ex.ToString());
+					Log.TraceWarning("Falling back to processor count.");
 				}
 			}
 			// On some systems this requires a hot fix to work so we fall back to using the (logical) processor count.
@@ -370,19 +382,9 @@ namespace UnrealBuildTool
 				int MaxActionsAffordedByMemory = (int)(Math.Max(1, (PhysicalRAMAvailableMB) / MinMemoryPerActionMB));
 
 				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxActionsAffordedByMemory);
-
-                if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-			    {
-				    string NumUBTBuildTasks = Environment.GetEnvironmentVariable("NumUBTBuildTasks");
-				    Int32 MaxUBTBuildTasks = MaxActionsToExecuteInParallel;
-				    if(Int32.TryParse(NumUBTBuildTasks, out MaxUBTBuildTasks))
-				    {
-					    MaxActionsToExecuteInParallel = MaxUBTBuildTasks;
-				    }
-                }
             }
 
-            Log.TraceInformation("Performing {0} actions (max {1} parallel jobs)", Actions.Count, MaxActionsToExecuteInParallel);
+            Log.TraceInformation("Performing {0} actions ({1} in parallel)", Actions.Count, MaxActionsToExecuteInParallel);
 
 			Dictionary<Action, ActionThread> ActionThreadDictionary = new Dictionary<Action, ActionThread>();
             int JobNumber = 1;
@@ -493,7 +495,7 @@ namespace UnrealBuildTool
 			}
 
 			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "^Action Type^Duration (seconds)^Tool^Task^Using PCH^Description");
+			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
 
 			double TotalThreadSeconds = 0;
 
@@ -520,13 +522,12 @@ namespace UnrealBuildTool
 
 				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats,
 					TraceEventType.Information,
-					"^{0}^{1:0.00}^{2}^{3}^{4}^{5}", 
+					"^{0}^{1:0.00}^{2}^{3}^{4}", 
 					Action.ActionType.ToString(),
 					ThreadSeconds,
 					Path.GetFileName(Action.CommandPath), 
                       Action.StatusDescription,
-					Action.bIsUsingPCH,
-					Action.StatusDetailedDescription);
+					Action.bIsUsingPCH);
 
 				// Update statistics
 				switch (Action.ActionType)

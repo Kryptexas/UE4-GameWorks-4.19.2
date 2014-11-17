@@ -376,7 +376,7 @@ public:
 	SLATE_BEGIN_ARGS( SSCSEditor ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS);
+	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InKismet2, USimpleConstructionScript* InSCS, UBlueprint* InBlueprint, TSharedPtr<class SKismetInspector> Inspector = TSharedPtr<class SKismetInspector>() );
 
 	/** Override OnKeyDown */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
@@ -467,15 +467,23 @@ public:
 
 	/** Select the given tree node */
 	void SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCntrlDown);
+	
+	/**
+	 * Highlight a tree node and, optionally, a property with in it
+	 *
+	 * @param Node		 A Reference to the Node SCS_Node to be highlighted
+	 * @param Property	The name of the property to be highlighted in the details view
+	 */
+	void HighlightTreeNode( const USCS_Node* Node, FName Property );
 
-	/*
+	/**
 	 * Function to save current state of SimpleConstructionScript and nodes associated with it.
 	 *
 	 * @param: SimpleContructionScript object reference.
 	 */
 	static void SaveSCSCurrentState( USimpleConstructionScript* SCSObj );
 
-	/*
+	/**
 	 * Function to save the current state of SCS_Node and its children
 	 *
 	 * @param: Reference of the SCS_Node to be saved
@@ -559,8 +567,14 @@ public:
 	/** Pointer to the script that we are editing */
 	USimpleConstructionScript* SCS;
 
+	/** Pointer to blueprint we were created with */
+	UBlueprint* Blueprint;
+
 	/** Pointer back to owning Kismet 2 tool */
 	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
+
+	/** Pointer back to companion inspector tool */
+	TWeakPtr<class SKismetInspector> KismetInspectorPtr;
 
 	/** Tree widget */
 	TSharedPtr<SSCSTreeType> SCSTreeWidget;
@@ -579,11 +593,7 @@ public:
 
 	/** Whether or not the deferred rename request was flagged as transactional */
 	bool bIsDeferredRenameRequestTransactional;
-
 private:
-
-	/** Pointer to combo box used for choosing component class */
-	TSharedPtr<class SComponentClassCombo> ComponentClassCombo;
 
 	/** Flag to enable/disable component editing */
 	bool	bEnableComponentEditing;

@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
-
+#include "Engine/InputAxisDelegateBinding.h"
 
 UInputAxisDelegateBinding::UInputAxisDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

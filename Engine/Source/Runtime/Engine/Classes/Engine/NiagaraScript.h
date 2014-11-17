@@ -3,6 +3,8 @@
 #pragma once
 #include "NiagaraScript.generated.h"
 
+
+
 /** Runtime script for a Niagara system */
 UCLASS(MinimalAPI)
 class UNiagaraScript : public UObject
@@ -15,7 +17,7 @@ class UNiagaraScript : public UObject
 
 	/** The constant table required for execution. */
 	UPROPERTY()
-	TArray<float> ConstantTable;
+	TArray<FVector4> ConstantTable;
 
 	/** Attributes used by this script. */
 	TArray<FName> Attributes;

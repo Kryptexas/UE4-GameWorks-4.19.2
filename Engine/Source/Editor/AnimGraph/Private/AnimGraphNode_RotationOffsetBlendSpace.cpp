@@ -4,6 +4,8 @@
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "GraphEditorActions.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_RotationOffsetBlendSpace
@@ -15,32 +17,93 @@ UAnimGraphNode_RotationOffsetBlendSpace::UAnimGraphNode_RotationOffsetBlendSpace
 {
 }
 
-FString UAnimGraphNode_RotationOffsetBlendSpace::GetTooltip() const
+FText UAnimGraphNode_RotationOffsetBlendSpace::GetTooltipText() const
 {
-	return FString::Printf(TEXT("AimOffset %s"), *(Node.BlendSpace->GetPathName()));
+	// FText::Format() is slow, so we utilize the cached list title
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
-
-	if (TitleType == ENodeTitleType::ListView)
+	if (Node.BlendSpace == nullptr)
 	{
-		return FText::Format(LOCTEXT("AimOffsetListTitle", "AimOffset '{BlendSpaceName}'"), Args);
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			return LOCTEXT("RotationOffsetBlend_NONE_ListTitle", "AimOffset '(None)'");
+		}
+		else
+		{
+			return LOCTEXT("RotationOffsetBlend_NONE_Title", "(None)\nAimOffset");
+		}
 	}
-	else
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
 	{
-		return FText::Format(LOCTEXT("AimOffsetFullTitle", "{BlendSpaceName}\nAimOffset"), Args);
+		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+
+		// FText::Format() is slow, so we cache this to save on performance
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AimOffsetListTitle", "AimOffset '{BlendSpaceName}'"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AimOffsetFullTitle", "{BlendSpaceName}\nAimOffset"), Args));
+		}
 	}
+	return CachedNodeTitles[TitleType];
 }
 
 void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	const bool bWantAimOffsets = true;
 	GetBlendSpaceEntries(bWantAimOffsets, ContextMenuBuilder);
+}
+
+void UAnimGraphNode_RotationOffsetBlendSpace::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UBlendSpaceBase> BlendSpace)
+	{
+		UAnimGraphNode_RotationOffsetBlendSpace* BlendSpaceNode = CastChecked<UAnimGraphNode_RotationOffsetBlendSpace>(NewNode);
+		BlendSpaceNode->Node.BlendSpace = BlendSpace.Get();
+	};
+
+	for (TObjectIterator<UBlendSpaceBase> BlendSpaceIt; BlendSpaceIt; ++BlendSpaceIt)
+	{
+		UBlendSpaceBase* BlendSpace = *BlendSpaceIt;
+		// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+		// check to make sure that the registrar is looking for actions of this type
+		// (could be regenerating actions for a specific asset, and therefore the 
+		// registrar would only accept actions corresponding to that asset)
+		if (!ActionRegistrar.IsOpenForRegistration(BlendSpace))
+		{
+			continue;
+		}
+
+		bool const bIsAimOffset = BlendSpace->IsA(UAimOffsetBlendSpace::StaticClass()) ||
+			BlendSpace->IsA(UAimOffsetBlendSpace1D::StaticClass());
+		if (bIsAimOffset)
+		{
+			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+			check(NodeSpawner != nullptr);
+			ActionRegistrar.AddBlueprintAction(BlendSpace, NodeSpawner);
+
+			TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BlendSpacePtr);
+		}
+	}
+}
+
+FBlueprintNodeSignature UAnimGraphNode_RotationOffsetBlendSpace::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(Node.BlendSpace);
+
+	return NodeSignature;
 }
 
 void UAnimGraphNode_RotationOffsetBlendSpace::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)

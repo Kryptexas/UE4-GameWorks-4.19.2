@@ -384,7 +384,7 @@ protected:
 	 */
 	void LogIORequest(const FString& Message, const FAsyncIORequest& IORequest);
 
-	/** Critical section used to syncronize access to outstanding requests map						*/
+	/** Critical section used to synchronize access to outstanding requests map						*/
 	FCriticalSection*				CriticalSection;
 	/** TMap of file name string hash to file handles												*/
 	TMap<uint32, IFileHandle*>		NameHashToHandleMap;

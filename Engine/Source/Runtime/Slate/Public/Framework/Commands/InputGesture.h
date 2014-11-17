@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InputGesture.h: Declares the FInputGesture class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -53,9 +49,7 @@ struct SLATE_API FInputGesture
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FInputGesture( )
 	{
 		bCtrl = bAlt = bShift = bCmd = 0;
@@ -121,7 +115,6 @@ public:
 	 * Compares this input gesture with another for equality.
 	 *
 	 * @param Other The other gesture to compare with.
-	 *
 	 * @return true if the gestures are equal, false otherwise.
 	 */
 	bool operator!=( const FInputGesture& Other ) const
@@ -133,7 +126,6 @@ public:
 	 * Compares this input gesture with another for inequality.
 	 *
 	 * @param Other The other gesture to compare with.
-	 *
 	 * @return true if the gestures are not equal, false otherwise.
 	 */
 	bool operator==( const FInputGesture& Other ) const
@@ -197,7 +189,6 @@ public:
 	 * Gets a type hash value for the specified gesture.
 	 *
 	 * @param Gesture The input gesture to get the hash value for.
-	 *
 	 * @return The hash value.
 	 */
 	friend uint32 GetTypeHash( const FInputGesture& Gesture )

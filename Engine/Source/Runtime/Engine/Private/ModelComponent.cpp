@@ -368,7 +368,7 @@ void UModelComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveI
 				// Enumerate the textures used by the surface's material.
 				TArray<UTexture*> Textures;
 				
-				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false);
+				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 
 				// Add each texture to the output with the appropriate parameters.
 				for(int32 TextureIndex = 0;TextureIndex < Textures.Num();TextureIndex++)

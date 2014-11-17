@@ -117,91 +117,91 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-			.Visibility( EVisibility::SelfHitTestInvisible )
+		.Visibility( EVisibility::SelfHitTestInvisible )
 
 		+ SVerticalBox::Slot()
-			.AutoHeight()
+		.AutoHeight()
+		[
+			// tab well area
+			SNew(SBorder)
+			.Visibility(this, &SDockingTabStack::GetTabWellVisibility)
+			.DesiredSizeScale(this, &SDockingTabStack::GetTabWellScale)
+			.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
+			.VAlign(VAlign_Bottom)
+			.OnMouseButtonDown(this, &SDockingTabStack::TabWellRightClicked)
+			.Padding(0.0f)
 			[
-				// tab well area
-				SNew(SBorder)
-					.Visibility(this, &SDockingTabStack::GetTabWellVisibility)
-					.DesiredSizeScale(this, &SDockingTabStack::GetTabWellScale)
-					.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
-					.VAlign(VAlign_Bottom)
-					.OnMouseButtonDown(this, &SDockingTabStack::TabWellRightClicked)
-					.Padding(0.0f)
-					[
-						SNew(SVerticalBox)
-							.Visibility(EVisibility::SelfHitTestInvisible)
+				SNew(SVerticalBox)
+				.Visibility(EVisibility::SelfHitTestInvisible)
 
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Expose(TitleBarSlot)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Expose(TitleBarSlot)
 
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								SNew(SImage)
-									.Image(this, &SDockingTabStack::GetTabWellBrush)
-							]
-					]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SImage)
+						.Image(this, &SDockingTabStack::GetTabWellBrush)
+				]
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		[
+			// tab content area
+			SAssignNew(OverlayManagement.ContentAreaOverlay, SOverlay)
+
+			+ SOverlay::Slot()
+			[
+				// content goes here
+				SAssignNew(ContentSlot, SBorder)
+				.BorderImage(this, &SDockingTabStack::GetContentAreaBrush)
+				.Padding(this, &SDockingTabStack::GetContentPadding)
+				[
+					SNew(STextBlock)
+						.Text(LOCTEXT("EmptyTabMessage", "Empty Tab!"))
+				]
 			]
 
-		+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			+ SOverlay::Slot()
+			.Padding(0.0f)
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Top)
 			[
-				// tab content area
-				SAssignNew(OverlayManagement.ContentAreaOverlay, SOverlay)
-
-				+ SOverlay::Slot()
-					[
-						// content goes here
-						SAssignNew(ContentSlot, SBorder)
-							.BorderImage(this, &SDockingTabStack::GetContentAreaBrush)
-							.Padding(this, &SDockingTabStack::GetContentPadding)
-							[
-								SNew(STextBlock)
-									.Text(LOCTEXT("EmptyTabMessage", "Empty Tab!"))
-							]
-					]
-
-				+ SOverlay::Slot()
-					.Padding(0.0f)
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Top)
-					[
-						// unhide tab well button (yellow triangle)
-						SNew(SButton)
-							.ButtonStyle(UnhideTabWellButtonStyle)
-							.OnClicked(this, &SDockingTabStack::UnhideTabWell)
-							.ContentPadding(0.0f)
-							.Visibility(this, &SDockingTabStack::GetUnhideButtonVisibility)
-							.DesiredSizeScale(this, &SDockingTabStack::GetUnhideTabWellButtonScale)
-							.ButtonColorAndOpacity(this, &SDockingTabStack::GetUnhideTabWellButtonOpacity)
-							[
-								// button should be big enough to show its own image
-								SNew(SSpacer)
-									.Size(UnhideTabWellButtonStyle->Normal.ImageSize)
-							]
-					]
+				// unhide tab well button (yellow triangle)
+				SNew(SButton)
+				.ButtonStyle(UnhideTabWellButtonStyle)
+				.OnClicked(this, &SDockingTabStack::UnhideTabWell)
+				.ContentPadding(0.0f)
+				.Visibility(this, &SDockingTabStack::GetUnhideButtonVisibility)
+				.DesiredSizeScale(this, &SDockingTabStack::GetUnhideTabWellButtonScale)
+				.ButtonColorAndOpacity(this, &SDockingTabStack::GetUnhideTabWellButtonOpacity)
+				[
+					// button should be big enough to show its own image
+					SNew(SSpacer)
+						.Size(UnhideTabWellButtonStyle->Normal.ImageSize)
+				]
+			]
 
 #if DEBUG_TAB_MANAGEMENT
-				+ SOverlay::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Top)
-					[
-						SNew(SBorder)
-							.BorderImage(FCoreStyle::Get().GetBrush("Docking.Border"))
-							.BorderBackgroundColor(FLinearColor(1.0f, 0.5f, 0.0f, 0.75f))
-							.Visibility(EVisibility::HitTestInvisible)
-							[
-								SNew(STextBlock)
-									.Text(this, &SDockingTabStack::ShowPersistentTabs)
-									.ShadowOffset(FVector2D::UnitVector)
-							]
-					]
-#endif
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SBorder)
+				.BorderImage(FCoreStyle::Get().GetBrush("Docking.Border"))
+				.BorderBackgroundColor(FLinearColor(1.0f, 0.5f, 0.0f, 0.75f))
+				.Visibility(EVisibility::HitTestInvisible)
+				[
+					SNew(STextBlock)
+					.Text(this, &SDockingTabStack::ShowPersistentTabs)
+					.ShadowOffset(FVector2D::UnitVector)
+				]
 			]
+#endif
+		]
 	];
 
 	if (bIsDocumentArea)
@@ -280,7 +280,7 @@ void SDockingTabStack::AddTabWidget( const TSharedRef<SDockTab>& InTab, int32 At
 
 }
 
-const TArray< TSharedRef<SDockTab> >& SDockingTabStack::GetTabs() const
+const TSlotlessChildren<SDockTab>& SDockingTabStack::GetTabs() const
 {
 	return TabWell->GetTabs();
 }
@@ -338,7 +338,7 @@ FReply SDockingTabStack::OnDragOver( const FGeometry& MyGeometry, const FDragDro
 	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
 	if ( DragDropOperation.IsValid() )
 	{	
-		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(SharedThis(this), SDockTab::DockingViaTarget))
+		if (DragDropOperation->CanDockInNode(SharedThis(this), FDockingDragOperation::DockingViaTarget))
 		{
 			FGeometry OverlayGeometry = this->FindChildGeometry( MyGeometry, OverlayManagement.ContentAreaOverlay.ToSharedRef() );
 	
@@ -435,7 +435,7 @@ FReply SDockingTabStack::OnUserAttemptingDock( SDockingNode::RelativeDirection D
 
 TArray< TSharedRef<SDockTab> > SDockingTabStack::GetAllChildTabs() const
 {
-	return GetTabs();
+	return GetTabs().AsArrayCopy();
 }
 
 void SDockingTabStack::CloseForegroundTab()
@@ -455,17 +455,16 @@ void SDockingTabStack::CloseAllButForegroundTab(ETabsToClose TabsToClose)
 		int32 DestroyIndex = 0;
 		while ((TabWell->GetNumTabs() > 1) && (DestroyIndex < TabWell->GetNumTabs()))
 		{
-			auto Tab = TabWell->GetTabs()[DestroyIndex];
+			const TSharedRef<SDockTab>& Tab = TabWell->GetTabs()[DestroyIndex];
 
-			const bool bCanClose = (TabsToClose == CloseDocumentsAndTools) || (Tab->GetTabRole() == ETabRole::DocumentTab);
+			const bool bCanClose = 
+				(TabsToClose == CloseAllTabs) ||
+				(TabsToClose == CloseDocumentTabs && Tab->GetTabRole() == ETabRole::DocumentTab) ||
+				(TabsToClose == CloseDocumentAndMajorTabs && (Tab->GetTabRole() == ETabRole::DocumentTab || Tab->GetTabRole() == ETabRole::MajorTab));
 
-			if ((Tab == ForegroundTab) || !bCanClose)
+			if ((Tab == ForegroundTab) || !bCanClose || !Tab->RequestCloseTab())
 			{
 				++DestroyIndex;
-			}
-			else
-			{
-				Tab->RequestCloseTab();
 			}
 		}
 	}
@@ -532,27 +531,21 @@ TSharedRef<SWidget> SDockingTabStack::MakeContextMenu()
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateSP( this, &SDockingTabStack::CloseForegroundTab ),
-					FCanExecuteAction()
+					FCanExecuteAction::CreateSP(this, &SDockingTabStack::CanCloseForegroundTab)
 				)
 			);
 
-			// If the active tab is a document tab, and there is more than one open in this tab well, offer to close the others
-			auto ForegroundTabPtr = TabWell->GetForegroundTab();
-			if (ForegroundTabPtr.IsValid() && (ForegroundTabPtr->GetTabRole() == ETabRole::DocumentTab) && (TabWell->GetNumTabs() > 1))
-			{
-				const ETabsToClose TabsToClose = CloseDocumentTabs;
+			const ETabsToClose TabsToClose = CloseDocumentAndMajorTabs;
 
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("CloseOtherTabs", "Close Other Tabs"),
-					LOCTEXT("CloseOtherTabsTooltil", "Closes all tabs except for the active tab."),
-					FSlateIcon(),
-					FUIAction(
-						FExecuteAction::CreateSP( this, &SDockingTabStack::CloseAllButForegroundTab, TabsToClose ),
-						FCanExecuteAction()
-					)
-				);
-					
-			}
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("CloseOtherTabs", "Close Other Tabs"),
+				LOCTEXT("CloseOtherTabsTooltil", "Closes all tabs except for the active tab."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP( this, &SDockingTabStack::CloseAllButForegroundTab, TabsToClose ),
+					FCanExecuteAction::CreateSP(this, &SDockingTabStack::CanCloseAllButForegroundTab)
+				)
+			);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -661,7 +654,7 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingTabStack::GatherPersistentLayout() 
 	{
 		// Each live tab might want to save custom visual state.
 		{
-			const TArray< TSharedRef<SDockTab> >& MyTabs = this->GetTabs();
+			const TArray< TSharedRef<SDockTab> > MyTabs = this->GetTabs().AsArrayCopy();
 			for (int32 TabIndex=0; TabIndex < MyTabs.Num(); ++TabIndex)
 			{
 				MyTabs[TabIndex]->PersistVisualState();
@@ -830,12 +823,37 @@ bool SDockingTabStack::CanHideTabWell() const
 	return GetNumTabs() == 1 && (GetTabs()[0]->GetTabRole() != ETabRole::MajorTab && !GetTabs()[0]->IsNomadTabWithMajorTabStyle());
 }
 
+bool SDockingTabStack::CanCloseForegroundTab() const
+{
+	TSharedPtr<SDockTab> ForegroundTabPtr = TabWell->GetForegroundTab();
+	return ForegroundTabPtr.IsValid() && ForegroundTabPtr->CanCloseTab();
+}
+
+bool SDockingTabStack::CanCloseAllButForegroundTab() const
+{
+	// If the active tab is a document tab or major tab and there is at least 1 other closeable tab, offer to close the others
+	TSharedPtr<SDockTab> ForegroundTabPtr = TabWell->GetForegroundTab();
+	if (ForegroundTabPtr.IsValid() && (ForegroundTabPtr->GetTabRole() == ETabRole::DocumentTab || ForegroundTabPtr->GetTabRole() == ETabRole::MajorTab) && (TabWell->GetNumTabs() > 1))
+	{
+		const TArray< TSharedRef<SDockTab> > MyTabs = this->GetTabs().AsArrayCopy();
+		for (int32 TabIndex = 0; TabIndex < MyTabs.Num(); ++TabIndex)
+		{
+			TSharedRef<SDockTab> Tab = MyTabs[TabIndex];
+			if (Tab != ForegroundTabPtr && Tab->CanCloseTab())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 SSplitter::ESizeRule SDockingTabStack::GetSizeRule() const
 {
 	if (this->GetNumTabs() == 1 && this->GetTabs()[0]->ShouldAutosize() )
 	{
 		// If there is a single tab in this stack and it is
-		// sized to content, then the stack's cell shoudl size to Content.
+		// sized to content, then the stack's cell should size to Content.
 		return SSplitter::SizeToContent;
 	}
 	else

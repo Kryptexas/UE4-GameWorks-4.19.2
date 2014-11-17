@@ -62,6 +62,9 @@ struct FAssetPickerConfig
 	/** The delegate that fires when an asset was selected */
 	FOnAssetSelected OnAssetSelected;
 
+	/** The delegate that fires when a folder was double clicked */
+	FOnPathSelected OnFolderEntered;
+
 	/** The delegate that fires when an asset is double clicked */
 	FOnAssetDoubleClicked OnAssetDoubleClicked;
 
@@ -93,6 +96,9 @@ struct FAssetPickerConfig
 	/** The text to show when there are no assets to show */
 	TAttribute< FText > AssetShowWarningText;
 
+	/** If set, view settings will be saved and loaded for the asset view using this name in ini files */
+	FString SaveSettingsName;
+
 	/** If true, the search box will gain focus when the asset picker is created */
 	bool bFocusSearchBoxWhenOpened;
 
@@ -111,13 +117,13 @@ struct FAssetPickerConfig
 	/** Indicates if this view is allowed to show classes */
 	bool bCanShowClasses;
 
-	/** Indicates if the 'Show Only Assets In Selection' option should be visible */
-	bool bCanShowOnlyAssetsInSelectedFolders;
+	/** Indicates if the 'Show folders' option should be enabled or disabled */
+	bool bCanShowFolders;
 
-	/** Indicates if the 'Real-Time Thumbnails' option should be visible */
+	/** Indicates if the 'Real-Time Thumbnails' option should be enabled or disabled */
 	bool bCanShowRealTimeThumbnails;
 
-	/** Indicates if the 'Show Developers' option should be visible */
+	/** Indicates if the 'Show Developers' option should be enabled or disabled */
 	bool bCanShowDevelopersFolder;
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
@@ -140,7 +146,7 @@ struct FAssetPickerConfig
 		, bAutohideSearchBar(false)
 		, bAllowDragging(true)
 		, bCanShowClasses(true)
-		, bCanShowOnlyAssetsInSelectedFolders(false)
+		, bCanShowFolders(false)
 		, bCanShowRealTimeThumbnails(false)
 		, bCanShowDevelopersFolder(false)
 		, bPreloadAssetsForContextMenu(true)
@@ -160,6 +166,9 @@ struct FPathPickerConfig
 
 	/** The delegate that fires when a path is right clicked and a context menu is requested */
 	FContentBrowserMenuExtender_SelectedPaths OnGetPathContextMenuExtender;
+
+	/** A pointer to an existing delegate that, when executed, will set the paths for the path picker after it is created. */
+	TArray<FSetPathPickerPathsDelegate*> SetPathsDelegates;
 
 	/** If true, the search box will gain focus when the path picker is created */
 	bool bFocusSearchBoxWhenOpened;
@@ -196,6 +205,70 @@ struct FCollectionPickerConfig
 	{}
 };
 
+namespace EAssetDialogType
+{
+	enum Type
+	{
+		Open,
+		Save
+	};
+}
+
+/** A struct containing shared details about how asset dialogs should behave. You should not instanciate this config, but use FOpenAssetDialogConfig or FSaveAssetDialogConfig instead. */
+struct FSharedAssetDialogConfig
+{
+	FText DialogTitleOverride;
+	FString DefaultPath;
+	TArray<FName> AssetClassNames;
+	FVector2D WindowSizeOverride;
+
+	virtual EAssetDialogType::Type GetDialogType() const = 0;
+
+	FSharedAssetDialogConfig()
+		: WindowSizeOverride(EForceInit::ForceInitToZero)
+	{}
+};
+
+/** A struct containing details about how the open asset dialog should behave. */
+struct FOpenAssetDialogConfig : public FSharedAssetDialogConfig
+{
+	bool bAllowMultipleSelection;
+
+	virtual EAssetDialogType::Type GetDialogType() const override { return EAssetDialogType::Open; }
+
+	FOpenAssetDialogConfig()
+		: FSharedAssetDialogConfig()
+		, bAllowMultipleSelection(false)
+	{}
+};
+
+/** An enum to choose the behavior of the save asset dialog when the user chooses an asset that already exists */
+namespace ESaveAssetDialogExistingAssetPolicy
+{
+	enum Type
+	{
+		/** Display an error and disallow the save */
+		Disallow,
+
+		/** Allow the save, but warn that the existing file will be overwritten */
+		AllowButWarn
+	};
+}
+
+/** A struct containing details about how the save asset dialog should behave. */
+struct FSaveAssetDialogConfig : public FSharedAssetDialogConfig
+{
+	FString DefaultAssetName;
+	ESaveAssetDialogExistingAssetPolicy::Type ExistingAssetPolicy;
+
+	virtual EAssetDialogType::Type GetDialogType() const override { return EAssetDialogType::Save; }
+
+	FSaveAssetDialogConfig()
+		: FSharedAssetDialogConfig()
+		, ExistingAssetPolicy(ESaveAssetDialogExistingAssetPolicy::Disallow)
+	{}
+};
+
 /**
  * Content browser module singleton
  */
@@ -228,6 +301,38 @@ public:
 	 * @return The collection picker widget
 	 */
 	virtual TSharedRef<class SWidget> CreateCollectionPicker(const FCollectionPickerConfig& CollectionPickerConfig) = 0;
+
+	/**
+	 * Opens the Open Asset dialog in a non-modal window
+	 *
+	 * @param OpenAssetConfig				A struct containing details about how the open asset dialog should behave
+	 * @param OnAssetsChosenForOpen			A delegate that is fired when assets are chosen and the open button is pressed
+	 */
+	virtual void CreateOpenAssetDialog(const FOpenAssetDialogConfig& OpenAssetConfig, const FOnAssetsChosenForOpen& OnAssetsChosenForOpen) = 0;
+
+	/**
+	 * Opens the Open Asset dialog in a modal window
+	 *
+	 * @param OpenAssetConfig				A struct containing details about how the open asset dialog should behave
+	 * @return The assets that were chosen to be opened
+	 */
+	virtual TArray<FAssetData> CreateModalOpenAssetDialog(const FOpenAssetDialogConfig& InConfig) = 0;
+
+	/**
+	 * Opens the Save Asset dialog in a non-modal window
+	 *
+	 * @param SaveAssetConfig				A struct containing details about how the save asset dialog should behave
+	 * @param OnAssetNameChosenForSave		A delegate that is fired when an object path is chosen and the save button is pressed
+	 */
+	virtual void CreateSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig, const FOnObjectPathChosenForSave& OnAssetNameChosenForSave) = 0;
+
+	/**
+	 * Opens the Save Asset dialog in a modal window
+	 *
+	 * @param SaveAssetConfig				A struct containing details about how the save asset dialog should behave
+	 * @return The object path that was chosen
+	 */
+	virtual FString CreateModalSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig) = 0;
 
 	/** Returns true if there is at least one browser open that is eligible to be a primary content browser */
 	virtual bool HasPrimaryContentBrowser() const = 0;

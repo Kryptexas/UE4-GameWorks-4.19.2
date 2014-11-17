@@ -10,7 +10,7 @@ class FMessageLogModel
 public:
 
 	/** Destructor */ 
-	~FMessageLogModel();
+	virtual ~FMessageLogModel();
 
 	/** Unregisters a log listing with the message log system, true if successful */
 	bool UnregisterLogListingModel( const FName& LogName );

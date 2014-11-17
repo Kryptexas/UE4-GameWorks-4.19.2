@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "EdGraph/EdGraphNode.h"
 #include "MaterialGraphNode_Base.generated.h"
 
 UCLASS(MinimalAPI)
@@ -29,7 +29,7 @@ class UMaterialGraphNode_Base : public UEdGraphNode
 	/** Get the Material Expression input index from an input pin */
 	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const {return -1;}
 	/** Get the Material value type of an input pin */
-	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const {return MCT_Unknown;}
+	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const;
 
 	/**
 	 * Handles inserting the node between the FromPin and what the FromPin was original connected to

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WidgetStyle.cpp: Implements the FWidgetStyle structure.
-=============================================================================*/
-
 #include "SlateCorePrivatePCH.h"
 
 

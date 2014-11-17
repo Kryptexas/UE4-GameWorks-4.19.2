@@ -10,14 +10,18 @@ bool GenerateProjectFiles(const FString& ProjectFileName);
 bool RegisterCurrentEngineDirectory()
 {
 	// Prompt for registering this directory
-	if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, TEXT("Configure this directory as an Unreal Engine installation?"), TEXT("Question")) != EAppReturnType::Yes)
+	if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, TEXT("Register this directory as an Unreal Engine installation?"), TEXT("Question")) != EAppReturnType::Yes)
 	{
 		return false;
 	}
 
 	// Get the current engine directory.
 	FString EngineRootDir = FPlatformProcess::BaseDir();
-	FPlatformInstallation::NormalizeEngineRootDir(EngineRootDir);
+	if(!FPlatformInstallation::NormalizeEngineRootDir(EngineRootDir))
+	{
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("The current folder does not contain an engine installation."), TEXT("Error"));
+		return false;
+	}
 
 	// Get any existing tag name or register a new one
 	FString Identifier;
@@ -135,6 +139,14 @@ bool LaunchEditor(const FString& ProjectFileName, const FString& Arguments)
 bool GenerateProjectFiles(const FString& ProjectFileName)
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	// Check it's a code project
+	FString SourceDir = FPaths::GetPath(ProjectFileName) / TEXT("Source");
+	if(!IPlatformFile::GetPlatformPhysical().DirectoryExists(*SourceDir))
+	{
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("This project does not have any source code. You need to add C++ source files to the project from the Editor before you can generate project files."), TEXT("Error"));
+		return false;
+	}
 
 	// Get the engine root directory
 	FString RootDir;

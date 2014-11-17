@@ -48,26 +48,26 @@ public:
 
 protected:
 
-	/*
+	/**
 	 * Finds some automation workers on the discovered game instances.
 	 *
 	 * @param DeltaTime Time since last update. Used to add a delay before we send the request.
 	 */
 	void FindWorkers( float DeltaTime );
 
-	/*
+	/**
 	 * Generates the automation report, and finish the testing process.
 	 */
 	void GenerateReport();
 
-	/*
+	/**
 	 * Monitors the testing process to see if we have finished.
 	 */
 	void MonitorTests();
 
 private:
 
-	/*
+	/**
 	 * Callback function from the automation controller to let us know there are tests available.
 	 */
 	void HandleRefreshTestCallback();

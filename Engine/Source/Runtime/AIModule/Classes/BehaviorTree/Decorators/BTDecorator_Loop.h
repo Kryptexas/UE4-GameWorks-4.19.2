@@ -5,6 +5,7 @@
 
 struct FBTLoopDecoratorMemory
 {
+	int32 SearchId;
 	uint8 RemainingExecutions;
 };
 

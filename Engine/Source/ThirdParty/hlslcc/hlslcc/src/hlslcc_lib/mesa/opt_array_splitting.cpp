@@ -62,6 +62,8 @@ namespace opt_array_splitting
 			this->mem_ctx = NULL;
 			if (var->type->is_array())
 				this->size = var->type->length;
+			else if (var->type->is_patch())
+			  this->size = var->type->patch_length;
 			else
 				this->size = var->type->matrix_columns;
 		}
@@ -124,7 +126,7 @@ variable_entry* ir_array_reference_visitor::get_variable_entry(ir_variable *var)
 		var->mode != ir_var_temporary)
 		return NULL;
 
-	if (!(var->type->is_array() || var->type->is_matrix()))
+	if (!(var->type->is_array() || var->type->is_matrix() || var->type->is_patch()))
 	{
 		return NULL;
 	}
@@ -133,6 +135,9 @@ variable_entry* ir_array_reference_visitor::get_variable_entry(ir_variable *var)
 	* linking, this should be resolved.
 	*/
 	if (var->type->is_array() && var->type->length == 0)
+		return NULL;
+
+	if (var->type->is_patch() && var->type->patch_length == 0)
 		return NULL;
 
 	foreach_iter(exec_list_iterator, iter, this->variable_list)
@@ -376,6 +381,10 @@ bool optimize_split_arrays(exec_list *instructions, bool linked)
 			auto* Scalar = type->get_scalar_type();
 			check(Scalar->is_numeric());
 			subtype = glsl_type::get_instance(Scalar->base_type, type->vector_elements, 1);
+		}
+		else if (type->is_patch())
+		{
+			subtype = type->inner_type;
 		}
 		else
 		{

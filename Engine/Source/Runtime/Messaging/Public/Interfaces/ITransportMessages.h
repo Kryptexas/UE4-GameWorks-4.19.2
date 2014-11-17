@@ -104,8 +104,6 @@ public:
 
 protected:
 
-	/**
-	 * Virtual constructor.
-	 */
+	/** Virtual constructor. */
 	~ITransportMessages( ) { }
 };

@@ -60,7 +60,7 @@ void FFriendsAndChatManager::Init( FOnFriendsNotification& NotificationDelegate 
 		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnSendInviteComplete );
 		OnDeleteFriendsListCompleteDelegate = FOnDeleteFriendsListCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnDeleteFriendsListComplete );
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnDeleteFriendComplete );
-		OnQueryUserIdFromIdentificationStringCompleteDelegate = FOnQueryUserIdFromIdentificationStringCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdFromIdentificationStringComplete );
+		OnQueryUserIdFromDisplayNameCompleteDelegate = FOnQueryUserIdFromDisplayNameCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdFromDisplayNameComplete );
 		OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserInfoComplete );
 
 		FriendsInterface->AddOnReadFriendsListCompleteDelegate( 0, OnReadFriendsCompleteDelegate );
@@ -126,7 +126,7 @@ void FFriendsAndChatManager::Logout()
 			FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
 			if ( OnlineAccountMappingMcp.IsValid() )
 			{
-				OnlineAccountMappingMcp->ClearOnQueryUserIdFromIdentificationStringCompleteDelegate( OnQueryUserIdFromIdentificationStringCompleteDelegate );
+				OnlineAccountMappingMcp->ClearOnQueryUserIdFromDisplayNameCompleteDelegate( OnQueryUserIdFromDisplayNameCompleteDelegate );
 				OnlineSubMcp->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate( 0, OnQueryUserInfoCompleteDelegate );
 			}
 		}
@@ -627,11 +627,11 @@ void FFriendsAndChatManager::SendFriendRequests()
 	FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
 	TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 
-	OnlineAccountMappingMcp->AddOnQueryUserIdFromIdentificationStringCompleteDelegate(OnQueryUserIdFromIdentificationStringCompleteDelegate);
+	OnlineAccountMappingMcp->AddOnQueryUserIdFromDisplayNameCompleteDelegate(OnQueryUserIdFromDisplayNameCompleteDelegate);
 
 	for ( int32 Index = 0; Index < FriendByNameRequests.Num(); Index++ )
 	{
-		OnlineAccountMappingMcp->QueryUserIdFromIdentificationString( *UserId, FriendByNameRequests[Index] );
+		OnlineAccountMappingMcp->QueryUserIdFromDisplayName( *UserId, FriendByNameRequests[Index] );
 	}
 }
 
@@ -781,7 +781,7 @@ void FFriendsAndChatManager::SendFriendInviteNotification()
 	PendingIncomingInvitesList.RemoveAt( 0 );
 }
 
-void FFriendsAndChatManager::OnQueryUserIdFromIdentificationStringComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& IdentificationString, const FUniqueNetId& IdentifiedUserId, const FString& Error)
+void FFriendsAndChatManager::OnQueryUserIdFromDisplayNameComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error)
 {
 	check( OnlineSubMcp != NULL && OnlineSubMcp->GetMcpAccountMappingService().IsValid() );
 
@@ -790,17 +790,17 @@ void FFriendsAndChatManager::OnQueryUserIdFromIdentificationStringComplete(bool 
 		TSharedPtr<FUniqueNetId> FriendId = OnlineIdentity->CreateUniquePlayerId( IdentifiedUserId.ToString() );
 		// Don't allow the user to add themselves as friends
 		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-		if ( UserId.IsValid() && OnlineIdentity->GetUserAccount( *UserId )->GetDisplayName() != IdentificationString )
+		if ( UserId.IsValid() && OnlineIdentity->GetUserAccount( *UserId )->GetDisplayName() != DisplayName )
 		{
 			PendingOutgoingFriendRequests.Add( FriendId.ToSharedRef() );
 		}
 	}
-	FriendByNameInvites.AddUnique( IdentificationString );
-	FriendByNameRequests.Remove( IdentificationString );
+	FriendByNameInvites.AddUnique( DisplayName );
+	FriendByNameRequests.Remove( DisplayName );
 	if ( FriendByNameRequests.Num() == 0 )
 	{
 		FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
-		OnlineAccountMappingMcp->ClearOnQueryUserIdFromIdentificationStringCompleteDelegate(OnQueryUserIdFromIdentificationStringCompleteDelegate);
+		OnlineAccountMappingMcp->ClearOnQueryUserIdFromDisplayNameCompleteDelegate(OnQueryUserIdFromDisplayNameCompleteDelegate);
 
 		if ( PendingOutgoingFriendRequests.Num() > 0 )
 		{
@@ -832,54 +832,63 @@ void FFriendsAndChatManager::OnSendInviteComplete( int32 LocalPlayer, bool bWasS
 void FFriendsAndChatManager::OnReadFriendsComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr )
 {
 	TArray< TSharedRef<FOnlineFriend> > Friends;
+	bool bReadyToChangeState = true;
 
-	if (ReadListRequests.Num() == 0)
+	if ( ReadListRequests.Num() == 0 )
 	{
 		// We got a request back when we weren't expecting it
 		UE_LOG(LogOnline, Warning, TEXT("Got ReadFriends response for list %s at unexpected time"), *ListName);
 		return;
 	}
 
-	FriendsInterface->GetFriendsList( 0, ListName, Friends );
-	
-	if ( Friends.Num() > 0 )
+	if ( FriendsInterface->GetFriendsList(0, ListName, Friends) )
 	{
-		for ( int32 Index = 0; Index < Friends.Num(); Index++ )
+		if (Friends.Num() > 0)
 		{
-			const FOnlineFriend& Friend = *Friends[Index];
-			TSharedPtr< FFriendStuct > ExistingFriend = FindUser( Friend.GetUserId(), ListName );
-			if ( ExistingFriend.IsValid() )
+			for (int32 Index = 0; Index < Friends.Num(); Index++)
 			{
-				if ( Friends[Index]->GetInviteStatus() != ExistingFriend->GetOnlineFriend()->GetInviteStatus() )
+				const FOnlineFriend& Friend = *Friends[Index];
+				TSharedPtr< FFriendStuct > ExistingFriend = FindUser(Friend.GetUserId(), ListName);
+				if ( ExistingFriend.IsValid() )
 				{
-					ExistingFriend->SetOnlineFriend( Friends[Index] );
+					if (Friends[Index]->GetInviteStatus() != ExistingFriend->GetOnlineFriend()->GetInviteStatus())
+					{
+						ExistingFriend->SetOnlineFriend(Friends[Index]);
+					}
+					PendingFriendsList.Add(ExistingFriend);
 				}
-				PendingFriendsList.Add( ExistingFriend );
-			}
-			else
-			{
-				QueryUserIds.Add( Friend.GetUserId() );
+				else
+				{
+					QueryUserIds.Add(Friend.GetUserId());
+				}
 			}
 		}
-	}
 
-	check(OnlineSubMcp != NULL && OnlineSubMcp->GetMcpAccountMappingService().IsValid());
-	IOnlineUserPtr UserInterface = OnlineSubMcp->GetUserInterface();
+		check( OnlineSubMcp != NULL && OnlineSubMcp->GetMcpAccountMappingService().IsValid() );
+		IOnlineUserPtr UserInterface = OnlineSubMcp->GetUserInterface();
 
-	if ( QueryUserIds.Num() > 0 )
-	{
-		OnlineSubMcp->GetUserInterface()->AddOnQueryUserInfoCompleteDelegate( 0, OnQueryUserInfoCompleteDelegate );
-		UserInterface->QueryUserInfo( 0, QueryUserIds );
+		if ( QueryUserIds.Num() > 0 )
+		{
+			OnlineSubMcp->GetUserInterface()->AddOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
+			UserInterface->QueryUserInfo(0, QueryUserIds);
+			// OnQueryUserInfoComplete will handle state change
+			bReadyToChangeState = false;
+		}
 	}
 	else
 	{
-		if ( ReadListRequests[0] == EFriendsLists::Default )
+		UE_LOG(LogOnline, Warning, TEXT("Failed to obtain Friends List %s"), *ListName);
+	}
+
+	if (bReadyToChangeState)
+	{
+		if (ReadListRequests[0] == EFriendsLists::Default)
 		{
-			SetState( EFriendsAndManagerState::ProcessFriendsList );
+			SetState(EFriendsAndManagerState::ProcessFriendsList);
 		}
 		else
 		{
-			SetState( EFriendsAndManagerState::ProcessRecentPlayersList );
+			SetState(EFriendsAndManagerState::ProcessRecentPlayersList);
 		}
 	}
 }
@@ -906,12 +915,12 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 
 	for ( int32 UserIdx=0; UserIdx < UserIds.Num(); UserIdx++ )
 	{
-		TSharedPtr<FOnlineFriend> OnlineFirend = FriendsInterface->GetFriend( 0, *UserIds[UserIdx], EFriendsLists::ToString( ReadListRequests[0] ) );
+		TSharedPtr<FOnlineFriend> OnlineFriend = FriendsInterface->GetFriend( 0, *UserIds[UserIdx], EFriendsLists::ToString( ReadListRequests[0] ) );
 		TSharedPtr<FOnlineUser> OnlineUser = OnlineSubMcp->GetUserInterface()->GetUserInfo( LocalPlayer, *UserIds[UserIdx] );
 
-		if ( OnlineFirend.IsValid() && OnlineUser.IsValid() )
+		if (OnlineFriend.IsValid() && OnlineUser.IsValid())
 		{
-			TSharedPtr< FFriendStuct > FriendItem = MakeShareable( new FFriendStuct( OnlineFirend, OnlineUser, DisplayList ) );
+			TSharedPtr< FFriendStuct > FriendItem = MakeShareable(new FFriendStuct(OnlineFriend, OnlineUser, DisplayList));
 			PendingFriendsList.Add( FriendItem );
 		}
 		else

@@ -30,6 +30,7 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"RHI",
+                    "RenderCore",
 				}
 				);
 
@@ -43,12 +44,6 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 			}
-
-            //@TODO: included always for now. Fortnite extends some classes from GDT and I have to deal with it first. (sebak)
-            //if (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
-            {
-                PublicDependencyModuleNames.Add("GameplayDebugger");
-            }
 
             if (UEBuildConfiguration.bCompileRecast)
             {

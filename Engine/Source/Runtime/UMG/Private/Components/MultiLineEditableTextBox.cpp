@@ -16,6 +16,17 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FPostConstructInitial
 
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+
+	SMultiLineEditableTextBox::FArguments Defaults;
+	WidgetStyle = *Defaults._Style;
+	TextStyle = *Defaults._TextStyle;
+}
+
+void UMultiLineEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyEditableTextBlock.Reset();
 }
 
 TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
@@ -26,8 +37,10 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 	{
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 	}
-
+	
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
+		.Style(&WidgetStyle)
+		.TextStyle(&TextStyle)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.Justification(Justification)
 		.ForegroundColor(ForegroundColor)
@@ -47,15 +60,9 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 	return MyEditableTextBlock.ToSharedRef();
 }
 
-void UMultiLineEditableTextBox::SyncronizeProperties()
+void UMultiLineEditableTextBox::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
-
-	//const FMultiLineEditableTextBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FMultiLineEditableTextBoxStyle>() : NULL;
-	//if ( StylePtr )
-	//{
-	//	MyEditableTextBlock->SetStyle(StylePtr);
-	//}
+	Super::SynchronizeProperties();
 
 	MyEditableTextBlock->SetText(Text);
 //	MyEditableTextBlock->SetHintText(HintText);
@@ -103,11 +110,35 @@ void UMultiLineEditableTextBox::HandleOnTextCommitted(const FText& Text, ETextCo
 	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
+void UMultiLineEditableTextBox::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FEditableTextBoxStyle* StylePtr = Style_DEPRECATED->GetStyle<FEditableTextBoxStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UMultiLineEditableTextBox::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableTextBox");
+}
+
+const FText UMultiLineEditableTextBox::GetPaletteCategory()
+{
+	return LOCTEXT("Common", "Common");
 }
 
 #endif

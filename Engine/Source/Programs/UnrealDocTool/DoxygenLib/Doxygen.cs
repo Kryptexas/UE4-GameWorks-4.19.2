@@ -13,7 +13,7 @@ namespace DoxygenLib
 	public class DoxygenConfig
 	{
 		public string Name;
-		public string InputPath;
+		public string[] InputPaths;
 		public string OutputPath;
 		public string OutputTagfile;
 
@@ -23,10 +23,10 @@ namespace DoxygenLib
 		public List<string> InputTagfiles = new List<string>();
 		public List<string> ExpandAsDefined = new List<string>();
 
-		public DoxygenConfig(string InName, string InInputPath, string InOutputPath)
+		public DoxygenConfig(string InName, string[] InInputPaths, string InOutputPath)
 		{
 			Name = InName;
-			InputPath = InInputPath;
+			InputPaths = InInputPaths;
 			OutputPath = InOutputPath;
 		}
 
@@ -47,7 +47,7 @@ namespace DoxygenLib
 				FormatSetting(Output, "GENERATE_LATEX", "NO");
 				FormatSetting(Output, "GENERATE_XML", "YES");
 				FormatSetting(Output, "WARN_IF_UNDOCUMENTED", "NO");
-				FormatSetting(Output, "QUIET", "YES");
+//				FormatSetting(Output, "QUIET", "YES");
 				FormatSetting(Output, "EXTRACT_ALL", "YES");
 				FormatSetting(Output, "WARNINGS", "YES");
 				FormatSetting(Output, "RECURSIVE", "NO");
@@ -56,21 +56,12 @@ namespace DoxygenLib
 				FormatSetting(Output, "WARN_NO_PARAMDOC", "NO");
 				FormatSetting(Output, "ENABLE_PREPROCESSING", "YES");
 				FormatSetting(Output, "MACRO_EXPANSION", "YES");
-				FormatSetting(Output, "JAVADOC_AUTOBRIEF", "YES");
 				FormatSetting(Output, "SKIP_FUNCTION_MACROS", "NO");
 
 				// Write the conditional settings
 				if (OutputTagfile != null)
 				{
 					FormatSetting(Output, "GENERATE_TAGFILE", QuoteValue(OutputTagfile));
-				}
-
-				// Build the input paths
-				List<string> InputPaths = new List<string>();
-				InputPaths.Add(InputPath);
-				if (Directory.Exists(InputPath))
-				{
-					InputPaths.AddRange(Directory.EnumerateDirectories(InputPath, "*", SearchOption.AllDirectories));
 				}
 
 				// List of input paths
@@ -87,7 +78,7 @@ namespace DoxygenLib
 
 				// List of valid file patterns
 				Output.WriteLine();
-				FormatSetting(Output, "FILE_PATTERNS", new List<string> { "*.h", "*.c", "*.cpp", "*.inl", "*.inc" });
+				FormatSetting(Output, "FILE_PATTERNS", new List<string> { "*.h", "*.c", "*.hpp", "*.cpp", "*.inl", "*.inc" });
 
 				// List of tag files
 				Output.WriteLine();
@@ -169,7 +160,7 @@ namespace DoxygenLib
 			{
 				DoxygenProcess.StartInfo.WorkingDirectory = WorkingDir;
 				DoxygenProcess.StartInfo.FileName = DoxygenPath;
-				DoxygenProcess.StartInfo.Arguments = "\"" + ConfigFilePath + "\"";
+				DoxygenProcess.StartInfo.Arguments = "\"" + ConfigFilePath + "\" -b";
 				DoxygenProcess.StartInfo.UseShellExecute = false;
 				DoxygenProcess.StartInfo.RedirectStandardOutput = true;
 				DoxygenProcess.StartInfo.RedirectStandardError = true;

@@ -267,7 +267,7 @@ public:
 		if(PixelShaderParameters)
 		{
 			PixelShaderParameters->SetLightMapScale(RHICmdList, PixelShader,LightMapInteraction);
-			PixelShaderParameters->SetLightMapTexture(RHICmdList, PixelShader, LightMapInteraction.GetTexture());
+			PixelShaderParameters->SetLightMapTexture(RHICmdList, PixelShader, LightMapInteraction.GetTexture(AllowHighQualityLightmaps(View.GetFeatureLevel())));
 			PixelShaderParameters->SetSkyOcclusionTexture(RHICmdList, PixelShader, LightMapInteraction.GetSkyOcclusionTexture());
 		}
 	}
@@ -731,11 +731,8 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		
-		// @todo Mac OS X: For GL 3.3 devices which don't support volume-texture rendering we need to cache the simpler point indirect lighting shaders.
-		return Material->GetShadingModel() != MSM_Unlit 
-			&& (IsTranslucentBlendMode(Material->GetBlendMode()) || GetMaxSupportedFeatureLevel(Platform) == ERHIFeatureLevel::ES2
-				|| (PLATFORM_MAC && GetMaxSupportedFeatureLevel(Platform) == ERHIFeatureLevel::SM4))
+	
+		return Material->GetShadingModel() != MSM_Unlit
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0);
 	}
 
@@ -968,6 +965,33 @@ private:
 
 	FSimpleDynamicLightingPolicy SimpleDynamicLightingPolicy;
 	FCachedPointIndirectLightingPolicy CachedPointIndirectLightingPolicy;
+};
+
+class FMovableDirectionalLightLightingPolicy : public FNoLightMapPolicy
+{
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->GetShadingModel() != MSM_Unlit;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"),TEXT("1"));
+		FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+};
+
+class FMovableDirectionalLightCSMLightingPolicy : public FNoLightMapPolicy
+{
+public:
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return Material->GetShadingModel() != MSM_Unlit;
+	}	
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 };
 
 #endif // __LIGHTMAPRENDERING_H__

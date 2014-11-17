@@ -23,6 +23,8 @@ public:
 
 	}
 
+	virtual ~FPropertyTableRowHeaderColumn() {}
+
 	virtual FName GetId() const override { return FName( TEXT("RowHeader") ); }
 	virtual FText GetDisplayName() const override { return FText::GetEmpty(); }
 	virtual TSharedRef< IDataSource > GetDataSource() const override { return MakeShareable( new PropertyPathDataSource( FPropertyPath::CreateEmpty() ) ); }

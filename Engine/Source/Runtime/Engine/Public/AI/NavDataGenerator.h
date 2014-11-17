@@ -2,7 +2,9 @@
 
 #pragma once 
 
-class FNavDataGenerator : public TSharedFromThis<FNavDataGenerator, ESPMode::ThreadSafe>
+struct FNavigationDirtyArea;
+
+class ENGINE_API FNavDataGenerator : public TSharedFromThis<FNavDataGenerator, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~FNavDataGenerator() {}

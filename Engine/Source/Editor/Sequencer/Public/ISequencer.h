@@ -17,6 +17,9 @@ public:
 	/** @return Widget used to display the sequencer */
 	virtual TSharedRef<SWidget> GetSequencerWidget() const = 0;
 
+	/** @return The root movie scene being used */
+	virtual UMovieScene* GetRootMovieScene() const = 0;
+
 	/** @return Returns the MovieScene that is currently focused for editing by the sequencer.  This can change at any time. */
 	virtual UMovieScene* GetFocusedMovieScene() const = 0;
 
@@ -24,6 +27,9 @@ public:
 	 * @return the currently focused movie scene instance
 	 */
 	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const = 0;
+
+	/** Resets sequencer with a new RootMovieScene */
+	virtual void ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<class ISequencerObjectBindingManager> NewObjectBindingManager ) = 0;
 
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer

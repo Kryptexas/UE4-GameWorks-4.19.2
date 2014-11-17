@@ -64,9 +64,8 @@ public:
 
 	/**
 	 * Renders the scene's prepass for a particular view in parallel
-	 * @return the submit chain
 	 */
-	FGraphEventRef RenderPrePassViewParallel(FRHICommandList& RHICmdList, const FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	void RenderPrePassViewParallel(const FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
 
     /** Renders the basepass for the static data of a given View. */
     bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
@@ -74,21 +73,21 @@ public:
 	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
 
 	/** Renders the basepass for the static data of a given View. Parallel versions.*/
-	FGraphEventRef RenderBasePassStaticDataParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
-	FGraphEventRef RenderBasePassStaticDataMaskedParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
-	FGraphEventRef RenderBasePassStaticDataDefaultParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	void RenderBasePassStaticDataParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
+	void RenderBasePassStaticDataMaskedParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
+	void RenderBasePassStaticDataDefaultParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
 
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
 
-    /** Renders the basepass for the dynamic data of a given View. */
+	/** Renders the basepass for the dynamic data of a given View. */
 	void RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
 
 	/** Renders the basepass for the dynamic data of a given View, in parallel. */
-	FGraphEventRef RenderBasePassDynamicDataParallel(FViewInfo& View, FGraphEventRef SubmitChain, bool& bOutDirty);
+	void RenderBasePassDynamicDataParallel(FViewInfo& View, FRHICommandList& ParentCmdList, bool& bOutDirty);
 
     /** Renders the basepass for a given View, in parallel */
-	FGraphEventRef RenderBasePassViewParallel(FRHICommandListImmediate& RHICmdList, FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	void RenderBasePassViewParallel(FViewInfo& View, int32 Width, FRHICommandList& ParentCmdList, bool& OutDirty);
 
 	/** Renders the basepass for a given View. */
 	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
@@ -129,62 +128,47 @@ private:
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(
 		FRHICommandListImmediate& RHICmdList,
-		FLightPrimitiveInteraction* Interaction, 
-		bool bCreateTranslucentObjectShadow, 
+		FLightPrimitiveInteraction* Interaction,
+		bool bCreateTranslucentObjectShadow,
 		bool bCreateInsetObjectShadow,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& OutPreShadows);
 
 	/**
-	 * Creates a projected shadow for all primitives affected by a light.  
-	 * @param LightSceneInfo - The light to create a shadow for.
-	 */
+	* Creates a projected shadow for all primitives affected by a light.
+	* @param LightSceneInfo - The light to create a shadow for.
+	*/
 	void CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo);
-
-	/**
-	 * Checks to see if this primitive is affected by various shadow types
-	 *
-	 * @param PrimitiveSceneInfoCompact The primitive to check for shadow interaction
-	 * @param PreShadows The list of pre-shadows to check against
-	 */
-	void GatherShadowsForPrimitiveInner(const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		bool bReflectionCaptureScene);
-
-	/** Gathers the list of primitives used to draw various shadow types */
-	void GatherShadowPrimitives(
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		bool bReflectionCaptureScene);
 
 	/** Updates the preshadow cache, allocating new preshadows that can fit and evicting old ones. */
 	void UpdatePreshadowCache();
 
 	/** Finds a matching cached preshadow, if one exists. */
 	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(
-		const FLightPrimitiveInteraction* InParentInteraction, 
+		const FLightPrimitiveInteraction* InParentInteraction,
 		const FProjectedShadowInitializer& Initializer,
 		const FBoxSphereBounds& Bounds,
 		uint32 InResolutionX);
 
-	/** Calculates projected shadow visibility. */
-	void InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList);
-
-	/** Returns whether a per object shadow should be created due to the light being a stationary light. */
-	bool ShouldCreateObjectShadowForStationaryLight(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bInteractionShadowMapped) const;
-
 	/** Creates shadows for the given interaction. */
 	void SetupInteractionShadows(
 		FRHICommandListImmediate& RHICmdList,
-		FLightPrimitiveInteraction* Interaction, 
-		FVisibleLightInfo& VisibleLightInfo, 
+		FLightPrimitiveInteraction* Interaction,
+		FVisibleLightInfo& VisibleLightInfo,
 		bool bStaticSceneOnly,
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows);
+		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows);
 
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
+
+	/**
+	* Used by RenderLights to figure out if light functions need to be rendered to the attenuation buffer.
+	*
+	* @param LightSceneInfo Represents the current light
+	* @return true if anything got rendered
+	*/
+	bool CheckForLightFunction(const FLightSceneInfo* LightSceneInfo) const;
 
 	/** Determines which primitives are visible for each view. */
 	void InitViews(FRHICommandListImmediate& RHICmdList);
@@ -205,13 +189,15 @@ private:
 	void RenderAtmosphere(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput);
 
 	/** Renders reflections that can be done in a deferred pass. */
-	void RenderDeferredReflections(FRHICommandListImmediate& RHICmdList);
+	void RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
 	/** Render dynamic sky lighting from Movable sky lights. */
-	void RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList);
+	void RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
 	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
-	bool RenderDistanceFieldAOSurfaceCache(FRHICommandListImmediate& RHICmdList, FSceneRenderTargetItem& OutBentNormalAO, bool bApplyToSceneColor);
+	bool RenderDistanceFieldAOSurfaceCache(FRHICommandListImmediate& RHICmdList, const class FDistanceFieldAOParameters& Parameters, TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, bool bApplyToSceneColor);
+
+	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 
 	/** Whether tiled deferred is supported and can be used at all. */
 	bool CanUseTiledDeferred() const;
@@ -232,8 +218,13 @@ private:
 	void RenderStationaryLightOverlap(FRHICommandListImmediate& RHICmdList);
 	
 	/** 
-	 * Renders the scene's translucency.
+	 * Renders the scene's translucency, parallel version
 	 */
+	void RenderTranslucencyParallel(FRHICommandListImmediate& RHICmdList);
+
+	/**
+	* Renders the scene's translucency.
+	*/
 	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the scene's light shafts */
@@ -242,30 +233,24 @@ private:
 	void RenderLightShaftBloom(FRHICommandListImmediate& RHICmdList);
 
 	/** Reuses an existing translucent shadow map if possible or re-renders one if necessary. */
-	const FProjectedShadowInfo* PrepareTranslucentShadowMap(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass);
+	const FProjectedShadowInfo* PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass);
 
 	/** Renders the velocities of movable objects for the motion blur effect. */
-	void RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame);
+	void RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
+
+	/** Renders the velocities for a subset of movable objects for the motion blur effect. */
+	friend class FRenderVelocityDynamicThreadTask;
+	void RenderDynamicVelocitiesInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex);
+	void RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View);
+
+	/** Renders the velocities of movable objects for the motion blur effect. */
+	void RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Renders world-space lightmap density instead of the normal color. */
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
-
-	/**
-	 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
-	 * @param View - The view to process.
-	*/
-	void FinishRenderViewTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, bool bLastView);
-
-	/**
-	  * Used by RenderLights to figure out if projected shadows need to be rendered to the attenuation buffer.
-	  *
-	  * @param LightSceneInfo Represents the current light
-	  * @return true if anything needs to be rendered
-	  */
-	bool CheckForProjectedShadows( const FLightSceneInfo* LightSceneInfo ) const;
 
 	/** Renders one pass point light shadows. */
 	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
@@ -293,14 +278,6 @@ private:
 
 	/** Caches the depths of any preshadows that should be cached, and renders their projections. */
 	bool RenderCachedPreshadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
-
-	/**
-	  * Used by RenderLights to figure out if light functions need to be rendered to the attenuation buffer.
-	  *
-	  * @param LightSceneInfo Represents the current light
-	  * @return true if anything got rendered
-	  */
-	bool CheckForLightFunction( const FLightSceneInfo* LightSceneInfo ) const;
 
 	/**
 	  * Used by RenderLights to render a light function to the attenuation buffer.
@@ -334,9 +311,6 @@ private:
 	/** Add AmbientCubemap to the lighting volumes. */
 	void InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
-	/** Renders indirect lighting into the translucent lighting volumes. */
-	void CompositeIndirectTranslucentVolumeLighting(FRHICommandList& RHICmdList);
-
 	/** Clears the volume texture used to accumulate per object shadows for translucency. */
 	void ClearTranslucentVolumePerObjectShadowing(FRHICommandList& RHICmdList);
 
@@ -358,11 +332,11 @@ private:
 	/** Output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections */
 	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList);
 
-	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
-	void RenderImageBasedReflectionsSM4ForAllViews(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv);
-
 	/** Render image based reflections (SSR, Env, SkyLight) with compute shaders */
-	void RenderImageBasedReflectionsSM5ForAllViews(FRHICommandListImmediate& RHICmdList);
+	void RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
+
+	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
+	void RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
 	bool ShouldDoReflectionEnvironment() const;
 

@@ -175,7 +175,7 @@ struct FStaticMeshSourceModel
 #if WITH_EDITOR
 	/** Imported raw mesh data. Optional for all but the first LOD. */
 	class FRawMeshBulkData* RawMeshBulkData;
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	/** Settings applied when building the mesh. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
@@ -198,8 +198,10 @@ struct FStaticMeshSourceModel
 	/** Destructor. */
 	ENGINE_API ~FStaticMeshSourceModel();
 
+#if WITH_EDITOR
 	/** Serializes bulk data. */
 	void SerializeBulkData(FArchive& Ar, UObject* Owner);
+#endif
 };
 
 /**
@@ -311,6 +313,14 @@ struct FAssetEditorOrbitCameraPosition
 	FRotator CamOrbitRotation;
 };
 
+/**
+ * A StaticMesh is a piece of geometry that consists of a static set of polygons.
+ * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
+ * to render than other types of geometry such as USkeletalMesh, and they are often the basic building block of levels created in the engine.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
+ * @see AStaticMeshActor, UStaticMeshComponent
+ */
 UCLASS(collapsecategories, hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
 class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
@@ -358,7 +368,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	int32 LightMapCoordinateIndex;
 
 	// Physics data.
-	UPROPERTY(EditAnywhere, transient, duplicatetransient, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, transient, duplicatetransient, Instanced, Category = StaticMesh)
 	class UBodySetup* BodySetup;
 
 	// Artist-accessible options.
@@ -402,11 +412,11 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 #if WITH_EDITORONLY_DATA
 	/** Default settings when using this mesh for instanced foliage */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=StaticMesh)
 	UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(VisibleAnywhere, editinline, Category=ImportSettings)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this static mesh */
@@ -418,12 +428,16 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The stored camera position to use as a default for the static mesh editor */
 	UPROPERTY()
 	FAssetEditorOrbitCameraPosition EditorCameraPosition;
+
+	/** If the user has modified collision in any way or has custom collision imported. Used for determining if to auto generate collision on import */
+	UPROPERTY()
+	bool bCustomizedCollision;
 
 #endif // WITH_EDITORONLY_DATA
 
@@ -452,12 +466,12 @@ protected:
 	int32 ElementToIgnoreForTexFactor;
 
 	/** Array of user data stored with the asset */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, editinline, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = StaticMesh)
 	TArray<UAssetUserData*> AssetUserData;
 
 public:
 	/** Pre-build navigation collision */
-	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, editinline, Category=Navigation)
+	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
 	
 public:
@@ -618,7 +632,7 @@ public:
 
 	void EnforceLightmapRestrictions();
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 	/**
 	 * Returns true if LODs of this static mesh may share texture lightmaps.
@@ -655,5 +669,5 @@ private:
 	 * Caches derived renderable data.
 	 */
 	void CacheDerivedData();
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 };

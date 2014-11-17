@@ -492,6 +492,8 @@ struct IAudioStreamingManager : public IStreamingManager
 	/** Returns true if this Sound Wave is currently streaming a chunk. */
 	virtual bool IsStreamingInProgress(const USoundWave* SoundWave) = 0;
 
+	virtual bool CanCreateSoundSource(const FWaveInstance* WaveInstance) const = 0;
+
 	/** Adds a new Sound Source to the streaming manager. */
 	virtual void AddStreamingSoundSource(FSoundSource* SoundSource) = 0;
 
@@ -577,7 +579,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	/**
 	 * Checks whether any kind of streaming is active
 	 */
-	bool IsStreamingEnabled() const;
+	ENGINE_API bool IsStreamingEnabled() const;
 
 	/**
 	 * Checks whether texture streaming is active
@@ -587,12 +589,12 @@ struct FStreamingManagerCollection : public IStreamingManager
 	/**
 	 * Gets a reference to the Texture Streaming Manager interface
 	 */
-	ITextureStreamingManager& GetTextureStreamingManager() const;
+	ENGINE_API ITextureStreamingManager& GetTextureStreamingManager() const;
 
 	/**
 	 * Gets a reference to the Audio Streaming Manager interface
 	 */
-	IAudioStreamingManager& GetAudioStreamingManager() const;
+	ENGINE_API IAudioStreamingManager& GetAudioStreamingManager() const;
 
 	/**
 	 * Adds a streaming manager to the array of managers to route function calls to.

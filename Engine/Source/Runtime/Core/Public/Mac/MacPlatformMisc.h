@@ -6,6 +6,8 @@
 
 #pragma once
 
+typedef void (*UpdateCachedMacMenuStateProc)(void);
+
 /**
 * Mac implementation of the misc OS functions
 **/
@@ -13,7 +15,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit(bool IsMoviePlaying = false);
+	static void PlatformPostInit(bool ShowSplashScreen = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 
@@ -23,13 +25,15 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	}
 
 	static TArray<uint8> GetMacAddress();
-	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 #if !UE_BUILD_SHIPPING
 	FORCEINLINE static bool IsDebuggerPresent()
 	{
 		// Based on http://developer.apple.com/library/mac/#qa/qa1361/_index.html
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
 		struct kinfo_proc Info = { 0 };
+#pragma clang diagnostic pop
 		int32 Mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
 		SIZE_T Size = sizeof(Info);
 
@@ -66,6 +70,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static int32 NumberOfCoresIncludingHyperthreads();
 	static void LoadPreInitModules();
 	static void NormalizePath(FString& InPath);
+	static FString GetPrimaryGPUBrand();
+	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 
 
 	/** 
@@ -131,10 +137,21 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	static void UpdateWindowMenu();
 
+	static UpdateCachedMacMenuStateProc UpdateCachedMacMenuState;
+
+	static void ActivateApplication();
+
 	/**
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+
+	/**
+	 * Returns whether the Mac OS X version is 10.9.x or not.
+	 */
+	static bool IsRunningOnMavericks();
+
+	static bool bChachedMacMenuStateNeedsUpdate;
 };
 
 #ifdef __OBJC__
@@ -179,17 +196,11 @@ enum EMacModifierKeys
 
 struct CORE_API FMacCrashContext : public FApplePlatformCrashContext
 {
-	/**
-	 * Dumps all the data from crash context to the "minidump" report.
-	 * @param DiagnosticsPath Path to put the file to
-	 */
-	void GenerateReport(char const* DiagnosticsPath) const;
-	
 	/** Mimics Windows WER format */
 	void GenerateWindowsErrorReport(char const* WERPath) const;
 	
 	/** Creates (fake so far) minidump */
-	void GenerateMinidump(char const* MinidumpCallstackInfo, char const* Path) const;
+	void GenerateMinidump(char const* Path) const;
 	
 	/** Generates information for crash reporter */
 	void GenerateCrashInfoAndLaunchReporter() const;

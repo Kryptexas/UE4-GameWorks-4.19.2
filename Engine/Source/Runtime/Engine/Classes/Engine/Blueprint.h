@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphPin.h"
 #include "EdGraph/EdGraphNode.h"
 #include "BlueprintCore.h"
-
 #include "Blueprint.generated.h"
 
 /** States a blueprint can be in */
@@ -367,6 +364,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY()
 	TArray<struct FBPVariableDescription> NewVariables;
 
+	/** Array of user sorted categories */
+	UPROPERTY()
+	TArray<FName> CategorySorting;
+
 	/** Array of info about the interfaces we implement in this blueprint */
 	UPROPERTY(AssetRegistrySearchable)
 	TArray<struct FBPInterfaceDescription> ImplementedInterfaces;
@@ -407,7 +408,7 @@ protected:
 	TWeakObjectPtr< class UWorld > CurrentWorldBeingDebugged;
 public:
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The blueprint is currently compiled */
@@ -416,6 +417,9 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
+	bool bCachedDependenciesUpToDate;
+	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
+
 	bool IsUpToDate() const
 	{
 		return BS_UpToDate == Status || BS_UpToDateWithWarnings == Status;
@@ -501,6 +505,7 @@ public:
 	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
 	virtual void PostLoad() override;
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	// End of UObject interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
@@ -511,6 +516,9 @@ public:
 
 	/** @return true if the blueprint supports event binding for multicast delegates */
 	virtual bool AllowsDynamicBinding() const;
+
+	/** @return true if the blueprint supports event binding for input events */
+	virtual bool SupportsInputEvents() const;
 
 	bool ChangeOwnerOfTemplates();
 
@@ -537,7 +545,7 @@ public:
 	 */
 	static bool GetBlueprintHierarchyFromClass(const UClass* InClass, TArray<UBlueprint*>& OutBlueprintParents);
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	template<class TFieldType>
 	static FName GetFieldNameFromClassByGuid(const UClass* InClass, const FGuid VarGuid)
 	{
@@ -624,7 +632,7 @@ public:
 
 };
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 template<>
 inline FName UBlueprint::GetFieldNameFromClassByGuid<UFunction>(const UClass* InClass, const FGuid FunctionGuid)
 {
@@ -636,4 +644,4 @@ inline bool UBlueprint::GetGuidFromClassByFieldName<UFunction>(const UClass* InC
 {
 	return GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR

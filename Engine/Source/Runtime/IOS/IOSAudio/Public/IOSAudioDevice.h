@@ -216,6 +216,9 @@ protected:
 	void GetHardwareSampleRate(double& OutSampleRate);
 	bool SetHardwareSampleRate(const double& InSampleRate);
 	bool SetAudioSessionActive(bool bActive);
+
+	/** Check if any background music or sound is playing through the audio device */
+	virtual bool IsExernalBackgroundSoundActive() override;
 	
 private:
 	void HandleError(const TCHAR* InLogOutput, bool bTeardown = false);

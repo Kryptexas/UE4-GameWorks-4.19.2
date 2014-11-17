@@ -6,6 +6,7 @@ UEditorGameAgnosticSettings::UEditorGameAgnosticSettings(const class FPostConstr
 	: Super(PCIP)
 {
 	bCopyStarterContentPreference = true;
+	AutoScalabilityWorkScaleAmount = 1;
 }
 
 void UEditorGameAgnosticSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -59,9 +60,8 @@ void UEditorGameAgnosticSettings::AutoApplyScalabilityBenchmark()
 	GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "RunningEngineBenchmark", "Running engine benchmark..."));
 	GWarn->PushStatus();
 
-	uint32 WorkScale = 5.0f;
 
-	Scalability::FQualityLevels Temporary = Scalability::BenchmarkQualityLevels(WorkScale);
+	Scalability::FQualityLevels Temporary = Scalability::BenchmarkQualityLevels(AutoScalabilityWorkScaleAmount);
 
 	GConfig->SetBool(Section, TEXT("Valid"), true, GEditorGameAgnosticIni);
 	GConfig->SetInt(Section, TEXT("ResolutionQuality"), Temporary.ResolutionQuality, GEditorGameAgnosticIni);

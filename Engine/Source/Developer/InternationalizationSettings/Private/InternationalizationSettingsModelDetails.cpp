@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "InternationalizationSettingsModulePrivatePCH.h"
 
@@ -7,14 +7,14 @@
 /** Functions for sorting the languages */
 struct FCompareCultureByNativeLanguage
 {
-	static FText GetCultureNativeLanguageText( const TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture )
+	static FText GetCultureNativeLanguageText( const FCulturePtr Culture )
 	{
 		check( Culture.IsValid() );
 		const FString Language = Culture->GetNativeLanguage();
 		return FText::FromString(Language);
 	}
 
-	FORCEINLINE bool operator()( const TSharedPtr<FCulture, ESPMode::ThreadSafe> A, const TSharedPtr<FCulture, ESPMode::ThreadSafe> B ) const
+	FORCEINLINE bool operator()( const FCulturePtr A, const FCulturePtr B ) const
 	{
 		check( A.IsValid() );
 		check( B.IsValid() );
@@ -26,7 +26,7 @@ struct FCompareCultureByNativeLanguage
 /** Functions for sorting the regions */
 struct FCompareCultureByNativeRegion
 {
-	static FText GetCultureNativeRegionText( const TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture )
+	static FText GetCultureNativeRegionText( const FCulturePtr Culture )
 	{
 		check( Culture.IsValid() );
 		FString Region = Culture->GetNativeRegion();
@@ -38,7 +38,7 @@ struct FCompareCultureByNativeRegion
 		return FText::FromString(Region);
 	}
 
-	FORCEINLINE bool operator()( const TSharedPtr<FCulture, ESPMode::ThreadSafe> A, const TSharedPtr<FCulture, ESPMode::ThreadSafe> B ) const
+	FORCEINLINE bool operator()( const FCulturePtr A, const FCulturePtr B ) const
 	{
 		check( A.IsValid() );
 		check( B.IsValid() );
@@ -128,7 +128,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	const FText LanguageToolTipText = LOCTEXT("EditorLanguageTooltip", "Change the Editor language (requires restart to take effect)");
 
 	// For use in the Slate macros below, the type must be typedef'd to compile.
-	typedef TSharedPtr<FCulture, ESPMode::ThreadSafe> ThreadSafeCulturePtr;
+	typedef FCulturePtr ThreadSafeCulturePtr;
 
 	CategoryBuilder.AddCustomRow("Language")
 	.NameContent()
@@ -248,7 +248,12 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 void FInternationalizationSettingsModelDetails::RefreshAvailableCultures()
 {
 	AvailableCultures.Empty();
-	FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), AvailableCultures);
+	TArray<FCultureRef> LocalizedCultures;
+	FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), LocalizedCultures, true);
+	for (const FCultureRef& Culture : LocalizedCultures)
+	{
+		AvailableCultures.Add(Culture);
+	}
 
 	// Update our selected culture based on the available choices
 	if ( !AvailableCultures.Contains( SelectedCulture ) )
@@ -272,11 +277,11 @@ void FInternationalizationSettingsModelDetails::RefreshAvailableLanguages()
 	// Setup the language list
 	for( const auto& Culture : AvailableCultures )
 	{
-		const FString CultureRegionName = Culture->GetNativeRegion();
-		if ( CultureRegionName.IsEmpty() )
+		FCulturePtr LanguageCulture = FInternationalization::Get().GetCulture(Culture->GetTwoLetterISOLanguageName());
+		if (LanguageCulture.IsValid() && AvailableLanguages.Find(LanguageCulture) == INDEX_NONE)
 		{
-			AvailableLanguages.Add( Culture );
-
+			AvailableLanguages.Add(LanguageCulture);
+				
 			// Do we have a match for the base language
 			const FString CultureLanguageName = Culture->GetNativeLanguage();
 			if ( SelectedLanguageName == CultureLanguageName)
@@ -295,15 +300,15 @@ void FInternationalizationSettingsModelDetails::RefreshAvailableRegions()
 {
 	AvailableRegions.Empty();
 
-	TSharedPtr<FCulture, ESPMode::ThreadSafe> DefaultCulture = NULL;
+	FCulturePtr DefaultCulture;
 	if ( SelectedLanguage.IsValid() )
 	{
-		const FString SelectedLanguageName = SelectedLanguage->GetNativeLanguage();
+		const FString SelectedLanguageName = SelectedLanguage->GetTwoLetterISOLanguageName();
 
 		// Setup the region list
 		for( const auto& Culture : AvailableCultures )
 		{
-			const FString CultureLanguageName = Culture->GetNativeLanguage();
+			const FString CultureLanguageName = Culture->GetTwoLetterISOLanguageName();
 			if ( SelectedLanguageName == CultureLanguageName)
 			{
 				AvailableRegions.Add( Culture );
@@ -321,14 +326,21 @@ void FInternationalizationSettingsModelDetails::RefreshAvailableRegions()
 	}
 
 	// If we have a preferred default (or there's only one in the list), select that now
-	if ( DefaultCulture.IsValid() || AvailableCultures.Num() == 1 )
+	if ( !DefaultCulture.IsValid() )
 	{
-		TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = DefaultCulture.IsValid() ? DefaultCulture : AvailableCultures.Last();
+		if(AvailableRegions.Num() == 1)
+		{
+			DefaultCulture = AvailableRegions.Last();
+		}
+	}
+
+	if ( DefaultCulture.IsValid() )
+	{
 		// Set it as our default region, if one hasn't already been chosen
 		if ( !SelectedCulture.IsValid() && RegionComboBox.IsValid() )
 		{
 			// We have to update the combo box like this, otherwise it'll do a null selection when we next click on it
-			RegionComboBox->SetSelectedItem( Culture );
+			RegionComboBox->SetSelectedItem( DefaultCulture );
 		}
 	}
 
@@ -347,14 +359,14 @@ FText FInternationalizationSettingsModelDetails::GetCurrentLanguageText() const
 	return FText::GetEmpty();
 }
 
-TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnLanguageGenerateWidget( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, IDetailLayoutBuilder* DetailBuilder ) const
+TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnLanguageGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const
 {
 	return SNew(STextBlock)
 		.Text(FCompareCultureByNativeLanguage::GetCultureNativeLanguageText(Culture))
 		.Font(DetailBuilder->GetDetailFont());
 }
 
-void FInternationalizationSettingsModelDetails::OnLanguageSelectionChanged( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, ESelectInfo::Type SelectionType )
+void FInternationalizationSettingsModelDetails::OnLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
 {
 	SelectedLanguage = Culture;
 	SelectedCulture = NULL;
@@ -372,14 +384,14 @@ FText FInternationalizationSettingsModelDetails::GetCurrentRegionText() const
 	return FText::GetEmpty();
 }
 
-TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnRegionGenerateWidget( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, IDetailLayoutBuilder* DetailBuilder ) const
+TSharedRef<SWidget> FInternationalizationSettingsModelDetails::OnRegionGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const
 {
 	return SNew(STextBlock)
 		.Text(FCompareCultureByNativeRegion::GetCultureNativeRegionText(Culture))
 		.Font(DetailBuilder->GetDetailFont());
 }
 
-void FInternationalizationSettingsModelDetails::OnRegionSelectionChanged( TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture, ESelectInfo::Type SelectionType )
+void FInternationalizationSettingsModelDetails::OnRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType )
 {
 	SelectedCulture = Culture;
 

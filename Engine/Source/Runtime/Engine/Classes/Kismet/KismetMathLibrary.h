@@ -4,6 +4,57 @@
 
 #include "KismetMathLibrary.generated.h"
 
+/** Provides different easing functions that can be used in blueprints */
+UENUM(BlueprintType)
+namespace EEasingFunc
+{
+	enum Type
+	{
+		/** Simple linear interpolation. */
+		Linear,
+
+		/** Simple step interpolation. */
+		Step,
+
+		/** Sinusoidal in interpolation. */
+		SinusoidalIn,
+
+		/** Sinusoidal out interpolation. */
+		SinusoidalOut,
+
+		/** Sinusoidal in/out interpolation. */
+		SinusoidalInOut,
+
+		/** Immediately accelerates, but smoothly decelerates into the target.  Ease amount controlled by BlendExp. */
+		EaseIn,
+
+		/** Smoothly accelerates, but does not decelerate into the target.  Ease amount controlled by BlendExp. */
+		EaseOut,
+
+		/** Smoothly accelerates and decelerates.  Ease amount controlled by BlendExp. */
+		EaseInOut,
+
+		/** Easing in using an exponential */
+		ExpoIn,
+
+		/** Easing out using an exponential */
+		ExpoOut,
+
+		/** Easing in/out using an exponential method */
+		ExpoInOut,
+
+		/** Easing is based on a half circle. */
+		CircularIn,
+
+		/** Easing is based on an inverted half circle. */
+		CircularOut,
+
+		/** Easing is based on two half circles. */
+		CircularInOut,
+
+	};
+}
+
 UCLASS(MinimalAPI)
 class UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
@@ -297,6 +348,18 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static float RandomFloatInRange(float Min, float Max);
 
+	/* Returns the value of PI */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Get PI", CompactNodeTitle = "PI"), Category="Math|Trig")
+	static float GetPI();
+
+	/* Returns radians value based on the input degrees */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Degrees To Radians", CompactNodeTitle = "D2R"), Category="Math|Trig")
+	static float DegreesToRadians(float A);
+
+	/* Returns degrees value based on the input radians */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Radians To Degrees", CompactNodeTitle = "R2D"), Category="Math|Trig")
+	static float RadiansToDegrees(float A);
+
 	/* Returns the sin of A (expects Degrees)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Sin (Degrees)", CompactNodeTitle = "SINd"), Category="Math|Trig")
 	static float DegSin(float A);
@@ -370,6 +433,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static float Lerp(float A, float B, float Alpha);
+
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static float Ease(float A, float B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
 
 	/* Rounds A to the nearest integer */
 	UFUNCTION(BlueprintPure, Category="Math|Float")
@@ -490,14 +557,19 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (vector)"), Category="Math|Vector")
 	static FVector VLerp(FVector A, FVector B, float Alpha);
 
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (vector)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static FVector VEase(FVector A, FVector B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
+
 	/* Returns a random vector with length of 1 */
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static FVector RandomUnitVector();
 
 	/** Returns a random point within the specified bounding box */
 	UFUNCTION(BlueprintPure, Category = "Math|Random")
-	static FVector RandomPointInBoundingBox(FBox BoundingBox);
-	/* 
+	static FVector RandomPointInBoundingBox(const FVector& Origin, const FVector& BoxExtent);
+
+	/** 
 	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
 	 * @param ConeDir	The base "center" direction of the cone.
 	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in degrees.
@@ -573,6 +645,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (Rotator)"), Category="Math|Rotator")
 	static FRotator RLerp(FRotator A, FRotator B, float Alpha, bool bShortestPath);
 
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (Rotator)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static FRotator REase(FRotator A, FRotator B, float Alpha, bool bShortestPath, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
+
 	/** Normalized A-B */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Delta (Rotator)"), Category="Math|Rotator")
 	static FRotator NormalizedDeltaRotator(FRotator A, FRotator B);
@@ -596,6 +672,246 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Element-wise multiplication of a linear color by a float (F*R, F*G, F*B, F*A) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "LinearColor * Float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Color")
 	static FLinearColor Multiply_LinearColorFloat(FLinearColor A, float B);
+
+	//
+	// DateTime functions.
+	//
+
+	/* Addition (A + B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime + Timespan", CompactNodeTitle="+", Keywords="+ add plus"), Category="Math|DateTime")
+	static FDateTime Add_DateTimeTimespan( FDateTime A, FTimespan B );
+
+	/* Subtraction (A - B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime - Timespan", CompactNodeTitle="-", Keywords="- subtract minus"), Category="Math|DateTime")
+	static FDateTime Subtract_DateTimeTimespan( FDateTime A, FTimespan B );
+
+	/* Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Equal (DateTime)", CompactNodeTitle="==", Keywords="== equal"), Category="Math|DateTime")
+	static bool EqualEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="NotEqual (DateTime)", CompactNodeTitle="!=", Keywords="!= not equal"), Category="Math|DateTime")
+	static bool NotEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A > B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime > DateTime", CompactNodeTitle=">", Keywords="> greater"), Category="Math|DateTime")
+	static bool Greater_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A >= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime >= DateTime", CompactNodeTitle=">=", Keywords=">= greater"), Category="Math|DateTime")
+	static bool GreaterEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A < B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime < DateTime", CompactNodeTitle="<", Keywords="< less"), Category="Math|DateTime")
+	static bool Less_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns true if A is Greater than B (A <= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DateTime <= DateTime", CompactNodeTitle="<=", Keywords="<= less"), Category="Math|DateTime")
+	static bool LessEqual_DateTimeDateTime( FDateTime A, FDateTime B );
+
+	/* Returns the date component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDate"), Category="Math|DateTime")
+	static FDateTime GetDate( FDateTime A );
+
+	/* Returns the day component of A (1 to 31) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDay"), Category="Math|DateTime")
+	static int32 GetDay( FDateTime A );
+
+	/* Returns the day of year of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDayOfYear"), Category="Math|DateTime")
+	static int32 GetDayOfYear( FDateTime A );
+
+	/* Returns the hour component of A (24h format) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetHour"), Category="Math|DateTime")
+	static int32 GetHour( FDateTime A );
+
+	/* Returns the hour component of A (12h format) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetHour12"), Category="Math|DateTime")
+	static int32 GetHour12( FDateTime A );
+
+	/* Returns the millisecond component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMillisecond"), Category="Math|DateTime")
+	static int32 GetMillisecond( FDateTime A );
+
+	/* Returns the minute component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMinute"), Category="Math|DateTime")
+	static int32 GetMinute( FDateTime A );
+
+	/* Returns the month component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMonth"), Category="Math|DateTime")
+	static int32 GetMonth( FDateTime A );
+
+	/* Returns the second component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetSecond"), Category="Math|DateTime")
+	static int32 GetSecond( FDateTime A );
+
+	/* Returns the time elapsed since midnight of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTimeOfDay"), Category="Math|DateTime")
+	static FTimespan GetTimeOfDay( FDateTime A );
+
+	/* Returns the year component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetYear"), Category="Math|DateTime")
+	static int32 GetYear( FDateTime A );
+
+	/* Returns whether A's time is in the afternoon */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="IsAfternoon"), Category="Math|DateTime")
+	static bool IsAfternoon( FDateTime A );
+
+	/* Returns whether A's time is in the morning */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="IsMorning"), Category="Math|DateTime")
+	static bool IsMorning( FDateTime A );
+
+	/* Returns the number of days in the given year and month */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DaysInMonth"), Category="Math|DateTime")
+	static int32 DaysInMonth( int32 Year, int32 Month );
+
+	/* Returns the number of days in the given year */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="DaysInYear"), Category="Math|DateTime")
+	static int32 DaysInYear( int32 Year );
+
+	/* Returns whether given year is a leap year */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="IsLeapYear"), Category="Math|DateTime")
+	static bool IsLeapYear( int32 Year );
+
+	/* Returns the maximum date and time value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MaxValue"), Category="Math|DateTime")
+	static FDateTime DateTimeMaxValue( );
+
+	/* Returns the minimum date and time value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MinValue"), Category="Math|DateTime")
+	static FDateTime DateTimeMinValue( );
+
+	/* Returns the local date and time on this computer */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Now"), Category="Math|DateTime")
+	static FDateTime Now( );
+
+	/* Returns the local date on this computer */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Today"), Category="Math|DateTime")
+	static FDateTime Today( );
+
+	/* Returns the UTC date and time on this computer */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="UtcNow"), Category="Math|DateTime")
+	static FDateTime UtcNow( );
+
+	//
+	// Timespan functions.
+	//
+
+	/* Addition (A + B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan + Timespan", CompactNodeTitle="+", Keywords="+ add plus"), Category="Math|Timespan")
+	static FTimespan Add_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Subtraction (A - B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan - Timespan", CompactNodeTitle="-", Keywords="- subtract minus"), Category="Math|Timespan")
+	static FTimespan Subtract_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Scalar multiplication (A * s) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan * float", CompactNodeTitle="*", Keywords="* multiply"), Category="Math|Timespan")
+	static FTimespan Multiply_TimespanFloat( FTimespan A, float Scalar );
+
+	/* Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Equal (Timespan)", CompactNodeTitle="==", Keywords="== equal"), Category="Math|Timespan")
+	static bool EqualEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="NotEqual (Timespan)", CompactNodeTitle="!=", Keywords="!= not equal"), Category="Math|Timespan")
+	static bool NotEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A > B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan > Timespan", CompactNodeTitle=">", Keywords="> greater"), Category="Math|Timespan")
+	static bool Greater_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A >= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan >= Timespan", CompactNodeTitle=">=", Keywords=">= greater"), Category="Math|Timespan")
+	static bool GreaterEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A < B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan < Timespan", CompactNodeTitle="<", Keywords="< less"), Category="Math|Timespan")
+	static bool Less_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns true if A is Greater than B (A <= B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Timespan <= Timespan", CompactNodeTitle="<=", Keywords="<= less"), Category="Math|Timespan")
+	static bool LessEqual_TimespanTimespan( FTimespan A, FTimespan B );
+
+	/* Returns the days component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDays"), Category="Math|Timespan")
+	static int32 GetDays( FTimespan A );
+
+	/* Returns the absolute value of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetDuration"), Category="Math|Timespan")
+	static FTimespan GetDuration( FTimespan A );
+
+	/* Returns the hours component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetHours"), Category="Math|Timespan")
+	static int32 GetHours( FTimespan A );
+
+	/* Returns the milliseconds component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMilliseconds"), Category="Math|Timespan")
+	static int32 GetMilliseconds( FTimespan A );
+
+	/* Returns the minutes component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetMinutes"), Category="Math|Timespan")
+	static int32 GetMinutes( FTimespan A );
+
+	/* Returns the seconds component of A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetSeconds"), Category="Math|Timespan")
+	static int32 GetSeconds( FTimespan A );
+
+	/* Returns the total number of days in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalDays"), Category="Math|Timespan")
+	static float GetTotalDays( FTimespan A );
+
+	/* Returns the total number of hours in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalHours"), Category="Math|Timespan")
+	static float GetTotalHours( FTimespan A );
+
+	/* Returns the total number of milliseconds in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalMilliseconds"), Category="Math|Timespan")
+	static float GetTotalMilliseconds( FTimespan A );
+
+	/* Returns the total number of minutes in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalMinutes"), Category="Math|Timespan")
+	static float GetTotalMinutes( FTimespan A );
+
+	/* Returns the total number of seconds in A */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="GetTotalSeconds"), Category="Math|Timespan")
+	static float GetTotalSeconds( FTimespan A );
+
+	/* Returns a time span that represents the specified number of days */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromDays"), Category="Math|Timespan")
+	static FTimespan FromDays( float Days );
+
+	/* Returns a time span that represents the specified number of hours */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromHours"), Category="Math|Timespan")
+	static FTimespan FromHours( float Hours );
+
+	/* Returns a time span that represents the specified number of milliseconds */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromMilliseconds"), Category="Math|Timespan")
+	static FTimespan FromMilliseconds( float Milliseconds );
+
+	/* Returns a time span that represents the specified number of minutes */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromMinutes"), Category="Math|Timespan")
+	static FTimespan FromMinutes( float Minutes );
+
+	/* Returns a time span that represents the specified number of seconds */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="FromSeconds"), Category="Math|Timespan")
+	static FTimespan FromSeconds( float Seconds );
+
+	/* Returns the maximum time span value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MaxValue"), Category="Math|Timespan")
+	static FTimespan TimespanMaxValue( );
+
+	/* Returns the minimum time span value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="MinValue"), Category="Math|Timespan")
+	static FTimespan TimespanMinValue( );
+
+	/* Returns the ratio between two time spans (A / B), handles zero values */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="TimespanRatio"), Category="Math|Timespan")
+	static float TimespanRatio( FTimespan A, FTimespan B );
+
+	/* Returns a zero time span value */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="ZeroValue"), Category="Math|Timespan")
+	static FTimespan TimespanZeroValue( );
 
 	// -- Begin K2 utilities
 
@@ -650,6 +966,14 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** Convert a vector to a transform. Uses vector as location */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToTransform (vector)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
 	static FTransform Conv_VectorToTransform(FVector InLocation);
+	
+	/** Convert a Vector to a Vector2D */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToVector2D (Vector)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	static FVector2D Conv_VectorToVector2D(FVector InVector);
+
+	/** Convert a Vector2D to a Vector */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToVector (Vector2D)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
+	static FVector Conv_Vector2DToVector(FVector2D InVector2D, float Z = 0);
 
 	/** Convert a float into a vector, where each element is that float */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToVector (float)", CompactNodeTitle = "->", Keywords="cast convert"), Category="Math|Conversions")
@@ -688,7 +1012,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector GetUpVector(FRotator InRot);
 
 	/** Makes a rotator {Pitch, Yaw, Roll} */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate", NativeMakeFunc))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator", NativeMakeFunc))
 	static FRotator MakeRot(float Pitch, float Yaw, float Roll);
 	
 	/** Find a rotation for an object at Start location to point at Target location. */
@@ -696,47 +1020,47 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FRotator FindLookAtRotation(const FVector& Start, const FVector& Target);
 
 	/** Builds a rotator given only a XAxis. Y and Z are unspecified but will be orthonormal. XAxis need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromX(const FVector& X);
 
 	/** Builds a rotation matrix given only a YAxis. X and Z are unspecified but will be orthonormal. YAxis need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromY(const FVector& Y);
 
 	/** Builds a rotation matrix given only a ZAxis. X and Y are unspecified but will be orthonormal. ZAxis need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromZ(const FVector& Z);
 
 	/** Builds a matrix with given X and Y axes. X will remain fixed, Y may be changed minimally to enforce orthogonality. Z will be computed. Inputs need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromXY(const FVector& X, const FVector& Y);
 
 	/** Builds a matrix with given X and Z axes. X will remain fixed, Z may be changed minimally to enforce orthogonality. Y will be computed. Inputs need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromXZ(const FVector& X, const FVector& Z);
 
 	/** Builds a matrix with given Y and X axes. Y will remain fixed, X may be changed minimally to enforce orthogonality. Z will be computed. Inputs need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromYX(const FVector& Y, const FVector& X);
 
 	/** Builds a matrix with given Y and Z axes. Y will remain fixed, Z may be changed minimally to enforce orthogonality. X will be computed. Inputs need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromYZ(const FVector& Y, const FVector& Z);
 
 	/** Builds a matrix with given Z and X axes. Z will remain fixed, X may be changed minimally to enforce orthogonality. Y will be computed. Inputs need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromZX(const FVector& Z, const FVector& X);
 
 	/** Builds a matrix with given Z and Y axes. Z will remain fixed, Y may be changed minimally to enforce orthogonality. X will be computed. Inputs need not be normalized. */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator"))
 	static FRotator MakeRotFromZY(const FVector& Z, const FVector& Y);
 
 	/** Breaks apart a rotator into Pitch, Yaw, Roll */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate", NativeBreakFunc))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate rotator breakrotator", NativeBreakFunc))
 	static void BreakRot(FRotator InRot, float& Pitch, float& Yaw, float& Roll);
 
 	/** Breaks apart a rotator into its component axes */
-	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate"))
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate rotator breakrotator"))
 	static void BreakRotIntoAxes(const FRotator& InRot, FVector& X, FVector& Y, FVector& Z);
 
 	/** Make a transform from location, rotation and scale */
@@ -910,6 +1234,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Lerp (Transform)"), Category="Math|Transform")
 	static FTransform TLerp(const FTransform& A, const FTransform& B, float Alpha);
 
+	/* Easeing  between A and B using a specified easing function */
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "Ease (Transform)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")
+	static FTransform TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
+
 	/** Tries to reach a target transform */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
 	static FTransform TInterpTo(const FTransform& Current, const FTransform& Target, float DeltaTime, float InterpSpeed);
@@ -963,8 +1291,33 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * @param		InterpSpeed		Interpolation speed
 	 * @return		New interpolated position
 	 */
+	UFUNCTION(BlueprintPure, Category="Math|Interpolation")
+	static float FInterpTo_Constant(float Current, float Target, float DeltaTime, float InterpSpeed);
+
+	/**
+	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="position"))
 	static FVector VInterpTo(FVector Current, FVector Target, float DeltaTime, float InterpSpeed);
+
+
+	/**
+	 * Tries to reach Target at a constant rate.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Interpolation", meta = (Keywords = "position"))
+	static FVector VInterpTo_Constant(FVector Current, FVector Target, float DeltaTime, float InterpSpeed);
 
 	/**
 	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
@@ -978,6 +1331,29 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="rotation rotate"))
 	static FRotator RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
 
+	/**
+	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="rotation rotate"))
+	static FRotator RInterpTo_Constant(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
+
+	/**
+	 * Interpolates towards a varying target color smoothly.
+	 *
+	 * @param		Current			Current Color
+	 * @param		Target			Target Color
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated Color
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Interpolation", meta = (Keywords = "color"))
+	static FLinearColor CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed);
 
 	//
 	// Random stream functions
@@ -1027,7 +1403,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// Geometry
 	//
 
-	/*  
+	/**  
 	 * Finds the minimum area rectangle that encloses all of the points in InVerts
 	 * Uses algorithm found in http://www.geometrictools.com/Documentation/MinimumAreaRectangle.pdf
 	 *	
@@ -1036,7 +1412,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * @outparam	OutRectSideA - Vector oriented and sized to represent one edge of the enclosing rectangle, orthogonal to OutRectSideB
 	 * @outparam	OutRectSideB - Vector oriented and sized to represent one edge of the enclosing rectangle, orthogonal to OutRectSideA
 	*/
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(WorldContext="WorldContextObject"))
 	static void MinimumAreaRectangle(UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw = false);
 
 	/**

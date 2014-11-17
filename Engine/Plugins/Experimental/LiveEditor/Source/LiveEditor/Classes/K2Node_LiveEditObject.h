@@ -3,7 +3,7 @@
 #pragma once
 
 #include "LiveEditorTypes.h"
-
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_LiveEditObject.generated.h"
 
 UCLASS(MinimalAPI)
@@ -64,5 +64,8 @@ private:
 	 * @param   PinDescription	A string describing the pin's purpose
 	 */
 	void SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const;
+
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 #endif
 };

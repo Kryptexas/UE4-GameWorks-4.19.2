@@ -63,7 +63,7 @@ static bool PromptToRemoveExistingCollision(UStaticMesh* StaticMesh)
 // THIS FUNCTION REPLACES EXISTING SIMPLE COLLISION MODEL WITH KDOP
 #define MY_FLTMAX (3.402823466e+38F)
 
-int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, TArray<FVector> &Dirs)
+int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVector> &Dirs)
 {
 	// Make sure rendering is done - so we are not changing data being used by collision drawing.
 	FlushRenderingCommands();
@@ -193,6 +193,17 @@ static void CalcBoundingBox(const FRawMesh& RawMesh, FVector& Center, FVector& E
 	Box.GetCenterAndExtents(Center, Extents);
 }
 
+void ComputeBoundingBox(UStaticMesh* StaticMesh, FVector& Center, FVector& Extents)
+{
+	// Calculate bounding Box.
+	FRawMesh RawMesh;
+	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+	FVector unitVec = FVector(1.f);
+	CalcBoundingBox(RawMesh, Center, Extents, unitVec);
+}
+
 int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
 {
 	if (!PromptToRemoveExistingCollision(StaticMesh))
@@ -228,6 +239,8 @@ int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
+
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 
 	return bs->AggGeom.BoxElems.Num() - 1;
 }
@@ -409,6 +422,7 @@ int32 GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
 
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	return bs->AggGeom.SphereElems.Num() - 1;
 }
 
@@ -550,6 +564,8 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
+
+	StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 
 	return bs->AggGeom.SphylElems.Num() - 1;
 }

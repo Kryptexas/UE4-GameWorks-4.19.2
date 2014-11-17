@@ -353,9 +353,9 @@ FText SBlueprintActionMenu::GetSearchContextDesc() const
 		else
 		{
 			// Get the type string
-			const FString TypeStringRaw = UEdGraphSchema_K2::TypeToString(OnePin->PinType);
+			const FString TypeStringRaw = UEdGraphSchema_K2::TypeToText(OnePin->PinType).ToString();
 
-			//@TODO: Add a parameter to TypeToString indicating the kind of formating requested
+			//@TODO: Add a parameter to TypeToText indicating the kind of formating requested
 			const FString TypeString = (TypeStringRaw.Replace(TEXT("'"), TEXT(" "))).TrimTrailing();
 
 			if (OnePin->Direction == EGPD_Input)
@@ -401,7 +401,6 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 	// with a valid node, then fix it up in filtering
 	FilterContext.Graphs.Add(GraphObj);
 	
-	TArray<UProperty*> SelectedProperties;
 	if (bIsContextSensitive)
 	{
 		FilterContext.Pins = DraggedFromPins;
@@ -409,15 +408,15 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 		FEdGraphSchemaAction_K2Var* SelectedVar = BlueprintEditor->GetMyBlueprintWidget()->SelectionAsVar();
 		if ((SelectedVar != nullptr) && (SelectedVar->GetProperty() != nullptr))
 		{
-			SelectedProperties.Add(SelectedVar->GetProperty());
+			FilterContext.SelectedObjects.Add(SelectedVar->GetProperty());
 		}
 	}
 	
-	FBlueprintActionMenuBuilder MenuBuilder;
+	FBlueprintActionMenuBuilder MenuBuilder(EditorPtr);
 	// NOTE: cannot call GetGraphContextActions() during serialization and GC due to its use of FindObject()
 	if(!GIsSavingPackage && !GIsGarbageCollecting)
 	{
-		FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, SelectedProperties, MenuBuilder);
+		FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, bIsContextSensitive, MenuBuilder);
 	}
 	// copy the added options back to the main list
 	OutAllActions.Append(MenuBuilder); // @TODO: Avoid this copy

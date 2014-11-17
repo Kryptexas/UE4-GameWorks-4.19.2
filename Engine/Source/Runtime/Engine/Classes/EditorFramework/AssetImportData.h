@@ -3,7 +3,7 @@
 #pragma once
 #include "AssetImportData.generated.h"
 
-/*
+/**
  * A class to hold import options and data for assets. This class has many children in editor code.
  */
 UCLASS(MinimalAPI)

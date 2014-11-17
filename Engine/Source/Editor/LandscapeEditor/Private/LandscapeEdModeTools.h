@@ -17,12 +17,15 @@ struct FNoiseParameter
 
 	// Constructors.
 
-	FNoiseParameter() {}
+	FNoiseParameter()
+	{
+	}
 	FNoiseParameter(float InBase, float InScale, float InAmount) :
 		Base(InBase),
 		NoiseScale(InScale),
 		NoiseAmount(InAmount)
-	{}
+	{
+	}
 
 	// Sample
 	float Sample(int32 X, int32 Y) const
@@ -425,6 +428,26 @@ struct TLandscapeEditCache
 		CachedData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Value);
 	}
 
+	bool IsZeroValue(const FVector& Value)
+	{
+		return (FMath::IsNearlyZero(Value.X) && FMath::IsNearlyZero(Value.Y));
+	}
+
+	bool IsZeroValue(const FVector2D& Value)
+	{
+		return (FMath::IsNearlyZero(Value.X) && FMath::IsNearlyZero(Value.Y));
+	}
+
+	bool IsZeroValue(const uint16& Value)
+	{
+		return Value == 0;
+	}
+
+	bool IsZeroValue(const uint8& Value)
+	{
+		return Value == 0;
+	}
+
 	bool GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& OutData)
 	{
 		int32 NumSamples = (1 + X2 - X1)*(1 + Y2 - Y1);
@@ -440,7 +463,7 @@ struct TLandscapeEditCache
 				if (Ptr)
 				{
 					OutData[(X-X1) + (Y-Y1)*(1+X2-X1)] = *Ptr;
-					if (*Ptr != (AccessorType)0)
+					if (!IsZeroValue(*Ptr))
 					{
 						bHasNonZero = true;
 					}
@@ -638,12 +661,8 @@ struct FHeightmapAccessor
 			ULandscapeHeightfieldCollisionComponent* CollisionComponent = (*It)->CollisionComponent.Get();
 			if (CollisionComponent)
 			{
-				CollisionComponent->RecreateCollision(false);
-				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
-				if (NavSys)
-				{
-					NavSys->UpdateNavOctree(CollisionComponent);
-				}
+				CollisionComponent->RecreateCollision(true);
+				UNavigationSystem::UpdateNavOctree(CollisionComponent);
 			}
 		}
 	}
@@ -661,11 +680,18 @@ struct FLandscapeHeightCache : public TLandscapeEditCache < FHeightmapAccessor<t
 
 	FHeightmapAccessor<true> HeightmapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeHeightCache(const FLandscapeToolTarget& InTarget)
 		: HeightmapAccessor(InTarget.LandscapeInfo.Get())
 		, TLandscapeEditCache(HeightmapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 //
@@ -919,11 +945,18 @@ struct FLandscapeAlphaCache : public TLandscapeEditCache < FAlphamapAccessor<tru
 
 	FAlphamapAccessor<true, false> AlphamapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeAlphaCache(const FLandscapeToolTarget& InTarget)
 		: AlphamapAccessor(InTarget.LandscapeInfo.Get(), InTarget.LayerInfo.Get())
 		, TLandscapeEditCache(AlphamapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 struct FLandscapeVisCache : public TLandscapeEditCache < FAlphamapAccessor<false, false>, uint8 >
@@ -933,11 +966,18 @@ struct FLandscapeVisCache : public TLandscapeEditCache < FAlphamapAccessor<false
 
 	FAlphamapAccessor<false, false> AlphamapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeVisCache(const FLandscapeToolTarget& InTarget)
 		: AlphamapAccessor(InTarget.LandscapeInfo.Get(), ALandscapeProxy::VisibilityLayer)
 		, TLandscapeEditCache(AlphamapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 //
@@ -988,11 +1028,18 @@ struct FLandscapeFullWeightCache : public TLandscapeEditCache < FFullWeightmapAc
 
 	FFullWeightmapAccessor<false> WeightmapAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeFullWeightCache(const FLandscapeToolTarget& InTarget)
 		: WeightmapAccessor(InTarget.LandscapeInfo.Get())
 		, TLandscapeEditCache(WeightmapAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 
 	// Only for all weight case... the accessor type should be TArray<uint8>
 	void GetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<uint8>& OutData, int32 ArraySize)
@@ -1092,11 +1139,18 @@ struct FLandscapeDataCache : public TLandscapeEditCache < FDatamapAccessor<false
 
 	FDatamapAccessor<false> DataAccessor;
 
+#ifdef __clang__ // @todo
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
 	FLandscapeDataCache(const FLandscapeToolTarget& InTarget)
 		: DataAccessor(InTarget.LandscapeInfo.Get())
 		, TLandscapeEditCache(DataAccessor)
 	{
 	}
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 };
 
 
@@ -1148,18 +1202,24 @@ struct FWeightmapToolTarget
 	static FMatrix FromWorldMatrix(ULandscapeInfo* LandscapeInfo) { return FMatrix::Identity; }
 };
 
-template<class TInputType>
-class FLandscapeStrokeBase
+/**
+* FLandscapeToolStrokeBase - base class for tool strokes (used by FLandscapeToolBase)
+*/
+
+class FLandscapeToolStrokeBase
 {
 public:
-	FLandscapeStrokeBase(TInputType& InTarget) {}
-	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
+	// Whether to call Apply() every frame even if the mouse hasn't moved
+	enum { UseContinuousApply = false };
+
+	// Signature of Apply() method:
+	// void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions);
 };
 
 
-/*
- * FLandscapeToolPaintBase - base class for painting tools
- *		ToolTarget - the target for the tool (weight or heightmaap)
+/**
+ * FLandscapeToolBase - base class for painting tools
+ *		ToolTarget - the target for the tool (weight or heightmap)
  *		StrokeClass - the class that implements the behavior for a mouse stroke applying the tool.
  */
 template<class TStrokeClass>
@@ -1169,33 +1229,48 @@ public:
 	FLandscapeToolBase(FEdModeLandscape* InEdMode)
 		: EdMode(InEdMode)
 		, bToolActive(false)
-		, ToolStroke(NULL)
-	{}
+	{
+	}
 
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		if (!ensure(MousePositions.Num() == 0))
 		{
-			MousePositions.Empty();
+			MousePositions.Empty(1);
 		}
 
 		bToolActive = true;
-		ToolStroke = new TStrokeClass(EdMode, InTarget);
+		ToolStroke.Emplace(EdMode, InTarget);
 
 		EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
 
-		new(MousePositions)FLandscapeToolMousePosition(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+		// Save the mouse position
+		LastMousePosition = FVector2D(InHitLocation);
+		MousePositions.Emplace(InHitLocation.X, InHitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+		TimeSinceLastMouseMove = 0.0f;
+
 		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-		MousePositions.Empty();
+
+		MousePositions.Empty(1);
 		return true;
 	}
 
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override
 	{
-		if (bToolActive && MousePositions.Num())
+		if (bToolActive)
 		{
-			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-			MousePositions.Empty();
+			if (MousePositions.Num())
+			{
+				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				MousePositions.Empty(1);
+			}
+			else if (TStrokeClass::UseContinuousApply && TimeSinceLastMouseMove >= 0.25f)
+			{
+				MousePositions.Emplace(LastMousePosition.X, LastMousePosition.Y, IsShiftDown(ViewportClient->Viewport));
+				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				MousePositions.Empty(1);
+			}
+			TimeSinceLastMouseMove += DeltaTime;
 		}
 	}
 
@@ -1204,11 +1279,10 @@ public:
 		if (bToolActive && MousePositions.Num())
 		{
 			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-			MousePositions.Empty();
+			MousePositions.Empty(1);
 		}
 
-		delete ToolStroke;
-		ToolStroke = NULL;
+		ToolStroke.Reset();
 		bToolActive = false;
 		EdMode->CurrentBrush->EndStroke();
 	}
@@ -1227,7 +1301,9 @@ public:
 			if (bToolActive)
 			{
 				// Save the mouse position
-				new(MousePositions)FLandscapeToolMousePosition(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+				LastMousePosition = FVector2D(HitLocation);
+				MousePositions.Emplace(HitLocation.X, HitLocation.Y, IsShiftDown(ViewportClient->Viewport));
+				TimeSinceLastMouseMove = 0.0f;
 			}
 		}
 
@@ -1236,7 +1312,9 @@ public:
 
 protected:
 	TArray<FLandscapeToolMousePosition> MousePositions;
+	FVector2D LastMousePosition;
+	float TimeSinceLastMouseMove;
 	FEdModeLandscape* EdMode;
 	bool bToolActive;
-	TStrokeClass* ToolStroke;
+	TOptional<TStrokeClass> ToolStroke;
 };

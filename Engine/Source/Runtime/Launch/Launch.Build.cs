@@ -23,6 +23,8 @@ public class Launch : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"InputCore",
+                "Media",
+				"MediaAssets",
                 "MoviePlayer",
 				"Networking",
 				"PakFile",
@@ -34,13 +36,23 @@ public class Launch : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Sockets",
-				"HeadMountedDisplay",
 			}
 		);
-        
-        if( !UEBuildConfiguration.bBuildDedicatedServer)
-        {
-            PrivateIncludePathModuleNames.AddRange(
+
+		if (Target.Type != TargetRules.TargetType.Server)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+				"HeadMountedDisplay",
+				}
+			);
+
+			if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				PrivateDependencyModuleNames.Add("ALAudio");
+			}
+
+			PrivateIncludePathModuleNames.AddRange(
                 new string[] {
 			        "SlateRHIRenderer",
 		        }
@@ -164,15 +176,10 @@ public class Launch : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Mac) ||
-			(Target.Platform == UnrealTargetPlatform.Linux && !UEBuildConfiguration.bBuildDedicatedServer))
+			(Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server))
 		{
             // TODO: re-enable after implementing resource tables for OpenGL.
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
-		}
-
-        if ((Target.Platform == UnrealTargetPlatform.Linux) && (Target.Type != TargetRules.TargetType.Server))
-		{
-			PrivateDependencyModuleNames.Add("ALAudio");
 		}
 
         if (Target.Platform == UnrealTargetPlatform.HTML5 )

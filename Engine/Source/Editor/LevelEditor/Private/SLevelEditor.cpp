@@ -34,9 +34,9 @@
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "Editor/UMGEditor/Public/UMGEditorModule.h"
 #include "EditorModes.h"
-#include "STutorialWrapper.h"
 #include "IDocumentation.h"
 #include "NewsFeed.h"
+#include "TutorialMetaData.h"
 
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
@@ -86,45 +86,13 @@ void SLevelEditor::BindCommands()
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::EditAsset_Clicked, EToolkitMode::Standalone, TWeakPtr< SLevelEditor >( SharedThis( this ) ), true ) );
 
 	LevelEditorCommands->MapAction(
+		Actions.CheckOutProjectSettingsConfig,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig ) );
+
+	LevelEditorCommands->MapAction(
 		Actions.OpenLevelBlueprint,
 		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenLevelBlueprint, SharedThis( this ) ) );
 	
-	LevelEditorCommands->MapAction(
-		Actions.OpenGameModeBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenGameModeBlueprint, SharedThis( this ) ) );
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenGameStateBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenGameStateBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenDefaultPawnBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenDefaultPawnBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenHUDBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenHUDBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
-	LevelEditorCommands->MapAction(
-		Actions.OpenPlayerControllerBlueprint,
-		FExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::OpenPlayerControllerBlueprint, SharedThis( this ) ),
-		FCanExecuteAction::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) ),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic< TWeakPtr< SLevelEditor > >( &FLevelEditorActionCallbacks::CanEditGameInfoBlueprints, SharedThis( this ) )
-		);
-
 	LevelEditorCommands->MapAction(
 		Actions.CreateClassBlueprint,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CreateClassBlueprint ) );
@@ -187,7 +155,8 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 
 			+SOverlay::Slot()
 			[
-				SNew( STutorialWrapper, TEXT("MainMenu") )
+				SNew( SBox )
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MainMenu")))
 				[
 					Widget1
 				]
@@ -198,10 +167,8 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 			+SOverlay::Slot()
 			.HAlign( HAlign_Right )
 			[
-				SNew( STutorialWrapper, TEXT("PerformanceTools") )
-				[
-					SAssignNew( NotificationBarBox, SHorizontalBox )
-				]
+				SAssignNew( NotificationBarBox, SHorizontalBox )
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PerformanceTools")))
 			]
 #endif
 		]
@@ -214,13 +181,11 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 	];
 	
 // For OS X we need to put it into the window's title bar since there's no per-window menu bar
-#if PLATFORM_MAC
-	TSharedRef<SWidget> TutorialWidget = SNew( STutorialWrapper, TEXT("PerformanceTools") )
-	[
+#if PLATFORM_MAC	
+	OwnerTab->SetRightContent(
 		SAssignNew( NotificationBarBox, SHorizontalBox )
-	];
-	
-	OwnerTab->SetRightContent(TutorialWidget);
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PerformanceTools")))
+		);
 #endif
 
 	ConstructNotificationBar();
@@ -353,7 +318,7 @@ TSharedPtr<SLevelViewport> SLevelEditor::GetActiveViewport()
 					{
 						const TSharedPtr< SLevelViewport >& Viewport = (*LevelViewports)[ ViewportIndex ];
 
-						if( Viewport->IsVisible() )
+						if( Viewport->IsInForegroundTab() )
 						{
 							if( &Viewport->GetLevelViewportClient() == GCurrentLevelEditingViewportClient )
 							{
@@ -553,7 +518,8 @@ static TSharedRef<SDockTab> SummonDetailsPanel( FName TabIdentifier )
 		.Label( Label )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/LevelEditor", "DetailsTab" ) )
 		[
-			SNew( STutorialWrapper, TEXT("ActorDetails") )
+			SNew( SBox )
+			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ActorDetails"), TEXT("LevelEditorSelectionDetails")))
 			[
 				DetailsView
 			]
@@ -586,17 +552,14 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.ShouldAutosize(true)
 			.Icon( FEditorStyle::GetBrush("ToolBar.Icon") )
 			[
-				SNew( STutorialWrapper, TEXT("LevelToolbar") )
+				SNew(SHorizontalBox)
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("LevelToolbar")))
+				+ SHorizontalBox::Slot()
+				.FillWidth(1)
+				.VAlign(VAlign_Bottom)
+				.HAlign(HAlign_Left)
 				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.FillWidth(1)
-					.VAlign(VAlign_Bottom)
-					.HAlign(HAlign_Left)
-					[
-						FLevelEditorToolBar::MakeLevelEditorToolBar( LevelEditorCommands.ToSharedRef(), SharedThis(this) )
-					]
+					FLevelEditorToolBar::MakeLevelEditorToolBar( LevelEditorCommands.ToSharedRef(), SharedThis(this) )
 				]
 			];
 
@@ -619,7 +582,8 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.Modes" ) )
 			.Label( NSLOCTEXT( "LevelEditor", "ToolsTabTitle", "Modes" ) )
 			[
-				SNew( STutorialWrapper, TEXT("ToolsPanel") )
+				SNew( SBox )
+				.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ToolsPanel"), TEXT("LevelEditorToolBox")))
 				[
 					NewToolBox
 				]
@@ -669,16 +633,14 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.ToolTip( IDocumentation::Get()->CreateToolTip( Label, nullptr, "Shared/LevelEditor", "SceneOutlinerTab" ) )
 			.ContentPadding( 5 )
 			[
-				SNew( STutorialWrapper, TEXT("SceneOutliner") )
+				SNew(SBorder)
+				.Padding(4)
+				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+				.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("SceneOutliner"), TEXT("LevelEditorSceneOutliner")))
 				[
-					SNew(SBorder)
-					.Padding(4)
-					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-					[
-						SceneOutlinerModule.CreateSceneOutliner(
-							InitOptions,
-							FOnActorPicked() /* Not used for outliner when in browsing mode */ )
-					]
+					SceneOutlinerModule.CreateSceneOutliner(
+						InitOptions,
+						FOnActorPicked() /* Not used for outliner when in browsing mode */ )
 				]
 			];
 	}
@@ -693,6 +655,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					SNew(SBorder)
 					.Padding( 0 )
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+					.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("LayerBrowser"), TEXT("LevelEditorLayerBrowser")))
 					[
 						LayersModule.CreateLayerBrowser()
 					]
@@ -785,6 +748,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		return SNew( SDockTab )
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.WorldProperties.Tab" ) )
 			.Label( NSLOCTEXT("LevelEditor", "WorldSettingsTabTitle", "World Settings") )
+			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("WorldSettings"), TEXT("WorldSettingsTab")))
 			[
 				WorldSettingsView.ToSharedRef()
 			];
@@ -1094,7 +1058,7 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 		}
 
 		{
-			const FSlateIcon WorldPropertiesIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.WorldProperties.Small");
+			const FSlateIcon WorldPropertiesIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.WorldProperties.Tab");
 			LevelEditorTabManager->RegisterTabSpawner( "WorldSettingsTab", FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, FName("WorldSettingsTab"), FString()) )
 				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldSettings", "World Settings"))
 				.SetTooltipText(NSLOCTEXT("LevelEditorTabs", "WorldSettingsTooltipText", "Open the World Settings tab, in which global properties of the level can be viewed and edited."))

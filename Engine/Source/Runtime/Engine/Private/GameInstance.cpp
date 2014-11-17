@@ -29,6 +29,10 @@ UEngine* UGameInstance::GetEngine() const
 	return CastChecked<UEngine>(GetOuter());
 }
 
+void UGameInstance::Shutdown()
+{
+}
+
 void UGameInstance::Init()
 {
 	UEngine* const Engine = GetEngine();
@@ -43,10 +47,18 @@ bool UGameInstance::InitPIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 {
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 
-	WorldContext = &EditorEngine->CreateNewWorldContext(EWorldType::PIE);
-	WorldContext->OwningGameInstance = this;
-	WorldContext->PIEInstance = PIEInstance;
+	// Look for an existing pie world context, may have been created before
+	WorldContext = EditorEngine->GetWorldContextFromPIEInstance(PIEInstance);
 
+	if (!WorldContext)
+	{
+		// If not, create a new one
+		WorldContext = &EditorEngine->CreateNewWorldContext(EWorldType::PIE);
+		WorldContext->PIEInstance = PIEInstance;
+	}
+
+	WorldContext->OwningGameInstance = this;
+	
 	const FString WorldPackageName = EditorEngine->EditorWorld->GetOutermost()->GetName();
 
 	// Establish World Context for PIE World
@@ -184,7 +196,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		// and stream in all relevant levels around that location
 		if (PlayWorld->WorldComposition)
 		{
-			PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
+			PlayWorld->NavigateTo(PlayWorld->OriginLocation);
 		}
 		else
 		{
@@ -430,14 +442,18 @@ bool UGameInstance::RemoveLocalPlayer(ULocalPlayer* ExistingPlayer)
 	{
 		// FIXME: Do this all inside PlayerRemoved?
 		ExistingPlayer->PlayerController->CleanupGameViewport();
+
 		// Destroy the player's actors.
-		ExistingPlayer->PlayerController->Destroy();
+		if ( ExistingPlayer->PlayerController->Role == ROLE_Authority )
+		{
+			ExistingPlayer->PlayerController->Destroy();
+		}
 	}
 
 	// Remove the player from the context list
 	const int32 OldIndex = LocalPlayers.Find(ExistingPlayer);
 
-	if (OldIndex != INDEX_NONE)
+	if (ensure(OldIndex != INDEX_NONE))
 	{
 		ExistingPlayer->PlayerRemoved();
 		LocalPlayers.RemoveAt(OldIndex);
@@ -519,11 +535,23 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(int32 ControllerId)
 	return nullptr;
 }
 
-ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (ULocalPlayer* Player : LocalPlayers)
 	{
-		if (Player && Player->GetUniqueNetId() == UniqueNetId)
+		if (Player == NULL)
+		{
+			continue;
+		}
+
+		TSharedPtr<FUniqueNetId> OtherUniqueNetId = Player->GetPreferredUniqueNetId();
+
+		if (!OtherUniqueNetId.IsValid())
+		{
+			continue;
+		}
+
+		if (*OtherUniqueNetId == UniqueNetId)
 		{
 			// Match
 			return Player;
@@ -532,6 +560,16 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNe
 
 	// didn't find one
 	return nullptr;
+}
+
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const
+{
+	if (!UniqueNetId.IsValid())
+	{
+		return nullptr;
+	}
+
+	return FindLocalPlayerFromUniqueNetId(*UniqueNetId);
 }
 
 ULocalPlayer* UGameInstance::GetFirstGamePlayer() const

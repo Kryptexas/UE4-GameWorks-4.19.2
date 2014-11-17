@@ -32,7 +32,6 @@ public:
 	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) override;
 #endif //WITH_EDITOR
 	virtual void CreateStartingConnectors() override;
-	virtual FString GetUniqueString() const override;
 	// End USoundNode interface.
 
 private:

@@ -42,7 +42,7 @@ void FSimpleElementVS::ModifyCompilationEnvironment(EShaderPlatform Platform, FS
 	Simple element pixel shaders.
 ------------------------------------------------------------------------------*/
 
-FSimpleElementPS::FSimpleElementPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
+FSimpleElementPS::FSimpleElementPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 	FGlobalShader(Initializer)
 {
 	InTexture.Bind(Initializer.ParameterMap,TEXT("InTexture"));
@@ -106,40 +106,40 @@ bool FSimpleElementPS::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
-FSimpleElementGammaPS::FSimpleElementGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
+FSimpleElementGammaBasePS::FSimpleElementGammaBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 	FSimpleElementPS(Initializer)
 {
 	Gamma.Bind(Initializer.ParameterMap,TEXT("Gamma"));
 }
 
-void FSimpleElementGammaPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture,float GammaValue,ESimpleElementBlendMode BlendMode)
+void FSimpleElementGammaBasePS::SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture, float GammaValue, ESimpleElementBlendMode BlendMode)
 {
 	FSimpleElementPS::SetParameters(RHICmdList, Texture);
 	SetShaderValue(RHICmdList, GetPixelShader(),Gamma,GammaValue);
 }
 
-bool FSimpleElementGammaPS::Serialize(FArchive& Ar)
+bool FSimpleElementGammaBasePS::Serialize(FArchive& Ar)
 {
 	bool bShaderHasOutdatedParameters = FSimpleElementPS::Serialize(Ar);
 	Ar << Gamma;
 	return bShaderHasOutdatedParameters;
 }
 
-FSimpleElementMaskedGammaPS::FSimpleElementMaskedGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-	FSimpleElementGammaPS(Initializer)
+FSimpleElementMaskedGammaBasePS::FSimpleElementMaskedGammaBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+	FSimpleElementGammaBasePS(Initializer)
 {
 	ClipRef.Bind(Initializer.ParameterMap,TEXT("ClipRef"), SPF_Mandatory);
 }
 
-void FSimpleElementMaskedGammaPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture,float Gamma,float ClipRefValue,ESimpleElementBlendMode BlendMode)
+void FSimpleElementMaskedGammaBasePS::SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture, float Gamma, float ClipRefValue, ESimpleElementBlendMode BlendMode)
 {
-	FSimpleElementGammaPS::SetParameters(RHICmdList, Texture,Gamma,BlendMode);
+	FSimpleElementGammaBasePS::SetParameters(RHICmdList, Texture,Gamma,BlendMode);
 	SetShaderValue(RHICmdList, GetPixelShader(),ClipRef,ClipRefValue);
 }
 
-bool FSimpleElementMaskedGammaPS::Serialize(FArchive& Ar)
+bool FSimpleElementMaskedGammaBasePS::Serialize(FArchive& Ar)
 {
-	bool bShaderHasOutdatedParameters = FSimpleElementGammaPS::Serialize(Ar);
+	bool bShaderHasOutdatedParameters = FSimpleElementGammaBasePS::Serialize(Ar);
 	Ar << ClipRef;
 	return bShaderHasOutdatedParameters;
 }
@@ -150,7 +150,7 @@ bool FSimpleElementMaskedGammaPS::Serialize(FArchive& Ar)
 * @param Initializer - shader initialization container
 */
 FSimpleElementDistanceFieldGammaPS::FSimpleElementDistanceFieldGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-:	FSimpleElementMaskedGammaPS(Initializer)
+	: FSimpleElementMaskedGammaBasePS(Initializer)
 {
 	SmoothWidth.Bind(Initializer.ParameterMap,TEXT("SmoothWidth"));
 	EnableShadow.Bind(Initializer.ParameterMap,TEXT("EnableShadow"));
@@ -190,7 +190,7 @@ void FSimpleElementDistanceFieldGammaPS::SetParameters(
 	ESimpleElementBlendMode BlendMode
 	)
 {
-	FSimpleElementMaskedGammaPS::SetParameters(RHICmdList, Texture,Gamma,ClipRef,BlendMode);
+	FSimpleElementMaskedGammaBasePS::SetParameters(RHICmdList, Texture,Gamma,ClipRef,BlendMode);
 	SetShaderValue(RHICmdList, GetPixelShader(),SmoothWidth,SmoothWidthValue);		
 	SetPixelShaderBool(RHICmdList, GetPixelShader(),EnableShadow,EnableShadowValue);
 	if (EnableShadowValue)
@@ -219,7 +219,7 @@ void FSimpleElementDistanceFieldGammaPS::SetParameters(
 */
 bool FSimpleElementDistanceFieldGammaPS::Serialize(FArchive& Ar)
 {
-	bool bShaderHasOutdatedParameters = FSimpleElementMaskedGammaPS::Serialize(Ar);
+	bool bShaderHasOutdatedParameters = FSimpleElementMaskedGammaBasePS::Serialize(Ar);
 	Ar << SmoothWidth;
 	Ar << EnableShadow;
 	Ar << ShadowDirection;
@@ -291,9 +291,11 @@ bool FSimpleElementColorChannelMaskPS::Serialize(FArchive& Ar)
 ------------------------------------------------------------------------------*/
 
 IMPLEMENT_SHADER_TYPE(,FSimpleElementVS,TEXT("SimpleElementVertexShader"),TEXT("Main"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FSimpleElementPS,TEXT("SimpleElementPixelShader"),TEXT("Main"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FSimpleElementGammaPS,TEXT("SimpleElementPixelShader"),TEXT("GammaMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FSimpleElementMaskedGammaPS,TEXT("SimpleElementPixelShader"),TEXT("GammaMaskedMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FSimpleElementPS, TEXT("SimpleElementPixelShader"), TEXT("Main"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FSimpleElementGammaPS_SRGB, TEXT("SimpleElementPixelShader"), TEXT("GammaMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FSimpleElementGammaPS_Linear, TEXT("SimpleElementPixelShader"), TEXT("GammaMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FSimpleElementMaskedGammaPS_SRGB, TEXT("SimpleElementPixelShader"), TEXT("GammaMaskedMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FSimpleElementMaskedGammaPS_Linear, TEXT("SimpleElementPixelShader"), TEXT("GammaMaskedMain"), SF_Pixel);
 IMPLEMENT_SHADER_TYPE(,FSimpleElementDistanceFieldGammaPS,TEXT("SimpleElementPixelShader"),TEXT("GammaDistanceFieldMain"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(,FSimpleElementHitProxyPS,TEXT("SimpleElementHitProxyPixelShader"),TEXT("Main"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(,FSimpleElementColorChannelMaskPS,TEXT("SimpleElementColorChannelMaskPixelShader"),TEXT("Main"),SF_Pixel);

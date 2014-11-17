@@ -18,6 +18,8 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 
+#include "Landscape/LandscapeLayerInfoObject.h"
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor.CopyPaste"
 
 TSharedRef<IDetailCustomization> FLandscapeEditorDetailCustomization_CopyPaste::MakeInstance()

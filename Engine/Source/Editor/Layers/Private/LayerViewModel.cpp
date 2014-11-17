@@ -6,8 +6,8 @@
 
 FLayerViewModel::FLayerViewModel( const TWeakObjectPtr< ULayer >& InLayer, const TSharedRef< ILayers >& InWorldLayers, const TWeakObjectPtr< UEditorEngine >& InEditor )
 	: WorldLayers( InWorldLayers )
-	, Layer( InLayer )
 	, Editor( InEditor )
+	, Layer( InLayer )
 {
 
 }

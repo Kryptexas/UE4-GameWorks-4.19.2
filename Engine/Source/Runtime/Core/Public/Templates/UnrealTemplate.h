@@ -374,14 +374,14 @@ struct TAreTypesEqual<A,A>
 #define TEMPLATE_PARAMETERS2(X,Y) X,Y
 
 
-/*
+/**
  * TRemoveReference<type> will remove any references from a type.
  */
 template <typename T> struct TRemoveReference      { typedef T Type; };
 template <typename T> struct TRemoveReference<T& > { typedef T Type; };
 template <typename T> struct TRemoveReference<T&&> { typedef T Type; };
 
-/*
+/**
  * MoveTemp will cast a reference to an rvalue reference.
  * This is UE's equivalent of std::move.
  */
@@ -432,7 +432,7 @@ FORCEINLINE T StaticCast(ArgType&& Arg)
 	return static_cast<T>(Arg);
 }
 
-/*
+/**
  * TRemoveCV<type> will remove any const/volatile qualifiers from a type.
  * (based on std::remove_cv<>
  * note: won't remove the const from "const int*", as the pointer is not const

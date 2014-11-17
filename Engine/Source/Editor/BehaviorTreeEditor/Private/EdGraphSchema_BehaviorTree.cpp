@@ -245,6 +245,7 @@ void UEdGraphSchema_BehaviorTree::CreateDefaultNodesForGraph(UEdGraph& Graph) co
 	FGraphNodeCreator<UBehaviorTreeGraphNode_Root> NodeCreator(Graph);
 	UBehaviorTreeGraphNode_Root* MyNode = NodeCreator.CreateNode();
 	NodeCreator.Finalize();
+	SetNodeMetaData(MyNode, FNodeMetadata::DefaultGraphNode);
 }
 
 FString UEdGraphSchema_BehaviorTree::GetShortTypeName(const UObject* Ob) const
@@ -458,7 +459,7 @@ void UEdGraphSchema_BehaviorTree::GetBreakLinkToSubMenuActions( class FMenuBuild
 			// Add name of connection if possible
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("NodeTitle"), Title );
-			Args.Add( TEXT("PinName"), FText::FromString( Pin->PinName ) );
+			Args.Add( TEXT("PinName"), Pin->GetDisplayName() );
 			Title = FText::Format( LOCTEXT("BreakDescPin", "{NodeTitle} ({PinName})"), Args );
 		}
 
@@ -590,7 +591,15 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(co
 		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinErrorcycle", "Can't create a graph cycle"));
 	}
 
-	if(PinB->LinkedTo.Num() > 0)
+	const bool bPinASingleLink = bPinAIsSingleComposite || bPinAIsSingleTask || bPinAIsSingleNode;
+	const bool bPinBSingleLink = bPinBIsSingleComposite || bPinBIsSingleTask || bPinBIsSingleNode;
+	if ((bPinASingleLink && PinA->LinkedTo.Num() > 0) ||
+		(bPinBSingleLink && PinB->LinkedTo.Num() > 0))
+	{
+		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinErrorSingleConnection", "Can't connect to multiple nodes"));
+	}
+
+	if (PinB->LinkedTo.Num() > 0)
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_B, LOCTEXT("PinConnectReplace", "Replace connection"));
 	}

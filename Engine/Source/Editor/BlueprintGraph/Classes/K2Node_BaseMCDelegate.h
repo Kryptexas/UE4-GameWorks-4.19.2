@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_BaseMCDelegate.generated.h"
 
 UCLASS(MinimalAPI, abstract)
@@ -29,6 +30,7 @@ public:
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
 	// End of UEdGraphNode interface
 
 	BLUEPRINTGRAPH_API void SetFromProperty(const UProperty* Property, bool bSelfContext)
@@ -52,4 +54,8 @@ public:
 
 	/** Is the delegate BlueprintAuthorityOnly */
 	BLUEPRINTGRAPH_API bool IsAuthorityOnly() const;
+
+protected:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

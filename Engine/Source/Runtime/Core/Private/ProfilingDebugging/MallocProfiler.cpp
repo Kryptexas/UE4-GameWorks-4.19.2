@@ -12,7 +12,6 @@
 #include "ModuleManager.h"
 #include "MemoryMisc.h"
 
-DEFINE_LOG_CATEGORY(LogProfilingDebugging);
 
 CORE_API FMallocProfiler* GMallocProfiler;
 

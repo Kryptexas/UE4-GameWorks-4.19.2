@@ -32,28 +32,19 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 {
 	LinuxApplication = new FLinuxApplication();
 	
-	//	init the sdl here
-	if	( SDL_WasInit( 0 ) == 0 )
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
-		SDL_Init( SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER );
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : PlatformInitMultimedia() failed, cannot create application instance."));
+		// unreachable
+		return nullptr;
 	}
-	else
-	{
-		Uint32 subsystem_init = SDL_WasInit( SDL_INIT_EVERYTHING );
 
-		if	( !(subsystem_init & SDL_INIT_EVENTS) )
-		{
-			SDL_InitSubSystem( SDL_INIT_EVENTS );
-		}
-		if	( !(subsystem_init & SDL_INIT_JOYSTICK) )
-		{
-			SDL_InitSubSystem( SDL_INIT_JOYSTICK );
-		}
-		if	( !(subsystem_init & SDL_INIT_GAMECONTROLLER) )
-		{
-			SDL_InitSubSystem( SDL_INIT_GAMECONTROLLER );
-		}
-	}
+#if DO_CHECK
+	uint32 InitializedSubsystems = SDL_WasInit(SDL_INIT_EVERYTHING);
+	check(InitializedSubsystems & SDL_INIT_EVENTS);
+	check(InitializedSubsystems & SDL_INIT_JOYSTICK);
+	check(InitializedSubsystems & SDL_INIT_GAMECONTROLLER);
+#endif // DO_CHECK
 
 	SDLControllerState *controllerState = LinuxApplication->ControllerStates;
 	for (int i = 0; i < SDL_NumJoysticks(); ++i) {
@@ -74,14 +65,25 @@ FLinuxApplication::FLinuxApplication() : GenericApplication( MakeShareable( new 
 #endif // STEAM_CONTROLLER_SUPPORT
 {
 	bUsingHighPrecisionMouseInput = false;
-	bAllowedToDeferMessageProcessing = false;
+	bAllowedToDeferMessageProcessing = true;
 	MouseCaptureWindow = NULL;
 	ControllerStates = new SDLControllerState[SDL_NumJoysticks()];
 	memset( ControllerStates, 0, sizeof(SDLControllerState) * SDL_NumJoysticks() );
+
+	fMouseWheelScrollAccel = 1.0f;
+	if (GConfig)
+	{
+		GConfig->GetFloat(TEXT("X11.Tweaks"), TEXT( "MouseWheelScrollAcceleration" ), fMouseWheelScrollAccel, GEngineIni);
+	}
 }
 
 FLinuxApplication::~FLinuxApplication()
 {
+	if ( GConfig )
+	{
+		GConfig->GetFloat(TEXT("X11.Tweaks"), TEXT("MouseWheelScrollAcceleration"), fMouseWheelScrollAccel, GEngineIni);
+		GConfig->Flush(false, GEngineIni);
+	}
 	delete [] ControllerStates;
 }
 
@@ -95,10 +97,9 @@ void FLinuxApplication::DestroyApplication()
 	}
 }
 
-
-TSharedRef< FGenericWindow > FLinuxApplication::MakeWindow() 
-{ 
-	return FLinuxWindow::Make(); 
+TSharedRef< FGenericWindow > FLinuxApplication::MakeWindow()
+{
+	return FLinuxWindow::Make();
 }
 
 void FLinuxApplication::InitializeWindow(	const TSharedRef< FGenericWindow >& InWindow,
@@ -121,18 +122,26 @@ void FLinuxApplication::SetMessageHandler( const TSharedRef< FGenericApplication
 #endif // STEAM_CONTROLLER_SUPPORT
 }
 
-static TSharedPtr< FLinuxWindow > FindWindowBySDLWindow( const TArray< TSharedRef< FLinuxWindow > >& WindowsToSearch, SDL_HWindow const WindowHandle )
+namespace
 {
-	for (int32 WindowIndex=0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
+	TSharedPtr< FLinuxWindow > FindWindowBySDLWindow(const TArray< TSharedRef< FLinuxWindow > >& WindowsToSearch, SDL_HWindow const WindowHandle)
 	{
-		TSharedRef< FLinuxWindow > Window = WindowsToSearch[ WindowIndex ];
-		if ( Window->GetHWnd() == WindowHandle )
+		for (int32 WindowIndex=0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
 		{
-			return Window;
+			TSharedRef< FLinuxWindow > Window = WindowsToSearch[WindowIndex];
+			if (Window->GetHWnd() == WindowHandle)
+			{
+				return Window;
+			}
 		}
-	}
 
-	return TSharedPtr< FLinuxWindow >( NULL );
+		return TSharedPtr< FLinuxWindow >(nullptr);
+	}
+}
+
+TSharedPtr< FLinuxWindow > FLinuxApplication::FindWindowBySDLWindow(SDL_Window *win)
+{
+	return ::FindWindowBySDLWindow(Windows, win);
 }
 
 void FLinuxApplication::PumpMessages( const float TimeDelta )
@@ -164,27 +173,62 @@ bool FLinuxApplication::GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDow
 		(Sym != SDLK_DOWN && Sym != SDLK_LEFT && Sym != SDLK_RIGHT && Sym != SDLK_UP && Sym != SDLK_DELETE);
 }
 
+void FLinuxApplication::TrackActivationChanges(const TSharedPtr<FLinuxWindow> Window, EWindowActivation::Type Event)
+{
+	bool bNeedToNotify = (Window != CurrentlyActiveWindow) || Event == EWindowActivation::Deactivate;
+	
+	UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: bNeedToNotify=%s (Window: %p, CurrentlyActiveWindow: %p, Event: %d)"),
+		bNeedToNotify ? TEXT("true") : TEXT("false"),
+		Window.Get(),
+		CurrentlyActiveWindow.Get(),
+		static_cast<int32>(Event));
+	
+	if (bNeedToNotify)
+	{
+		// see if previous window needs to be deactivated
+		if (CurrentlyActiveWindow.IsValid())
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: Deactivating previous window %p"), CurrentlyActiveWindow.Get());
+			MessageHandler->OnWindowActivationChanged(CurrentlyActiveWindow.ToSharedRef(), EWindowActivation::Deactivate);
+		}
+			
+		if (Event != EWindowActivation::Deactivate)
+		{
+			CurrentlyActiveWindow = Window;
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: New active window is %p, notifying it"), CurrentlyActiveWindow.Get());
+			
+			if (CurrentlyActiveWindow.IsValid())
+			{
+				MessageHandler->OnWindowActivationChanged(CurrentlyActiveWindow.ToSharedRef(), Event);
+			}
+		}
+		else
+		{
+			CurrentlyActiveWindow = nullptr;
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("TrackActivationChanges: don't have any active window"));
+		}
+	}
+}
+
 void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 {
 	// This function can be reentered when entering a modal tick loop.
-	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice 
+	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice
 	SDL_HWindow NativeWindow = NULL;
 
-	TSharedPtr< FLinuxWindow > CurrentEventWindow = FindEventWindow( &Event );
-	if( !CurrentEventWindow.IsValid() && LastEventWindow.IsValid() )
-	{
-		CurrentEventWindow = LastEventWindow;
-	}
-	if( CurrentEventWindow.IsValid() )
+	// get pointer to window that received this event
+	TSharedPtr< FLinuxWindow > CurrentEventWindow = FindEventWindow(&Event);
+
+	if (CurrentEventWindow.IsValid())
 	{
 		LastEventWindow = CurrentEventWindow;
 		NativeWindow = CurrentEventWindow->GetHWnd();
 	}
-	if( !NativeWindow )
+	if (!NativeWindow)
 	{
 		return;
 	}
-	switch( Event.type )
+	switch(Event.type)
 	{
 	case SDL_KEYDOWN:
 		{
@@ -217,7 +261,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			SDL_MouseMotionEvent motionEvent = Event.motion;
 			FLinuxCursor *LinuxCursor = (FLinuxCursor*)Cursor.Get();
 
-			if(LinuxCursor->IsHidden())
+			if(SDL_ShowCursor(-1) == 0)
 			{
 				int width, height;
 				SDL_GetWindowSize( NativeWindow, &width, &height );
@@ -266,7 +310,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 	case SDL_MOUSEBUTTONUP:
 		{
 			SDL_MouseButtonEvent buttonEvent = Event.button;
-				
+
 			EMouseButtons::Type button;
 			switch(buttonEvent.button)
 			{
@@ -289,28 +333,31 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				button = EMouseButtons::Invalid;
 				break;
 			}
-			if(buttonEvent.type == SDL_MOUSEBUTTONUP)
+			
+			if (buttonEvent.type == SDL_MOUSEBUTTONUP)
 			{
 				MessageHandler->OnMouseUp(button);
 			}
-			// SDL 2.0.2+
-			//else if(buttonEvent.clicks > 1)
-			//{
-			//	MessageHandler->OnMouseDoubleClick( NativeWindow, button );
-			//}
 			else
 			{
-				MessageHandler->OnMouseDown( CurrentEventWindow, button );
+				TrackActivationChanges(CurrentEventWindow, EWindowActivation::ActivateByMouse);
+				if (buttonEvent.clicks == 2)
+				{
+					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, button);
+				}
+				else
+				{
+					MessageHandler->OnMouseDown(CurrentEventWindow, button);
+				}
 			}
 		}
 		break;
 	case SDL_MOUSEWHEEL:
 		{
-			SDL_MouseWheelEvent wheelEvent = Event.wheel;
-			const float SpinFactor = 1 / 120.0f;
-			const short WheelDelta = wheelEvent.y;
+			SDL_MouseWheelEvent *WheelEvent = &Event.wheel;
+			float Amount = WheelEvent->y * fMouseWheelScrollAccel;
 
-			MessageHandler->OnMouseWheel( static_cast<float>( WheelDelta ) * SpinFactor );
+			MessageHandler->OnMouseWheel(Amount);
 		}
 		break;
 	case SDL_CONTROLLERAXISMOTION:
@@ -544,7 +591,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 		}
 		break;
-		
+
 	case SDL_WINDOWEVENT:
 		{
 			SDL_WindowEvent windowEvent = Event.window;
@@ -553,137 +600,128 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			{
 				case SDL_WINDOWEVENT_SIZE_CHANGED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_SIZE_CHANGED has been send.\n" );
-					
 						int NewWidth  = windowEvent.data1;
 						int NewHeight = windowEvent.data2;
 
-						MessageHandler->OnSizeChanged( CurrentEventWindow.ToSharedRef(), NewWidth, NewHeight, 
-																		//	bWasMinimized
-																			false
-																			);
+						MessageHandler->OnSizeChanged(
+							CurrentEventWindow.ToSharedRef(),
+							NewWidth,
+							NewHeight,
+							//	bWasMinimized
+							false
+						);
 					}
 					break;
 
 				case SDL_WINDOWEVENT_RESIZED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_RESIZED has been send.\n" );
-
 						int NewWidth  = windowEvent.data1;
 						int NewHeight = windowEvent.data2;
 
-						MessageHandler->OnSizeChanged( CurrentEventWindow.ToSharedRef(), NewWidth, NewHeight, 
-																		//	bWasMinimized
-																			false
-																			);
+						MessageHandler->OnSizeChanged(
+							CurrentEventWindow.ToSharedRef(),
+							NewWidth,
+							NewHeight,
+							//	bWasMinimized
+							false
+						);
 
-					//	MessageHandler->OnResizingWindow( CurrentEventWindow.ToSharedRef() );
+						MessageHandler->OnResizingWindow( CurrentEventWindow.ToSharedRef() );
 					}
+					break;
 
 				case SDL_WINDOWEVENT_CLOSE:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_CLOSE has been send: %d %d.\n", windowEvent.data1, windowEvent.data2 );
-						if(windowEvent.data1 == 0 && windowEvent.data2 == 0)
-						{
-							MessageHandler->OnWindowClose( CurrentEventWindow.ToSharedRef() );
-						}
+						MessageHandler->OnWindowClose( CurrentEventWindow.ToSharedRef() );
 					}
 					break;
 
 				case SDL_WINDOWEVENT_SHOWN:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_SHOWN has been send.\n" );
-					}
-					break;
+						int Width, Height;
 
-				case SDL_WINDOWEVENT_HIDDEN:
-					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_HIDDEN has been send.\n" );
-					}
-					break;
-
-				case SDL_WINDOWEVENT_EXPOSED:
-					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_EXPOSED has been send.\n" );
+						SDL_GetWindowSize(NativeWindow, &Width, &Height);
+						
+						MessageHandler->OnSizeChanged(
+							CurrentEventWindow.ToSharedRef(),
+							Width,
+							Height,
+							false
+						);
+					
 					}
 					break;
 
 				case SDL_WINDOWEVENT_MOVED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_MOVED has been send.\n" );
-						MessageHandler->OnMovedWindow( CurrentEventWindow.ToSharedRef(), windowEvent.data1, windowEvent.data2 );
-					}
-					break;
-
-				case SDL_WINDOWEVENT_MINIMIZED:
-					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_MINIMIZED has been send.\n" );
+						int32 ClientScreenX = windowEvent.data1;
+						int32 ClientScreenY = windowEvent.data2;
+						SDL_Rect Borders;
+						if (SDL_GetWindowBordersSize(NativeWindow, &Borders) == 0)
+						{
+							ClientScreenX += Borders.x;
+							ClientScreenY += Borders.y;
+						}
+						else
+						{
+							UE_LOG(LogLinuxWindow, Verbose, TEXT("Could not get Window border sizes!"));
+						}
+						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), ClientScreenX, ClientScreenY);
 					}
 					break;
 
 				case SDL_WINDOWEVENT_MAXIMIZED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_MAXIMIZED has been send.\n" );
-						MessageHandler->OnWindowAction( CurrentEventWindow.ToSharedRef(), EWindowAction::Maximize );
+						MessageHandler->OnWindowAction(CurrentEventWindow.ToSharedRef(), EWindowAction::Maximize);
 					}
 					break;
 
 				case SDL_WINDOWEVENT_RESTORED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_RESTORED has been send.\n" );
-						MessageHandler->OnWindowAction( CurrentEventWindow.ToSharedRef(), EWindowAction::Restore );
+						MessageHandler->OnWindowAction(CurrentEventWindow.ToSharedRef(), EWindowAction::Restore);
 					}
 					break;
 
 				case SDL_WINDOWEVENT_ENTER:
 					{
-						if ( CurrentEventWindow.IsValid() )
+						if (CurrentEventWindow.IsValid())
 						{
 							MessageHandler->OnCursorSet();
-							//MessageHandler->OnWindowActivationChanged( CurrentEventWindow.ToSharedRef(), EWindowActivation::ActivateByMouse );
 						}
 					}
 					break;
 
 				case SDL_WINDOWEVENT_LEAVE:
 					{
-						if( CurrentEventWindow.IsValid() && GetCapture() != NULL)
+						if (CurrentEventWindow.IsValid() && GetCapture() != NULL)
 						{
 							UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
 						}
 					}
 					break;
 
-				case SDL_WINDOWEVENT_FOCUS_GAINED:
-					{
-						if ( CurrentEventWindow.IsValid() )
-						{
-							MessageHandler->OnWindowActivationChanged( CurrentEventWindow.ToSharedRef(), EWindowActivation::Activate );
-						}
-					}
+				case SDL_WINDOWEVENT_FOCUS_GAINED:	// seems to be spurious and does not always reflect actual focus changes, ignore for now
+				case SDL_WINDOWEVENT_FOCUS_LOST:	// seems to be spurious and does not always reflect actual focus changes, ignore for now
+				case SDL_WINDOWEVENT_HIDDEN:		// intended fall-through
+				case SDL_WINDOWEVENT_EXPOSED:		// intended fall-through
+				case SDL_WINDOWEVENT_MINIMIZED:		// intended fall-through
+				default:
 					break;
-
-				case SDL_WINDOWEVENT_FOCUS_LOST:
-					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_FOCUS_LOST has been send.\n" );
-						if ( CurrentEventWindow.IsValid() )
-						{
-							MessageHandler->OnWindowActivationChanged( CurrentEventWindow.ToSharedRef(), EWindowActivation::Deactivate );
-						}
-					}
-				break;
 			}
 		}
 		break;
 	}
-
 }
 
+EWindowZone::Type FLinuxApplication::WindowHitTest(const TSharedPtr< FLinuxWindow > &Window, int x, int y)
+{
+	return MessageHandler->GetWindowZoneForPoint(Window.ToSharedRef(), x, y);
+}
 
 void FLinuxApplication::ProcessDeferredEvents( const float TimeDelta )
 {
 	// This function can be reentered when entering a modal tick loop.
-	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice 
+	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice
 	SDL_HWindow NativeWindow = NULL;
 
 	TArray< SDL_Event > Events( PendingEvents );
@@ -810,46 +848,56 @@ TCHAR FLinuxApplication::ConvertChar( SDL_Keysym Keysym )
 
 TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow( SDL_Event* Event )
 {
-	uint16 windowID;
+	uint16 WindowID = 0;
 	switch (Event->type)
 	{
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
-			windowID = Event->key.windowID;
+			WindowID = Event->key.windowID;
 			break;
 		case SDL_MOUSEMOTION:
-			windowID = Event->motion.windowID;
+			WindowID = Event->motion.windowID;
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
-			windowID = Event->button.windowID;
+			WindowID = Event->button.windowID;
 			break;
 		case SDL_MOUSEWHEEL:
-			windowID = Event->wheel.windowID;
+			WindowID = Event->wheel.windowID;
 			break;
 
 		case SDL_WINDOWEVENT:
-			windowID = Event->window.windowID;
+			WindowID = Event->window.windowID;
 			break;
 		default:
-			return TSharedPtr< FLinuxWindow >( NULL );
+			return TSharedPtr< FLinuxWindow >(nullptr);
 	}
 
 	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
 	{
-		TSharedRef< FLinuxWindow > Window = Windows[ WindowIndex ];
-		if ( SDL_GetWindowID(Window->GetHWnd()) == windowID )
+		TSharedRef< FLinuxWindow > Window = Windows[WindowIndex];
+		
+		if (SDL_GetWindowID(Window->GetHWnd()) == WindowID)
 		{
 			return Window;
 		}
 	}
 
-	if(Windows.Num() > 0)
-	{
-		return TSharedPtr< FLinuxWindow >( Windows[0] );
-	}
+	return TSharedPtr< FLinuxWindow >(nullptr);
+}
 
-	return TSharedPtr< FLinuxWindow >( NULL );
+void FLinuxApplication::RemoveEventWindow(SDL_HWindow HWnd)
+{
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
+	{
+		TSharedRef< FLinuxWindow > Window = Windows[ WindowIndex ];
+		
+		if ( Window->GetHWnd() == HWnd )
+		{
+			Windows.RemoveAt(WindowIndex);
+			return;
+		}
+	}
 }
 
 FModifierKeysState FLinuxApplication::GetModifierKeys() const
@@ -862,8 +910,9 @@ FModifierKeysState FLinuxApplication::GetModifierKeys() const
 	const bool bIsRightControlDown	= (modifiers & KMOD_RCTRL) != 0;
 	const bool bIsLeftAltDown		= (modifiers & KMOD_LALT) != 0;
 	const bool bIsRightAltDown		= (modifiers & KMOD_RALT) != 0;
+	const bool bAreCapsLocked		= (modifiers & KMOD_CAPS) != 0;
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false );
+	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked );
 }
 
 
@@ -879,7 +928,7 @@ void* FLinuxApplication::GetCapture( void ) const
 	return ( bIsMouseCaptureEnabled && MouseCaptureWindow ) ? MouseCaptureWindow : NULL;
 }
 
-void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
+void FLinuxApplication::UpdateMouseCaptureWindow(SDL_HWindow TargetWindow)
 {
 	const bool bEnable = bIsMouseCaptureEnabled || bIsMouseCursorLocked;
 	FLinuxCursor *LinuxCursor = static_cast<FLinuxCursor*>(Cursor.Get());
@@ -906,7 +955,7 @@ void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 			{
 				SDL_CaptureMouse(SDL_FALSE);
 			}
-			MouseCaptureWindow = NULL;
+			MouseCaptureWindow = nullptr;
 		}
 	}
 }
@@ -920,37 +969,38 @@ void FLinuxApplication::SetHighPrecisionMouseMode( const bool Enable, const TSha
 
 FPlatformRect FLinuxApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
 {
-	RECT WindowsWindowDim;
-	WindowsWindowDim.left	= CurrentWindow.Left;
-	WindowsWindowDim.top	= CurrentWindow.Top;
-	WindowsWindowDim.right	= CurrentWindow.Right;
-	WindowsWindowDim.bottom	= CurrentWindow.Bottom;
-
-	//	asdd
-#if 0
-	// ... figure out the best monitor for that window.
-	HMONITOR hBestMonitor = MonitorFromRect( &WindowsWindowDim, MONITOR_DEFAULTTONEAREST );
-
-	// Get information about that monitor...
-	MONITORINFO MonitorInfo;
-	MonitorInfo.cbSize = sizeof(MonitorInfo);
-	GetMonitorInfo( hBestMonitor, &MonitorInfo);
-
-	// ... so that we can figure out the work area (are not covered by taskbar)
-	MonitorInfo.rcWork;
-
+	// loop over all monitors to determine which one is the best
+	int NumDisplays = SDL_GetNumVideoDisplays();
+	if (NumDisplays <= 0)
+	{
+		// fake something
+		return CurrentWindow;
+	}
+	
+	SDL_Rect BestDisplayBounds;
+	SDL_GetDisplayBounds(0, &BestDisplayBounds);
+	
+	// see if any other are better (i.e. cover top left)
+	for (int DisplayIdx = 1; DisplayIdx < NumDisplays; ++DisplayIdx)
+	{
+		SDL_Rect DisplayBounds;
+		SDL_GetDisplayBounds(DisplayIdx, &DisplayBounds);
+		
+		// only check top left corner for "bestness"
+		if (DisplayBounds.x <= CurrentWindow.Left && DisplayBounds.x + DisplayBounds.w > CurrentWindow.Left &&
+			DisplayBounds.y <= CurrentWindow.Top && DisplayBounds.y + DisplayBounds.h > CurrentWindow.Bottom)
+		{
+			BestDisplayBounds = DisplayBounds;
+			// there can be only one, as we don't expect overlapping displays
+			break;
+		}
+	}
+	
 	FPlatformRect WorkArea;
-	WorkArea.Left = MonitorInfo.rcWork.left;
-	WorkArea.Top = MonitorInfo.rcWork.top;
-	WorkArea.Right = MonitorInfo.rcWork.right;
-	WorkArea.Bottom = MonitorInfo.rcWork.bottom;
-#endif
-
-	FPlatformRect WorkArea;
-	WorkArea.Left	= WindowsWindowDim.left;
-	WorkArea.Top	= WindowsWindowDim.top;
-	WorkArea.Right	= WindowsWindowDim.right;
-	WorkArea.Bottom	= WindowsWindowDim.bottom;
+	WorkArea.Left	= BestDisplayBounds.x;
+	WorkArea.Top	= BestDisplayBounds.y;
+	WorkArea.Right	= BestDisplayBounds.x + BestDisplayBounds.w;
+	WorkArea.Bottom	= BestDisplayBounds.y + BestDisplayBounds.h;
 
 	return WorkArea;
 }
@@ -967,20 +1017,71 @@ bool FLinuxApplication::TryCalculatePopupWindowPosition( const FPlatformRect& In
 	return false;
 }
 
-
-void FLinuxApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
-	SDL_Rect bounds;
-	SDL_GetDisplayBounds( 0, &bounds );
+	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	{
+		// consider making non-fatal and just returning bullshit? (which can be checked for and handled more gracefully)
+		UE_LOG(LogInit, Fatal, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+		// unreachable
+		return;
+	}
 
-	// Get screen rect
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = bounds.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = bounds.y;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = bounds.w;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = bounds.h;
+	// loop over all monitors to determine which one is the best
+	int NumDisplays = SDL_GetNumVideoDisplays();
+	if (NumDisplays <= 0)
+	{
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 0;
+		OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
+		OutDisplayMetrics.PrimaryDisplayWidth = 0;
+		OutDisplayMetrics.PrimaryDisplayHeight = 0;
+
+		return;
+	}
+	
+	OutDisplayMetrics.MonitorInfo.Empty();
+	
+	FMonitorInfo Primary;
+	SDL_Rect PrimaryBounds;
+	SDL_GetDisplayBounds(0, &PrimaryBounds);
+
+	Primary.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(0));
+	Primary.ID = TEXT("display0");
+	Primary.NativeWidth = PrimaryBounds.w;
+	Primary.NativeHeight = PrimaryBounds.h;
+	Primary.bIsPrimary = true;
+	OutDisplayMetrics.MonitorInfo.Add(Primary);
+
+	// @TODO [RCL] 2014-09-30 - try to account for real work area and not just display size.
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = PrimaryBounds.x;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = PrimaryBounds.y;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = PrimaryBounds.x + PrimaryBounds.w;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = PrimaryBounds.y + PrimaryBounds.h;
+
+	OutDisplayMetrics.PrimaryDisplayWidth = PrimaryBounds.w;
+ 	OutDisplayMetrics.PrimaryDisplayHeight = PrimaryBounds.h;
+
+	// accumulate the total bound rect
 	OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
-
-	// Total screen size of the primary monitor
-	OutDisplayMetrics.PrimaryDisplayWidth = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
-	OutDisplayMetrics.PrimaryDisplayHeight = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
+	for (int DisplayIdx = 1; DisplayIdx < NumDisplays; ++DisplayIdx)
+	{
+		SDL_Rect DisplayBounds;
+		FMonitorInfo Display;
+		SDL_GetDisplayBounds(DisplayIdx, &DisplayBounds);
+		
+		Display.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(DisplayIdx));
+		Display.ID = FString::Printf(TEXT("display%d"), DisplayIdx);
+		Display.NativeWidth = DisplayBounds.w;
+		Display.NativeHeight = DisplayBounds.h;
+		Display.bIsPrimary = false;
+		OutDisplayMetrics.MonitorInfo.Add(Display);
+		
+		OutDisplayMetrics.VirtualDisplayRect.Left = FMath::Min(DisplayBounds.x, OutDisplayMetrics.VirtualDisplayRect.Left);
+		OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, DisplayBounds.x + DisplayBounds.w);
+		OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
+		OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
+	}
 }

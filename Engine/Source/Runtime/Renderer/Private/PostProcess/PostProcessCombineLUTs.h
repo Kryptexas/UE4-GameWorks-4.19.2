@@ -13,6 +13,11 @@ class FRCPassPostProcessCombineLUTs : public TRenderingCompositePassBase<0, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------
+	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform)
+	: ShaderPlatform(InShaderPlatform)
+	{
+		
+	}
 
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual void Release() override { delete this; }
@@ -22,6 +27,12 @@ public:
 	uint32 GenerateFinalTable(const FFinalPostProcessSettings& Settings, FTexture* OutTextures[], float OutWeights[], uint32 MaxCount) const;
 	/** @return 0xffffffff if not found */
 	uint32 FindIndex(const FFinalPostProcessSettings& Settings, UTexture* Tex) const;
+
+	static bool IsColorGradingLUTNeeded(const FViewInfo* RESTRICT View);
+
+private:
+
+	EShaderPlatform ShaderPlatform;
 };
 
 

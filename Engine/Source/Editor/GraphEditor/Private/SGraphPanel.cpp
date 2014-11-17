@@ -141,7 +141,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	const int32 NodeLayerId = NodeShadowsLayerId + 1;
 	int32 MaxLayerId = NodeLayerId;
 
-	const FVector2D NodeShadowSize = FEditorStyle::GetVector(TEXT("Graph.Node.ShadowSize"));
+	const FVector2D NodeShadowSize = GetDefault<UGraphEditorSettings>()->GetShadowDeltaSize();
 	const UEdGraphSchema* Schema = GraphObj->GetSchema();
 
 	// Draw the child nodes
@@ -161,7 +161,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		TArray<FGraphDiffControl::FNodeMatch> NodeMatches;
 		for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 		{
-			FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+			FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 			TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 			
 			// Examine node to see what layers we should be drawing in
@@ -219,11 +219,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 						if (bShowCommentBubble)
 						{
-							FGeometry CommentGeometry = CurWidget.Geometry;
-							if (!bScaleComments)
-							{
-								CommentGeometry.Scale = 1.0f;
-							}
+							FGeometry CommentGeometry = CurWidget.Geometry.MakeChild(CurWidget.Geometry.Size, FSlateLayoutTransform(bScaleComments ? 1.0f : Inverse(CurWidget.Geometry.Scale)));
 							PaintComment(NodeComment, CommentGeometry, MyClippingRect, OutDrawElements, ChildLayerId, ChildNode->GetNodeCommentColor().GetColor( InWidgetStyle ), /*inout*/ CommentBubbleY, InWidgetStyle);
 						}
 					}
@@ -514,7 +510,7 @@ void SGraphPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 	FArrangedChildren MyArrangedChildren(ArrangedChildren.GetFilter());
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
-		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
+		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		TSharedRef<SGraphNode> ChildNode = StaticCastSharedRef<SGraphNode>(CurWidget.Widget);
 
 		TArray<FOverlayWidgetInfo> OverlayWidgets = ChildNode->GetOverlayWidgets(false, CurWidget.Geometry.Size);
@@ -645,8 +641,10 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 			const int32 HoveredNodeIndex = SWidget::FindChildUnderMouse( ArrangedNodes, MouseEvent );
 			if (HoveredNodeIndex != INDEX_NONE)
 			{
-				const FArrangedWidget& HoveredNode = ArrangedNodes(HoveredNodeIndex);
-				const TSharedRef<SGraphNode>& GraphNode = StaticCastSharedRef<SGraphNode>(HoveredNode.Widget);
+				const FArrangedWidget& HoveredNode = ArrangedNodes[HoveredNodeIndex];
+				TSharedRef<SGraphNode> GraphNode = StaticCastSharedRef<SGraphNode>(HoveredNode.Widget);
+				TSharedPtr<SGraphNode> GraphSubNode = GraphNode->GetNodeUnderMouse(HoveredNode.Geometry, MouseEvent);
+				GraphNode = GraphSubNode.IsValid() ? GraphSubNode.ToSharedRef() : GraphNode;
 				NodeUnderCursor = GraphNode->GetNodeObj();
 
 				// Selection should switch to this code if it isn't already selected.

@@ -20,12 +20,12 @@ class ENGINE_API UAISystemBase : public UObject
 	virtual void InitializeActorsForPlay(bool bTimeGotReset) PURE_VIRTUAL(UAISystemBase::InitializeActorsForPlay, );
 
 	/**
-	 * Event called on world origin changes
+	 * Event called on world origin location changes
 	 *
-	 * @param	OldOrigin			Previous world origin position
-	 * @param	NewOrigin			New world origin position
+	 * @param	OldOriginLocation			Previous world origin location
+	 * @param	NewOriginLocation			New world origin location
 	 */
-	virtual void WorldOriginChanged(FIntPoint OldOrigin, FIntPoint NewOrigin) PURE_VIRTUAL(UAISystemBase::WorldOriginChanged, );
+	virtual void WorldOriginLocationChanged(FIntVector OldOriginLocation, FIntVector NewOriginLocation) PURE_VIRTUAL(UAISystemBase::WorldOriginLocationChanged, );
 
 	/**
 	 * Called by UWorld::CleanupWorld.

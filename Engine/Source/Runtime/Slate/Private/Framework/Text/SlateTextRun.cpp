@@ -6,16 +6,14 @@
 
 #include "SlateTextRun.h"
 
-FNoChildren FSlateTextRun::NoChildrenInstance;
-
-TSharedRef< FSlateTextRun > FSlateTextRun::Create( const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
+TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
-	return MakeShareable( new FSlateTextRun( InText, Style ) );
+	return MakeShareable( new FSlateTextRun( InRunInfo, InText, Style ) );
 }
 
-TSharedRef< FSlateTextRun > FSlateTextRun::Create( const TSharedRef< const FString >& InText, const FTextBlockStyle& Style, const FTextRange& InRange )
+TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style, const FTextRange& InRange )
 {
-	return MakeShareable( new FSlateTextRun( InText, Style, InRange ) );
+	return MakeShareable( new FSlateTextRun( InRunInfo, InText, Style, InRange ) );
 }
 
 FTextRange FSlateTextRun::GetTextRange() const 
@@ -76,6 +74,9 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	const bool ShouldDropShadow = Style.ShadowOffset.Size() > 0;
 	const FVector2D BlockLocationOffset = Block->GetLocationOffset();
 	const FTextRange BlockRange = Block->GetTextRange();
+	
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
 
 	// Draw the optional shadow
 	if ( ShouldDropShadow )
@@ -83,7 +84,7 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			++LayerId,
-			FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset() + Style.ShadowOffset, Block->GetSize(), AllottedGeometry.Scale ),
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset() + Style.ShadowOffset))),
 			Text.Get(),
 			BlockRange.BeginIndex,
 			BlockRange.EndIndex,
@@ -98,7 +99,7 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	FSlateDrawElement::MakeText(
 		OutDrawElements,
 		++LayerId,
-		FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset(), Block->GetSize(), AllottedGeometry.Scale ),
+		AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset()))),
 		Text.Get(),
 		BlockRange.BeginIndex,
 		BlockRange.EndIndex,
@@ -111,9 +112,10 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	return LayerId;
 }
 
-FChildren* FSlateTextRun::GetChildren()
+const TArray< TSharedRef<SWidget> >& FSlateTextRun::GetChildren()
 {
-	return &NoChildrenInstance;
+	static TArray< TSharedRef<SWidget> > NoChildren;
+	return NoChildren;
 }
 
 void FSlateTextRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 
@@ -178,15 +180,15 @@ void FSlateTextRun::Move(const TSharedRef<FString>& NewText, const FTextRange& N
 
 TSharedRef<IRun> FSlateTextRun::Clone() const
 {
-	return FSlateTextRun::Create(Text, Style, Range);
+	return FSlateTextRun::Create(RunInfo, Text, Style, Range);
 }
 
-void FSlateTextRun::AppendText(FString& AppendToText) const
+void FSlateTextRun::AppendTextTo(FString& AppendToText) const
 {
 	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
 }
 
-void FSlateTextRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+void FSlateTextRun::AppendTextTo(FString& AppendToText, const FTextRange& PartialRange) const
 {
 	check(Range.BeginIndex <= PartialRange.BeginIndex);
 	check(Range.EndIndex >= PartialRange.EndIndex);
@@ -194,8 +196,19 @@ void FSlateTextRun::AppendText(FString& AppendToText, const FTextRange& PartialR
 	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
 }
 
-FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) 
-	: Text( InText )
+const FRunInfo& FSlateTextRun::GetRunInfo() const
+{
+	return RunInfo;
+}
+
+ERunAttributes FSlateTextRun::GetRunAttributes() const
+{
+	return ERunAttributes::SupportsText;
+}
+
+FSlateTextRun::FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Style( InStyle )
 	, Range( 0, Text->Len() )
 #if TEXT_LAYOUT_DEBUG
@@ -205,8 +218,9 @@ FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const F
 
 }
 
-FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange ) 
-	: Text( InText )
+FSlateTextRun::FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange ) 
+	: RunInfo( InRunInfo )
+	, Text( InText )
 	, Style( InStyle )
 	, Range( InRange )
 #if TEXT_LAYOUT_DEBUG
@@ -217,7 +231,8 @@ FSlateTextRun::FSlateTextRun( const TSharedRef< const FString >& InText, const F
 }
 
 FSlateTextRun::FSlateTextRun( const FSlateTextRun& Run ) 
-	: Text( Run.Text )
+	: RunInfo( Run.RunInfo )
+	, Text( Run.Text )
 	, Style( Run.Style )
 	, Range( Run.Range )
 #if TEXT_LAYOUT_DEBUG

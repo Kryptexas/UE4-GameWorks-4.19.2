@@ -6,7 +6,7 @@
 
 /**
  *	AbilityTasks are small, self contained operations that can be performed while executing an ability.
- *	They are latent/asynchronous is nature. They will generate follow the pattern of 'start something and wait until it is finished or interrupted'
+ *	They are latent/asynchronous is nature. They will generally follow the pattern of 'start something and wait until it is finished or interrupted'
  *	
  *	We have code in K2Node_LatentAbilityCall to make using these in blueprints streamlined. The best way to become familiar with AbilityTasks is to 
  *	look at existing tasks like UAbilityTask_WaitOverlap (very simple) and UAbilityTask_WaitTargetData (much more complex).
@@ -27,6 +27,12 @@
  *	This is all you need for basic AbilityTasks. 
  *	
  *	
+ *	CheckList:
+ *		-Override ::OnDestroy() and unregister any callbacks that the task registered. Call Super::EndTask too!
+ *		-Implemented an Activate function which truly 'starts' the task. Do not 'start' the task in your static factory function!
+ *	
+ *	
+ *	--------------------------------------
  *	
  *	We have additional support for AbilityTasks that want to spawn actors. Though this could be accomplished in an Activate() function, it would not be
  *	possible to pass in dynamic "ExposeOnSpawn" actor properties. This is a powerful feature of blueprints, in order to support this, you need to implement 
@@ -61,10 +67,76 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	virtual void Activate();
 
+	/** Initailizes the task with the owning GameplayAbility but does not actviate until Activate() is called */
 	virtual void InitTask(UGameplayAbility* InAbility);
+
+	/** Tick function for this task, if bTickingTask == true */
+	virtual void TickTask(float DeltaTime) {}
+
+	/** Called when the ability is asked to confirm from an outside node. What this means depends on the individual task. By default, this does nothing other than ending if bEndTask is true. */
+	virtual void ExternalConfirm(bool bEndTask);
+
+	/** Called when the ability is asked to cancel from an outside node. What this means depends on the individual task. By default, this does nothing other than ending the task. */
+	virtual void ExternalCancel();
+
+	/** Return debug string describing task */
+	virtual FString GetDebugString() const;
 	
 	/** GameplayAbility that created us */
 	TWeakObjectPtr<UGameplayAbility> Ability;
 
 	TWeakObjectPtr<UAbilitySystemComponent>	AbilitySystemComponent;
+
+	/** Helper function for getting UWorld off a task */
+	UWorld* GetWorld() const;
+
+	/** Proper way to get the owning actor of the ability that owns this task (usually a pawn, tower, etc) */
+	AActor* GetActor() const;
+
+	/** Helper function for instantiating and initializing a new task */
+	template <class T>
+	static T*	NewTask(UObject* WorldContextObject, FName InstanceName = FName())
+	{
+		check(WorldContextObject);
+
+		T* MyObj = NewObject<T>();
+		UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
+		MyObj->InitTask(ThisAbility);
+		MyObj->InstanceName = InstanceName;
+		return MyObj;
+	}
+
+	/** Called when owning ability is ended (before the task ends) kills the task. Calls OnDestroy. */
+	void AbilityEnded();
+
+	/** Called explicitly to end the task (usually by the task itself). Calls OnDestroy. */
+	void EndTask();
+
+	/** This name allows us to find the task later so that we can end it. */
+	UPROPERTY()
+	FName InstanceName;
+
+protected:	
+
+	/** End and CleanUp the task - may be called by the task itself or by the owning ability if the ability is ending. Do NOT call directly! Call EndTask() or AbilityEnded() */
+	virtual void OnDestroy(bool AbilityIsEnding);
+
+	/** If true, this task will receive TickTask calls from AbilitySystemComponent */
+	bool bTickingTask;
+};
+
+//For searching through lists of ability instances
+struct FAbilityInstanceNamePredicate
+{
+	FAbilityInstanceNamePredicate(FName DesiredInstanceName)
+	{
+		InstanceName = DesiredInstanceName;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && !A.Get()->InstanceName.IsNone() && A.Get()->InstanceName.IsValid() && (A.Get()->InstanceName == InstanceName));
+	}
+
+	FName InstanceName;
 };

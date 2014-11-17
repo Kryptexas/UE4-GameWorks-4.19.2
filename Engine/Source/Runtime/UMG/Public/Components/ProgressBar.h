@@ -2,31 +2,37 @@
 
 #pragma once
 
+#include "ProgressWidgetStyle.h"
+
 #include "ProgressBar.generated.h"
 
 /** ProgressBar widget */
-UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UProgressBar : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 	
 public:
 
+	/** The progress bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FProgressBarStyle WidgetStyle;
+
 	/** Style used for the progress bar */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
+	UPROPERTY()
+	USlateWidgetStyleAsset* Style_DEPRECATED;
 
 	/** The brush to use as the background of the progress bar */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* BackgroundImage;
+	UPROPERTY()
+	USlateBrushAsset* BackgroundImage_DEPRECATED;
 	
 	/** The brush to use as the fill image */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* FillImage;
+	UPROPERTY()
+	USlateBrushAsset* FillImage_DEPRECATED;
 	
 	/** The brush to use as the marquee image */
-	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
-	USlateBrushAsset* MarqueeImage;
+	UPROPERTY()
+	USlateBrushAsset* MarqueeImage_DEPRECATED;
 
 	/** Defines if this progress bar fills Left to right or right to left */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -36,7 +42,7 @@ public:
 	bool bIsMarquee;
 
 	/** Used to determine the fill position of the progress bar ranging 0..1 */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( UIMin = "0", UIMax = "1", editcondition = "bOverride_Percent" ))
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( UIMin = "0", UIMax = "1" ))
 	float Percent;
 
 	/** A bindable delegate to allow logic to drive the text of the widget */
@@ -47,21 +53,32 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor FillColorAndOpacity;
 
-	/** Border Padding around fill bar */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FVector2D BorderPadding;
+public:
 	
 	/** Sets the current value of the ProgressBar. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetPercent(float InPercent);
+
+	/** Sets the progress bar to show as a marquee. */
+	UFUNCTION(BlueprintCallable, Category="Behavior")
+	void SetIsMarquee(bool InbIsMarquee);
 	
 	// UWidget interface
-	virtual void SyncronizeProperties() override;
+	virtual void SynchronizeProperties() override;
 	// End of UWidget interface
+
+	// UVisual interface
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UVisual interface
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
 #endif
 

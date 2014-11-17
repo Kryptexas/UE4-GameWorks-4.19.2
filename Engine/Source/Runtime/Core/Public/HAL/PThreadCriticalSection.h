@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <errno.h>
 
+
 /**
  * This is the PThreads version of a critical section. It uses pthreads
  * to implement its locking.
@@ -17,6 +18,7 @@ class FPThreadsCriticalSection
 	pthread_mutex_t Mutex;
 
 public:
+
 	/**
 	 * Constructor that initializes the aggregated critical section
 	 */

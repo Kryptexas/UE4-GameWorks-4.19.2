@@ -21,6 +21,16 @@ void SPhATPreviewViewportToolBar::Construct(const FArguments& InArgs)
 		.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
 		[
 			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(5.0f, 2.0f)
+			[
+				SNew(SEditorViewportToolbarMenu)
+				.ParentToolBar(SharedThis(this))
+				.Cursor(EMouseCursor::Default)
+				.Label(NSLOCTEXT("PhAT", "CameraMenuTitle_Default", "Camera"))
+				.OnGetMenuContent(this, &SPhATPreviewViewportToolBar::GeneratePerspectiveMenu)
+			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(5.0f, 2.0f)
@@ -45,6 +55,22 @@ void SPhATPreviewViewportToolBar::Construct(const FArguments& InArgs)
 	];
 
 	SViewportToolBar::Construct(SViewportToolBar::FArguments());
+}
+
+TSharedRef<SWidget> SPhATPreviewViewportToolBar::GeneratePerspectiveMenu() const
+{
+	const FPhATCommands& Actions = FPhATCommands::Get();
+
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder PerspectiveMenuBuilder(bInShouldCloseWindowAfterMenuSelection, PhATPtr.Pin()->GetToolkitCommands());
+	{
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.PerspectiveView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.TopView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.SideView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.FrontView);
+	}
+
+	return PerspectiveMenuBuilder.MakeWidget();
 }
 
 TSharedRef<SWidget> SPhATPreviewViewportToolBar::GenerateViewMenu() const

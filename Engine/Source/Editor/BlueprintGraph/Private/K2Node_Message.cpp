@@ -4,6 +4,8 @@
 #include "KismetCompiler.h"
 #include "K2Node_CallArrayFunction.h"
 #include "K2Node_Message.h"
+#include "Kismet/KismetArrayLibrary.h"
+
 #define LOCTEXT_NAMESPACE "K2Node_Message"
 
 UK2Node_Message::UK2Node_Message(const class FPostConstructInitializeProperties& PCIP)
@@ -16,19 +18,31 @@ FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FText NodeName;
 	if (UFunction* Function = GetTargetFunction())
 	{
-		FString NodeNameStr = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+		if (!CachedNodeTitles.IsTitleCached(TitleType))
+		{
+			FText NodeNameText = FText::FromString(UK2Node_CallFunction::GetUserFacingFunctionName(Function));
+			if (TitleType == ENodeTitleType::MenuTitle)
+			{
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("ListTitle", "{0} (Message)"), NodeNameText));
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("NodeName"), NodeNameText);
+				Args.Add(TEXT("OuterClassName"), FText::FromString(Function->GetOuterUClass()->GetName()));
 
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("NodeName"), FText::FromString(NodeNameStr));
-		Args.Add(TEXT("OuterClassName"), FText::FromString(Function->GetOuterUClass()->GetName()));
-		NodeName = FText::Format(NSLOCTEXT("K2Node", "CallInterfaceContext", "{NodeName}\nUsing Interface {OuterClassName}"), Args);
+				FText NodeTitle = FText::Format(NSLOCTEXT("K2Node", "CallInterfaceContext", "{NodeName}\nUsing Interface {OuterClassName}"), Args);
+				// FText::Format() is slow, so we cache this to save on performance
+				CachedNodeTitles.SetCachedTitle(TitleType, NodeTitle);
+			}
+		}
 	}
 	else
 	{
-		NodeName = NSLOCTEXT("K2Node", "InvalidMessageNode", "Invalid Message Node");
+		return NSLOCTEXT("K2Node", "InvalidMessageNode", "Invalid Message Node");
 	}
-
-	return NodeName;
+	return CachedNodeTitles.GetCachedTitle(TitleType);
 }
 
 UEdGraphPin* UK2Node_Message::CreateSelfPin(const UFunction* Function)

@@ -84,6 +84,8 @@ namespace K2ActionCategories
 	static FString const MakeStructSubCategory  = LOCTEXT("MakeStruct",      "Make Struct").ToString();
 	static FString const BreakStructSubCategory = LOCTEXT("BreakStruct",     "Break Struct").ToString();
 	static FString const TextSubCategory        = LOCTEXT("TextCategory",    "Text").ToString();
+	static FString const MathCategory           = LOCTEXT("MathCategory",    "Math").ToString();
+	static FString const InterpSubCategory      = LOCTEXT("InterpCategory", "Interpolation").ToString();
 
 	static FString const ArrayCategory         = UtilitiesCategory + SubCategoryDelim + ArraySubCategory;
 	static FString const CastingCategory       = UtilitiesCategory + SubCategoryDelim + CastingSubCategory;
@@ -97,12 +99,15 @@ namespace K2ActionCategories
 	static FString const TextCategory          = UtilitiesCategory + SubCategoryDelim + TextSubCategory;
 	static FString const FallbackMacroCategory = UtilitiesCategory;
 
+	static FString const InterpCategory = MathCategory + SubCategoryDelim + InterpSubCategory;
+
 
 	static FString const AddComponentCategory = LOCTEXT("AddComponentCategory", "Add Component").ToString();
 	static FString const VariablesCategory    = LOCTEXT("VariablesCategory",    "Variables").ToString();
 	static FString const GameCategory	      = LOCTEXT("GameCategory",         "Game").ToString();
 	
 
+	static FString const RootFunctionCategory = TEXT("");
 	static FString const GenericFunctionCategory   = LOCTEXT("FunctionCategory",         "Call Function").ToString();
 	static FString const CallFuncForEachCategory   = LOCTEXT("CallFuncForEachCategory",  "Call Function For Each").ToString();
 	static FString const CallFuncOnPrefix	       = LOCTEXT("CallFuncOnPrefix",         "Call Function on ").ToString();
@@ -116,7 +121,7 @@ template<class ActionType>
 static void GetRequestedAction(FGraphActionListBuilderBase& ActionMenuBuilder, const FString& Category)
 {
 	UK2Node* NodeTemplate = NewObject<ActionType>(ActionMenuBuilder.OwnerOfTemporaries);
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 	Action->NodeTemplate = NodeTemplate;
 }
 
@@ -128,7 +133,7 @@ static void AddSpawnActorNodeAction(FGraphActionListBuilderBase& ContextMenuBuil
 	// Add the new SpawnActorFromClass node
 	{
 		UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_SpawnActorFromClass>();
-		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, SpawnActorCategory, LOCTEXT("SpawnActorFromClass", "Spawn Actor from Class"), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, SpawnActorCategory, LOCTEXT("SpawnActorFromClass", "Spawn Actor from Class"), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 		Action->NodeTemplate = NodeTemplate;
 	}
 }
@@ -141,7 +146,7 @@ static void AddGetDataTableRowNodeAction(FGraphActionListBuilderBase& ContextMen
 	// Add the new GetDataTableRow node
 	{
 		UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_GetDataTableRow>();
-		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetDataTableRowCategory, LOCTEXT("GetDataTableRow", "Get Data Table Row"), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetDataTableRowCategory, LOCTEXT("GetDataTableRow", "Get Data Table Row"), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 		Action->NodeTemplate = NodeTemplate;
 	}
 }
@@ -297,6 +302,16 @@ static void GetCommentAction(UBlueprint const* BlueprintIn, FGraphActionListBuil
 	ActionMenuBuilder.AddAction( NewAction );
 }
 
+/** Gets the add documentation action */
+static void GetDocumentationAction(UBlueprint const* BlueprintIn, FGraphActionListBuilderBase& ActionMenuBuilder)
+{
+	const FString MenuDescription = LOCTEXT("AddDocumentationNode", "Add Documentation Node...").ToString();
+	const FString ToolTip = LOCTEXT("AddDocumentationToolTip", "Adds a node to display UDN documentation excerpts.").ToString();
+	TSharedPtr<FEdGraphSchemaAction_K2AddDocumentation> NewAction = TSharedPtr<FEdGraphSchemaAction_K2AddDocumentation>(new FEdGraphSchemaAction_K2AddDocumentation( MenuDescription, ToolTip ));
+
+	ActionMenuBuilder.AddAction( NewAction );
+}
+
 /** */
 static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, bool bNumEnum, bool bForEach, bool bCastFromByte, bool bLiteralByte, UEnum* OnlyEnum = NULL)
 {
@@ -313,7 +328,7 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 					EnumTemplate->Enum = Enum;
 					UK2Node* NodeTemplate = EnumTemplate;
 					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(
-						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView),  NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
 
@@ -323,7 +338,7 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 					EnumTemplate->Enum = Enum;
 					UK2Node* NodeTemplate = EnumTemplate;
 					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(
-						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView),  NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
 
@@ -334,7 +349,7 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 					EnumTemplate->bSafe = true;
 					UK2Node* NodeTemplate = EnumTemplate;
 					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(
-						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView),  NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
 
@@ -344,7 +359,7 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 					EnumTemplate->Enum = Enum;
 					UK2Node* NodeTemplate = EnumTemplate;
 					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(
-						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
 			}
@@ -380,7 +395,7 @@ static void GetInterfaceMessages(UClass* CurrentInterface, const FString& Messag
 			{
 				UK2Node_Message* MessageTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_Message>();
 				MessageTemplate->FunctionReference.SetExternalMember(Function->GetFName(), CurrentInterface);
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, MessageSubCategory, FText::FromString(Function->GetName()), MessageTemplate->GetTooltip(), 0, MessageTemplate->GetKeywords());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, MessageSubCategory, FText::FromString(Function->GetName()), MessageTemplate->GetTooltipText().ToString(), 0, MessageTemplate->GetKeywords());
 				Action->NodeTemplate = MessageTemplate;
 			}
 		}
@@ -393,7 +408,7 @@ static void GetReferenceSetterItems(FBlueprintGraphActionListBuilder& ContextMen
 	const UEdGraphPin* AssociatedPin = ContextMenuBuilder.FromPin;
 
 	UK2Node_VariableSetRef* SetRefTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_VariableSetRef>();
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::VariablesCategory, SetRefTemplate->GetNodeTitle(ENodeTitleType::ListView), SetRefTemplate->GetTooltip(), 0, SetRefTemplate->GetKeywords());
+	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::VariablesCategory, SetRefTemplate->GetNodeTitle(ENodeTitleType::ListView), SetRefTemplate->GetTooltipText().ToString(), 0, SetRefTemplate->GetKeywords());
 
 	Action->NodeTemplate = SetRefTemplate;
 }
@@ -469,6 +484,7 @@ FBlueprintPaletteListBuilder::FBlueprintPaletteListBuilder(UBlueprint const* Blu
 	if (Blueprint != NULL)
 	{
 		OwnerOfTemporaries = NewObject<UEdGraph>((UObject*)Blueprint);
+		OwnerOfTemporaries->Schema = UEdGraphSchema_K2::StaticClass();
 		OwnerOfTemporaries->SetFlags(RF_Transient);
 	}
 }
@@ -558,7 +574,7 @@ void FK2ActionMenuBuilder::AddEventForFunction(FGraphActionListBuilderBase& Acti
 
 		const FString Category = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, K2ActionCategories::AddEventCategory);
 
-		TSharedPtr<FEdGraphSchemaAction_K2AddEvent> Action(new FEdGraphSchemaAction_K2AddEvent(Category, FText::FromString(EventName), EventNodeTemplate->GetTooltip(), 0));
+		TSharedPtr<FEdGraphSchemaAction_K2AddEvent> Action(new FEdGraphSchemaAction_K2AddEvent(Category, FText::FromString(EventName), EventNodeTemplate->GetTooltipText().ToString(), 0));
 		Action->Keywords     = EventNodeTemplate->GetKeywords();
 		Action->NodeTemplate = EventNodeTemplate;
 
@@ -576,7 +592,7 @@ void FK2ActionMenuBuilder::AttachMacroGraphAction(FGraphActionListBuilderBase& A
 
 		UK2Node_MacroInstance* MacroTemplate = ActionMenuBuilder.CreateTemplateNode<UK2Node_MacroInstance>();
 		MacroTemplate->SetMacroGraph(MacroGraph);
-		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, CategoryName, MacroTemplate->GetNodeTitle(ENodeTitleType::ListView), MacroTemplate->GetTooltip());
+		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, CategoryName, MacroTemplate->GetNodeTitle(ENodeTitleType::ListView), MacroTemplate->GetTooltipText().ToString());
 		Action->NodeTemplate = MacroTemplate;
 	}
 }
@@ -599,6 +615,10 @@ void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bo
 	if (!bIsParentContext && !bPlaceOnTop)
 	{
 		NodeCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, BaseCategory);
+		if (NodeCategory.IsEmpty())
+		{
+			NodeCategory = K2ActionCategories::GenericFunctionCategory;
+		}
 	}
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action;
@@ -641,6 +661,7 @@ void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bo
 	const bool bIsPure = Function->HasAllFunctionFlags(FUNC_BlueprintPure);
 	const bool bCommutativeAssociativeBinaryOperator = Function->HasMetaData(FBlueprintMetadata::MD_CommutativeAssociativeBinaryOperator);
 	const bool bMaterialParameterCollectionFunction = Function->HasMetaData(FBlueprintMetadata::MD_MaterialParameterCollectionFunction);
+	bool const bIsDataTableFunc = Function->HasMetaData(FBlueprintMetadata::MD_DataTablePin);
 
 	UK2Node_CallFunction* CallTemplate = NULL;
 
@@ -655,6 +676,10 @@ void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bo
 	else if (bMaterialParameterCollectionFunction)
 	{
 		CallTemplate = ListBuilder.CreateTemplateNode<UK2Node_CallMaterialParameterCollectionFunction>();
+	}
+	else if (bIsDataTableFunc)
+	{
+		CallTemplate = ListBuilder.CreateTemplateNode<UK2Node_CallDataTableFunction>();
 	}
 	else if (CallOnMember.GetMemberName() != NAME_None)
 	{
@@ -766,9 +791,16 @@ void FK2ActionMenuBuilder::GetPaletteActions(FBlueprintPaletteListBuilder& Actio
 
 	GetCommentAction(ActionMenuBuilder.Blueprint, ActionMenuBuilder);
 
+	GetDocumentationAction(ActionMenuBuilder.Blueprint, ActionMenuBuilder);
+
 	GetMacroTools(ActionMenuBuilder, true, NULL);
 
 	GetRequestedAction<UK2Node_FormatText>(ActionMenuBuilder, K2ActionCategories::TextCategory);
+
+	{
+		// Actions that are part of Math
+		GetRequestedAction<UK2Node_EaseFunction>(ActionMenuBuilder, K2ActionCategories::InterpCategory);
+	}
 }
 
 /*******************************************************************************
@@ -812,6 +844,11 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 
 		GetRequestedAction<UK2Node_FormatText>(ContextMenuBuilder, K2ActionCategories::TextCategory);
 
+		{
+			// Actions that are part of Math
+			GetRequestedAction<UK2Node_EaseFunction>(ContextMenuBuilder, K2ActionCategories::InterpCategory);
+		}
+
 		GetAnimNotifyMenuItems(ContextMenuBuilder);
 		GetVariableGettersSettersForClass(ContextMenuBuilder, Class, true, bAllowEvents);
 
@@ -821,21 +858,21 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			FunctionTypes |= UEdGraphSchema_K2::FT_Imperative;
 		}
 
-		GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::GenericFunctionCategory);
-		GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::GenericFunctionCategory);
+		GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::RootFunctionCategory);
+		GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::RootFunctionCategory);
 
 		// spawn actor from archetype node
 		if (!bIsConstructionScript)
 		{
-			AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+			AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
-			if (Class->IsChildOf(AActor::StaticClass()))
+			if ( Blueprint->SupportsInputEvents() )
 			{
 				GetInputNodes(ContextMenuBuilder, true);
 			}
 		}
 		
-		AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+		AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 		// Add struct make/break nodes
 		GetStructActions( ContextMenuBuilder );
@@ -925,7 +962,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			// Assignment statement
 			{
 				UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_AssignmentStatement>();
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 				Action->NodeTemplate = NodeTemplate;
 			}
 
@@ -983,7 +1020,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 				{
 					UK2Node_TemporaryVariable* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
 					NodeTemplate->VariableType = *TypeIt;
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
 			}
@@ -995,14 +1032,14 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 				UK2Node_TemporaryVariable* PersistentIntNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
 				PersistentIntNodeTemplate->VariableType = FEdGraphPinType(K2Schema->PC_Int, TEXT(""), NULL, false, false);
 				PersistentIntNodeTemplate->bIsPersistent = true;
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> IntAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, PersistentIntNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), PersistentIntNodeTemplate->GetTooltip(), 0, PersistentIntNodeTemplate->GetKeywords());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> IntAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, PersistentIntNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), PersistentIntNodeTemplate->GetTooltipText().ToString(), 0, PersistentIntNodeTemplate->GetKeywords());
 				IntAction->NodeTemplate = PersistentIntNodeTemplate;
 
 				// Persistent Bool
 				UK2Node_TemporaryVariable* PersistentBoolNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
 				PersistentBoolNodeTemplate->VariableType = FEdGraphPinType(K2Schema->PC_Boolean, TEXT(""), NULL, false, false);
 				PersistentBoolNodeTemplate->bIsPersistent = true;
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> BoolAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, PersistentBoolNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), PersistentBoolNodeTemplate->GetTooltip(), 0, PersistentBoolNodeTemplate->GetKeywords());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> BoolAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, PersistentBoolNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), PersistentBoolNodeTemplate->GetTooltipText().ToString(), 0, PersistentBoolNodeTemplate->GetKeywords());
 				BoolAction->NodeTemplate = PersistentBoolNodeTemplate;
 			}
 		}
@@ -1021,10 +1058,11 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			}
 		}
 		GetCommentAction(ContextMenuBuilder.Blueprint, ContextMenuBuilder);
+		GetDocumentationAction(ContextMenuBuilder.Blueprint, ContextMenuBuilder);
 
 		{
 			UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_Select>();
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelectionAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::UtilitiesCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelectionAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::UtilitiesCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 			SelectionAction->NodeTemplate = NodeTemplate;
 		}
 
@@ -1036,7 +1074,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 
 //------------------------------------------------------------------------------
 
-struct FClassDynamicCastHelper
+struct FClassDynamicCastMenuUtils
 {
 	static bool CanCastToClass(const UClass* TestClass, const UEdGraphSchema_K2* K2Schema)
 	{
@@ -1048,7 +1086,7 @@ struct FClassDynamicCastHelper
 
 	static void SpawnNode(UClass* TargetType, FBlueprintGraphActionListBuilder& ContextMenuBuilder)
 	{
-		static const FString CastCategory = K2ActionCategories::GenericFunctionCategory + "|" + K2ActionCategories::CastingCategory;
+		static const FString CastCategory = K2ActionCategories::RootFunctionCategory + "|" + K2ActionCategories::CastingCategory;
 		UK2Node_DynamicCast* CastNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_ClassDynamicCast>();
 		CastNode->TargetType = TargetType;
 
@@ -1115,8 +1153,8 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			const bool bWantBindableDelegates = (GraphType == GT_Ubergraph) || (GraphType == GT_Function) ||
 				((bAllowUnsafeCommands) && (Blueprint->BlueprintType == BPTYPE_MacroLibrary));
 
-			GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::GenericFunctionCategory);
-			GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::GenericFunctionCategory);
+			GetFuncNodesForClass(ContextMenuBuilder, Class, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::RootFunctionCategory);
+			GetFuncNodesForClass(ContextMenuBuilder, NULL, Class, ContextMenuBuilder.CurrentGraph, UEdGraphSchema_K2::FT_Imperative | UEdGraphSchema_K2::FT_Protected, K2ActionCategories::RootFunctionCategory);
 
 			GetVariableGettersSettersForClass(ContextMenuBuilder, Class, FromPin.PinType, true, false, true, bWantBindableDelegates, bRequireDesiredPinType);
 
@@ -1132,7 +1170,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 			if (!K2Schema->IsConstructionScript(ContextMenuBuilder.CurrentGraph))
 			{
-				AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+				AddSpawnActorNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 				if (Class->IsChildOf(AActor::StaticClass()))
 				{
@@ -1141,7 +1179,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 				}
 			}
 			
-			AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+			AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::RootFunctionCategory);
 
 			// for output pins, add macro flow control as a connection option
 			if ( FromPin.Direction == EGPD_Output )
@@ -1186,7 +1224,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 							FunctionTypes |= UEdGraphSchema_K2::FT_Imperative;
 						}
 
-						GetFuncNodesForClass(ContextMenuBuilder, PinClass, PinClass, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::GenericFunctionCategory);
+						GetFuncNodesForClass(ContextMenuBuilder, PinClass, PinClass, ContextMenuBuilder.CurrentGraph, FunctionTypes, K2ActionCategories::RootFunctionCategory);
 
 						if( FromPin.PinType.bIsReference )
 						{
@@ -1219,7 +1257,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 				// Dynamic casts
 				{
-					FString const CastCategory = K2ActionCategories::GenericFunctionCategory + "|" + K2ActionCategories::CastingCategory;
+					FString const CastCategory = K2ActionCategories::RootFunctionCategory + "|" + K2ActionCategories::CastingCategory;
 
 					for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 					{
@@ -1303,35 +1341,39 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			if ((K2Schema->PC_Struct == FromPin.PinType.PinCategory) && !FromPin.PinType.bIsArray)
 			{
 				UScriptStruct* PinStruct = Cast<UScriptStruct>(FromPin.PinType.PinSubCategoryObject.Get());
-				const bool bCanBeMade = UK2Node_MakeStruct::CanBeMade(PinStruct);
-				if ((FromPin.Direction == EGPD_Output) && UK2Node_BreakStruct::CanBeBroken(PinStruct))
+				if( PinStruct )
 				{
-					UK2Node_BreakStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_BreakStruct>();
-					NodeTemplate->StructType = PinStruct;
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-					Action->NodeTemplate = NodeTemplate;
-				}
-				else if ((FromPin.Direction == EGPD_Input) && bCanBeMade)
-				{
-					UK2Node_MakeStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_MakeStruct>();
-					NodeTemplate->StructType = PinStruct;
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-					Action->NodeTemplate = NodeTemplate;
+					const bool bCanBeMade = UK2Node_MakeStruct::CanBeMade(PinStruct);
+					if ((FromPin.Direction == EGPD_Output) && UK2Node_BreakStruct::CanBeBroken(PinStruct))
+					{
+						UK2Node_BreakStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_BreakStruct>();
+						NodeTemplate->StructType = PinStruct;
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
+						Action->NodeTemplate = NodeTemplate;
+					}
+					else if ((FromPin.Direction == EGPD_Input) && bCanBeMade)
+					{
+						UK2Node_MakeStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_MakeStruct>();
+						NodeTemplate->StructType = PinStruct;
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
+						Action->NodeTemplate = NodeTemplate;
+					}
+
+					if ((FromPin.Direction == EGPD_Output) && bCanBeMade)
+					{
+						UK2Node_SetFieldsInStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_SetFieldsInStruct>();
+						NodeTemplate->StructType = PinStruct;
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
+						Action->NodeTemplate = NodeTemplate;
+					}
 				}
 
-				if ((FromPin.Direction == EGPD_Output) && bCanBeMade)
-				{
-					UK2Node_SetFieldsInStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_SetFieldsInStruct>();
-					NodeTemplate->StructType = PinStruct;
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-					Action->NodeTemplate = NodeTemplate;
-				}
 			}
 
 			if ((FromPin.Direction == EGPD_Input) && (FromPin.PinType.PinCategory == K2Schema->PC_Delegate))
 			{
 				UK2Node_CreateDelegate* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_CreateDelegate>();
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 				Action->NodeTemplate = NodeTemplate;
 
 				UFunction* Signature = FMemberReference::ResolveSimpleMemberReference<UFunction>(FromPin.PinType.PinSubCategoryMemberReference);
@@ -1346,7 +1388,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			}
 		}
 
-		FClassDynamicCastHelper::GetClassDynamicCastNodes(ContextMenuBuilder, K2Schema);
+		FClassDynamicCastMenuUtils::GetClassDynamicCastNodes(ContextMenuBuilder, K2Schema);
 
 		if ((FromPin.Direction == EGPD_Input) && (FromPin.PinType.PinCategory == K2Schema->PC_Int))
 		{
@@ -1355,6 +1397,15 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 		else if(FromPin.PinType.PinCategory == K2Schema->PC_Text)
 		{
 			GetRequestedAction<UK2Node_FormatText>(ContextMenuBuilder, K2ActionCategories::ArrayCategory);
+		}
+		else if (FromPin.PinType.PinCategory == K2Schema->PC_Float ||
+			(FromPin.PinType.PinCategory == K2Schema->PC_Struct &&
+			FromPin.PinType.PinSubCategoryObject.IsValid() && 
+			(FromPin.PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Vector") ||
+			FromPin.PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Rotator") ||
+			FromPin.PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Transform"))))
+		{
+			GetRequestedAction<UK2Node_EaseFunction>(ContextMenuBuilder, K2ActionCategories::InterpCategory);
 		}
 
 		UEnum* Enum = Cast<UEnum>(FromPin.PinType.PinSubCategoryObject.Get());
@@ -1577,7 +1628,7 @@ void FK2ActionMenuBuilder::GetSwitchMenuItems(FBlueprintPaletteListBuilder& Acti
 				EnumTemplate->SetEnum(CurrentEnum);
 
 				UK2Node* NodeTemplate = EnumTemplate;
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, SwitchControlCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, SwitchControlCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltipText().ToString(), 0, NodeTemplate->GetKeywords());
 				Action->NodeTemplate = NodeTemplate;
 			}
 		}
@@ -1833,7 +1884,6 @@ void FK2ActionMenuBuilder::GetVariableGettersSettersForClass(FBlueprintGraphActi
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelfVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::VariablesCategory, FText::FromString(SelfString), SelfTooltip);
 
 		UK2Node_Self* SelfNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_Self>();
-		SelfNode->SelfClass = (UClass*)Class;
 		SelfVar->NodeTemplate = SelfNode;
 		SelfVar->Keywords = SelfNode->GetKeywords();
 	}
@@ -1925,7 +1975,7 @@ void FK2ActionMenuBuilder::GetStructActions(FBlueprintGraphActionListBuilder& Co
 				if( BreakNodeTemplate != NULL )
 				{
 					BreakNodeTemplate->StructType = Struct;
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::BreakStructCategory, BreakNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), BreakNodeTemplate->GetTooltip(), 0, BreakNodeTemplate->GetKeywords());
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::BreakStructCategory, BreakNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), BreakNodeTemplate->GetTooltipText().ToString(), 0, BreakNodeTemplate->GetKeywords());
 					Action->NodeTemplate = BreakNodeTemplate;
 				}
 			}
@@ -1937,7 +1987,7 @@ void FK2ActionMenuBuilder::GetStructActions(FBlueprintGraphActionListBuilder& Co
 					if (MakeNodeTemplate != NULL)
 					{
 						MakeNodeTemplate->StructType = Struct;
-						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, MakeNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), MakeNodeTemplate->GetTooltip(), 0, MakeNodeTemplate->GetKeywords());
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, MakeNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), MakeNodeTemplate->GetTooltipText().ToString(), 0, MakeNodeTemplate->GetKeywords());
 						Action->NodeTemplate = MakeNodeTemplate;
 					}
 				}
@@ -1947,7 +1997,7 @@ void FK2ActionMenuBuilder::GetStructActions(FBlueprintGraphActionListBuilder& Co
 					if (SetFieldsTemplate != NULL)
 					{
 						SetFieldsTemplate->StructType = Struct;
-						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, SetFieldsTemplate->GetNodeTitle(ENodeTitleType::ListView), SetFieldsTemplate->GetTooltip(), 0, SetFieldsTemplate->GetKeywords());
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, SetFieldsTemplate->GetNodeTitle(ENodeTitleType::ListView), SetFieldsTemplate->GetTooltipText().ToString(), 0, SetFieldsTemplate->GetKeywords());
 						Action->NodeTemplate = SetFieldsTemplate;
 					}
 				}
@@ -2401,6 +2451,12 @@ void FK2ActionMenuBuilder::GetMacroTools(FBlueprintPaletteListBuilder& ActionMen
 				//If so, then don't allow adding action menu to instance the macro graph to its own definition.
 				if (InCurrentGraph != MacroGraph)
 				{
+					// Do not allow any macros with latent functions to appear in the list
+					if(InCurrentGraph && InCurrentGraph->GetSchema()->GetGraphType(InCurrentGraph) == GT_Function && FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(MacroGraph))
+					{
+						continue;
+					}
+
 					UK2Node_Tunnel* FunctionEntryNode = NULL;
 					UK2Node_Tunnel* FunctionResultNode = NULL;
 					bool bIsMacroPure = false;
@@ -2509,7 +2565,7 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 				{
 					const bool bShowMakeOnTop = bUseNativeMake && Function->HasMetaData(NativeMakeFunc);
 					const bool bShowBrakeOnTop = bUseNativeBrake && Function->HasMetaData(NativeBrakeFunc);
-					FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, FFunctionTargetInfo(), FMemberReference(), K2ActionCategories::GenericFunctionCategory, K2Schema->AG_LevelReference, ContextMenuBuilder, false, bShowMakeOnTop || bShowBrakeOnTop);
+					FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, FFunctionTargetInfo(), FMemberReference(), K2ActionCategories::RootFunctionCategory, K2Schema->AG_LevelReference, ContextMenuBuilder, false, bShowMakeOnTop || bShowBrakeOnTop);
 				}
 			}
 		}
@@ -2552,7 +2608,7 @@ void FK2ActionMenuBuilder::GetAllInterfaceMessageActions(FGraphActionListBuilder
 
 					UK2Node_Message* MessageTemplate = ActionMenuBuilder.CreateTemplateNode<UK2Node_Message>();
 					MessageTemplate->FunctionReference.SetExternalMember(Function->GetFName(), CurrentInterface);
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, MessageCategory, FText::FromString(Function->GetName()), MessageTemplate->GetTooltip(), 0, MessageTemplate->GetKeywords());
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, MessageCategory, FText::FromString(Function->GetName()), MessageTemplate->GetTooltipText().ToString(), 0, MessageTemplate->GetKeywords());
 					Action->NodeTemplate = MessageTemplate;
 				}
 			}

@@ -31,7 +31,11 @@ namespace ENodeTitleType
 		// More concise, single line title
 		ListView,
 		// Returns the editable title (which might not be a title at all)
-		EditableTitle
+		EditableTitle,
+		// Menu Title for context menus to be displayed in context menus referencing the node
+		MenuTitle,
+
+		MAX_TitleTypes,
 	};
 }
 
@@ -49,6 +53,15 @@ namespace ENodeAdvancedPins
 		Hidden
 	};
 }
+
+/** Holds metadata keys, so as to discourage text duplication throughout the engine */
+struct ENGINE_API FNodeMetadata
+{
+	/** Identifies nodes that are defaultly added to populate new graphs (helps determine if a graph has any user placed nodes) */
+	static const FName DefaultGraphNode;
+private: 
+	FNodeMetadata() {}
+};
 
 // This is the context for a GetContextMenuActions call into a specific node
 struct FGraphNodeContextMenuBuilder
@@ -238,12 +251,20 @@ public:
 	/**
 	 * Determine if this node can live in the specified graph
 	 */
-	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const { return CanCreateUnderSpecifiedSchema(Schema); }
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const { return IsCompatibleWithGraph(TargetGraph); }
+
+	DEPRECATED(4.5, "The UEdGraphNode::CanPasteHere() that takes a UEdGraphSchema parameter is deprecated, instead use the CanPasteHere() that only takes a single UEdGraph param.")
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const { return CanPasteHere(TargetGraph); }
 
 	/**
 	 * Determine if this node can be created under the specified schema
      */
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const { return true; }
+	
+	/**
+	 * Determine if a node of this type can be created for the specified graph.
+     */
+	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const;
 
 	/**
 	 * Perform any fixups (deep copies of associated data, etc...) necessary after a node has been pasted in the editor
@@ -266,13 +287,18 @@ public:
 	/**
 	 * Gets the tooltip to display when over the node
 	 */
-	virtual FString GetTooltip() const;
+	virtual FText GetTooltipText() const;
+
+	DEPRECATED(4.5, "UEdGraphNode::GetTooltip() is deprecated, instead use GetTooltipText(), which returns localized text.")
+	virtual FString GetTooltip() const { return GetTooltipText().ToString(); }
 
 	/**
 	 * Returns the keywords that should be used when searching for this node
+	 *
+	 * @TODO: Should search keywords be localized? Probably.
 	 */
 	virtual FString GetKeywords() const { return TEXT(""); }
-
+	 
 	/**
 	 * Returns the link used for external documentation for the graph node
 	 */

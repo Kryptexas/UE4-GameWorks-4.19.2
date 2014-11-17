@@ -8,14 +8,17 @@
  * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
  * vertically.
  */
-UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(ClassGroup=UserInterface)
 class UMG_API UWidgetSwitcher : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Image to draw */
+public:
+	/** The slot index to display */
 	UPROPERTY(EditDefaultsOnly, Category="Switcher", meta=( UIMin=0, ClampMin=0 ))
 	int32 ActiveWidgetIndex;
+
+public:
 
 	/** Gets the number of widgets that this switcher manages. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
@@ -28,13 +31,18 @@ class UMG_API UWidgetSwitcher : public UPanelWidget
 	/** Activates the widget at the specified index. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
 	void SetActiveWidgetIndex( int32 Index );
-	
-	virtual void SyncronizeProperties() override;
 
-	virtual void ReleaseNativeWidget() override;
+	/** Activates the widget and makes it the active index. */
+	UFUNCTION(BlueprintCallable, Category="Switcher")
+	void SetActiveWidget(UWidget* Widget);
+	
+	virtual void SynchronizeProperties() override;
+
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
 	virtual void OnDescendantSelected(UWidget* DescendantWidget) override;
 	virtual void OnDescendantDeselected(UWidget* DescendantWidget) override;
 #endif

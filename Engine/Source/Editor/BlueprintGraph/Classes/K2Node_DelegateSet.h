@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_DelegateSet.generated.h"
 
 UCLASS(MinimalAPI)
@@ -20,7 +21,7 @@ class UK2Node_DelegateSet : public UK2Node
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const { return FColor(216,88,88); }
 	// End UEdGraphNode interface
@@ -48,5 +49,10 @@ class UK2Node_DelegateSet : public UK2Node
 	// @todo document
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature();
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
+	FNodeTextCache CachedNodeTitle;
 };
 

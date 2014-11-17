@@ -168,11 +168,9 @@ public:
 	inline float RotDeterminant() const;
 
 	/** Fast path, doesn't check for nil matrices in final release builds */
-	inline FMatrix Inverse() const;
+	inline FMatrix InverseFast() const;
 	/** Fast path, and handles nil matrices. */
-	inline FMatrix InverseSafe() const;
-	/** Slow and safe path */
-	inline FMatrix InverseSlow() const;
+	inline FMatrix Inverse() const;
 
 	inline FMatrix TransposeAdjoint() const;
 

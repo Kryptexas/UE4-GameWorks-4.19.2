@@ -17,7 +17,7 @@ public:
 	SLATE_END_ARGS()
 
 	/** Constructs this widget */
-	void Construct( const FArguments& InArgs, const EDebugConsoleStyle::Type InStyle, FOutputLogModule* OutputLogModule );
+	void Construct( const FArguments& InArgs, const EDebugConsoleStyle::Type InStyle, FOutputLogModule* OutputLogModule, const FDebugConsoleDelegates* DebugConsoleDelegates );
 
 	/** Call to set focus to this debug console's editable text box */
 	void SetFocusToEditableText();
@@ -27,7 +27,6 @@ public:
 
 
 protected:
-
 	/** Returns EVisibility::Visible if style has log being shown, otherwise VIS_COLLAPSED */
 	EVisibility MakeVisibleIfLogIsShown() const;
 
@@ -37,7 +36,7 @@ protected:
 	/** Returns a Slate color based on any current animation (same color as GetAnimatedColorAndOpacity) */
 	FSlateColor GetAnimatedSlateColor() const;
 
-
+	FSlateColor GetFlashColor() const;
 private:
 
 	/** Editable text box for this debug console's input line */
@@ -47,6 +46,8 @@ private:
 	EDebugConsoleStyle::Type CurrentStyle;
 
 	/** Intro/outro animation curve */
-	FCurveSequence AnimCurve;
+	FCurveSequence AnimCurveSequence;
+	FCurveHandle AnimCurve;
+	FCurveHandle FlashCurve;
 };
 

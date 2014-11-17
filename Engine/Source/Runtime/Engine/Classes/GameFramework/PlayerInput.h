@@ -7,12 +7,10 @@
 //=============================================================================
 
 #pragma once
-
-#include "Engine/EngineTypes.h"
 #include "Components/InputComponent.h"
+#include "Engine/EngineTypes.h"
 #include "GestureRecognizer.h"
 #include "KeyState.h"
-
 #include "PlayerInput.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
@@ -544,4 +542,7 @@ private:
 
 	// A counter used to track the order in which events occurred since the last time the input stack was processed
 	uint32 EventCount;
+
+	// Cache the last time dilation so as to be able to clear smoothing when it changes
+	float LastTimeDilation;
 };

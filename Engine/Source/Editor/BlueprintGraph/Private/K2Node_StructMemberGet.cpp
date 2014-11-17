@@ -69,18 +69,28 @@ void UK2Node_StructMemberGet::AllocatePinsForSingleMemberGet(FName MemberName)
 	}
 }
 
-FString UK2Node_StructMemberGet::GetTooltip() const
+FText UK2Node_StructMemberGet::GetTooltipText() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
-	return FText::Format(LOCTEXT("K2Node_StructMemberGet_Tooltip", "Get member variables of {VariableName}"), Args).ToString();
+	if (CachedTooltip.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(LOCTEXT("K2Node_StructMemberGet_Tooltip", "Get member variables of {VariableName}"), Args);
+	}
+	return CachedTooltip;
 }
 
 FText UK2Node_StructMemberGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
-	return FText::Format(LOCTEXT("GetMembersInVariable", "Get members in {VariableName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(LOCTEXT("GetMembersInVariable", "Get members in {VariableName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FNodeHandlingFunctor* UK2Node_StructMemberGet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

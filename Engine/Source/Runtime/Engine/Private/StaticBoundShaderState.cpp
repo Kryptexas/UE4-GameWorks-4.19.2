@@ -86,53 +86,85 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	return BoundShaderState;
 }
 
+FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetPreinitializedRHI()
+{
+	check(IsInitialized());
+	check(GIsRHIInitialized);
+	check(IsInParallelRenderingThread());
+	return BoundShaderState;
+}
+
 void FGlobalBoundShaderStateResource::ReleaseRHI()
 {
 	// Release the cached bound shader state.
 	BoundShaderState.SafeRelease();
 }
 
-static void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShaderState)
+static FBoundShaderStateRHIParamRef GetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShaderState, ERHIFeatureLevel::Type InFeatureLevel)
 {
+	auto WorkArea = GlobalBoundShaderState.Get(InFeatureLevel);
+
 	// Check for unset uniform buffer parameters
 	// Technically you can set uniform buffer parameters after calling RHISetBoundShaderState, but this is the most global place to check for unset parameters
-	GlobalBoundShaderState.Get()->Args.VertexShader->VerifyBoundUniformBufferParameters();
-	GlobalBoundShaderState.Get()->Args.PixelShader->VerifyBoundUniformBufferParameters();
-	GlobalBoundShaderState.Get()->Args.GeometryShader->VerifyBoundUniformBufferParameters();
+	WorkArea->Args.VertexShader->VerifyBoundUniformBufferParameters();
+	WorkArea->Args.PixelShader->VerifyBoundUniformBufferParameters();
+	WorkArea->Args.GeometryShader->VerifyBoundUniformBufferParameters();
 
-	FGlobalBoundShaderState_Internal* BSS = GlobalBoundShaderState.Get()->BSS;
+	FGlobalBoundShaderState_Internal* BSS = WorkArea->BSS;
+	bool bNewBSS = false;
 	if (!BSS)
 	{
 		BSS = new FGlobalBoundShaderState_Internal(); // these are simply leaked and never freed
-		GlobalBoundShaderState.Get()->BSS = BSS;
+		bNewBSS = true;
 	}
-
-	SetBoundShaderState_Internal(
-		BSS->GetInitializedRHI(
-			GlobalBoundShaderState.Get()->Args.VertexDeclarationRHI,
-			GETSAFERHISHADER_VERTEX(GlobalBoundShaderState.Get()->Args.VertexShader),
-			GETSAFERHISHADER_PIXEL(GlobalBoundShaderState.Get()->Args.PixelShader),
-			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GlobalBoundShaderState.Get()->Args.GeometryShader))
-		);
+	FBoundShaderStateRHIParamRef Result = BSS->GetInitializedRHI(
+		WorkArea->Args.VertexDeclarationRHI,
+		GETSAFERHISHADER_VERTEX(WorkArea->Args.VertexShader),
+		GETSAFERHISHADER_PIXEL(WorkArea->Args.PixelShader),
+		(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(WorkArea->Args.GeometryShader));
+	if (bNewBSS)
+	{
+		FPlatformMisc::MemoryBarrier();
+		// this probably doesn't need to be an atomic, assuming a pointer write is atomic, but this checks alignment, etc
+		FGlobalBoundShaderState_Internal* OldBSS = (FGlobalBoundShaderState_Internal*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&WorkArea->BSS, BSS, nullptr);
+		check(!OldBSS); // should not be any concurrent writes
+	}
+	return Result;
 }
 
-
-struct FRHICommandSetGlobalBoundShaderState : public FRHICommand<FRHICommandSetGlobalBoundShaderState>
+class FSetGlobalBoundShaderStateRenderThreadTask
 {
-	FGlobalBoundShaderState GlobalBoundShaderState;
-	FORCEINLINE_DEBUGGABLE FRHICommandSetGlobalBoundShaderState(FGlobalBoundShaderState& InGlobalBoundShaderState)
-		: GlobalBoundShaderState(InGlobalBoundShaderState)
+	FRHICommandList& RHICmdList;
+	FGlobalBoundShaderState& GlobalBoundShaderState;
+public:
+
+	FSetGlobalBoundShaderStateRenderThreadTask(FRHICommandList* InRHICmdList, FGlobalBoundShaderState* InGlobalBoundShaderState)
+		: RHICmdList(*InRHICmdList)
+		, GlobalBoundShaderState(*InGlobalBoundShaderState)
 	{
 	}
-	void Execute()
+
+	FORCEINLINE TStatId GetStatId() const
 	{
-		SetGlobalBoundShaderState_Internal(GlobalBoundShaderState);
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FSetGlobalBoundShaderStateRenderThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::RenderThread_Local;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		RHICmdList.SetBoundShaderState(GetGlobalBoundShaderState_Internal(GlobalBoundShaderState, GRHIFeatureLevel));
 	}
 };
 
-
 void SetGlobalBoundShaderState(
 	FRHICommandList& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel, 
 	FGlobalBoundShaderState& GlobalBoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclarationRHI,
 	FShader* VertexShader,
@@ -140,7 +172,7 @@ void SetGlobalBoundShaderState(
 	FShader* GeometryShader
 	)
 {
-	FGlobalBoundShaderStateWorkArea* ExistingGlobalBoundShaderState = GlobalBoundShaderState.Get();
+	FGlobalBoundShaderStateWorkArea* ExistingGlobalBoundShaderState = GlobalBoundShaderState.Get(FeatureLevel);
 	if (!ExistingGlobalBoundShaderState)
 	{
 		FGlobalBoundShaderStateWorkArea* NewGlobalBoundShaderState = new FGlobalBoundShaderStateWorkArea();
@@ -150,13 +182,19 @@ void SetGlobalBoundShaderState(
 		NewGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
 		FPlatformMisc::MemoryBarrier();
 
-		FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)GlobalBoundShaderState.GetPtr(), NewGlobalBoundShaderState, nullptr);
+		FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)GlobalBoundShaderState.GetPtr(FeatureLevel), NewGlobalBoundShaderState, nullptr);
 
 		if (OldGlobalBoundShaderState != nullptr)
 		{
 			//we lost
 			delete NewGlobalBoundShaderState;
-			check(OldGlobalBoundShaderState == ExistingGlobalBoundShaderState);
+			check(OldGlobalBoundShaderState == GlobalBoundShaderState.Get(FeatureLevel));
+			ExistingGlobalBoundShaderState = OldGlobalBoundShaderState;
+		}
+		else
+		{
+			check(NewGlobalBoundShaderState == GlobalBoundShaderState.Get(FeatureLevel));
+			ExistingGlobalBoundShaderState = NewGlobalBoundShaderState;
 		}
 	}
 	else if (!(VertexDeclarationRHI == ExistingGlobalBoundShaderState->Args.VertexDeclarationRHI &&
@@ -171,12 +209,27 @@ void SetGlobalBoundShaderState(
 		ExistingGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
 	}
 
-	if (RHICmdList.Bypass())
+	if (RHICmdList.Bypass() || IsInRenderingThread())
 	{
-		SetGlobalBoundShaderState_Internal(GlobalBoundShaderState);
+		// we can just do it as usual
+		RHICmdList.SetBoundShaderState(GetGlobalBoundShaderState_Internal(GlobalBoundShaderState, FeatureLevel));
 		return;
 	}
-	new (RHICmdList.AllocCommand<FRHICommandSetGlobalBoundShaderState>()) FRHICommandSetGlobalBoundShaderState(GlobalBoundShaderState);
+	if (ExistingGlobalBoundShaderState->BSS)
+	{
+		FBoundShaderStateRHIParamRef BoundShaderState = ExistingGlobalBoundShaderState->BSS->GetPreinitializedRHI();
+		if (BoundShaderState)
+		{
+			// this is on a thread, but we already have a valid BSS
+			RHICmdList.SetBoundShaderState(BoundShaderState);
+			return;
+		}
+	}
+	// We need to do this on the render thread
+
+	FRHICommandList* CmdList = new FRHICommandList;
+	FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FSetGlobalBoundShaderStateRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(CmdList, &GlobalBoundShaderState);
+	RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
 }
 
 

@@ -18,16 +18,14 @@ FText UAnimGraphNode_HandIKRetargeting::GetControllerDescription() const
 	return LOCTEXT("HandIKRetargeting", "Hand IK Retargeting");
 }
 
-FString UAnimGraphNode_HandIKRetargeting::GetTooltip() const
+FText UAnimGraphNode_HandIKRetargeting::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_HandIKRetargeting_Tooltip", "Handle re-targeting of IK Bone chain. Moves IK bone chain to meet FK hand bones, based on HandFKWeight (to favor either side). (0 = favor left hand, 1 = favor right hand, 0.5 = equal weight).").ToString();
+	return LOCTEXT("AnimGraphNode_HandIKRetargeting_Tooltip", "Handle re-targeting of IK Bone chain. Moves IK bone chain to meet FK hand bones, based on HandFKWeight (to favor either side). (0 = favor left hand, 1 = favor right hand, 0.5 = equal weight).");
 }
 
 FText UAnimGraphNode_HandIKRetargeting::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	return FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}"), Args);
+	return GetControllerDescription();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -25,10 +25,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=ContentBrowser, meta=(DisplayName = "Assets to Load at Once Before Warning"))
 	int32 NumObjectsToLoadBeforeWarning;
 
-	/** Whether to show only assets in selected folders in the Content Browser, excluding sub-folders. Note that this always the case when 'Display Folders' is enabled. */
-	UPROPERTY(config)
-	bool ShowOnlyAssetsInSelectedFolders;
-
 	/** Whether to render thumbnails for loaded assets in real-time in the Content Browser */
 	UPROPERTY(config)
 	bool RealTimeThumbnails;
@@ -44,6 +40,7 @@ public:
 	{ 
 		bOverride ? OverrideDisplayEngineFolder = bInDisplayEngineFolder : DisplayEngineFolder = bInDisplayEngineFolder;
 	}
+
 	/** Gets whether we are allowed to display the engine folder or not, optional flag ignoring the override */
 	bool GetDisplayEngineFolder( bool bExcludeOverride = false ) const
 	{ 
@@ -67,6 +64,7 @@ public:
 	{ 
 		bOverride ? OverrideDisplayPluginFolders = bInDisplayPluginFolders : DisplayPluginFolders = bInDisplayPluginFolders;
 	}
+
 	/** Gets whether we are allowed to display the plugin folders or not, optional flag ignoring the override */
 	bool GetDisplayPluginFolders( bool bExcludeOverride = false ) const
 	{ 
@@ -83,11 +81,9 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-
-	// End UObject overrides
 
 private:
 

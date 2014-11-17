@@ -7,6 +7,7 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
+	[Serializable]
 	public class UEBuildEditor : UEBuildTarget
 	{
 		public UEBuildEditor(
@@ -16,7 +17,8 @@ namespace UnrealBuildTool
 			TargetRules InRulesObject,
 			List<string> InAdditionalDefinitions, 
 			string InRemoteRoot, 
-			List<OnlyModule> InOnlyModules)
+			List<OnlyModule> InOnlyModules,
+			bool bInEditorRecompile)
 			// NOTE: If we're building a monolithic binary, then the game and engine code are linked together into one
 			//       program executable, so we want the application name to be the game name.  In the case of a modular
 			//       binary, we use 'UnrealEngine' for our application name
@@ -34,7 +36,9 @@ namespace UnrealBuildTool
 				InRulesObject: InRulesObject, 
 				InAdditionalDefinitions:InAdditionalDefinitions, 
 				InRemoteRoot:InRemoteRoot, 
-				InOnlyModules:InOnlyModules)
+				InOnlyModules:InOnlyModules,
+				bInEditorRecompile: bInEditorRecompile
+			)
 		{
 		}
 
@@ -48,7 +52,7 @@ namespace UnrealBuildTool
 			{
 				// Make the editor executable.
 				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable,
-																					InOutputFilePath: OutputPath,
+																					InOutputFilePaths: OutputPaths,
 																					InIntermediateDirectory: EngineIntermediateDirectory,
 																					bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
 																					bInAllowExports:!ShouldCompileMonolithic(),

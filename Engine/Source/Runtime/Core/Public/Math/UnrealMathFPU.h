@@ -932,6 +932,15 @@ FORCEINLINE uint32 VectorAnyGreaterThan(const VectorRegister& Vec1, const Vector
 #define VectorGetControlRegister()		0
 
 /**
+ * Returns an component from a vector.
+ *
+ * @param Vec				Vector register
+ * @param ComponentIndex	Which component to get, X=0, Y=1, Z=2, W=3
+ * @return					The component as a float
+ */
+#define VectorGetComponent( Vec, ComponentIndex )	(((float*) &(Vec))[ComponentIndex])
+
+/**
  * Sets the control register.
  *
  * @param ControlStatus		The uint32 control status value to set

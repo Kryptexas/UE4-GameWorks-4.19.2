@@ -41,7 +41,7 @@ namespace UnrealBuildTool.IOS
 
 			bool bIsStaticLibrary = InTarget.OutputPath.EndsWith(".a");
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				if (!bIsStaticLibrary)
 				{
@@ -52,7 +52,7 @@ namespace UnrealBuildTool.IOS
 
 					if (!InTarget.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 					{
-						string RemoteCreateAppBundleScript = Toolchain.ConvertPath(CreateAppBundleScript);
+						string RemoteCreateAppBundleScript = Toolchain.ConvertPath(Path.GetFullPath(CreateAppBundleScript));
 						RemoteCreateAppBundleScript = RemoteCreateAppBundleScript.Replace("../../../../", "../../");
 						RPCUtilHelper.CopyFile("../../" + CreateAppBundleScript, RemoteCreateAppBundleScript, true);
 					}
@@ -96,9 +96,9 @@ namespace UnrealBuildTool.IOS
 					try
 					{
 						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
-						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\Mac\\") && InTarget.Rules.Type != TargetRules.TargetType.Game)
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\Mac\\") && InTarget.TargetType != TargetRules.TargetType.Game)
 						{
-							BinaryDir = BinaryDir.Replace(InTarget.Rules.Type.ToString(), "Game");
+							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
 						}
 
 						string RemoteBinariesDir = Toolchain.ConvertPath( BinaryDir );

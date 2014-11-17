@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "WorkflowOrientedApp/SModeWidget.h"
+
 /**
  * Kismet menu
  */
@@ -74,6 +76,9 @@ public:
 
 	/** Returns the current status as text for the blueprint being edited */
 	FText GetStatusTooltip() const;
+
+	/** Helper function for generating the buttons in the toolbar, reused by merge and diff tools */
+	static TArray< TSharedPtr< class SWidget> > GenerateToolbarWidgets(const class UBlueprint* BlueprintObj, TAttribute<FName> ActiveModeGetter, FOnModeChangeRequested ActiveModeSetter);
 
 private:
 	void FillBlueprintEditorModesToolbar(FToolBarBuilder& ToolbarBuilder);

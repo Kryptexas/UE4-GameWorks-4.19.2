@@ -301,6 +301,12 @@ EHttpRequestStatus::Type FIOSHttpRequest::GetStatus()
 }
 
 
+const FHttpResponsePtr FIOSHttpRequest::GetResponse() const
+{
+	return Response;
+}
+
+
 void FIOSHttpRequest::Tick(float DeltaSeconds) 
 {
 	if(CompletionStatus == EHttpRequestStatus::Processing)

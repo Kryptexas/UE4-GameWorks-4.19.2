@@ -2,6 +2,7 @@
 
 using System.Collections.Generic;
 using System.Text;
+using System;
 
 namespace MarkdownSharp.EpicMarkdown
 {
@@ -25,7 +26,7 @@ namespace MarkdownSharp.EpicMarkdown
                 new
                     {
                         tagName = name,
-                        attributesList = attributesString,
+                        attributesList = (String.IsNullOrEmpty(attributesString)? attributesString : " " + attributesString),
                         content = Elements.GetInnerHTML(includesStack, data)
                     })));
         }

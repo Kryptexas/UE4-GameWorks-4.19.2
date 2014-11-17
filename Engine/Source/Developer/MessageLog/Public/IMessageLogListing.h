@@ -5,6 +5,14 @@
 #include "TokenizedMessage.h"
 #include "IMessageLog.h"
 
+
+/** Type definition for shared pointers to instances of IMessageLogListing. */
+typedef TSharedPtr<class IMessageLogListing> IMessageLogListingPtr;
+
+/** Type definition for shared references to instances of IMessageLogListing. */
+typedef TSharedRef<class IMessageLogListing> IMessageLogListingRef;
+
+
 /**
  * A message log listing, such as the Compiler Log, or the Map Check Log.
  */

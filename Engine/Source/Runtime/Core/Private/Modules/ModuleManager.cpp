@@ -8,7 +8,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
-#if !IS_MONOLITHIC
+#if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */
 	CORE_API bool			GIsHotReload							= false;
 #endif
@@ -16,19 +16,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
 int32 FModuleManager::FModuleInfo::CurrentLoadOrder = 1;
 
-namespace ModuleManagerDefs
-{
-	const static FString CompilationInfoConfigSection("ModuleFileTracking");
-
-	// These strings should match the values of the enum EModuleCompileMethod in ModuleManager.h
-	// and should be handled in ReadModuleCompilationInfoFromConfig() & WriteModuleCompilationInfoToConfig() below
-	const static FString CompileMethodRuntime("Runtime");
-	const static FString CompileMethodExternal("External");
-	const static FString CompileMethodUnknown("Unknown");
-
-	// Add one minute epsilon to timestamp comparision
-	const static FTimespan TimeStampEpsilon(0, 1, 0);
-}
 
 FModuleManager& FModuleManager::Get()
 {
@@ -57,19 +44,6 @@ FModuleManager::~FModuleManager()
 	//       DLLs may have already been unloaded, which means we can't safely call clean up methods
 }
 
-
-void FModuleManager::Tick()
-{
-	// We never want to block on a pending compile when checking compilation status during Tick().  We're
-	// just checking so that we can fire callbacks if and when compilation has finished.
-	const bool bWaitForCompletion = false;
-
-	// Ignored output variables
-	bool bCompileStillInProgress = false;
-	bool bCompileSucceeded = false;
-	FOutputDeviceNull NullOutput;
-	CheckForFinishedModuleDLLCompile( bWaitForCompletion, bCompileStillInProgress, bCompileSucceeded, NullOutput );
-}
 
 void FModuleManager::FindModules(const TCHAR* WildcardWithoutExtension, TArray<FName>& OutModules)
 {
@@ -246,8 +220,8 @@ void FModuleManager::AddModule( const FName InModuleName )
 							}
 						}
 					}
-#endif	// !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				}
+#endif	// !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			}
 		}
 #endif	// !IS_MONOLITHIC
@@ -330,7 +304,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 		{
 			// Monolithic builds that do not have the initializer were *not found* during the build step, so return FileNotFound
 			// (FileNotFound is an acceptable error in some case - ie loading a content only project)
-			UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Module '%s' not found - it's StaticallyLinkedModuleInitializers function is null." ), *InModuleName.ToString() );
+			UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Module '%s' not found - its StaticallyLinkedModuleInitializers function is null." ), *InModuleName.ToString() );
 			OutFailureReason = EModuleLoadResult::FileNotFound;
 		}
 #endif
@@ -552,9 +526,6 @@ void FModuleManager::UnloadModulesAtShutdown()
 	{
 		TSharedRef< FModuleInfo > ModuleInfo( ModuleIt.Value() );
 
-		// Take this opportunity to update and write out the compile data before the editor shuts down
-		UpdateModuleCompileData(ModuleIt.Key(), ModuleInfo);
-
 		// Only if already loaded
 		if( ModuleInfo->Module.IsValid() )
 		{
@@ -711,21 +682,6 @@ bool FModuleManager::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar 
 
 			return true;
 		}
-
-
-		// Recompile <ModuleName>
-		else if( FParse::Command( &Cmd, TEXT( "Recompile" ) ) )
-		{
-			const FString ModuleNameStr = FParse::Token( Cmd, 0 );
-			if( !ModuleNameStr.IsEmpty() )
-			{
-				const FName ModuleName( *ModuleNameStr );
-				const bool bReloadAfterRecompile = true;
-				RecompileModule( ModuleName, bReloadAfterRecompile, Ar);
-			}
-
-			return true;
-		}
 #endif // !IS_MONOLITHIC
 	}
 #endif // !UE_BUILD_SHIPPING
@@ -750,23 +706,6 @@ bool FModuleManager::QueryModule( const FName InModuleName, FModuleStatus& OutMo
 		{
 			OutModuleStatus.bIsGameModule = ModuleInfo->Module->IsGameModule();
 		}
-
-		if (!ModuleInfo->CompileData.bIsValid)
-		{
-			UpdateModuleCompileData(InModuleName, ModuleInfo);
-		}
-
-		FString CompileMethodString = ModuleManagerDefs::CompileMethodUnknown;
-		if (ModuleInfo->CompileData.CompileMethod == EModuleCompileMethod::Runtime)
-		{
-			CompileMethodString = ModuleManagerDefs::CompileMethodRuntime;
-		}
-		else if (ModuleInfo->CompileData.CompileMethod == EModuleCompileMethod::External)
-		{
-			CompileMethodString = ModuleManagerDefs::CompileMethodExternal;
-		}
-
-		OutModuleStatus.CompilationMethod = CompileMethodString;
 
 		return true;
 	}
@@ -795,329 +734,76 @@ void FModuleManager::QueryModules( TArray< FModuleStatus >& OutModuleStatuses )
 			{
 				ModuleStatus.bIsGameModule = CurModule->Module->IsGameModule();
 			}
-
-			if (!CurModule->CompileData.bIsValid)
-			{
-				UpdateModuleCompileData(CurModuleFName, CurModule);
-			}
-
-			FString CompileMethodString = ModuleManagerDefs::CompileMethodUnknown;
-			if (CurModule->CompileData.CompileMethod == EModuleCompileMethod::Runtime)
-			{
-				CompileMethodString = ModuleManagerDefs::CompileMethodRuntime;
-			}
-			else if (CurModule->CompileData.CompileMethod == EModuleCompileMethod::External)
-			{
-				CompileMethodString = ModuleManagerDefs::CompileMethodExternal;
-			}
-
-			ModuleStatus.CompilationMethod = CompileMethodString;
 		}
 		OutModuleStatuses.Add( ModuleStatus );
 	}
 }
 
-
-bool FModuleManager::IsSolutionFilePresent()
+FString FModuleManager::GetModuleFilename(FName ModuleName) const
 {
-	return !GetSolutionFilepath().IsEmpty();
+	return Modules.FindChecked(ModuleName)->Filename;
 }
 
-
-FString FModuleManager::GetSolutionFilepath()
+void FModuleManager::SetModuleFilename(FName ModuleName, const FString& Filename)
 {
-#if PLATFORM_MAC
-	const TCHAR* Postfix = TEXT(".xcodeproj/project.pbxproj");
-#elif PLATFORM_LINUX
-	UE_LOG(LogModuleManager, Warning, TEXT("STUBBED: solution file path for Linux"));
-	const TCHAR* Postfix = TEXT("/stubbed/path/to.solution");
-#else
-	const TCHAR* Postfix = TEXT(".sln");
-#endif
-
-	FString SolutionFilepath;
-
-	if ( FPaths::IsProjectFilePathSet() )
-	{
-		// When using game specific uproject files, the solution is named after the game and in the uproject folder
-		SolutionFilepath = FPaths::GameDir() / FPaths::GetBaseFilename(FPaths::GetProjectFilePath()) + Postfix;
-		if ( !FPaths::FileExists(SolutionFilepath) )
-		{
-			SolutionFilepath = TEXT("");
-		}
-	}
-
-	if ( SolutionFilepath.IsEmpty() )
-	{
-		// Otherwise, it is simply titled UE4.sln
-		SolutionFilepath = FPaths::RootDir() / FString(TEXT("UE4")) + Postfix ;
-		if ( !FPaths::FileExists(SolutionFilepath) )
-		{
-			SolutionFilepath = TEXT("");
-		}
-	}
-
-	return SolutionFilepath;
+	Modules.FindChecked(ModuleName)->Filename = Filename;
 }
 
-
-bool FModuleManager::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
+FString FModuleManager::GetCleanModuleFilename(FName ModuleName, bool bGameModule)
 {
-#if !IS_MONOLITHIC
-	const bool bShowProgressDialog = true;
-	const bool bShowCancelButton = false;
-
-	FFormatNamedArguments Args;
-	Args.Add( TEXT("CodeModuleName"), FText::FromName( InModuleName ) );
-	const FText StatusUpdate = FText::Format( NSLOCTEXT("ModuleManager", "Recompile_SlowTaskName", "Compiling {CodeModuleName}..."), Args );
-
-	GWarn->BeginSlowTask( StatusUpdate, bShowProgressDialog, bShowCancelButton );
-
-	ModuleCompilerStartedEvent.Broadcast();
-
-	// Update our set of known modules, in case we don't already know about this module
-	AddModule( InModuleName );
-
-	// Only use rolling module names if the module was already loaded into memory.  This allows us to try compiling
-	// the module without actually having to unload it first.
-	const bool bWasModuleLoaded = IsModuleLoaded( InModuleName );
-	const bool bUseRollingModuleNames = bWasModuleLoaded;
-	TSharedRef< FModuleInfo > Module = Modules.FindChecked( InModuleName );
-
-	bool bWasSuccessful = true;
-	FString NewModuleFileNameOnSuccess = Module->Filename;
-	if( bUseRollingModuleNames )
-	{
-		// First, try to compile the module.  If the module is already loaded, we won't unload it quite yet.  Instead
-		// make sure that it compiles successfully.
-
-		// Find a unique file name for the module
-		FString UniqueSuffix;
-		FString UniqueModuleFileName;
-		MakeUniqueModuleFilename( InModuleName, UniqueSuffix, UniqueModuleFileName );
-
-		// If the recompile succeeds, we'll update our cached file name to use the new unique file name
-		// that we setup for the module
-		NewModuleFileNameOnSuccess = UniqueModuleFileName;
-
-		TArray< FModuleToRecompile > ModulesToRecompile;
-		FModuleToRecompile ModuleToRecompile;
-		ModuleToRecompile.ModuleName = InModuleName.ToString();
-		ModuleToRecompile.ModuleFileSuffix = UniqueSuffix;
-		ModuleToRecompile.NewModuleFilename = UniqueModuleFileName;
-		ModulesToRecompile.Add( ModuleToRecompile );
-		bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );
-	}
-
-	if( bWasSuccessful )
-	{
-		// Shutdown the module if it's already running
-		if( bWasModuleLoaded )
-		{
-			Ar.Logf( TEXT( "Unloading module before compile." ) );
-			UnloadOrAbandonModuleWithCallback( InModuleName, Ar );
-		}
-
-		if( !bUseRollingModuleNames )
-		{
-			// Try to recompile the DLL
-			TArray< FModuleToRecompile > ModulesToRecompile;
-			FModuleToRecompile ModuleToRecompile;
-			ModuleToRecompile.ModuleName = InModuleName.ToString();
-			ModulesToRecompile.Add( ModuleToRecompile );
-			bWasSuccessful = RecompileModuleDLLs( ModulesToRecompile, Ar );
-		}
-
-		// Reload the module if it was loaded before we recompiled
-		if( bWasSuccessful && bWasModuleLoaded && bReloadAfterRecompile )
-		{
-			Ar.Logf( TEXT( "Reloading module after successful compile." ) );
-			bWasSuccessful = LoadModuleWithCallback( InModuleName, Ar );
-		}
-	}
-
-	GWarn->EndSlowTask();
-	return bWasSuccessful;
-#else
-	return false;
-#endif // !IS_MONOLITHIC
+	FString Prefix, Suffix;
+	GetModuleFilenameFormat(bGameModule, Prefix, Suffix);
+	return Prefix + ModuleName.ToString() + Suffix;
 }
 
-
-bool FModuleManager::IsCurrentlyCompiling() const
+void FModuleManager::GetModuleFilenameFormat(bool bGameModule, FString& OutPrefix, FString& OutSuffix)
 {
-	return ModuleCompileProcessHandle.IsValid();
-}
-
-
-FString FModuleManager::MakeUBTArgumentsForModuleCompiling()
-{
-	FString AdditionalArguments;
-	if ( FPaths::IsProjectFilePathSet() )
+	// Get the module configuration for this directory type
+	const TCHAR* ConfigSuffix = NULL;
+	switch(FApp::GetBuildConfiguration())
 	{
-		// We have to pass FULL paths to UBT
-		FString FullProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
-
-		// @todo projectdirs: Currently non-Rocket projects that exist under the UE4 root are compiled by UBT with no .uproject file
-		//     name passed in (see bIsProjectTarget in VCProject.cs), which causes intermediate libraries to be saved to the Engine
-		//     intermediate folder instead of the project's intermediate folder.  We're emulating this behavior here for module
-		//     recompiling, so that compiled modules will be able to find their import libraries in the original folder they were compiled.
-		if( FRocketSupport::IsRocket() || !FullProjectPath.StartsWith( FPaths::ConvertRelativePathToFull( FPaths::RootDir() ) ) )
-		{
-			const FString ProjectFilenameWithQuotes = FString::Printf(TEXT("\"%s\""), *FullProjectPath);
-			AdditionalArguments += FString::Printf(TEXT("%s "), *ProjectFilenameWithQuotes);
-		}
-
-		if (FRocketSupport::IsRocket())
-		{
-			AdditionalArguments += TEXT("-rocket ");
-		}
+	case EBuildConfigurations::Debug:
+		ConfigSuffix = TEXT("-Debug");
+		break;
+	case EBuildConfigurations::DebugGame:
+		ConfigSuffix = bGameModule? TEXT("-DebugGame") : NULL;
+		break;
+	case EBuildConfigurations::Development:
+		ConfigSuffix = NULL;
+		break;
+	case EBuildConfigurations::Test:
+		ConfigSuffix = TEXT("-Test");
+		break;
+	case EBuildConfigurations::Shipping:
+		ConfigSuffix = TEXT("-Shipping");
+		break;
+	default:
+		check(false);
+		break;
 	}
 
-	return AdditionalArguments;
-}
-
-
-void FModuleManager::OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
-{
-#if !IS_MONOLITHIC && WITH_EDITOR
-	// UpdateModuleCompileData() should have been run before compiling so the
-	// data in ModuleInfo should be correct for the pre-compile dll file.
-	if (ensure(ModuleInfo->CompileData.bIsValid))
+	// Get the base name for modules of this application
+	OutPrefix = FPlatformProcess::GetModulePrefix() + FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
+	if (OutPrefix.Contains(TEXT("-")))
 	{
-		FDateTime FileTimeStamp;
-		bool bGotFileTimeStamp = GetModuleFileTimeStamp(ModuleInfo, FileTimeStamp);
-
-		ModuleInfo->CompileData.bHasFileTimeStamp = bGotFileTimeStamp;
-		ModuleInfo->CompileData.FileTimeStamp = FileTimeStamp;
-
-		if (ModuleInfo->CompileData.bHasFileTimeStamp)
-		{
-			ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::Runtime;
-		}
-		else
-		{
-			ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::Unknown;
-		}
-		WriteModuleCompilationInfoToConfig(ModuleName, ModuleInfo);
-	}
-#endif
-}
-
-
-void FModuleManager::UpdateModuleCompileData(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
-{
-	// reset the compile data before updating it
-	ModuleInfo->CompileData.bHasFileTimeStamp = false;
-	ModuleInfo->CompileData.FileTimeStamp = FDateTime(0);
-	ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::Unknown;
-	ModuleInfo->CompileData.bIsValid = true;
-
-#if !IS_MONOLITHIC && WITH_EDITOR
-	ReadModuleCompilationInfoFromConfig(ModuleName, ModuleInfo);
-
-	FDateTime FileTimeStamp;
-	bool bGotFileTimeStamp = GetModuleFileTimeStamp(ModuleInfo, FileTimeStamp);
-
-	if (!bGotFileTimeStamp)
-	{
-		// File missing? Reset the cached timestamp and method to defaults and save them.
-		ModuleInfo->CompileData.bHasFileTimeStamp = false;
-		ModuleInfo->CompileData.FileTimeStamp = FDateTime(0);
-		ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::Unknown;
-		WriteModuleCompilationInfoToConfig(ModuleName, ModuleInfo);
+		OutPrefix = OutPrefix.Left(OutPrefix.Find(TEXT("-")) + 1);
 	}
 	else
 	{
-		if (ModuleInfo->CompileData.bHasFileTimeStamp)
-		{
-			if (FileTimeStamp > ModuleInfo->CompileData.FileTimeStamp + ModuleManagerDefs::TimeStampEpsilon)
-			{
-				// The file is newer than the cached timestamp
-				// The file must have been compiled externally
-				ModuleInfo->CompileData.FileTimeStamp = FileTimeStamp;
-				ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::External;
-				WriteModuleCompilationInfoToConfig(ModuleName, ModuleInfo);
-			}
-		}
-		else
-		{
-			// The cached timestamp and method are default value so this file has no history yet
-			// We can only set its timestamp and save
-			ModuleInfo->CompileData.bHasFileTimeStamp = true;
-			ModuleInfo->CompileData.FileTimeStamp = FileTimeStamp;
-			WriteModuleCompilationInfoToConfig(ModuleName, ModuleInfo);
-		}
+		OutPrefix += TEXT("-");
 	}
-#endif
-}
 
-
-void FModuleManager::ReadModuleCompilationInfoFromConfig(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
-{
-	FString DateTimeString;
-	if (GConfig->GetString(*ModuleManagerDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.TimeStamp"), *ModuleName.ToString()), DateTimeString, GEditorUserSettingsIni))
+	// Get the suffix for each module
+	OutSuffix.Empty();
+	if (ConfigSuffix != NULL)
 	{
-		FDateTime TimeStamp;
-		if (!DateTimeString.IsEmpty() && FDateTime::Parse(DateTimeString, TimeStamp))
-		{
-			ModuleInfo->CompileData.bHasFileTimeStamp = true;
-			ModuleInfo->CompileData.FileTimeStamp = TimeStamp;
-
-			FString CompileMethodString;
-			if (GConfig->GetString(*ModuleManagerDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.LastCompileMethod"), *ModuleName.ToString()), CompileMethodString, GEditorUserSettingsIni))
-			{
-				if (CompileMethodString.Equals(ModuleManagerDefs::CompileMethodRuntime, ESearchCase::IgnoreCase))
-				{
-					ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::Runtime;
-				}
-				else if (CompileMethodString.Equals(ModuleManagerDefs::CompileMethodExternal, ESearchCase::IgnoreCase))
-				{
-					ModuleInfo->CompileData.CompileMethod = EModuleCompileMethod::External;
-				}
-			}
-		}
+		OutSuffix += TEXT("-");
+		OutSuffix += FPlatformProcess::GetBinariesSubdirectory();
+		OutSuffix += ConfigSuffix;
 	}
+	OutSuffix += TEXT(".");
+	OutSuffix += FPlatformProcess::GetModuleExtension();
 }
-
-
-void FModuleManager::WriteModuleCompilationInfoToConfig(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
-{
-	if (ensure(ModuleInfo->CompileData.bIsValid))
-	{
-		FString DateTimeString;
-		if (ModuleInfo->CompileData.bHasFileTimeStamp)
-		{
-			DateTimeString = ModuleInfo->CompileData.FileTimeStamp.ToString();
-		}
-
-		GConfig->SetString(*ModuleManagerDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.TimeStamp"), *ModuleName.ToString()), *DateTimeString, GEditorUserSettingsIni);
-
-		FString CompileMethodString = ModuleManagerDefs::CompileMethodUnknown;
-		if (ModuleInfo->CompileData.CompileMethod == EModuleCompileMethod::Runtime)
-		{
-			CompileMethodString = ModuleManagerDefs::CompileMethodRuntime;
-		}
-		else if (ModuleInfo->CompileData.CompileMethod == EModuleCompileMethod::External)
-		{
-			CompileMethodString = ModuleManagerDefs::CompileMethodExternal;
-		}
-
-		GConfig->SetString(*ModuleManagerDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.LastCompileMethod"), *ModuleName.ToString()), *CompileMethodString, GEditorUserSettingsIni);
-	}
-}
-
-
-bool FModuleManager::GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> ModuleInfo, FDateTime& OutFileTimeStamp)
-{
-	if (IFileManager::Get().FileSize(*ModuleInfo->Filename) > 0)
-	{
-		OutFileTimeStamp = FDateTime(IFileManager::Get().GetTimeStamp(*ModuleInfo->Filename));
-		return true;
-	}
-	return false;
-}
-
 
 void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
@@ -1137,54 +823,11 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 	}
 }
 
-
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
-	// Get the module configuration for this directory type
-	const TCHAR* ConfigSuffix = NULL;
-	switch(FApp::GetBuildConfiguration())
-	{
-	case EBuildConfigurations::Debug:
-		ConfigSuffix = TEXT("-Debug");
-		break;
-	case EBuildConfigurations::DebugGame:
-		ConfigSuffix = bIsGameDirectory? TEXT("-DebugGame") : NULL;
-		break;
-	case EBuildConfigurations::Development:
-		ConfigSuffix = NULL;
-		break;
-	case EBuildConfigurations::Test:
-		ConfigSuffix = TEXT("-Test");
-		break;
-	case EBuildConfigurations::Shipping:
-		ConfigSuffix = TEXT("-Shipping");
-		break;
-	default:
-		check(false);
-		break;
-	}
-
-	// Get the base name for modules of this application
-	FString ModulePrefix = FPlatformProcess::GetModulePrefix() + FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
-	if (ModulePrefix.Contains(TEXT("-")))
-	{
-		ModulePrefix = ModulePrefix.Left(ModulePrefix.Find(TEXT("-")) + 1);
-	}
-	else
-	{
-		ModulePrefix += TEXT("-");
-	}
-
-	// Get the suffix for each module
-	FString ModuleSuffix;
-	if (ConfigSuffix != NULL)
-	{
-		ModuleSuffix += TEXT("-");
-		ModuleSuffix += FPlatformProcess::GetBinariesSubdirectory();
-		ModuleSuffix += ConfigSuffix;
-	}
-	ModuleSuffix += TEXT(".");
-	ModuleSuffix += FPlatformProcess::GetModuleExtension();
+	// Get the prefix and suffix for module filenames
+	FString ModulePrefix, ModuleSuffix;
+	GetModuleFilenameFormat(bIsGameDirectory, ModulePrefix, ModuleSuffix);
 
 	// Find all the files
 	TArray<FString> FullFileNames;
@@ -1199,192 +842,12 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 		if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
 		{
 			FString ModuleName = FileName.Mid(ModulePrefix.Len(), FileName.Len() - ModulePrefix.Len() - ModuleSuffix.Len());
-			if (ConfigSuffix != NULL || (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame")))
+			if (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame"))
 			{
 				OutModulePaths.Add(FName(*ModuleName), FullFileName);
 			}
 		}
 	}
-}
-
-
-bool FModuleManager::RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar )
-{
-#if !IS_MONOLITHIC
-	// NOTE: This method of recompiling always using a rolling file name scheme, since we never want to unload before
-	// we start recompiling, and we need the output DLL to be unlocked before we invoke the compiler
-
-	ModuleCompilerStartedEvent.Broadcast();
-
-	TArray< FModuleToRecompile > ModulesToRecompile;
-
-	for( TArray< FName >::TConstIterator CurModuleIt( ModuleNames ); CurModuleIt; ++CurModuleIt )
-	{
-		const FName CurModuleName = *CurModuleIt;
-
-		// Update our set of known modules, in case we don't already know about this module
-		AddModule( CurModuleName );
-
-		TSharedRef< FModuleInfo > Module = Modules.FindChecked( CurModuleName );
-
-		FString NewModuleFileNameOnSuccess = Module->Filename;
-
-		// Find a unique file name for the module
-		FString UniqueSuffix;
-		FString UniqueModuleFileName;
-		MakeUniqueModuleFilename( CurModuleName, UniqueSuffix, UniqueModuleFileName );
-
-		// If the recompile succeeds, we'll update our cached file name to use the new unique file name
-		// that we setup for the module
-		NewModuleFileNameOnSuccess = UniqueModuleFileName;
-
-		FModuleToRecompile ModuleToRecompile;
-		ModuleToRecompile.ModuleName = CurModuleName.ToString();
-		ModuleToRecompile.ModuleFileSuffix = UniqueSuffix;
-		ModuleToRecompile.NewModuleFilename = UniqueModuleFileName;
-		ModulesToRecompile.Add( ModuleToRecompile );
-	}
-
-	// Kick off compilation!
-	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
-	bool bWasSuccessful = StartCompilingModuleDLLs( FApp::GetGameName(), ModulesToRecompile, InRecompileModulesCallback, Ar, true, AdditionalArguments );
-	if (bWasSuccessful)
-	{
-		// Go ahead and check for completion right away.  This is really just so that we can handle the case
-		// where the user asked us to wait for the compile to finish before returning.
-		bool bCompileStillInProgress = false;
-		bool bCompileSucceeded = false;
-		FOutputDeviceNull NullOutput;
-		CheckForFinishedModuleDLLCompile( bWaitForCompletion, bCompileStillInProgress, bCompileSucceeded, NullOutput );
-		if( !bCompileStillInProgress && !bCompileSucceeded )
-		{
-			bWasSuccessful = false;
-		}
-	}
-
-	return bWasSuccessful;
-#else
-	return false;
-#endif // !IS_MONOLITHIC
-}
-
-
-bool FModuleManager::CompileGameProject( const FString& ProjectFilename, FOutputDevice &Ar )
-{
-	bool bCompileSucceeded = false;
-
-#if !IS_MONOLITHIC
-	ModuleCompilerStartedEvent.Broadcast();
-
-	// Leave an empty list of modules to recompile to indicate that all modules in the specified project file should be compiled
-	TArray< FModuleToRecompile > ModulesToRecompile;	
-	const FString GameName = FPaths::GetBaseFilename(ProjectFilename);
-	FString AdditionalCmdLineArgs = FString::Printf(TEXT("\"%s\""), *ProjectFilename);
-	if (FRocketSupport::IsRocket())
-	{
-		AdditionalCmdLineArgs += TEXT(" -rocket");
-	}
-
-	if (StartCompilingModuleDLLs(GameName, ModulesToRecompile, FRecompileModulesCallback(), Ar, false, AdditionalCmdLineArgs))
-	{
-		const bool bWaitForCompletion = true;	// Always wait
-		bool bCompileStillInProgress = false;
-		FOutputDeviceNull NullOutput;
-		CheckForFinishedModuleDLLCompile(bWaitForCompletion, bCompileStillInProgress, bCompileSucceeded, NullOutput);
-	}
-#endif // !IS_MONOLITHIC
-	return bCompileSucceeded;
-}
-
-bool FModuleManager::CompileGameProjectEditor( const FString& GameProjectFilename, FOutputDevice &Ar )
-{
-	bool bCompileSucceeded = false;
-#if !IS_MONOLITHIC
-	ModuleCompilerStartedEvent.Broadcast();
-
-	// Leave an empty list of modules to recompile to indicate that all modules in the specified project file should be compiled
-	TArray< FModuleToRecompile > ModulesToRecompile;
-
-	FString GameTargetName = FPaths::GetBaseFilename(GameProjectFilename);
-	//@NOTE: We assume 'MyProject'Editor is the target name for the editor...
-	// Since we generate the targets, this should be fine - but worth noting.
-	GameTargetName += TEXT("Editor");
-	FString AdditionalCmdLineArgs = FString::Printf(TEXT("\"%s\""), *GameProjectFilename);
-	if (FRocketSupport::IsRocket())
-	{
-		AdditionalCmdLineArgs += TEXT(" -rocket");
-	}
-
-	if (StartCompilingModuleDLLs(GameTargetName, ModulesToRecompile, FRecompileModulesCallback(), Ar, false, AdditionalCmdLineArgs))
-	{
-		const bool bWaitForCompletion = true;	// Always wait
-		bool bCompileStillInProgress = false;
-		FOutputDeviceNull NullOutput;
-		CheckForFinishedModuleDLLCompile(bWaitForCompletion, bCompileStillInProgress, bCompileSucceeded, NullOutput);
-	}
-
-#endif // !IS_MONOLITHIC
-	return bCompileSucceeded;
-}
-
-
-bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, FOutputDevice &Ar )
-{
-	bool bCompileSucceeded = false;
-#if !IS_MONOLITHIC
-	// Leave an empty list of modules to recompile to indicate that all modules in the specified project file should be compiled
-	TArray< FModuleToRecompile > ModulesToRecompile;
-
-#if PLATFORM_MAC
-	FString CmdLineParams = TEXT("-xcodeprojectfile");
-#elif PLATFORM_LINUX
-	FString CmdLineParams = TEXT("-makefile");
-#else
-	FString CmdLineParams = TEXT("-projectfiles");
-#endif
-	if ( !ProjectFilename.IsEmpty() )
-	{
-		// Normalize the project filename
-		FString NormalizedProjectFilename = ProjectFilename;
-		FPaths::NormalizeFilename(NormalizedProjectFilename);
-
-		// Figure out if this is a foreign project, and specify the project filename on the command line if it is. Don't use the cached project dictionary; the project may have been newly added.
-		FUProjectDictionary Dictionary(FPaths::RootDir());
-		if(Dictionary.IsForeignProject(NormalizedProjectFilename))
-		{
-			CmdLineParams += FString::Printf(TEXT(" \"%s\" -game"), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NormalizedProjectFilename));
-
-			// Determine whether we want engine source in the generated project files
-			if(FEngineBuildSettings::IsSourceDistribution())
-			{
-				CmdLineParams += TEXT(" -engine");
-			}
-		}
-
-		// Add the Rocket parameter
-		if ( FRocketSupport::IsRocket() )
-		{
-            CmdLineParams += TEXT(" -rocket");
-        }
-	}
-
-	if( InvokeUnrealBuildToolForCompile( CmdLineParams, Ar ) )
-	{
-		const bool bWaitForCompletion = true;	// Always wait
-		bool bCompileStillInProgress = false;
-		const FText SlowTaskOverrideText = NSLOCTEXT("FModuleManager", "GenerateCodeProjectsStatusMessage", "Generating code projects...");
-		const bool bFireEvents = false;
-		CheckForFinishedModuleDLLCompile( bWaitForCompletion, bCompileStillInProgress, bCompileSucceeded, Ar, SlowTaskOverrideText, bFireEvents );
-	}
-	else
-	{
-		Ar.Logf(TEXT("Failed invoke UnrealBuildTool when generating code project files."));
-	}
-#else
-	Ar.Logf(TEXT("Cannot generate code project files from monolithic builds."));
-#endif
-
-	return bCompileSucceeded;
 }
 
 void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar )
@@ -1456,287 +919,6 @@ const TCHAR *FModuleManager::GetUBTConfiguration()
 }
 
 
-bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
-	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
-	const FString& InAdditionalCmdLineArgs )
-{
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
-	// Keep track of what we're compiling
-	ModulesBeingCompiled = ModuleNames;
-	ModulesThatWereBeingRecompiled = ModulesBeingCompiled;
-
-	const TCHAR* BuildPlatformName = FPlatformMisc::GetUBTPlatform();
-	const TCHAR* BuildConfigurationName = GetUBTConfiguration();
-
-	RecompileModulesCallback = InRecompileModulesCallback;
-
-	// Pass a module file suffix to UBT if we have one
-	FString ModuleArg;
-	for( int32 CurModuleIndex = 0; CurModuleIndex < ModuleNames.Num(); ++CurModuleIndex )
-	{
-		if( !ModuleNames[ CurModuleIndex ].ModuleFileSuffix.IsEmpty() )
-		{
-			ModuleArg += FString::Printf( TEXT( " -ModuleWithSuffix %s %s" ), *ModuleNames[ CurModuleIndex ].ModuleName, *ModuleNames[ CurModuleIndex ].ModuleFileSuffix );
-		}
-		else
-		{
-			ModuleArg += FString::Printf( TEXT( " -Module %s" ), *ModuleNames[ CurModuleIndex ].ModuleName );
-		}
-		Ar.Logf( TEXT( "Recompiling %s..." ), *ModuleNames[ CurModuleIndex ].ModuleName );
-
-		FName ModuleFName(*ModuleNames[ CurModuleIndex ].ModuleName);
-		if (ensure(Modules.Contains(ModuleFName)))
-		{
-			// prepare the compile info in the FModuleInfo so that it can be compared after compiling
-			TSharedRef< FModuleInfo > ModuleInfo = Modules.FindChecked(ModuleFName);
-			UpdateModuleCompileData(ModuleFName, ModuleInfo);
-		}
-	}
-
-	FString ExtraArg;
-#if UE_EDITOR
-	// NOTE: When recompiling from the editor, we're passed the game target name, not the editor target name, but we'll
-	//       pass "-editorrecompile" to UBT which tells UBT to figure out the editor target to use for this game, since
-	//       we can't possibly know what the target is called from within the engine code.
-	ExtraArg = TEXT( "-editorrecompile " );
-#endif
-
-	if (bInFailIfGeneratedCodeChanges)
-	{
-		// Additional argument to let UHT know that we can only compile the module if the generated code didn't change
-		ExtraArg += TEXT( "-FailIfGeneratedCodeChanges " );
-	}
-
-	FString CmdLineParams = FString::Printf( TEXT( "%s%s %s %s %s%s" ), 
-		*GameName, *ModuleArg, 
-		BuildPlatformName, BuildConfigurationName, 
-		*ExtraArg, *InAdditionalCmdLineArgs );
-
-	const bool bInvocationSuccessful = InvokeUnrealBuildToolForCompile(CmdLineParams, Ar);
-	if ( !bInvocationSuccessful )
-	{
-		// No longer compiling modules
-		ModulesBeingCompiled.Empty();
-
-		ModuleCompilerFinishedEvent.Broadcast(FString(), ECompilationResult::OtherCompilationError, false);
-
-		// Fire task completion delegate 
-		
-		RecompileModulesCallback.ExecuteIfBound( false, false );
-		RecompileModulesCallback.Unbind();
-	}
-
-	return bInvocationSuccessful;
-#else
-	return false;
-#endif
-}
-
-bool FModuleManager::InvokeUnrealBuildToolForCompile(const FString& InCmdLineParams, FOutputDevice &Ar)
-{
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
-
-	// Make sure we're not already compiling something!
-	check(!IsCurrentlyCompiling());
-
-	// Setup output redirection pipes, so that we can harvest compiler output and display it ourselves
-#if PLATFORM_LINUX
-	int pipefd[2];
-	pipe(pipefd);
-	void* PipeRead = &pipefd[0];
-	void* PipeWrite = &pipefd[1];
-#else
-	void* PipeRead = NULL;
-	void* PipeWrite = NULL;
-#endif
-
-	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
-	ModuleCompileReadPipeText = TEXT("");
-
-	FProcHandle ProcHandle = FUBTInvoker::InvokeUnrealBuildToolAsync(InCmdLineParams, Ar, PipeRead, PipeWrite);
-
-	// We no longer need the Write pipe so close it.
-	// We DO need the Read pipe however...
-#if PLATFORM_LINUX
-	close(*(int*)PipeWrite);
-#else
-	FPlatformProcess::ClosePipe(0, PipeWrite);
-#endif
-
-	if (!ProcHandle.IsValid())
-	{
-		// We're done with the process handle now
-		ModuleCompileProcessHandle.Reset();
-		ModuleCompileReadPipe = NULL;
-	}
-	else
-	{
-		ModuleCompileProcessHandle = ProcHandle;
-		ModuleCompileReadPipe = PipeRead;
-	}
-
-	return ProcHandle.IsValid();
-#else
-	return false;
-#endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
-}
-
-
-void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForCompletion, bool& bCompileStillInProgress, bool& bCompileSucceeded, FOutputDevice& Ar, const FText& SlowTaskOverrideText, bool bFireEvents )
-{
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
-	bCompileStillInProgress = false;
-	ECompilationResult::Type CompilationResult = ECompilationResult::OtherCompilationError;
-
-	// Is there a compilation in progress?
-	if( IsCurrentlyCompiling() )
-	{
-		bCompileStillInProgress = true;
-
-		// Ensure slow task messages are seen.
-		GWarn->PushStatus();
-
-		// Update the slow task dialog if we were summoned from a synchronous recompile path
-		if (GIsSlowTask)
-		{
-			if ( !SlowTaskOverrideText.IsEmpty() )
-			{
-				GWarn->StatusUpdate(-1, -1, SlowTaskOverrideText);
-			}
-			else
-			{
-				FText StatusUpdate;
-				if ( ModulesBeingCompiled.Num() > 0 )
-				{
-					FFormatNamedArguments Args;
-					Args.Add( TEXT("CodeModuleName"), FText::FromString( ModulesBeingCompiled[0].ModuleName ) );
-					StatusUpdate = FText::Format( NSLOCTEXT("FModuleManager", "CompileSpecificModuleStatusMessage", "{CodeModuleName}: Compiling modules..."), Args );
-				}
-				else
-				{
-					StatusUpdate = NSLOCTEXT("FModuleManager", "CompileStatusMessage", "Compiling modules...");
-				}
-
-				GWarn->StatusUpdate(-1, -1, StatusUpdate);
-			}
-		}
-
-		// Check to see if the compile has finished yet
-		int32 ReturnCode = -1;
-		while (bCompileStillInProgress)
-		{
-			if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ReturnCode ) )
-			{
-				bCompileStillInProgress = false;
-			}
-			
-			if (bRequestCancelCompilation)
-			{
-				FPlatformProcess::TerminateProc(ModuleCompileProcessHandle);
-				bCompileStillInProgress = bRequestCancelCompilation = false;
-			}
-
-			if( bCompileStillInProgress )
-			{
-				ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
-
-				if( !bWaitForCompletion )
-				{
-					// We haven't finished compiling, but we were asked to return immediately
-
-					break;
-				}
-
-				// Give up a small timeslice if we haven't finished recompiling yet
-				FPlatformProcess::Sleep( 0.01f );
-			}
-		}
-		
-		bRequestCancelCompilation = false;
-
-		// Restore any status from before the loop - see PushStatus() above.
-		GWarn->PopStatus();
-
-		if( !bCompileStillInProgress )		
-		{
-			// Compilation finished, now we need to grab all of the text from the output pipe
-			ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
-
-			// The ReturnCode is -1 only if compilation was cancelled.
-			CompilationResult = ReturnCode != -1 ? (ECompilationResult::Type)ReturnCode : ECompilationResult::OtherCompilationError;
-
-			// If compilation succeeded for all modules, go back to the modules and update their module file names
-			// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
-			// is reloaded after the recompile, we load the new DLL file name, not the old one
-			if(CompilationResult == ECompilationResult::Succeeded)
-			{
-				for( int32 CurModuleIndex = 0; CurModuleIndex < ModulesThatWereBeingRecompiled.Num(); ++CurModuleIndex )
-				{
-					const FModuleToRecompile& CurModule = ModulesThatWereBeingRecompiled[ CurModuleIndex ];
-
-					// Were we asked to assign a new file name for this module?
-					if( !CurModule.NewModuleFilename.IsEmpty() )
-					{
-						// Find the module
-						const FName CurModuleName = FName( *CurModule.ModuleName );
-						if( ensure( Modules.Contains( CurModuleName ) ) )
-						{
-							TSharedRef< FModuleInfo > ModuleInfo = Modules.FindChecked( CurModuleName );
-
-							// If the compile succeeded, update the module info entry with the new file name for this module
-							ModuleInfo->Filename = CurModule.NewModuleFilename;
-
-							OnModuleCompileSucceeded(FName(*CurModule.ModuleName), ModuleInfo);
-						}
-					}
-				}
-
-				ModulesThatWereBeingRecompiled.Empty();
-			}
-
-			// We're done with the process handle now
-			ModuleCompileProcessHandle.Close();
-			ModuleCompileProcessHandle.Reset();
-
-#if PLATFORM_LINUX
-			close(*(int *)ModuleCompileReadPipe);
-#else
-			FPlatformProcess::ClosePipe(ModuleCompileReadPipe, 0);
-#endif
-
-			Ar.Log(*ModuleCompileReadPipeText);
-			const FString FinalOutput = ModuleCompileReadPipeText;
-			ModuleCompileReadPipe = NULL;
-			ModuleCompileReadPipeText = TEXT("");
-
-			// No longer compiling modules
-			ModulesBeingCompiled.Empty();
-
-			bCompileSucceeded = CompilationResult == ECompilationResult::Succeeded;
-
-			if ( bFireEvents )
-			{
-				const bool bShowLogOnSuccess = false;
-				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, CompilationResult, !bCompileSucceeded || bShowLogOnSuccess);
-
-				// Fire task completion delegate 
-				RecompileModulesCallback.ExecuteIfBound( true, bCompileSucceeded );
-				RecompileModulesCallback.Unbind();
-			}
-		}
-		else
-		{
-			Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: Compilation is still in progress"));
-		}
-	}
-	else
-	{
-		Ar.Logf(TEXT("Error: CheckForFinishedModuleDLLCompile: There is no compilation in progress right now"));
-	}
-#endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
-}
-
-
 bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 {
 	int32 ModuleApiVersion = FPlatformProcess::GetDllApiVersion(Filename);
@@ -1748,20 +930,6 @@ bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 	return true;
 }
 
-bool FModuleManager::RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar )
-{
-	bool bCompileSucceeded = false;
-#if !IS_MONOLITHIC
-	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
-	if( StartCompilingModuleDLLs( FApp::GetGameName(), ModuleNames, FRecompileModulesCallback(), Ar, true, AdditionalArguments ) )
-	{
-		const bool bWaitForCompletion = true;	// Always wait
-		bool bCompileStillInProgress = false;
-		CheckForFinishedModuleDLLCompile( bWaitForCompletion, bCompileStillInProgress, bCompileSucceeded, Ar );
-	}
-#endif
-	return bCompileSucceeded;
-}
 
 
 void FModuleManager::StartProcessingNewlyLoadedObjects()
@@ -1807,236 +975,4 @@ bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 	}
 
 	return false;
-}
-
-bool FModuleManager::IsUnrealBuildToolAvailable()
-{
-	// If using Rocket and the Rocket unreal build tool executable exists, then UBT is available
-	if (FApp::IsEngineInstalled())
-	{
-		return FPaths::FileExists(FUBTInvoker::GetUnrealBuildToolExecutableFilename());
-	}
-	else
-	{
-		// If not using Rocket, check to make sure UBT can be built, since it is an intermediate.
-		// We are simply checking for the existence of source code files, which is a heuristic to determine if UBT can be built
-		TArray<FString> Filenames;
-		const FString UBTSourcePath = FUBTInvoker::GetUnrealBuildToolSourceCodePath();
-		const FString SearchPattern = TEXT("*.cs");
-		const bool bFiles = true;
-		const bool bDirectories = false;
-		const bool bClearFileNames = false;
-		IFileManager::Get().FindFilesRecursive(Filenames, *UBTSourcePath, *SearchPattern, bFiles, bDirectories, bClearFileNames);
-
-		return Filenames.Num() > 0;
-	}
-}
-
-FString FUBTInvoker::GetUnrealBuildToolExecutableFilename()
-{
-	const FString UBTPath = FString::Printf(TEXT("%sBinaries/DotNET/"), *FPaths::EngineDir());
-	const FString UBTExe = TEXT("UnrealBuildTool.exe");
-
-	FString ExecutableFileName = UBTPath / UBTExe;
-	ExecutableFileName = FPaths::ConvertRelativePathToFull(ExecutableFileName);
-	return ExecutableFileName;
-}
-
-
-bool FUBTInvoker::BuildUnrealBuildTool(FOutputDevice &Ar)
-{
-#if !IS_MONOLITHIC
-	if (FApp::IsEngineInstalled())
-	{
-		// We may not build UBT in rocket
-		return false;
-	}
-
-	FString CompilerExecutableFilename;
-	FString CmdLineParams;
-#if PLATFORM_WINDOWS
-	// To build UBT for windows, we must assemble a batch file that first registers the environment variable necessary to run msbuild then run it
-	// This can not be done in a single invocation of CMD.exe because the environment variables do not transfer between subsequent commands when using the "&" syntax
-	// devenv.exe can be used to build as well but it takes several seconds to start up so it is not desirable
-
-	// First determine the appropriate vcvars batch file to launch
-	FString VCVarsBat;
-
-#if _MSC_VER >= 1800
-	FPlatformMisc::GetVSComnTools(12, VCVarsBat);
-#else
-	FPlatformMisc::GetVSComnTools(11, VCVarsBat);
-#endif
-
-	VCVarsBat = FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
-
-	// Check to make sure we found one.
-	if (VCVarsBat.IsEmpty() || !FPaths::FileExists(VCVarsBat))
-	{
-		// VCVars doesn't exist, we can not build UBT
-		CompilerExecutableFilename = TEXT("");
-	}
-	else
-	{
-		// Now make a batch file in the intermediate directory to invoke the vcvars batch then msbuild
-		FString BuildBatchFile = FPaths::EngineIntermediateDir() / TEXT("Build") / TEXT("UnrealBuildTool") / TEXT("BuildUBT.bat");
-		BuildBatchFile.ReplaceInline(TEXT("/"), TEXT("\\"));
-
-		const FString CsProjLocation = FPaths::ConvertRelativePathToFull(GetUnrealBuildToolSourceCodePath()) / TEXT("UnrealBuildTool.csproj");
-
-		FString BatchFileContents;
-		BatchFileContents = FString::Printf(TEXT("call \"%s\"") LINE_TERMINATOR, *VCVarsBat);
-		BatchFileContents += FString::Printf(TEXT("msbuild /nologo /verbosity:quiet %s /property:Configuration=Development /property:Platform=AnyCPU"), *CsProjLocation);
-		FFileHelper::SaveStringToFile(BatchFileContents, *BuildBatchFile);
-
-		{
-			TCHAR CmdExePath[MAX_PATH];
-			FPlatformMisc::GetEnvironmentVariable(TEXT("ComSpec"), CmdExePath, ARRAY_COUNT(CmdExePath));
-			CompilerExecutableFilename = CmdExePath;
-		}
-
-		CmdLineParams = TEXT("/c ");
-		CmdLineParams += BuildBatchFile;
-	}
-#elif PLATFORM_MAC
-	const FString CsProjLocation = FPaths::ConvertRelativePathToFull(GetUnrealBuildToolSourceCodePath()) / TEXT("UnrealBuildTool_Mono.csproj");
-	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunXBuild.sh"));
-	CompilerExecutableFilename = TEXT("/bin/sh");
-	CmdLineParams = FString::Printf(TEXT("\"%s\" /property:Configuration=Development %s"), *ScriptPath, *CsProjLocation);
-#elif PLATFORM_LINUX
-	printf("ModuleManager.cpp: TODO: Linux BuildUBT");
-#else
-	Ar.Log(TEXT("Unknown platform, unable to build UnrealBuildTool."));
-#endif
-
-	// If a compiler executable was provided, try to build now
-	if (!CompilerExecutableFilename.IsEmpty())
-	{
-		const bool bLaunchDetached = false;
-		const bool bLaunchHidden = true;
-		const bool bLaunchReallyHidden = bLaunchHidden;
-		FProcHandle ProcHandle = FPlatformProcess::CreateProc(*CompilerExecutableFilename, *CmdLineParams, bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, NULL);
-		if (ProcHandle.IsValid())
-		{
-			FPlatformProcess::WaitForProc(ProcHandle);
-			ProcHandle.Close();
-		}
-
-		// If the executable appeared where we expect it, then we were successful
-		return FPaths::FileExists(GetUnrealBuildToolExecutableFilename());
-	}
-	else
-#endif // !IS_MONOLITHIC
-	{
-		return false;
-	}
-}
-
-bool FUBTInvoker::InvokeUnrealBuildToolSync(const FString& InCmdLineParams, FOutputDevice &Ar, bool bSkipBuildUBT, int32& OutReturnCode, FString& OutProcOutput)
-{
-	// Setup output redirection pipes, so that we can harvest compiler output and display it ourselves
-#if PLATFORM_LINUX
-	int pipefd[2];
-	pipe(pipefd);
-	void* PipeRead = &pipefd[0];
-	void* PipeWrite = &pipefd[1];
-#else
-	void* PipeRead = NULL;
-	void* PipeWrite = NULL;
-#endif
-
-	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
-
-	bool bInvoked = false;
-	FProcHandle ProcHandle = InvokeUnrealBuildToolAsync(InCmdLineParams, Ar, PipeRead, PipeWrite, bSkipBuildUBT);
-	if (ProcHandle.IsValid())
-	{
-		// rather than waiting, we must flush the read pipe or UBT will stall if it writes out a ton of text to the console.
-		while (FPlatformProcess::IsProcRunning(ProcHandle))
-		{
-			OutProcOutput += FPlatformProcess::ReadPipe(PipeRead);
-			FPlatformProcess::Sleep(0.1f);
-		}		
-		bInvoked = true;
-		bool bGotReturnCode = FPlatformProcess::GetProcReturnCode(ProcHandle, &OutReturnCode);		
-		check(bGotReturnCode);
-	}
-	else
-	{
-		bInvoked = false;
-		OutReturnCode = -1;
-		OutProcOutput = TEXT("");
-	}
-
-
-	FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
-
-	return bInvoked;
-}
-
-FProcHandle FUBTInvoker::InvokeUnrealBuildToolAsync(const FString& InCmdLineParams, FOutputDevice &Ar, void*& OutReadPipe, void*& OutWritePipe, bool bSkipBuildUBT)
-{
-#if PLATFORM_DESKTOP && !IS_MONOLITHIC
-	FString CmdLineParams = InCmdLineParams;
-
-	if (FRocketSupport::IsRocket())
-	{
-		CmdLineParams += TEXT(" -rocket");
-	}
-
-	// UnrealBuildTool is currently always located in the Binaries/DotNET folder
-	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename();
-
-	// Rocket never builds UBT, UnrealBuildTool should already exist
-	bool bSkipBuild = FApp::IsEngineInstalled() || bSkipBuildUBT;
-	if (!bSkipBuild)
-	{
-		// When not using rocket, we should attempt to build UBT to make sure it is up to date
-		// Only do this if we have not already successfully done it once during this session.
-		static bool bSuccessfullyBuiltUBTOnce = false;
-		if (!bSuccessfullyBuiltUBTOnce)
-		{
-			Ar.Log(TEXT("Building UnrealBuildTool..."));
-			if (BuildUnrealBuildTool(Ar))
-			{
-				bSuccessfullyBuiltUBTOnce = true;
-			}
-			else
-			{
-				// Failed to build UBT
-				Ar.Log(TEXT("Failed to build UnrealBuildTool."));
-				return FProcHandle();
-			}
-		}
-	}
-
-	Ar.Logf(TEXT("Launching UnrealBuildTool... [%s %s]"), *ExecutableFileName, *CmdLineParams);
-
-#if PLATFORM_MAC
-	// On Mac we launch UBT with Mono
-	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
-	CmdLineParams = FString::Printf(TEXT("\"%s\" \"%s\" %s"), *ScriptPath, *ExecutableFileName, *CmdLineParams);
-	ExecutableFileName = TEXT("/bin/sh");
-#endif
-
-	// Run UnrealBuildTool
-	const bool bLaunchDetached = false;
-	const bool bLaunchHidden = true;
-	const bool bLaunchReallyHidden = bLaunchHidden;
-
-	FProcHandle ProcHandle = FPlatformProcess::CreateProc(*ExecutableFileName, *CmdLineParams, bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, NULL, 0, NULL, OutWritePipe);
-	if (!ProcHandle.IsValid())
-	{
-		Ar.Logf(TEXT("Failed to launch Unreal Build Tool. (%s)"), *ExecutableFileName);
-	}
-
-	return ProcHandle;
-#else
-	return FProcHandle();
-#endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
-}
-
-FString FUBTInvoker::GetUnrealBuildToolSourceCodePath()
-{
-	return FPaths::Combine(*FPaths::EngineDir(), TEXT("Source"), TEXT("Programs"), TEXT("UnrealBuildTool"));
 }

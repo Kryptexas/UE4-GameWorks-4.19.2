@@ -84,6 +84,12 @@ TSharedPtr< FArchiveEntry > FInternationalizationArchive::FindEntryBySource( con
 	return NULL;
 }
 
+void FInternationalizationArchive::UpdateEntry(const TSharedRef<FArchiveEntry>& OldEntry, const TSharedRef<FArchiveEntry>& NewEntry)
+{
+	EntriesBySourceText.RemoveSingle(OldEntry->Source.Text, OldEntry);
+	EntriesBySourceText.Add(NewEntry->Source.Text, NewEntry);
+}
+
 TArchiveEntryContainer::TConstIterator FInternationalizationArchive::GetEntryIterator() const
 {
 	return EntriesBySourceText.CreateConstIterator();

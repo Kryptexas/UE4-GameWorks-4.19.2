@@ -261,6 +261,33 @@ FName UPhysicsAsset::FindConstraintBoneName(int32 ConstraintIndex)
 	return ConstraintSetup[ConstraintIndex]->DefaultInstance.JointName;
 }
 
+int32 UPhysicsAsset::FindMirroredBone(class USkeletalMesh* skelMesh, int32 BoneIndex)
+{
+	if (BoneIndex == INDEX_NONE)
+	{
+		return INDEX_NONE;
+	}
+	//we try to find the mirroed bone using several approaches. The first is to look for the same name but with _R instead of _L or vise versa
+	FName BoneName = skelMesh->RefSkeleton.GetBoneName(BoneIndex);
+	FString BoneNameString = BoneName.ToString();
+
+	bool bIsLeft = BoneNameString.Find("_L", ESearchCase::IgnoreCase, ESearchDir::FromEnd) == (BoneNameString.Len() - 2);	//has _L at the end
+	bool bIsRight = BoneNameString.Find("_R", ESearchCase::IgnoreCase, ESearchDir::FromEnd) == (BoneNameString.Len() - 2);	//has _R at the end
+	bool bMirrorConvention = bIsLeft || bIsRight;
+
+	//if the bone follows our left right naming convention then let's try and find its mirrored bone
+	int32 BoneIndexMirrored = INDEX_NONE;
+	if (bMirrorConvention)
+	{
+		FString BoneNameMirrored = BoneNameString.LeftChop(2);
+		BoneNameMirrored.Append(bIsLeft ? "_R" : "_L");
+
+		BoneIndexMirrored = skelMesh->RefSkeleton.FindBoneIndex(FName(*BoneNameMirrored));
+	}
+
+	return BoneIndexMirrored;
+}
+
 void UPhysicsAsset::GetBodyIndicesBelow(TArray<int32>& OutBodyIndices, FName InBoneName, USkeletalMesh* SkelMesh, bool bIncludeParent /*= true*/)
 {
 	int32 BaseIndex = SkelMesh->RefSkeleton.FindBoneIndex(InBoneName);

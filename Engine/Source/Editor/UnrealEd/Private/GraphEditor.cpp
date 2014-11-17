@@ -5,7 +5,6 @@
 #include "GraphEditor.h"
 #include "Editor/GraphEditor/Public/GraphEditorModule.h"
 #include "BlueprintUtilities.h"
-#include "STutorialWrapper.h"
 
 // List of all active GraphEditor wrappers
 TArray< TWeakPtr<SGraphEditor> > SGraphEditor::AllInstances;
@@ -19,6 +18,7 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 	// Construct the implementation and make it the contents of this widget.
 	Implementation = GraphEdModule.PRIVATE_MakeGraphEditor( InArgs._AdditionalCommands, 
 		InArgs._IsEditable, 
+		InArgs._IsEmpty,
 		InArgs._Appearance,
 		InArgs._TitleBar,
 		InArgs._TitleBarEnabledOnly,
@@ -33,7 +33,8 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 
 	this->ChildSlot
 	[
-		SNew( STutorialWrapper, TEXT("GraphEditorPanel") )
+		SNew( SBox )
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("GraphEditorPanel")))
 		[
 			Implementation.ToSharedRef()
 		]

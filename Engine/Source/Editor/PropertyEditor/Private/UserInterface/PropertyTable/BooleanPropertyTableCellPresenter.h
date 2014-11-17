@@ -9,6 +9,8 @@ public:
 
 	FBooleanPropertyTableCellPresenter( const TSharedRef< class FPropertyEditor >& InPropertyEditor );
 
+	virtual ~FBooleanPropertyTableCellPresenter() {}
+
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override;
 
 	virtual bool RequiresDropDown() override;

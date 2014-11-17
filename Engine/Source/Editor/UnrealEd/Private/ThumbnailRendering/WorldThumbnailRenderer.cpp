@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Runtime/Engine/Public/EngineModule.h"
-#include "Runtime/Engine/Public/ContentStreaming.h"
-
+#include "EngineModule.h"
+#include "ContentStreaming.h"
+#include "RendererInterface.h"
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	GlobalOrbitPitchOffset = 0.f;
 	GlobalOrbitYawOffset = 0.f;
 	bUseUnlitScene = false;
 	bAllowWorldThumbnails = false;
@@ -135,7 +136,7 @@ void UWorldThumbnailRenderer::GetView(UWorld* World, FSceneViewFamily* ViewFamil
 				}
 			}
 
-			float OrbitPitch = ThumbnailInfo->OrbitPitch;
+			float OrbitPitch = GlobalOrbitPitchOffset + ThumbnailInfo->OrbitPitch;
 			float OrbitYaw = GlobalOrbitYawOffset + ThumbnailInfo->OrbitYaw;
 			float OrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
 

@@ -31,7 +31,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlueprintGeneratedClass) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Curve) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveFloat) );
@@ -47,6 +46,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SubsurfaceProfile));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InterpData) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_LandscapeLayer) );
@@ -62,6 +62,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PhysicsAsset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Redirector) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ReverbEffect) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Rig) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SkeletalMesh) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Skeleton) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateBrush) );
@@ -76,7 +77,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture2D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureCube) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureMovie) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTarget) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTarget2D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTargetCube) );
@@ -87,7 +87,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VertexAnimation) );
 
-	if ( FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")) )
+	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
 		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_World) );
 	}
@@ -97,6 +97,7 @@ FAssetTools::FAssetTools()
 	if ( bEnableNiagara )
 	{
 		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_NiagaraScript) );
+		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_NiagaraEffect) );
 	}
 }
 
@@ -700,6 +701,11 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 							OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
 							continue;
 						}
+						else
+						{
+							// succeed, recreate package since it has been deleted
+							Pkg = CreatePackage(NULL, *PackageName);
+						}
 					}
 					else
 					{
@@ -922,9 +928,6 @@ void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackageP
 						if(OldObject != NULL)
 						{
 							/* Set the revision information*/
-							auto Package = InObject->GetOutermost();
-							auto PackageName = Package->GetName();
-
 							FRevisionInfo OldRevision;
 							OldRevision.Changelist = Revision->GetCheckInIdentifier();
 							OldRevision.Date = Revision->GetDate();

@@ -14,6 +14,13 @@ USpacer::USpacer(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = false;
 }
 
+void USpacer::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MySpacer.Reset();
+}
+
 void USpacer::SetSize(FVector2D InSize)
 {
 	Size = InSize;
@@ -28,15 +35,15 @@ TSharedRef<SWidget> USpacer::RebuildWidget()
 {
 	MySpacer = SNew(SSpacer);
 
-	//TODO UMG COnsider using a design time wrapper for spacer to show expandy arrows or some other
+	//TODO UMG Consider using a design time wrapper for spacer to show expandy arrows or some other
 	// indicator that there's a widget at work here.
 	
 	return MySpacer.ToSharedRef();
 }
 
-void USpacer::SyncronizeProperties()
+void USpacer::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 	
 	MySpacer->SetSize(Size);
 }
@@ -46,6 +53,11 @@ void USpacer::SyncronizeProperties()
 const FSlateBrush* USpacer::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.Spacer");
+}
+
+const FText USpacer::GetPaletteCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

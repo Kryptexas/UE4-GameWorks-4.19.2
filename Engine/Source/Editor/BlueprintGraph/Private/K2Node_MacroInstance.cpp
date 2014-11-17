@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Slate.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionFilter.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MacroInstance"
 
@@ -20,6 +21,23 @@ void UK2Node_MacroInstance::Serialize(FArchive& Ar)
 	{
 		MacroGraphReference.SetGraph(MacroGraph_DEPRECATED);
 	}
+}
+
+bool UK2Node_MacroInstance::IsActionFilteredOut(FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+
+	for (UEdGraph* Graph : FilterContext.Graphs)
+	{
+		// Macro Instances are not allowed in it's own graph, nor in Function graphs if the macro has latent functions in it
+		if (Graph == GetMacroGraph() || (Graph->GetSchema()->GetGraphType(Graph) == GT_Function && FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(GetMacroGraph())) )
+		{
+			bIsFilteredOut = true;
+			break;
+		}
+	}
+	return bIsFilteredOut;
 }
 
 void UK2Node_MacroInstance::PostPasteNode()
@@ -101,25 +119,27 @@ void UK2Node_MacroInstance::AllocateDefaultPins()
 	}
 }
 
-FString UK2Node_MacroInstance::GetTooltip() const
+FText UK2Node_MacroInstance::GetTooltipText() const
 {
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetAssociatedGraphMetadata(MacroGraph))
 	{
 		if (!Metadata->ToolTip.IsEmpty())
 		{
-			return Metadata->ToolTip;
+			return FText::FromString(Metadata->ToolTip);
 		}
 	}
-	
-	if (MacroGraph)
+
+	if (MacroGraph == nullptr)
 	{
-		return MacroGraph->GetName() + NSLOCTEXT("K2Node", "Name_Instance", " instance").ToString();
+		return NSLOCTEXT("K2Node", "Macro_Tooltip", "Macro");
 	}
-	else
+	else if (CachedTooltip.IsOutOfDate())
 	{
-		return NSLOCTEXT("K2Node", "Macro_Tooltip", "Macro").ToString();
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "MacroGraphInstance_Tooltip", "{0} instance"), FText::FromName(MacroGraph->GetFName()));
 	}
+	return CachedTooltip;
 }
 
 FText UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -442,5 +462,12 @@ FText UK2Node_MacroInstance::GetMenuCategory() const
 	return MenuCategory;
 }
 
+FBlueprintNodeSignature UK2Node_MacroInstance::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+	NodeSignature.AddSubObject(GetMacroGraph());
+
+	return NodeSignature;
+}
 
 #undef LOCTEXT_NAMESPACE

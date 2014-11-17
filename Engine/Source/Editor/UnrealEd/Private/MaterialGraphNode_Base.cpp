@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "MaterialShared.h"
 
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Base
@@ -319,4 +320,9 @@ void UMaterialGraphNode_Base::ModifyAndCopyPersistentPinData(UEdGraphPin& Target
 FString UMaterialGraphNode_Base::GetDocumentationLink() const
 {
 	return TEXT("Shared/GraphNodes/Material");
+}
+
+uint32 UMaterialGraphNode_Base::GetInputType(const UEdGraphPin* InputPin) const
+{
+	return MCT_Unknown;
 }

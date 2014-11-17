@@ -108,7 +108,7 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	UPROPERTY(transient, VisibleAnywhere, BlueprintReadOnly, Category=PathfindingStatus)
 	int32 PathfindingSteps;
 
-	UPROPERTY(transient, EditAnywhere, Category=Pathfinding)
+	UPROPERTY(EditAnywhere, Category=Pathfinding)
 	ANavigationTestingActor* OtherActor;
 
 	/** "None" will result in default filter being used */
@@ -144,7 +144,6 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	void TickMe();
 #endif // WITH_EDITOR
 
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
 	// Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override { return &NavAgentProps; }
 	virtual FVector GetNavAgentLocation() const override;

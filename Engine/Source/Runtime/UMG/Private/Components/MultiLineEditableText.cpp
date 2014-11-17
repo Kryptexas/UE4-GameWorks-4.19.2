@@ -10,8 +10,18 @@
 UMultiLineEditableText::UMultiLineEditableText(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	SMultiLineEditableText::FArguments Defaults;
+	WidgetStyle = *Defaults._TextStyle;
+
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+}
+
+void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyMultiLineEditableText.Reset();
 }
 
 TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
@@ -23,16 +33,8 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 	}
 	
-	SMultiLineEditableText::FArguments Defaults;
-	
-	//const FMultiLineEditableTextStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FMultiLineEditableTextStyle>() : NULL;
-	//if ( StylePtr == NULL )
-	//{
-	//	StylePtr = Defaults._Style;
-	//}
-	
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
-	//.Style(StylePtr)
+	.TextStyle(&WidgetStyle)
 	.Font(FSlateFontInfo(FontPath, Font.Size))
 	.Justification(Justification)
 //	.MinDesiredWidth(MinimumDesiredWidth)
@@ -52,9 +54,9 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	return BuildDesignTimeWidget( MyMultiLineEditableText.ToSharedRef() );
 }
 
-void UMultiLineEditableText::SyncronizeProperties()
+void UMultiLineEditableText::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	MyMultiLineEditableText->SetText(Text);
 //	MyMultiLineEditableText->SetHintText(HintText);
@@ -99,6 +101,11 @@ void UMultiLineEditableText::HandleOnTextCommitted(const FText& Text, ETextCommi
 const FSlateBrush* UMultiLineEditableText::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableText");
+}
+
+const FText UMultiLineEditableText::GetPaletteCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

@@ -28,8 +28,8 @@ namespace EBlackboardSectionTitles
 class FEdGraphSchemaAction_BlackboardEntry : public FEdGraphSchemaAction_Dummy
 {
 public:
-	static FString StaticGetTypeId() { static FString Type = TEXT("FEdGraphSchemaAction_BlackboardEntry"); return Type; }
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); }
+	static FName StaticGetTypeId() { static FName Type("FEdGraphSchemaAction_BlackboardEntry"); return Type; }
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); }
 
 	FEdGraphSchemaAction_BlackboardEntry( UBlackboardData* InBlackboardData, FBlackboardEntry& InKey, bool bInIsInherited )
 		: FEdGraphSchemaAction_Dummy()
@@ -44,7 +44,7 @@ public:
 	void Update()
 	{
 		MenuDescription = FText::FromName(Key.EntryName);
-		TooltipDescription = FText::Format(LOCTEXT("BlackboardEntryFormat", "{0} '{1}'"), Key.KeyType->GetClass()->GetDisplayNameText(), FText::FromName(Key.EntryName)).ToString();
+		TooltipDescription = FText::Format(LOCTEXT("BlackboardEntryFormat", "{0} '{1}'"), Key.KeyType ? Key.KeyType->GetClass()->GetDisplayNameText() : LOCTEXT("NullKeyDesc", "None"), FText::FromName(Key.EntryName)).ToString();
 		SectionID = bIsInherited ? EBlackboardSectionTitles::InheritedKeys : EBlackboardSectionTitles::Keys;	
 	}
 
@@ -63,6 +63,7 @@ class SBehaviorTreeBlackboardItem : public SGraphPaletteItem
 		SLATE_EVENT(FOnGetDebugKeyValue, OnGetDebugKeyValue)
 		SLATE_EVENT(FOnGetDisplayCurrentState, OnGetDisplayCurrentState)
 		SLATE_EVENT(FOnIsDebuggerReady, OnIsDebuggerReady)
+		SLATE_EVENT(FOnBlackboardKeyChanged, OnBlackboardKeyChanged)
 
 	SLATE_END_ARGS()
 
@@ -71,6 +72,7 @@ class SBehaviorTreeBlackboardItem : public SGraphPaletteItem
 		OnGetDebugKeyValue = InArgs._OnGetDebugKeyValue;
 		OnIsDebuggerReady = InArgs._OnIsDebuggerReady;
 		OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
+		OnBlackboardKeyChanged = InArgs._OnBlackboardKeyChanged;
 
 		const FSlateFontInfo NameFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
 
@@ -127,9 +129,11 @@ private:
 		check(InGraphAction.IsValid());
 		check(InGraphAction->GetTypeId() == FEdGraphSchemaAction_BlackboardEntry::StaticGetTypeId());
 		TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> BlackboardEntryAction = StaticCastSharedPtr<FEdGraphSchemaAction_BlackboardEntry>(InGraphAction);
-		check(BlackboardEntryAction->Key.KeyType);
 
-		OutIconBrush = FClassIconFinder::FindIconForClass(BlackboardEntryAction->Key.KeyType->GetClass());
+		if(BlackboardEntryAction->Key.KeyType)
+		{
+			OutIconBrush = FClassIconFinder::FindIconForClass(BlackboardEntryAction->Key.KeyType->GetClass());
+		}
 	}
 
 	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool bInIsReadOnly ) override
@@ -180,11 +184,43 @@ private:
 		if(NewName != BlackboardEntryAction->Key.EntryName)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("BlackboardEntryRenameTransaction", "Rename Blackboard Entry"));
+			BlackboardEntryAction->BlackboardData->SetFlags(RF_Transactional);
 			BlackboardEntryAction->BlackboardData->Modify();
 			BlackboardEntryAction->Key.EntryName = FName(*NewText.ToString());
 
 			BlackboardEntryAction->Update();
+
+			OnBlackboardKeyChanged.ExecuteIfBound(BlackboardEntryAction->BlackboardData, &BlackboardEntryAction->Key);
 		}
+	}
+
+	virtual bool OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage) override
+	{
+		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_BlackboardEntry::StaticGetTypeId());
+		TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> BlackboardEntryAction = StaticCastSharedPtr<FEdGraphSchemaAction_BlackboardEntry>(ActionPtr.Pin());
+
+		const FString NewTextAsString = InNewText.ToString();
+
+		// check for duplicate keys
+		for(const auto& Key : BlackboardEntryAction->BlackboardData->Keys)
+		{
+			if(&BlackboardEntryAction->Key != &Key && Key.EntryName.ToString() == NewTextAsString)
+			{
+				OutErrorMessage = LOCTEXT("DuplicateKeyWarning", "A key of this name already exists.");
+				return false;
+			}
+		}
+
+		for(const auto& Key : BlackboardEntryAction->BlackboardData->ParentKeys)
+		{
+			if(&BlackboardEntryAction->Key != &Key && Key.EntryName.ToString() == NewTextAsString)
+			{
+				OutErrorMessage = LOCTEXT("DuplicateParentKeyWarning", "An inherited key of this name already exists.");
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/** Create widget for displaying debug information about this blackboard entry */
@@ -239,6 +275,9 @@ private:
 	/** Delegate used to determine whether the BT debugger displaying the current state */
 	FOnGetDisplayCurrentState OnGetDisplayCurrentState;
 
+	/** Delegate for when a blackboard key changes (added, removed, renamed) */
+	FOnBlackboardKeyChanged OnBlackboardKeyChanged;
+
 	/** Read-only flag */
 	bool bIsReadOnly;
 };
@@ -260,6 +299,7 @@ void SBehaviorTreeBlackboardView::Construct(const FArguments& InArgs, TSharedRef
 	OnIsDebuggerPaused = InArgs._OnIsDebuggerPaused;
 	OnGetDebugTimeStamp = InArgs._OnGetDebugTimeStamp;
 	OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
+	OnBlackboardKeyChanged = InArgs._OnBlackboardKeyChanged;
 
 	BlackboardData = InBlackboardData;
 
@@ -346,7 +386,8 @@ TSharedRef<SWidget> SBehaviorTreeBlackboardView::HandleCreateWidgetForAction(FCr
 	return SNew(SBehaviorTreeBlackboardItem, InCreateData)
 		.OnIsDebuggerReady(OnIsDebuggerReady)
 		.OnGetDebugKeyValue(OnGetDebugKeyValue)
-		.OnGetDisplayCurrentState(this, &SBehaviorTreeBlackboardView::IsUsingCurrentValues);
+		.OnGetDisplayCurrentState(this, &SBehaviorTreeBlackboardView::IsUsingCurrentValues)
+		.OnBlackboardKeyChanged(OnBlackboardKeyChanged);
 }
 
 void SBehaviorTreeBlackboardView::HandleCollectAllActions( FGraphActionListBuilderBase& GraphActionListBuilder )

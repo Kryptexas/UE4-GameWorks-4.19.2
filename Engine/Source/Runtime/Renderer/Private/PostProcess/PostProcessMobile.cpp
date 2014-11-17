@@ -12,6 +12,7 @@
 #include "PostProcessing.h"
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
+#include "SceneUtils.h"
 
 //
 // BLOOM SETUP
@@ -57,7 +58,7 @@ public:
 	}
 };
 
-template <uint32 UseSunDof> // 0=none, 1=dof, 2=sun, 3=sun&dof
+template <uint32 UseSunDof> // 0=none, 1=dof, 2=sun, 3=sun&dof, 4=msaa
 class FPostProcessBloomSetupPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBloomSetupPS_ES2, Global);
@@ -74,6 +75,7 @@ class FPostProcessBloomSetupPS_ES2 : public FGlobalShader
 		//Need to hack in exposure scale for < SM5
 		OutEnvironment.SetDefine(TEXT("NO_EYEADAPTATION_EXPOSURE_FIX"), 1);
 
+		OutEnvironment.SetDefine(TEXT("ES2_USE_MSAA"), (UseSunDof & 4) ? (uint32)1 : (uint32)0);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_SUN"), (UseSunDof & 2) ? (uint32)1 : (uint32)0);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_DOF"), (UseSunDof & 1) ? (uint32)1 : (uint32)0);
 	}
@@ -123,20 +125,22 @@ typedef FPostProcessBloomSetupPS_ES2<0> FPostProcessBloomSetupPS_ES2_0;
 typedef FPostProcessBloomSetupPS_ES2<1> FPostProcessBloomSetupPS_ES2_1;
 typedef FPostProcessBloomSetupPS_ES2<2> FPostProcessBloomSetupPS_ES2_2;
 typedef FPostProcessBloomSetupPS_ES2<3> FPostProcessBloomSetupPS_ES2_3;
+typedef FPostProcessBloomSetupPS_ES2<4> FPostProcessBloomSetupPS_ES2_4;
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_0,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_1,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_2,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_3,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_4,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
 
 template <uint32 UseSunDof>
 static void BloomSetup_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBloomSetupPS_ES2<UseSunDof> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupPS_ES2<UseSunDof> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -149,18 +153,22 @@ void FRCPassPostProcessBloomSetupES2::SetShader(const FRenderingCompositePassCon
 	uint32 UseDof =  (Context.View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? 1 : 0;
 	uint32 UseSunDof = (UseSun << 1) + UseDof;
 
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	UseSunDof += (GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()] == SP_METAL) ? (CVarMobileMSAA ? (CVarMobileMSAA->GetValueOnRenderThread() > 1 ? 4 : 0) : 0) : 0;
+
 	switch(UseSunDof)
 	{
 		case 0: BloomSetup_SetShader<0>(Context); break;
 		case 1: BloomSetup_SetShader<1>(Context); break;
 		case 2: BloomSetup_SetShader<2>(Context); break;
 		case 3: BloomSetup_SetShader<3>(Context); break;
+		case 4: BloomSetup_SetShader<4>(Context); break;
 	}
 }
 
 void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessBloomSetup, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBloomSetup, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -177,7 +185,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	if(bUsedFramebufferFetch)
+	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
 		const FSceneView& View = Context.View;
@@ -208,7 +216,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 
 	SetShader(Context);
 
-	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -348,12 +356,12 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallPS_ES2,TEXT("PostProcessMobile
 
 void FRCPassPostProcessBloomSetupSmallES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBloomSetupSmallPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupSmallPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -361,7 +369,7 @@ void FRCPassPostProcessBloomSetupSmallES2::SetShader(const FRenderingCompositePa
 
 void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessBloomSetupSmall, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBloomSetupSmall, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -378,7 +386,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	if(bUsedFramebufferFetch)
+	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
 		const FSceneView& View = Context.View;
@@ -409,7 +417,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 
 	SetShader(Context);
 
-	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(Context.GetShaderMap());
 	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,
@@ -537,7 +545,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBloomDownVS_ES2,TEXT("PostProcessMobile"),TEX
 
 void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessBloomDown, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBloomDown, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/2);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/2);
@@ -560,13 +568,13 @@ void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Con
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessBloomDownVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBloomDownPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomDownVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBloomDownPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context, Scale);
 	PixelShader->SetPS(Context);
@@ -705,7 +713,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBloomUpVS_ES2,TEXT("PostProcessMobile"),TEXT(
 
 void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessBloomUp, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBloomUp, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y);
@@ -728,13 +736,13 @@ void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessBloomUpVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessBloomUpPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessBloomUpVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessBloomUpPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	// The 1/8 factor is because bloom is using 8 taps in the filter.
 	VertexShader->SetVS(Context, FVector2D(ScaleAB.X, ScaleAB.Y));
@@ -783,7 +791,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBloomUpES2::ComputeOutputDesc(EPassOut
 // SUN MASK
 //
 
-template <uint32 UseFetchSunDof> // 0=none, 1=dof, 2=sun, 3=sun&dof, {4,5,6,7}=ES2_USE_FETCH
+template <uint32 UseFetchSunDof> // 0=none, 1=dof, 2=sun, 3=sun&dof, {4,5,6,7}=ES2_USE_FETCH, 8=MSAA-pre-resolve
 class FPostProcessSunMaskPS_ES2 : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSunMaskPS_ES2, Global);
@@ -796,6 +804,7 @@ class FPostProcessSunMaskPS_ES2 : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("ES2_USE_MSAA"), (UseFetchSunDof & 8) ? (uint32)1 : (uint32)0);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_FETCH"), (UseFetchSunDof & 4) ? (uint32)1 : (uint32)0);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_SUN"), (UseFetchSunDof & 2) ? (uint32)1 : (uint32)0);
 		OutEnvironment.SetDefine(TEXT("ES2_USE_DOF"), (UseFetchSunDof & 1) ? (uint32)1 : (uint32)0);
@@ -845,6 +854,7 @@ typedef FPostProcessSunMaskPS_ES2<4> FPostProcessSunMaskPS_ES2_4;
 typedef FPostProcessSunMaskPS_ES2<5> FPostProcessSunMaskPS_ES2_5;
 typedef FPostProcessSunMaskPS_ES2<6> FPostProcessSunMaskPS_ES2_6;
 typedef FPostProcessSunMaskPS_ES2<7> FPostProcessSunMaskPS_ES2_7;
+typedef FPostProcessSunMaskPS_ES2<8> FPostProcessSunMaskPS_ES2_8;
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_0,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_1,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_2,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
@@ -853,6 +863,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_4,TEXT("PostProcessMo
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_5,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_6,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_7,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_8,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"),SF_Pixel);
 
 
 class FPostProcessSunMaskVS_ES2 : public FGlobalShader
@@ -895,12 +906,12 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunMaskVS_ES2,TEXT("PostProcessMobile"),TEXT(
 template <uint32 UseFetchSunDof>
 static void SunMask_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSunMaskPS_ES2<UseFetchSunDof> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSunMaskPS_ES2<UseFetchSunDof> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -914,6 +925,12 @@ void FRCPassPostProcessSunMaskES2::SetShader(const FRenderingCompositePassContex
 	uint32 UseFetch = GSupportsShaderFramebufferFetch ? 1 : 0;
 	uint32 UseFetchSunDof = (UseFetch << 2) + (UseSun << 1) + UseDof;
 
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	if((GRHIShaderPlatform == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+	{
+		UseFetchSunDof = 8;
+	}
+
 	switch(UseFetchSunDof)
 	{
 		case 0: SunMask_SetShader<0>(Context); break;
@@ -924,12 +941,13 @@ void FRCPassPostProcessSunMaskES2::SetShader(const FRenderingCompositePassContex
 		case 5: SunMask_SetShader<5>(Context); break;
 		case 6: SunMask_SetShader<6>(Context); break;
 		case 7: SunMask_SetShader<7>(Context); break;
+		case 8: SunMask_SetShader<8>(Context); break;
 	}
 }
 
 void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSunMask, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSunMask, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -948,7 +966,7 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 	FIntRect SrcRect;
 	const FSceneView& View = Context.View;
 
-	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(Context.GetShaderMap());
 	if(bOnChip)
 	{
 		SrcSize = DstSize;
@@ -1126,12 +1144,12 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunAlphaVS_ES2,TEXT("PostProcessMobile"),TEXT
 template <uint32 UseDof>
 static void SunAlpha_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessSunAlphaVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSunAlphaPS_ES2<UseDof> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunAlphaVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSunAlphaPS_ES2<UseDof> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -1151,7 +1169,7 @@ void FRCPassPostProcessSunAlphaES2::SetShader(const FRenderingCompositePassConte
 
 void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSunAlpha, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSunAlpha, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
@@ -1177,7 +1195,7 @@ void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Cont
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunAlphaVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunAlphaVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -1308,7 +1326,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunBlurVS_ES2,TEXT("PostProcessMobile"),TEXT(
 
 void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSunBlur, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSunBlur, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
@@ -1331,13 +1349,13 @@ void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessSunBlurVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSunBlurPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunBlurVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSunBlurPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -1500,21 +1518,23 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeVS_ES2,TEXT("PostProcessMobile"),TEXT
 
 
 template <uint32 UseSunBloom>
-static void SunMerge_SetShader(const FRenderingCompositePassContext& Context)
+FShader* SunMerge_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSunMergePS_ES2<UseSunBloom> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSunMergePS_ES2<UseSunBloom> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
+
+	return *VertexShader;
 }
 
-void FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassContext& Context)
+FShader* FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	uint32 UseBloom = (View.FinalPostProcessSettings.BloomIntensity > 0.0f) ? 1 : 0;
@@ -1523,16 +1543,19 @@ void FRCPassPostProcessSunMergeES2::SetShader(const FRenderingCompositePassConte
 
 	switch(UseSunBloom)
 	{
-	case 0: SunMerge_SetShader<0>(Context); break;
-	case 1: SunMerge_SetShader<1>(Context); break;
-	case 2: SunMerge_SetShader<2>(Context); break;
-	case 3: SunMerge_SetShader<3>(Context); break;
+		case 0: return SunMerge_SetShader<0>(Context);
+		case 1: return SunMerge_SetShader<1>(Context);
+		case 2: return SunMerge_SetShader<2>(Context);
+		case 3: return SunMerge_SetShader<3>(Context);
 	}
+
+	check(false);
+	return NULL;
 }
 
 void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSunMerge, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSunMerge, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
@@ -1555,10 +1578,9 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	SetShader(Context);
+	FShader* VertexShader = SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -1568,7 +1590,7 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
+		VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1713,13 +1735,13 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeSmallVS_ES2,TEXT("PostProcessMobile")
 
 void FRCPassPostProcessSunMergeSmallES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessSunMergeSmallVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSunMergeSmallPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunMergeSmallVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSunMergeSmallPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -1727,7 +1749,7 @@ void FRCPassPostProcessSunMergeSmallES2::SetShader(const FRenderingCompositePass
 
 void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSunMergeSmall, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSunMergeSmall, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
@@ -1753,7 +1775,7 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunMergeSmallVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunMergeSmallVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList, 
@@ -1903,13 +1925,13 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_1,TEXT("PostProcessMo
 template <uint32 UseSun>
 static void DofDown_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessDofDownPS_ES2<UseSun> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessDofDownPS_ES2<UseSun> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -1930,7 +1952,7 @@ void FRCPassPostProcessDofDownES2::SetShader(const FRenderingCompositePassContex
 
 void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessDofDown, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessDofDown, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -1947,7 +1969,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
-	if(bUsedFramebufferFetch)
+	if(bUseViewRectSource)
 	{
 		// Mobile with framebuffer fetch uses view rect as source.
 		const FSceneView& View = Context.View;
@@ -1978,7 +2000,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 
 	SetShader(Context);
 
-	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -2111,13 +2133,13 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_1,TEXT("PostProcessMo
 template <uint32 UseSun>
 static void DofNear_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessDofNearVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessDofNearPS_ES2<UseSun> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessDofNearVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessDofNearPS_ES2<UseSun> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -2138,7 +2160,10 @@ void FRCPassPostProcessDofNearES2::SetShader(const FRenderingCompositePassContex
 
 void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessDofNear, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessDofNear, DEC_SCENE_ITEMS);
+
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	FIntPoint SrcSize = InputDesc->Extent;
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
@@ -2164,7 +2189,7 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessDofNearVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessDofNearVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -2173,7 +2198,7 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 		0, 0,
 		DstX, DstY,
 		SrcDstSize,
-		SrcDstSize,
+		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -2288,7 +2313,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessDofBlurVS_ES2,TEXT("PostProcessMobile"),TEXT(
 
 void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessDofBlur, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessDofBlur, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/2);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/2);
@@ -2311,12 +2336,12 @@ void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessDofBlurVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessDofBlurPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessDofBlurVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessDofBlurPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -2449,13 +2474,13 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunAvgVS_ES2,TEXT("PostProcessMobile"),TEXT("
 
 static void SunAvg_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessSunAvgVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSunAvgPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunAvgVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSunAvgPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -2468,7 +2493,7 @@ void FRCPassPostProcessSunAvgES2::SetShader(const FRenderingCompositePassContext
 
 void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessSunAvg, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSunAvg, DEC_SCENE_ITEMS);
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
@@ -2494,7 +2519,7 @@ void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Contex
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunAvgVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSunAvgVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -2692,13 +2717,13 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessAaVS_ES2,TEXT("PostProcessMobile"),TEXT("AaVS
 
 static void Aa_SetShader(const FRenderingCompositePassContext& Context)
 {
-	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessAaPS_ES2> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessAaPS_ES2> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetVS(Context);
 	PixelShader->SetPS(Context);
@@ -2711,7 +2736,10 @@ void FRCPassPostProcessAaES2::SetShader(const FRenderingCompositePassContext& Co
 
 void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessAa, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessAa, DEC_SCENE_ITEMS);
+
+	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	FIntPoint SrcSize = InputDesc->Extent;
 
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y);
@@ -2737,7 +2765,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize;
-	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
@@ -2746,7 +2774,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 		0, 0,
 		DstX, DstY,
 		SrcDstSize,
-		SrcDstSize,
+		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 

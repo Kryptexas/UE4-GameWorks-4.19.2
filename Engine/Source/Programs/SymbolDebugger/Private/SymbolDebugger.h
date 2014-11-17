@@ -12,7 +12,7 @@ class FSymbolDebugger_AsyncInspect : public FNonAbandonableTask
 {
 public:
 	/** Constructor */
-	FSymbolDebugger_AsyncInspect(const FString& InCrashDumpName, const FString& InEngineVersion, const FString& InChangelist);
+	FSymbolDebugger_AsyncInspect(const FString& InCrashDumpName, const FString& InEngineVersion, const FString& InChangelist, ICrashDebugHelper* InCrashHelperModule);
 
 	/** Performs work on thread */
 	void DoWork();
@@ -48,6 +48,9 @@ public:
 	}
 
 private:
+
+	ICrashDebugHelper* CrashHelperModule;
+
 	/** True if we've been asked to abort work in progress at the next opportunity */
 	FThreadSafeCounter AskedToAbortCount;
 
@@ -73,7 +76,7 @@ class FSymbolDebugger_AsyncSyncFiles : public FNonAbandonableTask
 {
 public:
 	/** Constructor */
-	FSymbolDebugger_AsyncSyncFiles(const FString& InSourceControlLabel, const FString& InPlatform);
+	FSymbolDebugger_AsyncSyncFiles(const FString& InSourceControlLabel, const FString& InPlatform, ICrashDebugHelper* InCrashHelperModule);
 
 	/** Performs work on thread */
 	void DoWork();
@@ -99,6 +102,9 @@ public:
 	}
 
 private:
+
+	ICrashDebugHelper* CrashHelperModule;
+
 	/** True if we've been asked to abort work in progress at the next opportunity */
 	FThreadSafeCounter AskedToAbortCount;
 
@@ -161,7 +167,7 @@ class FSymbolDebugger_ProcessCrashDump : public FNonAbandonableTask
 {
 public:
 	/** Constructor */
-	FSymbolDebugger_ProcessCrashDump(const FString& InCrashDumpName);
+	FSymbolDebugger_ProcessCrashDump(const FString& InCrashDumpName, ICrashDebugHelper* InCrashHelperModule);
 
 	/** Performs work on thread */
 	void DoWork();
@@ -205,6 +211,9 @@ public:
 	}
 
 private:
+
+	ICrashDebugHelper* CrashHelperModule;
+
 	/** True if we've been asked to abort work in progress at the next opportunity */
 	FThreadSafeCounter AskedToAbortCount;
 
@@ -448,4 +457,6 @@ protected:
 	TSharedPtr<FAsyncTask<class FSymbolDebugger_ProcessCrashDump> > ProcessCrashDumpTask;
 	/** The results from processing the crash dump */
 	bool bProcessCrashDumpSucceeded;
+
+	ICrashDebugHelper* CrashHelperModule;
 };

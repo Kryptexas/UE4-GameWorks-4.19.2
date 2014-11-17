@@ -10,6 +10,7 @@
 #include "PostProcessAA.h"
 #include "PostProcessing.h"
 #include "PostProcessSceneColorFringe.h"
+#include "SceneUtils.h"
 
 
 /*-----------------------------------------------------------------------------
@@ -21,7 +22,7 @@ class FPostProcessSceneColorFringeVS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -88,7 +89,7 @@ class FPostProcessSceneColorFringePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -142,7 +143,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSceneColorFringePS,TEXT("PostProcessSceneColo
 
 void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(SceneColorFringe, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, SceneColorFringe, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -166,13 +167,13 @@ void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	
-	TShaderMapRef<FPostProcessSceneColorFringeVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessSceneColorFringePS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessSceneColorFringeVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessSceneColorFringePS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
 
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(Context);
 	VertexShader->SetParameters(Context);

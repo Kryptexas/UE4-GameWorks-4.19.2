@@ -295,7 +295,7 @@ static bool IgnoreMissingReferencedClass( FName ClassName )
 
 static inline int32 HashNames( FName A, FName B, FName C )
 {
-	return A.GetIndex() + 7 * B.GetIndex() + 31 * FPackageName::GetShortFName(C).GetIndex();
+	return A.GetComparisonIndex() + 7 * B.GetComparisonIndex() + 31 * FPackageName::GetShortFName(C).GetComparisonIndex();
 }
 
 static FORCEINLINE bool IsCoreUObjectPackage(const FName& PackageName)
@@ -441,6 +441,12 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 {
 	// See whether there already is a linker for this parent/ linker root.
 	ULinkerLoad* Linker = FindExistingLinkerForPackage(Parent);
+	if (!Linker)
+	{
+		// In case we're Async loading and something from the main thread is trying to load the same package,
+		// also look for linkers that haven't been finalized yet.
+		Linker = GObjPendingLoaders.FindRef(Parent);
+	}
 	if (Linker)
 	{
 		UE_LOG(LogStreaming, Log, TEXT("ULinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), *Parent->GetName());
@@ -454,6 +460,8 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 			LoadFlags |= LOAD_SeekFree;
 		}
 		Linker = new ULinkerLoad( FPostConstructInitializeProperties(), Parent, Filename, LoadFlags );
+		// Add to the list of linkers that haven't been finalized yet
+		GObjPendingLoaders.Add(Parent, Linker);
 	}
 	return Linker;
 }
@@ -1624,7 +1632,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FinalizeCreation()
 	if( bHasFinishedInitialization == false )
 	{
 		// Add this linker to the object manager's linker array.
-		GObjLoaders.Add( LinkerRoot, this );
+		GObjLoaders.Add(LinkerRoot, this);
+		// And remove it from the pending loaders list.
+		GObjPendingLoaders.Remove(LinkerRoot);
 
 		// check if the package source matches the package filename's CRC (if it doens't match, a user saved this package)
 		if (Summary.PackageSource != FCrc::StrCrc_DEPRECATED(*FPaths::GetBaseFilename(Filename).ToUpper()))
@@ -1726,12 +1736,12 @@ void ULinkerLoad::Verify()
 {
 	if(!FApp::IsGame() || GIsEditor || IsRunningCommandlet())
 	{
-		if( !bHaveImportsBeenVerified )
+		if (!bHaveImportsBeenVerified)
 		{
 			// Validate all imports and map them to their remote linkers.
-			for( int32 i=0; i<Summary.ImportCount; i++ )
+			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
 			{
-				VerifyImport( i );
+				VerifyImport(ImportIndex);
 			}
 		}
 	}
@@ -1925,35 +1935,23 @@ void ULinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 }
 
 
-
-
-/**
- * A wrapper around VerifyImportInner. If the VerifyImportInner (previously VerifyImport) fails, this function
- * will look for a UObjectRedirector that will point to the real location of the object. You will see this if
- * an object was renamed to a different package or group, but something that was referencing the object was not
- * not currently open. (Rename fixes up references of all loaded objects, but naturally not for ones that aren't
- * loaded).
- *
- * @param	i	The index into this packages ImportMap to verify
- */
-void ULinkerLoad::VerifyImport( int32 i )
+ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 {
-	FObjectImport& Import = ImportMap[i];
+	FObjectImport& Import = ImportMap[ImportIndex];
 
 	// keep a string of modifiers to add to the Editor Warning dialog
 	FString WarningAppend;
 
 	// try to load the object, but don't print any warnings on error (so we can try the redirector first)
 	// note that a true return value here does not mean it failed or succeeded, just tells it how to respond to a further failure
-	bool bCrashOnFail = VerifyImportInner(i,WarningAppend);
+	bool bCrashOnFail = VerifyImportInner(ImportIndex, WarningAppend);
 	if (FPlatformProperties::HasEditorOnlyData() == false)
 	{
 		bCrashOnFail = false;
 	}
 
 	// by default, we haven't failed yet
-	bool bFailed = false;
-	bool bRedir = false;
+	EVerifyResult Result = VERIFY_Success;
 
 	// these checks find out if the VerifyImportInner was successful or not 
 	if (Import.SourceLinker && Import.SourceIndex == INDEX_NONE && Import.XObject == NULL && !Import.OuterIndex.IsNull() && Import.ObjectName != NAME_ObjectRedirector)
@@ -1964,12 +1962,12 @@ void ULinkerLoad::VerifyImport( int32 i )
 		Import.ClassPackage = GLongCoreUObjectPackageName;
 
 		// try again for the redirector
-		VerifyImportInner(i,WarningAppend);
+		VerifyImportInner(ImportIndex, WarningAppend);
 
 		// if the redirector wasn't found, then it truly doesn't exist
 		if (Import.SourceIndex == INDEX_NONE)
 		{
-			bFailed = true;
+			Result = VERIFY_Failed;
 		}
 		// otherwise, we found that the redirector exists
 		else
@@ -1983,7 +1981,7 @@ void ULinkerLoad::VerifyImport( int32 i )
 			// this should probably never fail, but just in case
 			if (!Redir)
 			{
-				bFailed = true;
+				Result = VERIFY_Failed;
 			}
 			else
 			{
@@ -1998,7 +1996,7 @@ void ULinkerLoad::VerifyImport( int32 i )
 				// check to make sure the destination obj was loaded,
 				if ( DestObject == NULL )
 				{
-					bFailed = true;
+					Result = VERIFY_Failed;
 				}
 				// check that in fact it was the type we thought it should be
 				else if ( DestObject->GetClass()->GetFName() != OriginalImport.ClassName
@@ -2006,7 +2004,7 @@ void ULinkerLoad::VerifyImport( int32 i )
 					// if the destination object is a CDO, allow class changes
 					&&	!DestObject->HasAnyFlags(RF_ClassDefaultObject) )
 				{
-					bFailed = true;
+					Result = VERIFY_Failed;
 					// if the destination is a ObjectRedirector you've most likely made a nasty circular loop
 					if( Redir->DestinationObject->GetClass() == UObjectRedirector::StaticClass() )
 					{
@@ -2015,6 +2013,8 @@ void ULinkerLoad::VerifyImport( int32 i )
 				}
 				else
 				{
+					Result = VERIFY_Redirected;
+
 					// send a callback saying we followed a redirector successfully
 					FCoreDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 
@@ -2032,7 +2032,7 @@ void ULinkerLoad::VerifyImport( int32 i )
 		Import.ClassPackage = OriginalImport.ClassPackage;
 
 		// if nothing above failed, then we are good to go
-		if (!bFailed)
+		if (Result != VERIFY_Failed)
 		{
 			// we update the runtime information (SourceIndex, SourceLinker) to point to the object the redirector pointed to
 			Import.SourceIndex = Import.XObject->GetLinkerIndex();
@@ -2046,8 +2046,8 @@ void ULinkerLoad::VerifyImport( int32 i )
 			// then do the throw here
 			if (bCrashOnFail)
 			{
-				UE_LOG(LogLinker, Fatal,  TEXT("Failed import: %s %s (file %s)"), *Import.ClassName.ToString(), *GetImportFullName(i), *Import.SourceLinker->Filename );
-				return;
+				UE_LOG(LogLinker, Fatal,  TEXT("Failed import: %s %s (file %s)"), *Import.ClassName.ToString(), *GetImportFullName(ImportIndex), *Import.SourceLinker->Filename );
+				return Result;
 			}
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
 			else
@@ -2057,15 +2057,17 @@ void ULinkerLoad::VerifyImport( int32 i )
 				UClass* FindClass = ClassPackage ? FindObject<UClass>( ClassPackage, *OriginalImport.ClassName.ToString() ) : NULL;
 				if( GIsEditor && !IsRunningCommandlet() )
 				{
-					FFormatNamedArguments Arguments[2];
-					Arguments[0].Add(TEXT("ImportClass"), FText::FromName(GetImportClassName(i)));
-					Arguments[1].Add(TEXT("Warning"), FText::FromString(WarningAppend));
-
 					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
-					FMessageLog(NAME_LoadErrors).Error(FText::Format(LOCTEXT("ImportFailure", "Failed import: {ImportClass}"), Arguments[0]))
-						->AddToken(FAssetNameToken::Create(GetImportPathName(i)))
-						->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{Warning} in"), Arguments[1])))
-						->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
+					TSharedRef<FTokenizedMessage> TokenizedMessage = FMessageLog(NAME_LoadErrors).Error(FText::Format(LOCTEXT("ImportFailure", "Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex))));
+					TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));
+
+					if (!WarningAppend.IsEmpty())
+					{
+						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
+							FText::FromString(WarningAppend),
+							FText::FromString(LinkerRoot->GetName())))
+						);
+					}
 				}
 
 #if UE_BUILD_DEBUG
@@ -2075,7 +2077,7 @@ void ULinkerLoad::VerifyImport( int32 i )
 					if ( (!GIsEditor || IsRunningCommandlet()) && (FindClass->IsChildOf(UClass::StaticClass())) )
 					{
 						UE_LOG(LogLinker, Warning, TEXT("Missing Class '%s' referenced by package '%s' ('%s').  Classes should not be removed if referenced by content; mark the class 'deprecated' instead."),
-							*GetImportFullName(i),
+							*GetImportFullName(ImportIndex),
 							*LinkerRoot->GetName(),
 							GSerializedExportLinker ? *GSerializedExportLinker->GetExportPathName(GSerializedExportIndex) : TEXT("Unknown") );
 					}
@@ -2083,7 +2085,7 @@ void ULinkerLoad::VerifyImport( int32 i )
 					else if ( FindClass == NULL || !FindClass->HasAnyClassFlags(CLASS_Deprecated) )
 					{
 						UE_LOG(LogLinker, Warning, TEXT("Missing Class '%s' referenced by package '%s' ('%s')."),
-							*GetImportFullName(i),
+							*GetImportFullName(ImportIndex),
 							*LinkerRoot->GetName(),
 							GSerializedExportLinker ? *GSerializedExportLinker->GetExportPathName(GSerializedExportIndex) : TEXT("Unknown") );
 					}
@@ -2092,6 +2094,8 @@ void ULinkerLoad::VerifyImport( int32 i )
 			}
 		}
 	}
+
+	return Result;
 }
 
 /**
@@ -2199,8 +2203,14 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			 }
 		}
 
-		// Copy the SourceLinker from the FObjectImport for our Outer
-		Import.SourceLinker = OuterImport.SourceLinker;
+		// Copy the SourceLinker from the FObjectImport for our Outer if the SourceLinker hasn't been set yet,
+		// Otherwise we may be overwriting a re-directed linker and SourceIndex is already from the redirected one.
+		// This can only happen in non-cooked builds though.
+		if (FPlatformProperties::RequiresCookedData() || !Import.SourceLinker)
+		{
+			Import.SourceLinker = OuterImport.SourceLinker;
+		}
+
 
 		//check(Import.SourceLinker);
 		//@todo what does it mean if we don't have a SourceLinker here?
@@ -2744,6 +2754,7 @@ void ULinkerLoad::Preload( UObject* Object )
 					if ( Object->HasAnyFlags(RF_ClassDefaultObject) )
 					{
 						Object->GetClass()->SerializeDefaultObject(Object, *this);
+						Object->SetFlags(RF_LoadCompleted);
 					}
 					else
 					{
@@ -2946,13 +2957,13 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			{
 				if( LoadClass->IsChildOf(UFunction::StaticClass()) )
 				{
-					// If this is a function whose super has been removed, give it a NULL super, as we would have in the script compiler
-					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Super for %s; removing super information, but keeping function"), *GetExportFullName(Index));
+					// If this is a function whose parent has been removed, give it a NULL parent, as we would have in the script compiler
+					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s; removing parent information, but keeping function"), *GetExportFullName(Index));
 					Export.SuperIndex = FPackageIndex();
 				}
 				else
 				{
-					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Super for %s"), *GetExportFullName(Index));
+					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s"), *GetExportFullName(Index));
 					return NULL;
 				}
 			}
@@ -3358,15 +3369,18 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 
 		if( Import.XObject == NULL )
 		{
+			EVerifyResult VerifyImportResult = VERIFY_Success;
 			if( Import.SourceLinker == NULL )
 			{
-				VerifyImport(Index);
+				VerifyImportResult = VerifyImport(Index);
 			}
 			if(Import.SourceIndex != INDEX_NONE)
 			{
 				check(Import.SourceLinker);
-				// VerifyImport may have already created the import and SourceIndex has changed to point to the actual redirected object
-				if (!Import.XObject)
+				// VerifyImport may have already created the import and SourceIndex has changed to point to the actual redirected object.
+				// This can only happen in non-cooked builds since cooked builds don't have redirects and other cases are valid.
+				// We also don't want to call CreateExport only when there was an actual redirector involved.
+				if (FPlatformProperties::RequiresCookedData() || !Import.XObject || VerifyImportResult != VERIFY_Redirected)
 				{
 					Import.XObject = Import.SourceLinker->CreateExport(Import.SourceIndex);
 				}
@@ -3457,7 +3471,8 @@ void ULinkerLoad::Detach( bool bEnsureAllBulkDataIsLoaded )
 	}
 
 	// Remove from object manager, if it has been added.
-	GObjLoaders.Remove( this->LinkerRoot );
+	GObjLoaders.Remove(LinkerRoot);
+	GObjPendingLoaders.Remove(LinkerRoot);
 	GObjLoadersWithNewImports.Remove(this);
 	if (!FPlatformProperties::HasEditorOnlyData())
 	{
@@ -3611,7 +3626,8 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	}
 
 	// if the name wasn't loaded (because it wasn't valid in this context)
-	if (NameMap[NameIndex] == NAME_None)
+	const FName& MappedName = NameMap[NameIndex];
+	if (MappedName.IsNone())
 	{
 		int32 TempNumber;
 		Ar << TempNumber;
@@ -3621,12 +3637,12 @@ FArchive& ULinkerLoad::operator<<( FName& Name )
 	{
 		int32 Number;
 		Ar << Number;
-		// simply create the name from the NameMap's name index and the serialized instance number
+		// simply create the name from the NameMap's name and the serialized instance number
 #ifndef __clang__
-		Name = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		Name = FName(MappedName, Number);
 #else
 		// @todo-mobile: IOS crashes on the assignment; need to do a memcpy manually...
-		FName TempName = FName((EName)NameMap[NameIndex].GetIndex(), Number);
+		FName TempName = FName(MappedName, Number);
 		FMemory::Memcpy(&Name, &TempName, sizeof(FName));
 #endif
 	}

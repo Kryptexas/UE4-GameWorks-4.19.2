@@ -9,6 +9,7 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessing.h"
 #include "PostProcessEyeAdaptation.h"
+#include "SceneUtils.h"
 
 
 /** Encapsulates the post processing histogram compute shader. */
@@ -90,7 +91,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramCS,TEXT("PostProcessHistogram"),TEXT
 
 void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessHistogram, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessHistogram, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -107,7 +108,7 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	TShaderMapRef<FPostProcessHistogramCS> ComputeShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessHistogramCS> ComputeShader(Context.GetShaderMap());
 
 	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());

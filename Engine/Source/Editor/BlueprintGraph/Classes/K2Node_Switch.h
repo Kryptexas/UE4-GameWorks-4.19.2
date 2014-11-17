@@ -36,6 +36,7 @@ class UK2Node_Switch : public UK2Node
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual bool CanEverRemoveExecutionPin() const override { return true; }
 	// End of UK2Node interface
 
 	// UK2Node_Switch interface
@@ -44,7 +45,7 @@ class UK2Node_Switch : public UK2Node
 	virtual FString GetUniquePinName() { return FString(); }
 
 	/** Gets the pin type from the schema for the subclass */
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const { check(false); return Schema->PC_Int; }
+	virtual FEdGraphPinType GetPinType() const { check(false); return FEdGraphPinType(); }
 
 	/**
 	 * Adds a new execution pin to a switch node

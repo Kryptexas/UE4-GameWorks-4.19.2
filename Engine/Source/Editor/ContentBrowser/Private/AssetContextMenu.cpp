@@ -22,33 +22,28 @@
 #include "KismetEditorUtilities.h"
 #include "AssetToolsModule.h"
 #include "ComponentAssetBroker.h"
+#include "SNumericEntryBox.h"
+
+#include "SourceCodeNavigation.h"
+#include "IDocumentation.h"
+#include "EditorClassUtils.h"
+
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
 FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
-	: bAtLeastOneNonRedirectorSelected(false)
+	: AssetView(InAssetView)
+	, bAtLeastOneNonRedirectorSelected(false)
 	, bCanExecuteSCCCheckOut(false)
 	, bCanExecuteSCCOpenForAdd(false)
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCCHistory(false)
 	, bCanExecuteSCCRevert(false)
 	, bCanExecuteSCCSync(false)
-	, AssetView(InAssetView)
 {
 
-}
-
-void FAssetContextMenu::BindCommands(TSharedPtr< FUICommandList > InCommandList)
-{
-	InCommandList->MapAction( FGenericCommands::Get().Rename, FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteRename ),
-		FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteRename )
-		));
-
-	InCommandList->MapAction( FGenericCommands::Get().Delete, FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteDelete ),
-		FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteDelete )
-		));
 }
 
 TSharedRef<SWidget> FAssetContextMenu::MakeContextMenu(const TArray<FAssetData>& InSelectedAssets, const FSourcesData& InSourcesData, TSharedPtr< FUICommandList > InCommandList)
@@ -87,6 +82,9 @@ TSharedRef<SWidget> FAssetContextMenu::MakeContextMenu(const TArray<FAssetData>&
 
 		// Add reference options
 		AddReferenceMenuOptions(MenuBuilder);
+
+		// Add documentation options
+		AddDocumentationMenuOptions(MenuBuilder);
 
 		// Add source control options
 		AddSourceControlMenuOptions(MenuBuilder);
@@ -168,7 +166,7 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 		);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Duplicate", "Create Copy"),
+		LOCTEXT("Duplicate", "Duplicate"),
 		LOCTEXT("DuplicateTooltip", "Create a copy of the selected assets."),
 		FSlateIcon(),
 		FUIAction(
@@ -177,13 +175,10 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			)
 		);
 
-	if ( SelectedAssets.Num() == 1 )
-	{
-		MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, 
-			LOCTEXT("Rename", "Rename"),
-			LOCTEXT("RenameTooltip", "Rename the selected asset.")
-			);
-	}
+	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, 
+		LOCTEXT("Rename", "Rename"),
+		LOCTEXT("RenameTooltip", "Rename the selected asset.")
+		);
 
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete, NAME_None, 
 		LOCTEXT("Delete", "Delete"),
@@ -257,6 +252,33 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			)
 		);
 
+	if (GetDefault<UEditorExperimentalSettings>()->bContextMenuChunkAssignments)
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("AssignAssetChunk","Assign to Chunk..."),
+			LOCTEXT("AssignAssetChunkTooltip","Assign this asset to a specific Chunk"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this,&FAssetContextMenu::ExecuteAssignChunkID)
+			)
+		);
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("RemoveAssetFromChunk","Remove from Chunk..."),
+			LOCTEXT("RemoveAssetFromChunkTooltip","Removed an asset from a Chunk it's assigned to."),
+			FNewMenuDelegate::CreateRaw(this,&FAssetContextMenu::MakeChunkIDListMenu)
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("RemoveAllChunkAssignments","Remove from all Chunks"),
+			LOCTEXT("RemoveAllChunkAssignmentsTooltip","Removed an asset from all Chunks it's assigned to."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this,&FAssetContextMenu::ExecuteRemoveAllChunkID)
+			)
+		);
+	}
+
 	if (CanExecuteDiffSelected())
 	{
 		MenuBuilder.AddMenuEntry(
@@ -323,6 +345,132 @@ bool FAssetContextMenu::AddReferenceMenuOptions(FMenuBuilder& MenuBuilder)
 	MenuBuilder.EndSection();
 
 	return true;
+}
+
+bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
+{
+	bool bAddedOption = false;
+
+	// Objects must be loaded for this operation... for now
+	UClass* SelectedClass = (SelectedAssets.Num() > 0 ? SelectedAssets[0].GetClass() : nullptr);
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		if (SelectedClass != AssetData.GetClass())
+		{
+			SelectedClass = nullptr;
+			break;
+		}
+	}
+
+	// Go to C++ Code
+	if( SelectedClass != nullptr )
+	{
+		// Blueprints are special.  We won't link to C++ and for documentation we'll use the class it is generated from
+		const bool bIsBlueprint = SelectedClass->IsChildOf<UBlueprint>();
+		if (bIsBlueprint)
+		{
+			FString* ParentClassPath = SelectedAssets[0].TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint,ParentClass));
+			if (ParentClassPath)
+			{
+				SelectedClass = FindObject<UClass>(nullptr,**ParentClassPath);
+			}
+		}
+
+		if ( !bIsBlueprint && FSourceCodeNavigation::IsCompilerAvailable() )
+		{
+			FString ClassHeaderPath;
+			if( FSourceCodeNavigation::FindClassHeaderPath( SelectedClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
+			{
+				bAddedOption = true;
+
+				const FString CodeFileName = FPaths::GetCleanFilename( *ClassHeaderPath );
+
+				MenuBuilder.BeginSection( "AssetCode", LOCTEXT("AssetCodeHeading", "C++") );
+				{
+					MenuBuilder.AddMenuEntry(
+						FText::Format( LOCTEXT("GoToCodeForAsset", "Open {0}"), FText::FromString( CodeFileName ) ),
+						FText::Format( LOCTEXT("GoToCodeForAsset_ToolTip", "Opens the header file for this asset ({0}) in a code editing program"), FText::FromString( CodeFileName ) ),
+						FSlateIcon(),
+						FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToCodeForAsset, SelectedClass ) )
+						);
+				}
+				MenuBuilder.EndSection();
+			}
+		}
+
+		const FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedClass);
+		if (bIsBlueprint || !DocumentationLink.IsEmpty())
+		{
+			bAddedOption = true;
+
+			MenuBuilder.BeginSection( "AssetDocumentation", LOCTEXT("AseetDocsHeading", "Documentation") );
+			{
+					if (bIsBlueprint)
+					{
+						if (!DocumentationLink.IsEmpty())
+						{
+							MenuBuilder.AddMenuEntry(
+								FText::Format( LOCTEXT("GoToDocsForAssetWithClass", "View Documentation - {0}"), SelectedClass->GetDisplayNameText() ),
+								FText::Format( LOCTEXT("GoToDocsForAssetWithClass_ToolTip", "Click to open documentation for {0}"), SelectedClass->GetDisplayNameText() ),
+								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, SelectedClass ) )
+								);
+						}
+
+						UEnum* BlueprintTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EBlueprintType"), true);
+						FString* EnumString = SelectedAssets[0].TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint,BlueprintType));
+						EBlueprintType BlueprintType = (EnumString ? (EBlueprintType)BlueprintTypeEnum->FindEnumIndex(**EnumString) : BPTYPE_Normal);
+
+						switch (BlueprintType)
+						{
+						case BPTYPE_FunctionLibrary:
+							MenuBuilder.AddMenuEntry(
+								LOCTEXT("GoToDocsForMacroBlueprint", "View Documentation - Function Library"),
+								LOCTEXT("GoToDocsForMacroBlueprint_ToolTip", "Click to open documentation on blueprint function libraries"),
+								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), FString(TEXT("UBlueprint_FunctionLibrary")) ) )
+								);
+							break;
+						case BPTYPE_Interface:
+							MenuBuilder.AddMenuEntry(
+								LOCTEXT("GoToDocsForInterfaceBlueprint", "View Documentation - Interface"),
+								LOCTEXT("GoToDocsForInterfaceBlueprint_ToolTip", "Click to open documentation on blueprint interfaces"),
+								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), FString(TEXT("UBlueprint_Interface")) ) )
+								);
+							break;
+						case BPTYPE_MacroLibrary:
+							MenuBuilder.AddMenuEntry(
+								LOCTEXT("GoToDocsForInterfaceBlueprint", "View Documentation - Macro"),
+								LOCTEXT("GoToDocsForInterfaceBlueprint_ToolTip", "Click to open documentation on blueprint macros"),
+								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), FString(TEXT("UBlueprint_Macro")) ) )
+								);
+							break;
+						default:
+							MenuBuilder.AddMenuEntry(
+								LOCTEXT("GoToDocsForBlueprint", "View Documentation - Blueprint"),
+								LOCTEXT("GoToDocsForBlueprint_ToolTip", "Click to open documentation on blueprints"),
+								FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+								FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, UBlueprint::StaticClass(), FString(TEXT("UBlueprint")) ) )
+								);
+						}
+					}
+					else
+					{
+						MenuBuilder.AddMenuEntry(
+							LOCTEXT("GoToDocsForAsset", "View Documentation"),
+							LOCTEXT("GoToDocsForAsset_ToolTip", "Click to open documentation"),
+							FSlateIcon(FEditorStyle::GetStyleSetName(), "HelpIcon.Hovered" ),
+							FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteGoToDocsForAsset, SelectedClass ) )
+							);
+					}
+			}
+			MenuBuilder.EndSection();
+		}
+	}
+
+	return bAddedOption;
 }
 
 bool FAssetContextMenu::AddAssetTypeMenuOptions(FMenuBuilder& MenuBuilder)
@@ -773,7 +921,7 @@ void FAssetContextMenu::ExecuteDuplicate()
 	}
 }
 
-void FAssetContextMenu::ExecuteRename() 
+void FAssetContextMenu::ExecuteRename()
 {
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
@@ -793,7 +941,7 @@ void FAssetContextMenu::ExecuteRename()
 	}
 }
 
-void FAssetContextMenu::ExecuteDelete() 
+void FAssetContextMenu::ExecuteDelete()
 {
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	if(AssetViewSelectedAssets.Num() > 0)
@@ -914,6 +1062,36 @@ void FAssetContextMenu::ExecuteShowReferenceViewer()
 	if ( PackageNames.Num() > 0 )
 	{
 		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
+	}
+}
+
+void FAssetContextMenu::ExecuteGoToCodeForAsset(UClass* SelectedClass)
+{
+	if (SelectedClass)
+	{
+		FString ClassHeaderPath;
+		if( FSourceCodeNavigation::FindClassHeaderPath( SelectedClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
+		{
+			const FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
+			FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
+		}
+	}
+}
+
+void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass)
+{
+	ExecuteGoToDocsForAsset(SelectedClass, FString());
+}
+
+void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass, const FString ExcerptSection)
+{
+	if (SelectedClass)
+	{
+		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedClass, ExcerptSection);
+		if (!DocumentationLink.IsEmpty())
+		{
+			IDocumentation::Get()->Open( DocumentationLink );
+		}
 	}
 }
 
@@ -1413,6 +1591,195 @@ void FAssetContextMenu::GetSelectedPackages(TArray<UPackage*>& OutPackages) cons
 		if ( Package )
 		{
 			OutPackages.Add(Package);
+		}
+	}
+}
+
+void FAssetContextMenu::MakeChunkIDListMenu(FMenuBuilder& MenuBuilder)
+{
+	TArray<int32> FoundChunks;
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			for (auto ChunkID : Package->GetChunkIDs())
+			{
+				FoundChunks.AddUnique(ChunkID);
+			}
+		}
+	}
+
+	for (auto ChunkID : FoundChunks)
+	{
+		MenuBuilder.AddMenuEntry(
+			FText::Format(LOCTEXT("PackageChunk", "Chunk {0}"), FText::AsNumber(ChunkID)),
+			FText(),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteRemoveChunkID, ChunkID)
+			)
+		);
+	}
+}
+
+void FAssetContextMenu::ExecuteAssignChunkID()
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	auto AssetViewPtr = AssetView.Pin();
+	if (AssetViewSelectedAssets.Num() > 0 && AssetViewPtr.IsValid())
+	{
+		// Determine the position of the window so that it will spawn near the mouse, but not go off the screen.
+		const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+		FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
+
+		FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, Orient_Horizontal);
+
+		TSharedPtr<SWindow> Window = SNew(SWindow)
+			.AutoCenter(EAutoCenter::None)
+			.ScreenPosition(AdjustedSummonLocation)
+			.SupportsMaximize(false)
+			.SupportsMinimize(false)
+			.SizingRule(ESizingRule::Autosized)
+			.Title(LOCTEXT("WindowHeader", "Enter Chunk ID"));
+
+		Window->SetContent(
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MeshPaint_LabelStrength", "Chunk ID"))
+				]
+				+ SHorizontalBox::Slot()
+				.FillWidth(2.0f)
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SNumericEntryBox<int32>)
+					.AllowSpin(true)
+					.MinSliderValue(0)
+					.MaxSliderValue(300)
+					.MinValue(0)
+					.MaxValue(300)
+					.Value(this, &FAssetContextMenu::GetChunkIDSelection)
+					.OnValueChanged(this, &FAssetContextMenu::OnChunkIDAssignChanged)
+				]
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ChunkIDAssign_Yes", "OK"))
+					.OnClicked(this, &FAssetContextMenu::OnChunkIDAssignCommit, Window)
+				]
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ChunkIDAssign_No", "Cancel"))
+					.OnClicked(this, &FAssetContextMenu::OnChunkIDAssignCancel, Window)
+				]
+			]
+		);
+
+		ChunkIDSelected = 0;
+		FSlateApplication::Get().AddModalWindow(Window.ToSharedRef(), AssetViewPtr);
+	}
+}
+
+void FAssetContextMenu::ExecuteRemoveAllChunkID()
+{
+	TArray<int32> EmptyChunks;
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			Package->SetChunkIDs(EmptyChunks);
+			Package->SetDirtyFlag(true);
+		}
+	}
+}
+
+TOptional<int32> FAssetContextMenu::GetChunkIDSelection() const
+{
+	return ChunkIDSelected;
+}
+
+void FAssetContextMenu::OnChunkIDAssignChanged(int32 NewChunkID)
+{
+	ChunkIDSelected = NewChunkID;
+}
+
+FReply FAssetContextMenu::OnChunkIDAssignCommit(TSharedPtr<SWindow> Window)
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			TArray<int32> CurrentChunks = Package->GetChunkIDs();
+			CurrentChunks.AddUnique(ChunkIDSelected);
+			Package->SetChunkIDs(CurrentChunks);
+			Package->SetDirtyFlag(true);
+		}
+	}
+
+	Window->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+FReply FAssetContextMenu::OnChunkIDAssignCancel(TSharedPtr<SWindow> Window)
+{
+	Window->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+void FAssetContextMenu::ExecuteRemoveChunkID(int32 ChunkID)
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	for (const auto& SelectedAsset : AssetViewSelectedAssets)
+	{
+		UPackage* Package = FindPackage(NULL, *SelectedAsset.PackageName.ToString());
+
+		if (Package)
+		{
+			int32 FoundIndex;
+			TArray<int32> CurrentChunks = Package->GetChunkIDs();
+			CurrentChunks.Find(ChunkID, FoundIndex);
+			if (FoundIndex != INDEX_NONE)
+			{
+				CurrentChunks.RemoveAt(FoundIndex);
+				Package->SetChunkIDs(CurrentChunks);
+				Package->SetDirtyFlag(true);
+			}
 		}
 	}
 }

@@ -529,7 +529,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ANIMATION_REMOVE_NANS,
 	// Change skeleton preview attached assets property type
 	VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE,
- 	// Fix some blueprint variables that have the CPF_DisableEditOnTemplate flag set
+	// Fix some blueprint variables that have the CPF_DisableEditOnTemplate flag set
 	// when they shouldn't
 	VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS,
 	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s part two (missed conversion for some variables
@@ -540,7 +540,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
 	// Requires test of material coords to ensure they're saved correctly
 	VER_UE4_FIX_MATERIAL_COORDS,
- 	// Changed SpeedTree wind presets to v7
+	// Changed SpeedTree wind presets to v7
 	VER_UE4_SPEEDTREE_WIND_V7,
 	// NeedsLoadForEditorGame added
 	VER_UE4_LOAD_FOR_EDITOR_GAME,
@@ -584,6 +584,40 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP,
 	// Apply scale from SCS RootComponent details in the Blueprint Editor to new actor instances at construction time
 	VER_UE4_BLUEPRINT_USE_SCS_ROOTCOMPONENT_SCALE,
+	// Changed level streaming to have a linear color since the visualization doesn't gamma correct.
+	VER_UE4_LEVEL_STREAMING_DRAW_COLOR_TYPE_CHANGE,
+	// Cleared end triggers from non-state anim notifies
+	VER_UE4_CLEAR_NOTIFY_TRIGGERS,
+	// Convert old curve names stored in anim assets into skeleton smartnames
+	VER_UE4_SKELETON_ADD_SMARTNAMES,
+	// Added the currency code field to FTextHistory_AsCurrency
+	VER_UE4_ADDED_CURRENCY_CODE_TO_FTEXT,
+	// Added support for C++11 enum classes
+	VER_UE4_ENUM_CLASS_SUPPORT,
+	// Fixup widget animation class
+	VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS,
+	// USoundWave objects now contain details about compression scheme used.
+	VER_UE4_SOUND_COMPRESSION_TYPE_ADDED,
+	// Bodies will automatically weld when attached
+	VER_UE4_AUTO_WELDING,
+	// Rename UCharacterMovementComponent::bCrouchMovesCharacterDown
+	VER_UE4_RENAME_CROUCHMOVESCHARACTERDOWN,
+	// Lightmap parameters in FMeshBuildSettings
+	VER_UE4_LIGHTMAP_MESH_BUILD_SETTINGS,
+	// Rename SM3 to ES3_1 and updates featurelevel material node selector
+	VER_UE4_RENAME_SM3_TO_ES3_1,
+	// Deprecated separate style assets for use in UMG
+	VER_UE4_DEPRECATE_UMG_STYLE_ASSETS,
+	// Duplicating Blueprints will regenerate NodeGuids after this version
+	VER_UE4_POST_DUPLICATE_NODE_GUID,
+	// Rename USpringArmComponent::bUseControllerViewRotation to bUsePawnViewRotation,
+	// Rename UCameraComponent::bUseControllerViewRotation to bUsePawnViewRotation (and change the default value)
+	VER_UE4_RENAME_CAMERA_COMPONENT_VIEW_ROTATION,
+	// Changed FName to be case preserving
+	VER_UE4_CASE_PRESERVING_FNAME,
+	// Rename USpringArmComponent::bUsePawnViewRotation to bUsePawnControlRotation
+	// Rename UCameraComponent::bUsePawnViewRotation to bUsePawnControlRotation
+	VER_UE4_RENAME_CAMERA_COMPONENT_CONTROL_ROTATION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
@@ -607,7 +641,7 @@ enum EUnrealEngineObjectLicenseeUE4Version
 #define VER_LATEST_ENGINE_LICENSEEUE4   PREPROCESSOR_ENUM_PROTECT(VER_LIC_AUTOMATIC_VERSION)
 
 // Minimum package version that contains legal bytecode
-#define VER_MIN_SCRIPTVM_UE4									(VER_UE4_DISABLED_SCRIPT_LIMIT_BYTECODE)
+#define VER_MIN_SCRIPTVM_UE4									(VER_UE4_CASE_PRESERVING_FNAME)
 #define VER_MIN_SCRIPTVM_LICENSEEUE4							(VER_LIC_NONE)
 
 // Version access.

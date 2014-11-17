@@ -10,6 +10,14 @@ UVisual::UVisual(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UVisual::ReleaseNativeWidget()
+void UVisual::ReleaseSlateResources(bool bReleaseChildren)
 {
+}
+
+void UVisual::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	const bool bReleaseChildren = false;
+	ReleaseSlateResources(bReleaseChildren);
 }

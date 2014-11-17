@@ -10,6 +10,7 @@
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
 struct FCollisionShape;
+struct FConstraintInstance;
 class UPhysicsConstraintComponent;
 
 #if WITH_PHYSX
@@ -21,6 +22,7 @@ namespace physx
 	class PxGeometry;
 	class PxShape;
 	class PxTransform;
+	struct PxContactPair;
 }
 #endif // WITH_PHYSX
 
@@ -43,6 +45,8 @@ namespace ELockedAxis
 		None
 	};
 }
+
+struct FCollisionNotifyInfo;
 
 USTRUCT()
 struct ENGINE_API FCollisionResponse
@@ -98,6 +102,7 @@ USTRUCT()
 struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()
+
 
 	/** 
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
@@ -167,6 +172,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
 	uint32 bSimulatePhysics:1;
 
+	/** If true and is attached to a parent, the two bodies will be joined into a single rigid body. Physical settings like collision profile and body settings are determined by the root */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
+	uint32 bAutoWeld : 1;
+
+	/** determines if the body is currently welded */
+	uint32 bWelded : 1;
+
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bSimulatePhysics"))
 	uint32 bStartAwake:1;
@@ -200,6 +212,15 @@ public:
 	/** Constraint used to allow for easy DOF setup per bodyinstance */
 	FConstraintInstance * DOFConstraint;
 
+	/** The parent body that we are welded to*/
+	FBodyInstance * WeldParent;
+
+#if WITH_PHYSX
+	/** Figures out the new FCollisionNotifyInfo needed for pending notification. It adds it, and then returns an array that goes from pair index to notify collision index */
+	static TArray<int32> AddCollisionNotifyInfo(const FBodyInstance * Body0, const FBodyInstance * Body1, const physx::PxContactPair * Pairs, uint32 NumPairs, TArray<FCollisionNotifyInfo> & PendingNotifyInfos);
+
+#endif
+
 protected:
 
 	/** Whether this instance of the object has its own custom walkability override setting. */
@@ -209,6 +230,14 @@ protected:
 	/** Custom walkability override setting for this instance. @see GetWalkableFloorOverride() */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics, meta=(editcondition="bOverrideWalkableSlopeOnInstance"))
 	struct FWalkableSlopeOverride WalkableSlopeOverride;
+
+	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
+	uint32 bOverrideMaxDepenetrationVelocity : 1;
+
+	/** The maximum velocity used to depenetrate this object*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxDepenetrationVelocity", ClampMin = "0.0", UIMin = "0.0"))
+	float MaxDepenetrationVelocity;
 
 	/**	Allows you to override the PhysicalMaterial to use for simple collision on this body. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Collision)
@@ -303,12 +332,20 @@ public:
 	void TermBody();
 
 
-#if WITH_BODY_WELDING
+
+
 	/** 
-	 * Takes two body instances and welds them together to create a single simulated rigid body
+	 * Takes two body instances and welds them together to create a single simulated rigid body. Returns true if success.
 	 */
-	void Weld(FBodyInstance* Body, const FTransform& RelativeTM);
-#endif
+	bool Weld(FBodyInstance* Body, const FTransform& RelativeTM);
+
+	/** 
+	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
+	void UnWeld(FBodyInstance * Body);
+
+	/**
+	 * After adding/removing shapes call this function to update mass distribution etc... */
+	void PostShapeChange();
 
 	/**
 	 * Update Body Scale
@@ -369,11 +406,11 @@ public:
 	/** Set this body to be fixed (kinematic) or not. */
 	void SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending=false);
 	/** Makes sure the current kinematic state matches the simulate flag */
-	void UpdateInstanceSimulatePhysics(bool bIgnoreOwner = false);
+	void UpdateInstanceSimulatePhysics();
 	/** Returns true if this body is simulating, false if it is fixed (kinematic) */
-	bool IsInstanceSimulatingPhysics(bool bIgnoreOwner = false);
+	bool IsInstanceSimulatingPhysics();
 	/** Should Simulate Physics **/
-	bool ShouldInstanceSimulatingPhysics(bool bIgnoreOwner=false);
+	bool ShouldInstanceSimulatingPhysics();
 	/** Returns whether this body is awake */
 	bool IsInstanceAwake() const;
 	/** Wake this body */
@@ -482,7 +519,7 @@ public:
 	void UpdatePhysicalMaterials();
 
 	/** Update the instances collision filtering data */
-	void UpdatePhysicsFilterData();
+	void UpdatePhysicsFilterData(bool bForceSimpleAsComplex = false);
 
 	friend FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst);
 
@@ -605,6 +642,11 @@ private:
 	 *  @return true if a hit is found
 	 */
 	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const physx::PxRigidActor* RigidBody, const physx::PxGeometry* Geometry) const;
+
+	/** 
+	 * Helper function to update per shape filtering info. This should interface is not very friendly and should only be used from inside FBodyInstance
+	 */
+	void UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
 #endif 
 	/**
 	 * Invalidate Collision Profile Name
@@ -629,6 +671,15 @@ protected:
 	class b2Body* BodyInstancePtr;
 
 #endif	//WITH_BOX2D
+};
+
+template<>
+struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 

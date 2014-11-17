@@ -14,7 +14,7 @@ UUserDefinedEnum::UUserDefinedEnum(const class FPostConstructInitializePropertie
 
 FString UUserDefinedEnum::GenerateFullEnumName(const TCHAR* InEnumName) const
 {
-	check(bIsNamespace);
+	check(CppForm == ECppForm::Namespaced);
 
 	FString PathName;
 	GetPathName(NULL, PathName);

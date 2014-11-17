@@ -19,11 +19,25 @@
 #include "ScreenSpaceReflections.h"
 #include "PostProcessWeightedSampleSum.h"
 #include "PostProcessTemporalAA.h"
+#include "PostProcessSubsurface.h"
+#include "SceneUtils.h"
 
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;
 
 // -------------------------------------------------------
+
+static TAutoConsoleVariable<float> CVarSSSScale(
+	TEXT("r.SSS.Scale"),
+	1.0f,
+	TEXT("Experimental screen space subsurface scattering pass")
+	TEXT("(use shadingmodel SubsurfaceProfile, get near to the object as the default)\n")
+	TEXT("is human skin which only scatters about 1.2cm)\n")
+	TEXT(" 0: off (if there is no object on the screen using this pass it should automatically disable the post process pass)\n")
+	TEXT("<1: scale scatter radius down (for testing)\n")
+	TEXT(" 1: use given radius form the Subsurface scattering asset (default)\n")
+	TEXT(">1: scale scatter radius up (for testing)"),
+	ECVF_RenderThreadSafe);
 
 static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 {
@@ -73,6 +87,14 @@ static bool IsReflectionEnvironmentActive(FPostprocessContext& Context)
 	return (Scene->GetFeatureLevel() == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsSimpleDynamicLightingEnabled());
 }
 
+static bool IsSkylightActive(FPostprocessContext& Context)
+{
+	FScene* Scene = (FScene*)Context.View.Family->Scene;
+	return Scene->SkyLight 
+		&& Scene->SkyLight->ProcessedTexture
+		&& Context.View.Family->EngineShowFlags.SkyLighting;
+}
+
 static bool IsBasePassAmbientOcclusionRequired(FPostprocessContext& Context)
 {
 	// the BaseAO pass is only worth with some AO
@@ -90,7 +112,7 @@ static uint32 ComputeAmbientOcclusionPassCount(FPostprocessContext& Context)
 	{
 		bEnabled = Context.View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0 
 			&& Context.View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f 
-			&& (IsBasePassAmbientOcclusionRequired(Context) || IsAmbientCubemapPassRequired(Context) || IsReflectionEnvironmentActive(Context) || Context.View.Family->EngineShowFlags.VisualizeBuffer )
+			&& (IsBasePassAmbientOcclusionRequired(Context) || IsAmbientCubemapPassRequired(Context) || IsReflectionEnvironmentActive(Context) || IsSkylightActive(Context) || Context.View.Family->EngineShowFlags.VisualizeBuffer )
 			&& !IsSimpleDynamicLightingEnabled();
 	}
 
@@ -209,7 +231,7 @@ static void AddDeferredDecalsBeforeLighting(FPostprocessContext& Context)
 	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 }
 
-void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
+void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	check(IsInRenderingThread());
 
@@ -230,7 +252,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 
 		// The graph setup should be finished before this line ----------------------------------------
 
-		SCOPED_DRAW_EVENT(CompositionBeforeBasePass, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass, DEC_SCENE_ITEMS);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
 
@@ -244,7 +266,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 	}
 }
 
-void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
+void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	check(IsInRenderingThread());
 	
@@ -290,7 +312,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 
 		// The graph setup should be finished before this line ----------------------------------------
     
-		SCOPED_DRAW_EVENT(LightCompositionTasks_PreLighting, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting, DEC_SCENE_ITEMS);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
 
@@ -305,7 +327,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 }
 
 
-void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
+void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	check(IsInRenderingThread());
 	
@@ -326,14 +348,33 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 			FRenderingCompositePass* SSAO = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSceneRenderTargets.ScreenSpaceAO));
 			AddPostProcessingLpvIndirect( Context, SSAO );
 		}
+
+		// Screen Space Subsurface Scattering
+		{
+			float Radius = CVarSSSScale.GetValueOnRenderThread();
+
+			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
+
+			if (View.bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
+			{
+				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(false));
+				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
+
+				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, Radius));
+				Pass0->SetInput(ePId_Input1, PassSetup);
+
+				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, Radius));
+				Pass1->SetInput(ePId_Input0, Context.FinalOutput);
+				Pass1->SetInput(ePId_Input1, Pass0);
+				Context.FinalOutput = FRenderingCompositeOutputRef(Pass1);
+			}
+		}
+
 		// The graph setup should be finished before this line ----------------------------------------
 
-		SCOPED_DRAW_EVENT(CompositionLighting, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, CompositionLighting, DEC_SCENE_ITEMS);
 
-		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
-
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
+		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);

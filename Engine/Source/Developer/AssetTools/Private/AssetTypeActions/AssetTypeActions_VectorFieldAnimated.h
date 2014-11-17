@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AssetTypeActions_VectorField.h"
+#include "VectorField/VectorFieldAnimated.h"
 
 class FAssetTypeActions_VectorFieldAnimated : public FAssetTypeActions_VectorField
 {

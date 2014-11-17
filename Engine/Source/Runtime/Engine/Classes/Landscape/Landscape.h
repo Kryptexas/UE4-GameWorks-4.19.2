@@ -2,10 +2,7 @@
 
 #pragma once
 
-#include "LandscapeInfo.h"
 #include "LandscapeProxy.h"
-#include "Components/LightComponent.h"
-
 #include "Landscape.generated.h"
 
 UENUM()
@@ -33,7 +30,6 @@ class ALandscape : public ALandscapeProxy
 	// Begin AActor Interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
-	virtual void Destroyed() override;
 #endif
 	// End AActor Interface
 

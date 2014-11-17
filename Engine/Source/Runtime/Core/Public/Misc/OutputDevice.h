@@ -10,7 +10,6 @@ class FText;
 
 // Globals.
 #define GLog FOutputDeviceRedirector::Get()
-CORE_API extern class FOutputDevice*				GThrow;
 CORE_API extern class FOutputDeviceError*			GError;
 CORE_API extern class FFeedbackContext*				GWarn;
 

@@ -22,7 +22,7 @@ bool FWidgetPath::SearchForWidgetRecursively( const MatchRuleType& MatchRule, co
 
 	for( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex )
 	{
-		const FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
+		const FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
 		if ( MatchRule.IsMatch(SomeChild.Widget) )
 		{
 			OutReversedPath.AddWidget( SomeChild );
@@ -47,7 +47,7 @@ bool FWidgetPath::SearchForWidgetRecursively_Reverse( const MatchRuleType& Match
 
 	for( int32 ChildIndex = ArrangedChildren.Num()-1; ChildIndex >=0 ; --ChildIndex )
 	{
-		const FArrangedWidget& SomeChild = ArrangedChildren(ChildIndex);
+		const FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
 		if ( MatchRule.IsMatch(SomeChild.Widget) )
 		{
 			OutReversedPath.AddWidget( SomeChild );

@@ -18,19 +18,19 @@ class UK2Node_SwitchName : public UK2Node_Switch
 	// End of UObject interface
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface
 	BLUEPRINTGRAPH_API virtual void AddPinToSwitchNode() override;
 	virtual FString GetUniquePinName() override;
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const override { return Schema->PC_Name; }
+	virtual FEdGraphPinType GetPinType() const override;
 	// End of UK2Node_Switch Interface
 
 	virtual FString GetPinNameGivenIndex(int32 Index) override;

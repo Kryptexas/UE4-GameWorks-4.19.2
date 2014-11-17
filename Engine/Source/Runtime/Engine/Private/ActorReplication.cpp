@@ -101,8 +101,7 @@ void AActor::PostNetReceiveLocationAndRotation()
 {
 	if( RootComponent && RootComponent->IsRegistered() && (ReplicatedMovement.Location != GetActorLocation() || ReplicatedMovement.Rotation != GetActorRotation()) )
 	{
-		TeleportTo(ReplicatedMovement.Location, ReplicatedMovement.Rotation, false);
-		//SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
+		SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation, /*bSweep=*/ false);
 	}
 }
 
@@ -180,6 +179,7 @@ void AActor::GatherCurrentMovement()
 			{
 				AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 				AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
+				AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
 			}
 		}
 		else

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node_StructOperation.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_StructMemberSet.generated.h"
 
 // Imperative kismet node that sets one or more member variables of a struct
@@ -19,7 +20,7 @@ class UK2Node_StructMemberSet : public UK2Node_StructOperation
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
@@ -29,5 +30,10 @@ class UK2Node_StructMemberSet : public UK2Node_StructOperation
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End of UK2Node interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
+	FNodeTextCache CachedTooltip;
+	FNodeTextCache CachedNodeTitle;
 };
 

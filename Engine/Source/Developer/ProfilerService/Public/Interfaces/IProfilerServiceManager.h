@@ -284,7 +284,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FStatNameAndInfo& NameAndInfo)
 	else
 	{
 		FName RawName = NameAndInfo.GetRawName();
-		int32 Index = RawName.GetIndex();
+		int32 Index = RawName.GetComparisonIndex();
 		Ar << Index;
 		int32 Number = NameAndInfo.GetRawNumber();
 		Number |= EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift);

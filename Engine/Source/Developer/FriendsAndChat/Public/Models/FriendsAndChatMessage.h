@@ -6,6 +6,8 @@
 
 #pragma once
 
+class FUniqueNetId;
+
 /**
  * Type definition for shared references to instances of ILauncherProfile.
  */

@@ -4,6 +4,7 @@
 #pragma once
 #include "K2Node_Tunnel.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_MacroInstance.generated.h"
 
 UCLASS(MinimalAPI)
@@ -34,7 +35,7 @@ public:
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual void PostPasteNode() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -57,6 +58,8 @@ public:
 	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
+	virtual FBlueprintNodeSignature GetSignature() const override;
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	// End UK2Node interface
 
 	void SetMacroGraph(UEdGraph* Graph) { MacroGraphReference.SetGraph(Graph); }
@@ -66,5 +69,9 @@ public:
 	// Finds the associated metadata for the macro instance if there is any; this function is not particularly fast.
 	BLUEPRINTGRAPH_API static FKismetUserDeclaredFunctionMetadata* GetAssociatedGraphMetadata(const UEdGraph* AssociatedMacroGraph);
 	static void FindInContentBrowser(TWeakObjectPtr<UK2Node_MacroInstance> MacroInstance);
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
 };
 

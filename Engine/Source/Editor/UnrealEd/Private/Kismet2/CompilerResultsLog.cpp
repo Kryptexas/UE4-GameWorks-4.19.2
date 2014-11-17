@@ -6,6 +6,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "SourceCodeNavigation.h"
+#include "Developer/HotReload/Public/IHotReload.h"
 
 #if WITH_EDITOR
 
@@ -80,12 +81,12 @@ void FCompilerResultsLog::Register()
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing(Name, LOCTEXT("CompilerLog", "Compiler Log"));
 
-	FModuleManager::Get().OnModuleCompilerFinished().AddStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
+	IHotReloadModule::Get().OnModuleCompilerFinished().AddStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
 }
 
 void FCompilerResultsLog::Unregister()
 {
-	FModuleManager::Get().OnModuleCompilerFinished().RemoveStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
+	IHotReloadModule::Get().OnModuleCompilerFinished().RemoveStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.UnregisterLogListing(Name);
@@ -111,7 +112,7 @@ UObject const* FCompilerResultsLog::FindSourceObject(UObject const* PossiblyDupl
 /** Create a tokenized message record from a message containing @@ indicating where each UObject* in the ArgPtr list goes and place it in the MessageLog. */
 void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Severity, const TCHAR* Message, va_list ArgPtr)
 {
-	UEdGraphNode* OwnerNode = NULL;
+	UEdGraphNode* OwnerNode = nullptr;
 
 	// Create the tokenized message
 	TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( Severity );
@@ -140,14 +141,13 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 
 				if (ObjectArgument)
 				{
-					const UEdGraphNode* Node = Cast<UEdGraphNode>(ObjectArgument);
-					const UEdGraphPin* Pin = Cast<UEdGraphPin>(ObjectArgument);
+					UEdGraphNode* Node = Cast<UEdGraphNode>(ObjectArgument);
+					const UEdGraphPin* Pin = (Node? nullptr : Cast<UEdGraphPin>(ObjectArgument));
 
-					//Get owner node reference
-					OwnerNode = Cast<UEdGraphNode>(ObjectArgument);
-					if (Pin)
+					//Get owner node reference, consider the first 
+					if (OwnerNode == nullptr)
 					{
-						OwnerNode = Pin->GetOwningNodeUnchecked();
+						OwnerNode = (Pin ? Pin->GetOwningNodeUnchecked() : Node);
 					}
 
 					if (ObjectArgument->GetOutermost() == GetTransientPackage())
@@ -160,7 +160,7 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 					}
 					else if (Pin != NULL)
 					{
-						ObjText = Pin->PinFriendlyName.IsEmpty() ? FText::FromString(Pin->PinName) : Pin->PinFriendlyName;
+						ObjText = Pin->GetDisplayName();
 					}
 					else
 					{
@@ -178,9 +178,7 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 				ObjText = LOCTEXT("None", "(none)");
 			}
 			
-			TSharedRef<FUObjectToken> Token = FUObjectToken::Create( ObjectArgument, ObjText );
-			Token->OnMessageTokenActivated(FOnMessageTokenActivated::CreateRaw(this, &FCompilerResultsLog::OnTokenActivated));
-			Line->AddToken( Token );
+			Line->AddToken( FUObjectToken::Create( ObjectArgument, ObjText ) );
 		}
 		Line->AddToken( FTextToken::Create( FText::FromString( Start ) ) );
 	}
@@ -277,11 +275,12 @@ TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDum
 
 		// handle output line error message if applicable
 		// @todo Handle case where there are parenthesis in path names
+		// @todo Handle errors reported by Clang
 		FString LeftStr, RightStr;
 		FString FullPath, LineNumberString;
 		if (Line.Split(TEXT(")"), &LeftStr, &RightStr, ESearchCase::CaseSensitive) &&
 			LeftStr.Split(TEXT("("), &FullPath, &LineNumberString, ESearchCase::CaseSensitive) &&
-			(FCString::Strtoi(*LineNumberString, NULL, 10) > 0))
+			LineNumberString.IsNumeric() && (FCString::Strtoi(*LineNumberString, NULL, 10) > 0))
 		{
 			EMessageSeverity::Type Severity = EMessageSeverity::Error;
 			FString FullPathTrimmed = FullPath;
@@ -347,11 +346,6 @@ void FCompilerResultsLog::GetGlobalModuleCompilerDump(const FString& LogDump, EC
 	}
 
 	MessageLog.AddMessages(ParseCompilerLogDump(LogDump));
-}
-
-void FCompilerResultsLog::OnTokenActivated(const TSharedRef<class IMessageToken>& InTokenRef)
-{
-
 }
 
 // Note: Message is not a fprintf string!  It should be preformatted, but can contain @@ to indicate object references, which are the varargs

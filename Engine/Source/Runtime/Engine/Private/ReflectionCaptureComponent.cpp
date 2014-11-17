@@ -8,6 +8,8 @@
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
+#include "ShaderCompiler.h"
 
 /** 
  * Size of all reflection captures.
@@ -195,7 +197,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructIniti
 // Generate a new guid to force a recache of all reflection derived data
 // Note: changing this will cause saved capture data in maps to be discarded
 // A resave of those maps will be required to guarantee valid reflections when cooking for ES2
-FGuid ReflectionCaptureDDCVer(0x299db8a0, 0x54254535, 0xa088cc40, 0x1ea245eb);
+FGuid ReflectionCaptureDDCVer(0x0c669396, 0x9cb849ae, 0x9f4120ff, 0x5812f4d2);
 
 FString FReflectionCaptureFullHDRDerivedData::GetDDCKeyString(const FGuid& StateId)
 {
@@ -564,7 +566,7 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 }
 
 // Generate a new guid to force a recache of all encoded HDR derived data
-#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("96DFC088836B48889143E9DF484C3296")
+#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("96DFC022836B48889143E9DF484C3296")
 
 FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& StateId)
 {
@@ -958,8 +960,7 @@ void UReflectionCaptureComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FeatureLevelPreview"));
-	bool bRetainAllFeatureLevelData = CVar->GetValueOnGameThread() == 1 && GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
@@ -993,19 +994,26 @@ void UReflectionCaptureComponent::PostLoad()
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
 		if (FullHDRDerivedData 
 			&& !EncodedHDRDerivedData 
-			&& (GRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
+			&& (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
 		{
 			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
 		}
 	}
 	
 	// Initialize rendering resources for the current feature level, and toss data only needed by other feature levels
-	if (FullHDRDerivedData && (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
+	if (FullHDRDerivedData && (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
 	{
 		// Don't need encoded HDR data for rendering on this feature level
 		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRDerivedData->CompressedCapturedData.GetAllocatedSize());
 
-		if ((GRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
+		// command line option: -NoTiledReflections
+		// useful to test this code path and to run the potentially more efficient path (PS vs CS) on SM5 hardware
+		// not a cvar as it also needs to change the data when loading the captures
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NoTiledReflections"));
+		check(CVar);
+		const bool bNoTiledReflections = (CVar->GetValueOnAnyThread() == 1);
+
+		if ((GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData || bNoTiledReflections))
 		{
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
 			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, &FullHDRDerivedData->GetCapturedDataForSM4Load());
@@ -1018,7 +1026,7 @@ void UReflectionCaptureComponent::PostLoad()
 		}
 	}
 
-	if (EncodedHDRDerivedData && (GRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
+	if (EncodedHDRDerivedData && (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
 	{
 		if (FPlatformProperties::RequiresCookedData())
 		{
@@ -1450,7 +1458,7 @@ FReflectionCaptureProxy::FReflectionCaptureProxy(const UReflectionCaptureCompone
 void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)
 {
 	Position = InTransform.GetOrigin();
-	BoxTransform = InTransform.InverseSafe();
+	BoxTransform = InTransform.Inverse();
 
 	FVector ForwardVector(1.0f,0.0f,0.0f);
 	FVector RightVector(0.0f,-1.0f,0.0f);

@@ -6,6 +6,7 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Select"
 
@@ -206,7 +207,7 @@ void UK2Node_Select::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// To refresh, just in case it changed
-	SetEnum(Enum);
+	SetEnum(Enum, true);
 
 	if (Enum)
 	{
@@ -255,14 +256,42 @@ void UK2Node_Select::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_Select::GetTooltip() const
+FText UK2Node_Select::GetTooltipText() const
 {
-	return TEXT("Return the option at Index, (first option is indexed at 0)");
+	return LOCTEXT("SelectNodeTooltip", "Return the option at Index, (first option is indexed at 0)");
+}
+
+FString UK2Node_Select::GetKeywords() const
+{
+	return TEXT("Ternary If");
 }
 
 FText UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return LOCTEXT("Select", "Select");
+}
+
+UK2Node::ERedirectType UK2Node_Select::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
+{
+	// Check to see if the new pin name matches the old pin name (case insensitive - since the base uses Stricmp() to compare pin names, we also ignore case here).
+	if(Enum != nullptr && NewPinIndex < NumOptionPins && !NewPin->PinName.Equals(OldPin->PinName, ESearchCase::IgnoreCase))
+	{
+		// The names don't match, so check for an enum redirect from the old pin name.
+		int32 EnumIndex = UEnum::FindEnumRedirects(Enum, FName(*OldPin->PinName));
+		if(EnumIndex != INDEX_NONE)
+		{
+			// Found a redirect. Attempt to match it to the new pin name.
+			FString NewPinName = Enum->GetEnumName(EnumIndex);
+			if(NewPinName.Equals(NewPin->PinName, ESearchCase::IgnoreCase))
+			{
+				// The redirect is a match, so we can reconstruct this pin using the old pin's state.
+				return UK2Node::ERedirectType_Name;
+			}
+		}
+	}
+
+	// Fall back to base class functionality for all other cases.
+	return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 }
 
 void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
@@ -338,13 +367,25 @@ void UK2Node_Select::PostReconstructNode()
 {
 	bReconstructNode = false;
 
+	const UEdGraphSchema_K2* Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+
 	UEdGraphPin* ReturnPin = GetReturnValuePin();
 	PinConnectionListChanged(ReturnPin);
+	const bool bFillTypeFromReturn = Schema && ReturnPin && (ReturnPin->PinType.PinCategory != Schema->PC_Wildcard);
 
 	TArray<UEdGraphPin*> OptionPins;
 	GetOptionPins(OptionPins);
 	for (auto It = OptionPins.CreateConstIterator(); It; It++)
 	{
+		UEdGraphPin* Pin = *It;
+		const bool bTypeShouldBeFilled = Schema && Pin && (Pin->PinType.PinCategory == Schema->PC_Wildcard);
+		if (bTypeShouldBeFilled && bFillTypeFromReturn)
+		{
+			Pin->Modify();
+			Pin->PinType = ReturnPin->PinType;
+			UEdGraphSchema_K2::ValidateExistingConnections(Pin);
+		}
+
 		PinConnectionListChanged(*It);
 	}
 
@@ -552,14 +593,14 @@ void UK2Node_Select::RemoveOptionPinToNode()
 	ReconstructNode();
 }
 
-void UK2Node_Select::SetEnum(UEnum* InEnum)
+void UK2Node_Select::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UEnum* PrevEnum = Enum;
 	Enum = InEnum;
 
-	if (PrevEnum != Enum)
+	if ((PrevEnum != Enum) || bForceRegenerate)
 	{
 		// regenerate enum name list
 		EnumEntries.Empty();
@@ -774,12 +815,24 @@ FNodeHandlingFunctor* UK2Node_Select::CreateNodeHandler(FKismetCompilerContext& 
 	return new FKCHandler_Select(CompilerContext);
 }
 
-void UK2Node_Select::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_Select::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_Select::GetMenuCategory() const

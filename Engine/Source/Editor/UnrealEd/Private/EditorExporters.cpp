@@ -19,9 +19,13 @@
 #include "ImageUtils.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeComponent.h"
+#include "Landscape/LandscapeInfo.h"
 #include "Foliage/FoliageType.h"
 #include "UnrealExporter.h"
 #include "EngineModule.h"
+#include "InstancedFoliage.h"
+#include "RendererInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
@@ -1143,7 +1147,7 @@ public:
 
 		TArray<UTexture*> MaterialTextures;
 
-		InMaterialInterface->GetUsedTextures(MaterialTextures, EMaterialQualityLevel::Num, false);
+		InMaterialInterface->GetUsedTextures(MaterialTextures, EMaterialQualityLevel::Num, false, GRHIFeatureLevel, false);
 
 		// find the largest texture in the list (applying it's LOD bias)
 		FIntPoint MaxSize = MinimumSize;
@@ -1315,7 +1319,7 @@ bool GenerateExportMaterialPropertyData(
 			RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			RenderTarget->InitCustomFormat(InOutSizeX, InOutSizeY, Format, bForceLinear);
 
-			Canvas = new FCanvas(RenderTarget->GetRenderTargetResource(), NULL, 0, 0, 0);
+			Canvas = new FCanvas(RenderTarget->GetRenderTargetResource(), NULL, 0, 0, 0, GMaxRHIFeatureLevel);
 			check(Canvas);
 		}
 
@@ -1552,7 +1556,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 
 		check(VertexCount == RenderData->VertexBuffer.GetNumVertices());
 
-		FMatrix LocalToWorldInverseTranspose = LocalToWorld.Inverse().GetTransposed();
+		FMatrix LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 		for(uint32 i = 0; i < VertexCount; i++)
 		{
 			// Vertices
@@ -2562,6 +2566,13 @@ void UEditorEngine::RebuildStaticNavigableGeometry(ULevel* Level)
 				}
 			}
 		}
+
+		UWorld* World = GetEditorWorldContext().World();
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+		if (NavSys)
+		{
+			NavSys->UpdateLevelCollision(Level);
+		}
 	}
 }
 
@@ -2607,7 +2618,7 @@ namespace MaterialExportUtils
 
 		{
 			// Create a canvas for the render target and clear it to black
-			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GMaxRHIFeatureLevel);
 			Canvas.Clear(FLinearColor::Black);
 			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
 			TileItem.bFreezeTime = true;
@@ -2770,7 +2781,7 @@ namespace MaterialExportUtils
 
 				ViewFamily.Views.Add(new FSceneView(ViewInitOptions));
 					
-				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 
@@ -2854,7 +2865,7 @@ namespace MaterialExportUtils
 				NewView->CurrentBufferVisualizationMode = FName("WorldNormal");
 				ViewFamily.Views.Add(NewView);
 										
-				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 

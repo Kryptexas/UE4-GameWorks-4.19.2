@@ -20,6 +20,8 @@ public:
 	 */
 	FDeviceProfileServicesUIManager( );
 
+	virtual ~FDeviceProfileServicesUIManager() {}
+
 public:
 
 	// Begin IDeviceProfileServicesUIManager Interface

@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include "SkeletalMeshTypes.h"
 #include "Components/MeshComponent.h"
 #include "SkinnedMeshComponent.generated.h"
 
@@ -16,7 +15,8 @@
 // Forward declarations
 //
 class FSkeletalMeshResource;
-
+struct FSkelMeshChunk;
+class FSkeletalMeshVertexBuffer;
 //
 // Bone Visibility.
 //
@@ -527,11 +527,6 @@ public:
 
 	/** Vertex anim */
 
-	/** 
-	 * Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
-	 */
-	TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const;
-
 	/**
 	 * Checks/updates material usage on proxy based on current morph target usage
 	 */
@@ -539,6 +534,11 @@ public:
 
 
 protected:
+	/**
+	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
+	*/
+	static TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& InMorphCurveAnims, const TArray<FActiveVertexAnim>& InActiveAnims);
+
 	/** 
 	 * Should update transform in Tick
 	 * 
@@ -588,7 +588,7 @@ protected:
 
 	// Update Rate
 public:
-	/** if TRUE, Owner will determine how often animation will be updated and evaluated. See AActor::AnimUpdateRateTick() 
+	/** if TRUE, Owner will determine how often animation will be updated and evaluated. See AnimUpdateRateTick() 
 	 * This allows to skip frames for performance. (For example based on visibility and size on screen). */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
 	bool bEnableUpdateRateOptimizations;
@@ -808,6 +808,7 @@ public:
 	 *	@param  BoneName            Name of bone to hide
 	 *	@param	PhysBodyOption		Option for physics bodies that attach to the bones to be hidden
 	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void HideBoneByName( FName BoneName, EPhysBodyOp PhysBodyOption );
 
 	/**
@@ -815,7 +816,18 @@ public:
 	 *	Compoared to HideBone By Index - This keeps track of list of bones and update when LOD changes
 	 *	@param  BoneName            Name of bone to unhide
 	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void UnHideBoneByName( FName BoneName );
+
+	/** 
+	 *	Determines if the specified bone is hidden. 
+	 *
+	 *	@param  BoneName            Name of bone to check
+	 *
+	 *	@return true if hidden
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
+	bool IsBoneHiddenByName( FName BoneName );
 
 	/**
 	 *  Show/Hide Material - technical correct name for this is Section, but seems Material is mostly used
@@ -841,4 +853,20 @@ private:
 	 */
 	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
 	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
+
+	// Animation update rate control.
+public:
+	/** Animation Update Rate optimization parameters. */
+	UPROPERTY(Transient)
+	struct FAnimUpdateRateParameters AnimUpdateRateParams;
+
+	/** Aimation Update Rate Tick. */
+	void AnimUpdateRateTick();
+
+	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
+	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
+	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
+	void AnimUpdateRateSetParams(const bool & bRecentlyRendered, const float & MaxDistanceFactor, const bool & bPlayingRootMotion);
+
+	virtual bool IsPlayingRootMotion(){ return false; }
 };

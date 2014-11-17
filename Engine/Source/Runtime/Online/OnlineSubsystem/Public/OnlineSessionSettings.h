@@ -352,6 +352,8 @@ public:
 	const FName SessionName;
 	/** Index of the player who created the session [host] or joined it [client] */
 	int32 HostingPlayerNum;
+	/** Whether or not the local player is hosting this session */
+	bool bHosting;
 	/** List of players registered in the session */
 	TArray< TSharedRef<FUniqueNetId> > RegisteredPlayers;
 	/** State of the session (game thread write only) */
@@ -362,6 +364,7 @@ public:
 		FOnlineSession(InSessionSettings),
 		SessionName(InSessionName),
 		HostingPlayerNum(INDEX_NONE),
+		bHosting(false),
 		SessionState(EOnlineSessionState::NoSession)
 	{
 	}
@@ -371,6 +374,7 @@ public:
 		FOnlineSession(Session),
 		SessionName(InSessionName),
 		HostingPlayerNum(INDEX_NONE),
+		bHosting(false),
 		SessionState(EOnlineSessionState::NoSession)
 	{
 	}

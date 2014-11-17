@@ -10,6 +10,28 @@
 #pragma once
 #if !CPP      //noexport class
 
+// String search case used in UnrealString.h
+UENUM()
+namespace ESearchCase
+{
+	enum Type
+	{
+		CaseSensitive,
+		IgnoreCase,
+	};
+}
+
+// String search dir used in UnrealString.h
+UENUM()
+namespace ESearchDir
+{
+	enum Type
+	{
+		FromStart,
+		FromEnd,
+	};
+}
+
 // Generic axis enum (mirrored for native use in Axis.h).
 UENUM()
 namespace EAxis
@@ -104,6 +126,11 @@ enum EPixelFormat
 	PF_ETC2_RGBA,
 	PF_R32G32B32A32_UINT,
 	PF_R16G16_UINT,
+	PF_ASTC_4x4,	// 8.00 bpp
+	PF_ASTC_6x6,	// 3.56 bpp
+	PF_ASTC_8x8,	// 2.00 bpp
+	PF_ASTC_10x10,	// 1.28 bpp
+	PF_ASTC_12x12,	// 0.89 bpp
 	PF_MAX,
 };
 
@@ -193,7 +220,6 @@ struct FVector
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Vector, SaveGame)
 	float Z;
-
 };
 
 USTRUCT(immutable, noexport)
@@ -320,6 +346,23 @@ struct FIntPoint
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntPoint, SaveGame)
 	int32 Y;
 
+};
+
+/**
+ *  An integer vector in 3D space
+ */
+
+USTRUCT(immutable, noexport)
+struct FIntVector
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
+	int32 X;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
+	int32 Y;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntVector, SaveGame)
+	int32 Z;
 };
 
 
@@ -636,20 +679,18 @@ public:
 
 // A date/time value.
 
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FDateTime
 {
-	UPROPERTY()
 	int64 Ticks;
 };
 
 
 // A time span value.
 
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FTimespan
 {
-	UPROPERTY()
 	int64 Ticks;
 };
 

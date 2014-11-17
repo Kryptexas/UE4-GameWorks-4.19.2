@@ -4,6 +4,7 @@
 
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "Animation/BoneControllers/AnimNode_ModifyBone.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_ModifyBone.generated.h"
 
 UCLASS(MinimalAPI)
@@ -17,7 +18,7 @@ class UAnimGraphNode_ModifyBone : public UAnimGraphNode_SkeletalControlBase
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FString GetKeywords() const override;
 	// End of UEdGraphNode interface
 
@@ -25,4 +26,9 @@ protected:
 	// UAnimGraphNode_SkeletalControlBase interface
 	virtual FText GetControllerDescription() const override;
 	// End of UAnimGraphNode_SkeletalControlBase interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTitleTextTable CachedNodeTitles;
 };
+

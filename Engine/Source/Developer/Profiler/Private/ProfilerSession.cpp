@@ -32,10 +32,10 @@ FProfilerSession::FProfilerSession( EProfilerSessionTypes::Type InSessionType, c
 , EventGraphDataMaximum( MakeShareable( new FEventGraphData() ) )
 , EventGraphDataCurrent( MakeShareable( new FEventGraphData() ) )
 , CreationTime( FDateTime::Now() )
-, DataFilepath( InDataFilepath )
 , SessionType( InSessionType )
 , SessionInstanceInfo( InSessionInstanceInfo )
 , SessionInstanceID( InSessionInstanceID )
+, DataFilepath( InDataFilepath )
 , bDataPreviewing( false )
 , bDataCapturing( false )
 , bHasAllProfilerData( false )
@@ -55,10 +55,10 @@ FProfilerSession::FProfilerSession( const ISessionInstanceInfoPtr InSessionInsta
 , EventGraphDataMaximum( MakeShareable( new FEventGraphData() ) )
 , EventGraphDataCurrent( MakeShareable( new FEventGraphData() ) )
 , CreationTime( FDateTime::Now() )
-, DataFilepath( TEXT("") )
 , SessionType( EProfilerSessionTypes::Live )
 , SessionInstanceInfo( InSessionInstanceInfo )
 , SessionInstanceID( InSessionInstanceInfo->GetInstanceId() )
+, DataFilepath( TEXT("") )
 , bDataPreviewing( false )
 , bDataCapturing( false )
 , bHasAllProfilerData( false )
@@ -82,10 +82,10 @@ FProfilerSession::FProfilerSession( const FString& InDataFilepath )
 , EventGraphDataMaximum( MakeShareable( new FEventGraphData() ) )
 , EventGraphDataCurrent( MakeShareable( new FEventGraphData() ) )
 , CreationTime( FDateTime::Now() )
-, DataFilepath( InDataFilepath.Replace( *FStatConstants::StatsFileExtension, TEXT( "" ) ) )
 , SessionType( EProfilerSessionTypes::StatsFile )
 , SessionInstanceInfo( nullptr )
 , SessionInstanceID( FGuid::NewGuid() )
+, DataFilepath( InDataFilepath.Replace( *FStatConstants::StatsFileExtension, TEXT( "" ) ) )
 , bDataPreviewing( false )
 , bDataCapturing( false )
 , bHasAllProfilerData( false )
@@ -207,21 +207,32 @@ void FProfilerSession::UpdateAggregatedEventGraphData( const uint32 FrameIndex )
 	{
 		FGraphEventArray EventGraphCombineTasks;
 
-		new (EventGraphCombineTasks) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.CombineAndFindMax"),
+			STAT_FSimpleDelegateGraphTask_EventGraphData_CombineAndFindMax,
+			STATGROUP_TaskGraphTasks);
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.EventGraphData.EventGraphCombineAndAdd"),
+			STAT_FSimpleDelegateGraphTask_EventGraphData_EventGraphCombineAndAdd,
+			STATGROUP_TaskGraphTasks);
+
+		new (EventGraphCombineTasks)FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombineAndMax, EventGraphDataCurrent, NumFrames ), 
-			TEXT("EventGraphData.CombineAndFindMax"), nullptr
+			GET_STATID(STAT_FSimpleDelegateGraphTask_EventGraphData_CombineAndFindMax), nullptr
 		));
 
 		new (EventGraphCombineTasks) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
 			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerSession::EventGraphCombineAndAdd, EventGraphDataCurrent, NumFrames ), 
-			TEXT("EventGraphData.EventGraphCombineAndAdd"), nullptr
+			GET_STATID(STAT_FSimpleDelegateGraphTask_EventGraphData_EventGraphCombineAndAdd), nullptr
 		));
+
+		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.EventGraphData.CombineJoinAndContinue"),
+			STAT_FNullGraphTask_EventGraphData_CombineJoinAndContinue,
+			STATGROUP_TaskGraphTasks);
 
 		// JoinThreads
 		CompletionSync = TGraphTask<FNullGraphTask>::CreateTask( &EventGraphCombineTasks, ENamedThreads::GameThread )
-			.ConstructAndDispatchWhenReady( TEXT("EventGraphData.CombineJoinAndContinue"), ENamedThreads::AnyThread );
+			.ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_EventGraphData_CombineJoinAndContinue), ENamedThreads::AnyThread);
 	}
 	else
 	{
@@ -324,6 +335,8 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 		FProfilerSampleArray& MutableCollection = const_cast<FProfilerSampleArray&>(DataProvider->GetCollection());
 		MutableCollection[FrameRootSampleIndex].SetDurationMS( GameThreadTimeMS != 0.0f ? GameThreadTimeMS : MaxThreadTimeMS );
 
+		FPSAnalyzer->AddSample( GameThreadTimeMS > 0.0f ? 1000.0f/GameThreadTimeMS : 0.0f );
+
 		// Process the non-hierarchical samples for the specified frame.
 		{
 			// Process integer counters.
@@ -339,7 +352,6 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 			{
 				const FProfilerFloatAccumulator& FloatCounter = CurrentProfilerData.FloatAccumulators[Index];
 				DataProvider->AddCounterSample( MetaData->GetStatByID(FloatCounter.StatId).OwningGroup().ID(), FloatCounter.StatId, (double)FloatCounter.Value, EProfilerSampleTypes::NumberFloat );
-
 			}
 		}
 

@@ -26,7 +26,11 @@
 class FMeshDrawingPolicy
 {
 public:
+	/** Per-element data required by the drawing policy that static mesh draw lists will cache. */
 	struct ElementDataType {};
+
+	/** Context data required by the drawing policy that is not known when caching policies in static mesh draw lists. */
+	struct ContextDataType {};
 
 	FMeshDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
@@ -74,7 +78,8 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 		) const;
 
 	/**
@@ -87,7 +92,7 @@ public:
 	 * @param CI - The command interface to execute the draw commands on.
 	 * @param View - The view of the scene being drawn.
 	 */
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/**
 	* Get the decl for this mesh policy type and vertexfactory

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateBrush.h: Declares the FSlateBrush structure.
-=============================================================================*/
-
 #pragma once
 
 #include "Margin.h"
@@ -15,13 +11,13 @@
 /**
  * Enumerates ways in which an image can be drawn.
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateBrushDrawType
 {
 	enum Type
 	{
 		/** Don't do anything */
-		NoDrawType,
+		NoDrawType UMETA(Hidden),
 
 		/** Draw a 3x3 box, where the sides and the middle stretch based on the Margin */
 		Box,
@@ -38,7 +34,7 @@ namespace ESlateBrushDrawType
 /**
  * Enumerates tiling options for image drawing.
  */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateBrushTileType
 {
 	enum Type
@@ -81,7 +77,7 @@ namespace ESlateBrushMirrorType
 }
 
 
-/*
+/**
  * Enumerates brush image types.
  */
 UENUM()
@@ -104,21 +100,21 @@ namespace ESlateBrushImageType
 /**
  * An brush which contains information about how to draw a Slate element
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateBrush
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Size of the resource in Slate Units */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	FVector2D ImageSize;
 
 	/** How to draw the image */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	TEnumAsByte<enum ESlateBrushDrawType::Type > DrawAs;
 
 	/** The margin to use in Box and Border modes */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(UVSpace="true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( UVSpace="true" ))
 	FMargin Margin;
 
 	/** Tinting applied to the image. */
@@ -126,16 +122,16 @@ struct SLATECORE_API FSlateBrush
 	FLinearColor Tint_DEPRECATED;
 
 	/** Tinting applied to the image. */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(DisplayName="Tint"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayName="Tint" ))
 	FSlateColor TintColor;
 
 	/** How to tile the image in Image mode */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	TEnumAsByte<enum ESlateBrushTileType::Type> Tiling;
 
 	/** How to mirror the image in Image mode.  This is normally only used for dynamic image brushes where the source texture
 	    comes from a hardware device such as a web camera. */
-	UPROPERTY(EditAnywhere, Category=Brush)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)
 	TEnumAsByte<enum ESlateBrushMirrorType::Type> Mirroring;
 
 	/** The type of image */
@@ -200,7 +196,6 @@ public:
 	 * Gets the brush's tint color.
 	 *
 	 * @param InWidgetStyle The widget style to get the tint for.
-	 *
 	 * @return Tint color.
 	 */
 	FLinearColor GetTint( const FWidgetStyle& InWidgetStyle ) const
@@ -228,6 +223,38 @@ public:
 		return bIsDynamicallyLoaded;
 	}
 
+	/**
+	 * Compares this brush with another for equality.
+	 *
+	 * @param Other The other brush.
+	 *
+	 * @return true if the two brushes are equal, false otherwise.
+	 */
+	bool operator==( const FSlateBrush& Other ) const 
+	{
+		return ImageSize == Other.ImageSize
+			&& DrawAs == Other.DrawAs
+			&& Margin == Other.Margin
+			&& TintColor == Other.TintColor
+			&& Tiling == Other.Tiling
+			&& Mirroring == Other.Mirroring
+			&& ResourceObject == Other.ResourceObject
+			&& ResourceName == Other.ResourceName
+			&& bIsDynamicallyLoaded == Other.bIsDynamicallyLoaded;
+	}
+
+	/**
+	 * Compares this brush with another for inequality.
+	 *
+	 * @param Other The other brush.
+	 *
+	 * @return false if the two brushes are equal, true otherwise.
+	 */
+	bool operator!=( const FSlateBrush& Other ) const 
+	{
+		return !(*this == Other);
+	}
+
 public:
 
 	/**
@@ -239,8 +266,10 @@ public:
 
 protected:
 
-	/** Pointer to the UTexture2D. Holding onto it as a UObject because UTexture2D is not available in Slate core. */
-	UPROPERTY(EditAnywhere, Category=Brush, meta=(DisplayThumbnail="true", DisplayName="Texture or Material Asset"))
+	/**
+	 * The image to render for this brush, can be a UTexture2D or Material.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayThumbnail="true", ThumbnailSize="X=40 Y=40", DisplayName="Image" ))
 	UObject* ResourceObject;
 
 	/** The name of the rendering resource to use */

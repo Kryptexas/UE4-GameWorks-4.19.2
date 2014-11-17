@@ -24,12 +24,15 @@ public partial class Project : CommandUtils
 
 	public static void Build(BuildCommand Command, ProjectParams Params, int WorkingCL = -1)
 	{
+
 		Params.ValidateAndLog();
 
 		if (!Params.Build)
 		{
 			return;
 		}
+
+		Log("********** BUILD COMMAND STARTED **********");
 
 		var UE4Build = new UE4Build(Command);
 		var Agenda = new UE4Build.BuildAgenda();
@@ -122,6 +125,8 @@ public partial class Project : CommandUtils
 			// Open files for add or edit
 			UE4Build.AddBuildProductsToChangelist(WorkingCL, UE4Build.BuildProductFiles);
 		}
+
+		Log("********** BUILD COMMAND COMPLETED **********");
 	}
 
 	#endregion

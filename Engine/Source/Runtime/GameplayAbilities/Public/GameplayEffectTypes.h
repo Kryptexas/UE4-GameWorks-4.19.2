@@ -4,6 +4,7 @@
 
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
+#include "GameplayPrediction.h"
 #include "GameplayEffectTypes.generated.h"
 
 #define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
@@ -132,6 +133,64 @@ namespace EGameplayEffectStackingPolicy
 
 
 /**
+ * This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
+ *	For example if a skill needs to create an active effect and then destroy that specific effect that it created, it has to do so
+ *	through a handle. a pointer or index into the active list is not sufficient.
+ */
+USTRUCT(BlueprintType)
+struct FActiveGameplayEffectHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectHandle()
+		: Handle(INDEX_NONE)
+	{
+
+	}
+
+	FActiveGameplayEffectHandle(int32 InHandle)
+		: Handle(InHandle)
+	{
+
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	static FActiveGameplayEffectHandle GenerateNewHandle(UAbilitySystemComponent* OwningComponent);
+
+	UAbilitySystemComponent* GetOwningAbilitySystemComponent();
+
+	bool operator==(const FActiveGameplayEffectHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FActiveGameplayEffectHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+	friend uint32 GetTypeHash(const FActiveGameplayEffectHandle& InHandle)
+	{
+		return InHandle.Handle;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("%d"), Handle);
+	}
+
+private:
+
+	UPROPERTY()
+	int32 Handle;
+};
+
+
+/**
  * FGameplayEffectInstigatorContext
  *	Data struct for an instigator. This is still being fleshed out. We will want to track actors but also be able to provide some level of tracking for actors that are destroyed.
  *	We may need to store some positional information as well.
@@ -145,6 +204,7 @@ struct FGameplayEffectInstigatorContext
 	FGameplayEffectInstigatorContext()
 		: Instigator(NULL)
 		, InstigatorAbilitySystemComponent(NULL)
+		, HasWorldOrigin(false)
 	{
 	}
 
@@ -161,18 +221,20 @@ struct FGameplayEffectInstigatorContext
 
 	void AddHitResult(const FHitResult InHitResult);
 
+	void AddOrigin(FVector InOrigin);
+
 	FString ToString() const
 	{
 		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
 	}
 
 	/** Should always return the original instigator that started the whole chain */
-	AActor * GetOriginalInstigator()
+	AActor* GetOriginalInstigator()
 	{
 		return Instigator;
 	}
 
-	UAbilitySystemComponent * GetOriginalInstigatorAbilitySystemComponent() const
+	UAbilitySystemComponent* GetOriginalInstigatorAbilitySystemComponent() const
 	{
 		return InstigatorAbilitySystemComponent;
 	}
@@ -184,10 +246,15 @@ struct FGameplayEffectInstigatorContext
 	AActor* Instigator;
 
 	UPROPERTY(NotReplicated)
-	UAbilitySystemComponent *InstigatorAbilitySystemComponent;
+	UAbilitySystemComponent* InstigatorAbilitySystemComponent;
 
 	/** Trace information - may be NULL in many cases */
 	TSharedPtr<FHitResult>	HitResult;
+
+	UPROPERTY()
+	FVector	WorldOrigin;
+
+	bool HasWorldOrigin;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
@@ -249,3 +316,31 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGa
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);
+
+// -----------------------------------------------------------
+
+/** 
+ *	Structure that contains a counted set of GameplayTags. Can optionally include parent tags
+ *	
+ */
+struct FGameplayTagCountContainer
+{
+	FGameplayTagCountContainer()
+	: TagContainerType(EGameplayTagMatchType::Explicit)
+	{ }
+
+	FGameplayTagCountContainer(EGameplayTagMatchType::Type InTagContainerType)
+	: TagContainerType(InTagContainerType)
+	{ }
+
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const;
+	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
+	void UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta);
+	void UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta);
+
+	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
+
+	EGameplayTagMatchType::Type TagContainerType;
+};

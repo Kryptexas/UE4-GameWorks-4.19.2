@@ -7,16 +7,16 @@
 #include "RichTextMarkupProcessing.h"
 
 
-TSharedRef< FRichTextMarkupProcessing > FRichTextMarkupProcessing::Create()
+TSharedRef< FDefaultRichTextMarkupParser > FDefaultRichTextMarkupParser::Create()
 {
-	return MakeShareable( new FRichTextMarkupProcessing() );
+	return MakeShareable( new FDefaultRichTextMarkupParser() );
 }
 
-void FRichTextMarkupProcessing::Process(TArray<FTextLineParseResults>& Results, const FString& Input, FString& Output)
+void FDefaultRichTextMarkupParser::Process(TArray<FTextLineParseResults>& Results, const FString& Input, FString& Output)
 {
 #if UE_ENABLE_ICU
 	TArray<FTextRange> LineRanges;
-	CalculateLineRanges(Input, LineRanges);
+	FTextRange::CalculateLineRangesFromString(Input, LineRanges);
 	ParseLineRanges(Input, LineRanges, Results);
 	HandleEscapeSequences(Input, Results, Output);
 #else
@@ -28,48 +28,10 @@ void FRichTextMarkupProcessing::Process(TArray<FTextLineParseResults>& Results, 
 #endif
 }
 
-void FRichTextMarkupProcessing::CalculateLineRanges(const FString& Input, TArray<FTextRange>& LineRanges) const
-{
-	// Iterate over each line break candidate, adding ranges from after the end of the last line added to before the newline or end of string.
-	FLineBreakIterator LBI(Input);
-	int32 RangeBegin = LBI.GetCurrentPosition();
-	for(;;)
-	{
-		const int32 BreakIndex = LBI.MoveToNext();
-
-		// If beginning or potential end is invalid, cease.
-		if(RangeBegin == INDEX_NONE || BreakIndex == INDEX_NONE)
-		{
-			break;
-		}
-
-		const int32 BreakingCharacterIndex = BreakIndex - 1;
-		if(BreakingCharacterIndex >= RangeBegin) // Valid index check.
-		{
-			const TCHAR BreakingCharacter = Input[BreakingCharacterIndex];
-			// If line break candidate is after a newline, add the range as a new line.
-			if(FChar::IsLinebreak(BreakingCharacter))
-			{
-				LineRanges.Emplace( FTextRange(RangeBegin, BreakingCharacterIndex) );
-			}
-			// If the line break candidate is the end of the string, add the range as a new line.
-			else if(BreakIndex == Input.Len())
-			{
-				LineRanges.Emplace( FTextRange(RangeBegin, BreakIndex) );
-			}
-			else
-			{
-				continue;
-			}
-			RangeBegin = BreakIndex; // The next line begins after the end of the current line.
-		}
-	}
-}
-
-void FRichTextMarkupProcessing::ParseLineRanges(const FString& Input, const TArray<FTextRange>& LineRanges, TArray<FTextLineParseResults>& LineParseResultsArray) const
+void FDefaultRichTextMarkupParser::ParseLineRanges(const FString& Input, const TArray<FTextRange>& LineRanges, TArray<FTextLineParseResults>& LineParseResultsArray) const
 {
 	// Special regular expression pattern for matching rich text markup elements. IE: <ElementName AttributeName="AttributeValue">Content</>
-	FRegexPattern ElementRegexPattern( TEXT("<([\\w\\d\\.]+)((?: (?:[\\w\\d\\.]+=(?>\".*?\")))+)?(?:(?:/>)|(?:>(.+?)</>))") );
+	FRegexPattern ElementRegexPattern( TEXT("<([\\w\\d\\.]+)((?: (?:[\\w\\d\\.]+=(?>\".*?\")))+)?(?:(?:/>)|(?:>(.*?)</>))") );
 	FRegexMatcher ElementRegexMatcher(ElementRegexPattern, Input);
 
 	// Parse line ranges, creating line parse results and run parse results.
@@ -171,7 +133,7 @@ void FRichTextMarkupProcessing::ParseLineRanges(const FString& Input, const TArr
 	}
 }
 
-void FRichTextMarkupProcessing::HandleEscapeSequences(const FString& Input, TArray<FTextLineParseResults>& LineParseResultsArray, FString& ConcatenatedUnescapedLines) const
+void FDefaultRichTextMarkupParser::HandleEscapeSequences(const FString& Input, TArray<FTextLineParseResults>& LineParseResultsArray, FString& ConcatenatedUnescapedLines) const
 {
 	// Modify original string to handle escape sequences that need to be replaced while updating run ranges.
 	for(int32 i = 0; i < LineParseResultsArray.Num(); ++i)
@@ -292,6 +254,107 @@ void FRichTextMarkupProcessing::HandleEscapeSequences(const FString& Input, TArr
 
 		// Adjust end indices for previous substitutions.
 		LineParseResults.Range.EndIndex = ConcatenatedUnescapedLines.Len();
+	}
+}
+
+
+TSharedRef< FDefaultRichTextMarkupWriter > FDefaultRichTextMarkupWriter::Create()
+{
+	return MakeShareable( new FDefaultRichTextMarkupWriter() );
+}
+
+void FDefaultRichTextMarkupWriter::Write(const TArray<FRichTextLine>& InLines, FString& Output)
+{
+	for (int32 LineIndex = 0; LineIndex < InLines.Num(); ++LineIndex)
+	{
+		const FRichTextLine& Line = InLines[LineIndex];
+
+		// Append \n to the end of the previous line
+		if(LineIndex > 0)
+		{
+			Output.AppendChar('\n');
+		}
+
+		for (const FRichTextRun& Run : Line.Runs)
+		{
+			// Our rich-text format takes the form of <Name metakey1="metavalue1" metakey2="metavalue2">The Text</>
+			const bool bHasTag = !Run.Info.Name.IsEmpty();
+			if (bHasTag)
+			{
+				Output.AppendChar('<');
+
+				Output.Append(Run.Info.Name);
+
+				for(const TPair<FString, FString>& MetaDataEntry : Run.Info.MetaData)
+				{
+					Output.AppendChar(' ');
+					Output.Append(MetaDataEntry.Key);
+					Output.AppendChar('=');
+					Output.AppendChar('"');
+					Output.Append(MetaDataEntry.Value);
+					Output.AppendChar('"');
+				}
+
+				Output.AppendChar('>');
+			}
+
+			FString RunText = Run.Text;
+			EscapeText(RunText);
+			Output.Append(RunText);
+
+			if (bHasTag)
+			{
+				Output.Append(TEXT("</>"));
+			}
+		}
+	}
+}
+
+void FDefaultRichTextMarkupWriter::EscapeText(FString& TextToEscape)
+{
+	// List of characters that we have to escape to avoid accidental rich-text formatting
+	static const TPair<TCHAR, FString> EscapeCharacters[] = {
+		TPairInitializer<TCHAR, FString>('&', "&amp;"),
+		TPairInitializer<TCHAR, FString>('"', "&quot;"),
+		TPairInitializer<TCHAR, FString>('<', "&lt;"),
+		TPairInitializer<TCHAR, FString>('>', "&gt;"),
+	};
+
+	// First count the extra space needed
+	int32 EscapedStringLen = TextToEscape.Len();
+	for (int32 TextIndex = 0; TextIndex < TextToEscape.Len(); ++TextIndex)
+	{
+		const TCHAR CharToEscape = TextToEscape[TextIndex];
+		for (const auto& EscapeCharacter : EscapeCharacters)
+		{
+			if (CharToEscape == EscapeCharacter.Key)
+			{
+				EscapedStringLen += (EscapeCharacter.Value.Len() - 1);
+				break;
+			}
+		}
+	}
+
+	if (EscapedStringLen == TextToEscape.Len())
+	{
+		return;
+	}
+
+	TextToEscape.Reserve(EscapedStringLen);
+
+	// Then perform the actual escape (backwards to make iteration simpler)
+	for (int32 TextIndex = TextToEscape.Len() - 1; TextIndex >= 0; --TextIndex)
+	{
+		const TCHAR CharToEscape = TextToEscape[TextIndex];
+		for (const auto& EscapeCharacter : EscapeCharacters)
+		{
+			if (CharToEscape == EscapeCharacter.Key)
+			{
+				TextToEscape.RemoveAt(TextIndex, 1, false);
+				TextToEscape.InsertAt(TextIndex, EscapeCharacter.Value);
+				break;
+			}
+		}
 	}
 }
 

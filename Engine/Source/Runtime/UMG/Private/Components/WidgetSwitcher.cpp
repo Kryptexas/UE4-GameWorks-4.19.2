@@ -16,9 +16,9 @@ UWidgetSwitcher::UWidgetSwitcher(const FPostConstructInitializeProperties& PCIP)
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UWidgetSwitcher::ReleaseNativeWidget()
+void UWidgetSwitcher::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyWidgetSwitcher.Reset();
 }
@@ -49,7 +49,18 @@ void UWidgetSwitcher::SetActiveWidgetIndex(int32 Index)
 	if ( MyWidgetSwitcher.IsValid() )
 	{
 		// Ensure the index is clamped to a valid range.
-		int32 SafeIndex = FMath::Clamp(Index, 0, FMath::Max(0, Slots.Num() - 1));
+		int32 SafeIndex = FMath::Clamp(ActiveWidgetIndex, 0, FMath::Max(0, Slots.Num() - 1));
+		MyWidgetSwitcher->SetActiveWidgetIndex(SafeIndex);
+	}
+}
+
+void UWidgetSwitcher::SetActiveWidget(UWidget* Widget)
+{
+	ActiveWidgetIndex = GetChildIndex(Widget);
+	if ( MyWidgetSwitcher.IsValid() )
+	{
+		// Ensure the index is clamped to a valid range.
+		int32 SafeIndex = FMath::Clamp(ActiveWidgetIndex, 0, FMath::Max(0, Slots.Num() - 1));
 		MyWidgetSwitcher->SetActiveWidgetIndex(SafeIndex);
 	}
 }
@@ -97,9 +108,9 @@ TSharedRef<SWidget> UWidgetSwitcher::RebuildWidget()
 	return BuildDesignTimeWidget( MyWidgetSwitcher.ToSharedRef() );
 }
 
-void UWidgetSwitcher::SyncronizeProperties()
+void UWidgetSwitcher::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }
@@ -109,6 +120,11 @@ void UWidgetSwitcher::SyncronizeProperties()
 const FSlateBrush* UWidgetSwitcher::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.WidgetSwitcher");
+}
+
+const FText UWidgetSwitcher::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
 }
 
 void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)

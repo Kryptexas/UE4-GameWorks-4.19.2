@@ -101,7 +101,7 @@ namespace
 bool FRTFProcessingTest::RunTest (const FString& Parameters)
 {
 #if UE_ENABLE_ICU
-	TSharedRef< FRichTextMarkupProcessing > RichTextMarkupProcessing = FRichTextMarkupProcessing::Create();
+	TSharedRef< FDefaultRichTextMarkupParser > RichTextMarkupProcessing = FDefaultRichTextMarkupParser::Create();
 
 	// Text
 	{

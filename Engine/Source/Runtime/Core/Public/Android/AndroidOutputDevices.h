@@ -8,7 +8,7 @@
 #pragma once
 struct CORE_API FAndroidOutputDevices : public FGenericPlatformOutputDevices
 {
-	static class FOutputDevice*			GetLog();
+//	static class FOutputDevice*			GetLog();
 	static class FOutputDeviceError*	GetError();
 };
 

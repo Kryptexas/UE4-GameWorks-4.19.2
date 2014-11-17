@@ -7,9 +7,6 @@
 #include "EnginePrivate.h"
 #include "ShowFlags.h"
 
-#define STRINGIFY(s) JOINSTRING(s)
-#define JOINSTRING(s) #s
-
 static bool IsValidNameChar(TCHAR c)
 {
 	return (c >= (TCHAR)'a' && c <= (TCHAR)'z')
@@ -166,7 +163,7 @@ int32 FEngineShowFlags::FindIndexByName(const TCHAR* Name, const TCHAR *CommaSep
 		// search through all defined showflags.
 		FString Search = Name;
 
-		#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) if(Search == STRINGIFY(a)) { return (int32)SF_##a; }
+		#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) if(Search == PREPROCESSOR_TO_STRING(a)) { return (int32)SF_##a; }
 
 		#include "ShowFlagsValues.inl"
 
@@ -205,7 +202,7 @@ FString FEngineShowFlags::FindNameByIndex(uint32 InIndex)
 {
 	FString Name;
 
-	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Name = STRINGIFY(a); break;
+	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Name = PREPROCESSOR_TO_STRING(a); break;
 
 	switch (InIndex)
 	{
@@ -219,7 +216,7 @@ FString FEngineShowFlags::FindNameByIndex(uint32 InIndex)
 
 void FEngineShowFlags::AddNameByIndex(uint32 InIndex, FString& Out)
 {
-	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Out += STRINGIFY(a); break;
+	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: Out += PREPROCESSOR_TO_STRING(a); break;
 	switch (InIndex)
 	{
 		#include "ShowFlagsValues.inl"
@@ -339,6 +336,18 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	}
 
 	{
+		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
+		if(ICVar->GetValueOnGameThread() == 0)
+		{
+			EngineShowFlags.AmbientOcclusion = 0;
+			EngineShowFlags.Decals = 0;
+			EngineShowFlags.DynamicShadows = 0;
+			EngineShowFlags.GlobalIllumination = 0;
+			EngineShowFlags.ScreenSpaceReflections = 0;
+		}
+	}
+	
+	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RefractionQuality"));
 		if(ICVar->GetValueOnGameThread() <= 0)
 		{
@@ -413,7 +422,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	// disable AA in full screen GBuffer visualization
 	if(EngineShowFlags.VisualizeBuffer && CurrentBufferVisualizationMode != NAME_None)
 	{
-		EngineShowFlags.AntiAliasing = 0;
+		EngineShowFlags.Tonemapper = 0;
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

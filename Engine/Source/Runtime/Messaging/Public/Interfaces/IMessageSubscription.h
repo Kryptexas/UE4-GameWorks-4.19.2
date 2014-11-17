@@ -27,11 +27,15 @@ public:
 
 	/**
 	 * Disables the subscription.
+	 *
+	 * @see Enable, IsEnabled
 	 */
 	virtual void Disable( ) = 0;
 
 	/**
 	 * Enables the subscription.
+	 *
+	 * @see Disable, IsEnabled
 	 */
 	virtual void Enable( ) = 0;
 
@@ -39,6 +43,7 @@ public:
 	 * Gets the type of subscribed messages.
 	 *
 	 * @return Message type.
+	 * @see GetScopeRange, GetSubscriber
 	 */
 	virtual FName GetMessageType( ) = 0;
 
@@ -46,6 +51,7 @@ public:
 	 * Gets the range of subscribed message scopes.
 	 *
 	 * @return Message scope range.
+	 * @see GetMessageType, GetSubscriber
 	 */
 	virtual const FMessageScopeRange& GetScopeRange( ) = 0;
 
@@ -53,6 +59,7 @@ public:
 	 * Gets the subscriber.
 	 *
 	 * @return The subscriber.
+	 * @see GetMessageType, GetScopeRange
 	 */
 	virtual const IReceiveMessagesWeakPtr& GetSubscriber( ) = 0;
 
@@ -60,13 +67,12 @@ public:
 	 * Checks whether the subscription is enabled.
 	 *
 	 * @return true if the subscription is enabled, false otherwise.
+	 * @see Enable, Disable
 	 */
 	virtual bool IsEnabled( ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IMessageSubscription( ) { }
 };

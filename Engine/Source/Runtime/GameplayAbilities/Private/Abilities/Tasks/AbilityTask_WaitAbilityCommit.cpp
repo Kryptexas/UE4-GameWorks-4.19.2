@@ -14,20 +14,11 @@ UAbilityTask_WaitAbilityCommit::UAbilityTask_WaitAbilityCommit(const class FPost
 
 UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCommit(UObject* WorldContextObject, FGameplayTag InWithTag, FGameplayTag InWithoutTag)
 {
-	check(WorldContextObject);
-	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (ThisAbility)
-	{
-		UAbilityTask_WaitAbilityCommit * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitAbilityCommit>();
-		MyObj->InitTask(ThisAbility);
-		MyObj->WithTag = InWithTag;
-		MyObj->WithoutTag = InWithoutTag;
+	auto MyObj = NewTask<UAbilityTask_WaitAbilityCommit>(WorldContextObject);
+	MyObj->WithTag = InWithTag;
+	MyObj->WithoutTag = InWithoutTag;
 
-
-		return MyObj;
-	}
-	return NULL;
+	return MyObj;
 }
 
 void UAbilityTask_WaitAbilityCommit::Activate()
@@ -36,6 +27,16 @@ void UAbilityTask_WaitAbilityCommit::Activate()
 	{		
 		AbilitySystemComponent->AbilityCommitedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
 	}
+}
+
+void UAbilityTask_WaitAbilityCommit::OnDestroy(bool AbilityEnded)
+{
+	if (AbilitySystemComponent.IsValid())
+	{
+		AbilitySystemComponent->AbilityCommitedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
+	}
+
+	Super::OnDestroy(AbilityEnded);
 }
 
 void UAbilityTask_WaitAbilityCommit::OnAbilityCommit(UGameplayAbility *ActivatedAbility)
@@ -47,10 +48,7 @@ void UAbilityTask_WaitAbilityCommit::OnAbilityCommit(UGameplayAbility *Activated
 		return;
 	}
 
-	if (AbilitySystemComponent.IsValid())
-	{
-		AbilitySystemComponent->AbilityCommitedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
-	}
-
 	OnCommit.Broadcast(ActivatedAbility);
+
+	EndTask();
 }

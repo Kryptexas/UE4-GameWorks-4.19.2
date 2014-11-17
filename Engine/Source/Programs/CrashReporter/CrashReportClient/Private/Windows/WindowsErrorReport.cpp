@@ -104,7 +104,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 		}
 	}
 
-	// Don't write a Diagnostics.txt to disk in rocket. It will be displayed in the UI but not sent to the server.
+	// Don't write a Diagnostics.txt to disk in UE4 release build. It will be displayed in the UI but not sent to the server.
 	if ( !FRocketSupport::IsRocket() )
 	{
 		// There's a callstack, so write it out to save the server trying to do it
@@ -114,13 +114,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	const auto& Exception = CrashDebugHelper->CrashInfo.Exception;
 	const FString Assertion = FWindowsReportParser::Find( ReportDirectory, TEXT( "AssertLog=" ) );
 
-	return FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
-}
-
-FString FWindowsErrorReport::FindCrashedAppName() const
-{
-	const FString CrashedAppName = FWindowsReportParser::Find( ReportDirectory, TEXT( "AppName=" ) );
-	return CrashedAppName;
+	return FCrashReportUtil::FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
 }
 
 FString FWindowsErrorReport::FindMostRecentErrorReport()

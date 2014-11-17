@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MallocBinned.h: Binned memory allocator, refactoring the Windows allocator
-=============================================================================*/
-
 #pragma once
+
 
 #define MEM_TIME(st)
 
@@ -43,6 +40,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Used Peak"),		STAT_Binned_UsedPeak,STATG
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Current Allocs"),STAT_Binned_CurrentAllocs,STATGROUP_MemoryAllocator, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Total Allocs"),	STAT_Binned_TotalAllocs,STATGROUP_MemoryAllocator, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Slack Current"),	STAT_Binned_SlackCurrent,STATGROUP_MemoryAllocator, CORE_API);
+
 
 //
 // Optimized virtual memory allocator.
@@ -156,7 +154,7 @@ private:
 
 		FFreePageBlock() 
 		{
-			Ptr = NULL;
+			Ptr = nullptr;
 			ByteSize = 0;
 		}
 	};
@@ -197,8 +195,8 @@ private:
 		uint64				TotalWaste;
 #endif
 		FPoolTable()
-			: FirstPool(NULL)
-			, ExhaustedPool(NULL)
+			: FirstPool(nullptr)
+			, ExhaustedPool(nullptr)
 			, BlockSize(0)
 #if STATS
 			, NumActivePools(0)
@@ -226,7 +224,7 @@ private:
 		PoolHashBucket()
 		{
 			Key=0;
-			FirstPool=NULL;
+			FirstPool=nullptr;
 			Prev=this;
 			Next=this;
 		}
@@ -413,7 +411,7 @@ private:
 			Ptr = ((Ptr-(PageSize*NextStep))-1)&~((UPTRINT)PageSize-1);
 		}
 		AllocationBase=0;
-		return NULL;
+		return nullptr;
 	}
 
 	FORCEINLINE FPoolInfo* FindPoolInfoInternal(UPTRINT Ptr, uint16& JumpOffset)
@@ -433,14 +431,14 @@ private:
 				if (!collision->FirstPool[PoolIndex].AllocSize)
 				{
 					JumpOffset = collision->FirstPool[PoolIndex].TableIndex;
-					return NULL;
+					return nullptr;
 				}
 				return &collision->FirstPool[PoolIndex];
 			}
 			collision=collision->Next;
 		} while (collision!=&HashBuckets[Hash]);
 
-		return NULL;
+		return nullptr;
 	}
 
 	/**
@@ -483,9 +481,9 @@ private:
 		PoolHashBucket* NextFree=HashBucketFreeList->Next;
 		PoolHashBucket* Free=HashBucketFreeList;
 		Free->Unlink();
-		if (NextFree==Free) 
+		if (NextFree == Free) 
 		{
-			NextFree=NULL;
+			NextFree = nullptr;
 		}
 		HashBucketFreeList=NextFree;
 		return Free;
@@ -501,7 +499,7 @@ private:
 		checkSlow(Blocks * Table->BlockSize <= Bytes && PoolSize >= Bytes);
 
 		// Allocate memory.
-		FFreeMem* Free = NULL;
+		FFreeMem* Free = nullptr;
 		SIZE_T ActualPoolSize; //TODO: use this to reduce waste?
 		Free = (FFreeMem*)OSAlloc(OsBytes, ActualPoolSize);
 
@@ -541,7 +539,7 @@ private:
 #endif
 		// Create first free item.
 		Free->NumFreeBlocks = Blocks;
-		Free->Next       = NULL;
+		Free->Next       = nullptr;
 
 		return Pool;
 	}
@@ -769,12 +767,12 @@ public:
 	FMallocBinned(uint32 InPageSize, uint64 AddressLimit)
 		:	TableAddressLimit(AddressLimit)
 #ifdef USE_LOCKFREE_DELETE
-		,	PendingFreeList(NULL)
+		,	PendingFreeList(nullptr)
 		,	bFlushingFrees(false)
 		,	bDoneFreeListInit(false)
 #endif
-		,	HashBuckets(NULL)
-		,	HashBucketFreeList(NULL)
+		,	HashBuckets(nullptr)
+		,	HashBucketFreeList(nullptr)
 		,	PageSize		(InPageSize)
 #ifdef CACHE_FREED_OS_ALLOCS
 		,	FreedPageBlocksNum(0)
@@ -820,17 +818,17 @@ public:
 
 
 		// Init tables.
-		OsTable.FirstPool = NULL;
-		OsTable.ExhaustedPool = NULL;
+		OsTable.FirstPool = nullptr;
+		OsTable.ExhaustedPool = nullptr;
 		OsTable.BlockSize = 0;
 
 		/** The following options are not valid for page sizes less than 64k. They are here to reduce waste*/
-		PagePoolTable[0].FirstPool = NULL;
-		PagePoolTable[0].ExhaustedPool = NULL;
+		PagePoolTable[0].FirstPool = nullptr;
+		PagePoolTable[0].ExhaustedPool = nullptr;
 		PagePoolTable[0].BlockSize = PageSize == PAGE_SIZE_LIMIT ? BinnedSizeLimit+(BinnedSizeLimit/2) : 0;
 
-		PagePoolTable[1].FirstPool = NULL;
-		PagePoolTable[1].ExhaustedPool = NULL;
+		PagePoolTable[1].FirstPool = nullptr;
+		PagePoolTable[1].ExhaustedPool = nullptr;
 		PagePoolTable[1].BlockSize = PageSize == PAGE_SIZE_LIMIT ? PageSize+BinnedSizeLimit : 0;
 
 		// Block sizes are based around getting the maximum amount of allocations per pool, with as little alignment waste as possible.
@@ -847,8 +845,8 @@ public:
 
 		for( uint32 i = 0; i < POOL_COUNT; i++ )
 		{
-			PoolTable[i].FirstPool = NULL;
-			PoolTable[i].ExhaustedPool = NULL;
+			PoolTable[i].FirstPool = nullptr;
+			PoolTable[i].ExhaustedPool = nullptr;
 			PoolTable[i].BlockSize = BlockSizes[i];
 #if STATS
 			PoolTable[i].MinRequest = PoolTable[i].BlockSize;
@@ -1039,14 +1037,14 @@ public:
 				}
 			}
 		}
-		else if( Ptr == NULL )
+		else if( Ptr == nullptr )
 		{
 			NewPtr = Malloc( NewSize, Alignment );
 		}
 		else
 		{
 			Free( Ptr );
-			NewPtr = NULL;
+			NewPtr = nullptr;
 		}
 
 		MEM_TIME(MemTime += FPlatformTime::Seconds());
@@ -1211,7 +1209,7 @@ public:
 			uint32 TotalPools = 0;
 			uint32 TotalSlack = 0;
 
-			FPoolTable* Table = NULL;
+			FPoolTable* Table = nullptr;
 			for( int32 i = 0; i < BinnedSizeLimit + EXTENED_PAGE_POOL_ALLOCATION_COUNT; i++ )
 			{
 				if( Table == MemSizeToPoolTable[i] || MemSizeToPoolTable[i]->BlockSize == 0 )
@@ -1295,6 +1293,3 @@ protected:
 	 */
 	uint32 BinnedGetPageSize();
 };
-
-
-

@@ -9,9 +9,9 @@ class FPerforceSourceControlRevision : public ISourceControlRevision, public TSh
 public:
 	FPerforceSourceControlRevision()
 		: RevisionNumber(0)
+		, Date(0)
 		, ChangelistNumber(0)
 		, FileSize(0)
-		, Date(0)
 	{
 	}
 

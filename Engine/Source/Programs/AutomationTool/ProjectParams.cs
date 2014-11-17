@@ -108,12 +108,14 @@ namespace AutomationTool
 		/// <summary>
 		/// Sets up platforms
 		/// </summary>
-		/// <param name="Command"></param>
-		/// <param name="OverrideTargetPlatforms"></param>
-		/// <param name="AllowPlatformParams"></param>
-		/// <param name="PlatformParamNames"></param>
+        /// <param name="DependentPlatformMap">Set with a mapping from source->destination if specified on command line</param>
+		/// <param name="Command">The command line to parse</param>
+		/// <param name="OverrideTargetPlatforms">If passed use this always</param>
+        /// <param name="DefaultTargetPlatforms">Use this if nothing is passed on command line</param>
+		/// <param name="AllowPlatformParams">Allow raw -platform options</param>
+		/// <param name="PlatformParamNames">Possible -parameters to check for</param>
 		/// <returns>List of platforms parsed from the command line</returns>
-		private List<UnrealTargetPlatform> SetupTargetPlatforms(CommandUtils Command, List<UnrealTargetPlatform> OverrideTargetPlatforms, List<UnrealTargetPlatform> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
+		private List<UnrealTargetPlatform> SetupTargetPlatforms(ref Dictionary<UnrealTargetPlatform,UnrealTargetPlatform> DependentPlatformMap, CommandUtils Command, List<UnrealTargetPlatform> OverrideTargetPlatforms, List<UnrealTargetPlatform> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
 		{
 			List<UnrealTargetPlatform> TargetPlatforms = null;
 			if (CommandUtils.IsNullOrEmpty(OverrideTargetPlatforms))
@@ -141,7 +143,20 @@ namespace AutomationTool
 						var Platforms = new List<string>(CmdLinePlatform.Split('+'));
 						foreach (var PlatformName in Platforms)
 						{
-							TargetPlatforms.Add((UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), PlatformName, true));
+                            // Look for dependent platforms, Source_1.Dependent_1+Source_2.Dependent_2+Standalone_3
+                            var SubPlatforms = new List<string>(PlatformName.Split('.'));
+
+                            foreach (var SubPlatformName in SubPlatforms)
+                            {
+                                UnrealTargetPlatform NewPlatform = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformName, true);
+                                TargetPlatforms.Add(NewPlatform);
+
+                                if (SubPlatformName != SubPlatforms[0])
+                                {
+                                    // We're a dependent platform so add ourselves to the map, pointing to the first element in the list
+                                    DependentPlatformMap.Add(NewPlatform, (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatforms[0], true));
+                                }
+                            }
 						}
 					}
 					else if (AllowPlatformParams)
@@ -179,12 +194,15 @@ namespace AutomationTool
 			this.RawProjectPath = InParams.RawProjectPath;
 			this.MapsToCook = InParams.MapsToCook;
 			this.DirectoriesToCook = InParams.DirectoriesToCook;
+            this.CulturesToCook = InParams.CulturesToCook;
 			this.ClientCookedTargets = InParams.ClientCookedTargets;
 			this.ServerCookedTargets = InParams.ServerCookedTargets;
 			this.EditorTargets = InParams.EditorTargets;
 			this.ProgramTargets = InParams.ProgramTargets;
 			this.ClientTargetPlatforms = InParams.ClientTargetPlatforms;
+            this.ClientDependentPlatformMap = InParams.ClientDependentPlatformMap;
 			this.ServerTargetPlatforms = InParams.ServerTargetPlatforms;
+            this.ServerDependentPlatformMap = InParams.ServerDependentPlatformMap;
 			this.Build = InParams.Build;
 			this.Run = InParams.Run;
 			this.Cook = InParams.Cook;
@@ -208,8 +226,10 @@ namespace AutomationTool
 			this.LogWindow = InParams.LogWindow;
 			this.Stage = InParams.Stage;
 			this.SkipStage = InParams.SkipStage;
-			this.StageDirectoryParam = InParams.StageDirectoryParam;
+            this.StageDirectoryParam = InParams.StageDirectoryParam;
+            this.StageNonMonolithic = InParams.StageNonMonolithic;
 			this.Manifests = InParams.Manifests;
+            this.CreateChunkInstall = InParams.CreateChunkInstall;
 			this.UE4Exe = InParams.UE4Exe;
 			this.NoDebugInfo = InParams.NoDebugInfo;
 			this.NoCleanStage = InParams.NoCleanStage;
@@ -271,18 +291,22 @@ namespace AutomationTool
 			string RunCommandline = null,						
 			string StageCommandline = null,
             string BundleName = null,
-			string StageDirectoryParam = null,
+            string StageDirectoryParam = null,
+            bool? StageNonMonolithic = null,
 			string UE4Exe = null,
 			string SignPak = null,
 			List<UnrealTargetConfiguration> ClientConfigsToBuild = null,
 			List<UnrealTargetConfiguration> ServerConfigsToBuild = null,
 			ParamList<string> MapsToCook = null,
 			ParamList<string> DirectoriesToCook = null,
+            ParamList<string> CulturesToCook = null,
 			ParamList<string> ClientCookedTargets = null,
 			ParamList<string> EditorTargets = null,
 			ParamList<string> ServerCookedTargets = null,
 			List<UnrealTargetPlatform> ClientTargetPlatforms = null,
-			List<UnrealTargetPlatform> ServerTargetPlatforms = null,	
+            Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ClientDependentPlatformMap = null,
+			List<UnrealTargetPlatform> ServerTargetPlatforms = null,
+            Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ServerDependentPlatformMap = null,
 			bool? Build = null,
 			bool? Cook = null,
 			string CookFlavor = null,
@@ -321,6 +345,7 @@ namespace AutomationTool
 			bool? SkipStage = null,
 			bool? Stage = null,
 			bool? Manifests = null,
+            bool? CreateChunkInstall = null,
 			bool? Unattended = null,
 			int? NumClients = null,
 			bool? Archive = null,
@@ -345,6 +370,10 @@ namespace AutomationTool
 			{
 				this.DirectoriesToCook = DirectoriesToCook;
 			}
+            if (CulturesToCook != null)
+			{
+                this.CulturesToCook = CulturesToCook;
+			}
 			if (ClientCookedTargets != null)
 			{
 				this.ClientCookedTargets = ClientCookedTargets;
@@ -362,11 +391,19 @@ namespace AutomationTool
 				this.ProgramTargets = ProgramTargets;
 			}
 
-			// Parse command line params for client platforms "-TargetPlatform=", "-Platform=" and also "-Win64", "-Mac" etc.
-			this.ClientTargetPlatforms = SetupTargetPlatforms(Command, ClientTargetPlatforms, new ParamList<UnrealTargetPlatform>() {HostPlatform.Current.HostEditorPlatform}, true, "TargetPlatform", "Platform");
+			// Parse command line params for client platforms "-TargetPlatform=Win64+Mac", "-Platform=Win64+Mac" and also "-Win64", "-Mac" etc.
+            if (ClientDependentPlatformMap != null)
+            {
+                this.ClientDependentPlatformMap = ClientDependentPlatformMap;
+            }
+			this.ClientTargetPlatforms = SetupTargetPlatforms(ref this.ClientDependentPlatformMap, Command, ClientTargetPlatforms, new ParamList<UnrealTargetPlatform>() {HostPlatform.Current.HostEditorPlatform}, true, "TargetPlatform", "Platform");
 
-			// Parse command line params for server paltforms "-ServerTargetPlatform", "-ServerPlatform"; "-Win64" etc is not allowed here
-			this.ServerTargetPlatforms = SetupTargetPlatforms(Command, ServerTargetPlatforms, this.ClientTargetPlatforms, false, "ServerTargetPlatform", "ServerPlatform");
+            // Parse command line params for server platforms "-ServerTargetPlatform=Win64+Mac", "-ServerPlatform=Win64+Mac". "-Win64" etc is not allowed here
+            if (ServerDependentPlatformMap != null)
+            {
+                this.ServerDependentPlatformMap = ServerDependentPlatformMap;
+            }
+            this.ServerTargetPlatforms = SetupTargetPlatforms(ref this.ServerDependentPlatformMap, Command, ServerTargetPlatforms, this.ClientTargetPlatforms, false, "ServerTargetPlatform", "ServerPlatform");
 
 			this.Build = GetParamValueIfNotSpecified(Command, Build, this.Build, "build");
 			this.Run = GetParamValueIfNotSpecified(Command, Run, this.Run, "run");
@@ -408,7 +445,9 @@ namespace AutomationTool
 				this.Stage = true;
 			}
 			this.StageDirectoryParam = ParseParamValueIfNotSpecified(Command, StageDirectoryParam, "stagingdirectory", String.Empty).Trim(new char[]{'\"'});
+            this.StageNonMonolithic = GetParamValueIfNotSpecified(Command, StageNonMonolithic, this.StageNonMonolithic, "StageNonMonolithic");
 			this.Manifests = GetParamValueIfNotSpecified(Command, Manifests, this.Manifests, "manifests");
+            this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
@@ -616,20 +655,38 @@ namespace AutomationTool
 		public bool Unattended { private set; get; }
 
 		/// <summary>
-		/// Shared: True if win32 binaries should be built, commandline: -win32
+        /// Shared: Sets platforms to build for non-dedicated servers. commandline: -TargetPlatform
 		/// </summary>
 		public List<UnrealTargetPlatform> ClientTargetPlatforms = new List<UnrealTargetPlatform>();
 
+        /// <summary>
+        /// Shared: Dictionary that maps client dependent platforms to "source" platforms that it should copy data from. commandline: -TargetPlatform=source.dependent
+        /// </summary>
+        public Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ClientDependentPlatformMap = new Dictionary<UnrealTargetPlatform, UnrealTargetPlatform>();
+
 		/// <summary>
-		/// Shared: True if win32 binaries should be built, commandline: -win32
+        /// Shared: Sets platforms to build for dedicated servers. commandline: -ServerTargetPlatform
 		/// </summary>
 		public List<UnrealTargetPlatform> ServerTargetPlatforms = new List<UnrealTargetPlatform>();
+
+        /// <summary>
+        /// Shared: Dictionary that maps server dependent platforms to "source" platforms that it should copy data from: -ServerTargetPlatform=source.dependent
+        /// </summary>
+        public Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ServerDependentPlatformMap = new Dictionary<UnrealTargetPlatform, UnrealTargetPlatform>();
 
 		/// <summary>
 		/// Shared: True if pak file should be generated.
 		/// </summary>
 		[Help("pak", "generate a pak file")]
 		public bool Pak { private set; get; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public bool UsePak(Platform PlatformToCheck)
+		{
+			return Pak || PlatformToCheck.RequiresPak(this) == Platform.PakType.Always;
+		}
 
 		/// <summary>
 		/// Shared: Encryption keys used for signing the pak file.
@@ -667,6 +724,12 @@ namespace AutomationTool
 		[Help("manifests", "generate streaming install manifests when cooking data")]
 		public bool Manifests { private set; get; }
 
+        /// <summary>
+        /// Shared: true if this build chunk install streaming install data, command line: -createchunkinstalldata !!JM
+        /// </summary>
+        [Help("createchunkinstall", "generate streaming install data from manifest when cooking data, requires -stage & -manifests")]
+        public bool CreateChunkInstall { private set; get; }
+
 		/// <summary>
 		/// Shared: Directory to copy the client to, command line: -stagingdirectory=
 		/// </summary>	
@@ -680,6 +743,11 @@ namespace AutomationTool
 
 		[Help("stagingdirectory=Path", "Directory to copy the builds to, i.e. -stagingdirectory=C:\\Stage")]
 		public string StageDirectoryParam;
+
+        /// <summary>
+        /// Whether the project should use non monolithic staging
+        /// </summary>
+        public bool StageNonMonolithic;
 
 		[Help("ue4exe=ExecutableName", "Name of the UE4 Editor executable, i.e. -ue4exe=UE4Editor.exe")]
 		public string UE4Exe;
@@ -815,6 +883,11 @@ namespace AutomationTool
 		/// Cook: List of directories to cook.
 		/// </summary>
 		public ParamList<string> DirectoriesToCook = new ParamList<string>();
+
+        /// <summary>
+        /// Cook: List of cultures to cook.
+        /// </summary>
+        public ParamList<string> CulturesToCook = new ParamList<string>();
 
         /// <summary>
         /// Compress packages during cook.
@@ -1345,6 +1418,11 @@ namespace AutomationTool
 			get { return !CommandUtils.IsNullOrEmpty(DirectoriesToCook); }
 		}
 
+        public bool HasCulturesToCook
+        {
+            get { return !CommandUtils.IsNullOrEmpty(CulturesToCook); }
+        }
+
 		public bool HasGameTargetDetected
 		{
 			get { return ProjectTargets.ContainsKey(TargetRules.TargetType.Game); }
@@ -1439,6 +1517,15 @@ namespace AutomationTool
 			}
 		}
 
+        public UnrealTargetPlatform GetCookedDataPlatformForClientTarget(UnrealTargetPlatform TargetPlatformType)
+        {
+            if (ClientDependentPlatformMap.ContainsKey(TargetPlatformType))
+            {
+                return ClientDependentPlatformMap[TargetPlatformType];
+            }
+            return TargetPlatformType;
+        }
+
 		public List<Platform> ServerTargetPlatformInstances
 		{
 			get
@@ -1451,6 +1538,15 @@ namespace AutomationTool
 				return ServerPlatformInstances;
 			}
 		}
+
+        public UnrealTargetPlatform GetCookedDataPlatformForServerTarget(UnrealTargetPlatform TargetPlatformType)
+        {
+            if (ServerDependentPlatformMap.ContainsKey(TargetPlatformType))
+            {
+                return ServerDependentPlatformMap[TargetPlatformType];
+            }
+            return TargetPlatformType;
+        }
 
 		/// <summary>
 		/// All auto-detected targets for this project
@@ -1576,6 +1672,11 @@ namespace AutomationTool
             {
                 throw new AutomationException("-compressed can only be used with -pak");
             }
+
+            if (CreateChunkInstall && (!Manifests || !Stage))
+            {
+                throw new AutomationException("-createchunkinstall can only be used with -pak & -stage");
+            }
 		}
 
 		protected bool bLogged = false;
@@ -1604,6 +1705,7 @@ namespace AutomationTool
 				CommandUtils.Log("CookOnTheFly={0}", CookOnTheFly);
 				CommandUtils.Log("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.Log("DirectoriesToCook={0}", DirectoriesToCook.ToString());
+                CommandUtils.Log("CulturesToCook={0}", CulturesToCook.ToString());
 				CommandUtils.Log("EditorTargets={0}", EditorTargets.ToString());
 				CommandUtils.Log("Foreign={0}", Foreign);
 				CommandUtils.Log("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());

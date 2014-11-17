@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "EnvironmentQuery/EnvQueryTypes.h"
-#include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
@@ -23,17 +21,6 @@ void FEQSQueryDebugData::Store(const FEnvQueryInstance* QueryInstance)
 //----------------------------------------------------------------------//
 #if USE_EQS_DEBUGGER
 bool FEnvQueryInstance::bDebuggingInfoEnabled = true;
-
-struct FItemSortPredicate
-{
-	TArray<FEnvQueryItem>* PtrItems;
-	FItemSortPredicate(TArray<FEnvQueryItem>* InItems) : PtrItems(InItems) {}
-
-	FORCEINLINE bool operator()(const FEnvQueryItemDetails& A, const FEnvQueryItemDetails& B) const
-	{
-		return (*PtrItems)[B.ItemIndex] < (*PtrItems)[A.ItemIndex];
-	}
-};
 #endif // USE_EQS_DEBUGGER
 
 bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextData& ContextData)
@@ -68,7 +55,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 		UE_LOG(LogEQS, Log, TEXT("Query [%s] is missing values for context [%s], skipping test %d:%d [%s]"),
 			*QueryName, *UEnvQueryTypes::GetShortTypeName(ContextClass).ToString(),
 			OptionIndex, CurrentTest,
-			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].TestDelegates[CurrentTest].GetUObject()).ToString() : TEXT("Generator")
+			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].GetTestObject(CurrentTest)).ToString() : TEXT("Generator")
 			);
 
 		return false;
@@ -198,6 +185,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);
 
+	const bool bDoingLastTest = (CurrentTest == OptionItem.TestsToPerform.Num() - 1);
 	bool bStepDone = true;
 	TimeLimit = InTimeLimit;
 
@@ -205,18 +193,28 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	{
 		DEC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
 
+//		SCOPE_LOG_TIME(TEXT("Generator"), nullptr);
+
 		RawData.Reset();
 		Items.Reset();
 		ItemType = OptionItem.ItemType;
+		bPassOnSingleResult = false;
 		ValueSize = ((UEnvQueryItemType*)ItemType->GetDefaultObject())->GetValueSize();
-
-		OptionItem.GenerateDelegate.Execute(*this);
+		
+		OptionItem.Generator->GenerateItems(*this);
 		FinalizeGeneration();
 	}
 	else
 	{
+//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].GetTestObject(CurrentTest)).ToString(), nullptr);
+
+		UEnvQueryTest* TestObject = OptionItem.GetTestObject(CurrentTest);
+
+		// item generator uses this flag to alter the scoring behavior
+		bPassOnSingleResult = (bDoingLastTest && Mode == EEnvQueryRunMode::SingleResult && TestObject->CanRunAsFinalCondition());
+
 		const int32 ItemsAlreadyProcessed = CurrentTestStartingItem;
-		OptionItem.TestDelegates[CurrentTest].Execute(*this);
+		TestObject->RunTest(*this);
 		bStepDone = CurrentTestStartingItem >= Items.Num() || bFoundSingleResult
 			// or no items processed ==> this means error
 			|| (ItemsAlreadyProcessed == CurrentTestStartingItem);
@@ -242,7 +240,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 
 	// sort results or switch to next option when all tests are performed
 	if (Status == EEnvQueryStatus::Processing &&
-		(OptionItem.TestDelegates.Num() == CurrentTest || NumValidItems <= 0))
+		(OptionItem.TestsToPerform.Num() == CurrentTest || NumValidItems <= 0))
 	{
 		if (NumValidItems > 0)
 		{
@@ -284,23 +282,41 @@ void FEnvQueryInstance::ReserveItemData(int32 NumAdditionalItems)
 }
 
 
-FEnvQueryInstance::ItemIterator::ItemIterator(class UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance)
-	: Instance(&QueryInstance), CurrentItem(QueryInstance.CurrentTestStartingItem)
+FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
+	: Instance(&QueryInstance)
+	, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
 {
 	Deadline = QueryInstance.TimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.TimeLimit) : -1.0;
 	bDiscardFailed = QueryTest && QueryTest->bDiscardFailedItems;
+	// it's possible item 'CurrentItem' has been already discarded. Find a valid starting index
+	--CurrentItem;
+	FindNextValidIndex();
 	InitItemScore();
+}
+
+void FEnvQueryInstance::ItemIterator::HandleFailedTestResult()
+{
+	ItemScore = -1.f;
+	Instance->Items[CurrentItem].Discard();
+#if USE_EQS_DEBUGGER
+	Instance->ItemDetails[CurrentItem].FailedTestIndex = Instance->CurrentTest;
+#endif
+	Instance->NumValidItems--;
 }
 
 void FEnvQueryInstance::ItemIterator::StoreTestResult()
 {
-	if (Instance->Mode == EEnvQueryRunMode::SingleResult &&	Instance->bPassOnSingleResult)
+	if (Instance->IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
 		if (bPassed && !bSkipped)
 		{
 			Instance->PickSingleItem(CurrentItem);
 			Instance->bFoundSingleResult = true;
+		}
+		else if (!bPassed || NumPartialScores == 0)
+		{
+			HandleFailedTestResult();
 		}
 	}
 	else
@@ -311,12 +327,7 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 		}
 		else if (!bPassed || NumPartialScores == 0)
 		{
-			ItemScore = -1.f;
-			Instance->Items[CurrentItem].Discard();
-#if USE_EQS_DEBUGGER
-			Instance->ItemDetails[CurrentItem].FailedTestIndex = Instance->CurrentTest;
-#endif
-			Instance->NumValidItems--;
+			HandleFailedTestResult();
 		}
 		else
 		{
@@ -365,12 +376,13 @@ void FEnvQueryInstance::NormalizeScores()
 
 void FEnvQueryInstance::SortScores()
 {
+	const int32 NumItems = Items.Num();
 	if (Options[OptionIndex].bShuffleItems)
 	{
-		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
+		for (int32 ItemIndex = 0; ItemIndex < NumItems; ItemIndex++)
 		{
-			const int32 Idx1 = FMath::RandHelper(Items.Num());
-			const int32 Idx2 = FMath::RandHelper(Items.Num());
+			const int32 Idx1 = FMath::RandHelper(NumItems);
+			const int32 Idx2 = FMath::RandHelper(NumItems);
 			Items.Swap(Idx1, Idx2);
 
 #if USE_EQS_DEBUGGER
@@ -380,19 +392,33 @@ void FEnvQueryInstance::SortScores()
 	}
 
 #if USE_EQS_DEBUGGER
-	if (bStoreDebugInfo)
+	struct FSortHelperForDebugData
 	{
-		ItemDetails.Sort(FItemSortPredicate(&Items));
-	}
-	else
-	{
-#endif
-		ItemDetails.Reset();
-#if USE_EQS_DEBUGGER
-	}
-#endif
+		FEnvQueryItem	Item;
+		struct FEnvQueryItemDetails ItemDetails;
 
+		FSortHelperForDebugData(const FEnvQueryItem&	InItem, struct FEnvQueryItemDetails& InDebugDetails) : Item(InItem), ItemDetails(InDebugDetails) {}
+		bool operator<(const FSortHelperForDebugData& Other) const
+		{
+			return Item < Other.Item;
+		}
+	};
+	TArray<FSortHelperForDebugData> AllData;
+	AllData.Reserve(NumItems);
+	for (int32 Index = 0; Index < NumItems; ++Index)
+	{
+		AllData.Add(FSortHelperForDebugData(Items[Index], ItemDetails[Index]));
+	}
+	AllData.Sort(TGreater<FSortHelperForDebugData>());
+
+	for (int32 Index = 0; Index < NumItems; ++Index)
+	{
+		Items[Index] = AllData[Index].Item;
+		ItemDetails[Index] = AllData[Index].ItemDetails;
+	}
+#else
 	Items.Sort(TGreater<FEnvQueryItem>());
+#endif
 }
 
 void FEnvQueryInstance::StripRedundantData()
@@ -425,35 +451,39 @@ void FEnvQueryInstance::PickBestItem()
 
 void FEnvQueryInstance::PickSingleItem(int32 ItemIndex)
 {
+	FEnvQueryItem BestItem;
+	BestItem.Score = 1.0f;
+	BestItem.DataOffset = Items[ItemIndex].DataOffset;
+
+	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
+
 #if USE_EQS_DEBUGGER
 	if (bStoreDebugInfo)
 	{
 		Items.Swap(0, ItemIndex);
+		Items[0].Score = 1.0f;
 		ItemDetails.Swap(0, ItemIndex);
+
+		DebugData.bSingleItemResult = true;
 
 		// do not limit valid items amount for debugger purposes!
 		// bFoundSingleResult can be used to determine if more than one item is valid
 
 		// normalize all scores for debugging
-		NormalizeScores();
+		//NormalizeScores();
 	}
 	else
 	{
 #endif
-		FEnvQueryItem BestItem;
-		BestItem.Score = 1.0f;
-		BestItem.DataOffset = Items[ItemIndex].DataOffset;
-
-		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
-
 		Items.Empty(1);
 		Items.Add(BestItem);
 		NumValidItems = 1;
-
-		INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
 #if USE_EQS_DEBUGGER
 	}
 #endif
+
+	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
+
 }
 
 void FEnvQueryInstance::FinalizeQuery()
@@ -463,11 +493,10 @@ void FEnvQueryInstance::FinalizeQuery()
 		if (Mode == EEnvQueryRunMode::SingleResult)
 		{
 			// if last test was not pure condition: sort and pick one of best items
-			if (!bFoundSingleResult)
+			if (bFoundSingleResult == false && bPassOnSingleResult == false)
 			{
 				SortScores();
 				PickBestItem();
-				bFoundSingleResult = true;
 			}
 		}
 		else
@@ -499,14 +528,13 @@ void FEnvQueryInstance::FinalizeQuery()
 void FEnvQueryInstance::FinalizeGeneration()
 {
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
-	const int32 NumTests = OptionInstance.TestDelegates.Num();
+	const int32 NumTests = OptionInstance.TestsToPerform.Num();
 
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, ItemDetails.GetAllocatedSize());
 	INC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
 
 	NumValidItems = Items.Num();
 	ItemDetails.Reset();
-	bPassOnSingleResult = false;
 	bFoundSingleResult = false;
 
 	if (NumValidItems > 0)
@@ -525,29 +553,14 @@ void FEnvQueryInstance::FinalizeGeneration()
 
 	ItemTypeActorCDO = (ItemType && ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass())) ?
 		(UEnvQueryItemType_ActorBase*)ItemType->GetDefaultObject() : NULL;
-
-	if (Mode == EEnvQueryRunMode::SingleResult && NumTests == 1)
-	{
-		UEnvQueryTest* DefTestOb = Cast<UEnvQueryTest>(OptionInstance.TestDelegates[0].GetUObject());
-		if ((DefTestOb->TestPurpose != EEnvTestPurpose::Score) && // We are filtering and...
-			((DefTestOb->TestPurpose == EEnvTestPurpose::Filter) ||			// Either we are NOT scoring at ALL or...
-			 (DefTestOb->ScoringEquation == EEnvTestScoreEquation::Constant)// We are giving a constant score value for passing.
-			)
-		   )
-		{
-			OnFinalCondition();
-		}
-	}
 }
 
 void FEnvQueryInstance::FinalizeTest()
 {
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
-	const int32 NumTests = OptionInstance.TestDelegates.Num();
+	const int32 NumTests = OptionInstance.TestsToPerform.Num();
 
-	UEnvQueryTest* DefTestOb = (UEnvQueryTest*)(OptionInstance.TestDelegates[CurrentTest].GetUObject());
-	DefTestOb->NormalizeItemScores(*this);
-
+	UEnvQueryTest* DefTestOb = OptionInstance.GetTestObject(CurrentTest);
 #if USE_EQS_DEBUGGER
 	if (bStoreDebugInfo)
 	{
@@ -555,67 +568,18 @@ void FEnvQueryInstance::FinalizeTest()
 	}
 #endif
 
-	// check if next test is the last one
-	if (Mode == EEnvQueryRunMode::SingleResult && CurrentTest == NumTests - 2)
+	// if it's not the last and final test
+	if (IsInSingleItemFinalSearch() == false)
 	{
-		DefTestOb = (UEnvQueryTest*)(OptionInstance.TestDelegates[NumTests - 1].GetUObject());
-		if ((DefTestOb->TestPurpose != EEnvTestPurpose::Score) && // We are filtering and...
-			((DefTestOb->TestPurpose == EEnvTestPurpose::Filter) ||			// Either we are NOT scoring at ALL or...
-			 (DefTestOb->ScoringEquation == EEnvTestScoreEquation::Constant)// We are giving a constant score value for passing.
-			)
-		   )
-		{
-			OnFinalCondition();
-		}
-	}
-}
-
-void FEnvQueryInstance::OnFinalCondition()
-{
-	// set flag for item iterator
-	bPassOnSingleResult = true;
-
-	UEnvQueryTest* DefTestOb = (UEnvQueryTest*)(Options[OptionIndex].TestDelegates[0].GetUObject());
-	const bool bShouldSort = (DefTestOb->WeightModifier < EEnvTestWeight::Constant);
-
-#if USE_EQS_DEBUGGER
-	if (bStoreDebugInfo)
-	{
-		DebugData.Store(this);
-
-		// randomize before sorting, so items with the same score can be chosen randomly
-		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
-		{
-			const int32 Idx1 = FMath::RandHelper(Items.Num());
-			const int32 Idx2 = FMath::RandHelper(Items.Num());
-			Items.Swap(Idx1, Idx2);
-			ItemDetails.Swap(Idx1, Idx2);
-		}
-
-		// keep ItemDetails in sync for debugger purposes
-		if (bShouldSort)
-		{
-			ItemDetails.Sort(FItemSortPredicate(&Items));
-		}
+		// do regular normalization
+		DefTestOb->NormalizeItemScores(*this);
 	}
 	else
 	{
-#endif
-		// don't update ItemDetails here - it won't be needed anymore, just reset it
-		ItemDetails.Reset();
-
-		// randomize before sorting, so items with the same score can be chosen randomly
-		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
-		{
-			Items.Swap(FMath::RandHelper(Items.Num()), FMath::RandHelper(Items.Num()));
-		}
 #if USE_EQS_DEBUGGER
-	}
-#endif	
-
-	if (bShouldSort)
-	{
-		Items.Sort(TGreater<FEnvQueryItem>());
+		if (bStoreDebugInfo == false)
+#endif // USE_EQS_DEBUGGER
+			ItemDetails.Reset();	// mind the "if (bStoreDebugInfo == false)" above
 	}
 }
 

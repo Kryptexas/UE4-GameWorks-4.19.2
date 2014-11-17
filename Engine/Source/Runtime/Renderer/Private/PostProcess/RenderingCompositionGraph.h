@@ -79,7 +79,7 @@ private:
 
 struct FRenderingCompositePassContext
 {
-	FRenderingCompositePassContext(FRHICommandListImmediate& RHICmdList, const FViewInfo& InView);
+	FRenderingCompositePassContext(FRHICommandListImmediate& RHICmdList, FViewInfo& InView);
 
 	~FRenderingCompositePassContext();
 
@@ -87,7 +87,8 @@ struct FRenderingCompositePassContext
 	void Process(const TCHAR *GraphDebugName);
 
 	//
-	const FViewInfo& View;
+	FViewInfo& View;
+	FSceneViewState* ViewState;
 	// is updated before each Pass->Process() call
 	FRenderingCompositePass* Pass;
 
@@ -130,7 +131,8 @@ struct FRenderingCompositePassContext
 		return ViewPortRect.Min != ViewPortRect.Max;
 	}
 
-	ERHIFeatureLevel::Type GetFeatureLevel() const;
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
 
 	FRenderingCompositePass* Root;
 
@@ -141,6 +143,9 @@ struct FRenderingCompositePassContext
 private:
 	// cached state to map between ScreenPos and pixels
 	FIntRect ViewPortRect;
+
+	ERHIFeatureLevel::Type FeatureLevel;
+	TShaderMap<FGlobalShaderType>* ShaderMap;
 };
 
 // ---------------------------------------------------------------------------

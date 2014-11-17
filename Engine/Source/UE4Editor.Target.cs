@@ -88,7 +88,7 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("EffectsCave", DesktopPlats);
         NonCodeProjectNames.Add("GDC2014", DesktopPlats);
         NonCodeProjectNames.Add("ContentExamples", DesktopPlats);
-        NonCodeProjectNames.Add("PhysicsPirateShip", DesktopPlats);
+        // NonCodeProjectNames.Add("PhysicsPirateShip", DesktopPlats);
         NonCodeProjectNames.Add("TowerDefenseGame", DesktopPlats);
         NonCodeProjectNames.Add("LandscapeMountains", DesktopPlats);
         NonCodeProjectNames.Add("MorphTargets", DesktopPlats);
@@ -105,12 +105,21 @@ public class UE4EditorTarget : TargetRules
             MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS };
         }
 
+		List<UnrealTargetPlatform> TappyChickenPlats = null;
+		if (HostPlatform == UnrealTargetPlatform.Mac)
+		{
+			TappyChickenPlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
+		}
+		else
+		{
+			TappyChickenPlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS, UnrealTargetPlatform.HTML5 };
+		}
+
         NonCodeProjectNames.Add("BlackJack", MobilePlats);
         NonCodeProjectNames.Add("MemoryGame", MobilePlats);
-		NonCodeProjectNames.Add("TappyChicken", MobilePlats);
+		NonCodeProjectNames.Add("TappyChicken", TappyChickenPlats);
         NonCodeProjectNames.Add("SwingNinja", MobilePlats);
-        NonCodeProjectNames.Add("MobileTemple", MobilePlats);
-        NonCodeProjectNames.Add("AnimStarterPack", MobilePlats);
+        NonCodeProjectNames.Add("SunTemple", MobilePlats);
 
         NonCodeProjectNames.Add("StarterContent", MobilePlats);
 		NonCodeProjectNames.Add("TP_2DSideScrollerBP", MobilePlats);
@@ -126,16 +135,73 @@ public class UE4EditorTarget : TargetRules
     }
     public override Dictionary<string, List<GUBPFormalBuild>> GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly()
     {
-        var NonCodeProjectNames = new Dictionary<string, List<GUBPFormalBuild>>();
-        NonCodeProjectNames.Add("TappyChicken",
-            new List<GUBPFormalBuild>
+        var TappyChickenBuildSettings = new List<GUBPFormalBuild>
             {
                     new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Shipping, true),
                     new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Test, true),                    
+                    new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Development, true),          
                     new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping, true),
                     new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, true),
-            }
-        );
+                    new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Development, true),          			
+					new GUBPFormalBuild(UnrealTargetPlatform.HTML5, UnrealTargetConfiguration.Shipping, false),
+					new GUBPFormalBuild(UnrealTargetPlatform.HTML5, UnrealTargetConfiguration.Test, false),
+            };
+
+        var NonCodeProjectNames = new Dictionary<string, List<GUBPFormalBuild>>();
+        NonCodeProjectNames.Add("TappyChicken", TappyChickenBuildSettings);
+
+
+
+        var MobileBuildSettings = new List<GUBPFormalBuild>
+            {
+                    new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, false),
+            };
+
+        NonCodeProjectNames.Add("BlackJack", MobileBuildSettings);
+        NonCodeProjectNames.Add("MemoryGame", MobileBuildSettings);
+        NonCodeProjectNames.Add("SwingNinja", MobileBuildSettings);
+        NonCodeProjectNames.Add("SunTemple", MobileBuildSettings);
+
+        var PCBuildSettings = new List<GUBPFormalBuild>
+            {
+                    new GUBPFormalBuild(UnrealTargetPlatform.Win32, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.Win64, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Test, false),
+            };
+
+        NonCodeProjectNames.Add("BlueprintOffice", PCBuildSettings);
+        NonCodeProjectNames.Add("ContentExamples", PCBuildSettings);
+        NonCodeProjectNames.Add("CouchKnights", PCBuildSettings);
+        NonCodeProjectNames.Add("EffectsCave", PCBuildSettings);
+        NonCodeProjectNames.Add("LandscapeMountains", PCBuildSettings);
+        NonCodeProjectNames.Add("GDC2014", PCBuildSettings);
+        NonCodeProjectNames.Add("MatineeFightScene", PCBuildSettings);
+        NonCodeProjectNames.Add("RealisticRendering", PCBuildSettings);
+        NonCodeProjectNames.Add("ReflectionsSubway", PCBuildSettings);
+        NonCodeProjectNames.Add("Stylized", PCBuildSettings);
+
+
+        var ElementalBuildSettings = new List<GUBPFormalBuild>
+            {
+                    new GUBPFormalBuild(UnrealTargetPlatform.Win32, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.Win64, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.XboxOne, UnrealTargetConfiguration.Test, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.PS4, UnrealTargetConfiguration.Test, false),
+                    
+                    new GUBPFormalBuild(UnrealTargetPlatform.XboxOne, UnrealTargetConfiguration.Shipping, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.PS4, UnrealTargetConfiguration.Shipping, false),
+                    
+                    new GUBPFormalBuild(UnrealTargetPlatform.XboxOne, UnrealTargetConfiguration.Development, false),
+                    new GUBPFormalBuild(UnrealTargetPlatform.PS4, UnrealTargetConfiguration.Development, false),
+            };
+
+
+        NonCodeProjectNames.Add("ElementalDemo", ElementalBuildSettings);
+
+
+
         return NonCodeProjectNames;
     }
 }

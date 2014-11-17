@@ -45,6 +45,16 @@ class FAndroid_DXTTargetPlatform
 	{
 		return (ExtensionsString.Contains(TEXT("GL_NV_texture_compression_s3tc")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_compression_s3tc")));
 	}
+
+	virtual FText GetVariantDisplayName() const override
+	{
+		return LOCTEXT("Android_DXT_ShortName", "DXT");
+	}
+
+	virtual float GetVariantPriority() const override
+	{
+		return 0.6f;
+	}
 };
 
 /**

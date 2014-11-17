@@ -29,7 +29,7 @@ namespace SceneOutliner
 
 		/** Constructor for filtering the specified folder path */
 		FOutlinerFilterProxy(FName InFolder)
-			: FolderPath(InFolder), Actor(nullptr)
+			: Actor(nullptr), FolderPath(InFolder)
 		{}
 	};
 

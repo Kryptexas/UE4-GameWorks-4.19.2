@@ -109,7 +109,7 @@ static bool ModelToHullsWorker(FKAggregateGeom* outGeom,
 	return true;
 }
 
-#if WITH_EDITOR
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 void UBodySetup::CreateFromModel(UModel* InModel, bool bRemoveExisting)
 {
 	if ( bRemoveExisting )
@@ -133,7 +133,7 @@ void UBodySetup::CreateFromModel(UModel* InModel, bool bRemoveExisting)
 	// Create new GUID
 	InvalidatePhysicsData();
 }
-#endif // WITH_EDITOR
+#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 // FRigidBodyCollisionInfo

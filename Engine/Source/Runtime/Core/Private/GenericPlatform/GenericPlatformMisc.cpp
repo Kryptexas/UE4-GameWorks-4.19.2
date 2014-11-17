@@ -8,6 +8,7 @@
 #include "ModuleManager.h"
 #include "VarargsHelper.h"
 #include "SecureHash.h"
+#include "ExceptionHandling.h"
 #include "Containers/Map.h"
 #include "../../Launch/Resources/Version.h"
 
@@ -199,7 +200,22 @@ FString FGenericPlatformMisc::GetUniqueDeviceId()
 
 void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode )
 {
-	UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform cannot submit a crash report. Report was:\n%s"), InErrorHist);
+	if ((!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash) && !FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")))
+	{
+		if ( GUseCrashReportClient )
+		{
+			int32 FromCommandLine = 0;
+			FParse::Value( FCommandLine::Get(), TEXT("AutomatedPerfTesting="), FromCommandLine );
+			if (FApp::IsUnattended() && FromCommandLine != 0 && FParse::Param(FCommandLine::Get(), TEXT("KillAllPopUpBlockingWindows")))
+			{
+				UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform does not implement KillAllPopUpBlockingWindows"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform cannot submit a crash report. Report was:\n%s"), InErrorHist);
+		}
+	}
 }
 
 
@@ -321,6 +337,10 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 #else
 	printf("%s", Str);
 #endif
+}
+
+void FGenericPlatformMisc::RequestMinimize()
+{
 }
 
 void FGenericPlatformMisc::RequestExit( bool Force )
@@ -749,6 +769,11 @@ void FGenericPlatformMisc::GetValidTargetPlatforms(class TArray<class FString>& 
 	TargetPlatformNames.Add(FPlatformProperties::PlatformName());
 }
 
+TArray<uint8> FGenericPlatformMisc::GetSystemFontBytes()
+{
+	return TArray<uint8>();
+}
+
 const TCHAR* FGenericPlatformMisc::GetDefaultPathSeparator()
 {
 	return TEXT( "/" );
@@ -772,4 +797,47 @@ FText FGenericPlatformMisc::GetFileManagerName()
 bool FGenericPlatformMisc::IsRunningOnBattery()
 {
 	return false;
+}
+
+FGuid FGenericPlatformMisc::GetMachineId()
+{
+	FGuid MachineId;
+	FString MachineIdStr;
+
+	// Check to see if we already have a valid machine ID to use
+	if( !GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) || !FGuid::Parse( MachineIdStr, MachineId ) )
+	{
+		// No valid machine ID, generate and save a new one
+		MachineId = FGuid::NewGuid();
+		MachineIdStr = MachineId.ToString( EGuidFormats::Digits );
+
+		if( !SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "MachineId" ), MachineIdStr ) )
+		{
+			// Failed to persist the machine ID - reset it to zero to avoid returning a transient value
+			MachineId = FGuid();
+		}
+	}
+
+	return MachineId;
+}
+
+FString FGenericPlatformMisc::GetEpicAccountId()
+{
+	FString AccountId;
+	GetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
+	return AccountId;
+}
+
+void FGenericPlatformMisc::SetEpicAccountId( const FString& AccountId )
+{
+	SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
+}
+
+const TCHAR* FGenericPlatformMisc::GetEngineMode()
+{
+	return	
+		IsRunningCommandlet() ? TEXT( "Commandlet" ) :
+		GIsEditor ? TEXT( "Editor" ) :
+		IsRunningDedicatedServer() ? TEXT( "Server" ) :
+		TEXT( "Game" );
 }

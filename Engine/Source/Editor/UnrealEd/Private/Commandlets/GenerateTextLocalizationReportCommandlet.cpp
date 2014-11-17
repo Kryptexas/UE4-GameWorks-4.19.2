@@ -6,6 +6,7 @@
 #include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchive.h"
 #include "InternationalizationArchiveJsonSerializer.h"
+#include "BreakIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationReportCommandlet, Log, All);
 
@@ -19,12 +20,13 @@ int32 UGenerateTextLocalizationReportCommandlet::CountWords( const FString& Text
 	int32 NumOfWords = 0;
 	// Calculate # of words
 
-	FLineBreakIterator LineBreakIterator( Text );
+	TSharedRef<IBreakIterator> LineBreakIterator = FBreakIterator::CreateLineBreakIterator();
+	LineBreakIterator->SetString( Text );
 
 	int32 PreviousBreak = 0;
 	int32 CurrentBreak = 0;
 
-	while( ( CurrentBreak = LineBreakIterator.MoveToNext() ) != INDEX_NONE )
+	while( ( CurrentBreak = LineBreakIterator->MoveToNext() ) != INDEX_NONE )
 	{
 		if ( CurrentBreak > PreviousBreak )
 		{
@@ -87,11 +89,35 @@ int32 UGenerateTextLocalizationReportCommandlet::Main(const FString& Params)
 		return -1;
 	}
 
+	if (FPaths::IsRelative(SourcePath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			SourcePath = FPaths::Combine( *( FPaths::GameDir() ), *SourcePath );
+		}
+		else
+		{
+			SourcePath = FPaths::Combine( *( FPaths::EngineDir() ), *SourcePath );
+		}
+	}
+
 	// Get destination path.
 	if( !( GetConfigString( *SectionName, TEXT("DestinationPath"), DestinationPath, GatherTextConfigPath ) ) )
 	{
 		UE_LOG(LogGenerateTextLocalizationReportCommandlet, Error, TEXT("No destination path specified."));
 		return -1;
+	}
+
+	if (FPaths::IsRelative(DestinationPath))
+	{
+		if (!FPaths::GameDir().IsEmpty())
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::GameDir() ), *DestinationPath );
+		}
+		else
+		{
+			DestinationPath = FPaths::Combine( *( FPaths::EngineDir() ), *DestinationPath );
+		}
 	}
 
 	// Get the timestamp from the commandline, if not provided we will use the current time.

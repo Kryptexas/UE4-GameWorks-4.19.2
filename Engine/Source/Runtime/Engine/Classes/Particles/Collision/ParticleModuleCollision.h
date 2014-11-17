@@ -50,6 +50,18 @@ class UParticleModuleCollision : public UParticleModuleCollisionBase
 	UPROPERTY(EditAnywhere, Category=Collision)
 	TEnumAsByte<enum EParticleCollisionComplete> CollisionCompletionOption;
 
+	/**
+	 * Which ObjectTypes to collide with
+	 */
+	UPROPERTY(EditAnywhere, Category = Collision)
+	TArray< TEnumAsByte<enum EObjectTypeQuery> > CollisionTypes;
+
+	/**
+	 * ObjectParams created for array of CollisionTypes
+	 */
+	FCollisionObjectQueryParams ObjectParams;
+	
+
 	/** 
 	 *	If true, physic will be applied between a particle and the 
 	 *	object it collides with. 

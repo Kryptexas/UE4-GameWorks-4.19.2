@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	STextureEditorViewportToolbar.cpp: Implements the STextureEditorViewportToolbar class.
-=============================================================================*/
-
 #include "TextureEditorPrivatePCH.h"
+
 
 #define LOCTEXT_NAMESPACE "STextureEditorViewportToolbar"
 
@@ -24,13 +21,14 @@ void STextureEditorViewportToolbar::Construct( const FArguments& InArgs, const T
 			.AutoWidth()
 			[
 				SAssignNew(ViewOptionsMenuAnchor, SMenuAnchor)
+					.OnGetMenuContent(this, &STextureEditorViewportToolbar::GenerateViewOptionsMenu)
 					.Placement(MenuPlacement_ComboBox)
 					[
 						SNew(SButton)
 							.ClickMethod(EButtonClickMethod::MouseDown)
 							.ContentPadding(FMargin(5.0f, 2.0f))
 							.VAlign(VAlign_Center)
-							.ButtonStyle(FEditorStyle::Get(), "EditorViewportToolBar.MenuButton")
+							.ButtonStyle(FEditorStyle::Get(), "ViewPortMenu.Button")
 							.OnClicked(this, &STextureEditorViewportToolbar::HandleViewOptionsMenuButtonClicked)
 							[
 								SNew(SHorizontalBox)
@@ -39,19 +37,22 @@ void STextureEditorViewportToolbar::Construct( const FArguments& InArgs, const T
 									.AutoWidth()
 									[
 										SNew(STextBlock)
-											.Text(LOCTEXT("ViewButtonText", "View"))
+										.Text(LOCTEXT("ViewButtonText", "View"))
+										.TextStyle(FEditorStyle::Get(), "ViewportMenu.Label")
 									]
 
 								+ SHorizontalBox::Slot()
 									.AutoWidth()
-									.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+									.HAlign(HAlign_Center)
+									.VAlign(VAlign_Center)
+									.Padding(2.0f)
 									[
 										SNew(SImage)
-											.Image(FEditorStyle::GetBrush("EditorViewportToolBar.MenuDropdown"))
+										.Image(FEditorStyle::GetBrush("ComboButton.Arrow"))
+										.ColorAndOpacity(FLinearColor::Black)
 									]
 							]
 					]
-					.OnGetMenuContent(this, &STextureEditorViewportToolbar::GenerateViewOptionsMenu)
 			]
 	];
 }
@@ -71,14 +72,13 @@ TSharedRef<SWidget> STextureEditorViewportToolbar::GenerateViewOptionsMenu( ) co
 
 FReply STextureEditorViewportToolbar::HandleViewOptionsMenuButtonClicked( )
 {
-	// If the menu button is clicked toggle the state of the menu anchor which will open or close the menu
 	if (ViewOptionsMenuAnchor->ShouldOpenDueToClick())
 	{
-		ViewOptionsMenuAnchor->SetIsOpen( true );
+		ViewOptionsMenuAnchor->SetIsOpen(true);
 	}
 	else
 	{
-		ViewOptionsMenuAnchor->SetIsOpen( false );
+		ViewOptionsMenuAnchor->SetIsOpen(false);
 	}
 
 	return FReply::Handled();

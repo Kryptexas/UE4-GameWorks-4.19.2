@@ -339,8 +339,11 @@ public:
 	/** Set the tangent weight mode of the specified key */
 	void SetKeyTangentWeightMode(FKeyHandle KeyHandle, ERichCurveTangentWeightMode NewTangentWeightMode);
 
-	/** Set the interp mode of the specified key */
+	/** Get the interp mode of the specified key */
 	ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const;
+
+	/** Get the tangent mode of the specified key */
+	ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const;
 
 	/** Get range of input time values. Outside this region curve continues constantly the start/end values. */
 	void GetTimeRange(float& MinTime, float& MaxTime) const;
@@ -384,6 +387,11 @@ template<class T> struct FRichCurveEditInfoTemplate
 	/** Pointer to curves to be edited */
 	T				CurveToEdit;
 
+	FRichCurveEditInfoTemplate()
+		: CurveName(NAME_None)
+		, CurveToEdit(nullptr)
+	{}
+
 	FRichCurveEditInfoTemplate(T InCurveToEdit)
 	:	CurveName(NAME_None)
 	,	CurveToEdit(InCurveToEdit)
@@ -419,6 +427,9 @@ public:
 
 	/** Called to make curve owner transactional */
 	virtual void MakeTransactional() = 0;
+
+	/** Called when the curve has been changed */
+	virtual void OnCurveChanged() = 0;
 };
 
 
@@ -427,8 +438,8 @@ public:
 /**
  * Defines a curve of interpolated points to evaluate over a given range
  */
-UCLASS(abstract,MinimalAPI)
-class UCurveBase : public UObject, public FCurveOwnerInterface
+UCLASS(abstract)
+class ENGINE_API UCurveBase : public UObject, public FCurveOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -438,11 +449,11 @@ class UCurveBase : public UObject, public FCurveOwnerInterface
 
 	/** Get the time range across all curves */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
-	ENGINE_API void GetTimeRange(float& MinTime, float& MaxTime) const;
+	void GetTimeRange(float& MinTime, float& MaxTime) const;
 
 	/** Get the value range across all curves */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
-	ENGINE_API void GetValueRange(float& MinValue, float& MaxValue) const;
+	void GetValueRange(float& MinValue, float& MaxValue) const;
 
 public:
 	// Begin FCurveOwnerInterface
@@ -465,17 +476,19 @@ public:
 
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
+	virtual void OnCurveChanged() override;
 	// End FCurveOwnerInterface
 
 	// Begin UCurveBase interface
+
 	/** 
 	 *	Create curve from CSV style comma-separated string. 
 	 *	@return	Set of problems encountered while processing input
 	 */
-	ENGINE_API TArray<FString> CreateCurveFromCSVString(const FString& InString);
-	
+	TArray<FString> CreateCurveFromCSVString(const FString& InString);
+
 	/** Reset all curve data */
-	ENGINE_API void ResetCurve();
+	void ResetCurve();
 
 	// End UCurveBase interface
 

@@ -38,15 +38,21 @@ namespace EAnalyticsErrorCodes
 		FailedToCreateIPA = 31,
 		FailedToCodeSign = 32,
 		DeviceBackupFailed = 33,
-		IPAUninstallFailed = 34,
-		IPAInstallFailed = 35,
-		IPANotFound = 36,
+		AppUninstallFailed = 34,
+		AppInstallFailed = 35,
+		AppNotFound = 36,
 		StubNotSignedCorrectly = 37,
 		IPAMissingInfoPList = 38,
 		DeleteFile = 39,
 		DeleteDirectory = 40,
 		CreateDirectory = 41,
 		CopyFile = 42,
+		OnlyOneObbFileSupported = 50,
+		FailureGettingPackageInfo = 51,
+		OnlyOneTargetConfigurationSupported = 52,
+		ObbNotFound = 53,
+		AndroidBuildToolsPathNotFound = 54,
+		NoApkSuitableForArchitecture = 55,
 		LauncherFailed = 100,
 		UATLaunchFailure = 101,
 	};
@@ -55,7 +61,7 @@ namespace EAnalyticsErrorCodes
 class FEditorAnalytics
 {
 public:
-	/*
+	/**
 	* Reports an event to the analytics system if it is enabled
 	*
 	* @param EventName - name of the event
@@ -63,7 +69,7 @@ public:
 	*/
 	UNREALED_API static void ReportEvent(FString EventName, FString PlatformName, bool bHasCode);
 
-	/*
+	/**
 	* Reports an event to the analytics system if it is enabled with some extra parameters
 	*
 	* @param EventName - name of the event
@@ -72,7 +78,7 @@ public:
 	*/
 	UNREALED_API static void ReportEvent(FString EventName, FString PlatformName, bool bHasCode, TArray<FAnalyticsEventAttribute>& ExtraParams);
 
-	/*
+	/**
 	* Reports an event to the analytics system if it is enabled with some extra parameters with an error code
 	*
 	* @param EventName - name of the event
@@ -82,7 +88,7 @@ public:
 	*/
 	UNREALED_API static void ReportEvent(FString EventName, FString PlatformName, bool bHasCode, int32 ErrorCode, TArray<FAnalyticsEventAttribute>& ExtraParams);
 
-	/*
+	/**
 	* Reports an event to the analytics system of a build requirements failure
 	*
 	* @param EventName - name of the event

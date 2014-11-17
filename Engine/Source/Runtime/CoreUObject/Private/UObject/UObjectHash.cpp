@@ -32,7 +32,7 @@ static TMultiMap<int32,class UObjectBase*> ObjectHashOuter;
  */
 static FORCEINLINE int32 GetObjectHash(FName ObjName)
 {
-	return (ObjName.GetIndex() ^ ObjName.GetNumber()) & (OBJECT_HASH_BINS - 1);
+	return (ObjName.GetComparisonIndex() ^ ObjName.GetNumber()) & (OBJECT_HASH_BINS - 1);
 }
 
 /**
@@ -46,7 +46,7 @@ static FORCEINLINE int32 GetObjectHash(FName ObjName)
  */
 static FORCEINLINE int32 GetObjectOuterHash(FName ObjName,PTRINT Outer)
 {
-	return ((ObjName.GetIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
+	return ((ObjName.GetComparisonIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
 }
 
 /**

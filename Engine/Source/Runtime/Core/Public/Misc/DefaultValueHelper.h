@@ -45,6 +45,9 @@ class CORE_API FDefaultValueHelper
 	static bool IsStringValidInteger(const TCHAR* Start, const TCHAR* End, int32& OutBase);
 
 public:
+
+	static FString GetUnqualifiedEnumValue(const FString& Source);
+
 	static bool HasWhitespaces(const FString& Source);
 
 	static FString RemoveWhitespaces(const FString& Source);

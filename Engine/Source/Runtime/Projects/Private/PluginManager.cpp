@@ -190,7 +190,7 @@ void FPluginManager::DiscoverAllPlugins()
 					else
 					{
 						// NOTE: Even though loading of this plugin failed, we'll keep processing other plugins
-						UE_LOG(LogPluginManager, Error, TEXT("%s"), *FailureReason.ToString());
+						UE_LOG(LogPluginManager, Error, TEXT("%s (%s)"), *FailureReason.ToString(), *PluginDescriptorFilename);
 					}
 				}
 				else
@@ -309,6 +309,14 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
 				ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
 				ContentFolders.Emplace(ContentFolder);
+
+				if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
+				{
+					if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+					{
+						CoreSystemSection->AddUnique("Paths", ContentFolder.ContentPath);
+					}
+				}
 			}
 		}
 
@@ -412,23 +420,23 @@ bool FPluginManager::AreRequiredPluginsAvailable()
 	return ConfigureEnabledPlugins();
 }
 
-bool FPluginManager::AreEnabledPluginModulesUpToDate()
+bool FPluginManager::CheckModuleCompatibility(TArray<FString>& OutIncompatibleModules)
 {
 	if(!ConfigureEnabledPlugins())
 	{
 		return false;
 	}
 
+	bool bResult = true;
 	for (TArray< TSharedRef< FPluginInstance > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
 	{
 		const TSharedRef< FPluginInstance > &Plugin = *Iter;
-		if (Plugin->bEnabled && !FModuleDescriptor::AreModulesUpToDate(Plugin->Descriptor.Modules))
+		if (Plugin->bEnabled && !FModuleDescriptor::CheckModuleCompatbility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, OutIncompatibleModules))
 		{
-			return false;
+			bResult = false;
 		}
 	}
-
-	return true;
+	return bResult;
 }
 
 IPluginManager& IPluginManager::Get()

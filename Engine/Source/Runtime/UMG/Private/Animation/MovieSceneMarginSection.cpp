@@ -91,10 +91,3 @@ void UMovieSceneMarginSection::AddKeyToNamedCurve( float Time, const FMarginKey&
 	}
 }
 
-void UMovieSceneMarginSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float Value )
-{
-	if( IsTimeWithinSection(Time) )
-	{
-		InCurve.UpdateOrAddKey(Time, Value);
-	}
-}

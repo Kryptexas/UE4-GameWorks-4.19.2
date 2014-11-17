@@ -8,6 +8,8 @@
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
 #include "BlueprintEventNodeSpawner.h"
+#include "BlueprintEditorUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
@@ -18,9 +20,9 @@ UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const class FPostConstructIni
 	EventSignatureClass = UGameplayCueInterface::StaticClass();
 }
 
-FString UK2Node_GameplayCueEvent::GetTooltip() const
+FText UK2Node_GameplayCueEvent::GetTooltipText() const
 {
-	return TEXT("Handle GameplayCue Event");
+	return LOCTEXT("GameplayCueEvent_Tooltip", "Handle GameplayCue Event");
 }
 
 FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -29,26 +31,22 @@ FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	//return LOCTEXT("HandleGameplayCueEvent", "HandleGameplaCueEvent");
 }
 
-bool UK2Node_GameplayCueEvent::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
+bool UK2Node_GameplayCueEvent::IsCompatibleWithGraph(UEdGraph const* TargetGraph) const
 {
-	bool bValidClass = false;
-	UBlueprint* MyBlueprint = Cast<UBlueprint>(TargetGraph->GetOuter());
-	if (MyBlueprint && MyBlueprint->GeneratedClass)
+	bool bIsCompatible = false;
+	if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph))
 	{
-		if (MyBlueprint->GeneratedClass->ImplementsInterface(UGameplayCueInterface::StaticClass()))
-		{
-			bValidClass = true;
-		}
-	}
-
-	return bValidClass;
+		check(Blueprint->GeneratedClass != nullptr);
+		bIsCompatible = Blueprint->GeneratedClass->ImplementsInterface(UGameplayCueInterface::StaticClass());
+	}	
+	return bIsCompatible && Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context) const
 {
 	Super::GetMenuEntries(Context);
 
-	if (!CanPasteHere(Context.CurrentGraph, GetDefault<UEdGraphSchema>(Context.CurrentGraph->Schema)))
+	if (!IsCompatibleWithGraph(Context.CurrentGraph))
 	{
 		return;
 	}
@@ -78,7 +76,7 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 
 		const FString Category = FunctionCategory;
 		const FText MenuDesc = NodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-		const FString Tooltip = NodeTemplate->GetTooltip();
+		const FString Tooltip = NodeTemplate->GetTooltipText().ToString();
 		const FString Keywords = NodeTemplate->GetKeywords();
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
@@ -86,8 +84,22 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 	}	
 }
 
-void UK2Node_GameplayCueEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_GameplayCueEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (!ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		return;
+	}
+
 	auto CustomizeCueNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName TagName)
 	{
 		UK2Node_GameplayCueEvent* EventNode = CastChecked<UK2Node_GameplayCueEvent>(NewNode);
@@ -106,7 +118,7 @@ void UK2Node_GameplayCueEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& Ac
 		check(NodeSpawner != nullptr);
 		NodeSpawner->CustomizeNodeDelegate = PostSpawnDelegate;
 		
-		ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 

@@ -2,17 +2,9 @@
 
 #pragma once
 
-// @todo - hook up keyboard types
-enum EKeyboardType
-{
-	Keyboard_Default,
-	Keyboard_Number,
-	Keyboard_Web,
-	Keyboard_Email,
-	Keyboard_Password,
-};
+#include "IVirtualKeyboardEntry.h"
 
-class SLATE_API SVirtualKeyboardEntry : public SLeafWidget
+class SLATE_API SVirtualKeyboardEntry : public SLeafWidget, public IVirtualKeyboardEntry
 {
 
 public:
@@ -71,51 +63,10 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-	/**
-	 * Returns the text.
-	 *
-	 * @return  Text
-	 */
-	const FText& GetText() const
-	{
-		return Text.Get();
-	}
-
-	/**
-	 * Sets the text currently being edited 
-	 *
-	 * @param  InNewText  The new text
-	 */
-	void SetText( const TAttribute< FText >& InNewText );
-
-	/**
-	 * Returns the hint text.
-	 *
-	 * @return  HintText
-	 */
-	const FText& GetHintText() const
-	{
-		return HintText.Get();
-	}
-
-	/**
-	 * Returns the keyboard type.
-	 *
-	 * @return  KeyboardType
-	 */
-	EKeyboardType GetKeyboardType() const
-	{
-		return KeyboardType.Get();
-	}
-
-	/**
-	 * Restores the text to the original state
-	 */
+	/** Restores the text to the original state */
 	void RestoreOriginalText();
 
-	/**
-	 *	Returns whether the current text varies from the original
-	 */
+	/** @return whether the current text varies from the original */
 	bool HasTextChangedFromOriginal() const;
 
 	/**
@@ -125,11 +76,33 @@ public:
 	 */
 	void SetFont( const TAttribute< FSlateFontInfo >& InNewFont );
 
-	/**
-	 * Can the user edit the text?
-	 */
+	/** @return Whether the user can edit the text. */
 	bool GetIsReadOnly() const;
 
+public:
+	// BEGIN IVirtualKeyboardEntry Interface
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+
+	virtual const FText& GetText() const override
+	{
+		return Text.Get();
+	}
+
+	virtual const FText GetHintText() const override
+	{
+		return HintText.Get();
+	}
+
+	virtual EKeyboardType GetVirtualKeyboardType() const override
+	{
+		return KeyboardType.Get();
+	}
+
+	virtual bool IsMultilineEntry() const override
+	{
+		return false;
+	}
+	// END IVirtualKeyboardEntry Interface
 
 protected:
 
@@ -144,9 +117,7 @@ protected:
 
 private:
 
-	/**
-	 * @return  the string that needs to be rendered
-	 */
+	/** @return The string that needs to be rendered */
 	FString GetStringToRender() const;
 
 private:

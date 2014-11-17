@@ -172,7 +172,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 };
 
@@ -182,7 +182,7 @@ FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FD3D11DynamicRHI::IssueLongGPUTask()
 {
-	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		int32 LargestViewportIndex = INDEX_NONE;
 		int32 LargestViewportPixels = 0;
@@ -209,10 +209,11 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
-			TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
-			TShaderMapRef<FLongGPUTaskPS> PixelShader(GetGlobalShaderMap());
+			auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+			TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
+			TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-			SetGlobalBoundShaderState(RHICmdList, LongGPUTaskBoundShaderState, GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
 
 			// Draw a fullscreen quad
 			FVector4 Vertices[4];
@@ -221,7 +222,7 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 			Vertices[2].Set( -1.0f, -1.0f, 0, 1.0f );
 			Vertices[3].Set(  1.0f, -1.0f, 0, 1.0f );
 			DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-			// Implicit fluish. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
+			// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 		}
 	}
 }

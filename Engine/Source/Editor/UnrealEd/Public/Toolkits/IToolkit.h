@@ -63,6 +63,9 @@ public:
 	/** Returns the invariant name of this toolkit type */
 	virtual FName GetToolkitFName() const = 0;
 
+	/** Returns the invariant name of this toolkit type, used for establishing the context for help, documentation and tutorials */
+	virtual FName GetToolkitContextFName() const = 0;
+
 	/** Returns the localized name of this toolkit type (typically just "<ClassName> editor") */
 	virtual FText GetBaseToolkitName() const = 0;
 

@@ -895,10 +895,10 @@ void UUnrealEdEngine::edactReplaceClassWithClass(UWorld* InWorld, UClass* SrcCla
 {
 	// Make a list of actors to replace.
 	TArray<AActor*> ActorsToReplace;
-	for( FActorIterator It(InWorld); It; ++It )
+	for( TActorIterator<AActor> It(InWorld, SrcClass); It; ++It )
 	{
 		AActor* Actor = *It;
-		if ( Actor->IsA( SrcClass ) && Actor->HasAnyFlags(RF_Transactional) )
+		if ( Actor->HasAnyFlags(RF_Transactional) )
 		{
 			ActorsToReplace.Add( Actor );
 		}
@@ -1537,7 +1537,7 @@ void UUnrealEdEngine::edactSelectOfClass( UWorld* InWorld, UClass* Class )
 
 	SelectedActors->Modify();
 
-	for( FActorIterator It(InWorld); It; ++It )
+	for( TActorIterator<AActor> It(InWorld, Class); It; ++It )
 	{
 		AActor* Actor = *It;
 		if( Actor->GetClass()==Class && !Actor->IsSelected() && !Actor->IsHiddenEd() )
@@ -1556,7 +1556,7 @@ void UUnrealEdEngine::edactSelectOfClass( UWorld* InWorld, UClass* Class )
 }
 
 
-void UUnrealEdEngine::edactSelectOfClassAndArchetype( UWorld* InWorld, const UClass* InClass, const UObject* InArchetype )
+void UUnrealEdEngine::edactSelectOfClassAndArchetype( UWorld* InWorld, const TSubclassOf<AActor> InClass, const UObject* InArchetype )
 {
 	USelection* SelectedActors = GetSelectedActors();
 	SelectedActors->BeginBatchSelectOperation();
@@ -1565,7 +1565,7 @@ void UUnrealEdEngine::edactSelectOfClassAndArchetype( UWorld* InWorld, const UCl
 
 	// Select all actors with of the provided class and archetype, assuming they aren't already selected, 
 	// aren't hidden in the editor, aren't a member of a prefab, and aren't builder brushes
-	for( FActorIterator ActorIter(InWorld); ActorIter; ++ActorIter )
+	for( TActorIterator<AActor> ActorIter(InWorld, InClass); ActorIter; ++ActorIter )
 	{
 		AActor* CurActor = *ActorIter;
 		if ( CurActor->GetClass() == InClass && CurActor->GetArchetype() == InArchetype && !CurActor->IsSelected() 
@@ -1587,10 +1587,10 @@ void UUnrealEdEngine::edactSelectSubclassOf( UWorld* InWorld, UClass* Class )
 
 	SelectedActors->Modify();
 
-	for( FActorIterator It(InWorld); It; ++It )
+	for( TActorIterator<AActor> It(InWorld, Class); It; ++It )
 	{
 		AActor* Actor = *It;
-		if( !Actor->IsSelected() && !Actor->IsHiddenEd() && Actor->GetClass()->IsChildOf(Class) )
+		if( !Actor->IsSelected() && !Actor->IsHiddenEd() )
 		{
 			// Selection by class not permitted for actors belonging to prefabs.
 			// Selection by class not permitted for builder brushes.
@@ -1969,15 +1969,14 @@ void UUnrealEdEngine::edactSelectMatchingEmitter()
 	SelectedActors->BeginBatchSelectOperation();
 	SelectedActors->Modify();
 	// Iterate over all of the non-hidden actors, selecting those who have a particle system template that matches one from the previously-found list
-	for( FActorIterator ActorIterator(WorldList[0]); ActorIterator; ++ActorIterator )
+	for( TActorIterator<AEmitter> ActorIterator(WorldList[0]); ActorIterator; ++ActorIterator )
 	{
-		AActor* Actor = *ActorIterator;
-		if ( !Actor->IsHiddenEd() )
+		AEmitter* ActorAsEmitter = *ActorIterator;
+		if ( !ActorAsEmitter->IsHiddenEd() )
 		{
-			AEmitter* ActorAsEmitter = Cast<AEmitter>( Actor );
-			if ( ActorAsEmitter && ActorAsEmitter->ParticleSystemComponent && SelectedParticleSystemTemplates.Contains( ActorAsEmitter->ParticleSystemComponent->Template ) )
+			if ( ActorAsEmitter->ParticleSystemComponent && SelectedParticleSystemTemplates.Contains( ActorAsEmitter->ParticleSystemComponent->Template ) )
 			{
-				SelectActor( Actor, true, false );
+				SelectActor( ActorAsEmitter, true, false );
 			}
 		}
 	}

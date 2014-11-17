@@ -31,9 +31,18 @@
 
 #if WITH_SPEEDTREE
 
+#ifdef __clang__ // @todo: ThirdParty/SpeedTree/SpeedTreeSDK-v7.0/Include/Core/RenderState_inl.h:52:2: warning: field 'm_eHueVariation' will be initialized after field 'm_eShaderGenerationMode' [-Wreorder]
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wreorder"
+#endif
+
 #include "Core/Core.h"
 
+#ifdef __clang__
+	#pragma clang diagnostic pop
 #endif
+
+#endif // WITH_SPEEDTREE
 
 #define LOCTEXT_NAMESPACE "SpeedTreeImportFactory"
 

@@ -2,6 +2,8 @@
 
 
 #pragma once
+#include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_VariableSetRef.generated.h"
 
 UCLASS(MinimalAPI)
@@ -12,14 +14,14 @@ class UK2Node_VariableSetRef : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	// End UK2Node interface
@@ -36,5 +38,9 @@ class UK2Node_VariableSetRef : public UK2Node
 
 	/** Returns the pin that specifies the value to set */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetValuePin() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 

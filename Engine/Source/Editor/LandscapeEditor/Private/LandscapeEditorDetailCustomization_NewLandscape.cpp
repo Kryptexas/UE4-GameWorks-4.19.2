@@ -28,6 +28,8 @@
 #include "ImageWrapper.h"
 
 #include "Landscape/Landscape.h"
+#include "Landscape/LandscapeLayerInfoObject.h"
+#include "TutorialMetaData.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 
@@ -359,6 +361,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
 			.Text(LOCTEXT("Resolution", "Overall Resolution"))
+			.ToolTipText(TAttribute<FText>(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetOverallResolutionTooltip))
 		]
 	]
 	.ValueContent()
@@ -416,6 +419,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
 			.Text(LOCTEXT("TotalComponents", "Total Components"))
+			.ToolTipText(LOCTEXT("NewLandscape_TotalComponents", "The total number of components that will be created for this landscape."))
 		]
 	]
 	.ValueContent()
@@ -439,6 +443,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(SButton)
 			.Visibility_Static(&GetVisibilityOnlyInNewLandscapeMode, ENewLandscapePreviewMode::NewLandscape)
 			.Text(LOCTEXT("FillWorld", "Fill World"))
+			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("FillWorldButton"), TEXT("LevelEditorToolBox")))
 			.OnClicked(this, &FLandscapeEditorDetailCustomization_NewLandscape::OnFillWorldButtonClicked)
 		]
 		+ SHorizontalBox::Slot()
@@ -447,6 +452,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(SButton)
 			.Visibility_Static(&GetVisibilityOnlyInNewLandscapeMode, ENewLandscapePreviewMode::ImportLandscape)
 			.Text(LOCTEXT("FitToData", "Fit To Data"))
+			.AddMetaData<FTagMetaData>(TEXT("ImportButton"))
 			.OnClicked(this, &FLandscapeEditorDetailCustomization_NewLandscape::OnFitImportDataButtonClicked)
 		]
 		+ SHorizontalBox::Slot()
@@ -459,6 +465,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			SNew(SButton)
 			.Visibility_Static(&GetVisibilityOnlyInNewLandscapeMode, ENewLandscapePreviewMode::NewLandscape)
 			.Text(LOCTEXT("Create", "Create"))
+			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("CreateButton"), TEXT("LevelEditorToolBox")))
 			.OnClicked(this, &FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked)
 		]
 		+ SHorizontalBox::Slot()
@@ -473,6 +480,13 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+FText FLandscapeEditorDetailCustomization_NewLandscape::GetOverallResolutionTooltip() const
+{
+	return (GetEditorMode() && GetEditorMode()->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
+	? LOCTEXT("ImportLandscape_OverallResolution", "Overall final resolution of the imported landscape in vertices")
+	: LOCTEXT("NewLandscape_OverallResolution", "Overall final resolution of the new landscape in vertices");
+}
 
 void FLandscapeEditorDetailCustomization_NewLandscape::SetScale(float NewValue, ETextCommit::Type, TSharedRef<IPropertyHandle> PropertyHandle)
 {
@@ -591,6 +605,11 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnChangeLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
@@ -601,8 +620,14 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnCommitLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
+		GEditor->EndTransaction();
 	}
 }
 
@@ -622,6 +647,11 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnChangeLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
@@ -632,8 +662,14 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnCommitLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
+		if (!GEditor->IsTransactionActive())
+		{
+			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
+		}
+		LandscapeEdMode->UISettings->Modify();
 		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
+		GEditor->EndTransaction();
 	}
 }
 
@@ -944,7 +980,7 @@ EVisibility FLandscapeEditorDetailCustomization_NewLandscape::GetHeightmapErrorV
 		return EVisibility::Visible;
 	}
 
-	if (HeightmapErrorAsByte != ELandscapeImportLayerError::None)
+	if (HeightmapErrorAsByte != ELandscapeImportHeightmapError::None)
 	{
 		return EVisibility::Visible;
 	}
@@ -1369,7 +1405,6 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildre
 		.AutoWidth()
 		.VAlign(VAlign_Center)
 		.Padding(FMargin(2))
-		//.AspectRatio()
 		[
 			SNew(SLandscapeAssetThumbnail, ThumbnailMIC, StructCustomizationUtils.GetThumbnailPool().ToSharedRef())
 			.ThumbnailSize(FIntPoint(48, 48))
@@ -1565,11 +1600,10 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::OnImportLayerCre
 
 EVisibility FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorVisibility(TSharedRef<IPropertyHandle> PropertyHandle_LayerError)
 {
-	uint8 LayerErrorAsByte = 0;
-	FPropertyAccess::Result Result = PropertyHandle_LayerError->GetValue(LayerErrorAsByte);
-	check(Result == FPropertyAccess::Success);
-
-	if (Result == FPropertyAccess::MultipleValues)
+	auto LayerError = ELandscapeImportLayerError::None;
+	FPropertyAccess::Result Result = PropertyHandle_LayerError->GetValue((uint8&)LayerError);
+	if (Result == FPropertyAccess::Fail ||
+		Result == FPropertyAccess::MultipleValues)
 	{
 		return EVisibility::Visible;
 	}
@@ -1584,7 +1618,7 @@ EVisibility FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorV
 		}
 	}
 
-	if (LayerErrorAsByte != ELandscapeImportLayerError::None)
+	if (LayerError != ELandscapeImportLayerError::None)
 	{
 		return EVisibility::Visible;
 	}
@@ -1593,16 +1627,18 @@ EVisibility FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorV
 
 FText FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorText(TSharedRef<IPropertyHandle> PropertyHandle_LayerError)
 {
-	uint8 LayerErrorAsByte = 0;
-	FPropertyAccess::Result Result = PropertyHandle_LayerError->GetValue(LayerErrorAsByte);
-	check(Result == FPropertyAccess::Success);
-
-	if (Result == FPropertyAccess::MultipleValues)
+	auto LayerError = ELandscapeImportLayerError::None;
+	FPropertyAccess::Result Result = PropertyHandle_LayerError->GetValue((uint8&)LayerError);
+	if (Result == FPropertyAccess::Fail)
+	{
+		return LOCTEXT("Import_LayerUnknownError", "Unknown Error");
+	}
+	else if (Result == FPropertyAccess::MultipleValues)
 	{
 		return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
 	}
 
-	switch (LayerErrorAsByte)
+	switch (LayerError)
 	{
 	case ELandscapeImportLayerError::None:
 		return FText::GetEmpty();
@@ -1617,7 +1653,8 @@ FText FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetErrorText(TS
 	case ELandscapeImportLayerError::ColorPng:
 		return LOCTEXT("Import_LayerColorPng", "The Layer file appears to be a color png, grayscale is expected. The import *can* continue, but the result may not be what you expect...");
 	default:
-		check(0);
+		checkSlow(0);
+		return LOCTEXT("Import_LayerUnknownError", "Unknown Error");
 	}
 
 	return FText::GetEmpty();

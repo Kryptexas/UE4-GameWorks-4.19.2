@@ -70,7 +70,7 @@ TSharedRef<SWidget> SKismetLinearExpression::MakeNodeWidget(const UEdGraphNode* 
 		// Instead show it as a special sort of variable get
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("NodeTitle"), Node->GetNodeTitle(ENodeTitleType::ListView));
-		Args.Add(TEXT("PinName"), FromPin->PinFriendlyName.IsEmpty() ? FText::FromString(FromPin->PinName) : FromPin->PinFriendlyName);
+		Args.Add(TEXT("PinName"), FromPin->GetDisplayName());
 		const FText EffectiveVariableName = FText::Format(LOCTEXT("NodeTitleWithPinName", "{NodeTitle}_{PinName}"), Args );
 
 		return SNew(SOverlay)

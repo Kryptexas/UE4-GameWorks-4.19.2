@@ -25,6 +25,6 @@ public:
 	bool bMoviesAreSkippable;
 
 	/** Movies to play on startup. Note that these must be in your game's Game/Content/Movies directory. */
-	UPROPERTY(globalconfig, EditAnywhere, Category="Movies", meta=(FilePathFilter="mp4"))
-	TArray<FFilePath> StartupMovies;
+	UPROPERTY(globalconfig, EditAnywhere, Category="Movies")
+	TArray<FString> StartupMovies;
 };

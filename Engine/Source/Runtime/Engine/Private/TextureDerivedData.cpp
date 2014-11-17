@@ -12,16 +12,15 @@ enum
 	NUM_INLINE_DERIVED_MIPS = 7,
 };
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 #include "UObjectAnnotation.h"
 #include "DerivedDataCacheInterface.h"
 #include "DerivedDataPluginInterface.h"
-#include "TextureCompressorModule.h"
 #include "DDSLoader.h"
 #include "RenderUtils.h"
 #include "TargetPlatform.h"
-
+#include "TextureCompressorModule.h"
 #include "ImageCore.h"
 
 /*------------------------------------------------------------------------------
@@ -97,13 +96,9 @@ namespace TextureDerivedDataTimings
 	};
 }
 
-#endif // #if WITH_EDITORONLY_DATA
-
 /*------------------------------------------------------------------------------
 	Derived data key generation.
 ------------------------------------------------------------------------------*/
-
-#if WITH_EDITORONLY_DATA
 
 /**
  * Serialize build settings for use when generating the derived data key.
@@ -267,13 +262,13 @@ static void GetTextureDerivedDataKey(
 	GetTextureDerivedDataKeyFromSuffix(KeySuffix, OutKey);
 }
 
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*------------------------------------------------------------------------------
 	Texture compression.
 ------------------------------------------------------------------------------*/
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 /**
  * Sets texture build settings.
@@ -461,13 +456,13 @@ static void PutDerivedDataInCache(
 	UE_LOG(LogTexture,Verbose,TEXT("%s  Derived Data: %d bytes"),*LogString,RawDerivedData.Num());
 }
 
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 /*------------------------------------------------------------------------------
 	Derived data.
 ------------------------------------------------------------------------------*/
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 
 class FTextureStatusMessageContext : public FScopedSlowTask
 {
@@ -1066,7 +1061,7 @@ bool FTexturePlatformData::TryInlineMipData()
 	return true;
 }
 
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 FTexturePlatformData::FTexturePlatformData()
 	: SizeX(0)
@@ -1081,7 +1076,7 @@ FTexturePlatformData::FTexturePlatformData()
 
 FTexturePlatformData::~FTexturePlatformData()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (AsyncTask)
 	{
 		AsyncTask->EnsureCompletion();
@@ -1095,12 +1090,12 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 {
 	int32 NumMipsCached = 0;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	TArray<uint8> TempData;
 	FAsyncMipHandles AsyncHandles;
 	FDerivedDataCacheInterface& DDC = GetDerivedDataCacheRef();
 	BeginLoadDerivedMips(Mips, FirstMipToLoad, AsyncHandles);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	// Load remaining mips (if any) from bulk data.
 	for (int32 MipIndex = FirstMipToLoad; MipIndex < Mips.Num(); ++MipIndex)
@@ -1117,7 +1112,7 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// Wait for async DDC gets.
 	for (int32 MipIndex = FirstMipToLoad; MipIndex < Mips.Num(); ++MipIndex)
 	{
@@ -1143,7 +1138,7 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 			TempData.Reset();
 		}
 	}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 	if (NumMipsCached != (Mips.Num() - FirstMipToLoad))
 	{
@@ -1162,7 +1157,7 @@ bool FTexturePlatformData::TryLoadMips(int32 FirstMipToLoad, void** OutMipData)
 	return true;
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 bool FTexturePlatformData::AreDerivedMipsAvailable() const
 {
 	bool bMipsAvailable = true;
@@ -1177,7 +1172,7 @@ bool FTexturePlatformData::AreDerivedMipsAvailable() const
 	}
 	return bMipsAvailable;
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 static void SerializePlatformData(
 	FArchive& Ar,
@@ -1315,21 +1310,21 @@ void FAsyncStreamDerivedMipWorker::DoWork()
 
 void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::GetMipDataTime);
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	if (PlatformData->TryLoadMips(FirstMipToLoad, OutMipData) == false)
 	{
 		// Unable to load mips from the cache. Rebuild the texture and try again.
 		UE_LOG(LogTexture,Warning,TEXT("GetMipData failed for %s (%s)"),
 			*GetPathName(), GPixelFormats[GetPixelFormat()].Name);
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 		ForceRebuildPlatformData();
 		if (PlatformData->TryLoadMips(FirstMipToLoad, OutMipData) == false)
 		{
 			UE_LOG(LogTexture,Error,TEXT("Failed to build texture %s."), *GetPathName());
 		}
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	}
 }
 
@@ -1352,7 +1347,7 @@ void UTexture::CleanupCachedCookedPlatformData()
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void UTexture::CachePlatformData(bool bAsyncCache)
 {
 	FTexturePlatformData** PlatformDataLinkPtr = GetRunningPlatformData();
@@ -1603,7 +1598,7 @@ void UTexture::MarkPlatformDataTransient()
 		}
 	}
 }
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 
 void UTexture::CleanupCachedRunningPlatformData()
 {
@@ -1632,7 +1627,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 	UEnum* PixelFormatEnum = UTexture::GetPixelFormatEnum();
 
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::SerializeCookedTime);
 	if (Ar.IsCooking() && Ar.IsPersistent())
 	{
@@ -1691,7 +1686,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 		Ar << PixelFormatName;
 	}
 	else
-#endif // #if WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 	{
 
 		FTexturePlatformData** RunningPlatformDataPtr = GetRunningPlatformData();

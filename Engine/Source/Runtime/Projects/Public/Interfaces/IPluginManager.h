@@ -121,9 +121,10 @@ public:
 	/** 
 	 * Checks whether modules for the enabled plugins are up to date
 	 *
+	 * @param OutIncompatibleNames	Array to receive a list of incompatible module names
 	 * @returns true if the enabled plugin modules are up to date
 	 */
-	virtual bool AreEnabledPluginModulesUpToDate( ) = 0;
+	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) = 0;
 
 	/**
 	 * Gets status about all currently known plugins

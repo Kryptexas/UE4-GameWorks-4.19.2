@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_ReachedMoveGoal.h"
 
-UBTDecorator_ReachedMoveGoal::UBTDecorator_ReachedMoveGoal(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_ReachedMoveGoal::UBTDecorator_ReachedMoveGoal(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Reached move goal";
 
@@ -14,9 +14,9 @@ UBTDecorator_ReachedMoveGoal::UBTDecorator_ReachedMoveGoal(const class FPostCons
 	FlowAbortMode = EBTFlowAbortMode::None;
 }
 
-bool UBTDecorator_ReachedMoveGoal::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
+bool UBTDecorator_ReachedMoveGoal::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
 {
-	AAIController* AIOwner = Cast<AAIController>(OwnerComp->GetOwner());
+	AAIController* AIOwner = OwnerComp->GetAIOwner();
 	const bool bReachedGoal = AIOwner && AIOwner->PathFollowingComponent && AIOwner->PathFollowingComponent->DidMoveReachGoal();
 	return bReachedGoal;
 }

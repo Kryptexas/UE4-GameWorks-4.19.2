@@ -165,6 +165,9 @@ public:
 	/** Look for all assets on disk (can be async or synchronous) */
 	virtual void SearchAllAssets(bool bSynchronousSearch) = 0;
 
+	/** If assets are currently being asynchronously scanned in the specified path, this will cause them to be scanned before other assets. */
+	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) = 0;
+
 	/** Event for when paths are added to the registry */
 	DECLARE_EVENT_OneParam( IAssetRegistry, FPathAddedEvent, const FString& /*Path*/ );
 	virtual FPathAddedEvent& OnPathAdded() = 0;

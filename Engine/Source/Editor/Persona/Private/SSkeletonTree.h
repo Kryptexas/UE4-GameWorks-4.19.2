@@ -153,6 +153,8 @@ public:
 	/** Set Translation Retargeting Mode for this bone. */
 	void SetBoneTranslationRetargetingMode(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
 
+	virtual ~FDisplayedMeshBoneInfo() {}
+
 protected:
 	/** Hidden constructor, always use Make above */
 	FDisplayedMeshBoneInfo(const FName & InSource)
@@ -244,6 +246,8 @@ public:
 
 	/** Return socket name as FText for display in skeleton tree */
 	FText GetSocketNameAsText() const { return FText::FromName(SocketData->SocketName); }
+
+	virtual ~FDisplayedSocketInfo() {}
 
 protected:
 	/** Hidden constructor, always use Make above */
@@ -339,6 +343,8 @@ public:
 
 	/** Handler for when the user double clicks on this item in the tree */
 	virtual void OnItemDoubleClicked();
+
+	virtual ~FDisplayedAttachedAssetInfo() {}
 
 protected:
 	/** Hidden constructor, always use Make above */

@@ -18,6 +18,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)
 	uint32 bEnableGameCenterSupport : 1;
 	
+	// Whether or not to add support for Metal API (requires IOS8 and A7 processors)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
+	bool bSupportsMetal;
+
+	// Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version and use "metal" instead of "opengles-2" in UIRequiredDeviceCapabilities)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
+	bool bSupportsOpenGLES2;
+
 	// Does the application support portrait orientation?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceOrientations)
 	uint32 bSupportsPortraitOrientation : 1;

@@ -5,6 +5,7 @@
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
 #include "TreeFilterHandler.h"
+#include "SHierarchyViewItem.h"
 
 //TODO rename SUMGEditorHierarchy
 
@@ -15,7 +16,7 @@
 class SHierarchyView : public SCompoundWidget
 {
 public:
-	typedef TTextFilter< UWidget* > WidgetTextFilter;
+	typedef TTextFilter< TSharedPtr<FHierarchyModel> > WidgetTextFilter;
 
 public:
 	SLATE_BEGIN_ARGS( SHierarchyView ){}
@@ -34,16 +35,13 @@ public:
 private:
 	void BuildWrapWithMenu(FMenuBuilder& Menu);
 	TSharedPtr<SWidget> WidgetHierarchy_OnContextMenuOpening();
-	void WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren);
-	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable);
-	void WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo);
+	void WidgetHierarchy_OnGetChildren(TSharedPtr<FHierarchyModel> InParent, TArray< TSharedPtr<FHierarchyModel> >& OutChildren);
+	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(TSharedPtr<FHierarchyModel> InItem, const TSharedRef<STableViewBase>& OwnerTable);
+	void WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyModel> SelectedItem, ESelectInfo::Type SelectInfo);
 
 private:
 	/** @returns the current blueprint being edited */
 	UWidgetBlueprint* GetBlueprint() const;
-
-	/** Expands every item in the tree leading to this widget */
-	void ExpandPathToWidget(UWidget* TemplateWidget);
 
 	/** Called when the blueprint is structurally changed. */
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
@@ -76,10 +74,19 @@ private:
 	FText GetSearchText() const;
 
 	/** Transforms the widget into a searchable string */
-	void TransformWidgetToString(UWidget* Widget, OUT TArray< FString >& Array);
+	void TransformWidgetToString(TSharedPtr<FHierarchyModel> Widget, OUT TArray< FString >& Array);
 
 	/** Called when a Blueprint is recompiled and live objects are swapped out for replacements */
 	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
+
+	/** Saves the expansion of items into a list based on FName */
+	void SaveExpandedItems();
+
+	/** Restores the state of expanded items based on the saved expanded item state, then clears the expanded state cache. */
+	void RestoreExpandedItems();
+
+	/** Recursively expands the models based on the expansion set. */
+	void RecursiveExpand(TSharedPtr<FHierarchyModel>& Model);
 
 private:
 
@@ -87,22 +94,19 @@ private:
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 
 	/** Handles filtering the hierarchy based on an IFilter. */
-	TSharedPtr<TreeFilterHandler<UWidget*>> FilterHandler;
+	TSharedPtr< TreeFilterHandler< TSharedPtr<FHierarchyModel> > > FilterHandler;
 
 	/** The source root widgets for the tree. */
-	TArray< UWidget* > RootWidgets;
+	TArray< TSharedPtr<FHierarchyModel> > RootWidgets;
 
 	/** The root widgets which are actually displayed by the TreeView which will be managed by the TreeFilterHandler. */
-	TArray< UWidget* > TreeRootWidgets;
-
-	/** Gets the visible items displayed in the tree view. */
-	TSet< UWidget* > VisibleItems;
+	TArray< TSharedPtr<FHierarchyModel> > TreeRootWidgets;
 
 	/** The widget containing the treeview */
 	TSharedPtr<SBorder> TreeViewArea;
 
 	/** The widget hierarchy slate treeview widget */
-	TSharedPtr< STreeView< UWidget* > > WidgetTreeView;
+	TSharedPtr< STreeView< TSharedPtr<FHierarchyModel> > > WidgetTreeView;
 
 	/** The filter used by the search box */
 	TSharedPtr<WidgetTextFilter> SearchBoxWidgetFilter;
@@ -112,4 +116,7 @@ private:
 
 	/** Is the tree in such a changed state that the whole widget needs rebuilding? */
 	bool bRebuildTreeRequested;
+
+	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
+	TArray<FName> ExpandedItems;
 };

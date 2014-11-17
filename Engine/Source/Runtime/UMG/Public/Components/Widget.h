@@ -3,19 +3,20 @@
 #pragma once
 
 #include "SlateWrapperTypes.h"
+#include "WidgetTransform.h"
 
 #include "Widget.generated.h"
 
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget
  */
-#define OPTIONAL_BINDING(ReturnType, MemberName) MemberName ## Delegate.IsBound() ? TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) : TAttribute< ReturnType >(MemberName)
+#define OPTIONAL_BINDING(ReturnType, MemberName) ( MemberName ## Delegate.IsBound() && !IsDesignTime() ) ? TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) : TAttribute< ReturnType >(MemberName)
 
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget,
  * also allows a conversion function to be provided to convert between the SWidget value and the value exposed to UMG.
  */
-#define OPTIONAL_BINDING_CONVERT(ReturnType, MemberName, ConvertedType, ConversionFunction) MemberName ## Delegate.IsBound() ? TAttribute< ConvertedType >::Create(TAttribute< ConvertedType >::FGetter::CreateUObject(this, &ThisClass::ConversionFunction, TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()))) : ConversionFunction(TAttribute< ReturnType >(MemberName))
+#define OPTIONAL_BINDING_CONVERT(ReturnType, MemberName, ConvertedType, ConversionFunction) ( MemberName ## Delegate.IsBound() && !IsDesignTime() ) ? TAttribute< ConvertedType >::Create(TAttribute< ConvertedType >::FGetter::CreateUObject(this, &ThisClass::ConversionFunction, TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()))) : ConversionFunction(TAttribute< ReturnType >(MemberName))
 
 /**
  * This is the base class for all wrapped Slate controls that are exposed to UMG.
@@ -41,14 +42,16 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateBrush, FGetSlateBrush);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateCheckBoxState::Type, FGetCheckBoxState);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetContent);
 
-	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetUObject, UObject*, Item);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetForString, FString, Item);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetForObject, UObject*, Item);
 
 	// Events
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FSReply, FOnReply);
-	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FSReply, FOnPointerEvent, FGeometry, MyGeometry, const FPointerEvent&, MouseEvent);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FEventReply, FOnReply);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FEventReply, FOnPointerEvent, FGeometry, MyGeometry, const FPointerEvent&, MouseEvent);
 
 	/**
 	 * Allows controls to be exposed as variables in a blueprint.  Not all controls need to be exposed
@@ -64,7 +67,7 @@ public:
 	/**
 	 * The parent slot of the UWidget.  Allows us to easily inline edit the layout controlling this widget.
 	 */
-	UPROPERTY(EditInline, EditAnywhere, BlueprintReadOnly, Category=Layout, meta=( ShowOnlyInnerProperties ))
+	UPROPERTY(Instanced, EditAnywhere, BlueprintReadOnly, Category=Layout, meta=(ShowOnlyInnerProperties))
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */
@@ -103,6 +106,38 @@ public:
 	UPROPERTY()
 	FGetMouseCursor CursorDelegate;
 
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Transform" ))
+	FWidgetTransform RenderTransform;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Pivot" ))
+	FVector2D RenderTransformPivot;
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderTransform(FWidgetTransform InTransform);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderScale(FVector2D Scale);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderShear(FVector2D Shear);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderAngle(float Angle);
+	
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderTranslation(FVector2D Translation);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
+	void SetRenderTransformPivot(FVector2D Pivot);
+
 	/** Gets the current enabled status of the widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool GetIsEnabled() const;
@@ -127,13 +162,53 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsHovered() const;
 
+	/**
+	 * Checks to see if this widget currently has the keyboard focus
+	 *
+	 * @return  True if this widget has keyboard focus
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasKeyboardFocus() const;
+
+	/**
+	 * @return Whether this widget has any descendants with keyboard focus
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasFocusedDescendants() const;
+
+	/**
+	 * Checks to see if this widget is the current mouse captor
+	 *
+	 * @return  True if this widget has captured the mouse
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasMouseCapture() const;
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetKeyboardFocus() const;
+
 	/** Forces the underlying slate system to perform a pre-pass on the layout of the widget.  This is for advanced users. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();
 
+	/**
+	 * Gets the widgets desired size.
+	 * NOTE: The underlying Slate widget must exist and be valid, also a at least one pre-pass must
+	 *       have occurred before this value will be of any use.
+	 * 
+	 * @return The widget's desired size
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	FVector2D GetDesiredSize() const;
+
 	/** Gets the parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	class UPanelWidget* GetParent() const;
+
+	/** Removes the widget from it's parent widget */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void RemoveFromParent();
 
 	/**
 	 * Gets the underlying slate widget or constructs it if it doesn't exist.  This function is
@@ -150,18 +225,21 @@ public:
 	 * It can also be called by the editor to update modified state, so ensure all initialization to a widgets
 	 * properties are performed here, or the property and visual state may become unsynced.
 	 */
-	virtual void SyncronizeProperties();
+	virtual void SynchronizeProperties();
 
 	/** Returns if the widget is currently being displayed in the designer, it may want to display different data. */
 	bool IsDesignTime() const;
 	
 	/** Sets that this widget is being designed */
-	void IsDesignTime(bool bInDesignTime);
+	virtual void SetIsDesignTime(bool bInDesignTime);
 
 	/** Mark this object as modified, also mark the slot as modified. */
 	virtual bool Modify(bool bAlwaysMarkDirty = true);
 
-	/** @return true if this widget is a child of the PossibleParent */
+	/**
+	 * Recurses up the list of parents and returns true if this widget is a descendant of the PossibleParent
+	 * @return true if this widget is a child of the PossibleParent
+	 */
 	bool IsChildOf(UWidget* PossibleParent);
 	
 #if WITH_EDITOR
@@ -174,11 +252,11 @@ public:
 	/** Gets the label to display to the user for this widget. */
 	FString GetLabel() const;
 
+	/** Gets the palette category of the widget */
+	virtual const FText GetPaletteCategory();
+
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();
-
-	/** Gets a widget representing the tiny preview of the toolbox */
-	virtual TSharedRef<SWidget> GetToolboxPreviewWidget() const;
 	
 	/** Allows general fixups and connections only used at editor time. */
 	virtual void ConnectEditorData() { }
@@ -204,8 +282,8 @@ public:
 
 	// Utility methods
 	//@TODO UMG: Should move elsewhere
-	static EVisibility ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input);
-	static TEnumAsByte<ESlateVisibility::Type> ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
+	static EVisibility ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input);
+	static ESlateVisibility::Type ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
 
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
@@ -219,17 +297,25 @@ protected:
 	
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
+	void UpdateRenderTransform();
+
 protected:
 	//TODO UMG Consider moving conversion functions into another class.
 	// Conversion functions
 	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
 	{
-		return ConvertSerializedVisibilityToRuntime(SerializedType.Get());
+		ESlateVisibility::Type SlateVisibility = SerializedType.Get();
+		return ConvertSerializedVisibilityToRuntime(SlateVisibility);
 	}
 
 	TOptional<float> ConvertFloatToOptionalFloat(TAttribute<float> InFloat) const
 	{
 		return InFloat.Get();
+	}
+
+	FSlateColor ConvertLinearColorToSlateColor(TAttribute<FLinearColor> InLinearColor) const
+	{
+		return FSlateColor(InLinearColor.Get());
 	}
 
 protected:
@@ -240,5 +326,6 @@ protected:
 	TWeakPtr<SWidget> MyGCWidget;
 	
 	/** Is this widget being displayed on a designer surface */
+	UPROPERTY(Transient)
 	bool bDesignTime;
 };

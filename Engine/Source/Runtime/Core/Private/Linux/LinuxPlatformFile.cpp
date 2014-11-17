@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include <sys/file.h>	// flock()
+#include <sys/stat.h>   // mkdirp()
 
 DEFINE_LOG_CATEGORY_STATIC(LogLinuxPlatformFile, Log, All);
 
@@ -259,6 +260,13 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 	{
 		Flags |= O_WRONLY;
 	}
+
+	// create directories if needed.
+	if (!CreateDirectoriesFromPath(Filename))
+	{
+		return NULL;
+	}
+
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), Flags, S_IRUSR | S_IWUSR);
 	if (Handle != -1)
 	{
@@ -327,6 +335,53 @@ bool FLinuxPlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 		closedir(Handle);
 	}
 	return Result;
+}
+
+bool FLinuxPlatformFile::CreateDirectoriesFromPath(const TCHAR* Path)
+{
+	// if the file already exists, then directories exist.
+	struct stat FileInfo;
+	if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Path)), &FileInfo) != -1)
+	{
+		return true;
+	}
+
+	// convert path to native char string.
+	int32 Len = strlen(TCHAR_TO_UTF8(*NormalizeFilename(Path)));
+	char *DirPath = reinterpret_cast<char *>(FMemory::Malloc((Len+2) * sizeof(char)));
+	char *SubPath = reinterpret_cast<char *>(FMemory::Malloc((Len+2) * sizeof(char)));
+	strcpy(DirPath, TCHAR_TO_UTF8(*NormalizeFilename(Path)));
+
+	for (int32 i=0; i<Len; ++i)
+	{
+		struct stat FileInfo;
+
+		SubPath[i] = DirPath[i];
+
+		if (SubPath[i] == '/')
+		{
+			SubPath[i+1] = 0;
+
+			// directory exists?
+			if (stat(SubPath, &FileInfo) == -1)
+			{
+				// nope. create it.
+				if (mkdir(SubPath, 0755) == -1)
+				{
+					int ErrNo = errno;
+					UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "create dir('%s') failed: errno=%d (%s)" ),
+																DirPath, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+					FMemory::Free(DirPath);
+					FMemory::Free(SubPath);
+					return false;
+				}
+			}
+		}
+	}
+
+	FMemory::Free(DirPath);
+	FMemory::Free(SubPath);
+	return true;
 }
 
 IPlatformFile& IPlatformFile::GetPlatformPhysical()

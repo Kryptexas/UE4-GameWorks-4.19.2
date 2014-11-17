@@ -522,9 +522,9 @@ protected:
 */
 			else
 			{
-			ralloc_asprintf_append(buffer, "%s", t->HlslName);
+				ralloc_asprintf_append(buffer, "%s", t->HlslName);
+			}
 		}
-	}
 	}
 
 	/**
@@ -834,6 +834,30 @@ protected:
 							" [[ color(0) ]]"
 							);
 					}
+					else if (!strcmp(var->name, "gl_VertexID"))
+					{
+						//@todo-rco: FIX ME! Right now it's int, should be uint!
+						check(var->type->is_integer());
+						print_type_pre(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1));
+						ralloc_asprintf_append(buffer, " %s", unique_name(var));
+						print_type_post(var->type);
+						ralloc_asprintf_append(
+							buffer,
+							" [[ vertex_id ]]"
+							);
+					}
+					else if (!strcmp(var->name, "gl_InstanceID"))
+					{
+						//@todo-rco: FIX ME! Right now it's int, should be uint!
+						check(var->type->is_integer());
+						print_type_pre(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1));
+						ralloc_asprintf_append(buffer, " %s", unique_name(var));
+						print_type_post(var->type);
+						ralloc_asprintf_append(
+							buffer,
+							" [[ instance_id ]]"
+							);
+					}
 					else
 					{
 						check(var->type->is_record());
@@ -1064,49 +1088,7 @@ protected:
 	virtual void visit(ir_texture *tex) override
 	{
 		check(scope_depth > 0);
-		/*
-		const char * const fetch_str[] = { "texture", "texelFetch" };
-		const char * const Dim[] = { "", "2D", "3D", "Cube", "", "", "" };
-		static const char * const size_str[] = { "", "Size" };
-		static const char * const proj_str[] = { "", "Proj" };
-		static const char * const grad_str[] = { "", "Grad" };
-		static const char * const lod_str[] = { "", "Lod" };
-		static const char * const offset_str[] = { "", "Offset" };
-		static const char * const gather_str[] = { "", "Gather" };
-		static const char * const querymips_str[] = { "", "QueryLevels" };
-		static const char * const EXT_str[] = { "", "EXT" };
-		const bool cube_array = tex->sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE && 
-			tex->sampler->type->sampler_array;
 
-		ir_texture_opcode op = tex->op;
-		if (op == ir_txl && tex->sampler->type->sampler_shadow && tex->sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE)
-		{
-			// This very instruction is missing in OpenGL 3.2, so we need to change the sampling to instruction that exists in order for shader to compile
-			op = ir_tex;
-		}
-
-		bool bEmitEXT = false;
-
-		if (op == ir_txl)
-		{
-			// See http://www.khronos.org/registry/gles/extensions/EXT/EXT_shader_texture_lod.txt
-			bEmitEXT = true;
-		}
-
-		// Emit texture function and sampler.
-		ralloc_asprintf_append(buffer, "%s%s%s%s%s%s%s%s%s%s(",
-			fetch_str[op == ir_txf],
-			Dim[tex->sampler->type->sampler_dimensionality],
-			gather_str[op == ir_txg],
-			size_str[op == ir_txs],
-			querymips_str[op == ir_txm],
-			proj_str[tex->projector != 0],
-			grad_str[op == ir_txd],
-			lod_str[op == ir_txl],
-			offset_str[tex->offset != 0],
-			EXT_str[(int)bEmitEXT]
-		);
-*/
 		tex->sampler->accept(this);
 		if (tex->op == ir_tex || tex->op == ir_txl || tex->op == ir_txb)
 		{
@@ -1129,6 +1111,12 @@ protected:
 				tex->lod_info.lod->accept(this);
 				ralloc_asprintf_append(buffer, ")");
 			}
+
+			if (tex->offset)
+			{
+				ralloc_asprintf_append(buffer, ", ");
+				tex->offset->accept(this);
+			}
 		}
 		else if (tex->op == ir_txf)
 		{
@@ -1140,90 +1128,7 @@ protected:
 			ralloc_asprintf_append(buffer, "UNKNOWN TEXOP %d!", tex->op);
 			check(0);
 		}
-/*
-		// Emit coordinates.
-		if ( (op == ir_txs && tex->lod_info.lod) || op == ir_txm)
-		{
-			if (!tex->sampler->type->sampler_ms && op != ir_txm)
-			{
-				ralloc_asprintf_append(buffer, ",");
-				tex->lod_info.lod->accept(this);
-			}
-		}
-		else if (tex->sampler->type->sampler_shadow && (op != ir_txg && !cube_array))
-		{
-			int coord_dims = 0;
-			switch (tex->sampler->type->sampler_dimensionality)
-			{
-				case GLSL_SAMPLER_DIM_1D: coord_dims = 2; break;
-				case GLSL_SAMPLER_DIM_2D: coord_dims = 3; break;
-				case GLSL_SAMPLER_DIM_3D: coord_dims = 4; break;
-				case GLSL_SAMPLER_DIM_CUBE: coord_dims = 4; break;
-				default: check(0 && "Shadow sampler has unsupported dimensionality.");
-			}
-			ralloc_asprintf_append(buffer, ",vec%d(", coord_dims);
-			tex->coordinate->accept(this);
-			ralloc_asprintf_append(buffer, ",");
-			tex->shadow_comparitor->accept(this);
-			ralloc_asprintf_append(buffer, ")");
-		}
-		else
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->coordinate->accept(this);
-		}
 
-		// Emit gather compare value
-		if (tex->sampler->type->sampler_shadow && (op == ir_txg || cube_array))
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->shadow_comparitor->accept(this);
-		}
-
-		// Emit sample index.
-		if (op == ir_txf && tex->sampler->type->sampler_ms)
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->lod_info.sample_index->accept(this);
-		}
-
-		// Emit LOD.
-		if (op == ir_txl ||
-		   (op == ir_txf && tex->lod_info.lod &&
-		   !tex->sampler->type->sampler_ms && !tex->sampler->type->sampler_buffer))
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->lod_info.lod->accept(this);
-		}
-
-		// Emit gradients.
-		if (op == ir_txd)
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->lod_info.grad.dPdx->accept(this);
-			ralloc_asprintf_append(buffer, ",");
-			tex->lod_info.grad.dPdy->accept(this);
-		}
-		else if (op == ir_txb)
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->lod_info.bias->accept(this);
-		}
-
-		// Emit offset.
-		if (tex->offset)
-		{
-			ralloc_asprintf_append(buffer, ",");
-			tex->offset->accept(this);
-		}
-
-		// Emit channel selection for gather
-		if (op == ir_txg && tex->channel > ir_channel_none)
-		{
-			check( tex->channel < ir_channel_unknown);
-			ralloc_asprintf_append(buffer, ", %d", int(tex->channel) - 1);
-		}
-*/
 		ralloc_asprintf_append(buffer, ")");
 	}
 
@@ -2084,6 +1989,15 @@ protected:
 						{
 							ralloc_asprintf_append(buffer, " [[ position ]]");
 						}
+/*
+						else if (strcmp(s->fields.structure[j].semantic, "gl_VertexID") == 0)
+						{
+							ralloc_asprintf_append(buffer, " [[ vertex_id ]]");
+						}
+						else if (strcmp(s->fields.structure[j].semantic, "gl_InstanceID") == 0)
+						{
+							ralloc_asprintf_append(buffer, " [[ instance_id ]]");
+						}*/
 						else if (!strncmp(s->fields.structure[j].semantic, "var_", 4))
 						{
 							ralloc_asprintf_append(buffer, " [[ user(%s) ]]", s->fields.structure[j].semantic + 4);
@@ -2091,6 +2005,14 @@ protected:
 						else if (!strncmp(s->fields.structure[j].semantic, "ATTRIBUTE", 9))
 						{
 							ralloc_asprintf_append(buffer, " [[ attribute(%s) ]]", s->fields.structure[j].semantic + 9);
+						}
+						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragColor", 12))
+						{
+							ralloc_asprintf_append(buffer, " [[ color(0) ]]");
+						}
+						else if (!strncmp(s->fields.structure[j].semantic, "gl_FragDepth", 12))
+						{
+							ralloc_asprintf_append(buffer, " [[ depth(any) ]]");
 						}
 						else
 						{
@@ -2506,13 +2428,17 @@ protected:
 			bool bFirst = true;
 			for (int i = 0; i < Buffers.Buffers.Num(); ++i)
 			{
-				auto* Var = Buffers.Buffers[i]->as_variable();
-				if (!Var->semantic && !Var->type->is_sampler())
+				// Some entries might be null, if we used more packed than real UBs used
+				if (Buffers.Buffers[i])
 				{
-					ralloc_asprintf_append(buffer, "%s%s(%d)",
-						bFirst ? "// @UniformBlocks: " : ",",
-						Var->name, i);
-					bFirst = false;
+					auto* Var = Buffers.Buffers[i]->as_variable();
+					if (!Var->semantic && !Var->type->is_sampler())
+					{
+						ralloc_asprintf_append(buffer, "%s%s(%d)",
+							bFirst ? "// @UniformBlocks: " : ",",
+							Var->name, i);
+						bFirst = false;
+					}
 				}
 			}
 			if (!bFirst)
@@ -2713,10 +2639,6 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	// Fix any special language extensions (FrameBufferFetchES2() intrinsic)
 	FixIntrinsics(ir, state);
 
-	//@todo-rco: Temp workaround for Seed 2 & 3
-	ExpandMatricesIntoArrays(ir, state);
-	//do_mat_op_to_vec(ir);
-
 	// Remove half->float->half or float->half->float
 	FixRedundantCasts(ir);
 
@@ -2745,12 +2667,11 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	return _strdup(code);
 }
 
-// Verify if SampleLevel() is used
-struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
+struct FMetalUnsupportedSamplerVisitor : public ir_hierarchical_visitor
 {
 	const bool bIsVertexShader;
 	_mesa_glsl_parse_state* ParseState;
-	SPromoteSampleLevelES2(_mesa_glsl_parse_state* InParseState, bool bInIsVertexShader) :
+	FMetalUnsupportedSamplerVisitor(_mesa_glsl_parse_state* InParseState, bool bInIsVertexShader) :
 		ParseState(InParseState),
 		bIsVertexShader(bInIsVertexShader)
 	{
@@ -2758,36 +2679,6 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_leave(ir_texture* IR) override
 	{
-		if (IR->op == ir_txl)
-		{
-			if (bIsVertexShader)
-			{
-				YYLTYPE loc;
-				loc.first_column = IR->SourceLocation.Column;
-				loc.first_line = IR->SourceLocation.Line;
-				loc.source_file = IR->SourceLocation.SourceFile.c_str();
-				_mesa_glsl_error(&loc, ParseState, "Vertex texture fetch currently not supported on GLSL ES\n");
-			}
-			else
-			{
-				//@todo-mobile: allowing lod texture functions for now, as they are supported on some devices via glsl extension.
-				// http://www.khronos.org/registry/gles/extensions/EXT/EXT_shader_texture_lod.txt
-				// Compat work will be required for devices which do not support it.
-				/*
-				_mesa_glsl_warning(ParseState, "%s(%d, %d) Converting SampleLevel() to Sample()\n", IR->SourceLocation.SourceFile.c_str(), IR->SourceLocation.Line, IR->SourceLocation.Column);
-				IR->op = ir_tex;
-				*/
-			}
-		}
-
-		if (IR->offset)
-		{
-			YYLTYPE loc;
-			loc.first_column = IR->SourceLocation.Column;
-			loc.first_line = IR->SourceLocation.Line;
-			loc.source_file = IR->SourceLocation.SourceFile.c_str();
-			_mesa_glsl_error(&loc, ParseState, "Texture offset not supported on GLSL ES\n");
-		}
 
 		return visit_continue;
 	}
@@ -2870,9 +2761,10 @@ bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructio
 {
 	bool bIsVertexShader = (Frequency == HSF_VertexShader);
 
-	// Handle SampleLevel
+	const bool bAllowVertexTextureFetch = true;
+	if (!bAllowVertexTextureFetch)
 	{
-		SPromoteSampleLevelES2 Visitor(ParseState, bIsVertexShader);
+		FMetalUnsupportedSamplerVisitor Visitor(ParseState, bIsVertexShader);
 		Visitor.run(Instructions);
 	}
 
@@ -2931,6 +2823,6 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 	// Framebuffer fetch
 	{
 		// Leave original fb ES2 fetch function as that's what the hlsl expects
-		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_HALF, 0, 4, 4);
 	}
 }

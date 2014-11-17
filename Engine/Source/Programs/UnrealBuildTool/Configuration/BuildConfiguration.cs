@@ -215,11 +215,16 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Relative root engine path.
 		/// </summary>
+		private static string _RelativeEnginePath = "../../Engine/";
 		public static string RelativeEnginePath
 		{
 			get
 			{
-				return "../../Engine/";
+				return _RelativeEnginePath;
+			}
+			set
+			{
+				_RelativeEnginePath = value;
 			}
 		}
 
@@ -295,8 +300,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows
 		/// platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the
-		/// /analyze option.  The compiler included with the Windows SDK supports this, as well as Team Edition
-		/// versions of Visual Studio.
+		/// /analyze option, such as Visual Studio 2013
 		/// </summary>
 		[XmlConfig]
 		public static bool bEnableCodeAnalysis;
@@ -307,12 +311,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseSharedPCHs;
-
-		/// <summary>
-		/// Writes an XML summary of the compile environment for the target to the given path, but does not build it.
-		/// </summary>
-		[XmlConfig]
-		public static string WriteTargetInfoPath;
 
 		/// <summary>
 		/// Whether the dependency cache includes pre-resolved include locations so UBT doesn't have to re-resolve each include location just to check the timestamp.
@@ -347,6 +345,50 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bBreakBuildOnLicenseViolation;
+
+		/// <summary>
+		/// True if we should use the new 'experimental' C++ header dependency scanning and caching system that allows Unreal Build Tool to
+		/// detect out of date dependencies very quickly.  When enabled, a deep C++ include graph does not have to be generated, and instead
+		/// we only scan and cache indirect includes for after a dependent build product was already found to be out of date.  During the
+		/// next build, we'll load those cached indirect includes and check for outdatedness.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseExperimentalFastDependencyScan;
+
+		/// <summary>
+		/// Enables a new 'experimental' support for very fast iterative builds.  Turning this on causes Unreal Build Tool to emit
+		/// 'UBT Makefiles' for targets when they're built the first time.  Subsequent builds will load these Makefiles and begin
+		/// outdatedness checking and build invocation very quickly.  The caveat is that if source files are added or removed to
+		/// the project, UBT will need to gather information about those in order for your build to complete successfully.  Currently,
+		/// you must run the project file generator after adding/removing source files to tell UBT to re-gather this information.
+		/// Events that can invalidate the 'UBT Makefile':  
+		///		- Adding/removing .cpp files
+		///		- Adding/removing .h files with UObjects
+		///		- Adding new UObject types to a file that didn't previously have any
+		///		- Changing global build settings (most settings in this file qualify.)
+		///		- Changed code that affects how Unreal Header Tool works
+		///	You can force regeneration of the 'UBT Makefile' by passing the '-gather' argument, or simply regenerating project files
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseExperimentalFastBuildIteration;
+	
+		/// <summary>
+		/// Whether DMUCS/Distcc may be used.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowDistcc;
+
+		/// <summary>
+		/// When enabled allows DMUCS/Distcc to fallback to local compilation when remote compiling fails. Defaults to true as separation of pre-process and compile stages can introduce non-fatal errors.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowDistccLocalFallback;
+
+		/// <summary>
+		/// Path to the Distcc & DMUCS executables.
+		/// </summary>
+		[XmlConfig]
+		public static string DistccExecutablesPath;
 
 		/// <summary>
 		/// Sets the configuration back to defaults.
@@ -400,8 +442,6 @@ namespace UnrealBuildTool
 			// take an inordinate amount of time, and intermediates will use up many gigabytes of disk space.
 			bUseSharedPCHs = true;
 
-			WriteTargetInfoPath = null;
-
 			// Using unity build to coalesce source files allows for much faster full rebuild times.  For fastest iteration times on single-file
 			// changes, consider turning this off.  In some cases, unity builds can cause linker errors after iterative changes to files, because
 			// the synthesized file names for unity code files may change between builds.
@@ -454,6 +494,34 @@ namespace UnrealBuildTool
 			// By default check and stop the build on EULA violation
 			bCheckLicenseViolations = false;
 			bBreakBuildOnLicenseViolation = true;
+
+			// This feature reduces the time spent tracking C++ header dependencies every run.  This feature is still being tested, 
+			// so we disable it by default
+			bUseExperimentalFastDependencyScan = false;
+
+			// Experimental support for 'gathering' and 'assembling' builds in separate invocations is still being tested, so we
+			// leave it disabled by default
+			bUseExperimentalFastBuildIteration = false;
+
+			// Distcc requires some setup - so by default disable it so we don't break local or remote building
+			bAllowDistcc = false;
+			bAllowDistccLocalFallback = true;
+
+			// The normal Posix place to install distcc/dmucs would be /usr/local so start there
+			DistccExecutablesPath = "/usr/local/bin";
+
+			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			{
+				string UserDir = Environment.GetEnvironmentVariable("HOME");
+				string MacDistccExecutablesPath = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/Distcc 3.2.xcplugin/Contents/usr/bin";
+
+				// But we should use the standard Posix directory when not installed - a build farm would use a static .dmucs hosts file not DistCode.
+				if (System.IO.Directory.Exists (MacDistccExecutablesPath)) 
+				{
+					DistccExecutablesPath = MacDistccExecutablesPath;
+				}
+			}
 		}
 
 		/// <summary>
@@ -514,6 +582,11 @@ namespace UnrealBuildTool
             {
                 bAllowXGE = false;
             }
+
+			if (!BuildPlatform.CanUseDistcc()) 
+			{
+				bAllowDistcc = false;
+			}
 		}
 	}
 }

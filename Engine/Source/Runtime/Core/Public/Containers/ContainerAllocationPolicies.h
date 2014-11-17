@@ -59,10 +59,7 @@ struct FScriptContainerElement
  * It needs to use template specialization as the MS_ALIGN and GCC_ALIGN macros require literal parameters.
  */
 template<int32 Size,uint32 Alignment>
-class TAlignedBytes
-{
-	uint8 Data[-Size]; // this intentionally won't compile, we don't support the requested alignment
-};
+struct TAlignedBytes; // this intentionally won't compile, we don't support the requested alignment
 
 /** Unaligned storage. */
 template<int32 Size>
@@ -106,7 +103,7 @@ IMPLEMENT_ALIGNED_STORAGE(2);
 
 /** An untyped array of data with compile-time alignment and size derived from another type. */
 template<typename ElementType>
-class TTypeCompatibleBytes :
+struct TTypeCompatibleBytes :
 	public TAlignedBytes<
 		sizeof(ElementType),
 		ALIGNOF(ElementType)
@@ -721,6 +718,7 @@ class FDefaultSetAllocator         : public TSetAllocator<>         { public: ty
 class FDefaultBitArrayAllocator    : public TInlineAllocator<4>     { public: typedef TInlineAllocator<4>     Typedef; };
 class FDefaultSparseArrayAllocator : public TSparseArrayAllocator<> { public: typedef TSparseArrayAllocator<> Typedef; };
 
-template <> struct TAllocatorTraits<FDefaultAllocator>         : TAllocatorTraits    <typename FDefaultAllocator        ::Typedef> {};
-template <> struct TAllocatorTraits<FDefaultBitArrayAllocator> : TAllocatorTraitsBase<typename FDefaultBitArrayAllocator::Typedef> {};
-
+template <> struct TAllocatorTraits<FDefaultAllocator>            : TAllocatorTraits<typename FDefaultAllocator           ::Typedef> {};
+template <> struct TAllocatorTraits<FDefaultSetAllocator>         : TAllocatorTraits<typename FDefaultSetAllocator        ::Typedef> {};
+template <> struct TAllocatorTraits<FDefaultBitArrayAllocator>    : TAllocatorTraits<typename FDefaultBitArrayAllocator   ::Typedef> {};
+template <> struct TAllocatorTraits<FDefaultSparseArrayAllocator> : TAllocatorTraits<typename FDefaultSparseArrayAllocator::Typedef> {};

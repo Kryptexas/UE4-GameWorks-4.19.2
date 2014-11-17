@@ -436,7 +436,7 @@ public:
 	 */
 	virtual bool SetLODDistance(int32 LODLevelIndex, float InDistance);
 
-	/*
+	/**
 	 * Builds all emitters in the particle system.
 	 */
 	ENGINE_API void BuildEmitters();

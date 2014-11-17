@@ -30,6 +30,7 @@ public:
 	SLATE_BEGIN_ARGS( SAnimMontagePanel )
 		: _Montage()
 		, _Persona()
+		, _MontageEditor()
 		, _CurrentPosition()
 		, _ViewInputMin()
 		, _ViewInputMax()
@@ -37,7 +38,6 @@ public:
 		, _InputMax()
 		, _OnSetInputViewRange()
 		, _OnGetScrubValue()
-		, _MontageEditor()
 		, _OnMontageChange()
 	{}
 

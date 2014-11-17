@@ -57,14 +57,18 @@ namespace MeshPaintRendering
 
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void UNREALED_API SetMeshPaintShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform,
-										   const float InGamma,
-										   const FMeshPaintShaderParameters& InShaderParams );
+	void UNREALED_API SetMeshPaintShaders(FRHICommandList& RHICmdList, 
+											ERHIFeatureLevel::Type InFeatureLevel, 
+											const FMatrix& InTransform,
+											const float InGamma,
+											const FMeshPaintShaderParameters& InShaderParams );
 
 	/** Binds the mesh paint dilation vertex and pixel shaders to the graphics device */
-	void UNREALED_API SetMeshPaintDilateShaders(FRHICommandList& RHICmdList, const FMatrix& InTransform,
-												const float InGamma,
-												const FMeshPaintDilateShaderParameters& InShaderParams );
+	void UNREALED_API SetMeshPaintDilateShaders(FRHICommandList& RHICmdList, 
+													ERHIFeatureLevel::Type InFeatureLevel, 
+													const FMatrix& InTransform,
+													const float InGamma,
+													const FMeshPaintDilateShaderParameters& InShaderParams );
 
 }
 

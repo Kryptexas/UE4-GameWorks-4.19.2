@@ -31,7 +31,6 @@ UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const class FPostConstructInitial
 	bDebuggerMarkFlashActive = false;
 	bDebuggerMarkSearchSucceeded = false;
 	bDebuggerMarkSearchFailed = false;
-	bDebuggerMarkSearchOptional = false;
 	bDebuggerMarkSearchTrigger = false;
 	bDebuggerMarkSearchFailedTrigger = false;
 	DebuggerSearchPathIndex = -1;
@@ -111,6 +110,26 @@ void UBehaviorTreeGraphNode::ResetNodeOwner()
 	{
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
 		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+		NodeInstance->ClearFlags(RF_Transient);
+
+		// also reset decorators and services
+		for(auto& Decorator : Decorators)
+		{
+			if(Decorator->NodeInstance != nullptr)
+			{
+				Decorator->NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+				Decorator->NodeInstance->ClearFlags(RF_Transient);
+			}
+		}
+
+		for(auto& Service : Services)
+		{
+			if(Service->NodeInstance != nullptr)
+			{
+				Service->NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+				Service->NodeInstance->ClearFlags(RF_Transient);
+			}
+		}
 	}
 }
 
@@ -128,27 +147,27 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 		*LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString());
 }
 
-FString UBehaviorTreeGraphNode::GetTooltip() const
+FText UBehaviorTreeGraphNode::GetTooltipText() const
 {
-	FString TooltipDesc;
+	FText TooltipDesc;
 
 	if(!NodeInstance)
 	{
-		TooltipDesc = LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString();
+		TooltipDesc = LOCTEXT("NodeClassError", "Class not found, make sure it's saved!");
 	}
 	else
 	{
 		if(bHasObserverError)
 		{
-			TooltipDesc = LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString();
+			TooltipDesc = LOCTEXT("ObserverError", "Observer has invalid abort setting!");
 		}
 		else if(DebuggerRuntimeDescription.Len() > 0)
 		{
-			TooltipDesc = DebuggerRuntimeDescription;
+			TooltipDesc = FText::FromString(DebuggerRuntimeDescription);
 		}
 		else if(ErrorMessage.Len() > 0)
 		{
-			TooltipDesc = ErrorMessage;
+			TooltipDesc = FText::FromString(ErrorMessage);
 		}
 		else
 		{
@@ -158,21 +177,26 @@ FString UBehaviorTreeGraphNode::GetTooltip() const
 			{
 				FAssetData AssetData(NodeInstance->GetClass()->ClassGeneratedBy);
 				const FString* Description = AssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription));
+
 				if (Description && !Description->IsEmpty())
 				{
-					TooltipDesc = Description->Replace(TEXT("\\n"), TEXT("\n"));
+					TooltipDesc = FText::FromString(Description->Replace(TEXT("\\n"), TEXT("\n")));
 				}
 			}
 			else
 			{
-				TooltipDesc = NodeInstance->GetClass()->GetToolTipText().ToString();
+				TooltipDesc = NodeInstance->GetClass()->GetToolTipText();
 			}	
 		}
 	}
 
 	if (bInjectedNode)
 	{
-		TooltipDesc = LOCTEXT("Injected", "Injected: ").ToString() + ((TooltipDesc.Len() > 0) ? TooltipDesc : GetDescription());
+		FText const InjectedDesc = !TooltipDesc.IsEmpty() ? TooltipDesc : FText::FromString(GetDescription());
+		// @TODO: FText::Format() is slow... consider caching this tooltip like 
+		//        we do for a lot of the BP nodes now (unfamiliar with this 
+		//        node's purpose, so hesitant to muck with this at this time).
+		TooltipDesc = FText::Format(LOCTEXT("InjectedTooltip", "Injected: {0}"), InjectedDesc);
 	}
 
 	return TooltipDesc;
@@ -226,11 +250,17 @@ void UBehaviorTreeGraphNode::AutowireNewNode(UEdGraphPin* FromPin)
 {
 	Super::AutowireNewNode(FromPin);
 
-	if (FromPin != NULL)
+	if (FromPin != nullptr)
 	{
+		UEdGraphPin* OutputPin = GetOutputPin();
+
 		if (GetSchema()->TryCreateConnection(FromPin, GetInputPin()))
 		{
 			FromPin->GetOwningNode()->NodeConnectionListChanged();
+		}
+		else if(OutputPin != nullptr && GetSchema()->TryCreateConnection(OutputPin, FromPin))
+		{
+			NodeConnectionListChanged();
 		}
 	}
 }
@@ -431,7 +461,6 @@ void UBehaviorTreeGraphNode::ClearDebuggerState()
 	bDebuggerMarkFlashActive = false;
 	bDebuggerMarkSearchSucceeded = false;
 	bDebuggerMarkSearchFailed = false;
-	bDebuggerMarkSearchOptional = false;
 	bDebuggerMarkSearchTrigger = false;
 	bDebuggerMarkSearchFailedTrigger = false;
 	DebuggerSearchPathIndex = -1;

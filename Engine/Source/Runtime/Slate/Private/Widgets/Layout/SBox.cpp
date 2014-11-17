@@ -3,10 +3,20 @@
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
 
+SBox::SBox()
+: ChildSlot()
+{
+}
+
 void SBox::Construct( const FArguments& InArgs )
 {
 	WidthOverride = InArgs._WidthOverride;
 	HeightOverride = InArgs._HeightOverride;
+
+	MinDesiredWidth = InArgs._MinDesiredWidth;
+	MinDesiredHeight = InArgs._MinDesiredHeight;
+	MaxDesiredWidth = InArgs._MaxDesiredWidth;
+	MaxDesiredHeight = InArgs._MaxDesiredHeight;
 
 	ChildSlot
 		.HAlign( InArgs._HAlign )
@@ -25,19 +35,93 @@ void SBox::SetContent(const TSharedRef< SWidget >& InContent)
 	];
 }
 
+void SBox::SetHAlign(EHorizontalAlignment HAlign)
+{
+	ChildSlot.HAlignment = HAlign;
+}
+
+void SBox::SetVAlign(EVerticalAlignment VAlign)
+{
+	ChildSlot.VAlignment = VAlign;
+}
+
+void SBox::SetPadding(const TAttribute<FMargin>& InPadding)
+{
+	ChildSlot.SlotPadding = InPadding;
+}
+
+void SBox::SetWidthOverride(TAttribute<FOptionalSize> InWidthOverride)
+{
+	WidthOverride = InWidthOverride;
+}
+
+void SBox::SetHeightOverride(TAttribute<FOptionalSize> InHeightOverride)
+{
+	HeightOverride = InHeightOverride;
+}
+
+void SBox::SetMinDesiredWidth(TAttribute<FOptionalSize> InMinDesiredWidth)
+{
+	MinDesiredWidth = InMinDesiredWidth;
+}
+
+void SBox::SetMinDesiredHeight(TAttribute<FOptionalSize> InMinDesiredHeight)
+{
+	MinDesiredHeight = InMinDesiredHeight;
+}
+
+void SBox::SetMaxDesiredWidth(TAttribute<FOptionalSize> InMaxDesiredWidth)
+{
+	MaxDesiredWidth = InMaxDesiredWidth;
+}
+
+void SBox::SetMaxDesiredHeight(TAttribute<FOptionalSize> InMaxDesiredHeight)
+{
+	MaxDesiredHeight = InMaxDesiredHeight;
+}
+
 FVector2D SBox::ComputeDesiredSize() const
 {
-	EVisibility ChildVisibility = ChildSlot.Widget->GetVisibility();
+	EVisibility ChildVisibility = ChildSlot.GetWidget()->GetVisibility();
 
 	if ( ChildVisibility != EVisibility::Collapsed )
 	{
 		// If the user specified a fixed width or height, those values override the Box's content.
-		const FVector2D& UnmodifiedChildDesiredSize = ChildSlot.Widget->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
+		const FVector2D& UnmodifiedChildDesiredSize = ChildSlot.GetWidget()->GetDesiredSize() + ChildSlot.SlotPadding.Get().GetDesiredSize();
 		const FOptionalSize CurrentWidthOverride = WidthOverride.Get();
 		const FOptionalSize CurrentHeightOverride = HeightOverride.Get();
+		const FOptionalSize CurrentMinDesiredWidth = MinDesiredWidth.Get();
+		const FOptionalSize CurrentMinDesiredHeight = MinDesiredHeight.Get();
+		const FOptionalSize CurrentMaxDesiredWidth = MaxDesiredWidth.Get();
+		const FOptionalSize CurrentMaxDesiredHeight = MaxDesiredHeight.Get();
+
+		float CurrentWidth = UnmodifiedChildDesiredSize.X;
+
+		if ( CurrentMinDesiredWidth.IsSet() )
+		{
+			CurrentWidth = FMath::Max(CurrentWidth, CurrentMinDesiredWidth.Get());
+		}
+
+		if ( CurrentMaxDesiredWidth.IsSet() )
+		{
+			CurrentWidth = FMath::Min(CurrentWidth, CurrentMaxDesiredWidth.Get());
+		}
+
+		float CurrentHeight = UnmodifiedChildDesiredSize.Y;
+
+		if ( CurrentMinDesiredHeight.IsSet() )
+		{
+			CurrentHeight = FMath::Max(CurrentHeight, CurrentMinDesiredHeight.Get());
+		}
+
+		if ( CurrentMaxDesiredHeight.IsSet() )
+		{
+			CurrentHeight = FMath::Min(CurrentHeight, CurrentMaxDesiredHeight.Get());
+		}
+
 		return FVector2D(
-			(CurrentWidthOverride.IsSet()) ? CurrentWidthOverride.Get() : UnmodifiedChildDesiredSize.X,
-			(CurrentHeightOverride.IsSet()) ? CurrentHeightOverride.Get() : UnmodifiedChildDesiredSize.Y
+			( CurrentWidthOverride.IsSet() ) ? CurrentWidthOverride.Get() : CurrentWidth,
+			( CurrentHeightOverride.IsSet() ) ? CurrentHeightOverride.Get() : CurrentHeight
 		);
 	}
 	
@@ -55,7 +139,7 @@ void SBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildr
 
 		ArrangedChildren.AddWidget(
 			AllottedGeometry.MakeChild(
-				ChildSlot.Widget,
+				ChildSlot.GetWidget(),
 				FVector2D(XAlignmentResult.Offset, YAlignmentResult.Offset),
 				FVector2D(XAlignmentResult.Size, YAlignmentResult.Size)
 			)
@@ -83,7 +167,7 @@ int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	if( ArrangedChildren.Num() > 0 )
 	{
 		check( ArrangedChildren.Num() == 1 );
-		FArrangedWidget& TheChild = ArrangedChildren(0);
+		FArrangedWidget& TheChild = ArrangedChildren[0];
 
 		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().InsetBy( ChildSlot.SlotPadding.Get() * AllottedGeometry.Scale ).IntersectionWith(MyClippingRect);
 
@@ -91,5 +175,3 @@ int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 	return LayerId;
 }
-
-

@@ -66,15 +66,15 @@ public:
 
 private:
 
-	// Holds a flag indicating whether this subscription is enabled.
+	/** Holds a flag indicating whether this subscription is enabled. */
 	bool Enabled;
 
-	// Holds the type of subscribed messages.
+	/** Holds the type of subscribed messages. */
 	FName MessageType;
 
-	// Holds the range of message scopes to subscribe to.
+	/** Holds the range of message scopes to subscribe to. */
 	FMessageScopeRange ScopeRange;
 
-	// Holds the subscriber.
+	/** Holds the subscriber. */
 	IReceiveMessagesWeakPtr Subscriber;
 };

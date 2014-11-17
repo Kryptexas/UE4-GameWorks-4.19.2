@@ -6,6 +6,7 @@
 #include "GraphActionNode.h"
 #include "SScrollBorder.h"
 #include "IDocumentation.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "GraphActionMenu"
 
@@ -87,8 +88,11 @@ public:
 	{
 		ActionNode = InActionNode;
 
-		FText CategoryText = FText::FromString(InActionNode->Category);
-		TSharedRef<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(CategoryText, NULL, TEXT("Shared/GraphNodes/Blueprint/NodeCategories"), InActionNode->Category);
+		FText CategoryTooltip;
+		FString CategoryLink, CategoryExcerpt;
+		FEditorCategoryUtils::GetCategoryTooltipInfo(*InActionNode->GetDisplayName().ToString(), CategoryTooltip, CategoryLink, CategoryExcerpt);
+
+		TSharedRef<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(CategoryTooltip, NULL, CategoryLink, CategoryExcerpt);
 
 		this->ChildSlot
 		[
@@ -98,7 +102,7 @@ public:
 			[
 				SAssignNew(InlineWidget, SInlineEditableTextBlock)
 				.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 )  )
-				.Text( CategoryText )
+				.Text( FEditorCategoryUtils::GetCategoryDisplayString(InActionNode->GetDisplayName()) )
 				.ToolTip( ToolTipWidget )
 				.HighlightText( InArgs._HighlightText )
 				.OnVerifyTextChanged( this, &SGraphActionCategoryWidget::OnVerifyTextChanged )
@@ -115,7 +119,7 @@ public:
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
-			GraphDropOp->DroppedOnCategory( ActionNode.Pin()->Category );
+			GraphDropOp->DroppedOnCategory( ActionNode.Pin()->GetCategoryPath() );
 			return FReply::Handled();
 		}
 		return FReply::Unhandled();
@@ -126,7 +130,7 @@ public:
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
-			GraphDropOp->SetHoveredCategoryName( ActionNode.Pin()->Category );
+			GraphDropOp->SetHoveredCategoryName( ActionNode.Pin()->GetDisplayName().ToString() );
 		}
 	}
 
@@ -174,7 +178,7 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 	this->OnCategoryTextCommitted = InArgs._OnCategoryTextCommitted;
 	this->OnCanRenameSelectedAction = InArgs._OnCanRenameSelectedAction;
 	this->OnGetSectionTitle = InArgs._OnGetSectionTitle;
-	this->FilteredRootAction = FGraphActionNode::NewCategory(TEXT("FILTEREDROOT"));
+	this->FilteredRootAction = FGraphActionNode::NewRootNode();
 	this->OnActionMatchesName = InArgs._OnActionMatchesName;
 	
 	// If a delegate for filtering text is passed in, assign it so that it will be used instead of the built-in filter box
@@ -235,7 +239,7 @@ void SGraphActionMenu::RefreshAllActions(bool bPreserveExpansion, bool bHandleOn
 {
 	// Save Selection (of only the first selected thing)
 	TArray< TSharedPtr<FGraphActionNode> > SelectedNodes = TreeView->GetSelectedItems();
-	TSharedPtr<FEdGraphSchemaAction> SelectedAction = SelectedNodes.Num() > 0 ? SelectedNodes[0]->Actions[0] : NULL;
+	TSharedPtr<FGraphActionNode> SelectedAction = SelectedNodes.Num() > 0 ? SelectedNodes[0] : NULL;
 
 	AllActions.Empty();
 	OnCollectAllActions.ExecuteIfBound(AllActions);
@@ -244,28 +248,17 @@ void SGraphActionMenu::RefreshAllActions(bool bPreserveExpansion, bool bHandleOn
 	// Re-apply selection #0 if possible
 	if (SelectedAction.IsValid())
 	{
-		TArray<TSharedPtr<FGraphActionNode>> GraphNodes;
-		FilteredRootAction->GetAllNodes(GraphNodes, false);
-		for (int32 i = 0; i < GraphNodes.Num(); ++i)
+		// Clear the selection, we will be re-selecting the previous action
+		TreeView->ClearSelection();
+
+		if(bHandleOnSelectionEvent)
 		{
-			TSharedPtr<FEdGraphSchemaAction> GraphAction = GraphNodes[i]->Actions[0];
-			if (GraphAction.IsValid() && GraphAction->MenuDescription.ToString() == SelectedAction->MenuDescription.ToString())
-			{
-				// Clear the selection (if this node is already selected then setting it will have no effect)
-				TreeView->ClearSelection();
-				// Now set the selection
-				if(bHandleOnSelectionEvent)
-				{
-					TreeView->SetSelection(GraphNodes[i], ESelectInfo::OnMouseClick);
-				}
-				else
-				{
-					// If we do not want to handle the selection, set it directly so it will reselect the item but not handle the event.
-					TreeView->SetSelection(GraphNodes[i], ESelectInfo::Direct);
-				}
-				
-				break;
-			}
+			SelectItemByName(*SelectedAction->GetDisplayName().ToString(), ESelectInfo::OnMouseClick, SelectedAction->SectionID, SelectedNodes[0]->IsCategoryNode());
+		}
+		else
+		{
+			// If we do not want to handle the selection, set it directly so it will reselect the item but not handle the event.
+			SelectItemByName(*SelectedAction->GetDisplayName().ToString(), ESelectInfo::Direct, SelectedAction->SectionID, SelectedNodes[0]->IsCategoryNode());
 		}
 	}
 }
@@ -294,14 +287,9 @@ void SGraphActionMenu::OnRequestRenameOnActionNode()
 	TArray< TSharedPtr<FGraphActionNode> > SelectedNodes = TreeView->GetSelectedItems();
 	if(SelectedNodes.Num() > 0)
 	{
-		if(SelectedNodes[0]->RenameRequestEvent.IsBound())
-		{
-			SelectedNodes[0]->BroadcastRenameRequest();
-		}
-		else
+		if (!SelectedNodes[0]->BroadcastRenameRequest())
 		{
 			TreeView->RequestScrollIntoView(SelectedNodes[0]);
-			SelectedNodes[0]->bIsRenameRequestBeforeReady = true;
 		}
 	}
 }
@@ -320,7 +308,7 @@ bool SGraphActionMenu::CanRequestRenameOnActionNode() const
 FString SGraphActionMenu::GetSelectedCategoryName() const
 {
 	TArray< TSharedPtr<FGraphActionNode> > SelectedNodes = TreeView->GetSelectedItems();
-	return (SelectedNodes.Num() > 0) ? SelectedNodes[0]->Category : FString();
+	return (SelectedNodes.Num() > 0) ? SelectedNodes[0]->GetDisplayName().ToString() : FString();
 }
 
 void SGraphActionMenu::GetSelectedCategorySubActions(TArray<TSharedPtr<FEdGraphSchemaAction>>& OutActions) const
@@ -358,26 +346,40 @@ void SGraphActionMenu::GetCategorySubActions(TWeakPtr<FGraphActionNode> InAction
 	}
 }
 
-bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo )
+bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo, int32 SectionId/* = INDEX_NONE */, bool bIsCategory/* = false*/)
 {
 	if (ItemName != NAME_None)
 	{
 		TSharedPtr<FGraphActionNode> SelectionNode;
 
 		TArray<TSharedPtr<FGraphActionNode>> GraphNodes;
-		FilteredRootAction->GetAllNodes(GraphNodes, false);
+		FilteredRootAction->GetAllNodes(GraphNodes);
 		for (int32 i = 0; i < GraphNodes.Num() && !SelectionNode.IsValid(); ++i)
 		{
 			TSharedPtr<FGraphActionNode> CurrentGraphNode = GraphNodes[i];
+			FEdGraphSchemaAction* GraphAction = CurrentGraphNode->GetPrimaryAction().Get();
 
-			FEdGraphSchemaAction* GraphAction = CurrentGraphNode->Actions[0].Get();
-			if (GraphAction)
+			// If the user is attempting to select a category, make sure it's a category
+			if( CurrentGraphNode->IsCategoryNode() == bIsCategory )
 			{
-				if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(GraphAction, ItemName))
+				if(SectionId == INDEX_NONE || CurrentGraphNode->SectionID == SectionId)
 				{
-					SelectionNode = GraphNodes[i];
+					if (GraphAction)
+					{
+						if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(GraphAction, ItemName))
+						{
+							SelectionNode = GraphNodes[i];
 
-					break;
+							break;
+						}
+					}
+					
+					if (CurrentGraphNode->GetDisplayName().ToString() == FName::NameToDisplayString(ItemName.ToString(), false))
+					{
+						SelectionNode = CurrentGraphNode;
+
+						break;
+					}
 				}
 			}
 
@@ -390,13 +392,26 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 				{
 					FEdGraphSchemaAction* ChildGraphAction = CurrentChildNode->Actions[ActionIndex].Get();
 
-					if(ChildGraphAction)
+					// If the user is attempting to select a category, make sure it's a category
+					if( CurrentChildNode->IsCategoryNode() == bIsCategory )
 					{
-						if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(ChildGraphAction, ItemName))
+						if(SectionId == INDEX_NONE || CurrentChildNode->SectionID == SectionId)
 						{
-							SelectionNode = GraphNodes[i]->Children[ChildIdx];
+							if(ChildGraphAction)
+							{
+								if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(ChildGraphAction, ItemName))
+								{
+									SelectionNode = GraphNodes[i]->Children[ChildIdx];
 
-							break;
+									break;
+								}
+							}
+							else if (CurrentChildNode->GetDisplayName().ToString() == FName::NameToDisplayString(ItemName.ToString(), false))
+							{
+								SelectionNode = CurrentChildNode;
+
+								break;
+							}
 						}
 					}
 				}
@@ -423,10 +438,10 @@ void SGraphActionMenu::ExpandCategory(const FString& CategoryName)
 	if (CategoryName.Len())
 	{
 		TArray<TSharedPtr<FGraphActionNode>> GraphNodes;
-		FilteredRootAction->GetAllNodes(GraphNodes, false);
+		FilteredRootAction->GetAllNodes(GraphNodes);
 		for (int32 i = 0; i < GraphNodes.Num(); ++i)
 		{
-			if (GraphNodes[i]->Category == CategoryName)
+			if (GraphNodes[i]->GetDisplayName().ToString() == CategoryName)
 			{
 				GraphNodes[i]->ExpandAllChildren(TreeView);
 			}
@@ -440,16 +455,16 @@ static bool CompareGraphActionNode(TSharedPtr<FGraphActionNode> A, TSharedPtr<FG
 	check(B.IsValid());
 
 	// First check grouping is the same
-	if(A->Category != B->Category)
+	if (A->GetDisplayName().ToString() != B->GetDisplayName().ToString())
 	{
 		return false;
 	}
 
-	if(A->Actions[0].IsValid() && B->Actions[0].IsValid())
+	if (A->HasValidAction() && B->HasValidAction())
 	{
-		return A->Actions[0]->MenuDescription.CompareTo(B->Actions[0]->MenuDescription) == 0;
+		return A->GetPrimaryAction()->MenuDescription.CompareTo(B->GetPrimaryAction()->MenuDescription) == 0;
 	}
-	else if(!A->Actions[0].IsValid() && !B->Actions[0].IsValid())
+	else if(!A->HasValidAction() && !B->HasValidAction())
 	{
 		return true;
 	}
@@ -482,7 +497,6 @@ void RestoreExpansionState(TSharedPtr< STreeView<ItemType> > InTree, const TArra
 		}
 	}
 }
-
 
 void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 {
@@ -548,24 +562,20 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 				BestMatchCount = EachWeight;
 				BestMatchIndex = CurTypeIndex;
 			}								
-			// Add the action to the filtered list.  This will automatically place it in the right subcategory
-			TArray<FString> CategoryChain;
-			CurrentAction.GetCategoryChain(CategoryChain);
-			
-			TSharedPtr<FGraphActionNode> NewNode = FGraphActionNode::NewAction(CurrentAction.Actions);
-			FilteredRootAction->AddChild(NewNode, CategoryChain, bAlphaSortItems);
+			FilteredRootAction->AddChild(CurrentAction);
 		}
 	}
+	FilteredRootAction->SortChildren(bAlphaSortItems, /*bRecursive =*/true);
 
 	TreeView->RequestTreeRefresh();
 
 	// Update the filtered list (needs to be done in a separate pass because the list is sorted as items are inserted)
 	FilteredActionNodes.Empty();
-	FilteredRootAction->GetAllNodes(FilteredActionNodes, true);
+	FilteredRootAction->GetLeafNodes(FilteredActionNodes);
 
 	// Get _all_ new nodes (flattened tree basically)
 	TArray< TSharedPtr<FGraphActionNode> > AllNodes;
-	FilteredRootAction->GetAllNodes(AllNodes, false);
+	FilteredRootAction->GetAllNodes(AllNodes);
 
 	// If theres a BestMatchIndex find it in the actions nodes and select it (maybe this should check the current selected suggestion first ?)
 	if( BestMatchIndex != INDEX_NONE ) 
@@ -575,7 +585,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 		{
 			for (int32 iNode = 0; iNode < FilteredActionNodes.Num() ; iNode++)
 			{
-				if( FilteredActionNodes[ iNode ].Get()->Actions[ 0 ] == FilterSelectAction.Actions[ 0 ] )
+				if( FilteredActionNodes[ iNode ].Get()->GetPrimaryAction() == FilterSelectAction.Actions[ 0 ] )
 				{
 					SelectedSuggestion = iNode;
 				}
@@ -786,9 +796,8 @@ void SGraphActionMenu::OnNameTextCommitted(const FText& NewText, ETextCommit::Ty
 
 void SGraphActionMenu::OnItemScrolledIntoView( TSharedPtr<FGraphActionNode> InActionNode, const TSharedPtr<ITableRow>& InWidget )
 {
-	if(InActionNode->bIsRenameRequestBeforeReady)
+	if (InActionNode->IsRenameRequestPending())
 	{
-		InActionNode->bIsRenameRequestBeforeReady = false;
 		InActionNode->BroadcastRenameRequest();
 	}
 }
@@ -810,10 +819,10 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 
 	if( InItem->IsActionNode() )
 	{
-		check(InItem->Actions.Num() > 0 && InItem->Actions[0].IsValid() );
+		check(InItem->HasValidAction());
 
 		FCreateWidgetForActionData CreateData(&InItem->OnRenameRequest());
-		CreateData.Action = InItem->Actions[0];
+		CreateData.Action = InItem->GetPrimaryAction();
 		CreateData.HighlightText = TAttribute<FText>(this, &SGraphActionMenu::GetFilterText);
 		CreateData.MouseButtonDownDelegate = FCreateWidgetMouseButtonDown::CreateSP( this, &SGraphActionMenu::OnMouseButtonDownEvent );
 
@@ -878,7 +887,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 					SNew( SBorder )
 
 					// We'll use the border's padding to actually create the horizontal line
-					.Padding( 1.f )
+					.Padding(FEditorStyle::GetMargin(TEXT("Menu.Separator.Padding")))
 
 					// Separator graphic
 					.BorderImage( FEditorStyle::GetBrush( TEXT( "Menu.Separator" ) ) )
@@ -904,7 +913,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 				SNew( SBorder )
 
 				// We'll use the border's padding to actually create the horizontal line
-				.Padding( 1.f )
+				.Padding(FEditorStyle::GetMargin(TEXT("Menu.Separator.Padding")))
 
 				// Separator graphic
 				.BorderImage( FEditorStyle::GetBrush( TEXT( "Menu.Separator" ) ) )
@@ -927,8 +936,8 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 
 		if (InItem->IsActionNode())
 		{
-			check(InItem->Actions.Num() > 0);
-			CreateData.RowAction = InItem->Actions[0];
+			check(InItem->HasValidAction());
+			CreateData.RowAction = InItem->GetPrimaryAction();
 		}
 
 		ExpanderWidget = OnCreateCustomRowExpander.Execute(CreateData);
@@ -1007,7 +1016,7 @@ FReply SGraphActionMenu::OnItemDragDetected( const FGeometry& MyGeometry, const 
 			{
 				if(OnCategoryDragged.IsBound())
 				{
-					return OnCategoryDragged.Execute(Node->Category, MouseEvent);
+					return OnCategoryDragged.Execute(Node->GetCategoryPath(), MouseEvent);
 				}
 			}
 			// Dragging an action
@@ -1041,9 +1050,9 @@ bool SGraphActionMenu::OnMouseButtonDownEvent( TWeakPtr<FEdGraphSchemaAction> In
 		{
 			SelectedNode = FilteredActionNodes[0];			
 		}
-		if( ( SelectedNode.IsValid() ) && ( SelectedNode->Actions.Num() > 0 ) && ( SelectedNode->Actions[0].IsValid() ) )
+		if (SelectedNode.IsValid() && SelectedNode->HasValidAction())
 		{
-			if( SelectedNode->Actions[0].Get() == InAction.Pin().Get() )
+			if( SelectedNode->GetPrimaryAction().Get() == InAction.Pin().Get() )
 			{				
 				bResult = HandleSelection( SelectedNode );
 			}

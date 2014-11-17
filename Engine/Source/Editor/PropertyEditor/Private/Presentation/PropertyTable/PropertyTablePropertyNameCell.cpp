@@ -14,12 +14,12 @@
 
 
 FPropertyTablePropertyNameCell::FPropertyTablePropertyNameCell( const TSharedRef< class FPropertyTablePropertyNameColumn >& InColumn, const TSharedRef< class IPropertyTableRow >& InRow )
-	: EnteredEditModeEvent()
-	, ExitedEditModeEvent()
-	, Column( InColumn )
-	, Row( InRow )
+	: bInEditMode( false )
 	, bIsBound( true )
-	, bInEditMode( false )
+	, Column( InColumn )
+	, EnteredEditModeEvent()
+	, ExitedEditModeEvent()
+	, Row( InRow )
 {
 	Refresh();
 }

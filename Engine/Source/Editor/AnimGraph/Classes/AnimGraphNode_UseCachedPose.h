@@ -3,6 +3,7 @@
 #pragma once
 #include "AnimGraphNode_Base.h"
 #include "Animation/AnimNode_UseCachedPose.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_UseCachedPose.generated.h"
 
 UCLASS(MinimalAPI)
@@ -19,7 +20,7 @@ public:
 
 public:
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
@@ -27,4 +28,8 @@ public:
 	virtual FString GetNodeCategory() const override;
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UAnimGraphNode_Base interface
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };

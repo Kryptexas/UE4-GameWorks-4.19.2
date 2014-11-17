@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimSet.h"
 #include "AnimationUtils.h"
+#include "Animation/AnimSequence.h"
 
 /////////////////////////////////////////////////////
 // UAnimSet

@@ -13,7 +13,7 @@ namespace UnrealBuildTool
     {
         protected static bool CrossCompiling()
         {
-            return ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Linux;
+            return BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux;
         }
 
         protected static bool UsingClang()
@@ -44,6 +44,92 @@ namespace UnrealBuildTool
             return null;
         }
 
+		/** Splits compiler version string into numerical components, leaving unchanged if not known */
+		private void DetermineCompilerMajMinPatchFromVersionString()
+		{
+			string[] Parts = CompilerVersionString.Split('.');
+			if (Parts.Length >= 1)
+			{
+				CompilerVersionMajor = Convert.ToInt32(Parts[0]);
+			}
+			if (Parts.Length >= 2)
+			{
+				CompilerVersionMinor = Convert.ToInt32(Parts[1]);
+			}
+			if (Parts.Length >= 3)
+			{
+				CompilerVersionPatch = Convert.ToInt32(Parts[2]);
+			}
+		}
+
+		/** Queries compiler for the version */
+		private bool DetermineCompilerVersion()
+		{
+			CompilerVersionString = null;
+			CompilerVersionMajor = -1;
+			CompilerVersionMinor = -1;
+			CompilerVersionPatch = -1;
+
+			Process Proc = new Process();
+			Proc.StartInfo.UseShellExecute = false;
+			Proc.StartInfo.CreateNoWindow = true;
+			Proc.StartInfo.RedirectStandardOutput = true;
+			Proc.StartInfo.RedirectStandardError = true;
+
+			if (!String.IsNullOrEmpty(GCCPath) && File.Exists(GCCPath))
+			{
+				Proc.StartInfo.FileName = GCCPath;
+				Proc.StartInfo.Arguments = " -dumpversion";
+
+				Proc.Start();
+				Proc.WaitForExit();
+
+				if (Proc.ExitCode == 0)
+				{
+					// read just the first string
+					CompilerVersionString = Proc.StandardOutput.ReadLine();
+					DetermineCompilerMajMinPatchFromVersionString();
+				}
+			}
+			else if (!String.IsNullOrEmpty(ClangPath) && File.Exists(ClangPath))
+			{
+				Proc.StartInfo.FileName = ClangPath;
+				Proc.StartInfo.Arguments = " --version";
+
+				Proc.Start();
+				Proc.WaitForExit();
+
+				if (Proc.ExitCode == 0)
+				{
+					// read just the first string
+					string VersionString = Proc.StandardOutput.ReadLine();
+
+					Regex VersionPattern = new Regex("version \\d+(\\.\\d+)+");
+					Match VersionMatch = VersionPattern.Match(VersionString);
+
+					// version match will be like "version 3.3", so remove the "version"
+					if (VersionMatch.Value.StartsWith("version "))
+					{
+						CompilerVersionString = VersionMatch.Value.Replace("version ", "");
+
+						DetermineCompilerMajMinPatchFromVersionString();
+					}
+				}
+			}
+			else
+			{
+				// icl?
+			}
+
+			if (!CrossCompiling())
+			{
+				Console.WriteLine("Using {0} version '{1}' (string), {2} (major), {3} (minor), {4} (patch)",
+					String.IsNullOrEmpty(ClangPath) ? "gcc" : "clang",
+					CompilerVersionString, CompilerVersionMajor, CompilerVersionMinor, CompilerVersionPatch);
+			}
+			return !String.IsNullOrEmpty(CompilerVersionString);
+		}
+
         public override void RegisterToolChain()
         {
             if (!CrossCompiling())
@@ -53,6 +139,12 @@ namespace UnrealBuildTool
                 GCCPath = Which("g++");
                 ArPath = Which("ar");
                 RanlibPath = Which("ranlib");
+
+				// if clang is available, zero out gcc (@todo: support runtime switching?)
+				if (!String.IsNullOrEmpty(ClangPath))
+				{
+					GCCPath = null;
+				}
             }
             else
             {
@@ -72,6 +164,12 @@ namespace UnrealBuildTool
                 RanlibPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ranlib.exe");
             }
 
+			if (!DetermineCompilerVersion())
+			{
+				Console.WriteLine("Could not determine version of the compiler, not registering Linux toolchain");
+				return;
+			}
+
             // Register this tool chain for both Linux
             if (BuildConfiguration.bPrintDebugInfo)
             {
@@ -79,6 +177,14 @@ namespace UnrealBuildTool
             }
             UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.Linux, this);
         }
+
+		/** Checks if compiler version matches the requirements */
+		private static bool CompilerVersionGreaterOrEqual(int Major, int Minor, int Patch)
+		{
+			return CompilerVersionMajor > Major ||
+				(CompilerVersionMajor == Major && CompilerVersionMinor > Minor) ||
+				(CompilerVersionMajor == Major && CompilerVersionMinor == Minor && CompilerVersionPatch >= Patch);
+		}
 
         static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
         {
@@ -90,9 +196,14 @@ namespace UnrealBuildTool
 
             if (CrossCompiling())
             {
-                // There are exceptions used in the code base (e.g. UnrealHeadTool).
-                // So this flag cannot be used, at least not for native linux builds.
+                // There are exceptions used in the code base (e.g. UnrealHeadTool).  @todo: weed out exceptions
+                // So this flag cannot be used, at least not for native Linux builds.
                 Result += " -fno-exceptions";               // no exceptions
+                Result += " -DPLATFORM_EXCEPTIONS_DISABLED=1";
+            }
+            else
+            {
+                Result += " -DPLATFORM_EXCEPTIONS_DISABLED=0";
             }
 
             Result += " -Wall -Werror";
@@ -123,7 +234,6 @@ namespace UnrealBuildTool
                 Result += " -Wno-unused-local-typedefs";
                 Result += " -Wno-multichar";
                 Result += " -Wno-unused-but-set-variable";
-                Result += " -Wno-sequence-point"; // TaskGraph.cpp:755 FTaskThread* Target = Target = &Thread(ThreadToExecuteOn);
                 Result += " -Wno-strict-overflow"; // Array.h:518
             }
             else
@@ -133,6 +243,13 @@ namespace UnrealBuildTool
                 Result += " -Wno-unused-private-field";     // MultichannelTcpSocket.h triggers this, possibly more
                 // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
                 Result += " -Wno-tautological-compare";
+
+				// this switch is understood by clang 3.5.0, but not clang-3.5 as packaged by Ubuntu 14.04 atm
+				if (CompilerVersionGreaterOrEqual(3, 5, 0))
+				{
+					Result += " -Wno-undefined-bool-conversion";	// hides checking if 'this' pointer is null
+				}
+
                 if (!CrossCompiling())
                 {
                     Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
@@ -185,7 +302,7 @@ namespace UnrealBuildTool
             }
             else
             {
-                Result += " -O2";
+                Result += " -O2";	// warning: as of now (2014-09-28), clang 3.5.0 miscompiles PlatformerGame with -O3 (bitfields?)
             }
 
             if (CompileEnvironment.Config.bIsBuildingDLL)
@@ -278,15 +395,12 @@ namespace UnrealBuildTool
             }
 
             // RPATH for third party libs
-            Result += " -Wl,-rpath=${{ORIGIN}}";
-            Result += " -Wl,-rpath-link=${{ORIGIN}}";
+            Result += " -Wl,-rpath=${ORIGIN}";
+            Result += " -Wl,-rpath-link=${ORIGIN}";
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/Linux";
-            // FIXME: really ugly temp solution. Modules need to be able to specify this
-            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/jemalloc/Linux/x86_64-unknown-linux-gnu";
+			Result += " -Wl,-rpath=${ORIGIN}/..";	// for modules that are in sub-folders of the main Engine/Binary/Linux folder
+			// FIXME: really ugly temp solution. Modules need to be able to specify this
             Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu";
-            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/SDL2/Linux/x86_64-unknown-linux-gnu";
-            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/zlib/Linux/x86_64-unknown-linux-gnu";
-            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/libPNG/Linux/x86_64-unknown-linux-gnu";
 
             if (CrossCompiling())
             {
@@ -354,12 +468,21 @@ namespace UnrealBuildTool
         static string ArPath;
         static string RanlibPath;
 
+		/** Version string of the current compiler, whether clang or gcc or whatever */
+		static string CompilerVersionString;
+		/** Major version of the current compiler, whether clang or gcc or whatever */
+		static int CompilerVersionMajor = -1;
+		/** Minor version of the current compiler, whether clang or gcc or whatever */
+		static int CompilerVersionMinor = -1;
+		/** Patch version of the current compiler, whether clang or gcc or whatever */
+		static int CompilerVersionPatch = -1;
+
 		/** Track which scripts need to be deleted before appending to */
 		private bool bHasWipedFixDepsScript = false;
 
 		private static List<FileItem> BundleDependencies = new List<FileItem>();
 
-        public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+        public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
         {
             string Arguments = GetCLArguments_Global(CompileEnvironment);
             string PCHArguments = "";
@@ -378,11 +501,11 @@ namespace UnrealBuildTool
             }
 
             // Add include paths to the argument list.
-            foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
+            foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
             {
                 Arguments += string.Format(" -I\"{0}\"", IncludePath);
             }
-            foreach (string IncludePath in CompileEnvironment.Config.SystemIncludePaths)
+            foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
             {
                 Arguments += string.Format(" -I\"{0}\"", IncludePath);
             }
@@ -392,6 +515,8 @@ namespace UnrealBuildTool
             {
                 Arguments += string.Format(" -D \"{0}\"", Definition);
             }
+
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
             // Create a compile action for each source file.
             CPPOutput Result = new CPPOutput();
@@ -434,12 +559,8 @@ namespace UnrealBuildTool
                     FileArguments += PCHArguments;
                 }
 
-                // Add the C++ source file and its included files to the prerequisite item list.
-                CompileAction.PrerequisiteItems.Add(SourceFile);
-                foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
-                {
-                    CompileAction.PrerequisiteItems.Add(IncludedFile);
-                }
+				// Add the C++ source file and its included files to the prerequisite item list.
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
                 if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
                 {
@@ -495,7 +616,6 @@ namespace UnrealBuildTool
                 CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
                 CompileAction.CommandDescription = "Compile";
                 CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
-                CompileAction.StatusDetailedDescription = SourceFile.Description;
                 CompileAction.bIsGCCCompiler = true;
 
                 // Don't farm out creation of pre-compiled headers as it is the critical path task.
@@ -515,7 +635,7 @@ namespace UnrealBuildTool
             // Create an archive action
             Action ArchiveAction = new Action(ActionType.Link);
             ArchiveAction.WorkingDirectory = Path.GetFullPath(".");
-            bool bUsingSh = ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Win64 && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Win32;
+            bool bUsingSh = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win64 && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win32;
             if (bUsingSh)
             {
                 ArchiveAction.CommandPath = "/bin/sh";
@@ -574,7 +694,7 @@ namespace UnrealBuildTool
 
 			Log.TraceVerbose("Adding postlink step");
 
-            bool bUseCmdExe = ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64 || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win32;
+            bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
             string ShellBinary = bUseCmdExe ? "cmd.exe" : "/bin/sh";
             string ExecuteSwitch = bUseCmdExe ? " /C" : ""; // avoid -c so scripts don't need +x
             string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
@@ -796,7 +916,7 @@ namespace UnrealBuildTool
 			// are created. This script will be called by action created in FixDependencies()
 			if (LinkEnvironment.Config.bIsCrossReferenced && LinkEnvironment.Config.bIsBuildingDLL)
 			{
-                bool bUseCmdExe = ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win64 || ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Win32;
+                bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
                 string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
 
 				string FixDepsScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName);
@@ -808,7 +928,8 @@ namespace UnrealBuildTool
 
                     if (bUseCmdExe)
                     {
-					    Writer.Write("rem Automatically generated by UnrealBuildTool\n");
+						Writer.Write("@echo off\n");
+						Writer.Write("rem Automatically generated by UnrealBuildTool\n");
 					    Writer.Write("rem *DO NOT EDIT*\n\n");
                     }
                     else
@@ -838,7 +959,8 @@ namespace UnrealBuildTool
 				string Replace = "-Wl,--allow-shlib-undefined";
 					
 				FixDepsLine = FixDepsLine.Replace(Replace, EngineAndGameLibrariesString);
-				FixDepsLine = FixDepsLine.Replace(OutputFile.AbsolutePath, OutputFile.AbsolutePath + ".fixed");
+				string OutputFileForwardSlashes = OutputFile.AbsolutePath.Replace("\\", "/");
+				FixDepsLine = FixDepsLine.Replace(OutputFileForwardSlashes, OutputFileForwardSlashes + ".fixed");
 				FixDepsLine = FixDepsLine.Replace("$", "\\$");
 				FixDepsScript.Write(FixDepsLine + "\n");
                 if (bUseCmdExe)
@@ -863,7 +985,7 @@ namespace UnrealBuildTool
             throw new BuildException("Linux cannot compile C# files");
         }
 
-        static public void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+        public override void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
         {
             foreach (UEBuildBinary Binary in Binaries)
             {
@@ -874,7 +996,7 @@ namespace UnrealBuildTool
         /** Converts the passed in path from UBT host to compiler native format. */
         public override String ConvertPath(String OriginalPath)
         {
-            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
             {
                 return OriginalPath.Replace("\\", "/");
             }

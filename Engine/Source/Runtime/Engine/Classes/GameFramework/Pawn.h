@@ -21,9 +21,10 @@ class UPlayer;
 class UPrimitiveComponent;
 
 /** 
- *	Pawn is the base class of all actors that can be possessed by players or AI.
- *	Pawns are the physical representations of players and creatures in a level.
- *	They are responsible for all physical interaction between the player or AI and the world.
+ * Pawn is the base class of all actors that can be possessed by players or AI.
+ * They are the physical representations of players and creatures in a level.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/
  */
 UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
@@ -34,7 +35,7 @@ class ENGINE_API APawn : public AActor, public INavAgentInterface
 	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category="Pawn")
 	virtual UPawnMovementComponent* GetMovementComponent() const;
 
-	/** Return Actor we are based on (standing on, attached to, and moving on). */
+	/** Return PrimitiveComponent we are based on (standing on, attached to, and moving on). */
 	virtual UPrimitiveComponent* GetMovementBase() const { return NULL; }
 
 public:
@@ -49,6 +50,14 @@ public:
 	/** If true, this Pawn's roll will be updated to match the Controller's ControlRotation roll, if controlled by a PlayerController. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pawn)
 	uint32 bUseControllerRotationRoll:1;
+
+	/** If set to false (default) given pawn instance will never affect navigation generation. 
+	 *	Setting it to true will result in using regular AActor's navigation relevancy 
+	 *	calculation to check if this pawn instance should affect navigation generation
+	 *	Use SetCanAffectNavigationGeneration to change this value at runtime.
+	 *	Note that modifying this value at runtime will result in any navigation change only if runtime navigation generation is enabled. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
+	uint32 bCanAffectNavigationGeneration : 1;
 
 private:
 	/* Whether this Pawn's input handling is enabled.  Pawn must still be possessed to get input even if this is true */
@@ -89,7 +98,7 @@ public:
 	TSubclassOf<AController>  AIControllerClass;
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
-	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
+	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
 	APlayerState* PlayerState;
 
 	/** Replicated so we can see where remote clients are looking. */
@@ -101,7 +110,7 @@ public:
 	AController* LastHitBy;
 
 	/** Controller currently possessing this Actor */
-	UPROPERTY(editinline, replicatedUsing=OnRep_Controller)
+	UPROPERTY(replicatedUsing=OnRep_Controller)
 	AController* Controller;
 
 	/** Max difference between pawn's Rotation.Yaw and GetDesiredRotation().Yaw for pawn to be considered as having reached its desired rotation */
@@ -195,18 +204,24 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual UPlayer* GetNetOwningPlayer() override;
 	virtual UNetConnection* GetNetConnection() override;
-	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostRegisterAllComponents() override;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void BecomeViewTarget(APlayerController* PC) override;
-	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
 	virtual void EnableInput(APlayerController* PlayerController) override;
 	virtual void DisableInput(APlayerController* PlayerController) override;
 
 	/** Overridden to defer to the RootComponent's CanCharacterStepUpOn setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
 	virtual bool CanBeBaseForCharacter(APawn* APawn) const override;
 	// End AActor Interface
+
+	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
+	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
+	UFUNCTION(BlueprintCallable, Category="Navigation")
+	void SetCanAffectNavigationGeneration(bool bNewValue);
+
+	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
+	virtual void UpdateNavigationRelevance() {}
 
 	// Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
@@ -215,6 +230,9 @@ public:
 	virtual FVector GetNavAgentLocation() const override { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
 	virtual void GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	// End INavAgentInterface Interface
+
+	/** Allows agent to postpone any path updates (e.g. locked by gameplay) */
+	virtual bool ShouldPostponePathUpdates() const { return false; }
 
 	/** updates MovementComponent's parameters used by navigation system */
 	void UpdateNavAgent();
@@ -244,9 +262,11 @@ public:
 	 */
 	virtual void PossessedBy(AController* NewController);
 
+	/** Event called when the Pawn is possessed by a Controller (normally only occurs on the server/standalone). */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Possessed"))
 	void ReceivePossessed(AController* NewController);
 
+	/** Event called when the Pawn is no longer possessed by a Controller. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Unpossessed"))
 	void ReceiveUnpossessed(AController* OldController);
 
@@ -254,13 +274,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual bool IsLocallyControlled() const;
 
-	/** @return the rotation the Pawn is looking */
+	/**
+	 * Get the view rotation of the Pawn (direction they are looking, normally Controller->ControlRotation).
+	 * @return The view rotation of the Pawn.
+	 */
 	virtual FRotator GetViewRotation() const;
 
 	/** @return	Pawn's eye location */
 	virtual FVector GetPawnViewLocation() const;
 
-	/** @return base Aim Rotation without any adjustment (no aim error, no autolock, no adhesion.. just clean initial aim rotation!) */
+	/**
+	 * Return the aim rotation for the Pawn.
+	 * If we have a controller, by default we aim at the player's 'eyes' direction
+	 * that is by default the Pawn rotation for AI, and camera (crosshair) rotation for human players.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual FRotator GetBaseAimRotation() const;
 
 	/** return true if player is viewing this Pawn in FreeCam */
@@ -299,22 +327,45 @@ protected:
 public:
 	/**
 	 * Add movement input along the given world direction vector (usually normalized) scaled by 'ScaleValue'. If ScaleValue < 0, movement will be in the opposite direction.
-	 * Base Pawn classes won't automatically apply movement, it's up to the user to do so in a Tick. Subclasses such as Character and DefaultPawn automatically handle this input and move.
-	 * @see GetMovementInputVector(), ConsumeMovementInputVector()
+	 * Base Pawn classes won't automatically apply movement, it's up to the user to do so in a Tick event. Subclasses such as Character and DefaultPawn automatically handle this input and move.
 	 *
-	 * @param WorldDirection:	Direction in world space to apply input
-	 * @param ScaleValue:		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value.
-	 * @param bForce:			If true always add the input, ignoring the result of IsMoveInputIgnored().
+	 * @param WorldDirection	Direction in world space to apply input
+	 * @param ScaleValue		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value, while -1.0 would reverse the direction.
+	 * @param bForce			If true always add the input, ignoring the result of IsMoveInputIgnored().
+	 * @see GetPendingMovementInputVector(), GetLastMovementInputVector(), ConsumeMovementInputVector()
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="AddInput"))
 	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.0f, bool bForce = false);
 
-	/** Return the input vector in world space. Note that the input should be consumed with ConsumeMovementInputVector() at the end of an update, to prevent accumulation of control input between frames. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
-	FVector GetMovementInputVector() const;
+	/**
+	 * Return the pending input vector in world space. This is the most up-to-date value of the input vector, pending ConsumeMovementInputVector() which clears it,
+	 * Usually only a PawnMovementComponent will want to read this value, or the Pawn itself if it is responsible for movement.
+	 *
+	 * @return The pending input vector in world space.
+	 * @see AddMovementInput(), GetLastMovementInputVector(), ConsumeMovementInputVector()
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="GetMovementInput GetInput"))
+	FVector GetPendingMovementInputVector() const;
 
-	/** Returns the input vector and resets it to zero. Should be used during an update to prevent accumulation of control input between frames. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	/**
+	 * Return the last input vector in world space that was processed by ConsumeMovementInputVector(), which is usually done by the Pawn or PawnMovementComponent.
+	 * Any user that needs to know about the input that last affected movement should use this function.
+	 * For example an animation update would want to use this, since by default the order of updates in a frame is:
+	 * PlayerController (device input) -> MovementComponent -> Pawn -> Mesh (animations)
+	 *
+	 * @return The last input vector in world space that was processed by ConsumeMovementInputVector().
+	 * @see AddMovementInput(), GetPendingMovementInputVector(), ConsumeMovementInputVector()
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="GetMovementInput GetInput"))
+	FVector GetLastMovementInputVector() const;
+
+	/**
+	 * Returns the pending input vector and resets it to zero.
+	 * This should be used during a movement update (by the Pawn or PawnMovementComponent) to prevent accumulation of control input between frames.
+	 * Copies the pending input vector to the saved input vector (GetLastMovementInputVector()).
+	 * @return The pending input vector.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="ConsumeInput"))
 	virtual FVector ConsumeMovementInputVector();
 
 	/** Add input (affecting Pitch) to the Controller's ControlRotation, if it is a local PlayerController. */
@@ -335,29 +386,59 @@ public:
 
 protected:
 
-	/** Accumulated control input vector, stored in world space. */
+	/**
+	 * Accumulated control input vector, stored in world space. This is the pending input, which is cleared (zeroed) once consumed.
+	 * @see GetPendingMovementInputVector(), AddMovementInput()
+	 */
 	UPROPERTY(Transient)
 	FVector ControlInputVector;
+
+	/**
+	 * The last control input vector that was processed by ConsumeMovementInputVector().
+	 * @see GetLastMovementInputVector()
+	 */
+	UPROPERTY(Transient)
+	FVector LastControlInputVector;
 
 public:
 	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Adds movement input if not ignored, or if forced. */
 	void Internal_AddMovementInput(FVector WorldAccel, bool bForce = false);
 
 	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the value of ControlInputVector. */
-	inline FVector Internal_GetMovementInputVector() const { return ControlInputVector; }
+	inline FVector Internal_GetPendingMovementInputVector() const { return ControlInputVector; }
 
-	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the vale of ControlInputVector and sets it to zero. */
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the value of LastControlInputVector. */
+	inline FVector Internal_GetLastMovementInputVector() const { return LastControlInputVector; }
+
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. LastControlInputVector is updated with initial value of ControlInputVector. Returns ControlInputVector and resets it to zero. */
 	FVector Internal_ConsumeMovementInputVector();
 
 public:
-	/** (DEPRECATED) Launch Character with LaunchVelocity  */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Character.LaunchCharacter instead"))
-	void LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 
 	/** Add an Actor to ignore by Pawn's movement collision */
 	void MoveIgnoreActorAdd(AActor* ActorToIgnore);
 
 	/** Remove an Actor to ignore by Pawn's movement collision */
 	void MoveIgnoreActorRemove(AActor* ActorToIgnore);
+
+public:
+
+	// DEPRECATED FUNCTIONS
+
+	/** (Deprecated) Launch Character with LaunchVelocity  */
+	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Character.LaunchCharacter instead"))
+	void LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
+
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. */
+	DEPRECATED(4.5, "Internal_GetMovementInputVector is deprecated, use Internal_GetPendingMovementInputVector() or Internal_GetLastMovementInputVector() instead.")
+	inline FVector Internal_GetMovementInputVector() const { return Internal_GetPendingMovementInputVector(); }
+
+	/** (Deprecated) Return the input vector in world space. */
+	DEPRECATED(4.5, "GetMovementInputVector() has been deprecated, use either GetPendingMovementInputVector() or GetLastMovementInputVector().")
+	FVector GetMovementInputVector() const;
+
+	/** (Deprecated) Return the input vector in world space. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(DeprecatedFunction, FriendlyName="GetMovementInputVector", DeprecationMessage="GetMovementInputVector has been deprecated, use either GetPendingMovementInputVector or GetLastMovementInputVector"))
+	FVector K2_GetMovementInputVector() const;	
 };
 

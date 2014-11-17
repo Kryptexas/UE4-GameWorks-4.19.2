@@ -69,6 +69,7 @@ void SAnimCompositeEditor::Construct(const FArguments& InArgs)
 		.Padding(0, 10)
 		[
 			SAssignNew( AnimCurvePanel, SAnimCurvePanel )
+			.Persona(PersonaPtr)
 			.Sequence(CompositeObj)
 			.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
 			.ViewInputMin(this, &SAnimEditorBase::GetViewMinInput)

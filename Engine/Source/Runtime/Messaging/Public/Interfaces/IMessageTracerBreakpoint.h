@@ -36,8 +36,6 @@ public:
 
 protected:
 
-	/**
-	 * Hidden destructor.
-	 */
+	/** Hidden destructor. */
 	virtual ~IMessageTracerBreakpoint( ) { }
 };

@@ -36,7 +36,7 @@ struct ENGINE_API FAnimNode_LookAt : public FAnimNode_SkeletalControlBase
 	FBoneReference LookAtBone;
 
 	/** Target Location in world space if LookAtBone is empty */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl, meta=(PinHiddenByDefault))
 	FVector LookAtLocation;
 
 	/** Look at axis, which axis to align to look at point */

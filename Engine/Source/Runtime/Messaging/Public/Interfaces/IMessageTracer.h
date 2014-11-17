@@ -176,7 +176,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FMessageTracerTypeAdded, FMessageTracerTypeI
  * Interface for message tracers.
  *
  * This interface provides access to the message tracer that is built into a message bus. Message tracers are
- * able to monitor and record all activities on a message bus. This includes the sending and receiving messages,
+ * able to monitor and record all activities on a message bus. This includes the sending and receiving of messages,
  * the registering and unregistering of message endpoints and interceptors and adding and removal of subscriptions.
  */
 class IMessageTracer
@@ -186,12 +186,14 @@ public:
 	/**
 	 * Breaks message routing.
 	 *
-	 * @see Continue, Step
+	 * @see Continue, IsBreaking, Step
 	 */
 	virtual void Break( ) = 0;
 
 	/**
 	 * Continues message routing from the current breakpoint.
+	 *
+	 * @see Break, Step
 	 */
 	virtual void Continue( ) = 0;
 
@@ -199,6 +201,7 @@ public:
 	 * Checks whether the tracer is currently at a breakpoint.
 	 *
 	 * @return true if at breakpoint, false otherwise.
+	 * @see Break
 	 */
 	virtual bool IsBreaking( ) const = 0;
 
@@ -303,8 +306,6 @@ public:
 
 protected:
 
-	/**
-	 * Hidden destructor.
-	 */
+	/** Hidden destructor. The life time of a message tracer is managed by the message bus. */
 	virtual ~IMessageTracer( ) { }
 };

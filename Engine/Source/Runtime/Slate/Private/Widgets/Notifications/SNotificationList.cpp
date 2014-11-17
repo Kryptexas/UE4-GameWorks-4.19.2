@@ -321,7 +321,7 @@ public:
 		];
 	}
 	
-	/*
+	/**
 	 * Returns the internals of the notification
 	 */
 	TSharedRef<SHorizontalBox> ConstructInternals( const FArguments& InArgs ) 
@@ -580,7 +580,7 @@ TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotifica
 		SNew(SNotificationItemImpl)
 		.Text(Info.Text)
 		.ButtonDetails(Info.ButtonDetails)
-		.Image((Info.Image != NULL) ? Info.Image : CachedImage)
+		.Image((Info.Image != nullptr) ? Info.Image : CachedImage)
 		.FadeInDuration(Info.FadeInDuration)
 		.ExpireDuration(Info.ExpireDuration)
 		.FadeOutDuration(Info.FadeOutDuration)

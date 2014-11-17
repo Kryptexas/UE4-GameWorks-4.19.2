@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "CrashReportUtil.h"
+
+#include "CrashDescription.h"
 
 #include "CrashReportClient.h"
 #include "UniquePtr.h"
@@ -15,39 +18,32 @@
 
 // Must match filename specified in RunMinidumpDiagnostics
 const TCHAR* GDiagnosticsFilename = TEXT("Diagnostics.txt");
-FString GCrashUserId;
+
+
+FCrashDescription& GetCrashDescription()
+{
+	static FCrashDescription Singleton;
+	return Singleton;
+}
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
-FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& ErrorReport, const FString& AppName)
+FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport)
 	: AppState(EApplicationState::Ready)
 	, SubmittedCountdown(-1)
 	, bDiagnosticFileSent(false)
-	, ErrorReportFiles(ErrorReport)
+	, ErrorReport( InErrorReport )
 	, Uploader(GServerIP)
-	, CrashedAppName(AppName)
 	, CancelButtonText(LOCTEXT("Cancel", "Don't Send"))
 {
-	// Set global user name ID: will be added to the report
-	if (FRocketSupport::IsRocket())
+	if (!ErrorReport.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
 	{
-		// The Epic ID can be looked up from this ID
-		auto DeviceId = FPlatformMisc::GetUniqueDeviceId();
-		GCrashUserId = FString(TEXT("!Id:")) + DeviceId;
-	}
-	else
-	{
-		// Remove periods from internal user names to match AutoReporter user names
-		// The name prefix is read by CrashRepository.AddNewCrash in the website code
-		GCrashUserId = FString(TEXT("!Name:")) + FString(FPlatformProcess::UserName()).Replace(TEXT("."), TEXT(""));
-	}
-
-	if (!ErrorReportFiles.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
-	{
-		auto& Worker = DiagnoseReportTask.GetTask();
-		Worker.DiagnosticText = &DiagnosticText;
-		Worker.ErrorReportFiles = &ErrorReportFiles;
+		FDiagnoseReportWorker& Worker = DiagnoseReportTask.GetTask( &DiagnosticText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName, &ErrorReport );
 		DiagnoseReportTask.StartBackgroundTask();
+	}
+	else if( !DiagnosticText.IsEmpty() )
+	{
+		DiagnosticText = FCrashReportUtil::FormatDiagnosticText( DiagnosticText, GetCrashDescription().MachineId, GetCrashDescription().EpicAccountId, GetCrashDescription().UserName );
 	}
 }
 
@@ -95,17 +91,12 @@ FText FCrashReportClient::GetCancelButtonText() const
 FText FCrashReportClient::GetDiagnosticText() const
 {
 	static const FText ProcessingReportText = LOCTEXT("ProcessingReport", "Processing crash report ...");
-	return DiagnoseReportTask.IsWorkDone() ? DiagnosticText : ProcessingReportText;
+	return DiagnoseReportTask.IsDone() ? DiagnosticText : ProcessingReportText;
 }
 
 EVisibility FCrashReportClient::SubmitButtonVisibility() const
 {
 	return AppState == EApplicationState::Ready ? EVisibility::Visible : EVisibility::Hidden;
-}
-
-FString FCrashReportClient::GetCrashedAppName() const
-{
-	return CrashedAppName;
 }
 
 void FCrashReportClient::UserCommentChanged(const FText& Comment, ETextCommit::Type CommitType)
@@ -139,8 +130,9 @@ void FCrashReportClient::StartUIWillCloseTicker()
 void FCrashReportClient::StoreCommentAndUpload()
 {
 	// Call upload even if the report is empty: pending reports will be sent if any
-	ErrorReportFiles.SetUserComment(UserComment.IsEmpty() ? LOCTEXT("NoComment", "No comment provided") : UserComment);
-	Uploader.BeginUpload(ErrorReportFiles);
+	ErrorReport.SetUserComment(UserComment);
+
+	Uploader.BeginUpload(ErrorReport);
 
 	SubmittedCountdown = 5;
 	AppState = EApplicationState::CountingDown;
@@ -160,9 +152,9 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 
 	static const FText CountdownTextFormat = LOCTEXT("CloseApplication", "Close ({0})");
 
-	if (!bDiagnosticFileSent && DiagnoseReportTask.IsWorkDone())
+	if( !bDiagnosticFileSent && DiagnoseReportTask.IsDone() )
 	{
-		auto DiagnosticsFilePath = ErrorReportFiles.GetReportDirectory() / GDiagnosticsFilename;
+		auto DiagnosticsFilePath = ErrorReport.GetReportDirectory() / GDiagnosticsFilename;
 
 		Uploader.LocalDiagnosisComplete(FPaths::FileExists(DiagnosticsFilePath) ? DiagnosticsFilePath : TEXT(""));
 		bDiagnosticFileSent = true;	
@@ -184,7 +176,7 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 
 	// IsWorkDone will always return true here (since uploader can't finish until the diagnosis has been sent), but it
 	//  has the side effect of joining the worker thread.
-	if (!Uploader.IsFinished() || !DiagnoseReportTask.IsDone())
+	if( !Uploader.IsFinished() || !DiagnoseReportTask.IsDone() )
 	{
 		// More ticks, please
 		return true;
@@ -195,16 +187,30 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 	return false;
 }
 
+FString FCrashReportClient::GetCrashedAppName() const
+{
+	return GetCrashDescription().GameName;
+}
+
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 
 void FDiagnoseReportWorker::DoWork()
 {
-	*DiagnosticText = FText::Format( LOCTEXT("CrashReportClientCallstackPattern", "{0}\n\n{1}"), FText::FromString(GCrashUserId), ErrorReportFiles->DiagnoseReport() );
+	const FText ReportText = ErrorReport.DiagnoseReport();
+	DiagnosticText = FCrashReportUtil::FormatDiagnosticText( ReportText, MachineId, EpicAccountId, UserNameNoDot );
 }
 
-const TCHAR* FDiagnoseReportWorker::Name()
+FText FCrashReportUtil::FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot )
 {
-	return TEXT("FDiagnoseCrashWorker");
+	if( FRocketSupport::IsRocket() )
+	{
+		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( EpicAccountId ), DiagnosticText );
+	}
+	else
+	{
+		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nUserName:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( UserNameNoDot ), DiagnosticText );
+	}
+
 }
 
 #undef LOCTEXT_NAMESPACE

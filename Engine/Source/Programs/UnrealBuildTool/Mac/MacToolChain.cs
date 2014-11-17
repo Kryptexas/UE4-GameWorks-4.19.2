@@ -53,15 +53,13 @@ namespace UnrealBuildTool
 
 		public List<string> BuiltBinaries = new List<string>();
 
-		private static List<FileItem> CrossReferencedFiles = new List<FileItem>();
-
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
 
 			if (!ProjectFileGenerator.bGenerateProjectFiles)
 			{
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					Log.TraceInformation("Compiling with Mac SDK {0} on Mac {1}", MacOSSDKVersion, RemoteServerName);
 				}
@@ -78,25 +76,29 @@ namespace UnrealBuildTool
 
 			Result += " -fmessage-length=0";
 			Result += " -pipe";
-			Result += " -Wno-trigraphs";
 			Result += " -fpascal-strings";
-			Result += " -mdynamic-no-pic";
-			Result += " -Wreturn-type";
-			Result += " -Wno-format";
+
 			Result += " -fexceptions";
-			Result += " -fno-threadsafe-statics";
-			Result += " -Wno-deprecated-writable-strings";
-			Result += " -Wno-unused-value";
-			Result += " -Wno-switch-enum";
-			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
-			Result += " -Wno-null-arithmetic";			// needed for external headers we can't change
-			Result += " -Wno-return-type-c-linkage";	// needed for PhysX
-			Result += " -Wno-ignored-attributes";		// needed for nvtesslib
-			Result += " -Wno-uninitialized";
-			Result += " -Wno-tautological-compare";
-			Result += " -Wno-switch";
-			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -fasm-blocks";
+
+			Result += " -Wall -Werror";
+
+			Result += " -Wno-unused-variable";
+			Result += " -Wno-unused-value";
+			// This will hide the warnings about static functions in headers that aren't used in every single .cpp file
+			Result += " -Wno-unused-function";
+			// This hides the "enumeration value 'XXXXX' not handled in switch [-Wswitch]" warnings - we should maybe remove this at some point and add UE_LOG(, Fatal, ) to default cases
+			Result += " -Wno-switch";
+			// This hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
+			Result += " -Wno-tautological-compare";
+			// This will prevent the issue of warnings for unused private variables.
+			Result += " -Wno-unused-private-field";
+			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
+
+			// @todo: Remove these two when the code is fixed and they're no longer needed
+			Result += " -Wno-logical-op-parentheses";
+			Result += " -Wno-unknown-pragmas";
+
 			Result += " -c";
 
 			Result += " -arch x86_64";
@@ -106,7 +108,14 @@ namespace UnrealBuildTool
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
-				Result += " -O3";
+				if (UEBuildConfiguration.bCompileForSize)
+				{
+					Result += " -Oz";
+				}
+				else
+				{
+					Result += " -O3";
+				}
 			}
 			else
 			{
@@ -193,7 +202,7 @@ namespace UnrealBuildTool
 			// Needed to make sure install_name_tool will be able to update paths in Mach-O headers
 			Result += " -headerpad_max_install_names";
 
-			Result += " -lc++"; // for STL used in HLSLCC
+			Result += " -lc++";
 
 			foreach (string Framework in LinkEnvironment.Config.Frameworks)
 			{
@@ -214,23 +223,16 @@ namespace UnrealBuildTool
 		static string GetArchiveArguments_Global(LinkEnvironment LinkEnvironment)
 		{
 			string Result = "";
-
 			Result += " -static";
-
 			return Result;
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			var Arguments = new StringBuilder();
 			var PCHArguments = new StringBuilder();
 
 			Arguments.Append(GetCompileArguments_Global(CompileEnvironment));
-
-			if (CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create)
-			{
-				Arguments.Append(" -Werror");
-			}
 
 			if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 			{
@@ -243,13 +245,13 @@ namespace UnrealBuildTool
 			}
 
 			// Add include paths to the argument list.
-			List<string> AllIncludes = CompileEnvironment.Config.IncludePaths;
-			AllIncludes.AddRange(CompileEnvironment.Config.SystemIncludePaths);
+			HashSet<string> AllIncludes = CompileEnvironment.Config.CPPIncludeInfo.IncludePaths;
+			AllIncludes.UnionWith(CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths);
 			foreach (string IncludePath in AllIncludes)
 			{
 				Arguments.Append(" -I\"");
 
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					Arguments.Append(ConvertPath(Path.GetFullPath(IncludePath)));
 
@@ -285,6 +287,8 @@ namespace UnrealBuildTool
 				Arguments.Append(Definition);
 				Arguments.Append("\"");
 			}
+
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
 			CPPOutput Result = new CPPOutput();
 			// Create a compile action for each source file.
@@ -329,22 +333,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				CompileAction.PrerequisiteItems.Add(SourceFile);
-
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-				{
-					QueueFileForBatchUpload(SourceFile);
-				}
-
-				foreach (FileItem IncludedFile in CompileEnvironment.GetIncludeDependencies(SourceFile))
-				{
-					if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-					{
-						QueueFileForBatchUpload(IncludedFile);
-					}
-
-					CompileAction.PrerequisiteItems.Add(IncludedFile);
-				}
+				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
@@ -389,78 +378,16 @@ namespace UnrealBuildTool
 				// Add the source file path to the command-line.
 				FileArguments += string.Format(" \"{0}\"", ConvertPath(SourceFile.AbsolutePath), false);
 
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					CompileAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 				}
 
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
-				
-				string CompilerBundleIdentifier = Environment.GetEnvironmentVariable("GCC_VERSION");
-				string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
-				if(CompilerBundleIdentifier == null || CompilerBundleIdentifier == "" 
-					|| CompilerBundleIdentifier == "com.apple.compilers.llvm.clang.1_0" 
-					|| (StaticAnalysisMode != null && StaticAnalysisMode != ""))
-				{
-					CompileAction.CommandPath = MacCompiler;
-					if(StaticAnalysisMode != null && StaticAnalysisMode != "")
-					{
-						FileArguments = " --analyze " + FileArguments;
-					}
-				}
-				else
-				{
-					CompileAction.CommandPath = null;
-					string UserDir = Environment.GetEnvironmentVariable("HOME");
-					string XcodePlugins = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/";
-					if(Directory.Exists(XcodePlugins))
-					{
-						IEnumerable<string> Plugins = Directory.EnumerateDirectories(XcodePlugins, "*.xcplugin");
-						foreach(string Plugin in Plugins)
-						{
-							string Resources = Plugin + "/Contents/Resources";
-							string[] CompilerSpecs = Directory.GetFiles(Resources, "*.xcspec");
-							if(CompilerSpecs.Length > 0)
-							{
-								IEnumerable<string> Lines = File.ReadLines(CompilerSpecs[0]);
-								bool bFindExecPath = false;
-								bool bFoundExecPath = false;
-								foreach(string Line in Lines)
-								{
-									if(!bFindExecPath && Line.Contains(CompilerBundleIdentifier))
-									{
-										bFindExecPath = true;
-									}
-									else if(bFindExecPath && Line.Contains("ExecPath"))
-									{
-										char[] CharsToTrim = {';', '"'};
-										string ExecPath = Line.Trim().Substring(12).TrimEnd(CharsToTrim);
-										CompileAction.CommandPath = ExecPath;
-										bFoundExecPath = true;
-										break;
-									}
-								}
-								if(bFoundExecPath)
-								{
-									break;
-								}
-							}
-						}
-					}
-					else
-					{
-						throw new BuildException("Couldn't find Xcode compiler plugins path: {0}", XcodePlugins);
-					}
-					
-					if(CompileAction.CommandPath == null)
-					{
-						throw new BuildException("Couldn't find Xcode compiler: {0}", CompilerBundleIdentifier);
-					}
-				}
-				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandPath = "xcrun";
+				CompileAction.CommandArguments = MacCompiler + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
-				CompileAction.StatusDetailedDescription = SourceFile.Description;
 				CompileAction.bIsGCCCompiler = true;
 				// We're already distributing the command by execution on Mac.
 				CompileAction.bCanExecuteRemotely = false;
@@ -606,7 +533,7 @@ namespace UnrealBuildTool
 			// Create an action that invokes the linker.
 			Action LinkAction = new Action(ActionType.Link);
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				LinkAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
@@ -651,7 +578,7 @@ namespace UnrealBuildTool
 
 			List<string> ThirdPartyLibraries = new List<string>();
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				// Add any additional files that we'll need in order to link the app
 				foreach (string AdditionalShadowFile in LinkEnvironment.Config.AdditionalShadowFiles)
@@ -692,14 +619,13 @@ namespace UnrealBuildTool
 							ThirdPartyLibraries.Add(AdditionalLibrary);
 						}
 
-						if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+						if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 						{
 							// copy over libs we may need
 							FileItem ShadowFile = FileItem.GetExistingItemByPath(AdditionalLibrary);
 							if (ShadowFile != null)
 							{
 								QueueFileForBatchUpload(ShadowFile);
-								//							LinkAction.PrerequisiteItems.Add(ShadowFile);
 							}
 						}
 					}
@@ -764,10 +690,6 @@ namespace UnrealBuildTool
 				{
 					LinkCommand += " " + Filename;
 				}
-				// @todo rocket lib: the -filelist command should take a response file (see else condition), except that it just says it can't
-				// find the file that's in there. Rocket.lib may overflow the commandline by putting all files on the commandline, so this 
-				// may be needed:
-				// LinkAction.CommandArguments += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
 			}
 			else
 			{
@@ -779,7 +701,7 @@ namespace UnrealBuildTool
 				{
 					ResponseFile.Create(ResponsePath, InputFileNames);
 
-					if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+					if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 					{
 						RPCUtilHelper.CopyFile(ResponsePath, ConvertPath(ResponsePath), true);
 					}
@@ -826,10 +748,6 @@ namespace UnrealBuildTool
 					// Tell linker to ignore unresolved symbols, so we don't have a problem with cross dependent dylibs that do not exist yet.
 					// This is fixed in later step, FixDylibDependencies.
 					LinkCommand += string.Format(" -undefined dynamic_lookup");
-					if (Utils.IsRunningOnMono)
-					{
-						CrossReferencedFiles.Add( OutputFile );
-					}
 				}
 			}
 
@@ -899,8 +817,8 @@ namespace UnrealBuildTool
 
 				FixDylibDepsScript.Close();
 
-				// Prepare a script that will be called by CreateAppBundle.sh to copy all necessary third party dylibs to the app bundle
-				// This is done this way as CreateAppBundle.sh script can be created before all the libraries are processed, so
+				// Prepare a script that will be called by FinalizeAppBundle.sh to copy all necessary third party dylibs to the app bundle
+				// This is done this way as FinalizeAppBundle.sh script can be created before all the libraries are processed, so
 				// at the time of it's creation we don't have the full list of third party dylibs all modules need.
 				string DylibCopyScriptPath = Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "DylibCopy.sh");
 				if (!bHasWipedCopyDylibScript)
@@ -923,26 +841,25 @@ namespace UnrealBuildTool
 				}
 				DylibCopyScript.Close();
 
-				// For non-console application, prepare a script that will create the app bundle. It'll be run by CreateAppBundle action
+				// For non-console application, prepare a script that will create the app bundle. It'll be run by FinalizeAppBundle action
 				if (bIsBuildingAppBundle)
 				{
-					string CreateAppBundleScriptPath = Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "CreateAppBundle.sh");
-					StreamWriter CreateAppBundleScript = File.CreateText(CreateAppBundleScriptPath);
-					AppendMacLine(CreateAppBundleScript, "#!/bin/sh");
+					string FinalizeAppBundleScriptPath = Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "FinalizeAppBundle.sh");
+					StreamWriter FinalizeAppBundleScript = File.CreateText(FinalizeAppBundleScriptPath);
+					AppendMacLine(FinalizeAppBundleScript, "#!/bin/sh");
 					string BinariesPath = Path.GetDirectoryName(OutputFile.AbsolutePath);
 					BinariesPath = Path.GetDirectoryName(BinariesPath.Substring(0, BinariesPath.IndexOf(".app")));
-					AppendMacLine(CreateAppBundleScript, "cd \"{0}\"", ConvertPath(BinariesPath).Replace("$", "\\$"));
+					AppendMacLine(FinalizeAppBundleScript, "cd \"{0}\"", ConvertPath(BinariesPath).Replace("$", "\\$"));
 
 					string ExeName = Path.GetFileName(OutputFile.AbsolutePath);
 					string[] ExeNameParts = ExeName.Split('-');
 					string GameName = ExeNameParts[0];
 
-					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/MacOS\"", ExeName);
-					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources/RadioEffectUnit.component/Contents/MacOS\"", ExeName);
-					AppendMacLine(CreateAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources/RadioEffectUnit.component/Contents/Resources/English.lproj\"", ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "mkdir -p \"{0}.app/Contents/MacOS\"", ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "mkdir -p \"{0}.app/Contents/Resources\"", ExeName);
 
 					// Copy third party dylibs by calling additional script prepared earlier
-					AppendMacLine(CreateAppBundleScript, "sh \"{0}\" \"{1}\"", ConvertPath(DylibCopyScriptPath).Replace("$", "\\$"), ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sh \"{0}\" \"{1}\"", ConvertPath(DylibCopyScriptPath).Replace("$", "\\$"), ExeName);
 
 					string IconName = "UE4";
 					string BundleVersion = ExeName.StartsWith("UnrealEngineLauncher") ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
@@ -973,15 +890,11 @@ namespace UnrealBuildTool
 					{
 						CustomIcon = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + IconName + ".icns";
 					}
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}\" \"{2}.app/Contents/Resources/{1}.icns\"", CustomIcon, IconName, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{2}.app/Contents/Resources/{1}.icns\"", CustomIcon, IconName, ExeName);
 
 					if (ExeName.StartsWith("UE4Editor"))
 					{
-					}
-
-					if (ExeName.StartsWith("UE4Editor"))
-					{
-						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/UProject.icns\" \"{1}.app/Contents/Resources/UProject.icns\"", EngineSourcePath, ExeName);
+						AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/UProject.icns\" \"{1}.app/Contents/Resources/UProject.icns\"", EngineSourcePath, ExeName);
 					}
 
 					string InfoPlistFile = CustomResourcesPath + "/Info.plist";
@@ -989,45 +902,30 @@ namespace UnrealBuildTool
 					{
 						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (GameName.EndsWith("Editor") ? "Info-Editor.plist" : "Info.plist");
 					}
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
 
 					// Fix contents of Info.plist
-					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{1}.app/Contents/Info.plist\"", "{EXECUTABLE_NAME}", ExeName);
-					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{APP_NAME}", GameName, ExeName);
-					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", MinMacOSVersion, ExeName);
-					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{ICON_NAME}", IconName, ExeName);
-					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{BUNDLE_VERSION}", BundleVersion, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{1}.app/Contents/Info.plist\"", "{EXECUTABLE_NAME}", ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{APP_NAME}", GameName, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", MinMacOSVersion, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{ICON_NAME}", IconName, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{BUNDLE_VERSION}", BundleVersion, ExeName);
 
 					// Generate PkgInfo file
-					AppendMacLine(CreateAppBundleScript, "echo 'echo -n \"APPL????\"' | bash > \"{0}.app/Contents/PkgInfo\"", ExeName);
-
-					// Copy RadioEffect component
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit\"", EngineSourcePath, ExeName);
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings\"", EngineSourcePath, ExeName);
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Info.plist\" \"{1}.app/Contents/Resources/RadioEffectUnit.component/Contents/Info.plist\"", EngineSourcePath, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "echo 'echo -n \"APPL????\"' | bash > \"{0}.app/Contents/PkgInfo\"", ExeName);
 
 					// Make sure OS X knows the bundle was updated
-					AppendMacLine(CreateAppBundleScript, "touch -c \"{0}.app\"", ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "touch -c \"{0}.app\"", ExeName);
 
-					CreateAppBundleScript.Close();
+					FinalizeAppBundleScript.Close();
 
 					// copy over some needed files
 					// @todo mac: Make a QueueDirectoryForBatchUpload
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/UE4.icns")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/UProject.icns")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/Info.plist")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/ThirdParty/Mac/RadioEffectUnit/RadioEffectUnit.component/Contents/Info.plist")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "DylibCopy.sh")));
 				}
-			}
-
-			// For Mac, generate the dSYM file if the config file is set to do so
-			if (BuildConfiguration.bGeneratedSYMFile == true)
-			{
-				Log.TraceInformation("Generating the dSYM file - this will add some time to your build...");
-				RemoteOutputFile = GenerateDebugInfo(RemoteOutputFile);
 			}
 
 			return RemoteOutputFile;
@@ -1048,7 +946,7 @@ namespace UnrealBuildTool
 
 			LinkAction.CommandArguments = "-c 'chmod +x \"" + RemoteFixDylibDepsScript.AbsolutePath + "\"; \"" + RemoteFixDylibDepsScript.AbsolutePath + "\"; if [[ $? -ne 0 ]]; then exit 1; fi; ";
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				LinkAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
@@ -1077,48 +975,11 @@ namespace UnrealBuildTool
 		}
 
 		/**
-		 * Generates debug info for a given executable
-		 * 
-		 * @param MachOBinary FileItem describing the executable or dylib to generate debug info for
-		 */
-		public FileItem GenerateDebugInfo(FileItem MachOBinary)
-		{
-			// Make a file item for the source and destination files
-			string AdditionalExtension = Path.GetExtension(MachOBinary.AbsolutePath) == ".dylib" ? "" : ".app";
-			string FullDestPathRoot = MachOBinary.AbsolutePath + AdditionalExtension + ".dSYM";
-			string FullDestPath = FullDestPathRoot;
-			FileItem OutputFile = FileItem.GetItemByPath(FullDestPath);
-			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
-
-			// Make the compile action
-			Action GenDebugAction = new Action(ActionType.Link);
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-			{
-				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
-			}
-			GenDebugAction.WorkingDirectory = Path.GetFullPath(".");
-			GenDebugAction.CommandPath = "sh";
-
-			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c '{0}usr/bin/xcrun dsymutil {1} -o {2}'",
-				DeveloperDir,
-				MachOBinary.AbsolutePath,
-				FullDestPathRoot,
-				Path.GetFileName(MachOBinary.AbsolutePath)+AdditionalExtension);
-			GenDebugAction.PrerequisiteItems.Add(MachOBinary);
-			GenDebugAction.ProducedItems.Add(DestFile);
-			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;
-			GenDebugAction.bCanExecuteRemotely = false;
-
-			return DestFile;
-		}
-
-		/**
 		 * Creates app bundle for a given executable
 		 * 
 		 * @param Executable FileItem describing the executable to generate app bundle for
 		 */
-		FileItem CreateAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
+		FileItem FinalizeAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
 		{
 			// Make a file item for the source and destination files
 			string FullDestPath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
@@ -1126,40 +987,77 @@ namespace UnrealBuildTool
 			FileItem RemoteDestFile = LocalToRemoteFileItem(DestFile, false);
 
 			// Make the compile action
-			Action CreateAppBundleAction = new Action(ActionType.CreateAppBundle);
-			CreateAppBundleAction.WorkingDirectory = Path.GetFullPath(".");
-			CreateAppBundleAction.CommandPath = "/bin/sh";
-			CreateAppBundleAction.CommandDescription = "";
+			Action FinalizeAppBundleAction = new Action(ActionType.CreateAppBundle);
+			FinalizeAppBundleAction.WorkingDirectory = Path.GetFullPath(".");
+			FinalizeAppBundleAction.CommandPath = "/bin/sh";
+			FinalizeAppBundleAction.CommandDescription = "";
 
 			// make path to the script
-			FileItem BundleScript = FileItem.GetItemByFullPath(Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "CreateAppBundle.sh"));
+			FileItem BundleScript = FileItem.GetItemByFullPath(Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "FinalizeAppBundle.sh"));
 			FileItem RemoteBundleScript = LocalToRemoteFileItem(BundleScript, true);
 
-		
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
-				CreateAppBundleAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
+				FinalizeAppBundleAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
 
-			CreateAppBundleAction.CommandArguments = "\"" + RemoteBundleScript.AbsolutePath + "\"";
-			CreateAppBundleAction.PrerequisiteItems.Add(FixDylibOutputFile);
-			CreateAppBundleAction.ProducedItems.Add(RemoteDestFile);
-			CreateAppBundleAction.StatusDescription = string.Format("Creating app bundle: {0}.app", Path.GetFileName(Executable.AbsolutePath));
-			CreateAppBundleAction.bCanExecuteRemotely = false;
+			FinalizeAppBundleAction.CommandArguments = "\"" + RemoteBundleScript.AbsolutePath + "\"";
+			FinalizeAppBundleAction.PrerequisiteItems.Add(FixDylibOutputFile);
+			FinalizeAppBundleAction.ProducedItems.Add(RemoteDestFile);
+			FinalizeAppBundleAction.StatusDescription = string.Format("Finalizing app bundle: {0}.app", Path.GetFileName(Executable.AbsolutePath));
+			FinalizeAppBundleAction.bCanExecuteRemotely = false;
 
 			return RemoteDestFile;
 		}
 
-		static public void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+		FileItem CopyBundleResource(UEBuildBundleResource Resource, FileItem Executable)
 		{
+			Action CopyAction = new Action(ActionType.CreateAppBundle);
+			CopyAction.WorkingDirectory = Path.GetFullPath(".");
+			CopyAction.CommandPath = "/bin/sh";
+			CopyAction.CommandDescription = "";
+
+			string BundlePath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
+			string SourcePath = Path.Combine(CopyAction.WorkingDirectory, Resource.ResourcePath);
+			string TargetPath = Path.Combine(BundlePath, "Contents", Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath));
+
+			FileItem TargetItem = LocalToRemoteFileItem(FileItem.GetItemByPath(TargetPath), false);
+
+			CopyAction.CommandArguments = string.Format("-c 'cp -f -R \"{0}\" \"{1}\"; touch -c \"{2}\"'", SourcePath, Path.GetDirectoryName(TargetPath) + "/", TargetPath);
+			CopyAction.PrerequisiteItems.Add(Executable);
+			CopyAction.ProducedItems.Add(TargetItem);
+			CopyAction.StatusDescription = string.Format("Copying {0} to app bundle", Path.GetFileName(Resource.ResourcePath));
+			CopyAction.bCanExecuteRemotely = false;
+
+			if (Directory.Exists(Resource.ResourcePath))
+			{
+				foreach (string ResourceFile in Directory.GetFiles(Resource.ResourcePath, "*", SearchOption.AllDirectories))
+				{
+					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath(ResourceFile)));
+				}
+			}
+			else
+			{
+				QueueFileForBatchUpload(FileItem.GetItemByFullPath(SourcePath));
+			}
+
+			return TargetItem;
+		}
+
+		public override void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
+		{
+			base.SetupBundleDependencies(Binaries, GameName);
+
 			foreach (UEBuildBinary Binary in Binaries)
 			{
 				BundleDependencies.Add(FileItem.GetItemByPath(Binary.ToString()));
 			}
 		}
 		
-		static public void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
+		public override void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
 		{
+			base.FixBundleBinariesPaths(Target, Binaries);
+
 			string BundleContentsPath = Target.OutputPath + ".app/Contents/";
 			foreach (UEBuildBinary Binary in Binaries)
 			{
@@ -1179,12 +1077,12 @@ namespace UnrealBuildTool
 						// kind of protection to be deleted if they aren't supported for a current user that has the dylibs locally.
 						// string SubDir = DylibDir.Replace(ExeDir, "");
 						string SubDir = "";
-						Binary.Config.OutputFilePath = BundleContentsPath + "MacOS" + SubDir + "/" + BinaryFileName;
+						Binary.Config.OutputFilePaths[0] = BundleContentsPath + "MacOS" + SubDir + "/" + BinaryFileName;
 					}
 				}
 				else if (!BinaryFileName.EndsWith(".a"))
 				{
-					Binary.Config.OutputFilePath += ".app/Contents/MacOS/" + BinaryFileName;
+					Binary.Config.OutputFilePaths[0] += ".app/Contents/MacOS/" + BinaryFileName;
 				}
 			}
 		}
@@ -1229,15 +1127,27 @@ namespace UnrealBuildTool
 				}
 			}
 
+			foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.Config.AdditionalBundleResources)
+			{
+				if (Directory.Exists(Resource.ResourcePath))
+				{
+					foreach (string ResourceFile in Directory.GetFiles(Resource.ResourcePath, "*", SearchOption.AllDirectories))
+					{
+						Manifest.AddFileName(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)));
+					}
+				}
+				else
+				{
+					Manifest.AddFileName(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)));
+				}
+			}
+
 			if (Binary.Config.Type == UEBuildBinaryType.Executable)
 			{
 				// And we also need all the resources
 				Manifest.AddFileName(BundleContentsDirectory + "Info.plist");
 				Manifest.AddFileName(BundleContentsDirectory + "PkgInfo");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/UE4.icns");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Info.plist");
 
 				if (Binary.Config.TargetName.StartsWith("UE4Editor"))
 				{
@@ -1251,7 +1161,7 @@ namespace UnrealBuildTool
 		{
 			string ProjectDirectory = Path.GetDirectoryName(Path.GetFullPath(ProjectFileName));
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				RPCUtilHelper.CopyFile(ProjectFileName, ConvertPath(ProjectFileName), true);
 				RPCUtilHelper.CopyFile("Engine/Source/Programs/DotNETCommon/MetaData.cs", ConvertPath("Engine/Source/Programs/DotNETCommon/MetaData.cs"), true);
@@ -1265,7 +1175,7 @@ namespace UnrealBuildTool
 
 			string XBuildArgs = "/verbosity:quiet /nologo /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU " + Path.GetFileName(ProjectFileName) + " /property:TargetFrameworkVersion=v4.5 /tv:4.0";
 
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				RPCUtilHelper.Command(ConvertPath(ProjectDirectory), "xbuild", XBuildArgs, null);
 			}
@@ -1298,24 +1208,33 @@ namespace UnrealBuildTool
 			base.PostBuildSync(Target);
 		}
 
-		public override ICollection<FileItem> PostBuild (FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
+		public override ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
 		{
-			var OutputFiles = base.PostBuild (Executable, BinaryLinkEnvironment);
+			var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment);
 
-			// if building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
-			if (ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac) {
+			// If building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
 				return OutputFiles;
 			}
 
-			if (BinaryLinkEnvironment.Config.bIsBuildingDLL || BinaryLinkEnvironment.Config.bIsBuildingLibrary) {
+			foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.Config.AdditionalBundleResources)
+			{
+				OutputFiles.Add(CopyBundleResource(Resource, Executable));
+			}
+
+			if (BinaryLinkEnvironment.Config.bIsBuildingDLL || BinaryLinkEnvironment.Config.bIsBuildingLibrary)
+			{
 				return OutputFiles;
 			}
+
 			FileItem FixDylibOutputFile = FixDylibDependencies(BinaryLinkEnvironment, Executable);
 			OutputFiles.Add(FixDylibOutputFile);
-			if (BinaryLinkEnvironment.Config.bIsBuildingConsoleApplication)
-				return OutputFiles;
+			if (!BinaryLinkEnvironment.Config.bIsBuildingConsoleApplication)
+			{
+				OutputFiles.Add(FinalizeAppBundle(BinaryLinkEnvironment, Executable, FixDylibOutputFile));
+			}
 
-			OutputFiles.Add(CreateAppBundle(BinaryLinkEnvironment, Executable, FixDylibOutputFile));
 			return OutputFiles;
 		}
 	};

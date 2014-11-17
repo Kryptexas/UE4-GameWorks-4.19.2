@@ -56,7 +56,7 @@ public:
 	 *
 	 * @param InWave		USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* CreateQueuedBuffer( FSLESAudioDevice* AudioDevice, USoundWave* Wave );
 
@@ -65,9 +65,18 @@ public:
 	 *
 	 * @param Wave			USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* CreateNativeBuffer( FSLESAudioDevice* AudioDevice, USoundWave* Wave );
+
+	/**
+	* Static function used to create an Audio buffer and dynamically upload procedural data to.
+	*
+	* @param InWave		USoundWave to use as template and wave source
+	* @param AudioDevice	audio device to attach created buffer to
+	* @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	*/
+	static FSLESSoundBuffer* CreateProceduralBuffer(FSLESAudioDevice* AudioDevice, USoundWave* Wave);
 
 	/**
 	 * Static function used to create a buffer.
@@ -97,6 +106,11 @@ public:
 		return( BufferSize ); 
 	}
 
+	/**
+	 * Returns the size for a real time/streaming buffer based on decompressor
+	 */
+	int GetRTBufferSize(void);
+		
 	/** Audio device this buffer is attached to */
 	FSLESAudioDevice*			AudioDevice;
 	/** Data */
@@ -201,6 +215,8 @@ protected:
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 
+	uint32						BufferSize;
+
 	int32						BufferInUse;
 	bool						bHasLooped;
 
@@ -209,6 +225,12 @@ protected:
 	void ReleaseResources();
 	bool EnqueuePCMBuffer( bool bLoop);
 	bool EnqueuePCMRTBuffer( bool bLoop);
+
+	/** Decompress through FSLESSoundBuffer, or call USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
+	bool ReadMorePCMData(const int32 BufferIndex);
+
+	/** Handle obtaining more data for procedural USoundWaves. Always returns false for convenience. */
+	bool ReadProceduralData(const int32 BufferIndex);
 };
 
 /**
@@ -222,8 +244,19 @@ public:
 
 	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
-		static FName NAME_OGG(TEXT("OGG"));
-		return NAME_OGG;
+		
+		if (SoundWave->CompressionName.IsNone())
+		{
+#if WITH_OGGVORBIS
+			static FName NAME_OGG(TEXT("OGG"));		//@todo android: probably not ogg
+			return NAME_OGG;
+#else
+			static FName NAME_ADPCM(TEXT("ADPCM"));
+			return NAME_ADPCM;
+#endif
+		}
+
+		return SoundWave->CompressionName;
 	}
 
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
@@ -245,6 +278,9 @@ public:
 	 * @param	Realtime	whether we are paused or not
 	 */
 	virtual void Update( bool bGameTicking );
+
+	/** Check if any background music or sound is playing through the audio device */
+	virtual bool IsExernalBackgroundSoundActive() override;
 
 protected:
 

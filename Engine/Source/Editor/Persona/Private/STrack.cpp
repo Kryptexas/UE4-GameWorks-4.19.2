@@ -320,6 +320,11 @@ float STrackNode::GetDataStartPos() const
 //////////////////////////////////////////////////////////////////////////
 // STrack
 
+STrack::STrack()
+:TrackNodes()
+{
+}
+
 void STrack::Construct( const FArguments& InArgs )
 {
 	TrackColor = InArgs._TrackColor;
@@ -348,9 +353,9 @@ void STrack::Construct( const FArguments& InArgs )
 
 void STrack::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	for ( auto TrackIter = TrackNodes.CreateConstIterator() ; TrackIter ; ++TrackIter )
+	for ( int32 TrackIndex=0; TrackIndex < TrackNodes.Num(); ++TrackIndex )
 	{
-		TSharedRef<STrackNode> TrackNode = (*TrackIter);
+		TSharedRef<STrackNode> TrackNode = (TrackNodes[TrackIndex]);
 		if (TrackNode->bBeingDragged)
 		{
 			continue;

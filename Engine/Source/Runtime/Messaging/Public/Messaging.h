@@ -33,7 +33,7 @@
 #include "IMessagingModule.h"
 
 
-/* Common
+/* Common helpers
  *****************************************************************************/
 
 #include "FileMessageAttachment.h"

@@ -519,7 +519,7 @@ void FCrashInfo::WriteLine( FArchive* ReportFile, const ANSICHAR* Line )
 		ReportFile->Serialize( ( void* )Line, StringBytes );
 	}
 
-	ReportFile->Serialize( TCHAR_TO_UTF8( LINE_TERMINATOR ), 2 );
+	ReportFile->Serialize( TCHAR_TO_UTF8( LINE_TERMINATOR ), FCStringWide::Strlen(LINE_TERMINATOR) );
 }
 
 /** 
@@ -535,7 +535,12 @@ void FCrashInfo::GenerateReport( const FString& DiagnosticsPath )
 		WriteLine( ReportFile, TCHAR_TO_UTF8( TEXT( "Generating report for minidump" ) ) );
 		WriteLine( ReportFile );
 
-		if( Modules.Num() > 0 )
+		if ( ProductVersion.Len() > 0 )
+		{
+			Line = FString::Printf( TEXT( "Application version %s" ), *ProductVersion );
+			WriteLine( ReportFile, TCHAR_TO_UTF8( *Line ) );
+		}
+		else if( Modules.Num() > 0 )
 		{
 			Line = FString::Printf( TEXT( "Application version %d.%d.%d" ), Modules[0].Major, Modules[0].Minor, Modules[0].Patch );
 			WriteLine( ReportFile, TCHAR_TO_UTF8( *Line ) );

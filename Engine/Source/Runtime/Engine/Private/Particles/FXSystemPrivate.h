@@ -132,21 +132,15 @@ private:
 	void ReleaseGPUResources();
 
 	/**
-	 * Clears the current set of sorted GPU particles. Sorted results are no
-	 * longer valid after this call.
+	 * Prepares GPU particles for simulation and rendering in the next frame.
 	 */
-	void ResetSortedGPUParticles();
+	void AdvanceGPUParticleFrame();
 
 	/**
 	 * Sorts all GPU particles that have called AddSortedGPUSimulation since the
 	 * last reset.
 	 */
 	void SortGPUParticles(FRHICommandListImmediate& RHICmdList);
-
-	/**
-	 * Resets all simulations to be run in the main pass.
-	 */
-	void ResetSimulationPhases();
 
 	/**
 	 * Update particles simulated on the GPU.

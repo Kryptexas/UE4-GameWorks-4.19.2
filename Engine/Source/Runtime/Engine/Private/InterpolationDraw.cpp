@@ -32,6 +32,7 @@
 #include "InterpolationHitProxy.h"
 #include "AnimationUtils.h"
 #include "InterpolationHitProxy.h"
+#include "Animation/AnimSequence.h"
 
 
 static const int32	KeyHalfTriSize = 6;

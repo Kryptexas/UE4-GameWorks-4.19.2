@@ -132,7 +132,7 @@ public:
 	/** Make the currently selected menu sub menu new main menu if valid. */
 	void EnterSubMenu(TSharedPtr<class FGameMenuPage> InSubMenu);
 
-	/*
+	/**
 	 * Go back the the previous menu.
 	 * 
 	 * @param	bIsCancel	if true will be treated as CANCEL (IE escape pressed).
@@ -143,7 +143,7 @@ public:
 	/** Confirms current menu item and performs an action. Will also play selection sound. */
 	void ConfirmMenuItem();
 
-	/*
+	/**
 	 * Show the given menu and make it the current menu. 
 	 *
 	 * @param InMenu	The menu to show and set as the current menu. If this is NULL Current menu will be used if valid.
@@ -154,7 +154,7 @@ public:
 	/** Hide the menu. */
 	void HideMenu();
 
-	/*
+	/**
 	 * Updates arrows visibility for multi-choice menu item.
 	 *
 	 * @param	InMenuItem The item to update.
@@ -162,7 +162,7 @@ public:
 	 */
 	void UpdateArrows(TSharedPtr<class FGameMenuItem> InMenuItem);
 
-	/*
+	/**
 	 * Change the currently selection option of the currently selected menu item.
 	 *
 	 * @param	InMoveBy		Number to change the option by.
@@ -173,7 +173,7 @@ public:
 	/** disable/enable moving around menu. */
 	void LockControls(bool bEnable);
 
-	/* 
+	/** 
 	 * Set the current menu and 'open' it as the main panel. 
 	 *
 	 * @param InMenu	The menu to open and set as current.
@@ -181,7 +181,7 @@ public:
 	 */
 	void OpenMainPanel(TSharedPtr< class FGameMenuPage > InMenu);
 		
-	/*
+	/**
 	* Select a given item from an index
 	*
 	* @param InSelection	The index of the item to select
@@ -208,7 +208,7 @@ protected:
 	/** Gets current scale for drawing menu. */
 	float GetUIScale() const;
 
-	/* 
+	/** 
 	 * Rebuild the widgets in the main menu widget.
 	 * Selected item will be set from InPreviousIndex unless it is invalid.
 	 *
@@ -264,7 +264,7 @@ protected:
 	/** Start the main menu open fade/anim and set keyboard focu.s */
 	void FadeIn();
 
-	/* 
+	/** 
 	 * Animates the title widget.
 	 *
 	 * @param	bShowTitle	true to show the title, false to hide it.

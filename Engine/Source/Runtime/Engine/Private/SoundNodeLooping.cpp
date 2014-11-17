@@ -97,7 +97,3 @@ float USoundNodeLooping::GetDuration()
 	return INDEFINITELY_LOOPING_DURATION;
 }
 
-FString USoundNodeLooping::GetUniqueString() const
-{
-	return TEXT( "Looping Forever/" );
-}

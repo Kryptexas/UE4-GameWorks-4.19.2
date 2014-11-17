@@ -18,6 +18,8 @@ public:
 
 	FPropertyTablePropertyNameColumn( const TSharedRef< IPropertyTable >& InTable );
 
+	virtual ~FPropertyTablePropertyNameColumn() {}
+
 	// Begin IPropertyTableColumn Interface
 
 	virtual bool CanSelectCells() const override { return true; }

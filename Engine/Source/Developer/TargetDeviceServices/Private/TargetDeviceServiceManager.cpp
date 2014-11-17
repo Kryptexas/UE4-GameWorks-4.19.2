@@ -46,13 +46,13 @@ FTargetDeviceServiceManager::~FTargetDeviceServiceManager( )
 /* ITargetDeviceServiceManager interface
  *****************************************************************************/
 
-bool FTargetDeviceServiceManager::AddStartupService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName )
+bool FTargetDeviceServiceManager::AddStartupService(const FString& DeviceName)
 {
 	FScopeLock Lock(&CriticalSection);
 	{
-		StartupServices.Add(DeviceId, false);
+		StartupServices.Add(DeviceName, false);
 
-		return AddService(DeviceId, PreliminaryDeviceName);
+		return AddService(DeviceName).IsValid();
 	}
 }
 
@@ -68,13 +68,13 @@ int32 FTargetDeviceServiceManager::GetServices( TArray<ITargetDeviceServicePtr>&
 }
 
 
-void FTargetDeviceServiceManager::RemoveStartupService( const FTargetDeviceId& DeviceId )
+void FTargetDeviceServiceManager::RemoveStartupService(const FString& DeviceName)
 {
 	FScopeLock Lock(&CriticalSection);
 	{
-		if (StartupServices.Remove(DeviceId) > 0)
+		if (StartupServices.Remove(DeviceName) > 0)
 		{
-			RemoveService(DeviceId);
+			RemoveService(DeviceName);
 		}
 	}
 }
@@ -83,40 +83,57 @@ void FTargetDeviceServiceManager::RemoveStartupService( const FTargetDeviceId& D
 /* FTargetDeviceServiceManager implementation
  *****************************************************************************/
 
-bool FTargetDeviceServiceManager::AddService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName )
+ITargetDeviceServicePtr FTargetDeviceServiceManager::AddService(const FString& DeviceName)
 {
 	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
 
 	if (!MessageBus.IsValid())
 	{
-		return false;
+		return nullptr;
 	}
 
-	ITargetDeviceServicePtr DeviceService = DeviceServices.FindRef(DeviceId);
+	ITargetDeviceServicePtr DeviceService = DeviceServices.FindRef(DeviceName);
 
 	// create service if needed
 	if (!DeviceService.IsValid())
 	{
-		DeviceService = MakeShareable(new FTargetDeviceService(DeviceId, PreliminaryDeviceName, MessageBus.ToSharedRef()));
-		DeviceServices.Add(DeviceId, DeviceService);
+		DeviceService = MakeShareable(new FTargetDeviceService(DeviceName, MessageBus.ToSharedRef()));
+		DeviceServices.Add(DeviceName, DeviceService);
 
 		ServiceAddedDelegate.Broadcast(DeviceService.ToSharedRef());
 	}
 
 	// share service if desired
-	const bool* Shared = StartupServices.Find(DeviceId);
-
+	const bool* Shared = StartupServices.Find(DeviceName);
 	if (Shared != nullptr)
 	{
 		DeviceService->SetShared(*Shared);
+		DeviceService->Start();
 	}
 
-	// start service if desired
-	ITargetDevicePtr TargetDevice = DeviceService->GetDevice();
+	return DeviceService;
+}
 
-	if ((Shared != nullptr) || (TargetDevice.IsValid() && TargetDevice->IsDefault()))
+bool FTargetDeviceServiceManager::AddTargetDevice(ITargetDevicePtr InDevice)
+{
+	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
+	if (!MessageBus.IsValid())
 	{
-		DeviceService->Start();
+		return false;
+	}
+
+	const FString& DeviceName = InDevice->GetName();
+
+	ITargetDeviceServicePtr DeviceService = AddService(DeviceName);
+
+	if (DeviceService.IsValid())
+	{
+		DeviceService->AddTargetDevice(InDevice);
+
+		if (InDevice.IsValid() && InDevice->IsDefault())
+		{
+			DeviceService->Start();
+		}
 	}
 
 	return true;
@@ -144,7 +161,7 @@ void FTargetDeviceServiceManager::InitializeTargetPlatforms( )
 
 			if (Device.IsValid())
 			{
-				AddService(Device->GetId(), Device->GetName());
+				AddTargetDevice(Device);
 			}
 		}
 	}
@@ -176,29 +193,20 @@ void FTargetDeviceServiceManager::LoadSettings( )
 		const FString& ServiceString = *It.Value();
 
 		// ... parse device identifier...
-		FString DeviceIdString;
-		FTargetDeviceId DeviceId;
+		FString DeviceName;
 		
-		if (!FParse::Value(*ServiceString, TEXT("DeviceId="), DeviceIdString) || !FTargetDeviceId::Parse(DeviceIdString, DeviceId))
+		if (!FParse::Value(*ServiceString, TEXT("DeviceName="), DeviceName))
 		{
-			UE_LOG(TargetDeviceServicesLog, Warning, TEXT("[TargetDeviceServices] failed to parse DeviceId in configuration setting: StartupServices=%s"), *ServiceString);
+			UE_LOG(TargetDeviceServicesLog, Warning, TEXT("[TargetDeviceServices] failed to parse DeviceName in configuration setting: StartupServices=%s"), *ServiceString);
 
 			continue;
 		}
 
-		if (DeviceServices.Contains(DeviceId))
+		if (DeviceServices.Contains(DeviceName))
 		{
 			UE_LOG(TargetDeviceServicesLog, Warning, TEXT("[TargetDeviceServices] duplicate entry for : StartupServices=%s"), *ServiceString);
 
 			continue;
-		}
-
-		// ... parse device name...
-		FString DeviceName;
-
-		if (!FParse::Value(*ServiceString, TEXT("DeviceName="), DeviceName))
-		{
-			DeviceName = DeviceIdString;
 		}
 
 		// ... parse sharing state...
@@ -209,12 +217,12 @@ void FTargetDeviceServiceManager::LoadSettings( )
 			Shared = false;
 		}
 
-		StartupServices.Add(DeviceId, Shared);
+		StartupServices.Add(DeviceName, Shared);
 
 		// ... create and start device service
 		ITargetDeviceServicePtr DeviceService;
 
-		if (!AddService(DeviceId, DeviceName))
+		if (!AddService(DeviceName).IsValid())
 		{
 			UE_LOG(TargetDeviceServicesLog, Warning, TEXT("[TargetDeviceServices] failed to create service for: StartupServices=%s"), *ServiceString);
 		}
@@ -222,9 +230,9 @@ void FTargetDeviceServiceManager::LoadSettings( )
 }
 
 
-void FTargetDeviceServiceManager::RemoveService( const FTargetDeviceId& DeviceId )
+void FTargetDeviceServiceManager::RemoveService(const FString& DeviceName)
 {
-	ITargetDeviceServicePtr DeviceService = DeviceServices.FindRef(DeviceId);
+	ITargetDeviceServicePtr DeviceService = DeviceServices.FindRef(DeviceName);
 
 	if (!DeviceService.IsValid())
 	{
@@ -234,11 +242,30 @@ void FTargetDeviceServiceManager::RemoveService( const FTargetDeviceId& DeviceId
 	DeviceService->Stop();
 
 	// only truly remove if not startup device or physical device not available
-	if (!StartupServices.Contains(DeviceId) && !DeviceService->GetDevice().IsValid())
+	if (!StartupServices.Contains(DeviceName) && !DeviceService->GetDevice().IsValid())
 	{
-		DeviceServices.Remove(DeviceId);
+		DeviceServices.Remove(DeviceName);
 		ServiceRemovedDelegate.Broadcast(DeviceService.ToSharedRef());
 	}
+}
+
+void FTargetDeviceServiceManager::RemoveTargetDevice(ITargetDevicePtr InDevice)
+{
+	ITargetDeviceServicePtr DeviceService = DeviceServices.FindRef(InDevice->GetName());
+
+	if (!DeviceService.IsValid())
+	{
+		return;
+	}
+
+	DeviceService->RemoveTargetDevice(InDevice);
+
+	if (DeviceService->NumTargetDevices() <= 0)
+	{
+		RemoveService(InDevice->GetName());
+	}
+
+	return;
 }
 
 
@@ -254,9 +281,9 @@ void FTargetDeviceServiceManager::SaveSettings( )
 	TArray<FString> ServiceStrings;
 
 	// for each device service...
-	for (TMap<FTargetDeviceId, ITargetDeviceServicePtr>::TConstIterator It(DeviceServices); It; ++It)
+	for (TMap<FString, ITargetDeviceServicePtr>::TConstIterator It(DeviceServices); It; ++It)
 	{
-		const FTargetDeviceId& DeviceId = It.Key();
+		const FString& DeviceName= It.Key();
 		const ITargetDeviceServicePtr& DeviceService = It.Value();
 
 		// ... that is not managing a default device...
@@ -268,14 +295,13 @@ void FTargetDeviceServiceManager::SaveSettings( )
 		}
 
 		// ... that should be automatically restarted next time...
-		const bool* Shared = StartupServices.Find(DeviceId);
+		const bool* Shared = StartupServices.Find(DeviceName);
 
 		if ((Shared != nullptr) || DeviceService->IsRunning())
 		{
 			// ... generate an entry in the INI file
-			FString ServiceString = FString::Printf(TEXT("DeviceId=\"%s\",DeviceName=\"%s\",Shared=%s"),
-				*DeviceId.ToString(),
-				*DeviceService->GetCachedDeviceName(),
+			FString ServiceString = FString::Printf(TEXT("DeviceName=\"%s\",Shared=%s"),
+				*DeviceName,
 				((Shared != nullptr) && *Shared) ? TEXT("true") : TEXT("false")
 			);
 
@@ -316,19 +342,19 @@ void FTargetDeviceServiceManager::HandleMessageBusShutdown( )
 }
 
 
-void FTargetDeviceServiceManager::HandleTargetPlatformDeviceDiscovered( const ITargetDeviceRef& DiscoveredDevice )
+void FTargetDeviceServiceManager::HandleTargetPlatformDeviceDiscovered(ITargetDeviceRef DiscoveredDevice)
 {
 	FScopeLock Lock(&CriticalSection);
 	{
-		AddService(DiscoveredDevice->GetId(), DiscoveredDevice->GetName());
+		AddTargetDevice(DiscoveredDevice);
 	}
 }
 
 
-void FTargetDeviceServiceManager::HandleTargetPlatformDeviceLost( const ITargetDeviceRef& LostDevice )
+void FTargetDeviceServiceManager::HandleTargetPlatformDeviceLost(ITargetDeviceRef LostDevice)
 {
 	FScopeLock Lock(&CriticalSection);
 	{
-		RemoveService(LostDevice->GetId());
+		RemoveTargetDevice(LostDevice);
 	}
 }

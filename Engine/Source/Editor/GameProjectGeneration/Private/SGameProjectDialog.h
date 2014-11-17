@@ -66,29 +66,17 @@ private:
 	// Callback for getting the color of the custom content area.
 	FLinearColor HandleCustomContentColorAndOpacity() const;
 
-	// Callback for clicking the 'Marketplace' button.
-	FReply HandleMarketplaceTabButtonClicked( );
-
-	// Callback for getting the foreground color of the 'Marketplace' button.
-	FSlateColor HandleMarketplaceTabButtonForegroundColor( ) const;
-
 	// Callback for clicking the 'New Project' button.
 	FReply HandleNewProjectTabButtonClicked( );
-
-	// Callback for getting the border image of the 'New Project' button.
-	const FSlateBrush* HandleNewProjectTabHeaderBorderImage( ) const;
-
-	// Callback for getting the button image of the 'New Project' button.
-	const FSlateBrush* HandleNewProjectTabHeaderImage( ) const;
 
 	// Callback for clicking the 'Projects' button.
 	FReply HandleProjectsTabButtonClicked( );
 
-	// Callback for getting the border image of the 'Projects' button.
-	const FSlateBrush* HandleProjectsTabHeaderBorderImage( ) const;
+	// Callback for getting the border image of the specified tab.
+	const FSlateBrush* OnGetTabBorderImage( ETab InTab ) const;
 
-	// Callback for getting the button image of the 'Projects' button.
-	const FSlateBrush* HandleProjectsTabHeaderImage( ) const;
+	// Callback for getting the header stripe image for the specified tab.
+	const FSlateBrush* OnGetTabHeaderImage( ETab InTab, TSharedRef<SButton> TabButton ) const;
 
 private:
 
@@ -102,12 +90,6 @@ private:
 	TSharedPtr<SWidgetSwitcher> ContentAreaSwitcher;
 	TSharedPtr<SProjectBrowser> ProjectBrowser;
 	TSharedPtr<SNewProjectWizard> NewProjectWizard;
-	TSharedPtr<SButton> ProjectsTabButton;
-	TSharedPtr<SButton> NewProjectTabButton;
-	TSharedPtr<SButton> MarketplaceButton;
 
 	ETab ActiveTab;
-
-	EVisibility ProjectsTabVisibility;
-	EVisibility NewProjectTabVisibility;
 };

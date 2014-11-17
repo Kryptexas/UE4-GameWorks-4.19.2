@@ -70,6 +70,11 @@ public:
 	 */
 	virtual bool UsesVorbisChannelOrdering() const = 0;
 
+	/**
+	* Gets the preferred size for a streaming buffer for this decompression scheme
+	*/
+	virtual int GetStreamBufferSize() const = 0;
+
 	////////////////////////////////////////////////////////////////
 	// Following functions are optional if streaming is supported //
 	////////////////////////////////////////////////////////////////
@@ -108,6 +113,7 @@ public:
 	 */
 	virtual int32 GetCurrentChunkOffset() const {return -1;}
 };
+
 
 /**
  * Asynchronous audio decompression

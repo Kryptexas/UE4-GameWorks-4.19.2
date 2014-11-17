@@ -6,6 +6,7 @@
 
 #include "BlueprintUtilities.h"
 #include "TokenizedMessage.h"
+#include "CompilationResult.h"
 
 /** This class maps from final objects to their original source object, across cloning, autoexpansion, etc... */
 class UNREALED_API FBacktrackMap
@@ -94,9 +95,6 @@ public:
 protected:
 	/** Create a tokenized message record from a message containing @@ indicating where each UObject* in the ArgPtr list goes and place it in the MessageLog. */
 	void InternalLogMessage(const EMessageSeverity::Type& Severity, const TCHAR* Message, va_list ArgPtr);
-
-	/** Callback when a token is activated */
-	void OnTokenActivated(const TSharedRef<class IMessageToken>& InTokenRef);
 	
 	/** */
 	void AnnotateNode(class UEdGraphNode* Node, TSharedRef<FTokenizedMessage> LogLine);

@@ -12,7 +12,7 @@
 FAssetDeleteModel::FAssetDeleteModel( const TArray<UObject*>& InObjectsToDelete )
 	: State( StartScanning )
 	, bPendingObjectsCanBeReplaced(false)
-	, bIsAnythingReferencedInMemory(false)
+	, bIsAnythingReferencedInMemoryByNonUndo(false)
 	, bIsAnythingReferencedInMemoryByUndo(false)
 	, PendingDeleteIndex(0)
 	, ObjectsDeleted(0)
@@ -61,7 +61,7 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 		break;
 	case StartScanning:
 		OnDiskReferences = TSet<FName>();
-		bIsAnythingReferencedInMemory = false;
+		bIsAnythingReferencedInMemoryByNonUndo = false;
 		bIsAnythingReferencedInMemoryByUndo = false;
 		PendingDeleteIndex = 0;
 
@@ -87,7 +87,8 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 			PendingDelete->RemainingDiskReferences = NonPendingDeletedExternalOnDiskReferences;
 
 			// Count up all the external references
-			int NonPendingDeletedExternalInMemoryReferences = 0;
+			int32 NonPendingDeletedExternalInMemoryReferences = 0;
+
 			for ( const FReferencerInformation& Reference : PendingDelete->MemoryReferences.ExternalReferences )
 			{
 				if ( !IsObjectInPendingDeletes( Reference.Referencer ) )
@@ -97,7 +98,7 @@ void FAssetDeleteModel::Tick( const float InDeltaTime )
 			}
 			PendingDelete->RemainingMemoryReferences = NonPendingDeletedExternalInMemoryReferences;
 
-			bIsAnythingReferencedInMemory |= PendingDelete->RemainingMemoryReferences > 0;
+			bIsAnythingReferencedInMemoryByNonUndo |= PendingDelete->RemainingMemoryReferences > 0;
 			bIsAnythingReferencedInMemoryByUndo |= PendingDelete->IsReferencedInMemoryByUndo();
 
 			PendingDeleteIndex++;
@@ -142,7 +143,7 @@ bool FAssetDeleteModel::DoDelete()
 bool FAssetDeleteModel::CanForceDelete() const
 {
 	// We can only force delete when they are still referenced in memory or still referenced on disk.
-	return bIsAnythingReferencedInMemory || OnDiskReferences.Num() > 0;
+	return bIsAnythingReferencedInMemoryByNonUndo || (OnDiskReferences.Num() > 0);
 }
 
 bool FAssetDeleteModel::DoForceDelete()
@@ -415,7 +416,7 @@ FPendingDelete::FPendingDelete(UObject* InObject)
 	, RemainingMemoryReferences(0)
 	, Object(InObject)
 	, bReferencesChecked(false)
-	, bIsReferencedInMemory(false)
+	, bIsReferencedInMemoryByNonUndo(false)
 	, bIsReferencedInMemoryByUndo(false)
 	, bIsInternal(false)
 {
@@ -504,23 +505,20 @@ void FPendingDelete::CheckForReferences()
 
 	AssetRegistryModule.Get().GetReferencers(Object->GetOutermost()->GetFName(), DiskReferences);
 
-	// Check and see whether we are referenced by any objects that won't be garbage collected. 
-	bIsReferencedInMemory = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &MemoryReferences);
-	bIsReferencedInMemoryByUndo = false;
-	if ( bIsReferencedInMemory )
-	{
-		FReferencerInformationList ReferencesExcludingUndo;
-		// determine whether the transaction buffer is holding a reference to the object
-		// and if so, offer the user the option to reset the transaction buffer.
-		GEditor->Trans->DisableObjectSerialization();
-		IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &ReferencesExcludingUndo);
-		GEditor->Trans->EnableObjectSerialization();
-		// only ref to this object is the transaction buffer - set a flag so we know we need to clear the undo stack
-		if ( MemoryReferences.InternalReferences.Num() > ReferencesExcludingUndo.InternalReferences.Num() )
-		{
-			bIsReferencedInMemoryByUndo = true;
-		}
-	}
+	// Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
+	FReferencerInformationList ReferencesIncludingUndo;
+	bool bReferencedInMemoryOrUndoStack = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &ReferencesIncludingUndo);
+
+	// Determine the in-memory references, *excluding* the undo buffer
+	GEditor->Trans->DisableObjectSerialization();
+	bIsReferencedInMemoryByNonUndo = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &MemoryReferences);
+	GEditor->Trans->EnableObjectSerialization();
+
+	// see if this object is the transaction buffer - set a flag so we know we need to clear the undo stack
+	const int32 TotalReferenceCount = ReferencesIncludingUndo.ExternalReferences.Num() + ReferencesIncludingUndo.InternalReferences.Num();
+	const int32 NonUndoReferenceCount = MemoryReferences.ExternalReferences.Num() + MemoryReferences.InternalReferences.Num();
+
+	bIsReferencedInMemoryByUndo = TotalReferenceCount > NonUndoReferenceCount;
 }
 
 bool FPendingDelete::operator == ( const FPendingDelete& Other ) const

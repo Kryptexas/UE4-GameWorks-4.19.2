@@ -7,6 +7,7 @@
 #include "K2Node_VariableSetRef.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 static FString TargetVarPinName(TEXT("Target"));
 static FString VarValuePinName(TEXT("Value"));
@@ -118,11 +119,12 @@ void UK2Node_VariableSetRef::ReallocatePinsDuringReconstruction(TArray<UEdGraphP
   		UEdGraphPin* NewTargetPin = GetTargetPin();
   		CoerceTypeFromPin(OldTargetPin);
   	}
+	CachedNodeTitle.MarkDirty();
 }
 
-FString UK2Node_VariableSetRef::GetTooltip() const
+FText UK2Node_VariableSetRef::GetTooltipText() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "SetValueOfRefVariable", "Set the value of the connected pass-by-ref variable").ToString());
+	return NSLOCTEXT("K2Node", "SetValueOfRefVariable", "Set the value of the connected pass-by-ref variable");
 }
 
 FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -130,17 +132,18 @@ FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UEdGraphPin* TargetPin = GetTargetPin();
-
-	if( TargetPin && TargetPin->PinType.PinCategory != Schema->PC_Wildcard )
-	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinType"), Schema->TypeToText(TargetPin->PinType));
-		return FText::Format(NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set {PinType}"), Args);
-	}
-	else
+	if ((TargetPin == nullptr) || (TargetPin->PinType.PinCategory == Schema->PC_Wildcard))
 	{
 		return NSLOCTEXT("K2Node", "SetRefVarNodeTitle", "Set By-Ref Var");
 	}
+	else if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinType"), Schema->TypeToText(TargetPin->PinType));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set {PinType}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_VariableSetRef::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
@@ -186,6 +189,8 @@ void UK2Node_VariableSetRef::CoerceTypeFromPin(const UEdGraphPin* Pin)
 		ValuePin->PinType.PinSubCategory = TEXT("");
 		ValuePin->PinType.PinSubCategoryObject = NULL;
 		ValuePin->BreakAllPinLinks();
+
+		CachedNodeTitle.MarkDirty();
 	}
 }
 
@@ -204,12 +209,24 @@ FNodeHandlingFunctor* UK2Node_VariableSetRef::CreateNodeHandler(FKismetCompilerC
 	return new FKCHandler_VariableSetRef(CompilerContext);
 }
 
-void UK2Node_VariableSetRef::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_VariableSetRef::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_VariableSetRef::GetMenuCategory() const

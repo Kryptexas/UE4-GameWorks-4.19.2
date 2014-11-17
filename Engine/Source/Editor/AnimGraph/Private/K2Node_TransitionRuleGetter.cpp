@@ -71,6 +71,10 @@ FText UK2Node_TransitionRuleGetter::GetFriendlyName(ETransitionGetter::Type Type
 
 FText UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	// @TODO: FText::Format() is slow... consider caching this tooltip like 
+	//        we do for a lot of the BP nodes now (unfamiliar with this 
+	//        node's purpose, so hesitant to muck with this at this time).
+
 	if (AssociatedAnimAssetPlayerNode != NULL)
 	{
 		UAnimationAsset* BoundAsset = AssociatedAnimAssetPlayerNode->GetAnimationAsset();
@@ -106,9 +110,9 @@ FText UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType)
 	return Super::GetNodeTitle(TitleType);
 }
 
-FString UK2Node_TransitionRuleGetter::GetTooltip() const
+FText UK2Node_TransitionRuleGetter::GetTooltipText() const
 {
-	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();
+	return GetNodeTitle(ENodeTitleType::FullTitle);
 }
 
 UEdGraphPin* UK2Node_TransitionRuleGetter::GetOutputPin() const

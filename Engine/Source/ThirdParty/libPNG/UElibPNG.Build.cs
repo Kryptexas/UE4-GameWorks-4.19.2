@@ -49,21 +49,10 @@ public class UElibPNG : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
-			switch (Target.Architecture)
-			{
-			case "-armv7":
-				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARMv7");
-				break;
-			case "-arm64":
-				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARM64");
-				break;
-			case "-x86":
-				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x86");
-				break;
-			case "-x64":
-				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x64");
-				break;
-			}
+			PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARMv7");
+			PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARM64");
+			PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x86");
+			PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x64");
 
 			PublicAdditionalLibraries.Add("png");
         }
@@ -76,15 +65,7 @@ public class UElibPNG : ModuleRules
                 throw new BuildException(Err);
             }
 
-            if (Target.IsMonolithic)
-            {
-                PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
-            }
-            else
-            {
-                PublicLibraryPaths.Add(libPNGPath + "/lib/Linux/" + Target.Architecture);
-                PublicAdditionalLibraries.Add("png15");
-            }
+            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {

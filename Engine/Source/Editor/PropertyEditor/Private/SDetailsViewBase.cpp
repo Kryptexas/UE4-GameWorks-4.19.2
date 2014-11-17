@@ -15,6 +15,8 @@
 #include "PropertyDetailsUtilities.h"
 #include "SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
+#include "SColorPicker.h"
+
 
 SDetailsViewBase::~SDetailsViewBase()
 {
@@ -84,6 +86,44 @@ FReply SDetailsViewBase::OnLockButtonClicked()
 void SDetailsViewBase::HideFilterArea(bool bHide)
 {
 	DetailsViewArgs.bAllowSearch = !bHide;
+}
+
+void SDetailsViewBase::HighlightProperty(const UProperty* Property)
+{
+	// Clear the previously enabled highlight:
+	auto PrevPropertyPtr = PrevHighlightedProperty.Pin();
+	if( PrevPropertyPtr.IsValid() )
+	{
+		PrevPropertyPtr->SetIsHighlighted( false );
+	}
+
+	if( !Property )
+	{
+		return;
+	}
+
+	// Find the newly highlighted node, and enable the highlight:
+	FName PropertyOwnerFName = Property->GetOwnerStruct()->GetFName();
+	FClassInstanceToPropertyMap* PropertyNodeMap = ClassToPropertyMap.Find(PropertyOwnerFName);
+	if( PropertyNodeMap )
+	{
+		FName InstanceName = NAME_None;
+		FPropertyNodeMap* NodeMap = PropertyNodeMap->Find(InstanceName);
+		if( NodeMap )
+		{
+			TSharedPtr<FPropertyNode>* PropertyNode = NodeMap->PropertyNameToNode.Find(Property->GetFName());
+			if( PropertyNode )
+			{
+				(*PropertyNode)->SetIsHighlighted( true );
+				PrevHighlightedProperty = *PropertyNode;
+				auto TreeNodePtr = (*PropertyNode)->GetTreeNode();
+				if ( TreeNodePtr.IsValid() )
+				{
+					DetailTree->RequestScrollIntoView(TreeNodePtr.ToSharedRef());
+				}
+			}
+		}
+	}
 }
 
 EVisibility SDetailsViewBase::GetTreeVisibility() const
@@ -294,6 +334,13 @@ TSharedPtr<IPropertyUtilities> SDetailsViewBase::GetPropertyUtilities()
 void SDetailsViewBase::OnShowOnlyModifiedClicked()
 {
 	CurrentFilter.bShowOnlyModifiedProperties = !CurrentFilter.bShowOnlyModifiedProperties;
+
+	UpdateFilteredDetails();
+}
+
+void SDetailsViewBase::OnShowOnlyDifferingClicked()
+{
+	CurrentFilter.bShowOnlyDiffering = !CurrentFilter.bShowOnlyDiffering;
 
 	UpdateFilteredDetails();
 }
@@ -897,12 +944,12 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 					FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 					if (Struct)
 					{
-						bIsCustomizedStruct = ParentPlugin.IsCustomizedStruct(Struct);
+						bIsCustomizedStruct = ParentPlugin.IsCustomizedStruct(Struct, SharedThis( this ) );
 					}
 
 					if (ParentStruct)
 					{
-						bIsChildOfCustomizedStruct = ParentPlugin.IsCustomizedStruct(ParentStruct);
+						bIsChildOfCustomizedStruct = ParentPlugin.IsCustomizedStruct(ParentStruct, SharedThis( this ) );
 					}
 				}
 

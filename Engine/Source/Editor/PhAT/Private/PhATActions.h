@@ -83,6 +83,11 @@ public:
 	TSharedPtr<FUICommandInfo> SelectAllObjects;
 	TSharedPtr<FUICommandInfo> HierarchyFilterAll;
 	TSharedPtr<FUICommandInfo> HierarchyFilterBodies;
+	TSharedPtr<FUICommandInfo> PerspectiveView;
+	TSharedPtr<FUICommandInfo> TopView;
+	TSharedPtr<FUICommandInfo> SideView;
+	TSharedPtr<FUICommandInfo> FrontView;
+	TSharedPtr<FUICommandInfo> Mirror;
 
 	/** Hotkey only commands */
 	TSharedPtr<FUICommandInfo> SelectionLock;

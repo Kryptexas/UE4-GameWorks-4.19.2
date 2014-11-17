@@ -33,53 +33,6 @@ struct TTypeFromString<EStatCompareBy::Type>
 	}
 };
 
-template<>
-struct TTypeFromString<FName>
-{
-	static void FromString( FName& OutValue, const TCHAR* Buffer )
-	{
-		OutValue = FName(Buffer);
-	}
-};
-
-template <typename T>
-void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
-{
-	TCHAR Temp[64]=TEXT("");
-	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT(Temp) ) )
-	{
-		TTypeFromString<T>::FromString( Out, Temp );
-	}
-}
-
-/**
- *	Helper class to parse a value from the stream.
- *	If value is not present, provided default value will be used.
- */
-template<typename T>
-struct TParsedValueWithDefault
-{
-public:
-	TParsedValueWithDefault( const TCHAR* Stream, const TCHAR* Match, const T& Default )
-		: Value( Default )
-	{
-		ParseTypedValue<T>( Stream, Match, Value );
-	}
-
-	const T& Get() const
-	{
-		return Value;
-	}
-
-	void Set( const T& NewValue )
-	{
-		Value = NewValue;
-	}
-
-private:
-	T Value;
-};
-
 struct FGroupFilter : public IItemFiler
 {
 	TSet<FName> const& EnabledItems;
@@ -121,6 +74,7 @@ struct FStatGroupParams
 	 *	Maximum number of frames to be included in the history. 
 	 *	-maxhistoryframes=[20:20-120]
 	 */
+	// @TODO yrx 2014-08-21 Replace with TParsedValueWithDefaultAndRange
 	TParsedValueWithDefault<int32> MaxHistoryFrames;
 
 	/** Whether to reset all collected data. */
@@ -642,11 +596,14 @@ struct FHUDGroupManager
 			StatsMasterEnableSubtract();
 			bEnabled = false;
 
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatsToGame"),
+				STAT_FSimpleDelegateGraphTask_StatsToGame,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 			(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr)
-				, TEXT("StatsToGame")
-				, nullptr, ENamedThreads::GameThread
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StatsToGame), nullptr, ENamedThreads::GameThread
 			);
 		}
 	}
@@ -902,11 +859,14 @@ struct FHUDGroupManager
 				}
 			}
 
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatsHierToGame"),
+				STAT_FSimpleDelegateGraphTask_StatsHierToGame,
+				STATGROUP_TaskGraphTasks);
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 			(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame)
-				, TEXT("StatsHierToGame")
-				, nullptr, ENamedThreads::GameThread
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StatsHierToGame), nullptr, ENamedThreads::GameThread
 			);
 		}	
 	}
@@ -1107,6 +1067,12 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 
 	Ar.Log( TEXT("stat group list|listall|enable name|disable name|none|all|default - manages stats groups"));
 
+#if WITH_ENGINE
+	// Engine @see FStatCmdEngine
+	Ar.Log( TEXT( "stat display -font=small[tiny]" ) );
+	Ar.Log( TEXT( "    Changes stats rendering display options" ) );
+#endif // WITH_ENGINE
+
 	Ar.Log( TEXT("stat startfile - starts dumping a capture"));
 	Ar.Log( TEXT("stat stopfile - stops dumping a capture"));
 }
@@ -1301,7 +1267,8 @@ static void StatCmd(FString InCmd)
 	}
 }
 
-static class FStatCmd : private FSelfRegisteringExec
+/** Exec used to execute core stats commands on the stats thread. */
+static class FStatCmdCore : private FSelfRegisteringExec
 {
 public:
 	/** Console commands, see embeded usage statement **/
@@ -1310,7 +1277,8 @@ public:
 		// Block the thread as this affects external stat states now
 		return DirectStatsCommand(Cmd,true,&Ar);
 	}
-} StatCmdExec;
+}
+StatCmdCoreExec;
 
 bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, FOutputDevice* Ar /*= nullptr*/)
 {
@@ -1403,12 +1371,14 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			FHUDGroupGameThreadRenderer::Get();
 			FStatGroupGameThreadNotifier::Get();
 #endif
+			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatCmd"),
+				STAT_FSimpleDelegateGraphTask_StatCmd,
+				STATGROUP_TaskGraphTasks);
+
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs)
-				, TEXT("StatCmd")
-				, NULL
-				, ThreadType
-				);
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs),
+				GET_STATID(STAT_FSimpleDelegateGraphTask_StatCmd), NULL, ThreadType
+			);
 			if (bBlockForCompletion)
 			{
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle);
@@ -1434,12 +1404,15 @@ static void GetPermanentStats_StatsThread(TArray<FStatMessage>* OutStats)
 
 void GetPermanentStats(TArray<FStatMessage>& OutStats)
 {
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.GetPermanentStatsString_StatsThread"),
+		STAT_FSimpleDelegateGraphTask_GetPermanentStatsString_StatsThread,
+		STATGROUP_TaskGraphTasks);
+
 	FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&GetPermanentStats_StatsThread, &OutStats)
-		, TEXT("GetPermanentStatsString_StatsThread")
-		, NULL
-		, FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
-		);
+		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&GetPermanentStats_StatsThread, &OutStats),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_GetPermanentStatsString_StatsThread), NULL,
+		FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
+	);
 	FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle);
 }
 

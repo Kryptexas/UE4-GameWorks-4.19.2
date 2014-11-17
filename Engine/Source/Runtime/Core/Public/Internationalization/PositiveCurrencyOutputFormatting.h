@@ -9,10 +9,13 @@ namespace ECurrencyPositivePattern
 	 * enum value associated with a pattern used to display positive currency values
 	 * Below X represents the number being converted to display as a currency, $ will be replaced
 	 * with the cultural values CurrencySymbol
-	 * $n	CurrencySymbolX
-	 * n$	XCurrencySymbol
-     * $ n	CurrencySymbolSpaceX
-	 * n $	XSpaceCurrencySymbol
+	 *
+	 * |-----|----------------------|
+	 * | $n	 | CurrencySymbolX      |
+	 * | n$	 | XCurrencySymbol      |
+     * | $ n | CurrencySymbolSpaceX |
+	 * | n $ | XSpaceCurrencySymbol |
+	 * |-----|----------------------|
 	 */
 	enum Type
 	{

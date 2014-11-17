@@ -40,363 +40,363 @@ class GitPullRequest : BuildCommand
 {
 	/// URL to our UnrealEngine repository on GitHub
 	static readonly string GitRepositoryURL_Engine = "https://github.com/EpicGames/UnrealEngine.git";
-    static readonly string GitRepositoryURL_UT = "https://github.com/EpicGames/UnrealTournament.git";
-    string GitRepositoryURL = null;
+	static readonly string GitRepositoryURL_UT = "https://github.com/EpicGames/UnrealTournament.git";
+	string GitRepositoryURL = null;
 
-    bool bDoingUT = false;
+	bool bDoingUT = false;
 
-    string FindExeFromPath(string ExeName, string ExpectedPathSubstring = null)
-    {
-        if (File.Exists(ExeName))
-        {
-            return Path.GetFullPath(ExeName);
-        }
+	string FindExeFromPath(string ExeName, string ExpectedPathSubstring = null)
+	{
+		if (File.Exists(ExeName))
+		{
+			return Path.GetFullPath(ExeName);
+		}
 
-        foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(';'))
-        {
-            var FullPath = Path.Combine(BasePath, ExeName);
-            if (ExpectedPathSubstring == null || FullPath.IndexOf(ExpectedPathSubstring, StringComparison.InvariantCultureIgnoreCase) != -1)
-            {
-                if (File.Exists(FullPath))
-                {
-                    return FullPath;
-                }
-            }
-        }
+		foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(';'))
+		{
+			var FullPath = Path.Combine(BasePath, ExeName);
+			if (ExpectedPathSubstring == null || FullPath.IndexOf(ExpectedPathSubstring, StringComparison.InvariantCultureIgnoreCase) != -1)
+			{
+				if (File.Exists(FullPath))
+				{
+					return FullPath;
+				}
+			}
+		}
 
-        return null;
-    }
-    string RunGit(string GitCommandLine)
-    {
-        string GitExePath = FindExeFromPath("Git.exe", "PortableGit");
-        if (GitExePath == null)
-        {
-            throw new AutomationException("Unable to find Git.exe in the system path under a 'PortableGit' subdirectory.  Make sure the GitHub client is installed, and you are running this script from within a GitHub Command Shell.  We want to make sure we're using the correct version of Git, in case multiple versions are on the computer, which is why we check for a PortableGit folder that the GitHub Shell uses.");
-        }
+		return null;
+	}
+	string RunGit(string GitCommandLine)
+	{
+		string GitExePath = FindExeFromPath("Git.exe", "PortableGit");
+		if (GitExePath == null)
+		{
+			throw new AutomationException("Unable to find Git.exe in the system path under a 'PortableGit' subdirectory.  Make sure the GitHub client is installed, and you are running this script from within a GitHub Command Shell.  We want to make sure we're using the correct version of Git, in case multiple versions are on the computer, which is why we check for a PortableGit folder that the GitHub Shell uses.");
+		}
 
-        Log("Running {0} {1}", GitExePath, GitCommandLine);
+		Log("Running {0} {1}", GitExePath, GitCommandLine);
 
-        ProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
-        if (Result > 0 || Result < 0)
-        {
-            throw new AutomationException(String.Format("Command failed (Result:{2}): {0} {1}", GitExePath, GitCommandLine, Result.ExitCode));
-        }
+		ProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
+		if (Result > 0 || Result < 0)
+		{
+			throw new AutomationException(String.Format("Command failed (Result:{2}): {0} {1}", GitExePath, GitCommandLine, Result.ExitCode));
+		}
 
-        // Return the results (sans leading and trailing whitespace)
-        return Result.Output.Trim();
-    }
+		// Return the results (sans leading and trailing whitespace)
+		return Result.Output.Trim();
+	}
 
-    bool ScanForBranchAndCL_BaseVersion(string GitCommand, out string Depot, out int CL)
-    {
-        Depot = null;
-        CL = 0;
-        try
-        {
-            var Base = RunGit(GitCommand);
+	bool ScanForBranchAndCL_BaseVersion(string GitCommand, out string Depot, out int CL)
+	{
+		Depot = null;
+		CL = 0;
+		try
+		{
+			var Base = RunGit(GitCommand);
 
-            string BaseStart = "Engine source (";
-            string BaseEnd = ")";
+			string BaseStart = "Engine source (";
+			string BaseEnd = ")";
 
-            if (Base.Contains(BaseStart) && Base.Contains(BaseEnd))
-            {
-                Base = Base.Substring(Base.IndexOf(BaseStart) + BaseStart.Length);
-                if (Base.StartsWith("4."))
-                {
-                    Depot = "//depot/UE4-Releases/4." + Base.Substring(2, 1);
-                }
-                else if (Base.StartsWith("Main"))
-                {
-                    Depot = "//depot/UE4";
-                }
-                else if (Base.StartsWith("UT"))
-                {
-                    Depot = "//depot/UE4-UT";
-                }
-                else
-                {
-                    throw new AutomationException("Unrecognized branch.");
-                }
-                Log("Depot {0}", Depot);
+			if (Base.Contains(BaseStart) && Base.Contains(BaseEnd))
+			{
+				Base = Base.Substring(Base.IndexOf(BaseStart) + BaseStart.Length);
+				if (Base.StartsWith("4."))
+				{
+					Depot = "//depot/UE4-Releases/4." + Base.Substring(2, 1);
+				}
+				else if (Base.StartsWith("Main"))
+				{
+					Depot = "//depot/UE4";
+				}
+				else if (Base.StartsWith("UT"))
+				{
+					Depot = "//depot/UE4-UT";
+				}
+				else
+				{
+					throw new AutomationException("Unrecognized branch.");
+				}
+				Log("Depot {0}", Depot);
 
-                Base = Base.Substring(0, Base.IndexOf(BaseEnd));
-                if (!Base.Contains(" "))
-                {
-                    throw new AutomationException("Unrecognized commit3.");
-                }
-                Base = Base.Substring(Base.LastIndexOf(" "));
-                Log("CL String {0}", Base);
-                CL = int.Parse(Base);
-            }
-            Log("CL int {0}", CL);
-            if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
-            {
-                throw new AutomationException("Unrecognized commit3.");
-            }
+				Base = Base.Substring(0, Base.IndexOf(BaseEnd));
+				if (!Base.Contains(" "))
+				{
+					throw new AutomationException("Unrecognized commit3.");
+				}
+				Base = Base.Substring(Base.LastIndexOf(" "));
+				Log("CL String {0}", Base);
+				CL = int.Parse(Base);
+			}
+			Log("CL int {0}", CL);
+			if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
+			{
+				throw new AutomationException("Unrecognized commit3.");
+			}
 
-            return true;
-        }
-        catch (Exception)
-        {
-            CL = 0;
-            return false;
-        }
-    }
-    
-    bool ScanForBranchAndCL_LiveVersion(string GitCommand, out string Depot, out int CL)
-    {
-        Depot = null;
-        CL = 0;
-        try
-        {
-            var Base = RunGit(GitCommand);
+			return true;
+		}
+		catch (Exception)
+		{
+			CL = 0;
+			return false;
+		}
+	}
 
-            string LiveStart = "[CL ";
-            string LiveEnd = " branch]";
+	bool ScanForBranchAndCL_LiveVersion(string GitCommand, out string Depot, out int CL)
+	{
+		Depot = null;
+		CL = 0;
+		try
+		{
+			var Base = RunGit(GitCommand);
 
-            if (Base.Contains(LiveStart) && Base.Contains(LiveEnd))
-            {
-                var CLStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length);
-                if (CLStuff.IndexOf(" ") <= 0)
-                {
-                    throw new AutomationException("Unrecognized commit5.");
-                }
-                CLStuff = CLStuff.Substring(0, CLStuff.IndexOf(" "));
-                Log("CL String {0}", CLStuff);
-                CL = int.Parse(CLStuff);
+			string LiveStart = "[CL ";
+			string LiveEnd = " branch]";
 
-                var BranchStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length, Base.IndexOf(LiveEnd) - Base.IndexOf(LiveStart) - LiveStart.Length);
-                if (BranchStuff.IndexOf(" ") <= 0)
-                {
-                    throw new AutomationException("Unrecognized commit6.");
-                }
-                BranchStuff = BranchStuff.Substring(BranchStuff.LastIndexOf(" ") + 1);
-                Log("Branch String {0}", BranchStuff);
-                if (BranchStuff.StartsWith("4."))
-                {
-                    Depot = "//depot/UE4-Releases/4." + BranchStuff.Substring(2, 1);
-                }
-                else if (BranchStuff.StartsWith("Main"))
-                {
-                    Depot = "//depot/UE4";
-                }
-                else if (BranchStuff.StartsWith("UT"))
-                {
-                    Depot = "//depot/UE4-UT";
-                }
-                else
-                {
-                    throw new AutomationException("Unrecognized branch2.");
-                }
-            }
-            Log("CL int {0}", CL);
-            if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
-            {
-                throw new AutomationException("Unrecognized commit3.");
-            }
+			if (Base.Contains(LiveStart) && Base.Contains(LiveEnd))
+			{
+				var CLStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length);
+				if (CLStuff.IndexOf(" ") <= 0)
+				{
+					throw new AutomationException("Unrecognized commit5.");
+				}
+				CLStuff = CLStuff.Substring(0, CLStuff.IndexOf(" "));
+				Log("CL String {0}", CLStuff);
+				CL = int.Parse(CLStuff);
 
-            return true;
-        }
-        catch (Exception)
-        {
-            CL = 0;
-            return false;
-        }
-    }
+				var BranchStuff = Base.Substring(Base.IndexOf(LiveStart) + LiveStart.Length, Base.IndexOf(LiveEnd) - Base.IndexOf(LiveStart) - LiveStart.Length);
+				if (BranchStuff.IndexOf(" ") <= 0)
+				{
+					throw new AutomationException("Unrecognized commit6.");
+				}
+				BranchStuff = BranchStuff.Substring(BranchStuff.LastIndexOf(" ") + 1);
+				Log("Branch String {0}", BranchStuff);
+				if (BranchStuff.StartsWith("4."))
+				{
+					Depot = "//depot/UE4-Releases/4." + BranchStuff.Substring(2, 1);
+				}
+				else if (BranchStuff.StartsWith("Main"))
+				{
+					Depot = "//depot/UE4";
+				}
+				else if (BranchStuff.StartsWith("UT"))
+				{
+					Depot = "//depot/UE4-UT";
+				}
+				else
+				{
+					throw new AutomationException("Unrecognized branch2.");
+				}
+			}
+			Log("CL int {0}", CL);
+			if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
+			{
+				throw new AutomationException("Unrecognized commit3.");
+			}
 
-    void ExecuteInner(string Dir, int PR)
-    {
-        string PRNum = PR.ToString();
+			return true;
+		}
+		catch (Exception)
+		{
+			CL = 0;
+			return false;
+		}
+	}
+
+	void ExecuteInner(string Dir, int PR)
+	{
+		string PRNum = PR.ToString();
 
 		// Discard any old changes we may have committed
-        RunGit("reset --hard");
+		RunGit("reset --hard");
 
 		// show-ref is just a double check that the PR exists
-        var Refs = RunGit("show-ref");
-        if (!Refs.Contains("refs/remotes/origin/pr/" + PRNum))
-        {
-            throw new AutomationException("This is not among the refs: refs/remotes/origin/pr/{0}", PRNum);
-        }
-        RunGit(String.Format("fetch origin refs/pull/{0}/head:pr/{1}", PRNum, PRNum));
-        RunGit(String.Format("checkout pr/{0} --", PRNum));
+		var Refs = RunGit("show-ref");
+		if (!Refs.Contains("refs/remotes/origin/pr/" + PRNum))
+		{
+			throw new AutomationException("This is not among the refs: refs/remotes/origin/pr/{0}", PRNum);
+		}
+		RunGit(String.Format("fetch origin refs/pull/{0}/head:pr/{1}", PRNum, PRNum));
+		RunGit(String.Format("checkout pr/{0} --", PRNum));
 
-        int CLBase;
-        string DepotBase;
-        ScanForBranchAndCL_BaseVersion(String.Format("log --author=TimSweeney --author=UnrealBot -100 pr/{0} --", PRNum), out DepotBase, out CLBase);
-
-
-        int CLLive;
-        string DepotLive;
-        ScanForBranchAndCL_LiveVersion(String.Format("log -100 pr/{0} --", PRNum), out DepotLive, out CLLive);
-
-        if (CLLive == 0 && CLBase == 0)
-        {
-            throw new AutomationException("Could not find a base change and branch using either method.");
-        }
-
-        int CL = 0;
-        string Depot = "";
-
-        if (CLBase > CLLive)
-        {
-            CL = CLBase;
-            Depot = DepotBase;
-        }
-        else
-        {
-            CL = CLLive;
-            Depot = DepotLive;
-        }
-        if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
-        {
-            throw new AutomationException("Could not find a base change and branch using either method.");
-        }
+		int CLBase;
+		string DepotBase;
+		ScanForBranchAndCL_BaseVersion(String.Format("log --author=TimSweeney --author=UnrealBot -100 pr/{0} --", PRNum), out DepotBase, out CLBase);
 
 
-        P4ClientInfo NewClient = P4.GetClientInfo(P4Env.Client);
+		int CLLive;
+		string DepotLive;
+		ScanForBranchAndCL_LiveVersion(String.Format("log -100 pr/{0} --", PRNum), out DepotLive, out CLLive);
 
-        foreach (var p in NewClient.View)
-        {
-            Log("{0} = {1}", p.Key, p.Value);
-        }
+		if (CLLive == 0 && CLBase == 0)
+		{
+			throw new AutomationException("Could not find a base change and branch using either method.");
+		}
 
-        string TestClient = P4Env.User + "_" + Environment.MachineName + "_PullRequests_" + Depot.Replace("/", "_");
-        NewClient.Owner = P4Env.User;
-        NewClient.Host = Environment.MachineName;
-        NewClient.RootPath = Dir;
-        NewClient.Name = TestClient;
-        NewClient.View = new List<KeyValuePair<string, string>>();
-        NewClient.View.Add(new KeyValuePair<string, string>(Depot + "/...", "/..."));
-        if (!P4.DoesClientExist(TestClient))
-        {
-            P4.CreateClient(NewClient);
-        }
+		int CL = 0;
+		string Depot = "";
 
-        var P4Sub = new P4Connection(P4Env.User, TestClient, P4Env.P4Port);
+		if (CLBase > CLLive)
+		{
+			CL = CLBase;
+			Depot = DepotBase;
+		}
+		else
+		{
+			CL = CLLive;
+			Depot = DepotLive;
+		}
+		if (CL < 2000000 || String.IsNullOrWhiteSpace(Depot))
+		{
+			throw new AutomationException("Could not find a base change and branch using either method.");
+		}
 
-        P4Sub.Sync(String.Format("-f -k -q {0}/...@{1}", Depot, CL));
 
-        var Change = P4Sub.CreateChange(null, String.Format("GitHub pull request #{0}", PRNum));
-        P4Sub.ReconcileNoDeletes(Change, CommandUtils.MakePathSafeToUseWithCommandLine(CombinePaths(Dir, bDoingUT ? "UnrealTournament" : "Engine", "...")));
-        P4Sub.Shelve(Change);
-        P4Sub.Revert(Change, "-k //...");
-    }
+		P4ClientInfo NewClient = P4.GetClientInfo(P4Env.Client);
 
-    public override void ExecuteBuild()
-    {
-        if (ParseParam("UT"))
-        {
-            bDoingUT = true;
-            GitRepositoryURL = GitRepositoryURL_UT;
-        }
-        else
-        {
-            bDoingUT = false;
-            GitRepositoryURL = GitRepositoryURL_Engine;
-        }
-        var Dir = ParseParamValue("Dir");
-        if (String.IsNullOrEmpty(Dir))
-        {
+		foreach (var p in NewClient.View)
+		{
+			Log("{0} = {1}", p.Key, p.Value);
+		}
+
+		string TestClient = P4Env.User + "_" + Environment.MachineName + "_PullRequests_" + Depot.Replace("/", "_");
+		NewClient.Owner = P4Env.User;
+		NewClient.Host = Environment.MachineName;
+		NewClient.RootPath = Dir;
+		NewClient.Name = TestClient;
+		NewClient.View = new List<KeyValuePair<string, string>>();
+		NewClient.View.Add(new KeyValuePair<string, string>(Depot + "/...", "/..."));
+		if (!P4.DoesClientExist(TestClient))
+		{
+			P4.CreateClient(NewClient);
+		}
+
+		var P4Sub = new P4Connection(P4Env.User, TestClient, P4Env.P4Port);
+
+		P4Sub.Sync(String.Format("-f -k -q {0}/...@{1}", Depot, CL));
+
+		var Change = P4Sub.CreateChange(null, String.Format("GitHub pull request #{0}", PRNum));
+		P4Sub.ReconcileNoDeletes(Change, CommandUtils.MakePathSafeToUseWithCommandLine(CombinePaths(Dir, bDoingUT ? "UnrealTournament" : "Engine", "...")));
+		P4Sub.Shelve(Change);
+		P4Sub.Revert(Change, "-k //...");
+	}
+
+	public override void ExecuteBuild()
+	{
+		if (ParseParam("UT"))
+		{
+			bDoingUT = true;
+			GitRepositoryURL = GitRepositoryURL_UT;
+		}
+		else
+		{
+			bDoingUT = false;
+			GitRepositoryURL = GitRepositoryURL_Engine;
+		}
+		var Dir = ParseParamValue("Dir");
+		if (String.IsNullOrEmpty(Dir))
+		{
 			// No Git repo directory was specified, so we'll choose a directory automatically
-            Dir = Path.GetFullPath(Path.Combine(CmdEnv.LocalRoot, "Engine", "Intermediate", bDoingUT ? "PullRequestGitRepo_UT" : "PullRequestGitRepo"));
-        }
+			Dir = Path.GetFullPath(Path.Combine(CmdEnv.LocalRoot, "Engine", "Intermediate", bDoingUT ? "PullRequestGitRepo_UT" : "PullRequestGitRepo"));
+		}
 
-        var PRNum = ParseParamValue("PR");
-        if (String.IsNullOrEmpty(PRNum))
-        {
-            throw new AutomationException("Must Provide PR arg, the number of the PR, or a range.");
-        }
-        int PRMin;
-        int PRMax;
+		var PRNum = ParseParamValue("PR");
+		if (String.IsNullOrEmpty(PRNum))
+		{
+			throw new AutomationException("Must Provide PR arg, the number of the PR, or a range.");
+		}
+		int PRMin;
+		int PRMax;
 
-        if (PRNum.Contains("-"))
-        {
-            var Nums = PRNum.Split("-".ToCharArray());
-            PRMin = int.Parse(Nums[0]);
-            PRMax = int.Parse(Nums[1]);
-        }
-        else
-        {
-            PRMin = int.Parse(PRNum);
-            PRMax = PRMin;
-        }
-        var Failures = new List<string>();
+		if (PRNum.Contains("-"))
+		{
+			var Nums = PRNum.Split("-".ToCharArray());
+			PRMin = int.Parse(Nums[0]);
+			PRMax = int.Parse(Nums[1]);
+		}
+		else
+		{
+			PRMin = int.Parse(PRNum);
+			PRMax = PRMin;
+		}
+		var Failures = new List<string>();
 
 
 		// Setup Git repo
 		{
-			if( ParseParam( "Clean" ) )
-			{ 
-				Console.WriteLine( "Cleaning temporary Git repository folder... " );
+			if (ParseParam("Clean"))
+			{
+				Console.WriteLine("Cleaning temporary Git repository folder... ");
 
 				// Wipe the Git repo directory
-				if( !InternalUtils.SafeDeleteDirectory( Dir ) )
+				if (!InternalUtils.SafeDeleteDirectory(Dir))
 				{
-					throw new AutomationException("Unable to clean out temporary Git repo directory: " + Dir );
+					throw new AutomationException("Unable to clean out temporary Git repo directory: " + Dir);
 				}
 			}
 
 			// Change directory to the Git repository
-			bool bRepoAlreadyExists = InternalUtils.SafeDirectoryExists( Dir );
-			if( !bRepoAlreadyExists )
-			{ 
-				InternalUtils.SafeCreateDirectory( Dir );
+			bool bRepoAlreadyExists = InternalUtils.SafeDirectoryExists(Dir);
+			if (!bRepoAlreadyExists)
+			{
+				InternalUtils.SafeCreateDirectory(Dir);
 			}
-			PushDir( Dir );
+			PushDir(Dir);
 
-			if( !bRepoAlreadyExists )
-			{ 
+			if (!bRepoAlreadyExists)
+			{
 				// Don't init Git if we didn't clean, because the old repo is probably still there.
 
 				// Create the Git repository
-				RunGit( "init" );
+				RunGit("init");
 			}
 
 			// Make sure that creating the repository worked OK
-			RunGit( "status" );
+			RunGit("status");
 
 			// Check to see if we already have a remote origin setup
-			{ 
-				string Result = RunGit( "remote -v" );
-				if( Result == "origin" )
+			{
+				string Result = RunGit("remote -v");
+				if (Result == "origin")
 				{
 					// OK, we already have an origin but no remote is associated with it.  We'll do that now.
-					RunGit( "remote set-url origin " + GitRepositoryURL );
+					RunGit("remote set-url origin " + GitRepositoryURL);
 				}
-				else if( Result.IndexOf( GitRepositoryURL, StringComparison.InvariantCultureIgnoreCase ) != -1 )
+				else if (Result.IndexOf(GitRepositoryURL, StringComparison.InvariantCultureIgnoreCase) != -1)
 				{
 					// Origin is already setup!  Nothing to do.
 				}
 				else
 				{
 					// No origin is set, so let's add it!
-					RunGit( "remote add origin " + GitRepositoryURL );
+					RunGit("remote add origin " + GitRepositoryURL);
 				}
 			}
 
 			// Fetch all of the remote branches/tags into our local index.  This is needed so that we can figure out
 			// which branches exist already.
-			RunGit( "fetch" );
+			RunGit("fetch");
 		}
 
-        for (int PR = PRMin; PR <= PRMax; PR++)
-        {
-            try
-            {
-                ExecuteInner(Dir, PR);
-            }
-            catch(Exception Ex)
-            {
-                Log(" Exception was {0}", LogUtils.FormatException(Ex));
-                Failures.Add(String.Format("PR {0} Failed with {1}", PR, LogUtils.FormatException(Ex)));
-            }
-        }
-        PopDir();
+		for (int PR = PRMin; PR <= PRMax; PR++)
+		{
+			try
+			{
+				ExecuteInner(Dir, PR);
+			}
+			catch (Exception Ex)
+			{
+				Log(" Exception was {0}", LogUtils.FormatException(Ex));
+				Failures.Add(String.Format("PR {0} Failed with {1}", PR, LogUtils.FormatException(Ex)));
+			}
+		}
+		PopDir();
 
-        foreach (var Failed in Failures)
-        {
-            Log("{0}", Failed);
-        }
-    }
+		foreach (var Failed in Failures)
+		{
+			Log("{0}", Failed);
+		}
+	}
 }
 
 [Help("Throws an automation exception.")]
@@ -459,21 +459,21 @@ class TestRecursionAuto : BuildCommand
 [Help("Makes a zip file in Rocket/QFE")]
 class TestMacZip : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        Log("TestMacZip *********************");
+	public override void ExecuteBuild()
+	{
+		Log("TestMacZip *********************");
 
-        if (UnrealBuildTool.Utils.IsRunningOnMono)
-        {
+		if (UnrealBuildTool.Utils.IsRunningOnMono)
+		{
 			PushDir(CombinePaths(CmdEnv.LocalRoot, "Rocket/QFE"));
-            RunAndLog(CommandUtils.CmdEnv, "zip", "-r TestZip .");
-            PopDir();
-        }
-        else
-        {
-            throw new AutomationException("This probably only works on the mac.");
-        }
-    }
+			RunAndLog(CommandUtils.CmdEnv, "zip", "-r TestZip .");
+			PopDir();
+		}
+		else
+		{
+			throw new AutomationException("This probably only works on the mac.");
+		}
+	}
 }
 
 [Help("Tests the temp storage operations.")]
@@ -483,7 +483,7 @@ class TestTempStorage : BuildCommand
 	{
 		Log("TestTempStorage********");
 
-        Log("Resolved Ocean to {0}", ResolveSharedBuildDirectory("Ocean"));
+		Log("Resolved Ocean to {0}", ResolveSharedBuildDirectory("Ocean"));
 
 		DeleteLocalTempStorageManifests(CmdEnv);
 		DeleteSharedTempStorageManifests(CmdEnv, "Test");
@@ -608,8 +608,8 @@ class TestTempStorage : BuildCommand
 		DeleteFile(UnitTestFile2);
 		DeleteFile(UnitTestFile3);
 
-        bool WasLocal;
-        RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
+		bool WasLocal;
+		RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
 		if (!LocalTempStorageExists(CmdEnv, "Test"))
 		{
 			throw new AutomationException("local storage should exist");
@@ -663,7 +663,7 @@ class TestTempStorage : BuildCommand
 		{
 			throw new AutomationException("shared storage should not exist");
 		}
-        RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal); // this should just rely on the local
+		RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal); // this should just rely on the local
 		if (!WasLocal || !LocalTempStorageExists(CmdEnv, "Test"))
 		{
 			throw new AutomationException("local storage should exist");
@@ -701,7 +701,7 @@ class TestTempStorage : BuildCommand
 			bool bFailedProperly = false;
 			try
 			{
-                RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
+				RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
 			}
 			catch (AutomationException)
 			{
@@ -719,7 +719,7 @@ class TestTempStorage : BuildCommand
 			bool bFailedProperly = false;
 			try
 			{
-                RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
+				RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
 			}
 			catch (AutomationException)
 			{
@@ -741,10 +741,10 @@ class TestTempStorage : BuildCommand
 [Help("Reads the build time from build.properties")]
 class TestBuildTime : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
+	public override void ExecuteBuild()
+	{
 		FEngineVersionSupport.BuildTime();
-    }
+	}
 }
 
 [Help("Tests P4 functionality. Creates a new changelist under the workspace %P4CLIENT%")]
@@ -812,138 +812,138 @@ class TestP4_LabelDescription : BuildCommand
 [RequireP4]
 class TestP4_ClientOps : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        string TemplateClient = "ue4_licensee_workspace";
+	public override void ExecuteBuild()
+	{
+		string TemplateClient = "ue4_licensee_workspace";
 		var Clients = P4.GetClientsForUser("UE4_Licensee");
 
-        string TestClient = "UAT_Test_Client";
+		string TestClient = "UAT_Test_Client";
 
-        P4ClientInfo NewClient = null;
-        foreach (var Client in Clients)
-        {
-            if (Client.Name == TemplateClient)
-            {
-                NewClient = Client;
-                break;
-            }
-        }
-        if (NewClient == null)
-        {
-            throw new AutomationException("Could not find template");
-        }
-        NewClient.Owner = P4Env.User; // this is not right, we need the actual licensee user!
-        NewClient.Host = Environment.MachineName.ToLower();
-        NewClient.RootPath = @"C:\TestClient";
-        NewClient.Name = TestClient;
+		P4ClientInfo NewClient = null;
+		foreach (var Client in Clients)
+		{
+			if (Client.Name == TemplateClient)
+			{
+				NewClient = Client;
+				break;
+			}
+		}
+		if (NewClient == null)
+		{
+			throw new AutomationException("Could not find template");
+		}
+		NewClient.Owner = P4Env.User; // this is not right, we need the actual licensee user!
+		NewClient.Host = Environment.MachineName.ToLower();
+		NewClient.RootPath = @"C:\TestClient";
+		NewClient.Name = TestClient;
 		if (P4.DoesClientExist(TestClient))
-        {
+		{
 			P4.DeleteClient(TestClient);
-        }
+		}
 		P4.CreateClient(NewClient);
 
-        //P4CLIENT         Name of client workspace        p4 help client
-        //P4PASSWD         User password passed to server  p4 help passwd
+		//P4CLIENT         Name of client workspace        p4 help client
+		//P4PASSWD         User password passed to server  p4 help passwd
 
-        string[] VarsToSave = 
+		string[] VarsToSave = 
         {
             "P4CLIENT",
             //"P4PASSWD",
 
         };
-        var KeyValues = new Dictionary<string, string>();
-        foreach (var ToSave in VarsToSave)
-        {
-            KeyValues.Add(ToSave, GetEnvVar(ToSave));
-        }
+		var KeyValues = new Dictionary<string, string>();
+		foreach (var ToSave in VarsToSave)
+		{
+			KeyValues.Add(ToSave, GetEnvVar(ToSave));
+		}
 
-        SetEnvVar("P4CLIENT", NewClient.Name);
-        //SetEnv("P4PASSWD", ParseParamValue("LicenseePassword");
+		SetEnvVar("P4CLIENT", NewClient.Name);
+		//SetEnv("P4PASSWD", ParseParamValue("LicenseePassword");
 
 
-        //Sync(CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "UE4Games.uprojectdirs"));
-        string Output;
+		//Sync(CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "UE4Games.uprojectdirs"));
+		string Output;
 		P4.P4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "..."));
- 
-        var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-        string SlashRoot = CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "/");
-        string LocalRoot = CombinePaths(CmdEnv.LocalRoot, @"\");
-        foreach (string Line in Lines)
-        {
-            if (Line.Contains(" - ") && Line.Contains("#"))
-            {
-                string depot = Line.Substring(0, Line.IndexOf("#"));
-                if (!depot.Contains(SlashRoot))
-                {
-                    throw new AutomationException("{0} does not contain {1} and it is supposed to.", depot, P4Env.BuildRootP4);
-                }
-                string local = CombinePaths(depot.Replace(SlashRoot, LocalRoot));
-                Log("{0}", depot);
-                Log("    {0}", local);
-            }
-        }
 
-        // should be used as a sanity check! make sure there are no files!
+		var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+		string SlashRoot = CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "/");
+		string LocalRoot = CombinePaths(CmdEnv.LocalRoot, @"\");
+		foreach (string Line in Lines)
+		{
+			if (Line.Contains(" - ") && Line.Contains("#"))
+			{
+				string depot = Line.Substring(0, Line.IndexOf("#"));
+				if (!depot.Contains(SlashRoot))
+				{
+					throw new AutomationException("{0} does not contain {1} and it is supposed to.", depot, P4Env.BuildRootP4);
+				}
+				string local = CombinePaths(depot.Replace(SlashRoot, LocalRoot));
+				Log("{0}", depot);
+				Log("    {0}", local);
+			}
+		}
+
+		// should be used as a sanity check! make sure there are no files!
 		P4.LogP4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "...", "NoRedist", "..."));
 
-        // caution this doesn't actually use the client _view_ from the template at all!
-        // if you want that sync -f -k /...
-        // then use client syntax in the files command instead
-        // don't think we care, we don't rely on licensee _views_
+		// caution this doesn't actually use the client _view_ from the template at all!
+		// if you want that sync -f -k /...
+		// then use client syntax in the files command instead
+		// don't think we care, we don't rely on licensee _views_
 
-        foreach (var ToLoad in VarsToSave)
-        {
-            SetEnvVar(ToLoad, KeyValues[ToLoad]);
-        }
+		foreach (var ToLoad in VarsToSave)
+		{
+			SetEnvVar(ToLoad, KeyValues[ToLoad]);
+		}
 		P4.DeleteClient(TestClient);
-    }
+	}
 }
 
 
 class CleanDDC : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        Log("*********************** Clean DDC");
+	public override void ExecuteBuild()
+	{
+		Log("*********************** Clean DDC");
 
-        bool DoIt = ParseParam("DoIt");
+		bool DoIt = ParseParam("DoIt");
 
-        for (int i = 0; i < 10; i++)
-        {
-            for (int j = 0; j < 10; j++)
-            {
-                for (int k = 0; k < 10; k++)
-                {
-                    string Dir = CombinePaths(String.Format(@"P:\UE4DDC\{0}\{1}\{2}", i, j, k));
-                    if (!DirectoryExists_NoExceptions(Dir))
-                    {
-                        throw new AutomationException("Missing DDC dir {0}", Dir);
-                    }
-                    var files = FindFiles_NoExceptions("*.*", false, Dir);
-                    foreach (var file in files)
-                    {
-                        if (FileExists_NoExceptions(file))
-                        {
-                            FileInfo Info = new FileInfo(file);
-                            Log("{0}", file);
-                            if ((DateTime.UtcNow - Info.LastWriteTimeUtc).TotalDays > 20)
-                            {
-                                Log("  is old.");
-                                if (DoIt)
-                                {
-                                    DeleteFile_NoExceptions(file);
-                                }
-                            }
-                            else
-                            {
-                                Log("  is NOT old.");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				for (int k = 0; k < 10; k++)
+				{
+					string Dir = CombinePaths(String.Format(@"P:\UE4DDC\{0}\{1}\{2}", i, j, k));
+					if (!DirectoryExists_NoExceptions(Dir))
+					{
+						throw new AutomationException("Missing DDC dir {0}", Dir);
+					}
+					var files = FindFiles_NoExceptions("*.*", false, Dir);
+					foreach (var file in files)
+					{
+						if (FileExists_NoExceptions(file))
+						{
+							FileInfo Info = new FileInfo(file);
+							Log("{0}", file);
+							if ((DateTime.UtcNow - Info.LastWriteTimeUtc).TotalDays > 20)
+							{
+								Log("  is old.");
+								if (DoIt)
+								{
+									DeleteFile_NoExceptions(file);
+								}
+							}
+							else
+							{
+								Log("  is NOT old.");
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 }
 
@@ -1620,7 +1620,7 @@ public class ZeroEngineVersions : BuildCommand
 			{
 				Log("Zeroing out engine versions in {0}", ObjectVersionFilename);
 				ObjectVersionCpp.ReplaceLine("#define	ENGINE_VERSION	", "0");
-                ObjectVersionCpp.Commit();
+				ObjectVersionCpp.Commit();
 				FilesToSubmit.Add(ObjectVersionFilename);
 			}
 		}
@@ -1635,7 +1635,7 @@ public class ZeroEngineVersions : BuildCommand
 				VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + P4Env.BranchName + "\"");
 				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
 
-                VersionH.Commit();
+				VersionH.Commit();
 				FilesToSubmit.Add(VersionFilename);
 			}
 		}
@@ -1756,7 +1756,7 @@ public class GenerateAutomationProject : BuildCommand
 	public override void ExecuteBuild()
 	{
 		var ProjectName = ParseParamValue("project");
-		var ProjectPath = ParseParamValue("path");		
+		var ProjectPath = ParseParamValue("path");
 
 		{
 			var CSProjFileTemplate = ReadAllText(CombinePaths(CmdEnv.LocalRoot, "Engine", "Extras", "UnsupportedTools", "AutomationTemplate", "AutomationTemplate.Automation.xml"));
@@ -1774,7 +1774,7 @@ public class GenerateAutomationProject : BuildCommand
 
 			{
 				const string OutputPathTag = "<OutputPath>";
-                var OutputPath = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET", "AutomationScripts");
+				var OutputPath = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET", "AutomationScripts");
 				int PathStart = CSProjFileTemplate.IndexOf(OutputPathTag) + OutputPathTag.Length;
 				int PathEnd = CSProjFileTemplate.IndexOf("</OutputPath>", PathStart);
 				string OldOutputPath = CSProjFileTemplate.Substring(PathStart, PathEnd - PathStart);
@@ -1815,15 +1815,15 @@ public class GenerateAutomationProject : BuildCommand
 class DumpBranch : BuildCommand
 {
 
-    public override void ExecuteBuild()
-    {
-        Log("************************* DumpBranch");
+	public override void ExecuteBuild()
+	{
+		Log("************************* DumpBranch");
 
-        var HostPlatforms = new List<UnrealTargetPlatform>();
-        HostPlatforms.Add(UnrealTargetPlatform.Win64);
-        HostPlatforms.Add(UnrealTargetPlatform.Mac);
-        new BranchInfo(HostPlatforms);
-    }
+		var HostPlatforms = new List<UnrealTargetPlatform>();
+		HostPlatforms.Add(UnrealTargetPlatform.Win64);
+		HostPlatforms.Add(UnrealTargetPlatform.Mac);
+		new BranchInfo(HostPlatforms);
+	}
 }
 
 [Help("Sleeps for 20 seconds and then exits")]
@@ -1838,10 +1838,10 @@ public class DebugSleep : BuildCommand
 [Help("Tests if Mcp configs loaded properly.")]
 class TestMcpConfigs : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        EpicGames.MCP.Config.McpConfigHelper.Find("localhost");
-    }
+	public override void ExecuteBuild()
+	{
+		EpicGames.MCP.Config.McpConfigHelper.Find("localhost");
+	}
 }
 
 
@@ -1887,33 +1887,33 @@ class TestBlame : BuildCommand
 [DoesNotNeedP4CL]
 class TestChanges : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2091742,2091950 //depot/UE4-LauncherReleases/*/Build/...@2091742,2091950");
+	public override void ExecuteBuild()
+	{
+		var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2091742,2091950 //depot/UE4-LauncherReleases/*/Build/...@2091742,2091950");
 
-        {
-            List<P4Connection.ChangeRecord> ChangeRecords;
-            if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
-            {
-                throw new AutomationException("failed");
-            }
-            foreach (var Record in ChangeRecords)
-            {
-                Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
-            }
-        }
-        {
-            List<P4Connection.ChangeRecord> ChangeRecords;
-            if (!P4.Changes(out ChangeRecords, "-L " + CommandParam, true, true, LongComment: false))
-            {
-                throw new AutomationException("failed");
-            }
-            foreach (var Record in ChangeRecords)
-            {
-                Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
-            }
-        }
-    }
+		{
+			List<P4Connection.ChangeRecord> ChangeRecords;
+			if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
+			{
+				throw new AutomationException("failed");
+			}
+			foreach (var Record in ChangeRecords)
+			{
+				Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+			}
+		}
+		{
+			List<P4Connection.ChangeRecord> ChangeRecords;
+			if (!P4.Changes(out ChangeRecords, "-L " + CommandParam, true, true, LongComment: false))
+			{
+				throw new AutomationException("failed");
+			}
+			foreach (var Record in ChangeRecords)
+			{
+				Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+			}
+		}
+	}
 }
 
 [Help("Spawns a process to test if UAT kills it automatically.")]
@@ -1935,13 +1935,13 @@ class TestKillAll : BuildCommand
 [Help("Tests CleanFormalBuilds.")]
 class TestCleanFormalBuilds : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        Log("*********************** TestCleanFormalBuilds");
-        var Dir = ParseParamValue("Dir", @"P:\Builds\Soul\Soul_Android_Shipping_MakeBuild\++depot+UE4-CL-2077154");
-        var CLString = ParseParamValue("CL", "2077154");
-        CleanFormalBuilds(Dir, CLString);
-    }
+	public override void ExecuteBuild()
+	{
+		Log("*********************** TestCleanFormalBuilds");
+		var Dir = ParseParamValue("Dir", @"P:\Builds\Soul\Soul_Android_Shipping_MakeBuild\++depot+UE4-CL-2077154");
+		var CLString = ParseParamValue("CL", "2077154");
+		CleanFormalBuilds(Dir, CLString);
+	}
 }
 
 

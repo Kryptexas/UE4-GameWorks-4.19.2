@@ -63,7 +63,7 @@ struct FTextureLODSettings
 	 * @param	InLODGroup		The LOD Group ID 
 	 * @return	LODBias
 	 */
-	int32 GetTextureLODGroupLODBias( int32 InLODGroup ) const;
+	ENGINE_API int32 GetTextureLODGroupLODBias( int32 InLODGroup ) const;
 
 	/**
 	 * Returns the LODGroup setting for number of streaming mip-levels.
@@ -72,7 +72,7 @@ struct FTextureLODSettings
 	 * @param	InLODGroup		The LOD Group ID 
 	 * @return	Number of streaming mip-levels for textures in the specified LODGroup
 	 */
-	int32 GetNumStreamedMips( int32 InLODGroup ) const;
+	ENGINE_API int32 GetNumStreamedMips( int32 InLODGroup ) const;
 
 	/**
 	 * Returns the filter state that should be used for the passed in texture, taking
@@ -81,7 +81,7 @@ struct FTextureLODSettings
 	 * @param	Texture		Texture to retrieve filter state for, must not be 0
 	 * @return	Filter sampler state for passed in texture
 	 */
-	ESamplerFilter GetSamplerFilter( const UTexture* Texture ) const;
+	ENGINE_API ESamplerFilter GetSamplerFilter( const UTexture* Texture ) const;
 
 	/**
 	 * Returns the texture group names, sorted like enum.

@@ -48,6 +48,7 @@ void SAnimationEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<cl
 	SEditorViewport::Construct(
 		SEditorViewport::FArguments()
 			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+			.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"))
 		);
 }
 
@@ -445,6 +446,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ShowReferencePose),
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanShowReferencePose),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowReferencePoseEnabled));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowRetargetBasePose,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ShowRetargetBasePose),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanShowRetargetBasePose),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowRetargetBasePoseEnabled));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBound,
@@ -977,6 +984,31 @@ bool SAnimationEditorViewportTabBody::IsShowReferencePoseEnabled() const
 	if(PreviewComponent)
 	{
 		return PreviewComponent->bForceRefpose;
+	}
+	return false;
+}
+
+void SAnimationEditorViewportTabBody::ShowRetargetBasePose()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		PreviewComponent->PreviewInstance->bForceRetargetBasePose = !PreviewComponent->PreviewInstance->bForceRetargetBasePose;
+	}
+}
+
+bool SAnimationEditorViewportTabBody::CanShowRetargetBasePose() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->PreviewInstance;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowRetargetBasePoseEnabled() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		return PreviewComponent->PreviewInstance->bForceRetargetBasePose;
 	}
 	return false;
 }

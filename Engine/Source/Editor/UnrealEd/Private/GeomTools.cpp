@@ -654,7 +654,7 @@ void FClipSMTriangle::ComputeGradientsAndNormal()
 {
 	// Compute the transform from triangle parameter space to local space.
 	const FMatrix ParameterToLocal = ComputeTriangleParameterToAttribute(Vertices[0].Pos,Vertices[1].Pos,Vertices[2].Pos);
-	const FMatrix LocalToParameter = ParameterToLocal.InverseSafe();
+	const FMatrix LocalToParameter = ParameterToLocal.Inverse();
 
 	// Compute the triangle's normal.
 	FaceNormal = ParameterToLocal.TransformVector(FVector(0,0,1));

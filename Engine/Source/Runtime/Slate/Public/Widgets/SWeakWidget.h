@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SWeakWidget.h: Declares the SWeakWidget class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,8 +11,7 @@
  *      by a floating window. That window cannot own the tooltip
  *      and must therefore use an SWeakWidget.
  */
-class SLATE_API SWeakWidget
-	: public SWidget
+class SLATE_API SWeakWidget : public SWidget
 {
 public:
 
@@ -29,9 +24,11 @@ public:
 
 public:
 
+	SWeakWidget();
+
 	void Construct(const FArguments& InArgs);
 
-	void SetContent(TWeakPtr<SWidget> InWidget);
+	void SetContent(const TSharedRef<SWidget>& InWidget);
 
 	bool ChildWidgetIsValid() const;
 
@@ -39,17 +36,12 @@ public:
 
 public:
 
-	// Begin SWidget interface
+	// SWidget interface
 
 	virtual FVector2D ComputeDesiredSize() const override;
-
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-		
 	virtual FChildren* GetChildren() override;
-
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
-	// End SWidget interface
 
 private:
 

@@ -81,7 +81,6 @@ void SMatineeRecorder::Construct(const FArguments& InArgs)
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
-						. AspectRatio()
 						[
 							SNew(SImage)
 							.Image( this, &SMatineeRecorder::GetRecordImageDelegate )

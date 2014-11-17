@@ -72,12 +72,10 @@ int32 FApplePlatformCrashContext::ReportCrash() const
 		*StackBuffer = 0;
 		
 		// Walk the stack and dump it to the allocated memory (ignore first 2 callstack lines as those are in stack walking code)
-		FPlatformStackWalk::StackWalkAndDump( StackBuffer, ARRAY_COUNT(MinidumpCallstackInfo) - 1, 2, Context );
+		FPlatformStackWalk::StackWalkAndDump( StackBuffer, ARRAY_COUNT(MinidumpCallstackInfo) - 1, 6, Context );
 		
-#if WITH_EDITORONLY_DATA
-		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(MinidumpCallstackInfo), ARRAY_COUNT(GErrorHist) - 1 );
+		FUTF8ToTCHAR_Convert::Convert(GErrorHist, ARRAY_COUNT(GErrorHist) - 1, MinidumpCallstackInfo, FCStringAnsi::Strlen(MinidumpCallstackInfo));
 		CreateExceptionInfoString(Signal, Info);
-#endif
 	}
 	
 	return 0;
@@ -161,29 +159,59 @@ void FApplePlatformCrashContext::WriteLine(int ReportFile, const TCHAR* Line)
 	WriteUTF16String(ReportFile, WindowsTerminator, 2);
 }
 
-ANSICHAR* FApplePlatformCrashContext::ItoANSI(uint64 Val, uint64 Base)
+ANSICHAR* FApplePlatformCrashContext::ItoANSI(uint64 Val, uint64 Base, uint32 Len)
 {
 	static ANSICHAR InternalBuffer[64] = {0};
 	
 	uint64 i = 62;
+	int32 pad = Len;
 	
-	for(; Val && i ; --i, Val /= Base)
+	if(Val)
 	{
-		InternalBuffer[i] = "0123456789abcdef"[Val % Base];
+		for(; Val && i ; --i, Val /= Base, --pad)
+		{
+			InternalBuffer[i] = "0123456789abcdef"[Val % Base];
+		}
+	}
+	else
+	{
+		InternalBuffer[i--] = '0';
+		--pad;
+	}
+	
+	while(pad > 0)
+	{
+		InternalBuffer[i--] = '0';
+		--pad;
 	}
 	
 	return &InternalBuffer[i+1];
 }
 
-TCHAR* FApplePlatformCrashContext::ItoTCHAR(uint64 Val, uint64 Base)
+TCHAR* FApplePlatformCrashContext::ItoTCHAR(uint64 Val, uint64 Base, uint32 Len)
 {
 	static TCHAR InternalBuffer[64] = {0};
 	
 	uint64 i = 62;
+	int32 pad = Len;
 	
-	for(; Val && i ; --i, Val /= Base)
+	if(Val)
 	{
-		InternalBuffer[i] = TEXT("0123456789abcdef")[Val % Base];
+		for(; Val && i ; --i, Val /= Base, --pad)
+		{
+			InternalBuffer[i] = TEXT("0123456789abcdef")[Val % Base];
+		}
+	}
+	else
+	{
+		InternalBuffer[i--] = TEXT('0');
+		--pad;
+	}
+	
+	while(pad > 0)
+	{
+		InternalBuffer[i--] = '0';
+		--pad;
 	}
 	
 	return &InternalBuffer[i+1];

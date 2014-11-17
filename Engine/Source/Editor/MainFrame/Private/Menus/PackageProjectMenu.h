@@ -151,7 +151,7 @@ protected:
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfiguration, PPBC_DebugGame),
-					FCanExecuteAction(),
+					FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CanPackageBuildConfiguration, PPBC_DebugGame),
 					FIsActionChecked::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked, PPBC_DebugGame)
 				),
 				NAME_None,
@@ -165,7 +165,7 @@ protected:
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfiguration, PPBC_Development),
-				FCanExecuteAction(),
+				FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CanPackageBuildConfiguration, PPBC_Development),
 				FIsActionChecked::CreateStatic(&FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked, PPBC_Development)
 			),
 			NAME_None,

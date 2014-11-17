@@ -10,8 +10,8 @@
 TArray< TSharedPtr< ECustomColumnMode::Type > > FSceneOutlinerActorInfoColumn::ModeOptions;
 
 FSceneOutlinerActorInfoColumn::FSceneOutlinerActorInfoColumn( const TWeakPtr< ISceneOutliner >& InSceneOutlinerWeak, ECustomColumnMode::Type InDefaultCustomColumnMode )
-	: SceneOutlinerWeak( InSceneOutlinerWeak )
-	, CurrentMode( InDefaultCustomColumnMode )
+	: CurrentMode( InDefaultCustomColumnMode )
+	, SceneOutlinerWeak( InSceneOutlinerWeak )
 {
 
 }
@@ -19,7 +19,8 @@ FSceneOutlinerActorInfoColumn::FSceneOutlinerActorInfoColumn( const TWeakPtr< IS
 
 FName FSceneOutlinerActorInfoColumn::GetColumnID()
 {
-	return FName( "ActorInfo" );
+	static FName ActorInfo("ActorInfo");
+	return ActorInfo;
 }
 
 
@@ -67,18 +68,24 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 	const AActor* Actor = InActor.Get();
 	if ( Actor == nullptr )
 	{
-		return SNullWidget::NullWidget;
+		return SNew( SSpacer );
 	}
 
 	UClass* ObjectClass = Actor->GetClass();
 
-	TSharedPtr<SWidget> SourceLink = FEditorClassUtils::GetSourceLink(ObjectClass, InActor);
+	TSharedPtr<SWidget> SourceLink; 
+	// Only create source link in SO for Blueprints (not native classes, too noisy having header link in SO)
+	if(UBlueprint::GetBlueprintFromClass(ObjectClass) != NULL)
+	{
+		SourceLink = FEditorClassUtils::GetSourceLink(ObjectClass, InActor);
+	}
 
 	if (SourceLink.IsValid())
 	{
+		SourceLink->SetVisibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, true ) ) );
+
 		return SourceLink.ToSharedRef();
 	}
-
 	return SNew( STextBlock )
 		.Text( ObjectClass->GetName() )
 		.HighlightText( SceneOutlinerWeak.Pin().Get(), &ISceneOutliner::GetFilterHighlightText )

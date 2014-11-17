@@ -39,7 +39,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = false;
 		UpdatedComponent->SetPhysicsVolume(NULL, true);
-		UpdatedComponent->PhysicsVolumeChangedDelegate.Unbind();
+		UpdatedComponent->PhysicsVolumeChangedDelegate.RemoveDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
 
 		// remove from tick prerequisite
 		UpdatedComponent->PrimaryComponentTick.RemovePrerequisite(this, PrimaryComponentTick); 
@@ -51,7 +51,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->UpdatePhysicsVolume(true);
-		UpdatedComponent->PhysicsVolumeChangedDelegate.BindUObject(this, &UMovementComponent::PhysicsVolumeChanged);
+		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
 		
 		// force ticks after movement component updates
 		UpdatedComponent->PrimaryComponentTick.AddPrerequisite(this, PrimaryComponentTick); 
@@ -82,7 +82,7 @@ void UMovementComponent::InitializeComponent()
 		AActor* MyActor = GetOwner();
 		if (MyActor)
 		{
-			NewUpdatedComponent = MyActor->GetRootPrimitiveComponent();
+			NewUpdatedComponent = Cast<UPrimitiveComponent>(MyActor->GetRootComponent());
 			if (!NewUpdatedComponent)
 			{
 				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("NoRootPrimitiveWarning", "Movement component {0} must update a PrimitiveComponent, but owning actor '{1}' does not have a root PrimitiveComponent. Auto registration failed."), 
@@ -104,7 +104,7 @@ void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 	// If the owner ticks, make sure we tick first
 	AActor* Owner = GetOwner();
-	if (bRegister && Owner && Owner->CanEverTick())
+	if (bRegister && PrimaryComponentTick.bCanEverTick && Owner && Owner->CanEverTick())
 	{
 		Owner->PrimaryActorTick.AddPrerequisite(this, PrimaryComponentTick);
 	}
@@ -143,11 +143,48 @@ bool UMovementComponent::IsInWater() const
 	return GetPhysicsVolume() && GetPhysicsVolume()->bWaterVolume;
 }
 
-bool UMovementComponent::SkipUpdate(float DeltaTime)
+bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 {
-	return UpdatedComponent == NULL
-			|| (bUpdateOnlyIfRendered 
-				&& ((GetNetMode() == NM_DedicatedServer) || (GetWorld()->GetTimeSeconds() - UpdatedComponent->LastRenderTime > 0.2f)));
+	if (UpdatedComponent == NULL || UpdatedComponent->Mobility != EComponentMobility::Movable)
+	{
+		return true;
+	}
+
+	if (bUpdateOnlyIfRendered)
+	{
+		if (GetNetMode() == NM_DedicatedServer)
+		{
+			// Dedicated servers never render
+			return true;
+		}
+
+		const float RenderTimeThreshold = 0.41f;
+		UWorld* TheWorld = GetWorld();
+		if (TheWorld->TimeSince(UpdatedComponent->LastRenderTime) <= RenderTimeThreshold)
+		{
+			return false; // Rendered, don't skip it.
+		}
+
+		// Most components used with movement components don't actually render, so check attached children render times.
+		TArray<USceneComponent*> Children;
+		UpdatedComponent->GetChildrenComponents(true, Children);
+		for (auto Child : Children)
+		{
+			const UPrimitiveComponent* PrimitiveChild = Cast<UPrimitiveComponent>(Child);
+			if (PrimitiveChild)
+			{
+				if (PrimitiveChild->IsRegistered() && TheWorld->TimeSince(PrimitiveChild->LastRenderTime) <= RenderTimeThreshold)
+				{
+					return false; // Rendered, don't skip it.
+				}
+			}
+		}
+
+		// No children were recently rendered, safely skip the update.
+		return true;
+	}
+
+	return false;
 }
 
 

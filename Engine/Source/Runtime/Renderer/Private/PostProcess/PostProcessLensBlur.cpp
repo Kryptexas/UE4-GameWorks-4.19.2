@@ -10,6 +10,7 @@
 #include "PostProcessPassThrough.h"
 #include "PostProcessing.h"
 #include "PostProcessLensBlur.h"
+#include "SceneUtils.h"
 
 /** Encapsulates the post processing vertex shader. */
 class FPostProcessLensBlurVS : public FGlobalShader
@@ -161,7 +162,7 @@ FRCPassPostProcessLensBlur::FRCPassPostProcessLensBlur(float InPercentKernelSize
 
 void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PassPostProcessLensBlur, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PassPostProcessLensBlur, DEC_SCENE_ITEMS);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 	
@@ -195,12 +196,12 @@ void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessLensBlurVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessLensBlurPS> PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessLensBlurVS> VertexShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessLensBlurPS> PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	
-	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	uint32 TileSize = 1;
 

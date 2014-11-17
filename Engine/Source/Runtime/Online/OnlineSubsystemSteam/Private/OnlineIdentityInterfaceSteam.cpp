@@ -101,6 +101,11 @@ ELoginStatus::Type FOnlineIdentitySteam::GetLoginStatus(int32 LocalUserNum) cons
 	return ELoginStatus::NotLoggedIn; 
 }
 
+ELoginStatus::Type FOnlineIdentitySteam::GetLoginStatus(const FUniqueNetId& UserId) const 
+{
+	return GetLoginStatus(0);
+}
+
 TSharedPtr<FUniqueNetId> FOnlineIdentitySteam::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	if (LocalUserNum < MAX_LOCAL_PLAYERS &&
@@ -149,6 +154,16 @@ FString FOnlineIdentitySteam::GetPlayerNickname(int32 LocalUserNum) const
 	return FString(TEXT(""));
 }
 
+FString FOnlineIdentitySteam::GetPlayerNickname(const FUniqueNetId& UserId) const
+{
+	if (SteamFriendsPtr != NULL)
+	{
+		const char* PersonaName = SteamFriendsPtr->GetPersonaName();
+		return FString(UTF8_TO_TCHAR(PersonaName));
+	}
+	return FString(TEXT(""));
+}
+
 /**
  * Gets a user's platform specific authentication token to verify their identity
  *
@@ -184,5 +199,24 @@ FString FOnlineIdentitySteam::GetAuthToken(int32 LocalUserNum) const
 		}
 	}	
 	return ResultToken;
+}
+
+void FOnlineIdentitySteam::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+{
+	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+}
+
+FPlatformUserId FOnlineIdentitySteam::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+{
+	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
+	{
+		auto CurrentUniqueId = GetUniquePlayerId(i);
+		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
+		{
+			return i;
+		}
+	}
+
+	return PLATFORMUSERID_NONE;
 }
 

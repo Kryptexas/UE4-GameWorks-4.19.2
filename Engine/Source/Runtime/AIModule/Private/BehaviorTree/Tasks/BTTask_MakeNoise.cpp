@@ -5,7 +5,7 @@
 #include "Sound/ReverbVolume.h"
 #include "BehaviorTree/Tasks/BTTask_MakeNoise.h"
 
-UBTTask_MakeNoise::UBTTask_MakeNoise(const class FPostConstructInitializeProperties& PCIP) 
+UBTTask_MakeNoise::UBTTask_MakeNoise(const FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 	, Loudnes(1.0f)
 {
@@ -14,7 +14,9 @@ UBTTask_MakeNoise::UBTTask_MakeNoise(const class FPostConstructInitializePropert
 
 EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	const AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+	check(OwnerComp);
+
+	const AController* MyController = OwnerComp ? Cast<AController>(OwnerComp->GetOwner()) : NULL;
 	APawn* MyPawn = MyController ? MyController->GetPawn() : NULL;
 
 	if (MyPawn)

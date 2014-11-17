@@ -79,7 +79,8 @@ namespace MarkdownSharp.EpicMarkdown.Parsers.SpanParser
 
                 if (outElement == null)
                 {
-                    throw new InvalidOperationException("Could not find image in given text.");
+                    string imageError = "Could not find image in given text: " + origin.Text;
+                    throw new InvalidOperationException(imageError);
                 }
 
                 return outElement;

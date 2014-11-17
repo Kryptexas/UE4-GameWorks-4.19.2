@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -22,8 +23,15 @@ public:
 	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		// For imperative nodes, make sure the exec function was actually triggered and not just included due to an output data dependency
-		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Execute, EGPD_Input);
-		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, CompilerContext.GetSchema()->PC_Exec))
+		FEdGraphPinType ExpectedExecPinType;
+		ExpectedExecPinType.PinCategory = UEdGraphSchema_K2::PC_Exec;
+
+		FEdGraphPinType ExpectedBoolPinType;
+		ExpectedBoolPinType.PinCategory = UEdGraphSchema_K2::PC_Boolean;
+
+
+		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(Node, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
+		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedExecPinType))
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForBranch_Error", "@@ must have a valid execution pin @@").ToString()), Node, ExecTriggeringPin);
 			return;
@@ -38,9 +46,9 @@ public:
 		UEdGraphPin* CondPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Condition, EGPD_Input);
 		UEdGraphPin* ThenPin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Then, EGPD_Output);
 		UEdGraphPin* ElsePin = Context.FindRequiredPinByName(Node, CompilerContext.GetSchema()->PN_Else, EGPD_Output);
-		if (Context.ValidatePinType(ThenPin, CompilerContext.GetSchema()->PC_Exec) &&
-			Context.ValidatePinType(ElsePin, CompilerContext.GetSchema()->PC_Exec) &&
-			Context.ValidatePinType(CondPin, CompilerContext.GetSchema()->PC_Boolean))
+		if (Context.ValidatePinType(ThenPin, ExpectedExecPinType) &&
+			Context.ValidatePinType(ElsePin, ExpectedExecPinType) &&
+			Context.ValidatePinType(CondPin, ExpectedBoolPinType))
 		{
 			UEdGraphPin* PinToTry = FEdGraphUtilities::GetNetFromPin(CondPin);
 			FBPTerminal** CondTerm = Context.NetMap.Find(PinToTry);
@@ -103,9 +111,9 @@ FLinearColor UK2Node_IfThenElse::GetNodeTitleColor() const
 	return GetDefault<UGraphEditorSettings>()->ExecBranchNodeTitleColor;
 }
 
-FString UK2Node_IfThenElse::GetTooltip() const
+FText UK2Node_IfThenElse::GetTooltipText() const
 {
-	return *LOCTEXT("BrancStatement_Tooltip", "Branch Statement\nIf Condition is true, execution goes to True, otherwise it goes to False").ToString();
+	return LOCTEXT("BrancStatement_Tooltip", "Branch Statement\nIf Condition is true, execution goes to True, otherwise it goes to False");
 }
 
 FString UK2Node_IfThenElse::GetKeywords() const
@@ -145,12 +153,24 @@ FNodeHandlingFunctor* UK2Node_IfThenElse::CreateNodeHandler(FKismetCompilerConte
 	return new FKCHandler_Branch(CompilerContext);
 }
 
-void UK2Node_IfThenElse::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+void UK2Node_IfThenElse::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
-	check(NodeSpawner != nullptr);
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
 
-	ActionListOut.Add(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
+	}
 }
 
 FText UK2Node_IfThenElse::GetMenuCategory() const

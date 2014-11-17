@@ -10,17 +10,15 @@
 
 #if WITH_RECAST
 
-#include "DetourCommon.h"
-#include "DetourNavMesh.h"
-#include "DetourNavMeshQuery.h"
-#include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "Detour/DetourNavMeshQuery.h"
 
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
 
 class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {
 public:
-	FRecastQueryFilter();
+	FRecastQueryFilter(bool bIsVirtual = true);
 	virtual ~FRecastQueryFilter(){}
 
 	virtual void Reset() override;
@@ -40,6 +38,9 @@ public:
 	virtual INavigationQueryFilterInterface* CreateCopy() const override;
 
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
+
+	/** note that it results in loosing all area cost setup. Call it before setting anything else */
+	void SetIsVirtual(bool bIsVirtual);
 };
 
 struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
@@ -105,11 +106,10 @@ public:
 
 	/** Checks if the whole segment is in navmesh */
 	void Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const;
+	void Raycast2D(NavNodeRef StartNode, const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const;
 
 	/** Generates path from given query and collect data for every step of A* algorithm */
 	int32 DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<FRecastDebugPathfindingStep>& Steps);
-
-	//void FindPathCorridor(FNavMeshFindPathCorridorQueryDatum& Query) const;
 
 	/** Returns a random location on the navmesh. */
 	FNavLocation GetRandomPoint(const FNavigationQueryFilter& Filter, const UObject* Owner) const;
@@ -122,7 +122,8 @@ public:
 	bool GetRandomPointInCluster(NavNodeRef ClusterRef, FNavLocation& OutLocation) const;
 
 	bool ProjectPointToNavMesh(const FVector& Point, FNavLocation& Result, const FVector& Extent, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
-
+	
+	/** Project single point and grab all vertical intersections */
 	bool ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,
 		float MinZ, float MaxZ, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
@@ -137,6 +138,9 @@ public:
 
 	//@todo document
 	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
+
+	/** finds stringpulled path from given corridor */
+	bool FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks = NULL) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
 	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const;
@@ -157,6 +161,8 @@ public:
 	bool GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const;
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
+	/** Finds closest point constrained to given poly */
+	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;
 	/** Decode poly ID into tile index and poly index */
 	bool GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const;
 	/** Retrieves user ID for given offmesh link poly */
@@ -221,7 +227,7 @@ public:
 		NavNodeRef StartNode, NavNodeRef EndNode,
 		const FVector& UnrealStart, const FVector& UnrealEnd,
 		const FVector& RecastStart, FVector& RecastEnd,
-		NavNodeRef* PathCorridor, float* PathCosts, int32 PathCorridorSize) const;
+		dtQueryResult& PathResult) const;
 
 	void GetDebugPolyEdges(const struct dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateCore.h: SlateCore module public header file.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,6 +19,7 @@ SLATECORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSlateStyles, Log, All);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Measure String"), STAT_SlateMeasureStringTime, STATGROUP_Slate,);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Slate Rendering RT Time"), STAT_SlateRenderingRTTime, STATGROUP_Slate , SLATECORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Slate RT Present Time"), STAT_SlatePresentRTTime, STATGROUP_Slate , SLATECORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Buffers RT"), STAT_SlateUpdateBufferRTTime, STATGROUP_Slate , SLATECORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Draw Time"), STAT_SlateDrawTime, STATGROUP_Slate, SLATECORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Buffers GT"), STAT_SlateUpdateBufferGTTime, STATGROUP_Slate,);
@@ -48,7 +45,8 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Batches"), STAT_SlateNumBatches, STA
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROUP_Slate,);
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture Data CPU Memory"), STAT_SlateTextureDataMemory, STATGROUP_SlateMemory, SLATECORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture Atlas Memory"), STAT_SlateTextureAtlasMemory, STATGROUP_SlateMemory,);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture Atlas CPU Memory"), STAT_SlateTextureAtlasMemory, STATGROUP_SlateMemory,);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture Data GPU Memory"), STAT_SlateTextureGPUMemory, STATGROUP_SlateMemory, SLATECORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Font Kerning Table Memory"), STAT_SlateFontKerningTableMemory, STATGROUP_SlateMemory,);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Font Measure Memory"), STAT_SlateFontMeasureCacheMemory, STATGROUP_SlateMemory,);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Batch Vertex Memory"), STAT_SlateVertexBatchMemory, STATGROUP_SlateMemory,);
@@ -60,6 +58,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 // Compile all the RichText and MultiLine editable text?
 #define WITH_FANCY_TEXT 1
 
+
 /* Includes
  *****************************************************************************/
 
@@ -68,8 +67,10 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "SlateEnums.h"
 #include "SlateStructs.h"
 #include "PaintArgs.h"
+#include "ISlateMetaData.h"
 
 // Layout
+#include "SlotBase.h"
 #include "Margin.h"
 #include "SlateRect.h"
 #include "PaintGeometry.h"
@@ -134,7 +135,6 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "RenderingCommon.h"
 #include "DrawElements.h"
 #include "RenderingPolicy.h"
-#include "ElementBatcher.h"
 #include "SlateDrawBuffer.h"
 #include "SlateRenderer.h"
 

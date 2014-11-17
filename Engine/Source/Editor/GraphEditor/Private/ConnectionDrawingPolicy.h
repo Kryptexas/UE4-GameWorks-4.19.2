@@ -32,6 +32,9 @@ protected:
 	const FSlateBrush* ArrowImage;
 	const FSlateBrush* MidpointImage;
 	const FSlateBrush* BubbleImage;
+
+	const UGraphEditorSettings* Settings;
+
 public:
 	FVector2D ArrowRadius;
 	FVector2D MidpointRadius;

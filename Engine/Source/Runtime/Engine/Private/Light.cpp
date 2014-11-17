@@ -2,6 +2,9 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/PointLight.h"
+#include "Engine/DirectionalLight.h"
+#include "Components/ArrowComponent.h"
 #include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
 
@@ -100,7 +103,7 @@ void ALight::SetBrightness(float NewBrightness)
 {
 	if(LightComponent)
 	{
-		LightComponent->SetBrightness(NewBrightness);
+		LightComponent->SetIntensity(NewBrightness);
 	}
 }
 

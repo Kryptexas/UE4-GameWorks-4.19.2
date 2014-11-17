@@ -72,12 +72,12 @@ public:
 
 private:
 
-	// Holds a pointer to the message bus to forward the message to.
+	/** Holds a pointer to the message bus to forward the message to. */
 	IMessageBusWeakPtr BusPtr;
 
-	// Holds the context of the message to forward.
+	/** Holds the context of the message to forward. */
 	IMessageContextRef MessageContext;
 
-	// Holds a reference to the message sender.
+	/** Holds a reference to the message sender. */
 	ISendMessagesRef Sender;
 };

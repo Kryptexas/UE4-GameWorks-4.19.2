@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/LevelScriptActor.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "Matinee/MatineeActor.h"
 #include "OnlineSubsystemUtils.h"
@@ -155,6 +156,7 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 			SessionSettings = SessionInt->GetSessionSettings(GameSessionName);
 		}
 
+		// Attempt to login, returning true means an async login is in flight
 		if (!SessionSettings && !GameSession->ProcessAutoLogin())
 		{
 			GameSession->RegisterServer();
@@ -352,10 +354,9 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	}
 
 	AActor* BestStart = ChoosePlayerStart(Player);
-
 	if (BestStart == NULL)
 	{
-		// no playerstart found
+		// no player start found
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
 
 		// Search all loaded levels for possible player start object
@@ -364,8 +365,7 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 			ULevel* Level = World->GetLevel( LevelIndex );
 			for ( int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ++ActorIndex )
 			{
-				// BROKEN NOT A NAV OBJECT!!!!!!
-				AActor* NavObject = Level->Actors[ ActorIndex ];
+				AActor* NavObject = Cast<AActor>(Level->Actors[ActorIndex]);
 				if ( NavObject )
 				{
 					BestStart = NavObject;
@@ -400,7 +400,10 @@ void AGameMode::PreInitializeComponents()
 
 	GameState = GetWorld()->SpawnActor<AGameState>(GameStateClass, SpawnInfo);
 	GetWorld()->GameState = GameState;
-	GameState->AuthorityGameMode = this;
+	if (GameState)
+	{
+		GameState->AuthorityGameMode = this;
+	}
 
 	// Only need NetworkManager for servers in net games
 	GetWorld()->NetworkManager = GetWorldSettings()->GameNetworkManagerClass ? GetWorld()->SpawnActor<AGameNetworkManager>(GetWorldSettings()->GameNetworkManagerClass, SpawnInfo ) : NULL;
@@ -416,6 +419,13 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 	}
 
 	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+
+	if (NewPlayer->PlayerState && NewPlayer->PlayerState->bOnlySpectator)
+	{
+		UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayer tried to restart a spectator-only player!"));
+		return;
+	}
+
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	// if a start spot wasn't found,
@@ -457,15 +467,23 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 		}
 		*/
 		NewPlayer->Possess(NewPlayer->GetPawn());
-		
-		// set initial control rotation to player start's rotation
-		NewPlayer->ClientSetRotation(NewPlayer->GetPawn()->GetActorRotation(), true);
 
-		FRotator NewControllerRot = StartSpot->GetActorRotation();
-		NewControllerRot.Roll = 0.f;
-		NewPlayer->SetControlRotation( NewControllerRot );
+		// If the Pawn is destroyed as part of possession we have to abort
+		if (NewPlayer->GetPawn() == nullptr)
+		{
+			NewPlayer->FailedToSpawnPawn();
+		}
+		else
+		{
+			// set initial control rotation to player start's rotation
+			NewPlayer->ClientSetRotation(NewPlayer->GetPawn()->GetActorRotation(), true);
 
-		SetPlayerDefaults(NewPlayer->GetPawn());
+			FRotator NewControllerRot = StartSpot->GetActorRotation();
+			NewControllerRot.Roll = 0.f;
+			NewPlayer->SetControlRotation( NewControllerRot );
+
+			SetPlayerDefaults(NewPlayer->GetPawn());
+		}
 	}
 
 #if !UE_WITH_PHYSICS
@@ -806,7 +824,7 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 		OldPlayerState->Destroy();
 	}
 
-	// Find a start spot->
+	// Find a start spot
 	AActor* StartSpot = FindPlayerStart(C);
 
 	if (StartSpot == NULL)
@@ -944,11 +962,6 @@ void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& Actor
 		// keep general game state until we transition to the final destination
 		ActorList.Add(World->GameState);
 	}
-
-	if (GameSession)
-	{
-		ActorList.Add(GameSession);
-	}
 }
 
 void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
@@ -956,19 +969,51 @@ void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
 	GAsyncIOBandwidthLimit = AsyncIOBandwidthLimit;
 }
 
-void AGameMode::InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options)
+FString AGameMode::InitNewPlayer(APlayerController* NewPlayerController, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal)
 {
+	check(NewPlayerController);
+
+	FString ErrorMessage;
+
+	// Register the player with the session
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
+
+	// Init player's name
+	FString InName = ParseOption(Options, TEXT("Name")).Left(20);
+	if (InName.IsEmpty())
+	{
+		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayerController->PlayerState->PlayerId);
+	}
+
+	ChangeName(NewPlayerController, InName, false);
+
+	// Find a starting spot
+	AActor* const StartSpot = FindPlayerStart(NewPlayerController, Portal);
+	if (StartSpot != NULL)
+	{
+		// Set the player controller / camera in this new location
+		FRotator InitialControllerRot = StartSpot->GetActorRotation();
+		InitialControllerRot.Roll = 0.f;
+		NewPlayerController->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
+		NewPlayerController->StartSpot = StartSpot;
+	}
+	else
+	{
+		ErrorMessage = FString::Printf(TEXT("Failed to find PlayerStart"));
+	}
+
+	return ErrorMessage;
 }
 
-bool AGameMode::MustSpectate(APlayerController* NewPlayer) const
+bool AGameMode::MustSpectate(APlayerController* NewPlayerController) const
 {
-	return NewPlayer->PlayerState->bOnlySpectator;
+	return NewPlayerController->PlayerState->bOnlySpectator;
 }
 
 APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
-	if ( !ErrorMessage.IsEmpty() )
+	if (!ErrorMessage.IsEmpty())
 	{
 		return NULL;
 	}
@@ -976,7 +1021,7 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, c
 	APlayerController* NewPlayerController = SpawnPlayerController(FVector::ZeroVector, FRotator::ZeroRotator);
 
 	// Handle spawn failure.
-	if( NewPlayerController == NULL)
+	if (NewPlayerController == NULL)
 	{
 		UE_LOG(LogGameMode, Log, TEXT("Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 		ErrorMessage = FString::Printf(TEXT("Failed to spawn player controller"));
@@ -984,35 +1029,15 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, c
 	}
 
 	// Customize incoming player based on URL options
-	InitNewPlayer(NewPlayerController, UniqueId, Options);
-
-	// Find a start spot.
-	AActor* const StartSpot = FindPlayerStart( NewPlayerController, Portal );
-	if( StartSpot == NULL )
+	ErrorMessage = InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+	if (!ErrorMessage.IsEmpty())
 	{
-		ErrorMessage = FString::Printf(TEXT("Failed to find PlayerStart"));
 		return NULL;
 	}
 
-	FRotator InitialControllerRot = StartSpot->GetActorRotation();
-	InitialControllerRot.Roll = 0.f;
-	NewPlayerController->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
-	NewPlayerController->StartSpot = StartSpot;
-
-	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
-	
-	// Init player's name
-	FString InName = ParseOption( Options, TEXT("Name")).Left(20);
-	if( InName.IsEmpty() )
-	{
-		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayerController->PlayerState->PlayerId);
-	}
-	ChangeName( NewPlayerController, InName, false );
-
 	// Set up spectating
-	bool bSpectator = FCString::Stricmp(*ParseOption( Options, TEXT("SpectatorOnly") ), TEXT("1")) == 0;
-	if ( bSpectator || MustSpectate(NewPlayerController) )
+	bool bSpectator = FCString::Stricmp(*ParseOption(Options, TEXT("SpectatorOnly")), TEXT("1")) == 0;
+	if (bSpectator || MustSpectate(NewPlayerController))
 	{
 		NewPlayerController->StartSpectatingOnly();
 		return NewPlayerController;
@@ -1187,15 +1212,19 @@ int32 AGameMode::GetIntOption( const FString& Options, const FString& ParseStrin
 	return CurrentValue;
 }
 
-FString AGameMode::GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal)
+FString AGameMode::GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal) const
 {
 	return GetClass()->GetPathName();
 }
 
+TSubclassOf<AGameMode> AGameMode::GetGameModeClass(const FString& MapName, const FString& Options, const FString& Portal) const
+{
+	return GetClass();
+}
 
 TSubclassOf<AGameMode> AGameMode::SetGameMode(const FString& MapName, const FString& Options, const FString& Portal)
 {
-	return GetClass();
+	return GetGameModeClass(MapName, Options, Portal);
 }
 
 TSubclassOf<AGameSession> AGameMode::GetGameSessionClass() const
@@ -1288,7 +1317,7 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 					const ULevel* LoadedLevel = TheLevel->GetLoadedLevel();
 					
 					UE_LOG(LogGameMode, Log, TEXT("levelStatus: %s %i %i %i %s %i"),
-						*TheLevel->PackageName.ToString(),
+						*TheLevel->GetWorldAssetPackageName(),
 						TheLevel->bShouldBeVisible,
 						LoadedLevel && LoadedLevel->bIsVisible,
 						TheLevel->bShouldBeLoaded,
@@ -1296,7 +1325,7 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 						TheLevel->bHasLoadRequestPending);
 
 					PC->ClientUpdateLevelStreamingStatus(
-						TheLevel->PackageName,
+						TheLevel->GetWorldAssetPackageFName(),
 						TheLevel->bShouldBeLoaded,
 						TheLevel->bShouldBeVisible,
 						TheLevel->bShouldBlockOnLoad,
@@ -1516,8 +1545,8 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 		// make PlayerState inactive
 		NewPlayerState->SetReplicates(false);
 
-		// delete after 5 minutes
-		NewPlayerState->SetLifeSpan( 300 );
+		// delete after some time
+		NewPlayerState->SetLifeSpan(InactivePlayerStateLifeSpan);
 
 		// On console, we have to check the unique net id as network address isn't valid
 		bool bIsConsole = GEngine->IsConsoleBuild();
@@ -1567,7 +1596,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 			InactivePlayerArray.RemoveAt(i,1);
 			i--;
 		}
-		else if ( (bIsConsole /** @TODO ONLINE - Add back uniqueid compare */) ||
+		else if ( (bIsConsole && ( CurrentPlayerState->UniqueId == PC->PlayerState->UniqueId ) ) ||
 			(!bIsConsole && (FCString::Stricmp(*CurrentPlayerState->SavedNetworkAddress, *NewNetworkAddress) == 0) && (FCString::Stricmp(*CurrentPlayerState->PlayerName, *NewName) == 0)) )
 		{
 			// found it!

@@ -12,9 +12,9 @@ UOverlaySlot::UOverlaySlot(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Top;
 }
 
-void UOverlaySlot::ReleaseNativeWidget()
+void UOverlaySlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }
@@ -57,7 +57,7 @@ void UOverlaySlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
 	}
 }
 
-void UOverlaySlot::SyncronizeProperties()
+void UOverlaySlot::SynchronizeProperties()
 {
 	SetPadding(Padding);
 	SetHorizontalAlignment(HorizontalAlignment);

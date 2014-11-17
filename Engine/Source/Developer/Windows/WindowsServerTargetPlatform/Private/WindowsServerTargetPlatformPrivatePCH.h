@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsServerTargetPlatformPrivatePCH.h: Pre-compiled header file for the WindowsServerargetPlatform module.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"

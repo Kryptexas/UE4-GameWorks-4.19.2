@@ -13,9 +13,9 @@ UHorizontalBoxSlot::UHorizontalBoxSlot(const FPostConstructInitializeProperties&
 	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 
-void UHorizontalBoxSlot::ReleaseNativeWidget()
+void UHorizontalBoxSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }
@@ -69,7 +69,7 @@ void UHorizontalBoxSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlign
 	}
 }
 
-void UHorizontalBoxSlot::SyncronizeProperties()
+void UHorizontalBoxSlot::SynchronizeProperties()
 {
 	SetPadding(Padding);
 	SetSize(Size);

@@ -345,7 +345,7 @@ void FStatsWriteFile::Finalize()
 	for( const auto& It : Stats.ShortNameToLongName )
 	{
 		const FStatMessage& StatMessage = It.Value;
-		FNamesSent.Add( StatMessage.NameAndInfo.GetRawName().GetIndex() );
+		FNamesSent.Add( StatMessage.NameAndInfo.GetRawName().GetComparisonIndex() );
 	}
 
 	// Create a copy of names.
@@ -357,7 +357,7 @@ void FStatsWriteFile::Finalize()
 	Header.NumFNames = FNamesToSent.Num();
 	for( const int32 It : FNamesToSent )
 	{
-		WriteFName( Ar, FStatNameAndInfo(FName(EName(It)),false) );
+		WriteFName( Ar, FStatNameAndInfo(FName(It, It, 0),false) );
 	}
 
 	// Serialize metadata messages.
@@ -374,7 +374,7 @@ void FStatsWriteFile::Finalize()
 			TArray<FName> Result;
 			for( const int32 NameIndex : NameIndices )
 			{
-				new(Result) FName( EName( NameIndex ) );
+				new(Result) FName( NameIndex, NameIndex, 0 );
 			}
 			return Result;
 		}

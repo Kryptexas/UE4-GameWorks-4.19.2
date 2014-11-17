@@ -70,9 +70,6 @@ protected:
 	TArray<struct FBuilderPoly> Polys;
 
 	UPROPERTY()
-	FName Group_DEPRECATED;
-
-	UPROPERTY()
 	FName Layer;
 
 	UPROPERTY()

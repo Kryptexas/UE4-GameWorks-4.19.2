@@ -1,14 +1,36 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Guid.cpp: Implements the FGuid class.
-=============================================================================*/
-
 #include "Core.h"
 
 
 /* FGuid interface
  *****************************************************************************/
+
+bool FGuid::ExportTextItem( FString& ValueStr, FGuid const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const
+{
+	ValueStr += ToString();
+
+	return true;
+}
+
+
+bool FGuid::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText )
+{
+	if (FPlatformString::Strlen(Buffer) < 32)
+	{
+		return false;
+	}
+
+	if (!ParseExact(FString(Buffer).Left(32), EGuidFormats::Digits, *this))
+	{
+		return false;
+	}
+
+	Buffer += 32;
+
+	return true;
+}
+
 
 FString FGuid::ToString( EGuidFormats::Type Format ) const
 {

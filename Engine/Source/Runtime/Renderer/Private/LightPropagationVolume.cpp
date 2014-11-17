@@ -14,6 +14,7 @@
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
 #include "UniformBuffer.h"
+#include "SceneUtils.h"
 
 static TAutoConsoleVariable<int32> CVarLightPropagationVolume(
 	TEXT("r.LightPropagationVolume"),
@@ -610,22 +611,22 @@ IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION>,
 IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES>,							TEXT("LPVPropagate"),TEXT("CSPropogate"),SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION_AND_MULTIPLE_BOUNCES>,	TEXT("LPVPropagate"),TEXT("CSPropogate"),SF_Compute);
 
-FLpvWriteShaderCSBase* GetPropagateShader( bool bSecondaryOcclusion, bool bSecondaryBounces )
+FLpvWriteShaderCSBase* GetPropagateShader(FViewInfo& View, bool bSecondaryOcclusion, bool bSecondaryBounces )
 {
 	FLpvWriteShaderCSBase* ShaderOut = NULL;
 	if ( bSecondaryBounces )
 	{
 		if ( bSecondaryOcclusion ) 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION_AND_MULTIPLE_BOUNCES> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION_AND_MULTIPLE_BOUNCES> >(View.ShaderMap);
 		else 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES> >(View.ShaderMap);
 	}
 	else
 	{
 		if ( bSecondaryOcclusion ) 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION> >(View.ShaderMap);
 		else 
-			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<0> >( GetGlobalShaderMap() );
+			ShaderOut = (FLpvWriteShaderCSBase*)*TShaderMapRef<TLpvPropagateCS<0> >(View.ShaderMap);
 	}
 	return ShaderOut;
 }
@@ -921,14 +922,14 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 /**
 * Clears the LPV
 */
-void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
+void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	if ( !bEnabled )
 	{
 		return;
 	}
 
-	SCOPED_DRAW_EVENT(LpvClear, DEC_LIGHT);
+	SCOPED_DRAW_EVENT(RHICmdList, LpvClear, DEC_LIGHT);
 
 	if ( !LpvWriteUniformBuffer.IsInitialized() )
 	{
@@ -940,7 +941,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 	//RHIBatchComputeShaderBegin();
 	// Clear the list buffers
 	{
-		TShaderMapRef<FLpvClearListsCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvClearListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
@@ -952,7 +953,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 
 	// Clear the LPV (or fade, if REFINE_OVER_TIME is enabled)
 	{
-		TShaderMapRef<FLpvClearCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvClearCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
@@ -965,7 +966,7 @@ void FLightPropagationVolume::Clear(FRHICommandListImmediate& RHICmdList)
 	// Clear the geometry volume if necessary
 	if ( SecondaryOcclusionStrength > 0.001f )
 	{
-		TShaderMapRef<FLpvClearGeometryVolumeCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvClearGeometryVolumeCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		FLpvBaseWriteShaderParams ShaderParams;
@@ -988,7 +989,7 @@ void FLightPropagationVolume::GetShadowInfo( const FProjectedShadowInfo& Project
 {
 	FIntPoint ShadowBufferResolution( ProjectedShadowInfo.ResolutionX, ProjectedShadowInfo.ResolutionY );
 	RsmInfoOut.WorldToShadow = ProjectedShadowInfo.GetWorldToShadowMatrix(RsmInfoOut.ShadowmapMinMax, &ShadowBufferResolution );
-	RsmInfoOut.ShadowToWorld = RsmInfoOut.WorldToShadow.Inverse();
+	RsmInfoOut.ShadowToWorld = RsmInfoOut.WorldToShadow.InverseFast();
 
 	// Determine the shadow area in world space, so we can scale the brightness if needed. 
 	FVector ShadowUp    = FVector( 1.0f,0.0f,0.0f );
@@ -1032,6 +1033,7 @@ void FLightPropagationVolume::SetVplInjectionConstants(
 */
 void FLightPropagationVolume::InjectDirectionalLightRSM(
 	FRHICommandListImmediate& RHICmdList,
+	FViewInfo&					View,
 	const FTexture2DRHIRef&		RsmDiffuseTex, 
 	const FTexture2DRHIRef&		RsmNormalTex, 
 	const FTexture2DRHIRef&		RsmDepthTex, 
@@ -1040,11 +1042,11 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 {
 	const FLightSceneProxy* LightProxy = ProjectedShadowInfo.LightSceneInfo->Proxy;
 	{
-		SCOPED_DRAW_EVENT(LpvInjectDirectionalLightRSM, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvInjectDirectionalLightRSM, DEC_LIGHT);
 
 		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy );
 
-		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		// Clear the list counter the first time this function is called in a frame
@@ -1060,7 +1062,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 	// If this is the first directional light, build the geometry volume with it
 	if ( !GeometryVolumeGenerated && SecondaryOcclusionStrength > 0.001f )
 	{
-		SCOPED_DRAW_EVENT(LpvBuildGeometryVolume, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvBuildGeometryVolume, DEC_LIGHT);
 		GeometryVolumeGenerated = true;
 		FVector LightDirection( 0.0f, 0.0f, 1.0f );
 		if ( LightProxy )
@@ -1069,7 +1071,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		}
 		LpvWriteUniformBufferParams->GeometryVolumeCaptureLightDirection = LightDirection;
 
-		TShaderMapRef<FLpvBuildGeometryVolumeCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvBuildGeometryVolumeCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams ); // FIXME: is this causing a stall? Double-buffer?
@@ -1089,7 +1091,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 /**
 * Propagates light in the LPV 
 */
-void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
+void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	if ( !bEnabled )
 	{
@@ -1099,10 +1101,10 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
 	// Inject the VPLs into the LPV
 	if ( mInjectedLightCount )
 	{
-		SCOPED_DRAW_EVENT(LpvAccumulateVplLists, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvAccumulateVplLists, DEC_LIGHT);
 		mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
 
-		TShaderMapRef<FLpvInject_AccumulateVplListsCS> Shader(GetGlobalShaderMap());
+		TShaderMapRef<FLpvInject_AccumulateVplListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
@@ -1120,7 +1122,7 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
 	{
 		static int PropagationStep = 0;
 
-		SCOPED_DRAW_EVENT(LpvPropagate, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvPropagate, DEC_LIGHT);
 		static int numIterations = 3;
 		for ( int i=0; i<numIterations; i++ )
 		{
@@ -1128,7 +1130,7 @@ void FLightPropagationVolume::Propagate(FRHICommandListImmediate& RHICmdList)
 			bool bSecondaryOcclusion	= (SecondaryOcclusionStrength > 0.001f); 
 			bool bSecondaryBounces		= (SecondaryBounceStrength > 0.001f); 
 			mWriteBufferIndex = 1-mWriteBufferIndex; // Swap buffers with each iteration
-			FLpvWriteShaderCSBase* Shader = GetPropagateShader( bSecondaryOcclusion, bSecondaryBounces );
+			FLpvWriteShaderCSBase* Shader = GetPropagateShader(View, bSecondaryOcclusion, bSecondaryBounces);
 			RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 			LpvWriteUniformBufferParams->PropagationIndex = PropagationStep;
@@ -1189,7 +1191,7 @@ void FLightPropagationVolume::GetShaderParams( FLpvBaseWriteShaderParams& OutPar
 	OutParams.UniformBuffer = LpvWriteUniformBuffer;
 }
 
-void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmdList, const FLightSceneProxy& Light)
+void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmdList, const FLightSceneProxy& Light, const FViewInfo& View)
 {
 	if(!bEnabled)
 	{
@@ -1207,7 +1209,7 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 	if ( GeometryVolumeGenerated )
 	{
 		// Inject the VPLs into the LPV
-		SCOPED_DRAW_EVENT(LpvDirectLightInjection, DEC_LIGHT);
+		SCOPED_DRAW_EVENT(RHICmdList, LpvDirectLightInjection, DEC_LIGHT);
 
 		FLpvDirectLightInjectParameters InjectUniformBufferParams;
 		InjectUniformBufferParams.LightColor = Light.GetColor() * Light.GetIndirectLightingScale();
@@ -1223,11 +1225,11 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 
 			if ( Light.CastsStaticShadow() || Light.CastsDynamicShadow() )
 			{
-				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<INJECT_SHADOWED> >( GetGlobalShaderMap() );
+				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<INJECT_SHADOWED> >(View.ShaderMap);
 			}
 			else
 			{
-				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<0> >( GetGlobalShaderMap() );
+				Shader = (FLpvInjectShader_Base*)*TShaderMapRef<TLpvInject_PointLightCS<0> >(View.ShaderMap);
 			}
 		}
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());
@@ -1250,9 +1252,9 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 
 
 // use for render thread only
-bool UseLightPropagationVolumeRT()
+bool UseLightPropagationVolumeRT(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
+	if (InFeatureLevel < ERHIFeatureLevel::SM5)
 	{
 		return false;
 	}
@@ -1266,7 +1268,7 @@ bool UseLightPropagationVolumeRT()
 // ----------------------------------------------------------------------------
 // FSceneViewState
 // ----------------------------------------------------------------------------
-void FSceneViewState::CreateLightPropagationVolumeIfNeeded()
+void FSceneViewState::CreateLightPropagationVolumeIfNeeded(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(IsInRenderingThread());
 
@@ -1276,7 +1278,7 @@ void FSceneViewState::CreateLightPropagationVolumeIfNeeded()
 		return;
 	}
 
-	bool bLPV = UseLightPropagationVolumeRT();
+	bool bLPV = UseLightPropagationVolumeRT(InFeatureLevel);
 
 	//@todo-rco: Remove this when reenabling for OpenGL
 	if (bLPV && !IsOpenGLPlatform(GRHIShaderPlatform))

@@ -129,7 +129,8 @@ struct FRHIUniformBufferLayout
 		if (!bComputedHash)
 		{
 			uint32 TmpHash = ConstantBufferSize;
-			TmpHash ^= ResourceOffset;
+			// This is to account for 32vs64 bits difference in pointer sizes.
+			TmpHash ^= Align(ResourceOffset, 8);
 			uint32 N = Resources.Num();
 			while (N >= 4)
 			{
@@ -575,30 +576,131 @@ public:
 
 	/** Array slice or texture cube face.  Only valid if texture resource was created with TexCreate_TargetArraySlicesIndependently! */
 	uint32 ArraySliceIndex;
+	
+	ERenderTargetLoadAction LoadAction;
+	ERenderTargetStoreAction StoreAction;
 
 	FRHIRenderTargetView() : 
 		Texture(NULL),
 		MipIndex(0),
-		ArraySliceIndex(-1)
+		ArraySliceIndex(-1),
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
 
 	FRHIRenderTargetView(const FRHIRenderTargetView& Other) :
 		Texture(Other.Texture),
 		MipIndex(Other.MipIndex),
-		ArraySliceIndex(Other.ArraySliceIndex)
+		ArraySliceIndex(Other.ArraySliceIndex),
+		LoadAction(Other.LoadAction),
+		StoreAction(Other.StoreAction)
 	{}
 
 	FRHIRenderTargetView(FTextureRHIParamRef InTexture) :
 		Texture(InTexture),
 		MipIndex(0),
-		ArraySliceIndex(-1)
+		ArraySliceIndex(-1),
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
 
 	FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex) :
 		Texture(InTexture),
 		MipIndex(InMipIndex),
-		ArraySliceIndex(InArraySliceIndex)
+		ArraySliceIndex(InArraySliceIndex),
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
+	
+	FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
+		Texture(InTexture),
+		MipIndex(InMipIndex),
+		ArraySliceIndex(InArraySliceIndex),
+		LoadAction(InLoadAction),
+		StoreAction(InStoreAction)
+	{}
+};
+
+class FRHIDepthRenderTargetView
+{
+public:
+	FTextureRHIParamRef Texture;
+
+	ERenderTargetLoadAction LoadAction;
+	ERenderTargetStoreAction StoreAction;
+
+	FRHIDepthRenderTargetView() :
+		Texture(nullptr),
+		LoadAction(ERenderTargetLoadAction::EClear),
+		StoreAction(ERenderTargetStoreAction::ENoAction)
+	{}
+
+	FRHIDepthRenderTargetView(const FRHIDepthRenderTargetView& Other) :
+		Texture(Other.Texture),
+		LoadAction(Other.LoadAction),
+		StoreAction(Other.StoreAction)
+	{}
+
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture) :
+		Texture(InTexture),
+		LoadAction(ERenderTargetLoadAction::EClear),
+		StoreAction(ERenderTargetStoreAction::ENoAction)
+	{}
+
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
+		Texture(InTexture),
+		LoadAction(InLoadAction),
+		StoreAction(InStoreAction)
+	{}
+};
+
+class FRHISetRenderTargetsInfo
+{
+public:
+	// Color Render Targets Info
+	FRHIRenderTargetView ColorRenderTarget[MaxSimultaneousRenderTargets];
+	FLinearColor ClearColors[MaxSimultaneousRenderTargets];
+	int32 NumColorRenderTargets;
+	bool bClearColor;
+
+	// Depth/Stencil Render Target Info
+	FRHIDepthRenderTargetView DepthStencilRenderTarget;
+	float DepthClearValue;
+	uint32 StencilClearValue;
+	bool bClearDepth;
+	bool bClearStencil;
+
+	FRHISetRenderTargetsInfo() :
+		NumColorRenderTargets(0),
+		bClearColor(false),
+		DepthClearValue(0.0f),
+		StencilClearValue(0),
+		bClearDepth(false),
+		bClearStencil(false)
+	{}
+
+	FRHISetRenderTargetsInfo(int32 InNumColorRenderTargets, const FRHIRenderTargetView* InColorRenderTargets, const FRHIDepthRenderTargetView& InDepthStencilRenderTarget) :
+		NumColorRenderTargets(InNumColorRenderTargets),
+		bClearColor(false),
+		DepthStencilRenderTarget(InDepthStencilRenderTarget),
+		bClearDepth(false),
+		bClearStencil(false)
+	{
+		check(InNumColorRenderTargets <= 0 || InColorRenderTargets);
+		for (int32 Index = 0; Index < InNumColorRenderTargets; ++Index)
+		{
+			ColorRenderTarget[Index] = InColorRenderTargets[Index];
+		}
+	}
+
+	void SetClearDepthStencil(bool bInClearDepth, float InDepthClear, bool bInClearStencil = false, uint32 InClearStencil = 0)
+	{
+		DepthStencilRenderTarget.LoadAction = ERenderTargetLoadAction::EClear;
+		bClearDepth = bInClearDepth;
+		DepthClearValue = InDepthClear;
+		bClearStencil = bInClearStencil;
+		StencilClearValue = InClearStencil;
+	}
 };
 
 class FRHICustomPresent : public FRHIResource

@@ -29,6 +29,15 @@ void UK2Node_BaseMCDelegate::ValidateNodeDuringCompilation(class FCompilerResult
 	}
 }
 
+bool UK2Node_BaseMCDelegate::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	UEdGraphSchema const* Schema = TargetGraph->GetSchema();
+	EGraphType GraphType = Schema->GetGraphType(TargetGraph);
+
+	bool const bIsCompatible = (GraphType == GT_Ubergraph) || (GraphType == GT_Function);
+	return bIsCompatible&& Super::IsCompatibleWithGraph(TargetGraph);
+}
+
 UK2Node::ERedirectType UK2Node_BaseMCDelegate::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	ERedirectType OrginalResult = Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
@@ -214,9 +223,14 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 
 FText UK2Node_AddDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
-	return FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {PropertyName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {PropertyName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FNodeHandlingFunctor* UK2Node_AddDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -240,9 +254,14 @@ UK2Node_ClearDelegate::UK2Node_ClearDelegate(const class FPostConstructInitializ
 
 FText UK2Node_ClearDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
-	return FText::Format(NSLOCTEXT("K2Node", "ClearDelegate", "Unbind all Events from {PropertyName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "ClearDelegate", "Unbind all Events from {PropertyName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FNodeHandlingFunctor* UK2Node_ClearDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -272,9 +291,14 @@ void UK2Node_RemoveDelegate::AllocateDefaultPins()
 
 FText UK2Node_RemoveDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
-	return FText::Format(NSLOCTEXT("K2Node", "RemoveDelegate", "Unbind Event from {PropertyName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "RemoveDelegate", "Unbind Event from {PropertyName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 FNodeHandlingFunctor* UK2Node_RemoveDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -320,9 +344,14 @@ void UK2Node_CallDelegate::AllocateDefaultPins()
 
 FText UK2Node_CallDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
-	return FText::Format(NSLOCTEXT("K2Node", "CallDelegate", "Call {PropertyName}"), Args);
+	if (CachedNodeTitle.IsOutOfDate())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "CallDelegate", "Call {PropertyName}"), Args);
+	}
+	return CachedNodeTitle;
 }
 
 void UK2Node_CallDelegate::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const

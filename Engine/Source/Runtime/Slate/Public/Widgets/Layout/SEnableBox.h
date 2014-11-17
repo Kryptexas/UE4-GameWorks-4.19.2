@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 /**
  * A SEnableBox contains a widget that is lied to about whether the parent hierarchy is enabled or not, being told the parent is always enabled
  */
@@ -18,10 +19,12 @@ public:
 		SBox::Construct(SBox::FArguments().Content()[InArgs._Content.Widget]);
 	}
 
+public:
+
 	// SWidget interface
+	
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
 	{
 		return SBox::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, /*bParentEnabled=*/ true);
 	}
-	// End of SWidget interface
 };

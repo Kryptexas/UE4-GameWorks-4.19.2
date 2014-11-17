@@ -27,8 +27,6 @@ public:
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
+	/** Virtual destructor. */
 	virtual ~IInterceptMessages( ) { }
 };

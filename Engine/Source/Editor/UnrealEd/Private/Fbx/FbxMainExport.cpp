@@ -50,6 +50,8 @@
 #include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
 #include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeComponent.h"
 #include "Components/SplineMeshComponent.h"
 
 #include "FbxExporter.h"
@@ -267,7 +269,7 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
 	{
 		AActor* Actor = World->GetCurrentLevel()->Actors[ActorIndex];
-		if ( Actor != NULL && ( !bSelectedOnly || bSelectedOnly && Actor->IsSelected() ) )
+		if ( Actor != NULL && ( !bSelectedOnly || ( bSelectedOnly && Actor->IsSelected() ) ) )
 		{
 			if (Actor->IsA(ALight::StaticClass()))
 			{
@@ -2358,9 +2360,9 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 	FbxLayerElementArrayTemplate<FbxVector2>& WeightmapUVs = LayerElementWeightmapUVs->GetDirectArray();
 	WeightmapUVs.Resize(VertexCount);
 
-	TArray<uint8> VisibiltyData;
-	VisibiltyData.Empty(VertexCount);
-	VisibiltyData.AddZeroed(VertexCount);
+	TArray<uint8> VisibilityData;
+	VisibilityData.Empty(VertexCount);
+	VisibilityData.AddZeroed(VertexCount);
 
 	for (int32 ComponentIndex = 0, SelectedComponentIndex = 0; ComponentIndex < Landscape->LandscapeComponents.Num(); ComponentIndex++)
 	{
@@ -2384,9 +2386,12 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 			}
 		}
 
-		for (int32 i = 0; i < CompVisData.Num(); ++i)
+		if (CompVisData.Num() > 0)
 		{
-			VisibiltyData[BaseVertIndex + i] = CompVisData[i];
+			for (int32 i = 0; i < VertexCountPerComponent; ++i)
+			{
+				VisibilityData[BaseVertIndex + i] = CompVisData[CDI.VertexIndexToTexel(i)];
+			}
 		}
 		
 		for (int32 VertIndex = 0; VertIndex < VertexCountPerComponent; VertIndex++)
@@ -2465,7 +2470,7 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		{
 			for (int32 X = 0; X < ComponentSizeQuads; X++)
 			{
-				if (VisibiltyData[BaseVertIndex + Y * (ComponentSizeQuads + 1) + X] < VisThreshold)
+				if (VisibilityData[BaseVertIndex + Y * (ComponentSizeQuads + 1) + X] < VisThreshold)
 				{
 					Mesh->BeginPolygon();
 					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 0)*(ComponentSizeQuads + 1));

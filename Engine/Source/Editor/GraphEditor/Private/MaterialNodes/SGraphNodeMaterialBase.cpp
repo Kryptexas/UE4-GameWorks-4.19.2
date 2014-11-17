@@ -2,9 +2,13 @@
 
 #include "GraphEditorCommon.h"
 #include "Materials/MaterialExpression.h"
+#include "Materials/MaterialFunction.h"
 #include "SGraphNodeMaterialBase.h"
 #include "ScopedTransaction.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "TutorialMetaData.h"
+
+
 
 /**
 * Simple representation of the backbuffer that the preview canvas renders to
@@ -104,7 +108,7 @@ void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const 
 	if (PreviewElement->BeginRenderingCanvas( CanvasRect, ClippingRect, MaterialNode->GetExpressionPreview(), bIsRealtime ))
 	{
 		// Draw above everything else
-		uint32 PreviewLayer = MAX_uint32;//LayerId+1;//
+		uint32 PreviewLayer = LayerId+1;
 		FSlateDrawElement::MakeCustom( OutDrawElements, PreviewLayer, PreviewElement );
 	}
 }
@@ -118,8 +122,8 @@ FIntPoint FPreviewViewport::GetSize() const
 // FPreviewElement
 
 FPreviewElement::FPreviewElement()
-	: ExpressionPreview(NULL)
-	, RenderTarget(new FSlateMaterialPreviewRenderTarget)
+	: RenderTarget(new FSlateMaterialPreviewRenderTarget)
+	, ExpressionPreview(NULL)
 	, bIsRealtime(false)
 {
 }
@@ -188,7 +192,7 @@ void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, con
 		float CurrentTime = bIsRealtime ? (FApp::GetCurrentTime() - GStartTime) : 0.0f;
 		float DeltaTime = bIsRealtime ? FApp::GetDeltaTime() : 0.0f;
 
-		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime);
+		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime, GMaxRHIFeatureLevel);
 		{
 			Canvas.SetAllowedModes( 0 );
 			Canvas.SetRenderTargetRect( RenderTarget->GetViewRect() );
@@ -261,11 +265,15 @@ void SGraphNodeMaterialBase::AddPin( const TSharedRef<SGraphPin>& PinToAdd )
 
 	if (PinToAdd->GetDirection() == EEdGraphPinDirection::EGPD_Input)
 	{
+		FMargin Padding = Settings->GetInputPinPadding();
+		Padding.Left *= 0.5f;
+		Padding.Right = 0.0f;
+
 		LeftNodeBox->AddSlot()
 		.AutoHeight()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
-		.Padding(5,4,0,4)
+		.Padding(Padding)
 		[
 			PinToAdd
 		];
@@ -273,11 +281,15 @@ void SGraphNodeMaterialBase::AddPin( const TSharedRef<SGraphPin>& PinToAdd )
 	}
 	else // Direction == EEdGraphPinDirection::EGPD_Output
 	{
+		FMargin Padding = Settings->GetOutputPinPadding();
+		Padding.Left = 0.0f;
+		Padding.Right *= 0.5f;
+
 		RightNodeBox->AddSlot()
 		.AutoHeight()
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Center)
-		.Padding(0,4,5,4)
+		.Padding(Padding)
 		[
 			PinToAdd
 		];
@@ -292,10 +304,14 @@ void SGraphNodeMaterialBase::CreateBelowPinControls(TSharedPtr<SVerticalBox> Mai
 		int32 LeftPinCount = InputPins.Num();
 		int32 RightPinCount = OutputPins.Num();
 
+		const float NegativeHPad = FMath::Max<float>(-Settings->PaddingTowardsNodeEdge, 0.0f);
+		const float ExtraPad = 0.0f;
+
 		// Place preview widget based on where the least pins are
-		if (LeftPinCount < RightPinCount || RightPinCount == 0)
+		if ((LeftPinCount < RightPinCount) || (RightPinCount == 0))
 		{
 			LeftNodeBox->AddSlot()
+			.Padding(FMargin(NegativeHPad + ExtraPad, 0.0f, 0.0f, 0.0f))
 			.AutoHeight()
 			[
 				CreatePreviewWidget()
@@ -304,6 +320,7 @@ void SGraphNodeMaterialBase::CreateBelowPinControls(TSharedPtr<SVerticalBox> Mai
 		else if (LeftPinCount > RightPinCount)
 		{
 			RightNodeBox->AddSlot()
+			.Padding(FMargin(NegativeHPad + ExtraPad, 0.0f, 0.0f, 0.0f))
 			.AutoHeight()
 			[
 				CreatePreviewWidget()
@@ -312,6 +329,7 @@ void SGraphNodeMaterialBase::CreateBelowPinControls(TSharedPtr<SVerticalBox> Mai
 		else
 		{
 			MainBox->AddSlot()
+			.Padding(Settings->GetNonPinNodeBodyPadding())
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
@@ -444,4 +462,19 @@ ESlateCheckBoxState::Type SGraphNodeMaterialBase::IsExpressionPreviewChecked() c
 const FSlateBrush* SGraphNodeMaterialBase::GetExpressionPreviewArrow() const
 {
 	return FEditorStyle::GetBrush(MaterialNode->MaterialExpression->bCollapsed ? TEXT("Kismet.TitleBarEditor.ArrowDown") : TEXT("Kismet.TitleBarEditor.ArrowUp"));
+}
+
+void SGraphNodeMaterialBase::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
+{
+	if (GraphNode != nullptr)
+	{
+		UMaterialGraph* OuterGraph = MaterialNode->GetTypedOuter<UMaterialGraph>();
+		if ((OuterGraph != nullptr) && (MaterialNode->MaterialExpression != nullptr) )
+		{
+			TagMeta->OuterName = OuterGraph->OriginalMaterialFullName;
+			TagMeta->GUID = MaterialNode->MaterialExpression->MaterialExpressionGuid;
+			TagMeta->Tag = FName(*FString::Printf(TEXT("MaterialExprNode_%s_%s"), *TagMeta->OuterName, *TagMeta->GUID.ToString()));
+		}
+		TagMeta->FriendlyName = FString::Printf(TEXT("%s expression node in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString(), *TagMeta->OuterName);		
+	}
 }

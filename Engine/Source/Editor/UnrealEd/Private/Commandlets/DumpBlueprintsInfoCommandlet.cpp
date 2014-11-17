@@ -20,6 +20,15 @@
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionDatabase.h"
 #include "BlueprintActionMenuUtils.h"
+#include "K2Node_Composite.h"
+#include "ModuleManager.h"
+#include "AssetToolsModule.h"
+#include "BlueprintNodeSpawner.h"
+#include "AnimationGraphSchema.h"
+#include "AssetRegistryModule.h"
+#include "PackageName.h"
+#include "PackageHelperFunctions.h" // for NORMALIZE_ExcludeMapPackages
+#include "K2Node_FunctionEntry.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -98,6 +107,18 @@ DumpBlueprintsInfo commandlet params: \n\
                         (this will add .json to the end). When -multifile is   \n\
                         supplied, the class name will be postfixed to the name.\n\
 \n\
+    -interface=<Class>  Appends the desired interface to blueprints that are   \n\
+                        being dumped. The <Class> param has to match a known   \n\
+                        interface class.                                       \n\
+\n\
+    -loadBP=<Blueprint> Before recording any info, this will attempt to load   \n\
+                        the specified Blueprint. The blueprint name can contain\n\
+                        wildcards (to match multiple blueprints). Can also be  \n\
+                        set to \"all\", to load every non-developer blueprint. \n\
+\n\
+    -dbInfo             Will dump info regarding the blueprint action database \n\
+                        (which is used to consturct blueprint action menus).   \n\
+\n\
     -help, -h, -?       Display this message and then exit.                    \n\
 \n");
 
@@ -117,6 +138,8 @@ DumpBlueprintsInfo commandlet params: \n\
 		BPDUMP_SelectAllObjTypes    = (1<<9), 
 		BPDUMP_UseLegacyMenuBuilder = (1<<10),
 
+		BPDUMP_ActionDatabaseInfo   = (1<<11),
+
 		BPDUMP_PaletteMask = (BPDUMP_UnfilteredPalette | BPDUMP_FilteredPalette),
 		BPDUMP_ContextMask = (BPDUMP_GraphContextActions | BPDUMP_PinContextActions),
 	};
@@ -134,6 +157,7 @@ DumpBlueprintsInfo commandlet params: \n\
 			, PaletteFilter(nullptr)
 			, GraphFilter(GT_MAX)
 			, SelectedObjectType(nullptr)
+			, InterfaceClass(nullptr)
 		{
 		}
 
@@ -153,6 +177,7 @@ DumpBlueprintsInfo commandlet params: \n\
 		FString    DiffPath;
 		FString    DiffCommand;
 		FString    Filename;
+		UClass*	   InterfaceClass;
 	};
 
 	/** Static instance of the command switches (so we don't have to pass one along the call stack) */
@@ -230,12 +255,28 @@ DumpBlueprintsInfo commandlet params: \n\
 	static FString GetActionKey(FGraphActionListBuilderBase::ActionGroup const& Action);
 
 	/**
-	* Goes through all of the blueprint skeleton's object properties and pulls
-	* out the ones that are associated with an UActorComponent (and are visbile
-	* to the blueprint).
-	*/
+	 * Goes through all of the blueprint skeleton's object properties and pulls
+	 * out the ones that are associated with an UActorComponent (and are visbile
+	 * to the blueprint).
+	 */
 	static void GetComponentProperties(UBlueprint* Blueprint, TArray<UObjectProperty*>& PropertiesOut);
-	
+
+	/**
+	 * Takes the given size (in bytes) and returns a formatted string in either
+	 * bytes, kilobytes, megabytes, or gigabytes.
+	 *
+	 * @return A formatted string, representing the specified size in the best units possible.
+	 */
+	static FString BuildByteSizeString(int32 ByteSize);
+
+	/**
+	 * Dumps stats on the new blueprint menu system (database size, number of 
+	 * enteries, etc.).
+	 *
+	 * @return True if any data was written to the file, otherwise false (if nothing was dumped).
+	 */
+	static bool DumpActionDatabaseInfo(uint32 Indent, FArchive* FileOutWriter);
+
 	/**
 	 * Constructs a temporary blueprint (of the class type specified) and kicks 
 	 * off a dump of all its nested information (palette, graph, contextual 
@@ -353,6 +394,26 @@ DumpBlueprintsInfo commandlet params: \n\
 	 * specified by the user).
 	 */
 	static void DiffDumpFiles(FString const& NewFilePath, FString const& OldFilePath, FString const& UserDiffCmd);
+
+	/**
+	 * Takes the user specified class name, and attempts to translate it into 
+	 * a class pointer. ClassName can be a blueprint name; if so, this will make
+	 * sure that blueprint is loaded and return that blueprint's generated class.
+	 * 
+	 * @param  ClassName	A name that the user provided, in attempt to identify a class.
+	 * @return Null if no matching class could be found, otherwise a valid class pointer.
+	 */
+	static UClass* GetUserNamedClass(FString ClassName);
+
+	/**
+	 * Attempts to load a subset of blueprint assets. The AssetName can be left
+	 * blank to force load all blueprints.
+	 * 
+	 * @param  AssetName			The name of the blueprint(s) that you want to load (can have wildcards). If left empty, will load all blueprints.
+	 * @param  bAllowDevBlueprints	If true, blueprint in the developer folder will also be loaded.
+	 * @return The number of blueprints that were loaded.
+	 */
+	static int32 LoadBlueprints(FString AssetName, bool bAllowDevBlueprints);
 }
 
 //------------------------------------------------------------------------------
@@ -362,6 +423,7 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 	, PaletteFilter(nullptr)
 	, GraphFilter(GT_MAX)
 	, SelectedObjectType(nullptr)
+	, InterfaceClass(nullptr)	
 {
 	uint32 NewDumpFlags = BPDUMP_UseLegacyMenuBuilder;
 	for (FString const& Switch : Switches)
@@ -370,7 +432,7 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			FString ClassSwitch, ClassName;
 			Switch.Split(TEXT("="), &ClassSwitch, &ClassName);
-			BlueprintClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+			BlueprintClass = GetUserNamedClass(ClassName);
 
 			if (BlueprintClass == nullptr)
 			{
@@ -382,7 +444,7 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			FString ClassSwitch, ClassName;
 			Switch.Split(TEXT("="), &ClassSwitch, &ClassName);
-			PaletteFilter = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+			PaletteFilter = GetUserNamedClass(ClassName);
 
 			NewDumpFlags |= BPDUMP_FilteredPalette;
 			if (PaletteFilter == nullptr)
@@ -447,7 +509,7 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			FString ClassSwitch, ClassName;
 			Switch.Split(TEXT("="), &ClassSwitch, &ClassName);
-			SelectedObjectType = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+			SelectedObjectType = GetUserNamedClass(ClassName);
 
 			if (!ClassName.Compare("all", ESearchCase::IgnoreCase))
 			{
@@ -532,7 +594,42 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 			FString NameSwitch;
 			Switch.Split(TEXT("="), &NameSwitch, &Filename);
 		}
-		else
+		else if (Switch.StartsWith("interface="))
+		{
+			FString InterfaceSwitch, InterfaceName;
+			Switch.Split(TEXT("="), &InterfaceSwitch, &InterfaceName);
+
+			if (UClass* Class = GetUserNamedClass(InterfaceName))
+			{
+				if (Class->IsChildOf<UInterface>())
+				{
+					InterfaceClass = Class;
+				}
+			}
+			
+			if (InterfaceClass == nullptr)
+			{
+				UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Could not find a matching interface class matching this name: '%s'"), *InterfaceName);
+			}
+		}
+		else if (Switch.StartsWith("loadBP="))
+		{
+			FString LoadSwitch, BlueprintName;
+			Switch.Split(TEXT("="), &LoadSwitch, &BlueprintName);
+
+			if (!BlueprintName.Compare("all", ESearchCase::IgnoreCase))
+			{
+				BlueprintName = TEXT("");
+			}
+
+			bool const bAllowDevBlueprints = BlueprintName.IsEmpty() ? false : true;
+			LoadBlueprints(BlueprintName, bAllowDevBlueprints);
+		}
+		else if (!Switch.Compare("dbInfo", ESearchCase::IgnoreCase))
+		{
+			NewDumpFlags |= BPDUMP_ActionDatabaseInfo;
+		}
+		else if (!Switch.StartsWith("run=")) // account for the first switch, which invoked this commandlet
 		{
 			UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Unrecognized command switch '%s', use -help for a listing of all accepted params"), *Switch);
 		}
@@ -595,11 +692,13 @@ static AActor* DumpBlueprintInfoUtils::SpawnLevelActor(UClass* ActorClass, bool 
 	else if (FKismetEditorUtilities::CanCreateBlueprintOfClass(ActorClass))
 	{
 		UActorFactory* NewFactory = ConstructObject<UActorFactory>(UActorFactoryBlueprint::StaticClass());
+		NewFactory->AddToRoot();
 
 		UBlueprint* ActorTemplate = MakeTempBlueprint(ActorClass);
 		SpawnedActor = FActorFactoryAssetProxy::AddActorForAsset(ActorTemplate,
 			/*SelectActor =*/bSelect,
 			RF_Transient, NewFactory, NAME_None);
+		NewFactory->RemoveFromRoot();
 	}
 	// @TODO: What about non-blueprintable actors (brushes, etc.)... the code below crashes
 // 	else
@@ -635,6 +734,11 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 	{
 		MadeBlueprint = *FoundBlueprint;
 	}
+	else if (UBlueprint* ClassBlueprint = Cast<UBlueprint>(ParentClass->ClassGeneratedBy))
+	{
+		ClassBlueprints.Add(ParentClass, ClassBlueprint);
+		MadeBlueprint = ClassBlueprint;
+	}
 	else
 	{
 		UObject* BlueprintOuter = GetTransientPackage();
@@ -645,11 +749,19 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 		UClass* BlueprintClass = UBlueprint::StaticClass();
 		UClass* GeneratedClass = UBlueprintGeneratedClass::StaticClass();
 		EBlueprintType BlueprintType = BPTYPE_Normal;
+		UFactory* AssetFactory = nullptr;
 
 		if (bIsAnimBlueprint)
 		{
 			BlueprintClass = UAnimBlueprint::StaticClass();
 			GeneratedClass = UAnimBlueprintGeneratedClass::StaticClass();
+
+			UAnimBlueprintFactory* BlueprintFactory = ConstructObject<UAnimBlueprintFactory>(UAnimBlueprintFactory::StaticClass());
+			BlueprintFactory->ParentClass    = ParentClass;
+			BlueprintFactory->BlueprintType  = BlueprintType;
+			BlueprintFactory->TargetSkeleton = (USkeleton*)StaticLoadObject(USkeleton::StaticClass(), /*Outer =*/nullptr, TEXT("/Engine/NotForLicensees/Automation/QAAutomationtest_Assets/TEST_SkeletalMesh_Skeleton.TEST_SkeletalMesh_Skeleton"));
+
+			AssetFactory = BlueprintFactory;
 		}
 		else if (bIsLevelBlueprint)
 		{
@@ -665,6 +777,12 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 				BlueprintOuter = World->GetCurrentLevel();
 			}
 		}
+		else 
+		{
+			UBlueprintFactory* BlueprintFactory = ConstructObject<UBlueprintFactory>(UBlueprintFactory::StaticClass());
+			BlueprintFactory->ParentClass = ParentClass;
+			AssetFactory = BlueprintFactory;
+		}
 		// @TODO: UEditorUtilityBlueprint
 
 		FString const ClassName = ParentClass->GetName();
@@ -672,7 +790,16 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 		FName   const TempBpName = MakeUniqueObjectName(BlueprintOuter, BlueprintClass, FName(*DesiredName));
 
 		check(FKismetEditorUtilities::CanCreateBlueprintOfClass(ParentClass));
-		MadeBlueprint = FKismetEditorUtilities::CreateBlueprint(ParentClass, BlueprintOuter, TempBpName, BlueprintType, BlueprintClass, GeneratedClass);
+		if (AssetFactory != nullptr)
+		{
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+			UObject* NewAsset = AssetTools.CreateAsset(TempBpName.ToString(), BlueprintOuter->GetPathName(), BlueprintClass, AssetFactory, FName("DumpBlueprintsInfoCommandlet"));
+			MadeBlueprint = CastChecked<UBlueprint>(NewAsset);
+		}
+		else
+		{
+			MadeBlueprint = FKismetEditorUtilities::CreateBlueprint(ParentClass, BlueprintOuter, TempBpName, BlueprintType, BlueprintClass, GeneratedClass);
+		}
 		
 		// if this is an animation blueprint, then we want anim specific graphs to test as well (if it has an anim graph)...
 		if (bIsAnimBlueprint && (MadeBlueprint->FunctionGraphs.Num() > 0))
@@ -745,7 +872,9 @@ static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass
 			}
 		}
 
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(MadeBlueprint);		
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(MadeBlueprint);
+		MadeBlueprint->AddToRoot(); // to keep the BP from being garbage collected
+		FKismetEditorUtilities::CompileBlueprint(MadeBlueprint);
 		ClassBlueprints.Add(ParentClass, MadeBlueprint);
 	}
 
@@ -914,9 +1043,10 @@ static FString DumpBlueprintInfoUtils::GetActionKey(FGraphActionListBuilderBase:
 //------------------------------------------------------------------------------
 static void DumpBlueprintInfoUtils::GetComponentProperties(UBlueprint* Blueprint, TArray<UObjectProperty*>& PropertiesOut)
 {
-	if (AActor* BlueprintCDO = Cast<AActor>(Blueprint->SkeletonGeneratedClass->GetDefaultObject()))
+	UClass* BpClass = (Blueprint->SkeletonGeneratedClass != nullptr) ? Blueprint->SkeletonGeneratedClass : Blueprint->ParentClass;
+	if (BpClass->IsChildOf<AActor>())
 	{
-		for (TFieldIterator<UObjectProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		for (TFieldIterator<UObjectProperty> PropertyIt(BpClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			// SMyBlueprint filters out component variables in SMyBlueprint::CollectAllActions() using CPF_BlueprintVisible/CPF_Parm flags
 			if (PropertyIt->PropertyClass->IsChildOf(UActorComponent::StaticClass()) &&
@@ -926,6 +1056,381 @@ static void DumpBlueprintInfoUtils::GetComponentProperties(UBlueprint* Blueprint
 			}
 		}
 	}
+}
+
+//------------------------------------------------------------------------------
+static FString DumpBlueprintInfoUtils::BuildByteSizeString(int32 ByteSize)
+{
+	enum 
+	{
+		Bytes,
+		KiloBytes,
+		MegaBytes,
+		GigaBytes,
+
+		ByteUnits_MAX
+	};
+
+	const TCHAR* ByteUnits[ByteUnits_MAX];
+	ByteUnits[Bytes] = TEXT("Bytes");
+	ByteUnits[KiloBytes] = TEXT("KB");
+	ByteUnits[MegaBytes] = TEXT("MB");
+	ByteUnits[GigaBytes] = TEXT("GB");
+
+	int32 UnitsIndex = 0;
+	float ConvertedSize = ByteSize;
+
+	TCHAR const* Format = TEXT("%.0f %s");
+
+	float const MetricStepSize = 1024.0f;
+	while ((ConvertedSize > MetricStepSize) && (UnitsIndex < ByteUnits_MAX))
+	{
+		ConvertedSize /= MetricStepSize;
+		++UnitsIndex;
+
+		Format = TEXT("%.2f %s");
+	}
+
+	return FString::Printf(Format, ConvertedSize, ByteUnits[UnitsIndex]);
+}
+
+#include "BlueprintFunctionNodeSpawner.h"
+#include "BlueprintVariableNodeSpawner.h"
+
+//------------------------------------------------------------------------------
+static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchive* FileOutWriter)
+{
+	bool bWroteToFile = false;
+
+	uint32 const DbInfoMask = (BPDUMP_UseLegacyMenuBuilder | BPDUMP_ActionDatabaseInfo);
+	if ((CommandOptions.DumpFlags & DbInfoMask) == BPDUMP_ActionDatabaseInfo)
+	{
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping Database info..."), *BuildIndentString(Indent, true));
+		//--------------------------------------
+		// Composing Data
+		//--------------------------------------
+		double DatabaseBuildTime = 0.0;
+		{
+			FScopedDurationTimer DatabaseBuildTimer(DatabaseBuildTime);
+			// prime the database so we can record information from it
+			FBlueprintActionDatabase::Get();
+		}
+		FBlueprintActionDatabase& Database = FBlueprintActionDatabase::Get();
+		
+		FBlueprintActionDatabase::FActionRegistry const& ActionRegistry = Database.GetAllActions();
+		int32 EstimatedDatabaseSize = sizeof(Database) + ActionRegistry.GetAllocatedSize();
+		int32 EstimatedSystemSize   = EstimatedDatabaseSize;
+
+		TSet<UBlueprint*> TemplateOuters;
+		int32 DatabaseCount = 0;
+		double TotalPrimingTime = 0.0;
+		int32 TemplateCount = 0;
+		int32 UnknownAssetActions = 0;
+
+		struct FSpawnerInfo
+		{
+			int32  Count;
+			int32  TemplateNodeCount;
+			double TotalPrimingTime;
+
+			FSpawnerInfo() : Count(0), TemplateNodeCount(0), TotalPrimingTime(0.0) {}
+		};
+		TMap<UClass*, FSpawnerInfo> DatabaseBreakdown;
+
+		for (auto const& DbEntry : ActionRegistry)
+		{
+			UObject const* ActionSetKey = DbEntry.Key;
+			bool const bIsUnknownAssetEntry = ActionSetKey->IsAsset() &&
+				!ActionSetKey->IsA<UBlueprint>() &&
+				!ActionSetKey->IsA<UUserDefinedStruct>() &&
+				!ActionSetKey->IsA<UUserDefinedEnum>();
+
+			for (UBlueprintNodeSpawner* BpAction : DbEntry.Value)
+			{
+				++DatabaseCount;
+				// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
+				EstimatedDatabaseSize += sizeof(*BpAction);
+
+				FSpawnerInfo& SpawnerInfo = DatabaseBreakdown.FindOrAdd(BpAction->GetClass());
+				SpawnerInfo.Count += 1;
+
+				int32 OldPrimingTime = TotalPrimingTime;
+				{
+					FScopedDurationTimer PrimingTimer(TotalPrimingTime);
+					BpAction->Prime();
+				}
+				SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
+
+				if (UEdGraphNode* TemplateNode = BpAction->GetTemplateNode(NoInit))
+				{
+					UObject* TemplateOuter = TemplateNode->GetOuter();
+					while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))
+					{
+						TemplateOuter = TemplateOuter->GetOuter();
+					}
+					UBlueprint* OuterBlueprint = CastChecked<UBlueprint>(TemplateOuter);
+					TemplateOuters.Add(OuterBlueprint);
+
+					++TemplateCount;
+					SpawnerInfo.TemplateNodeCount += 1;
+				}
+
+				if (bIsUnknownAssetEntry)
+				{
+					++UnknownAssetActions;
+				}
+			}
+		}
+
+		int32 SpawnerCount = 0;
+		for (TObjectIterator<UBlueprintNodeSpawner> NodeSpawnerIt; NodeSpawnerIt; ++NodeSpawnerIt)
+		{
+			++SpawnerCount;
+			// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
+			EstimatedSystemSize += sizeof(**NodeSpawnerIt);
+		}
+
+		FString const OriginalIndent = BuildIndentString(Indent);
+		FString const IndentedNewline = "\n" + BuildIndentString(Indent + 1);
+
+		FString DatabaseInfoHeading = FString::Printf(TEXT("%s\"ActionDatabaseInfo\" : {%s\"TotalNodeSpawnerCount\" : %d,"), 
+			*OriginalIndent, *IndentedNewline, SpawnerCount);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*DatabaseInfoHeading), DatabaseInfoHeading.Len());
+
+		//--------------------------------------
+		// Dumping Database Stats
+		//--------------------------------------
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping raw action stats..."), *BuildIndentString(Indent+1, true));
+
+		FString const DoubleIndent = BuildIndentString(Indent + 2);
+		FString const DblIndentedNewline = "\n" + DoubleIndent;
+		FString const SubDictEndingBrace = IndentedNewline + "}";
+
+		FString const DatabaseSizeStr = BuildByteSizeString(EstimatedDatabaseSize);
+		FString const AvgActionSizeStr = BuildByteSizeString(EstimatedDatabaseSize / DatabaseCount);
+
+		FString DatabaseStats = FString::Printf(TEXT("%s\"Database Stats\" : {"), *IndentedNewline);
+		DatabaseStats += FString::Printf(TEXT("%s\"DatabaseBuildTime\"     : %.3f seconds,"), *DblIndentedNewline, DatabaseBuildTime);
+		DatabaseStats += FString::Printf(TEXT("%s\"NodeSpawnerCount\"      : %d,"), *DblIndentedNewline, DatabaseCount);
+		DatabaseStats += FString::Printf(TEXT("%s\"EstimatedDatabaseSize\" : %s,"), *DblIndentedNewline, *DatabaseSizeStr);
+		DatabaseStats += FString::Printf(TEXT("%s\"AvgSizePerEntry\"       : %s"), *DblIndentedNewline, *AvgActionSizeStr);
+		DatabaseStats += SubDictEndingBrace + ",";
+
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*DatabaseStats), DatabaseStats.Len());
+
+		//--------------------------------------
+		// Dumping Template Cache Stats
+		//--------------------------------------
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping template-cache stats..."), *BuildIndentString(Indent+1, true));
+
+		int32 EstimatedCacheSize = 0;
+		for (UBlueprint* CacheBlueprint : TemplateOuters)
+		{
+			TArray<UObject*> ChildObjs;
+			GetObjectsWithOuter(CacheBlueprint, ChildObjs);
+
+			EstimatedCacheSize += sizeof(*CacheBlueprint);
+			for (UObject* ChildObj : ChildObjs)
+			{
+				// @TODO: doesn't account for any allocated memory (for member TArrays, etc.)
+				EstimatedCacheSize += sizeof(*ChildObj);
+			}
+		}
+		EstimatedSystemSize += EstimatedCacheSize;
+
+		FString const NodeCacheSizeStr = BuildByteSizeString(EstimatedCacheSize);
+		FString const AvgNodeSizeStr = BuildByteSizeString((TemplateCount > 0) ? EstimatedCacheSize / TemplateCount : 0);
+		FString NodeCacheStats = FString::Printf(TEXT("%s\"Template-Cache Stats\" : {"), *IndentedNewline);
+		NodeCacheStats += FString::Printf(TEXT("%s\"TotalPrimingDuration\" : %.3f seconds,"), *DblIndentedNewline, TotalPrimingTime);
+		NodeCacheStats += FString::Printf(TEXT("%s\"CachedNodeCount\"      : %d,"), *DblIndentedNewline, TemplateCount);
+		NodeCacheStats += FString::Printf(TEXT("%s\"EstimatedCacheSize\"   : %s,"), *DblIndentedNewline, *NodeCacheSizeStr);
+		NodeCacheStats += FString::Printf(TEXT("%s\"AvgSizePerEntry\"      : %s"), *DblIndentedNewline, *AvgNodeSizeStr);
+		NodeCacheStats += SubDictEndingBrace + ",";
+
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*NodeCacheStats), NodeCacheStats.Len());
+
+		//--------------------------------------
+		// Dumping Database Breakdown
+		//--------------------------------------
+		TCHAR const* LineEnding = TEXT(",\n");
+
+		FString BreakdownStats = FString::Printf(TEXT("%s\"Database Breakdown\" : {\n"), *IndentedNewline);
+		for (auto const& SpawnerEntry : DatabaseBreakdown)
+		{
+			int32 SpawnerCount = SpawnerEntry.Value.Count;
+
+			static FString const TripleIndent = BuildIndentString(Indent + 3);
+			BreakdownStats += FString::Printf(TEXT("%s\"%s\" : {\n"), *DoubleIndent, *SpawnerEntry.Key->GetName());
+			BreakdownStats += FString::Printf(TEXT("%s\"Total\"               : %d,\n"), *TripleIndent, SpawnerCount);
+			BreakdownStats += FString::Printf(TEXT("%s\"TemplateNodesPrimed\" : %d,\n"), *TripleIndent, SpawnerEntry.Value.TemplateNodeCount);
+			BreakdownStats += FString::Printf(TEXT("%s\"AvgPrimingDuration\"  : %.03f seconds\n"), *TripleIndent, SpawnerEntry.Value.TotalPrimingTime / SpawnerCount);
+			BreakdownStats += DoubleIndent + "}" + LineEnding;
+		}
+		BreakdownStats.RemoveFromEnd(LineEnding);
+		BreakdownStats += IndentedNewline + "},";
+
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*BreakdownStats), BreakdownStats.Len());
+
+		//--------------------------------------
+		// Dumping Blueprint Stats
+		//--------------------------------------
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping blueprint related stats..."), *BuildIndentString(Indent+1, true));
+
+		int32 BlueprintsCount = 0;
+		int32 BlueprintsDbCount = 0;
+		int32 TotalBlueprintActionCount = 0;
+		int32 BlueprintFunctionCount = 0;
+		int32 BlueprintVariableCount = 0;
+		int32 BlueprintDelegateCount = 0;
+		int32 BlueprintLocalVarCount = 0;
+
+		for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+		{
+			if (BlueprintIt->IsAsset())
+			{
+				++BlueprintsCount;
+				if (FBlueprintActionDatabase::FActionList const* ActionList = ActionRegistry.Find(*BlueprintIt))
+				{
+					if (ActionList->Num() > 0)
+					{
+						++BlueprintsDbCount;
+					}
+					TotalBlueprintActionCount += ActionList->Num();
+				}
+
+				for (auto GraphIt = BlueprintIt->FunctionGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
+				{
+					UEdGraph* FunctionGraph = (*GraphIt);
+
+					TArray<UK2Node_FunctionEntry*> GraphEntryNodes;
+					FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphEntryNodes);
+
+					for (UK2Node_FunctionEntry* FunctionEntry : GraphEntryNodes)
+					{
+						for (FBPVariableDescription const& LocalVar : FunctionEntry->LocalVariables)
+						{
+							++BlueprintLocalVarCount;
+						}
+					}
+				}
+
+				UClass* BlueprintClass = BlueprintIt->GeneratedClass;
+				if (BlueprintClass == nullptr)
+				{
+					continue;
+				}
+
+				for (TFieldIterator<UFunction> FunctionIt(BlueprintClass, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
+				{
+					++BlueprintFunctionCount;
+				}
+
+				for (TFieldIterator<UProperty> PropertyIt(BlueprintClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+				{
+					bool const bIsDelegate = PropertyIt->IsA(UMulticastDelegateProperty::StaticClass());
+					if (bIsDelegate)
+					{
+						++BlueprintDelegateCount;
+					}
+					else
+					{
+						++BlueprintVariableCount;
+					}
+				}
+			}
+		};
+
+		FString BlueprintStats = FString::Printf(TEXT("%s\"Blueprint Stats\" : {"), *IndentedNewline);
+		BlueprintStats += FString::Printf(TEXT("%s\"BlueprintsLoaded\"         : %d,"), *DblIndentedNewline, BlueprintsCount);
+		BlueprintStats += FString::Printf(TEXT("%s\"BlueprintsWithActions\"    : %d,"), *DblIndentedNewline, BlueprintsDbCount);
+		BlueprintStats += FString::Printf(TEXT("%s\"AvgFunctionsPerBlueprint\" : %d,"), *DblIndentedNewline, FMath::RoundToInt((float)BlueprintFunctionCount / BlueprintsCount));
+		BlueprintStats += FString::Printf(TEXT("%s\"AvgVariablesPerBlueprint\" : %d,"), *DblIndentedNewline, FMath::RoundToInt((float)BlueprintVariableCount / BlueprintsCount));
+		BlueprintStats += FString::Printf(TEXT("%s\"AvgDelegatesPerBlueprint\" : %d,"), *DblIndentedNewline, FMath::RoundToInt((float)BlueprintDelegateCount / BlueprintsCount));
+		BlueprintStats += FString::Printf(TEXT("%s\"AvgLocalVarsPerBlueprint\" : %d,"), *DblIndentedNewline, FMath::RoundToInt((float)BlueprintLocalVarCount / BlueprintsCount));
+		BlueprintStats += FString::Printf(TEXT("%s\"TotalBlueprintActions\"    : %d,"), *DblIndentedNewline, TotalBlueprintActionCount);
+		BlueprintStats += FString::Printf(TEXT("%s\"AvgActionsPerBlueprint\"   : %d"), *DblIndentedNewline, FMath::RoundToInt((float)TotalBlueprintActionCount / BlueprintsDbCount));
+		BlueprintStats += SubDictEndingBrace + ",";
+		
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*BlueprintStats), BlueprintStats.Len());
+
+		//--------------------------------------
+		// Additional Asset Stats
+		//--------------------------------------
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping additional asset stats..."), *BuildIndentString(Indent+1, true));
+
+		int32 EnumAssetCount = 0;
+		int32 EnumsWithActionsCount = 0;
+		int32 TotalEnumActions = 0;
+
+		for (TObjectIterator<UUserDefinedEnum> EnumIt; EnumIt; ++EnumIt)
+		{
+			if (EnumIt->IsAsset())
+			{
+				++EnumAssetCount;
+				if (FBlueprintActionDatabase::FActionList const* ActionList = ActionRegistry.Find(*EnumIt))
+				{
+					if (ActionList->Num() > 0)
+					{
+						++EnumsWithActionsCount;
+					}
+					TotalEnumActions += ActionList->Num();
+				}
+			}
+			else
+			{
+				// @TODO: bad assumption? all UUserDefinedEnum should be assets
+			}
+		};
+
+		int32 StructAssetCount = 0;
+		int32 StructsWithActionsCount = 0;
+		int32 TotalStructActions = 0;
+
+		for (TObjectIterator<UUserDefinedStruct> StructIt; StructIt; ++StructIt)
+		{
+			if (StructIt->IsAsset())
+			{
+				++StructAssetCount;
+				if (FBlueprintActionDatabase::FActionList const* ActionList = ActionRegistry.Find(*StructIt))
+				{
+					if (ActionList->Num() > 0)
+					{
+						++StructsWithActionsCount;
+					}
+					TotalStructActions += ActionList->Num();
+				}
+			}
+			else
+			{
+				// @TODO: bad assumption? all UUserDefinedStructs should be assets
+			}
+		};
+
+		FString OtherAssetStats = FString::Printf(TEXT("%s\"Other Asset Stats\"  : {"), *IndentedNewline);
+		OtherAssetStats += FString::Printf(TEXT("%s\"EnumAssetsLoaded\"        : %d,"), *DblIndentedNewline, EnumAssetCount);
+		OtherAssetStats += FString::Printf(TEXT("%s\"EnumAssetsWithActions\"   : %d,"), *DblIndentedNewline, EnumsWithActionsCount);
+		OtherAssetStats += FString::Printf(TEXT("%s\"TotalEnumActionCount\"    : %d,"), *DblIndentedNewline, TotalEnumActions);
+		OtherAssetStats += FString::Printf(TEXT("%s\"StructAssetsLoaded\"      : %d,"), *DblIndentedNewline, StructAssetCount);
+		OtherAssetStats += FString::Printf(TEXT("%s\"StructAssetsWithActions\" : %d,"), *DblIndentedNewline, StructsWithActionsCount);
+		OtherAssetStats += FString::Printf(TEXT("%s\"TotalStructActionCount\"  : %d,"), *DblIndentedNewline, TotalStructActions);
+		OtherAssetStats += FString::Printf(TEXT("%s\"OtherAssetActions\"       : %d"), *DblIndentedNewline, UnknownAssetActions);
+		OtherAssetStats += SubDictEndingBrace + ",";
+
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*OtherAssetStats), OtherAssetStats.Len());
+		
+		//--------------------------------------
+		// Stats Closing
+		//--------------------------------------
+		
+		FString const TotalSystemSizeStr = BuildByteSizeString(EstimatedSystemSize);
+
+		FString DatabaseInfoClosing = FString::Printf(TEXT("%s\"EstimatedSystemSize\" : \"%s\"\n%s}"),
+			*IndentedNewline, *TotalSystemSizeStr, *OriginalIndent);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(*DatabaseInfoClosing), DatabaseInfoClosing.Len());
+
+		bWroteToFile = true;
+	}
+	return bWroteToFile;
 }
 
 //------------------------------------------------------------------------------
@@ -943,6 +1448,17 @@ static void DumpBlueprintInfoUtils::DumpInfoForClass(uint32 Indent, UClass* Blue
 	FileOutWriter->Serialize(TCHAR_TO_ANSI(*BeginClassEntry), BeginClassEntry.Len());
 
 	UBlueprint* TempBlueprint = MakeTempBlueprint(BlueprintClass);
+	if (CommandOptions.InterfaceClass != nullptr)
+	{
+		UClass* BpClass = (TempBlueprint->SkeletonGeneratedClass != nullptr) ? TempBlueprint->SkeletonGeneratedClass : TempBlueprint->ParentClass;
+		if (!BpClass->ImplementsInterface(CommandOptions.InterfaceClass))
+		{
+			if (!FBlueprintEditorUtils::ImplementNewInterface(TempBlueprint, CommandOptions.InterfaceClass->GetFName()))
+			{
+				UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Failed to add interface (%s), to class blueprint: '%s'"), *CommandOptions.InterfaceClass->GetName(), *ClassName);
+			}
+		}		
+	}
 
 	bool bNeedsClosingComma = false;
 	if (CommandOptions.DumpFlags & BPDUMP_PaletteMask)
@@ -983,11 +1499,8 @@ static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FBlueprintPaletteLis
 		FBlueprintActionContext FilterContext;
 		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
 		
-		FBlueprintActionMenuBuilder MenuBuilder;
-		{
-			// prime the database so it's not recorded in our timing capture
-			FBlueprintActionDatabase::Prime();
-			
+		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
+		{			
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
 			FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
 		}
@@ -1102,6 +1615,14 @@ static void DumpBlueprintInfoUtils::DumpActionList(uint32 Indent, FGraphActionLi
 	{
 		bool operator()(FGraphActionListBuilderBase::ActionGroup const& LHS, FGraphActionListBuilderBase::ActionGroup const& RHS) const
 		{
+			TSharedPtr<FEdGraphSchemaAction> LHSAction = LHS.Actions[0];
+			TSharedPtr<FEdGraphSchemaAction> RHSAction = RHS.Actions[0];
+			
+			if (LHSAction->Grouping != RHSAction->Grouping)
+			{
+				return LHSAction->Grouping > RHSAction->Grouping;
+			}
+			
 			FString LhKey = GetActionKey(LHS);
 			FString RhKey = GetActionKey(RHS);
 			return (LhKey.Compare(RhKey) < 0);
@@ -1164,7 +1685,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		FString const IndentedNewline = "\n" + BuildIndentString(Indent);
 
 		ActionEntry += " : {";
-		ActionEntry += IndentedNewline + "\"ActionType\"  : \"" + PrimeAction->GetTypeId() + "\",";
+		ActionEntry += IndentedNewline + "\"ActionType\"  : \"" + PrimeAction->GetTypeId().ToString() + "\",";
 		ActionEntry += IndentedNewline + "\"Name\"        : \"" + ActionName + "\",";
 		ActionEntry += IndentedNewline + "\"Category\"    : \"";
 		if (bHasCategory)
@@ -1298,8 +1819,14 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 	TArray<UObjectProperty*> ComponentProperties;
 	GetComponentProperties(Blueprint, ComponentProperties);
 
+	bool const bOnlyDumpSpecificComponents = (CommandOptions.SelectedObjectType != nullptr) &&
+		CommandOptions.SelectedObjectType->IsChildOf<UActorComponent>();
 	for (UObjectProperty* Component : ComponentProperties)
 	{
+		if (bOnlyDumpSpecificComponents && !Component->PropertyClass->IsChildOf(CommandOptions.SelectedObjectType))
+		{
+			continue;
+		}
 		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping actions with component selection: '%s'..."), *BuildIndentString(Indent, true), *Component->GetName());
 
 		FString SelectionContextEntry = "," + IndentedNewline + "\"ComponentContextMenu-" + Component->GetName() + "\" : \n";
@@ -1344,27 +1871,39 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		bool const bUsePinTypeClass = (CommandOptions.DumpFlags & BPDUMP_PinTypeIsClass) != 0;
 
-		UClass* TypeClass = FindObject<UClass>(ANY_PACKAGE, *CommandOptions.PinType);
-		if ((TypeClass != nullptr) && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(TypeClass))
+		bool bIsValidPinType = true;	
+		if (UClass* TypeClass = FindObject<UClass>(ANY_PACKAGE, *CommandOptions.PinType))
 		{
-			PinType.PinSubCategoryObject = TypeClass;
-			if (TypeClass->IsChildOf(UInterface::StaticClass()))
+			bIsValidPinType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(TypeClass);
+			if (bIsValidPinType)
 			{
-				PinType.PinCategory = K2Schema->PC_Interface;
-			}
-			else if (TypeClass->IsChildOf(UScriptStruct::StaticClass()))
-			{
-				PinType.PinCategory = K2Schema->PC_Struct;
-				PinType.PinSubCategoryObject = TypeClass->GetDefaultObject();
-			}
-			else
-			{
-				PinType.PinCategory = K2Schema->PC_Object;
-			}
+				PinType.PinSubCategoryObject = TypeClass;
+				if (TypeClass->IsChildOf(UInterface::StaticClass()))
+				{
+					PinType.PinCategory = K2Schema->PC_Interface;
+				}
+				else
+				{
+					PinType.PinCategory = K2Schema->PC_Object;
+				}
 
-			if (bUsePinTypeClass)
+				if (bUsePinTypeClass)
+				{
+					PinType.PinCategory = K2Schema->PC_Class;
+				}
+			}
+			
+		}
+		else if (UScriptStruct* StructType = FindObject<UScriptStruct>(ANY_PACKAGE, *CommandOptions.PinType))
+		{
+			PinType.PinCategory = K2Schema->PC_Struct;
+			PinType.PinSubCategoryObject = StructType;
+			bIsValidPinType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(StructType);
+
+			UEdGraphSchema const* Schema = Graph->GetSchema();
+			if (UAnimationGraphSchema const* AnimSchema = Cast<UAnimationGraphSchema>(Schema))
 			{
-				PinType.PinCategory = K2Schema->PC_Class;
+				bIsValidPinType |= AnimSchema->IsPosePin(PinType);
 			}
 		}
 		else if (!CommandOptions.PinType.Compare("self", ESearchCase::IgnoreCase))
@@ -1375,15 +1914,30 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 				PinType.PinCategory = K2Schema->PC_Class;
 			}
 			PinType.PinSubCategory = K2Schema->PSC_Self;
+			bIsValidPinType = true;
 		}
-		// @TODO: PC_Delegate, PC_MCDelegate
+		else if (!CommandOptions.PinType.Compare(K2Schema->PC_Delegate, ESearchCase::IgnoreCase) ||
+		         !CommandOptions.PinType.Compare(K2Schema->PC_MCDelegate, ESearchCase::IgnoreCase))
+		{
+			// @TODO: PC_Delegate, PC_MCDelegate
+			bIsValidPinType = false;
+		}
+		
+		if (bIsValidPinType)
+		{
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 
-		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
-		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
-		PinType.bIsArray = true;
-		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			PinType.bIsReference = true;
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+			PinType.bIsReference = false;
 
-		bWroteToFile = true;
+			PinType.bIsArray = true;
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+
+			bWroteToFile = true;
+		}
 	}
 	else if (Graph->Schema->IsChildOf(UEdGraphSchema_K2::StaticClass()))
 	{
@@ -1415,6 +1969,11 @@ static bool DumpBlueprintInfoUtils::DumpTypeTreeActions(uint32 Indent, UEdGraph*
 		FEdGraphPinType PinType = PinTypeInfo->GetPinType(/*bForceLoadedSubCategoryObject =*/false);
 		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
 		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+		PinType.bIsReference = true;
+		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+		PinType.bIsReference = false;
 
 		PinType.bIsArray = true;
 		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
@@ -1451,11 +2010,16 @@ static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, 
 {
 	FBlueprintGraphActionListBuilder ContextMenuBuilder(Graph);
 
-	UEdGraphPin* DummyPin = NewObject<UEdGraphPin>(GetTransientPackage());
-	DummyPin->PinName = DummyPin->GetName();
-	DummyPin->Direction = EGPD_Input;
-	DummyPin->PinType = PinType;
-
+	UK2Node_Composite* DummyNode = NewObject<UK2Node_Composite>(Graph);
+	UEdGraphPin* DummyPin = DummyNode->CreatePin(
+		EGPD_Input,
+		PinType.PinCategory,
+		PinType.PinSubCategory,
+		PinType.PinSubCategoryObject.Get(),
+		PinType.bIsArray,
+		PinType.bIsReference,
+		DummyNode->GetName()
+	);
 	ContextMenuBuilder.FromPin = DummyPin;
 
 	DumpContextActionList(Indent, ContextMenuBuilder, FileOutWriter);
@@ -1480,7 +2044,7 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 		{
 			PinTypeLog = "OUTPUT";
 		}
-		PinTypeLog += UEdGraphSchema_K2::TypeToString(ActionBuilder.FromPin->PinType);
+		PinTypeLog += UEdGraphSchema_K2::TypeToText(ActionBuilder.FromPin->PinType).ToString();
 
 		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping pin actions: %s"), *BuildIndentString(Indent, true), *PinTypeLog);
 	}
@@ -1534,17 +2098,14 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 		{
 			if (UProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
 			{
-				SelectedProperties.Add(SelectedProperty);
+				FilterContext.SelectedObjects.Add(SelectedProperty);
 			}
 		}
 		
-		FBlueprintActionMenuBuilder MenuBuilder;
+		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
 		{
-			// prime the database so it's not recorded in our timing capture
-			FBlueprintActionDatabase::Prime();
-			
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
-			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, SelectedProperties, MenuBuilder);
+			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, MenuBuilder);
 		}
 		ActionBuilder.Append(MenuBuilder);
 	}
@@ -1568,7 +2129,7 @@ static void DumpBlueprintInfoUtils::DumpContextInfo(uint32 Indent, FBlueprintGra
 	}
 	else
 	{
-		ContextEntry += UEdGraphSchema_K2::TypeToString(ActionBuilder.FromPin->PinType);
+		ContextEntry += UEdGraphSchema_K2::TypeToText(ActionBuilder.FromPin->PinType).ToString();
 
 		ContextEntry += "\"," + IndentedNewline + "\"PinDirection\" : \"";
 		if (ActionBuilder.FromPin->Direction == EGPD_Input)
@@ -1711,6 +2272,129 @@ static void DumpBlueprintInfoUtils::DiffDumpFiles(FString const& NewFilePath, FS
 	}
 }
 
+//------------------------------------------------------------------------------
+static UClass* DumpBlueprintInfoUtils::GetUserNamedClass(FString ClassName)
+{
+	UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+
+	if (FoundClass == nullptr)
+	{
+		// maybe they meant a blueprint?
+		UBlueprint* Blueprint = FindObject<UBlueprint>(ANY_PACKAGE, *ClassName);
+		// maybe we have to load that blueprint?
+		if (Blueprint == nullptr)
+		{
+			// if this loaded something...
+			if (LoadBlueprints(ClassName, /*bAlloDevBlueprints =*/true) > 0)
+			{
+				Blueprint = FindObject<UBlueprint>(ANY_PACKAGE, *ClassName);
+				if (Blueprint != nullptr)
+				{
+					FoundClass = Blueprint->GeneratedClass;
+				}
+				else
+				{
+					FoundClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+				}
+			}
+		}
+	}
+
+	return FoundClass;
+}
+
+//------------------------------------------------------------------------------
+static int32 DumpBlueprintInfoUtils::LoadBlueprints(FString AssetName, bool bAllowDevBlueprints)
+{
+	int32 LoadedCount = 0;
+
+	TArray<FString> PackagesToLoad;
+	if (!AssetName.IsEmpty())
+	{
+		FString PackageName = FString::Printf(TEXT("*%s*%s"), *AssetName, *FPackageName::GetAssetPackageExtension());
+
+		TArray<FString> UnusedPackageNames;
+		NormalizePackageNames(UnusedPackageNames, PackagesToLoad, PackageName, NORMALIZE_ExcludeMapPackages);
+
+		for (FString& FilePath : PackagesToLoad)
+		{
+			FString PackagePath;
+			if (FPackageName::TryConvertFilenameToLongPackageName(FilePath, PackagePath))
+			{
+				FilePath = PackagePath;
+			}
+		}
+	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	static bool bAssetRegistryLoaded = false;
+	if (!bAssetRegistryLoaded)
+	{
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("Loading the asset registry..."));
+		AssetRegistryModule.Get().SearchAllAssets(/*bSynchronousSearch =*/true);
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("Finished loading the asset registry."));
+		bAssetRegistryLoaded = true;
+	}
+	
+	TArray<FAssetData> BlueprintAssetList;
+	AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), BlueprintAssetList);
+	AssetRegistryModule.Get().GetAssetsByClass(UAnimBlueprint::StaticClass()->GetFName(), BlueprintAssetList);
+
+ 	FString DevelopersRoot = FPaths::GameDevelopersDir().LeftChop(1);
+	FPackageName::TryConvertFilenameToLongPackageName(DevelopersRoot, DevelopersRoot);
+
+	bool const bLoadPackageSubset = (PackagesToLoad.Num() > 0);	
+	int32 AlreadyLoadedCount = 0;
+
+	for (FAssetData const& Asset : BlueprintAssetList)
+	{
+		if (Asset.IsAssetLoaded())
+		{
+			++AlreadyLoadedCount;
+			continue;
+		}
+
+		FString const PackageName = Asset.PackageName.ToString();
+		if (!bAllowDevBlueprints && PackageName.StartsWith(DevelopersRoot))
+		{
+			continue;
+		}
+
+		if (bLoadPackageSubset && !PackagesToLoad.Contains(PackageName))
+		{
+			continue;
+		}
+
+		FString const AssetPath = Asset.ObjectPath.ToString();
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("Loading '%s'..."), *AssetPath);
+
+		UBlueprint* LoadedBlueprint = Cast<UBlueprint>(StaticLoadObject(Asset.GetClass(), /*Outer =*/nullptr, *AssetPath));
+		if (LoadedBlueprint != nullptr)
+		{
+			++LoadedCount;
+		}
+		else
+		{
+			UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Failed to load: '%s'."), *AssetPath);
+		}
+
+		if (bLoadPackageSubset && (LoadedCount >= PackagesToLoad.Num()))
+		{
+			break;
+		}
+ 	}
+
+	if (!bLoadPackageSubset || (PackagesToLoad.Num() > 0))
+	{
+		int32 const TotalLoaded = LoadedCount + AlreadyLoadedCount;
+		int32 const AttemptedLoadCount = bLoadPackageSubset ? PackagesToLoad.Num() : BlueprintAssetList.Num();
+		UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Successfully loaded %d/%d Blueprints (%.1f%%)."), TotalLoaded, AttemptedLoadCount, 100.f * (float)TotalLoaded / AttemptedLoadCount);
+	}
+
+	return LoadedCount;
+}
+
 /*******************************************************************************
  * UDumpBlueprintsInfoCommandlet
  ******************************************************************************/
@@ -1724,6 +2408,15 @@ UDumpBlueprintsInfoCommandlet::UDumpBlueprintsInfoCommandlet(class FPostConstruc
 //------------------------------------------------------------------------------
 int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 {
+	bool const bCachedIsRunning     = GIsRunning;
+	bool const bCachedExitRequested = GIsRequestingExit;
+	// priming the FBlueprintActionDatabase requires GIsRequestingExit to be 
+	// true; so that it registers its database entries with the GC system, via 
+	// AddReferencedObjects() (without GIsRequestingExit, the FGCObject 
+	// constructor doesn't register itself).
+	GIsRunning		  = true;
+	GIsRequestingExit = false;
+
 	TArray<FString> Tokens, Switches;
 	ParseCommandLine(*Params, Tokens, Switches);
 
@@ -1762,12 +2455,12 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 				check(!ActiveFilePath.IsEmpty());
 				DumpBlueprintInfoUtils::DiffDumpFiles(ActiveFilePath, CommandOptions.DiffPath, CommandOptions.DiffCommand);
 			}
-
 			delete FileOut;
 			FileOut = nullptr;
 		}
 	};
 
+	
 	// this lambda is responsible for opening a file for write, and adding 
 	// opening json characters to the file (contextually tracks the active filepath as well)
 	auto OpenFileStream = [&ActiveFilePath, &CloseFileStream, &FileOut](UClass* Class)->FArchive*
@@ -1779,6 +2472,10 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 		check(FileOut != nullptr);
 		FileOut->Serialize(TCHAR_TO_ANSI(TEXT("{\n")), 2);
 
+		if (DumpBlueprintInfoUtils::DumpActionDatabaseInfo(1, FileOut))
+		{
+			FileOut->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+		}
 		return FileOut;
 	};
 	
@@ -1857,6 +2554,11 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 	}
 
 	CloseFileStream(&FileOut);
+
+	// restore the globals that we forcefully overrode
+	GIsRequestingExit = bCachedExitRequested;
+	GIsRunning        = bCachedIsRunning;
+
 	return 0;
 }
 

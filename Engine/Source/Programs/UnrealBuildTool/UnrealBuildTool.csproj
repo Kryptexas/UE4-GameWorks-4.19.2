@@ -38,8 +38,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -52,7 +51,8 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x86</PlatformTarget>
@@ -69,6 +69,11 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\x86\Debug\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
@@ -131,6 +136,7 @@
     <When Condition="Exists('Android\UEBuildAndroid.cs')">
       <ItemGroup>
         <Compile Include="Android\UEBuildAndroid.cs" />
+        <Compile Include="Android\UEDeployAndroid.cs" />
         <Compile Include="Android\AndroidToolChain.cs" />
         <Compile Include="Android\AndroidProjectGenerator.cs" />
       </ItemGroup>
@@ -192,7 +198,6 @@
     <Compile Include="..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
-    <Compile Include="Android\UEDeployAndroid.cs" />
     <Compile Include="Configuration\UEBuildClient.cs" />
     <Compile Include="Configuration\UEBuildDeploy.cs" />
     <Compile Include="Configuration\UEBuildBinary.cs" />
@@ -215,6 +220,9 @@
     <Compile Include="System\ActionHistory.cs" />
     <Compile Include="System\BuildException.cs" />
     <Compile Include="Configuration\BuildConfiguration.cs" />
+    <Compile Include="System\BuildHostPlatform.cs" />
+    <Compile Include="System\FlatCPPIncludeDepencencyCache.cs" />
+    <Compile Include="System\Distcc.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />

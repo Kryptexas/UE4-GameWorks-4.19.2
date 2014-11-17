@@ -128,7 +128,7 @@ void FStackTracker::DumpStackTraces( int32 StackThreshold, FOutputDevice& Ar )
 			{
 				ANSICHAR AddressInformation[512];
 				AddressInformation[0] = 0;
-				FPlatformStackWalk::ProgramCounterToHumanReadableString( AddressIndex, CallStack.Addresses[AddressIndex], AddressInformation, ARRAY_COUNT(AddressInformation)-1, VF_DISPLAY_FILENAME );
+				FPlatformStackWalk::ProgramCounterToHumanReadableString( AddressIndex, CallStack.Addresses[AddressIndex], AddressInformation, ARRAY_COUNT(AddressInformation)-1 );
 				CallStackString = CallStackString + LINE_TERMINATOR TEXT(",,,") + FString(AddressInformation);
 			}
 

@@ -98,8 +98,12 @@ public:
 	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) override;
 #endif //WITH_EDITOR
 	virtual float MaxAudibleDistance( float CurrentMaxDistance ) override;
-	virtual FString GetUniqueString() const override;
 	// End USoundNode interface. 
 
 	virtual float GetCurrentDistance(FAudioDevice* AudioDevice, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams) const;
+
+	/**
+	 * Determines whether Crossfading is currently allowed for the active sound
+	 */
+	virtual bool AllowCrossfading(FActiveSound& ActiveSound) const;
 };

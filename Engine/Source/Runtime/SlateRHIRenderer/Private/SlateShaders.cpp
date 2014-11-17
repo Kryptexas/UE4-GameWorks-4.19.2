@@ -44,9 +44,16 @@ void FSlateVertexDeclaration::InitRHI()
 	FVertexDeclarationElementList Elements;
 	uint32 Stride = sizeof(FSlateVertex);
 	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,TexCoords),VET_Float4,0,Stride));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipCoords),VET_Short4,1,Stride));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Position),VET_Short2,2,Stride));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Color),VET_Color,3,Stride));
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Position),VET_Short2,1,Stride));
+	bool bUseFloat16 =
+#if SLATE_USE_FLOAT16
+		true;
+#else
+		false;
+#endif
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipRect),bUseFloat16 ? VET_Half2 : VET_Float2,2,Stride));
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipRect)+STRUCT_OFFSET(FSlateRotatedClipRectType,ExtentX),bUseFloat16 ? VET_Half4 : VET_Float4,3,Stride));
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Color),VET_Color,4,Stride));
 
 	VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 }

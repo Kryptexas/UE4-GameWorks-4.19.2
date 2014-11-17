@@ -499,31 +499,47 @@ UViewport::UViewport(const FPostConstructInitializeProperties& PCIP)
 	////ParentArgs.RenderDirectlyToWindow(true);
 }
 
-void UViewport::ReleaseNativeWidget()
+void UViewport::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	ViewportWidget.Reset();
 }
 
 TSharedRef<SWidget> UViewport::RebuildWidget()
 {
-	ViewportWidget = SNew(SAutoRefreshViewport);
-
-	if ( GetChildrenCount() > 0 )
+	if ( IsDesignTime() )
 	{
-		ViewportWidget->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
+		return BuildDesignTimeWidget(SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("Viewport", "Viewport"))
+			]);
 	}
+	else
+	{
+		ViewportWidget = SNew(SAutoRefreshViewport);
 
-	return BuildDesignTimeWidget( ViewportWidget.ToSharedRef() );
+		if ( GetChildrenCount() > 0 )
+		{
+			ViewportWidget->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
+		}
+
+		return BuildDesignTimeWidget(ViewportWidget.ToSharedRef());
+	}
 }
 
-void UViewport::SyncronizeProperties()
+void UViewport::SynchronizeProperties()
 {
-	Super::SyncronizeProperties();
+	Super::SynchronizeProperties();
 
-	ViewportWidget->ViewportClient->SetBackgroundColor(BackgroundColor);
-	ViewportWidget->ViewportClient->SetEngineShowFlags(ShowFlags);
+	if ( ViewportWidget.IsValid() )
+	{
+		ViewportWidget->ViewportClient->SetBackgroundColor(BackgroundColor);
+		ViewportWidget->ViewportClient->SetEngineShowFlags(ShowFlags);
+	}
 }
 
 void UViewport::OnSlotAdded(UPanelSlot* Slot)
@@ -608,6 +624,11 @@ AActor* UViewport::Spawn(TSubclassOf<AActor> ActorClass)
 const FSlateBrush* UViewport::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.Viewport");
+}
+
+const FText UViewport::GetPaletteCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

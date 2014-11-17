@@ -281,6 +281,9 @@ private:
 	/** Wind actor used for preview */
 	TWeakObjectPtr<AWindDirectionalSource> SelectedWindActor;
 
+	/** Focus on the preview component the next time we draw the viewport */
+	bool bFocusOnDraw;
+
 	/** Distance to trace for physics bodies */
 	const float BodyTraceDistance;
 private:

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "K2Node.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_CallFunction.generated.h"
 
 UCLASS()
@@ -47,6 +48,9 @@ private:
 	UPROPERTY()
 	TSubclassOf<class UObject> CallFunctionClass_DEPRECATED;
 
+	/** Constructing FText strings can be costly, so we cache the node's tooltip */
+	FNodeTextCache CachedTooltip;
+
 public:
 
 	// UObject interface
@@ -58,7 +62,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual void DestroyNode() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetDescriptiveCompiledName() const override;
 	virtual bool IsDeprecated() const override;
@@ -131,6 +135,8 @@ public:
 	/** Gets the user-facing name for the function */
 	static FString GetUserFacingFunctionName(const UFunction* Function);
 
+	/** Set up a pins tooltip from a function's tooltip */
+	static void GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function);
 	/** Gets the non-specific tooltip for the function */
 	static FString GetDefaultTooltipForFunction(const UFunction* Function);
 	/** Get default category for this function in action menu */
@@ -150,11 +156,21 @@ public:
 
 	static void CallForEachElementInArrayExpansion(UK2Node* Node, UEdGraphPin* MultiSelf, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
 
-	/** Returns the graph for this function, if available */
-	UEdGraph* GetFunctionGraph() const;
+	/**
+	 * Returns the graph for this function, if available. In cases of calling an event, it will be the ubergraph for the event
+	 *
+	 * @param OutGraphNode		If this function calls an event, this param is the event node, otherwise it is NULL
+	 */
+	UEdGraph* GetFunctionGraph(const UEdGraphNode*& OutGraphNode) const;
 
 	/** Checks if the property is marked as "CustomStructureParam" */
 	static bool IsStructureWildcardProperty(const UFunction* InFunction, const FString& PropertyName);
+
+	/** Used to determine the result of AllowMultipleSelfs() (without having a node instance) */
+	static bool CanFunctionSupportMultipleTargets(UFunction const* InFunction);
+
+	/** */
+	static FName GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor);
 
 private: 
 
@@ -168,9 +184,8 @@ private:
 	 * Creates hover text for the specified pin.
 	 * 
 	 * @param   Pin				The pin you want hover text for (should belong to this node)
-	 * @param   HoverTextOut	This will get filled out with the generated text
 	 */
-	void GeneratePinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const;
+	void GeneratePinTooltip(UEdGraphPin& Pin) const;
 
 protected:
 	/** Helper function to ensure function is called in our context */

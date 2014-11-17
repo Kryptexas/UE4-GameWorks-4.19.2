@@ -139,26 +139,37 @@ void OverrideWithTestChart(float2 ScreenPos, inout float2 ObjectVelocity, inout 
 
 // ------------------------------------------
 
-// motion blur setup pixel shader, downsamples to half resolution
-// MRT0: velocity in normalized_motionblur_velocity and mask in 0:background..1:object (needed for soft masked)
-// MRT1: color and depth in alpha
-void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
-	out float4 OutVelocity : SV_Target0,
-	out float4 OutColor : SV_Target1)
+// motion blur setup vertex shader
+void SetupVS(
+	in float4 InPosition : ATTRIBUTE0,
+	in float2 InTexCoord : ATTRIBUTE1,
+	out float2 OutUV: TEXCOORD0,
+	out float2 OutUVs[4]: TEXCOORD1,
+	out float4 OutPosition : SV_POSITION
+	)
 {
-	float2 UV = UVAndScreenPos.xy;
-	// UV into the full resolution source RT
-	// high quality 4 samples with blurring
-	float2 UVs[4];
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutUV);
+
+//	float2 ScreenPos =  OutPosition.xy;
 
 	float2 HalfPixelOffset = PostprocessInput1Size.zw * float2(0.5f, 0.5f);
 
 	// no filtering (2x2 kernel) to get no leaking in Depth of Field, lefttop,righttop,leftbottom,rightbottom
-	UVs[0] = UV + HalfPixelOffset * float2(-1, -1);
-	UVs[1] = UV + HalfPixelOffset * float2( 1, -1);
-	UVs[2] = UV + HalfPixelOffset * float2(-1,  1);
-	UVs[3] = UV + HalfPixelOffset * float2( 1,  1);
-	
+	OutUVs[0] = OutUV + HalfPixelOffset * float2(-1, -1);
+	OutUVs[1] = OutUV + HalfPixelOffset * float2( 1, -1);
+	OutUVs[2] = OutUV + HalfPixelOffset * float2(-1,  1);
+	OutUVs[3] = OutUV + HalfPixelOffset * float2( 1,  1);
+}
+
+// motion blur setup pixel shader, downsamples to half resolution
+// MRT0: velocity in normalized_motionblur_velocity and mask in 0:background..1:object (needed for soft masked)
+// MRT1: color and depth in alpha
+void SetupPS(
+	float2 UV : TEXCOORD0,				// UV into the full resolution source RT
+	float2 UVs[4] : TEXCOORD1,			// UV for high quality 4 samples with blurring
+	out float4 OutVelocity : SV_Target0,
+	out float4 OutColor : SV_Target1)
+{
 	// detect find objects
 	float4 ObjectMask;
 	float2 VelocitySamples[4];
@@ -219,44 +230,49 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 
 	OutColor.a = ConvertFromDeviceZ(OutColor.a);
 
-	float4 TempVelocity;
 	{
 		float2 SumVelocity = 0;
 
-		for( int i = 0; i < 4; i++ )
+		FLATTEN for( int i = 0; i < 4; i++ )
 		{
 			SumVelocity += VelocitySamples[i] * ObjectMask[i];
 		}
 
-		TempVelocity.xy = SumVelocity * InvTotalWeight * VelocityScale.xy;
+		OutVelocity.xy = SumVelocity * InvTotalWeight * VelocityScale.xy;
 	}
 
 	// for debugging
+/*
 	{
 		float2 BackgroundVelocity = 0;
 
-		OverrideWithTestChart(UVAndScreenPos.zw, TempVelocity.xy, BackgroundVelocity, OutColor, AvgObject);
+		OverrideWithTestChart(UVAndScreenPos.zw, OutVelocity.xy, BackgroundVelocity, OutColor, AvgObject);
 	}
-
-	// clamp motion vector in a disc from -1 to 1 (the maximum motion vector range)
-	half Len = dot(TempVelocity.xy, TempVelocity.xy);
-	FLATTEN if(Len > 1)
-	{
-		TempVelocity.xy *= rsqrt(Len);
-	}
-	FLATTEN if(Len < 0.01f)
-	{
-		TempVelocity = 0;
-	}
+*/
 
 	// 0:background, 1:object layer
-	TempVelocity.b = AvgObject > 0.5f;
-	// alpha is used to normalize the velocity after blurring (0:background, 1:object)
-	TempVelocity.a = 1;
+	OutVelocity.b = AvgObject > 0.5f;
 
-	// 
-	TempVelocity.rg *= TempVelocity.b;
-	OutVelocity = TempVelocity;
+	// clamp motion vector in a disc from -1 to 1 (the maximum motion vector range)
+	{
+		half Len = dot(OutVelocity.xy, OutVelocity.xy);
+
+		float ScaleFix = rsqrt(Len);
+		
+		FLATTEN if(Len < 1)
+		{
+			ScaleFix = 1.0f;
+		}
+		FLATTEN if(Len < 0.01f)
+		{
+			ScaleFix = 0;
+		}
+
+		OutVelocity.xy *= ScaleFix * OutVelocity.b;
+	}
+
+	// alpha is used to normalize the velocity after blurring (0:background, 1:object)
+	OutVelocity.a = 1;
 
 	// debug, uncomment to geneate small and large horizontal motion and the objects
 //	OutVelocity.xy = lerp(float2(0,0), (InUV.y > 0.8f) ? float2(1,0) : float2(0.02f,0), OutVelocity.b);

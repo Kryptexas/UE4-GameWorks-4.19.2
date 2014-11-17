@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -108,6 +108,11 @@ namespace UnrealBuildTool
             return false;
         }
 
+		public override bool CanUseDistcc()
+		{
+			return true;
+		}
+
         /**
          *	Setup the target environment for building
          *	
@@ -130,11 +135,8 @@ namespace UnrealBuildTool
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
             }
 
-            // needs IOS8 for Metal, but Rocket libs won't work with binary 4.4, because IOS8 will try to use Meta, 
-			// but 4.4 doesn't ship with Redist-MetalRHI, so skip Meta for binary users. GitHub people will still get Metal
-			// This is not going into 4.5
-			bool bIsRocket = UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket();
-            if (!bIsRocket && IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
+            // needs IOS8 for Metal
+            if (IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
             {
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
                 InBuildTarget.ExtraModuleNames.Add("MetalRHI");
@@ -183,8 +185,10 @@ namespace UnrealBuildTool
             UEBuildConfiguration.bBuildEditor = false;
             UEBuildConfiguration.bBuildDeveloperTools = false;
             UEBuildConfiguration.bCompileAPEX = false;
+            UEBuildConfiguration.bRuntimePhysicsCooking = false;
             UEBuildConfiguration.bCompileSimplygon = false;
             UEBuildConfiguration.bBuildDeveloperTools = false;
+            UEBuildConfiguration.bCompileICU = true;
 
             // we currently don't have any simulator libs for PhysX
             if (GetActiveArchitecture() == "-simulator")
@@ -270,73 +274,6 @@ namespace UnrealBuildTool
                 }
             }
         }
-
-        public override void SetupBinaries(UEBuildTarget InBuildTarget)
-        {
-            if (ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
-            {
-                // dangerously fast mode doesn't generate stub files
-                if (!IOSToolChain.bUseDangerouslyFastMode)
-                {
-                    List<UEBuildBinary> NewBinaries = new List<UEBuildBinary> ();
-                    // add the .stub to the binaries
-                    foreach (var Binary in InBuildTarget.AppBinaries)
-                    {
-                        // make a binary that just points to the .stub of this executable
-                        UEBuildBinaryConfiguration NewConfig = new UEBuildBinaryConfiguration(
-                                                                  InType: Binary.Config.Type,
-                                                                  InOutputFilePath: Binary.Config.OutputFilePath + ".stub",
-                                                                  InIntermediateDirectory: Binary.Config.IntermediateDirectory,
-                                                                  bInCreateImportLibrarySeparately: Binary.Config.bCreateImportLibrarySeparately,
-                                                                  bInAllowExports: Binary.Config.bAllowExports,
-                                                                  InModuleNames: Binary.Config.ModuleNames);
-
-                        NewBinaries.Add (new UEStubDummyBinary (InBuildTarget, NewConfig));
-                    }
-
-                    InBuildTarget.AppBinaries.AddRange (NewBinaries);
-                }
-            }
-        }
     }
-
-    /// <summary>
-    /// A .stub that has the executable and metadata included
-    /// Note that this doesn't actually build anything. It could potentially be used to perform the IPhonePackage stuff that happens in IOSToolChain.PostBuildSync()
-    /// </summary>
-    class UEStubDummyBinary : UEBuildBinary
-    {
-        /// <summary>
-        /// Create an instance initialized to the given configuration
-        /// </summary>
-        /// <param name="InConfig">The build binary configuration to initialize the instance to</param>
-        public UEStubDummyBinary(UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig)
-            : base(InTarget, InConfig)
-        {
-        }
-
-        /// <summary>
-        /// Builds the binary.
-        /// </summary>
-        /// <param name="CompileEnvironment">The environment to compile the binary in</param>
-        /// <param name="LinkEnvironment">The environment to link the binary in</param>
-        /// <returns></returns>
-        public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
-        {
-            // generate the .stub!
-            return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };
-        }
-
-        /// <summary>
-        /// Writes an XML summary of the build environment for this binary
-        /// </summary>
-        /// <param name="CompileEnvironment">The environment to compile the binary in</param>
-        /// <param name="LinkEnvironment">The environment to link the binary in</param>
-        /// <returns></returns>
-        public override void WriteBuildEnvironment(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, XmlWriter Writer)
-        {
-        }
-    }
-
 }
 

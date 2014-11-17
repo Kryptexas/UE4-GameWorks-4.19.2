@@ -28,6 +28,16 @@ struct FBlueprintActionMenuUtils
 	 * @param  SelectedProperties	A set of selected properties to offer contextual menu options for.
 	 * @param  MenuOut				The structure that will be populated with context menu items.
 	 */
-	KISMET_API static void MakeContextMenu(FBlueprintActionContext const& Context, TArray<UProperty*> const& SelectedProperties, FBlueprintActionMenuBuilder& MenuOut);
+	KISMET_API static void MakeContextMenu(FBlueprintActionContext const& Context, bool bIsContextSensitive, FBlueprintActionMenuBuilder& MenuOut);
+
+	/**
+	 * A centralized utility function for constructing the blueprint favorites
+	 * menu. Takes the palette menu building code and folds in an additional 
+	 * "IsFavorited" filter check.
+	 *
+	 * @param  Context	Contains the blueprint that the palette is for.
+	 * @param  MenuOut	The structure that will be populated with favorite menu items.
+	 */
+	KISMET_API static void MakeFavoritesMenu(FBlueprintActionContext const& Context, FBlueprintActionMenuBuilder& MenuOut);
 };
 

@@ -31,9 +31,6 @@ public:
 	/** Shutdown the RHI; handle shutdown and resource destruction before the RHI's actual destructor is called (so that all resources of the RHI are still available for shutdown). */
 	virtual void Shutdown() = 0;
 
-	virtual void PushEvent(const TCHAR* Name) {}
-	virtual void PopEvent() {}
-
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames = 0
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
@@ -46,6 +43,8 @@ extern RHI_API FDynamicRHI* GDynamicRHI;
 #define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
 #define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
+#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern RHI_API Type RHI##Name ParameterTypesAndNames;
 #define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
 	extern RHI_API Type Name##_Internal ParameterTypesAndNames;
@@ -56,6 +55,8 @@ extern RHI_API FDynamicRHI* GDynamicRHI;
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
+#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+
 
 #endif	//#if USE_DYNAMIC_RHI
 

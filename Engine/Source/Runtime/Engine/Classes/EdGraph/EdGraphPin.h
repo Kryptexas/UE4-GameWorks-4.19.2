@@ -239,7 +239,7 @@ public:
 	/** Break a link to the specified pin (if present) */
 	ENGINE_API void BreakLinkTo(UEdGraphPin* ToPin);
 
-	/*
+	/**
 	 * Generate a string detailing the link this pin has to another pin.
 	 * 
 	 * @Param	InFunctionName	String with function name requesting the info
@@ -280,6 +280,9 @@ public:
 
 	/** Get the current DefaultObject path name, or DefaultValue if its null */
 	ENGINE_API FString GetDefaultAsString() const;
+
+	/** Returns how the name of the pin should be displayed in the UI */
+	ENGINE_API FText GetDisplayName() const;
 
 	void ResetToDefaults()
 	{

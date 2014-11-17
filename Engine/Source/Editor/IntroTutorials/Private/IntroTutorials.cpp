@@ -15,53 +15,47 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "Particles/ParticleSystem.h"
+#include "EditorTutorialSettings.h"
+#include "TutorialStateSettings.h"
+#include "TutorialSettings.h"
+#include "Settings.h"
+#include "EditorTutorial.h"
+#include "SEditorTutorials.h"
+#include "STutorialsBrowser.h"
+#include "STutorialNavigation.h"
+#include "STutorialOverlay.h"
+#include "TutorialStructCustomization.h"
+#include "EditorTutorialDetailsCustomization.h"
+#include "STutorialRoot.h"
+#include "STutorialButton.h"
+#include "ToolkitManager.h"
+#include "BlueprintEditor.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
 IMPLEMENT_MODULE(FIntroTutorials, IntroTutorials)
 
-const FName FIntroTutorials::IntroTutorialTabName(TEXT("IntroTutorial"));
-
-const FString FIntroTutorials::IntroTutorialConfigSection(TEXT("IntroTutorials"));
-const FString FIntroTutorials::InEditorTutorialPath(TEXT("Shared/Tutorials/inEditorTutorial"));
-const FString FIntroTutorials::WelcomeTutorialPath(TEXT("Shared/Tutorials/UE4Welcome"));
-const FString FIntroTutorials::InEditorGamifiedTutorialPath(TEXT("Shared/Tutorials/inEditorGamifiedTutorial"));
-const FString FIntroTutorials::HomePath(TEXT("Shared/Tutorials"));
-const FString FIntroTutorials::BlueprintHomePath(TEXT("Shared/Tutorials/TemplateTutorials/TemplateOverview"));
-const FString FIntroTutorials::TemplateOverviewPath(TEXT("Shared/Tutorials/UE4Welcome"));
-
-const FWelcomeTutorialProperties FIntroTutorials::UE4WelcomeTutorial(TEXT("Shared/Tutorials/UE4Welcome"), TEXT("SeenUE4Welcome"));	
-const FWelcomeTutorialProperties FIntroTutorials::BlueprintHomeTutorial(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"), TEXT("SeenBlueprintWelcome"));
-const FWelcomeTutorialProperties FIntroTutorials::ClassBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/BlueprintInterfaceTutorial"), TEXT("SeenBlueprintWelcome_Class"), FString("5DCD4D58-9C9F-407F-8388-75D89CBBA7E8"));
-const FWelcomeTutorialProperties FIntroTutorials::MacroLibraryBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/BlueprintMacroLibInterfaceTutorial"), TEXT("SeenBlueprintWelcome_MacroLib"), FString("0D5081E0-F29A-4C35-B4DC-1E5E2825AB54"));
-const FWelcomeTutorialProperties FIntroTutorials::InterfaceBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/BlueprintInterfacesInterfaceTutorial"), TEXT("SeenBlueprintWelcome_Interface"), FString("E86E8C9A-4804-4680-B10F-BDC8E95C7AFD"));
-const FWelcomeTutorialProperties FIntroTutorials::LevelScriptBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/LevelBlueprintInterfaceTutorial"), TEXT("SeenBlueprintWelcome_LevelScript"), FString("B061E309-517D-4916-BFCB-E8104C8F4C35"));
-const FWelcomeTutorialProperties FIntroTutorials::AddCodeToProjectWelcomeTutorial(TEXT("Shared/Tutorials/AddCodeToProjectTutorial"), TEXT("SeenAddCodeToProjectWelcome"), FString("D8D9A7E7-68B3-4CBE-80FE-4B88C47B7524"));
-const FWelcomeTutorialProperties FIntroTutorials::MatineeEditorWelcomeTutorial(TEXT("Shared/Tutorials/InMatineeEditorTutorial"), TEXT("SeenMatineeEditorWelcome"), FString("6439C991-A77B-4B52-953D-3F29B1DD1860"));
-const FWelcomeTutorialProperties FIntroTutorials::TemplateOverview(TemplateOverviewPath, TEXT("SeenTemplateOverview"));
-
 FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
+	, ContentIntroCurve(nullptr)
 {
-	bEnablePostTutorialSurveys = false;
+	bDisableTutorials = false;
 
-	bDesireResettingTutorialSeenFlagOnLoad = FParse::Param(FCommandLine::Get(), TEXT("tutorials"));
+	bDesireResettingTutorialSeenFlagOnLoad = FParse::Param(FCommandLine::Get(), TEXT("ResetTutorials"));
 }
 
-/** Generates an analytics name for the given tutorial path string */
-FString FIntroTutorials::AnalyticsEventNameFromTutorialPath(const FString& TutorialPath) const
+FString FIntroTutorials::AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial)
 {
-	// strip off everything but the last folder, supporting both types of slashes
+	FString TutorialPath = Tutorial->GetOutermost()->GetFName().ToString();
+
+	// strip off everything but the asset name
 	FString RightStr;
-	bool bSplit = TutorialPath.Split( TEXT("/"), NULL, &RightStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd );
-	if (!bSplit)
-	{
-		TutorialPath.Split( TEXT("\\"), NULL, &RightStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd );
-	}
+	TutorialPath.Split( TEXT("/"), NULL, &RightStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd );
 
 	// then append that to the header
 	// e.g. Rocket.Tutorials.ClosedInEditorTutorial
-	FString OutStr(TEXT("Rocket.Tutorials.Closed"));
+	FString OutStr = BaseEventName;
 	OutStr += RightStr;
 
 	return OutStr;
@@ -89,7 +83,7 @@ TSharedRef<FExtender> FIntroTutorials::AddSummonBlueprintTutorialsMenuExtender(c
 void FIntroTutorials::StartupModule()
 {
 	// This code can run with content commandlets. Slate is not initialized with commandlets and the below code will fail.
-	if (!IsRunningCommandlet())
+	if (!bDisableTutorials && !IsRunningCommandlet())
 	{
 		// Add tutorial for main frame opening
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
@@ -105,11 +99,6 @@ void FIntroTutorials::StartupModule()
 		// Add menu option to blueprint editor as well
 		FBlueprintEditorModule& BPEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>( "Kismet" );
 		BPEditorModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(FAssetEditorExtender::CreateRaw(this, &FIntroTutorials::AddSummonBlueprintTutorialsMenuExtender));
-		
-		// Add hook for when specific asset editor is opened
-		FAssetEditorManager::Get().OnAssetEditorOpened().AddRaw(this, &FIntroTutorials::OnAssetEditorOpened);
-
-		IMatineeModule::Get().OnMatineeEditorOpened().AddRaw(this, &FIntroTutorials::OnMatineeEditorOpened);
 
 		// Add hook for when AddToCodeProject dialog window is opened
 		FGameProjectGenerationModule::Get().OnAddCodeToProjectDialogOpened().AddRaw(this, &FIntroTutorials::OnAddCodeToProjectDialogOpened);
@@ -117,81 +106,52 @@ void FIntroTutorials::StartupModule()
 		// Add hook for New Project dialog window is opened
 		//FGameProjectGenerationModule::Get().OnNewProjectProjectDialogOpened().AddRaw(this, &FIntroTutorials::OnNewProjectDialogOpened);
 
-
-		// Add hook for when editor changes modes (e.g. Place/Paint/Landscape/Foliage)
-		GLevelEditorModeTools().OnEditorModeChanged().AddRaw(this, &FIntroTutorials::OnEditorModeChanged);
-
 		FSourceCodeNavigation::AccessOnCompilerNotFound().AddRaw( this, &FIntroTutorials::HandleCompilerNotFound );
-
-		// set up some tutorial data
-
-		// NOTE: we match classes based on an "is-a" relationship, so place more derived classes in the map before base classes so they are encountered first
-		AssetEditorTutorialPropertyMap.Add(UTexture::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InTextureEditorTutorial"), TEXT("SeenTextureEditorWelcome"), FString("6CC90D96-03D6-4847-B1DF-EB3018C36C4E")));
-		AssetEditorTutorialPropertyMap.Add(UMaterial::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InMaterialEditorTutorial"), TEXT("SeenMaterialEditorWelcome"), FString("2290389E-A428-46C1-B9BD-A7F110CDF83E")));
-		AssetEditorTutorialPropertyMap.Add(UAnimBlueprint::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InPersonaAnimBlueprintEditorTutorial"), TEXT("SeenPersonaAnimBlueprintEditorWelcome"), FString("FE5CD131-E4AF-4FE6-9269-12B573B66CA8")));
-		AssetEditorTutorialPropertyMap.Add(UBlueprint::StaticClass(), FWelcomeTutorialProperties(FWelcomeTutorialProperties::FWelcomeTutorialPropertiesChooserDelegate::CreateRaw(this, &FIntroTutorials::ChooseBlueprintWelcomeTutorial)));
-		AssetEditorTutorialPropertyMap.Add(UStaticMesh::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InStaticMeshEditorTutorial"), TEXT("SeenStaticMeshEditorWelcome"), FString("762FCAD0-9384-4A6B-8D57-92DA771AD890")));
-		AssetEditorTutorialPropertyMap.Add(UDestructibleMesh::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InDestructibleMeshEditorTutorial"), TEXT("SeenDestructibleMeshEditorWelcome"), FString("415C385F-C7D3-4CE8-BCC2-F19BB512AF06")));
-		AssetEditorTutorialPropertyMap.Add(USkeletalMesh::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InSkeletalMeshEditorTutorial"), TEXT("SeenSkeletalMeshEditorWelcome"), FString("F8BF69A0-391F-4612-B289-B2B2B3F7F428")));
-		AssetEditorTutorialPropertyMap.Add(UParticleSystem::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InParticleSystemEditorTutorial"), TEXT("SeenParticleSystemEditorWelcome"), FString("B5ACB9D0-229B-4DA2-A3D6-001A368A48B1")));
-		AssetEditorTutorialPropertyMap.Add(USoundCue::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InSoundCueEditorTutorial"), TEXT("SeenSoundCueEditorWelcome"), FString("3C12B4B3-36F8-48D2-A8B0-874CCD5D3891")));
-		AssetEditorTutorialPropertyMap.Add(UMaterialInstance::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InMaterialInstanceEditorTutorial"), TEXT("SeenMaterialInstanceEditorWelcome"), FString("A1AAC488-8389-4B71-925D-7A2CFB65F8D4")));
-		AssetEditorTutorialPropertyMap.Add(UPhysicsAsset::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InPhATEditorTutorial"), TEXT("SeenPhATEditorWelcome"), FString("B576D8AB-9248-4FE4-80F7-96EDA87BBAD3")));
-
-		// note these 3 go to the same editor
-		AssetEditorTutorialPropertyMap.Add(UAnimMontage::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InPersonaAnimEditorTutorial"), TEXT("SeenPersonaAnimEditorWelcome"), FString("8C7C3772-9135-426C-93A7-5937C5CBEA7B")));
-		AssetEditorTutorialPropertyMap.Add(UAnimSequence::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InPersonaAnimEditorTutorial"), TEXT("SeenPersonaAnimEditorWelcome"), FString("8C7C3772-9135-426C-93A7-5937C5CBEA7B")));
-		AssetEditorTutorialPropertyMap.Add(UBlendSpace::StaticClass(), FWelcomeTutorialProperties(TEXT("Shared/Tutorials/InPersonaAnimEditorTutorial"), TEXT("SeenPersonaAnimEditorWelcome"), FString("8C7C3772-9135-426C-93A7-5937C5CBEA7B")));
-
-		// map editor modes to tutorial properties
-		//@todo Placement mode appears to be firing erroneously when switching to other modes, want to understand why before enabling this mode
-		//EditorModeTutorialPropertyMap.Add(FBuiltinEditorModes::EM_Placement, FWelcomeTutorialProperties(TEXT("Shared/Tutorials/EditorPlacementModeTutorial"), TEXT("SeenEditorPlacementModeWelcome")));
-		EditorModeTutorialPropertyMap.Add(FBuiltinEditorModes::EM_Landscape, FWelcomeTutorialProperties(TEXT("Shared/Tutorials/EditorLandscapeModeTutorial"), TEXT("SeenEditorLandscapeModeWelcome"), FString("8B33592A-CCEE-4129-AE3F-77A5B68955CB")));
-		EditorModeTutorialPropertyMap.Add(FBuiltinEditorModes::EM_MeshPaint, FWelcomeTutorialProperties(TEXT("Shared/Tutorials/EditorMeshPaintModeTutorial"), TEXT("SeenEditorMeshPaintModeWelcome"), FString("8E36B45D-D249-42E1-ABEE-2ABCBCE8ED26")));
-		EditorModeTutorialPropertyMap.Add(FBuiltinEditorModes::EM_Foliage, FWelcomeTutorialProperties(TEXT("Shared/Tutorials/EditorFoliageModeTutorial"), TEXT("SeenEditorFoliageModeWelcome"), FString("9DD00A25-16D5-40D5-BDC4-98DF70CEB0F7")));
-
-		// init survey map
-		{
-			for (auto It = AssetEditorTutorialPropertyMap.CreateConstIterator(); It; ++It)
-			{
-				const FWelcomeTutorialProperties& Props = It.Value();
-				TutorialSurveyMap.Add(Props.TutorialPath, Props.SurveyGuid);
-			}
-			for (auto It = EditorModeTutorialPropertyMap.CreateConstIterator(); It; ++It)
-			{
-				const FWelcomeTutorialProperties& Props = It.Value();
-				TutorialSurveyMap.Add(Props.TutorialPath, Props.SurveyGuid);
-			}
-			TutorialSurveyMap.Add(ClassBlueprintWelcomeTutorial.TutorialPath, ClassBlueprintWelcomeTutorial.SurveyGuid);
-			TutorialSurveyMap.Add(MacroLibraryBlueprintWelcomeTutorial.TutorialPath, MacroLibraryBlueprintWelcomeTutorial.SurveyGuid);
-			TutorialSurveyMap.Add(InterfaceBlueprintWelcomeTutorial.TutorialPath, InterfaceBlueprintWelcomeTutorial.SurveyGuid);
-			TutorialSurveyMap.Add(LevelScriptBlueprintWelcomeTutorial.TutorialPath, LevelScriptBlueprintWelcomeTutorial.SurveyGuid);
-			TutorialSurveyMap.Add(AddCodeToProjectWelcomeTutorial.TutorialPath, AddCodeToProjectWelcomeTutorial.SurveyGuid);
-			TutorialSurveyMap.Add(MatineeEditorWelcomeTutorial.TutorialPath, MatineeEditorWelcomeTutorial.SurveyGuid);
-
-			FGuid SurveyGuid;
-
-			// set up some paths for surveys and analytics
-			SurveyGuid.ParseExact(FString("B6C19629-3172-4924-91FE-AC557F66703C"), EGuidFormats::DigitsWithHyphens, SurveyGuid);
-			TutorialSurveyMap.Add(InEditorTutorialPath, SurveyGuid);
-
-			SurveyGuid.ParseExact(FString("3ADE38A2-9FCA-4BA1-B0A3-F64DDFAB2A0E"), EGuidFormats::DigitsWithHyphens, SurveyGuid);
-			TutorialSurveyMap.Add(InEditorGamifiedTutorialPath, SurveyGuid);
-		}
-
+	
 		// maybe reset all the "have I seen this once" flags
 		if (bDesireResettingTutorialSeenFlagOnLoad)
 		{
-			ResetWelcomeTutorials();
+			GetMutableDefault<UTutorialStateSettings>()->ClearProgress();
 		}
+	}
+
+	// Register to display our settings
+	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->RegisterSettings("Editor", "General", "Tutorials",
+			LOCTEXT("EditorTutorialSettingsName", "Tutorials"),
+			LOCTEXT("EditorTutorialSettingsDescription", "Control what tutorials are available in the Editor."),
+			GetMutableDefault<UEditorTutorialSettings>()
+		);
+
+		SettingsModule->RegisterSettings("Project", "Engine", "Tutorials",
+			LOCTEXT("TutorialSettingsName", "Tutorials"),
+			LOCTEXT("TutorialSettingsDescription", "Control what tutorials are available in this project."),
+			GetMutableDefault<UTutorialSettings>()
+		);
+	}
+
+	// register details customizations
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContent", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentCustomization::MakeInstance));
+	PropertyEditorModule.RegisterCustomPropertyTypeLayout("TutorialContentAnchor", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTutorialContentAnchorCustomization::MakeInstance));
+	PropertyEditorModule.RegisterCustomClassLayout("EditorTutorial", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorTutorialDetailsCustomization::MakeInstance));
+
+	UCurveFloat* ContentIntroCurveAsset = LoadObject<UCurveFloat>(nullptr, TEXT("/Engine/Tutorial/ContentIntroCurve.ContentIntroCurve"));
+	if(ContentIntroCurveAsset)
+	{
+		ContentIntroCurveAsset->AddToRoot();
+		ContentIntroCurve = ContentIntroCurveAsset;
 	}
 }
 
 void FIntroTutorials::ShutdownModule()
 {
-	FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
-
-	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+	if (!bDisableTutorials && !IsRunningCommandlet())
+	{
+		FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
+	}
 
 	if (BlueprintEditorExtender.IsValid() && FModuleManager::Get().IsModuleLoaded("Kismet"))
 	{
@@ -207,6 +167,27 @@ void FIntroTutorials::ShutdownModule()
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		MainFrameModule.OnMainFrameCreationFinished().RemoveAll(this);
+	}
+
+	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->UnregisterSettings("Editor", "General", "Tutorials");
+		SettingsModule->UnregisterSettings("Project", "Engine", "Tutorials");
+	}
+
+	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyEditorModule.UnregisterCustomPropertyTypeLayout("TutorialContent");
+		PropertyEditorModule.UnregisterCustomPropertyTypeLayout("TutorialWidgetReference");
+		PropertyEditorModule.UnregisterCustomClassLayout("EditorTutorial");
+	}
+
+	if(ContentIntroCurve.IsValid())
+	{
+		ContentIntroCurve.Get()->RemoveFromRoot();
+		ContentIntroCurve = nullptr;
 	}
 }
 
@@ -252,244 +233,79 @@ void FIntroTutorials::MainFrameLoad(TSharedPtr<SWindow> InRootWindow, bool bIsNe
 {
 	if (!bIsNewProjectWindow)
 	{
-		// Save off pointer to root window so we can parent the tutorial window to it when summoned
-		if (InRootWindow.IsValid())
+		// install a root widget for the tutorial overlays to hang off
+		if(InRootWindow.IsValid() && !TutorialRoot.IsValid())
 		{
-			RootWindow = InRootWindow;
+			InRootWindow->AddOverlaySlot()
+				[
+					SAssignNew(TutorialRoot, STutorialRoot)
+				];
 		}
 
 		// See if we should show 'welcome' screen
-		MaybeOpenWelcomeTutorial(UE4WelcomeTutorial.TutorialPath, UE4WelcomeTutorial.SeenOnceSettingName);
+		MaybeOpenWelcomeTutorial();
 	}
 }
 
 void FIntroTutorials::SummonTutorialHome()
 {
-	CurrentObjectClass = nullptr;
-	SummonTutorialWindowForPage(HomePath);
+	SummonTutorialBrowser();
 }
 
 void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWelcome)
 {
-	if(Asset != nullptr)
+	UBlueprint* BP = CastChecked<UBlueprint>(Asset);
+
+	FName Context("BlueprintOverview");
+	if(!bForceWelcome)
 	{
-		CurrentObjectClass = Asset->GetClass();
+		Context = FBlueprintEditor::GetContextFromBlueprintType(BP->BlueprintType);
 	}
 
-	FWelcomeTutorialProperties const* Tutorial = ChooseBlueprintWelcomeTutorial(Asset, bForceWelcome);
-	check(Tutorial);
-	SummonTutorialWindowForPage(Tutorial->TutorialPath);
+	UEditorTutorial* AttractTutorial = nullptr;
+	UEditorTutorial* LaunchTutorial = nullptr;
+	FString BrowserFilter;
+	GetDefault<UEditorTutorialSettings>()->FindTutorialInfoForContext(Context, AttractTutorial, LaunchTutorial, BrowserFilter);
 
-	// make sure we've seen this tutorial
-	GConfig->SetBool(*IntroTutorialConfigSection, *Tutorial->SeenOnceSettingName, true, GEditorGameAgnosticIni);
-}
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
 
-void FIntroTutorials::SummonTutorialWindowForPage(const FString& Path)
-{
-	TSharedPtr<SWindow> Window;
-
-	// If window already exists, bring it to the front
-	if (TutorialWindow.IsValid())
+	if (LaunchTutorial != nullptr)
 	{
-		Window = TutorialWindow.Pin();
-		Window->BringToFront();
-	}
-	// If not, create a new window
-	else
-	{
-		// Window
-		Window = SNew(SWindow)
-			.Title(LOCTEXT( "WindowTitle", "Tutorials" ))
-			.ClientSize(FVector2D(660.f, 637.f))
-			.SupportsMaximize(false)
-			.SupportsMinimize(false);
-
-		TutorialWindow = Window;
-
-		if(RootWindow.IsValid())
+		TSharedPtr<SWindow> ContextWindow;
+		TSharedPtr< IToolkit > Toolkit = FToolkitManager::Get().FindEditorForAsset(Asset);
+		if(ensure(Toolkit.IsValid()))
 		{
-			FSlateApplication::Get().AddWindowAsNativeChild(Window.ToSharedRef(), RootWindow.Pin().ToSharedRef());
+			ContextWindow = FSlateApplication::Get().FindWidgetWindow(Toolkit->GetToolkitHost()->GetParentWidget());
+			check(ContextWindow.IsValid());
 		}
 
-		// tutorial Widget
-		TSharedRef<SIntroTutorials> TutorialWidgetRef = 
-			SNew(SIntroTutorials) 
-			.ParentWindow(Window)
-			.HomeButtonVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateRaw(this, &FIntroTutorials::GetHomeButtonVisibility)))
-			.OnGotoNextTutorial(FOnGotoNextTutorial::CreateRaw(this, &FIntroTutorials::HandleGotoNextTutorial));
-
-		Window->SetContent(TutorialWidgetRef);
-
-		Window->SetOnWindowClosed( FOnWindowClosed::CreateRaw(this, &FIntroTutorials::OnTutorialWindowClosed) );
-		TutorialWidgetRef->SetOnGoHome( FOnGoHome::CreateRaw(this, &FIntroTutorials::OnTutorialDismissed) );
-
-		TutorialWidget = TutorialWidgetRef;
-
-		Window->BringToFront();
-	}
-
-	// Change page to desired path
-	if(TutorialWidget.IsValid())
-	{
-		TutorialWidget.Pin()->ChangePage(Path);
+		const bool bRestart = true;
+		IntroTutorials.LaunchTutorial(LaunchTutorial, bRestart, ContextWindow);
 	}
 }
 
-void FIntroTutorials::OnTutorialWindowClosed(const TSharedRef<SWindow>& Window)
+bool FIntroTutorials::MaybeOpenWelcomeTutorial()
 {
-	OnTutorialDismissed();
-}
-
-void FIntroTutorials::OnTutorialDismissed() const
-{
-	TSharedPtr<SIntroTutorials> WidgetPtr = TutorialWidget.Pin();
-	if (WidgetPtr.IsValid())
+	// try editor startup tutorial
+	TSubclassOf<UEditorTutorial> EditorStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UEditorTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+	if(EditorStartupTutorialClass != nullptr)
 	{
-		FString const CurrentPagePath = WidgetPtr->GetCurrentPagePath();
-
-		// submit analytics data
-		if( FEngineAnalytics::IsAvailable() )
+		UEditorTutorial* Tutorial = EditorStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+		if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
 		{
-			// prepare and send analytics data
-			bool const bQuitOnWelcomeScreen = (CurrentPagePath == WelcomeTutorialPath);
-
-			FString const CurrentExcerptTitle = bQuitOnWelcomeScreen ? TEXT("Welcome Screen") : WidgetPtr->GetCurrentExcerptIdentifierName();
-			int32 const CurrentExcerptIndex = bQuitOnWelcomeScreen ? -1 : WidgetPtr->GetCurrentExcerptIndex();
-			float const CurrentPageElapsedTime = bQuitOnWelcomeScreen ? 0.f : WidgetPtr->GetCurrentPageElapsedTime();
-
-			TArray<FAnalyticsEventAttribute> EventAttributes;
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LastExcerptIndex"), CurrentExcerptIndex));
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LastExcerptTitle"), CurrentExcerptTitle));
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeSpentInTutorial"), CurrentPageElapsedTime));
-
-			FString AnalyticsEventName = AnalyticsEventNameFromTutorialPath(CurrentPagePath);
-			
-			FEngineAnalytics::GetProvider().RecordEvent( AnalyticsEventName, EventAttributes );
-		}
-
-		// kick off survey, but not if it was dismissed immediately
-		if ( bEnablePostTutorialSurveys && IEpicSurveyModule::IsAvailable() && (WidgetPtr->GetCurrentExcerptIndex() > 0) )
-		{
-			FGuid const* const SurveyID = TutorialSurveyMap.Find(CurrentPagePath);
-			if (SurveyID && !SurveyID->IsValid())
-			{
-				// launch end-of-tutorial survey if one is desired
-				IEpicSurveyModule::Get().PromptSurvey(*SurveyID);
-			}
-		}
-	}	
-}
-
-void FIntroTutorials::OnAssetEditorOpened(UObject* Asset)
-{
-	if(Asset != nullptr)
-	{
-		FWelcomeTutorialProperties const* const FoundProps = FindAssetEditorTutorialProperties(Asset->GetClass());
-		if (FoundProps)
-		{
-			// run delegate if it exists
-			FWelcomeTutorialProperties const* const PropsToUse = FoundProps->ChooserDelegate.IsBound()
-				? FoundProps->ChooserDelegate.Execute(Asset)
-				: FoundProps;
-
-			if (PropsToUse)
-			{
-				if(MaybeOpenWelcomeTutorial(PropsToUse->TutorialPath, PropsToUse->SeenOnceSettingName))
-				{
-					CurrentObjectClass = Asset->GetClass();
-				}
-			}
-		}
-	}
-}
-
-
-FWelcomeTutorialProperties const* FIntroTutorials::ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject)
-{
-	return ChooseBlueprintWelcomeTutorial(BlueprintObject, true);
-}
-
-FWelcomeTutorialProperties const* FIntroTutorials::ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject, bool bForceWelcome)
-{
-	TutorialChainMap.Empty();
-
-	UBlueprint* BP = Cast<UBlueprint>(BlueprintObject);
-	if (BP)
-	{
-		bool bSeenWelcome = false;
-		GConfig->GetBool(*IntroTutorialConfigSection, *BlueprintHomeTutorial.SeenOnceSettingName, bSeenWelcome, GEditorGameAgnosticIni);
-		if(!bSeenWelcome || bForceWelcome)
-		{
-			switch (BP->BlueprintType)
-			{
-			case BPTYPE_Normal:
-				TutorialChainMap.Add(BlueprintHomePath, ClassBlueprintWelcomeTutorial.TutorialPath);
-				break;
-			case BPTYPE_MacroLibrary:
-				TutorialChainMap.Add(BlueprintHomePath, MacroLibraryBlueprintWelcomeTutorial.TutorialPath);
-				break;
-			case BPTYPE_Interface:
-				TutorialChainMap.Add(BlueprintHomePath, InterfaceBlueprintWelcomeTutorial.TutorialPath);
-				break;
-			case BPTYPE_LevelScript:
-				TutorialChainMap.Add(BlueprintHomePath, LevelScriptBlueprintWelcomeTutorial.TutorialPath);
-				break;
-			}
-		}
-		else
-		{
-			switch (BP->BlueprintType)
-			{
-			case BPTYPE_Normal:
-				return &ClassBlueprintWelcomeTutorial;
-			case BPTYPE_MacroLibrary:
-				return &MacroLibraryBlueprintWelcomeTutorial;
-			case BPTYPE_Interface:
-				return &InterfaceBlueprintWelcomeTutorial;
-			case BPTYPE_LevelScript:
-				return &LevelScriptBlueprintWelcomeTutorial;
-			}
+			LaunchTutorial(Tutorial);
+			return true;
 		}
 	}
 
-	return &BlueprintHomeTutorial;
-}
-
-FWelcomeTutorialProperties const* FIntroTutorials::FindAssetEditorTutorialProperties(UClass const* Class) const
-{
-	for (auto It = AssetEditorTutorialPropertyMap.CreateConstIterator(); It; ++It)
+	// Try project startup tutorial
+	TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+	if(ProjectStartupTutorialClass != nullptr)
 	{
-		UClass* const KeyClass = It.Key();
-		if (Class->IsChildOf(KeyClass))
+		UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+		if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
 		{
-			return &It.Value();
-		}
-	}
-
-	return NULL;
-}
-
-bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName)
-{
-	// don't open if viewing any tutorial other than the index
-	if (TutorialWidget.IsValid() && (TutorialWidget.Pin()->GetCurrentPagePath() != HomePath))
-	{
-		return false;
-	}
-
-	bool bSeenWelcome = false;
-	GConfig->GetBool(*IntroTutorialConfigSection, *ConfigSettingName, bSeenWelcome, GEditorGameAgnosticIni);
-
-	if (!bSeenWelcome)
-	{
-		bool const bPageExists = IDocumentation::Get()->PageExists(*TutorialPath);
-		if (bPageExists)
-		{
-			SummonTutorialWindowForPage(*TutorialPath);
-
-			// Tell ini file that we've seen this now
-			GConfig->SetBool(*IntroTutorialConfigSection, *ConfigSettingName, true, GEditorGameAgnosticIni);
-
+			LaunchTutorial(Tutorial);
 			return true;
 		}
 	}
@@ -497,96 +313,39 @@ bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, cons
 	return false;
 }
 
-bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties)
-{
-	return MaybeOpenWelcomeTutorial(TutorialProperties.TutorialPath, TutorialProperties.SeenOnceSettingName);
-}
-
-template< typename KeyType >
-void FIntroTutorials::ResetTutorialPropertyMap(TMap<KeyType, FWelcomeTutorialProperties> Map) const
-{
-	for (auto It = Map.CreateConstIterator(); It; ++It)
-	{
-		ResetTutorial(It.Value());
-	}
-}
-
-void FIntroTutorials::ResetWelcomeTutorials() const
-{
-	ResetTutorialPropertyMap(AssetEditorTutorialPropertyMap);
-	ResetTutorialPropertyMap(EditorModeTutorialPropertyMap);
-
-	ResetTutorial(UE4WelcomeTutorial);
-	ResetTutorial(BlueprintHomeTutorial);
-	ResetTutorial(ClassBlueprintWelcomeTutorial);
-	ResetTutorial(MacroLibraryBlueprintWelcomeTutorial);
-	ResetTutorial(InterfaceBlueprintWelcomeTutorial);
-	ResetTutorial(LevelScriptBlueprintWelcomeTutorial);
-	ResetTutorial(AddCodeToProjectWelcomeTutorial);
-	ResetTutorial(MatineeEditorWelcomeTutorial);
-	ResetTutorial(TemplateOverview);
-}
-
 void FIntroTutorials::OnAddCodeToProjectDialogOpened()
 {
-	MaybeOpenWelcomeTutorial(AddCodeToProjectWelcomeTutorial);
+	// @todo: add code to project dialog tutorial here?
+//	MaybeOpenWelcomeTutorial(AddCodeToProjectWelcomeTutorial);
 }
 
 void FIntroTutorials::OnNewProjectDialogOpened()
 {
-	MaybeOpenWelcomeTutorial(TemplateOverview);
-}
-
-void FIntroTutorials::OnMatineeEditorOpened()
-{
-	MaybeOpenWelcomeTutorial(MatineeEditorWelcomeTutorial);
-}
-
-void FIntroTutorials::OnEditorModeChanged(FEdMode* Mode, bool bEnteringMode)
-{
-	// editor-mode changed events can fire before the MainFrameLoad event, so wait until *after* the welcome tutorial to start showing editor-mode tutorials
-	// this avoids erroneously suppressing a mode tutorial because it opened but was then immediately replaced by the UE4 welcome tutorial
-	if (!HasSeenTutorial(UE4WelcomeTutorial))
-		return;
-	
-	// only show tutorials when entering an editor mode, not when leaving it
-	if (bEnteringMode)
-	{
-		FWelcomeTutorialProperties const* const FoundProp = EditorModeTutorialPropertyMap.Find(Mode->GetID());
-		if (FoundProp)
-		{
-			MaybeOpenWelcomeTutorial(FoundProp->TutorialPath, FoundProp->SeenOnceSettingName);
-		}
-	}
+	// @todo: new project dialog tutorial here?
+//	MaybeOpenWelcomeTutorial(TemplateOverview);
 }
 
 void FIntroTutorials::HandleCompilerNotFound()
 {
 #if PLATFORM_WINDOWS
-	SummonTutorialWindowForPage( TEXT( "Shared/Tutorials/InstallingVisualStudioTutorial" ) );
+	LaunchTutorialByName( TEXT( "Engine/Tutorial/Installation/InstallingVisualStudioTutorial.InstallingVisualStudioTutorial" ) );
 #elif PLATFORM_MAC
-	SummonTutorialWindowForPage( TEXT( "Shared/Tutorials/InstallingXCodeTutorial" ) );
+	LaunchTutorialByName( TEXT( "Engine/Tutorial/Installation/InstallingXCodeTutorial.InstallingXCodeTutorial" ) );
+#else
+	STUBBED("FIntroTutorials::HandleCompilerNotFound");
 #endif
 }
 
-void FIntroTutorials::HandleSDKNotInstalled(const FString& PlatformName, const FString& DocLink)
+void FIntroTutorials::HandleSDKNotInstalled(const FString& PlatformName, const FString& InTutorialAsset)
 {
-	SummonTutorialWindowForPage(DocLink);
-}
-
-bool FIntroTutorials::HasSeenTutorial( const FWelcomeTutorialProperties& TutProps ) const
-{
-	bool bSeenTutorial = false;
-	GConfig->GetBool(*IntroTutorialConfigSection, *TutProps.SeenOnceSettingName, bSeenTutorial, GEditorGameAgnosticIni);
-	return bSeenTutorial;
-}
-
-void FIntroTutorials::ResetTutorial(const FWelcomeTutorialProperties& TutProps) const
-{
-	FString SettingName = TutProps.SeenOnceSettingName;
-	if (!SettingName.IsEmpty())
+	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *InTutorialAsset);
+	if(Blueprint)
 	{
-		GConfig->SetBool(*IntroTutorialConfigSection, *SettingName, false, GEditorGameAgnosticIni);
+		LaunchTutorialByName( InTutorialAsset );
+	}
+	else
+	{
+		IDocumentation::Get()->Open( InTutorialAsset );
 	}
 }
 
@@ -600,36 +359,86 @@ EVisibility FIntroTutorials::GetHomeButtonVisibility() const
 	return EVisibility::Visible;
 }
 
-FString FIntroTutorials::HandleGotoNextTutorial(const FString& InCurrentPage) const
+FOnIsPicking& FIntroTutorials::OnIsPicking()
 {
-	const FString* NextTutorial = TutorialChainMap.Find(InCurrentPage);
-	if(NextTutorial != nullptr)
-	{
-		return *NextTutorial;
-	}
-
-	return FString();
+	return OnIsPickingDelegate;
 }
 
-void FIntroTutorials::RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString)
+void FIntroTutorials::SummonTutorialBrowser(TWeakPtr<SWindow> InWindow, const FString& InFilter)
 {
-	FWelcomeTutorialProperties TutorialData(TutorialDocPath, TutorialHasBeenSeenSettingName, SurveyGUIDString);
-
-	if (bDesireResettingTutorialSeenFlagOnLoad)
+	if(TutorialRoot.IsValid())
 	{
-		ResetTutorial(TutorialData);
+		TutorialRoot->SummonTutorialBrowser(InWindow, InFilter);
 	}
-
-	TutorialSurveyMap.Add(TutorialDocPath, TutorialData.SurveyGuid);
-
-	AssetEditorTutorialPropertyMap.Add(AssetClass, TutorialData);
 }
 
-void FIntroTutorials::UnregisterTutorialForAssetEditor(UClass* AssetClass)
+void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName)
 {
-	const FWelcomeTutorialProperties& TutorialData = AssetEditorTutorialPropertyMap.FindChecked(AssetClass);
-	TutorialSurveyMap.Remove(TutorialData.TutorialPath);
-	AssetEditorTutorialPropertyMap.Remove(AssetClass);
+	LaunchTutorialByName(TutorialAssetName);
+}
+
+void FIntroTutorials::LaunchTutorialByName(const FString& InAssetPath, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)
+{
+	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *InAssetPath);
+	if (Blueprint && Blueprint->GeneratedClass)
+	{
+		LaunchTutorial(Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>(), bInRestart, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
+	}
+}
+
+void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)
+{
+	if(TutorialRoot.IsValid())
+	{
+		if(!InNavigationWindow.IsValid())
+		{
+			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+			InNavigationWindow = MainFrameModule.GetParentWindow();
+		}
+
+		TutorialRoot->LaunchTutorial(InTutorial, bInRestart, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
+	}
+}
+
+void FIntroTutorials::CloseAllTutorialContent()
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->CloseAllTutorialContent();
+	}
+}
+
+void FIntroTutorials::GoToPreviousStage()
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->GoToPreviousStage();
+	}
+}
+
+void FIntroTutorials::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->GoToNextStage(InNavigationWindow);
+	}
+}
+
+TSharedRef<SWidget> FIntroTutorials::CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow) const
+{
+	return SNew(STutorialButton)
+		.Context(InContext)
+		.ContextWindow(InContextWindow);
+}
+
+float FIntroTutorials::GetIntroCurveValue(float InTime)
+{
+	if(ContentIntroCurve.IsValid())
+	{
+		return ContentIntroCurve.Get()->GetFloatValue(InTime);
+	}
+
+	return 1.0f;
 }
 
 #undef LOCTEXT_NAMESPACE

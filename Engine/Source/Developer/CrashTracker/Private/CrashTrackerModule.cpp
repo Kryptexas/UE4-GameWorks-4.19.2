@@ -112,7 +112,7 @@ void FCrashTrackerModule::StartupModule()
 	VideoCapture.Reset();
 #if CRASH_TRACKER_SUPPORTED
 	if (GIsEditor &&
-		(GRHIShaderPlatform == SP_PCD3D_SM4 || GRHIShaderPlatform == SP_PCD3D_SM5 || GRHIShaderPlatform == SP_OPENGL_SM4 ))
+		(GRHIShaderPlatform == SP_PCD3D_SM4 || GRHIShaderPlatform == SP_PCD3D_SM5 || GRHIShaderPlatform == SP_OPENGL_SM4 || GRHIShaderPlatform == SP_OPENGL_SM4_MAC ))
 	{
 		bool bCrashTrackerShouldBeEnabled = false;
 #if UE_BUILD_DEVELOPMENT

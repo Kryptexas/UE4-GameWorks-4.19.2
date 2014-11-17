@@ -78,6 +78,112 @@ public:
 		}
 	}
 
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+	{
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if (VisibilityMap & (1 << ViewIndex))
+			{
+				const FSceneView* View = Views[ViewIndex];
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+
+				if (NavTestActor)
+				{
+					//DrawArc(PDI, Link.Left, Link.Right, 0.4f, NavMeshColors[Link.AreaID], SDPG_World, 3.5f);
+					//const FVector VOffset(0,0,FVector::Dist(Link.Left, Link.Right)*1.333f);
+					//DrawArrowHead(PDI, Link.Right, Link.Left+VOffset, 30.f, NavMeshColors[Link.AreaID], SDPG_World, 3.5f);
+
+					//@todo - the rendering thread should never read from UObjects directly!  These are race conditions, the properties should be mirrored on the proxy
+					const FVector ActorLocation = NavTestActor->GetActorLocation();
+					const FVector ProjectedLocation = NavTestActor->ProjectedLocation + NavMeshDrawOffset;
+					const FColor ProjectedColor = NavTestActor->bProjectedLocationValid ? FColor(0, 255, 0, 120) : FColor(255, 0, 0, 120);
+					const FVector BoxExtent(20, 20, 20);
+
+					FMaterialRenderProxy* const ColoredMeshInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), ProjectedColor);
+					//DrawBox(PDI, FTransform(ProjectedLocation).ToMatrixNoScale(),BoxExtent, ColoredMeshInstance, SDPG_World);
+					GetSphereMesh(ProjectedLocation, BoxExtent, 10, 7, ColoredMeshInstance, SDPG_World, false, ViewIndex, Collector);
+
+					//DrawWireBox(PDI, FBox(ProjectedLocation-BoxExtent, ProjectedLocation+BoxExtent), ProjectedColor, false);
+					DrawWireBox(PDI, FBox(ActorLocation - BoxExtent, ActorLocation + BoxExtent), FColor::White, false);
+					const FVector LineEnd = ProjectedLocation - (ProjectedLocation - ActorLocation).SafeNormal()*BoxExtent.X;
+					PDI->DrawLine(LineEnd, ActorLocation, ProjectedColor, SDPG_World, 2.5);
+					DrawArrowHead(PDI, LineEnd, ActorLocation, 20.f, ProjectedColor, SDPG_World, 2.5f);
+
+					// draw query extent
+					DrawWireBox(PDI, FBox(ActorLocation - NavTestActor->QueryingExtent, ActorLocation + NavTestActor->QueryingExtent), FColor::Blue, false);
+				}
+
+				// draw path
+				if (!bShowBestPath || !NodeDebug.Num())
+				{
+					for (int32 PointIndex = 1; PointIndex < PathPoints.Num(); PointIndex++)
+					{
+						PDI->DrawLine(PathPoints[PointIndex-1], PathPoints[PointIndex], FLinearColor::Red, SDPG_World, 2.0f, 0.0f, true);
+					}
+				}
+
+				// draw path debug data
+				if (bShowNodePool)
+				{
+					if (ClosedSetIndices.Num())
+					{
+						const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), NavMeshRenderColor_ClosedSet);						
+						FDynamicMeshBuilder	MeshBuilder;
+						MeshBuilder.AddVertices(ClosedSetVerts);
+						MeshBuilder.AddTriangles(ClosedSetIndices);
+						MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
+					}
+
+					if (OpenSetIndices.Num())
+					{
+						const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), NavMeshRenderColor_OpenSet);						
+						FDynamicMeshBuilder	MeshBuilder;
+						MeshBuilder.AddVertices(OpenSetVerts);
+						MeshBuilder.AddTriangles(OpenSetIndices);
+						MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
+					}
+				}
+
+				for (TSet<FNodeDebugData>::TConstIterator It(NodeDebug); It; ++It)
+				{
+					const FNodeDebugData& NodeData = *It;
+
+					FColor LineColor(FColor::Blue);
+					if (bShowBestPath && NodeData.bBestPath)
+					{
+						LineColor = FColor::Red;
+					}
+
+					if (bShowDiff)
+					{
+						LineColor.A = NodeData.bModified ? NavMeshRenderAlpha_Modifed : NavMeshRenderAlpha_NonModified;
+					}
+
+					FVector ParentPos(NodeData.ParentId.IsValidId() ? NodeDebug[NodeData.ParentId].Position : NodeData.Position);
+
+					if (bShowDiff && !NodeData.bModified)
+					{
+						PDI->DrawLine(NodeData.Position, ParentPos, LineColor, SDPG_World);
+					}
+					else
+					{
+						PDI->DrawLine(NodeData.Position, ParentPos, LineColor, SDPG_World, 2.0f, 0.0, true);
+					}
+
+					if (NodeData.bOffMeshLink)
+					{
+						DrawWireBox(PDI, FBox::BuildAABB(NodeData.Position, FVector(10.0f)), LineColor, SDPG_World);
+					}
+
+					if (bShowDiff && NodeData.bModified)
+					{
+						PDI->DrawLine(NodeData.Position + FVector(0,0,10), NodeData.Position + FVector(0,0,100), FColor::Green, SDPG_World);
+					}
+				}
+			}
+		}
+	}
+
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{
 		if (NavTestActor)

@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "LandscapeLayerInfoObject.h"
 #include "SceneTypes.h"
 #include "LandscapeComponent.generated.h"
+
+class ULandscapeLayerInfoObject;
 
 class FLandscapeComponentDerivedData
 {
@@ -90,14 +91,7 @@ struct FWeightmapLayerAllocationInfo
 	{
 	}
 	
-	FName GetLayerName() const
-	{
-		if (LayerInfo)
-		{
-			return LayerInfo->LayerName;
-		}
-		return NAME_None;
-	}
+	FName GetLayerName() const;
 };
 
 UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), showcategories=("Rendering|Material"), MinimalAPI)
@@ -217,6 +211,10 @@ public:
 	FGuid StateId;
 
 #if WITH_EDITORONLY_DATA
+	/** LOD level Bias to use when lighting buidling via lightmass, -1 Means automatic LOD calculation based on ForcedLOD + LODBias */
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
+	int32 LightingLODBias;
+
 	UPROPERTY(Transient, DuplicateTransient)
 	UTexture2D* SelectDataTexture; // Data texture used for selection mask
 
@@ -306,8 +304,8 @@ public:
 	/** Get the level in which the owning actor resides */
 	class ULevel* GetLevel() const;
 
-	/** Returns all textures and materials used by this component. */
-	ENGINE_API void GetAllReferencedTexturesAndMaterials(TArray<UObject*>& OutTexturesAndMaterials) const;
+	/** Returns all generated textures and material instances used by this component. */
+	ENGINE_API void GetGeneratedTexturesAndMaterialInstances(TArray<UObject*>& OutTexturesAndMaterials) const;
 
 	/** @todo document */
 	ENGINE_API class ALandscapeProxy* GetLandscapeProxy() const;
@@ -467,6 +465,9 @@ public:
 
 	/** Extends passed region with this component section size */
 	ENGINE_API void GetComponentExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const;
+
+	/** Updates navigation properties to match landscape's master switch */
+	void UpdateNavigationRelevance();
 #endif
 
 	friend class FLandscapeComponentSceneProxy;

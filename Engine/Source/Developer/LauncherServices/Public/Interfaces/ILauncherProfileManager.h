@@ -53,12 +53,19 @@ public:
 	 */
 	virtual void AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
 
-	/*
+	/**
 	 * Create a new device group and maintains a reference for its future usage.
 	 *
 	 * @return The device group created.
 	 */
 	virtual ILauncherDeviceGroupRef AddNewDeviceGroup( ) = 0;
+
+	/**
+	 * Creates a new device group but does not add it to the internal tracking.
+	 *
+	 * @return The new device group created.
+	 */
+	virtual ILauncherDeviceGroupRef CreateUnmanagedDeviceGroup() = 0;
 
 	/**
 	 * Gets the collection of device groups.
@@ -83,6 +90,38 @@ public:
 	 */
 	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
 
+	/**
+	 * Saves all the device groups to a config file
+	 */
+	virtual void SaveDeviceGroups() = 0;
+
+public:
+
+	/**
+	 * Finds or Adds then returns a simple profile for the specified Device
+	 *
+	 * @param DeviceName - The name of the device we want the simple profile for.
+	 *
+	 * @return The simple profile for the specified device.
+	 */
+	virtual ILauncherSimpleProfilePtr FindOrAddSimpleProfile(const FString& DeviceName) = 0;
+
+	/**
+	 * Gets the simple profile for the specified device.
+	 *
+	 * @param DeviceName - The name of the device we want the simple profile for.
+	 *
+	 * @return The simple profile for the specified device, or NULL if the simple profile doesn't exist.
+	 */
+	virtual ILauncherSimpleProfilePtr FindSimpleProfile(const FString& DeviceName) = 0;
+
+	/**
+	 * Deletes the given simple profile.
+	 *
+	 * @param Profile - The simple profile to delete.
+	 */
+	virtual void RemoveSimpleProfile(const ILauncherSimpleProfileRef& SimpleProfile) = 0;
+
 public:
 
 	/**
@@ -91,6 +130,15 @@ public:
 	 * @return The new profile created.
 	 */
 	virtual ILauncherProfileRef AddNewProfile( ) = 0;
+
+	/**
+	 * Creates a new profile but does not add it to the internal tracking.
+	 *
+	 * @param ProfileName - The name of the profile to create.
+	 *
+	 * @return The new profile created.
+	 */
+	virtual ILauncherProfileRef CreateUnsavedProfile(FString ProfileName) = 0;
 
 	/**
 	 * Adds the given profile to the list of managed profiles.
@@ -163,7 +211,7 @@ public:
 	 *
 	 * @see LoadProfile
 	 */
-	virtual void SaveProfile( const ILauncherProfileRef& Profile, FArchive& Archive ) = 0;
+	virtual void SaveProfile(const ILauncherProfileRef& Profile) = 0;
 
 public:
 
@@ -184,6 +232,36 @@ public:
 	 * @see LoadSettings
 	 */
 	virtual void SaveSettings( ) = 0;
+
+public:
+
+	/**
+	 * Gets the name of the Unreal project to use.
+	 */
+	virtual FString GetProjectName() const = 0;
+
+	/**
+	 * Gets the base project path for the project
+	 */
+	virtual FString GetProjectBasePath() const = 0;
+
+	/**
+	 * Gets the full path to the Unreal project to use.
+	 *
+	 * @return The path.
+	 *
+	 * @see SetProjectPath
+	 */
+	virtual FString GetProjectPath() const = 0;
+
+	/**
+	 * Sets the path to the Unreal project to use.
+	 *
+	 * @param Path - The full path to the project.
+	 *
+	 * @see GetProjectPath
+	 */
+	virtual void SetProjectPath(const FString& InProjectPath) = 0;
 
 public:
 

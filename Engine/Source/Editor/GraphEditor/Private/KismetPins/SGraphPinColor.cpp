@@ -4,6 +4,8 @@
 #include "GraphEditorCommon.h"
 #include "NodeFactory.h"
 #include "KismetPins/SGraphPinColor.h"
+#include "SColorPicker.h"
+
 
 void SGraphPinColor::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
 {

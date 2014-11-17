@@ -348,8 +348,24 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 				MappingContext.Stats.NumCachedIrradianceSamples++;
 				FFullStaticLightingVertex CurrentVertex = TexelToVertex.GetFullVertex();
 
+				if (MaterialSettings.bUseNormalMapsForLighting && TextureMapping->Mesh->HasImportedNormal(TexelToVertex.ElementIndex))
+				{
+					const FVector4 TangentNormal = TextureMapping->Mesh->EvaluateNormal(TexelToVertex.TextureCoordinates[0], TexelToVertex.ElementIndex);
+
+					const FVector4 WorldTangentRow0(TexelToVertex.WorldTangentX.X, TexelToVertex.WorldTangentY.X, TexelToVertex.WorldTangentZ.X);
+					const FVector4 WorldTangentRow1(TexelToVertex.WorldTangentX.Y, TexelToVertex.WorldTangentY.Y, TexelToVertex.WorldTangentZ.Y);
+					const FVector4 WorldTangentRow2(TexelToVertex.WorldTangentX.Z, TexelToVertex.WorldTangentY.Z, TexelToVertex.WorldTangentZ.Z);
+					const FVector4 WorldVector(
+						Dot3(WorldTangentRow0, TangentNormal),
+						Dot3(WorldTangentRow1, TangentNormal),
+						Dot3(WorldTangentRow2, TangentNormal)
+						);
+
+					CurrentVertex.WorldTangentZ = WorldVector;
+				}
+
 				// Normalize the tangent basis and ensure it is orthonormal
-				CurrentVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.UnsafeNormal3();
+				CurrentVertex.WorldTangentZ = CurrentVertex.WorldTangentZ.UnsafeNormal3();
 				CurrentVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();
 				checkSlow(!CurrentVertex.TriangleNormal.ContainsNaN());
 
@@ -541,28 +557,6 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 
 		// Release corner information as it is no longer needed
 		TexelToCornersMap.Empty();
-
-		int32 NumAffectingDominantLights = 0;
-		for (TMap<const FLight*,FSignedDistanceFieldShadowMapData2D*>::TIterator It(SignedDistanceFieldShadowMaps); It; ++It)
-		{
-			if (It.Key()->LightFlags & GI_LIGHT_DOMINANT)
-			{
-				NumAffectingDominantLights++;
-			}
-		}
-
-		for (TMap<const FLight*,FShadowMapData2D*>::TIterator It(ShadowMaps); It; ++It)
-		{
-			if (It.Key()->LightFlags & GI_LIGHT_DOMINANT)
-			{
-				NumAffectingDominantLights++;
-			}
-		}
-
-		if (NumAffectingDominantLights > 1) 
-		{
-			GSwarm->SendAlertMessage(NSwarm::ALERT_LEVEL_ERROR, TextureMapping->Guid, SOURCEOBJECTTYPE_Mapping, TEXT("LightmassError_ObjectMultipleDominantLights"));
-		}
 
 		if (bDebugThisMapping)
 		{
@@ -944,6 +938,23 @@ void FStaticLightingSystem::SetupTextureMapping(
 				}
 				// Mark the texel as mapped to some geometry in the scene
 				CurrentLightSample.bIsMapped = true;
+
+				if (MaterialSettings.bUseNormalMapsForLighting && TextureMapping->Mesh->HasImportedNormal(TexelToVertex.ElementIndex))
+				{
+					const FVector4 TangentNormal = TextureMapping->Mesh->EvaluateNormal(TexelToVertex.TextureCoordinates[0], TexelToVertex.ElementIndex);
+
+					const FVector4 WorldTangentRow0(TexelToVertex.WorldTangentX.X, TexelToVertex.WorldTangentY.X, TexelToVertex.WorldTangentZ.X);
+					const FVector4 WorldTangentRow1(TexelToVertex.WorldTangentX.Y, TexelToVertex.WorldTangentY.Y, TexelToVertex.WorldTangentZ.Y);
+					const FVector4 WorldTangentRow2(TexelToVertex.WorldTangentX.Z, TexelToVertex.WorldTangentY.Z, TexelToVertex.WorldTangentZ.Z);
+					const FVector4 WorldVector(
+						Dot3(WorldTangentRow0, TangentNormal),
+						Dot3(WorldTangentRow1, TangentNormal),
+						Dot3(WorldTangentRow2, TangentNormal)
+						);
+
+					TexelToVertex.WorldTangentZ = WorldVector;
+				}
+
 				// Normalize the tangent basis and ensure it is orthonormal
 				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.UnsafeNormal3();
 				TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();
@@ -1199,7 +1210,7 @@ void FStaticLightingSystem::CalculateDirectLightingTextureMappingFiltered(
 		}
 	}
 
-	if(bIsCompletelyOccluded && !TextureMapping->Mesh->bInstancedStaticMesh)
+	if(bIsCompletelyOccluded) 
 	{
 		// If the light is completely occluded, discard the shadow-map.
 		delete FilteredShadowMapData;
@@ -1643,7 +1654,7 @@ void FStaticLightingSystem::CalculateDirectAreaLightingTextureMapping(
 	}
 	else if (ShadowMapData)
 	{
-		if ((bIsCompletelyOccluded || NumUnoccludedTexels < NumMappedTexels * ShadowSettings.MinUnoccludedFraction) && !TextureMapping->Mesh->bInstancedStaticMesh)
+		if (bIsCompletelyOccluded || NumUnoccludedTexels < NumMappedTexels * ShadowSettings.MinUnoccludedFraction)
 		{
 			delete ShadowMapData;
 		}
@@ -1941,7 +1952,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 	}
 	FirstPassSourceTimer.Stop();
 
-	if ( (!bIsCompletelyOccluded && NumUnoccludedTexels > NumMappedTexels * ShadowSettings.MinUnoccludedFraction) || TextureMapping->Mesh->bInstancedStaticMesh)
+	if (!bIsCompletelyOccluded && NumUnoccludedTexels > NumMappedTexels * ShadowSettings.MinUnoccludedFraction)
 	{
 		LIGHTINGSTAT(FManualRDTSCTimer SecondPassSourceTimer(MappingContext.Stats.SignedDistanceFieldSourceSecondPassThreadTime));
 		check(UpsampleFactor % 2 == 1 && UpsampleFactor >= 1);
@@ -2986,9 +2997,9 @@ public:
 		) :
 		Scene(InScene),
 		TexelToNumTrianglesMap(InTexelToNumTrianglesMap),
-		bDebugThisMapping(bInDebugThisMapping),
 		TotalPixelsWritten(0),
-		TotalPixelOverlapsOccured(0)
+		TotalPixelOverlapsOccured(0),
+		bDebugThisMapping(bInDebugThisMapping)
 	{}
 
 	int32 GetTotalPixelsWritten() const

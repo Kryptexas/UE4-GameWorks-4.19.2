@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "K2Node_AddComponent.h"
+#include "ClassIconFinder.h" // for FindIconNameForClass()
+#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"
 
@@ -34,32 +36,41 @@ UBlueprintComponentNodeSpawner::UBlueprintComponentNodeSpawner(class FPostConstr
 }
 
 //------------------------------------------------------------------------------
+FBlueprintNodeSignature UBlueprintComponentNodeSpawner::GetSpawnerSignature() const
+{
+	FBlueprintNodeSignature SpawnerSignature(NodeClass);
+	SpawnerSignature.AddSubObject(ComponentClass);
+	return SpawnerSignature;
+}
+
+//------------------------------------------------------------------------------
 // Evolved from a combination of FK2ActionMenuBuilder::CreateAddComponentAction()
 // and FEdGraphSchemaAction_K2AddComponent::PerformAction().
-UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph) const
+UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBindingSet const& Bindings, FVector2D const Location) const
 {
-	UK2Node_AddComponent* NewNode = NewObject<UK2Node_AddComponent>(ParentGraph);
-	UBlueprint* Blueprint = NewNode->GetBlueprint();
-
-	UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
-	NewNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, FBlueprintEditorUtils::IsActorBased(Blueprint));
-
-	bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
-	if (CustomizeNodeDelegate.IsBound())
+	check(ComponentClass != nullptr);
+	
+	auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FCustomizeNodeDelegate UserDelegate)
 	{
-		CustomizeNodeDelegate.Execute(NewNode, bIsTemplateNode);
-	}
+		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+		
+		UK2Node_AddComponent* AddCompNode = CastChecked<UK2Node_AddComponent>(NewNode);
+		UBlueprint* Blueprint = AddCompNode->GetBlueprint();
+		
+		UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
+		AddCompNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, FBlueprintEditorUtils::IsActorBased(Blueprint));
+	};
+	FCustomizeNodeDelegate PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnLambda, CustomizeNodeDelegate);
+	
+	UK2Node_AddComponent* NewNode = CastChecked<UK2Node_AddComponent>(Super::Invoke(ParentGraph, Bindings, Location, PostSpawnDelegate));
 
+	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
 	if (!bIsTemplateNode)
 	{
-		NewNode->SetFlags(RF_Transactional);
-		NewNode->AllocateDefaultPins();
-
-		check(ComponentClass != nullptr);
+		UBlueprint* Blueprint = NewNode->GetBlueprint();
 		UActorComponent* ComponentTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass);
 		ComponentTemplate->SetFlags(RF_ArchetypeObject);
 
-		// @TODO: what is this is a template?
 		Blueprint->ComponentTemplates.Add(ComponentTemplate);
 
 		// set the name of the template as the default for the TemplateName param
@@ -89,10 +100,15 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph) cons
 }
 
 //------------------------------------------------------------------------------
-FText UBlueprintComponentNodeSpawner::GetDefaultMenuName() const
+FText UBlueprintComponentNodeSpawner::GetDefaultMenuName(FBindingSet const& Bindings) const
 {
 	check(ComponentClass != nullptr);
-	return FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), FText::FromName(ComponentClass->GetFName()));
+	if (CachedMenuName.IsOutOfDate())
+	{
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedMenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), FText::FromName(ComponentClass->GetFName()));
+	}
+	return CachedMenuName;
 }
 
 //------------------------------------------------------------------------------
@@ -100,22 +116,33 @@ FText UBlueprintComponentNodeSpawner::GetDefaultMenuCategory() const
 {
 	check(ComponentClass != nullptr);
 
-	FText ClassGroup;
-	TArray<FString> ClassGroupNames;
-	ComponentClass->GetClassGroupNames(ClassGroupNames);
-
-	static FText const DefaultClassGroup(LOCTEXT("DefaultClassGroup", "Common"));
-	// 'Common' takes priority over other class groups
-	if (ClassGroupNames.Contains(DefaultClassGroup.ToString()) || (ClassGroupNames.Num() == 0)) 
+	if (CachedCategory.IsOutOfDate())
 	{
-		ClassGroup = DefaultClassGroup;
-	}
-	else
-	{
-		ClassGroup = FText::FromString(ClassGroupNames[0]);
-	}
+		FText ClassGroup;
+		TArray<FString> ClassGroupNames;
+		ComponentClass->GetClassGroupNames(ClassGroupNames);
 
-	return FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
+		static FText const DefaultClassGroup(LOCTEXT("DefaultClassGroup", "Common"));
+		// 'Common' takes priority over other class groups
+		if (ClassGroupNames.Contains(DefaultClassGroup.ToString()) || (ClassGroupNames.Num() == 0))
+		{
+			ClassGroup = DefaultClassGroup;
+		}
+		else
+		{
+			ClassGroup = FText::FromString(ClassGroupNames[0]);
+		}
+		// FText::Format() is slow, so we cache this to save on performance
+		CachedCategory = FText::Format(LOCTEXT("ComponentCategory", "Add Component|{0}"), ClassGroup);
+	}
+	return CachedCategory;
+}
+
+//------------------------------------------------------------------------------
+FName UBlueprintComponentNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut) const
+{
+	check(ComponentClass != nullptr);
+	return FClassIconFinder::FindIconNameForClass(ComponentClass);
 }
 
 //------------------------------------------------------------------------------

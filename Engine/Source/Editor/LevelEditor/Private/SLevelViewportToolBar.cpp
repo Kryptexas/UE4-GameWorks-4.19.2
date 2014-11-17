@@ -20,6 +20,7 @@
 #include "Editor/UnrealEd/Public/SEditorViewportToolBarButton.h"
 #include "Editor/UnrealEd/Public/SEditorViewportViewMenu.h"
 #include "StatsData.h"
+#include "BufferVisualizationData.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportToolBar"
 
@@ -132,6 +133,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					.ParentToolBar( SharedThis( this ) )
 					.Cursor( EMouseCursor::Default )
 					.Image( "EditorViewportToolBar.MenuDropdown" )
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("EditorViewportToolBar.MenuDropdown")))
 					.OnGetMenuContent( this, &SLevelViewportToolBar::GenerateOptionsMenu )
 				]
 				+ SHorizontalBox::Slot()
@@ -143,6 +145,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					.Cursor( EMouseCursor::Default )
 					.Label( this, &SLevelViewportToolBar::GetCameraMenuLabel )
 					.LabelIcon( this, &SLevelViewportToolBar::GetCameraMenuLabelIcon )
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("EditorViewportToolBar.CameraMenu")))
 					.OnGetMenuContent( this, &SLevelViewportToolBar::GenerateCameraMenu ) 
 				]
 				+ SHorizontalBox::Slot()
@@ -152,6 +155,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					SNew( SLevelEditorViewportViewMenu, ViewportRef, SharedThis(this) )
 					.Cursor( EMouseCursor::Default )
 					.MenuExtenders( GetViewMenuExtender() )
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewMenuButton")))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -161,6 +165,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					.Label( LOCTEXT("ShowMenuTitle", "Show") )
 					.Cursor( EMouseCursor::Default )
 					.ParentToolBar( SharedThis( this ) )
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("EditorViewportToolBar.ShowMenu")))
 					.OnGetMenuContent( this, &SLevelViewportToolBar::GenerateShowMenu ) 
 				]
 				+ SHorizontalBox::Slot()
@@ -183,7 +188,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					SNew(STransformViewportToolBar)
 					.Viewport(ViewportRef)
 					.CommandList(LevelEditorModule.GetGlobalLevelEditorActions())
-					.Extenders(LevelEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders())
+					.Extenders(LevelEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders())					
 					.Visibility(ViewportRef, &SLevelViewport::GetTransformToolbarVisibility)
 				]
 				+ SHorizontalBox::Slot()
@@ -294,22 +299,27 @@ const FSlateBrush* SLevelViewportToolBar::GetCameraMenuLabelIcon() const
 	TSharedPtr< SLevelViewport > PinnedViewport( Viewport.Pin() );
 	if( PinnedViewport.IsValid() )
 	{
+		static FName PerspectiveIcon("EditorViewport.Perspective");
+		static FName TopIcon("EditorViewport.Top");
+		static FName SideIcon("EditorViewport.Side");
+		static FName FrontIcon("EditorViewport.Front");
+
 		switch( PinnedViewport->GetLevelViewportClient().ViewportType )
 		{
 			case LVT_Perspective:
-				Icon = FName( "EditorViewport.Perspective" );
+				Icon = PerspectiveIcon;
 				break;
 
 			case LVT_OrthoXY:
-				Icon = FName( "EditorViewport.Top" );
+				Icon = TopIcon;
 				break;
 
 			case LVT_OrthoYZ:
-				Icon = FName( "EditorViewport.Side" );
+				Icon = SideIcon;
 				break;
 
 			case LVT_OrthoXZ:
-				Icon = FName( "EditorViewport.Front" );
+				Icon = FrontIcon;
 				break;
 		}
 	}

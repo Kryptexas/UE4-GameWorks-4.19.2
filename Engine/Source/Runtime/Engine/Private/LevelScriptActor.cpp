@@ -2,7 +2,9 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/InputDelegateBinding.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Engine/LevelScriptActor.h"
 #include "BlueprintUtilities.h"
 
 

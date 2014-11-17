@@ -10,6 +10,7 @@
 #include "../mesa/glsl_parser_extras.h"
 #include "../mesa/hash_table.h"
 #include "../mesa/ir_rvalue_visitor.h"
+#include "../mesa/ast.h"
 #include "../PackUniformBuffers.h"
 #include "../IRDump.h"
 #include "../OptValueNumbering.h"
@@ -146,16 +147,40 @@ static void CreateNewAssignmentsHalf2Float(_mesa_glsl_parse_state* State, exec_l
 	}
 }
 
+const glsl_type* GetFragColorTypeFromMetalOutputStruct(const glsl_type* OutputType)
+{
+	const glsl_type* FragColorType = glsl_type::error_type;
+	if (OutputType && OutputType->base_type == GLSL_TYPE_STRUCT)
+	{
+		for (unsigned j = 0; j < OutputType->length; j++)
+		{
+			if (OutputType->fields.structure[j].semantic)
+			{
+				if (!strncmp(OutputType->fields.structure[j].semantic, "gl_FragColor", 12))
+				{
+					FragColorType = OutputType->fields.structure[j].type;
+					break;
+				}
+			}
+		}
+	}
+	return FragColorType;
+}
+
 struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
 	bool bUsesFramebufferFetchES2;
 	ir_variable* DestColorVar;
-	FFixIntrinsicsVisitor(_mesa_glsl_parse_state* InState) :
+	const glsl_type* DestColorType;
+
+	FFixIntrinsicsVisitor(_mesa_glsl_parse_state* InState, ir_function_signature* InMainSig) :
 		State(InState),
 		bUsesFramebufferFetchES2(false),
-		DestColorVar(nullptr)
+		DestColorVar(nullptr),
+		DestColorType(glsl_type::error_type)
 	{
+		DestColorType = GetFragColorTypeFromMetalOutputStruct(InMainSig->return_type);
 	}
 
 	//ir_visitor_status visit_leave(ir_expression* expr) override
@@ -206,11 +231,16 @@ struct FFixIntrinsicsVisitor : public ir_rvalue_visitor
 			if (!DestColorVar)
 			{
 				// Generate new input variable for Metal semantics
-				DestColorVar = new(State)ir_variable(glsl_type::get_instance(GLSL_TYPE_FLOAT, 4, 1), "gl_LastFragData", ir_var_in);
+				DestColorVar = new(State)ir_variable(glsl_type::get_instance(DestColorType->base_type, 4, 1), "gl_LastFragData", ir_var_in);
 				DestColorVar->semantic = "gl_LastFragData";
 			}
 
-			auto* Assignment = new (State)ir_assignment(IR->return_deref, new(State)ir_dereference_variable(DestColorVar));
+			ir_rvalue* DestColor = new(State)ir_dereference_variable(DestColorVar);
+			if (IR->return_deref->type->base_type != DestColor->type->base_type)
+			{
+				DestColor = convert_component(DestColor, IR->return_deref->type);
+			}
+			auto* Assignment = new (State)ir_assignment(IR->return_deref, DestColor);
 			IR->insert_before(Assignment);
 			IR->remove();
 		}
@@ -224,7 +254,7 @@ void FMetalCodeBackend::FixIntrinsics(exec_list* ir, _mesa_glsl_parse_state* sta
 	ir_function_signature* MainSig = GetMainFunction(ir);
 	check(MainSig);
 
-	FFixIntrinsicsVisitor Visitor(state);
+	FFixIntrinsicsVisitor Visitor(state,MainSig);
 	Visitor.run(&MainSig->body);
 
 	if (Visitor.bUsesFramebufferFetchES2)
@@ -435,7 +465,7 @@ void FMetalCodeBackend::PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* Inst
 	//IRDump(Instructions);
 }
 
-static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask)
+static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask, TIRVarList& OutFunctionArguments)
 {
 	if (Frequency == HSF_VertexShader)
 	{
@@ -560,19 +590,14 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 					OutStageInMembers.Add(OutMember);
 				}
 			}
-			/*
-			else if (!strcmp(Variable->name, "gl_Position"))
+			else if (!strcmp(Variable->name, "gl_VertexID") || !strcmp(Variable->name, "gl_InstanceID"))
 			{
-			glsl_struct_field OutMember;
-			OutMember.type = Variable->type;
-			OutMember.semantic = ralloc_asprintf(ParseState, "gl_Position");
-			OutMember.name = ralloc_asprintf(ParseState, "gl_Position");
-			OutStageInMembers.push_back(OutMember);
+				OutFunctionArguments.push_back(Variable);
+				return true;
 			}
-			*/
 			else
 			{
-				_mesa_glsl_error(ParseState, "Unknown semantic for input attribute %s!\n", Variable->name);
+				_mesa_glsl_error(ParseState, "Unknown semantic for input attribute %s!\n", Variable->semantic ? Variable->semantic : "", Variable->name);
 				check(0);
 				return false;
 			}
@@ -624,8 +649,8 @@ struct FSystemValue
 /** Vertex shader system values. */
 static FSystemValue VertexSystemValueTable[] =
 {
-	{"SV_VertexID", glsl_type::int_type, "gl_VertexID", ir_var_in, false, false},
-	{"SV_InstanceID", glsl_type::int_type, "gl_InstanceID", ir_var_in, false, false},
+	{"SV_VertexID", glsl_type::uint_type, "gl_VertexID", ir_var_in, false, false},
+	{"SV_InstanceID", glsl_type::uint_type, "gl_InstanceID", ir_var_in, false, false},
 	//{ "SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, true },
 	{NULL, NULL, NULL, ir_var_auto, false, false}
 };
@@ -1393,15 +1418,27 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 	exec_list PostCallInstructions;
 	ParseState->symbols->push_scope();
 
+	// 
+
 	// Set of variables packed into a struct
 	std::set<ir_variable*> VSStageInVariables;
 	std::set<ir_variable*> PSStageInVariables;
 	std::set<ir_variable*> VSOutVariables;
+	std::set<ir_variable*> PSOutVariables;
+
+	// Return var/struct
 	ir_variable* VSOut = nullptr;
 	ir_variable* PSOut = nullptr;
+
+	// Input stage variables
 	ir_variable* VSStageIn = nullptr;
 	std::map<std::string, glsl_struct_field> OriginalVSStageInMembers;
 	ir_variable* PSStageIn = nullptr;
+
+	// Extra arguments needed for input (VertexID, etc)
+	TIRVarList VSInputArguments;
+	TIRVarList PSInputArguments;
+
 	if (Frequency == HSF_VertexShader)
 	{
 		// Vertex Fetch to Vertex connector
@@ -1436,7 +1473,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					break;
 
 				case ir_var_in:
-					if (!ProcessStageInVariables(ParseState, Frequency, Variable, VSStageInMembers, VSStageInVariables, nullptr))
+					if (!ProcessStageInVariables(ParseState, Frequency, Variable, VSStageInMembers, VSStageInVariables, nullptr, VSInputArguments))
 					{
 						return;
 					}
@@ -1454,9 +1491,10 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			for (auto& Member : VSStageInMembers)
 			{
 				int Index = GetAttributeIndex(Member.semantic);
-				check(Index >= 0 && Index < 16);
-				AttributesUsedMask |= (1 << Index);
-
+				if (Index >= 0 && Index < 16)
+				{
+					AttributesUsedMask |= (1 << Index);
+				}
 				InputVars.push_tail(new(ParseState)extern_var(new(ParseState)ir_variable(Member.type, ralloc_strdup(ParseState, Member.name), ir_var_in)));
 			}
 
@@ -1476,8 +1514,11 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				}
 			}
 
-			std::sort(VSStageInMembers.begin(), VSStageInMembers.end(), [](glsl_struct_field& A, glsl_struct_field& B)
-			{ return GetAttributeIndex(A.semantic) < GetAttributeIndex(B.semantic); });
+			std::sort(VSStageInMembers.begin(), VSStageInMembers.end(),
+				[](glsl_struct_field const& A, glsl_struct_field const& B)
+				{
+					return GetAttributeIndex(A.semantic) < GetAttributeIndex(B.semantic);
+				});
 
 			// Convert all members to float4
 			if (bExpandVSInputsToFloat4)
@@ -1546,6 +1587,9 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 		// Vertex to Pixel connector
 		TArray<glsl_struct_field> PSStageInMembers;
 
+		// Pixel Output connector. Gather color & depth outputs into a struct
+		TArray<glsl_struct_field> PSOutMembers;
+
 		// Gather all inputs and generate the StageIn VS->PS connector
 		foreach_iter(exec_list_iterator, Iter, *Instructions)
 		{
@@ -1556,14 +1600,31 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				switch (Variable->mode)
 				{
 				case ir_var_out:
-					check(!PSOut);
-					check(!Variable->type->is_record());
-					check(!strcmp(Variable->name, "gl_FragColor"));
-					PSOut = Variable;// new(ParseState)ir_variable(Variable->type, "gl_FragColor", ir_var_temporary);
+					{
+						glsl_struct_field Member;
+						Member.type = Variable->type;
+						Member.name = ralloc_strdup(ParseState, Variable->name);
+						Member.semantic = Variable->name;
+						PSOutMembers.Add(Member);
+						PSOutVariables.insert(Variable);
+					}
+/*
+					if (!strcmp(Variable->name, "gl_FragColor"))
+					{
+						check(!PSOut);
+						check(!Variable->type->is_record());
+						PSOut = Variable;// new(ParseState)ir_variable(Variable->type, "gl_FragColor", ir_var_temporary);
+					}
+					else if (!strcmp(Variable->name, "gl_FragDepth"))
+					{
+						check(!DepthOut);
+						check(!Variable->type->is_record());
+						DepthOut = Variable;
+					}*/
 					break;
 
 				case ir_var_in:
-					if (!ProcessStageInVariables(ParseState, Frequency, Variable, PSStageInMembers, PSStageInVariables, nullptr))
+					if (!ProcessStageInVariables(ParseState, Frequency, Variable, PSStageInMembers, PSStageInVariables, nullptr, PSInputArguments))
 					{
 						return;
 					}
@@ -1605,11 +1666,24 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			*/
 		}
 
-		if (PSOut)
+		if (PSOutMembers.Num())
 		{
+			auto* Type = glsl_type::get_record_instance(&PSOutMembers[0], (unsigned int)PSOutMembers.Num(), "FPSOut");
+			PSOut = new(ParseState)ir_variable(Type, "__PSOut", ir_var_temporary);
+			PostCallInstructions.push_tail(PSOut);
+			ParseState->symbols->add_variable(PSOut);
+
+			if (!ParseState->AddUserStruct(Type))
+			{
+				YYLTYPE loc = {0};
+				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
+			}
+
+/*
 			PSOut->remove();
 			PreCallInstructions.push_tail(PSOut);
 			ParseState->symbols->add_variable(PSOut);
+*/
 		}
 	}
 
@@ -1683,10 +1757,22 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 					PreCallInstructions.push_tail(TempVariable);
 					ArgVarDeref = new(ParseState)ir_dereference_variable(TempVariable);*/
 				}
+				else if (PSOutVariables.find(Variable) != PSOutVariables.end())
+				{
+					VarsToMoveToBody.push_back(Variable);
+					ir_dereference* DeRefMember = new(ParseState)ir_dereference_record(PSOut, Variable->name);
+					auto* Assign = new(ParseState)ir_assignment(DeRefMember, new(ParseState)ir_dereference_variable(Variable));
+					PostCallInstructions.push_tail(Assign);
+					/*
+					ir_variable* TempVariable = new(ParseState)ir_variable(Variable->type, nullptr, ir_var_temporary);
+					PreCallInstructions.push_tail(TempVariable);
+					ArgVarDeref = new(ParseState)ir_dereference_variable(TempVariable);*/
+				}/*
 				else if (PSOut)
 				{
 					ArgVarDeref = new(ParseState)ir_dereference_variable(PSOut);
 				}
+*/
 				else
 				{
 					ArgVarDeref = GenerateShaderOutput(
@@ -1732,7 +1818,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 		if (Frequency == HSF_PixelShader)
 		{
 			check(!PSOut);
-			PSOut = new(ParseState)ir_variable(EntryPointSig->return_type, "gl_FragColor", ir_var_temporary);
+			PSOut = new(ParseState)ir_variable(EntryPointSig->return_type, "__PSOut", ir_var_temporary);
 			PreCallInstructions.push_tail(PSOut);
 		}
 		else if (Frequency == HSF_VertexShader)

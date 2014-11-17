@@ -3,10 +3,11 @@
 
 #pragma once
 #include "K2Node.h"
+#include "NodeDependingOnEnumInterface.h"
 #include "K2Node_Select.generated.h"
 
 UCLASS(MinimalAPI)
-class UK2Node_Select : public UK2Node
+class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -31,12 +32,13 @@ class UK2Node_Select : public UK2Node
 	TArray<FName> EnumEntryFriendlyNames;
 
 	/** Whether we need to reconstruct the node after the pins have changed */
-	UPROPERTY()
+	UPROPERTY(Transient)
 	bool bReconstructNode;
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
+	virtual FString GetKeywords() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void NodeConnectionListChanged() override;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
@@ -45,17 +47,23 @@ class UK2Node_Select : public UK2Node
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
+	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
- 	virtual void PostReconstructNode() override;
+	virtual void PostReconstructNode() override;
 	virtual bool IsNodeSafeToIgnore() const override { return true; }
 	virtual bool IsNodePure() const override { return true; }
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	// End UK2Node interface
+
+	// INodeDependingOnEnumInterface
+	virtual class UEnum* GetEnum() const override { return Enum; }
+	virtual bool ShouldBeReconstructedAfterEnumChanged() const override { return true; }
+	// End of INodeDependingOnEnumInterface
 
 	/** Get the return value pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetReturnValuePin() const;
@@ -92,6 +100,6 @@ class UK2Node_Select : public UK2Node
 	BLUEPRINTGRAPH_API bool CanChangePinType(UEdGraphPin* Pin) const;
 
 	// Bind the options to a named enum 
-	virtual void SetEnum(UEnum* InEnum);
+	virtual void SetEnum(UEnum* InEnum, bool bForceRegenerate = false);
 };
 

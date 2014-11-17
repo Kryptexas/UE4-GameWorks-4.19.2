@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CoreStyle.h: Declares the FCoreStyle class.
-=============================================================================*/
-
 #pragma once
 
+struct FSlateDynamicImageBrush;
 
 /**
  * Core slate style

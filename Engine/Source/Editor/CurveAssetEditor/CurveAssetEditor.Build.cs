@@ -17,7 +17,8 @@ public class CurveAssetEditor : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
-				"UnrealEd"
+				"UnrealEd",
+				"InputCore"
 			}
 		);
 

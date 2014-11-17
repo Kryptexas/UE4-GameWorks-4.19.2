@@ -273,6 +273,9 @@ void FEmptyDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 {
 }
 
+void FEmptyDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
+{
+}
 
 // Occlusion/Timer queries.
 void FEmptyDynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)

@@ -4,7 +4,7 @@
 #include "BehaviorTree/Services/BTService_BlackboardBase.h"
 #include "BTService_DefaultFocus.generated.h"
 
-struct FBTDefaultFocusMemory
+struct FBTFocusMemory
 {
 	AActor* FocusActorSet;
 	FVector FocusLocationSet;
@@ -25,7 +25,7 @@ class UBTService_DefaultFocus : public UBTService_BlackboardBase
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual uint16 GetInstanceMemorySize() const override;
+	virtual uint16 GetInstanceMemorySize() const override { return sizeof(FBTFocusMemory); }
 	virtual void OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 

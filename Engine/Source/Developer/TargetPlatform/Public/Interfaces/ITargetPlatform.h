@@ -134,6 +134,14 @@ public:
 	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) = 0;
 
 	/**
+	* Returns the name of this platform
+	*
+	* @return Platform name.
+	* @see DisplayName
+	*/
+	virtual FString PlatformName() const = 0;
+
+	/**
 	 * Gets the platform's display name.
 	 *
 	 * @see PlatformName
@@ -241,14 +249,6 @@ public:
 	 * @return the maximum bones the platform supports.
 	 */
 	virtual uint32 MaxGpuSkinBones( ) const = 0;
-
-	/**
-	 * Returns the name of this platform
-	 *
-	 * @return Platform name.
-	 * @see DisplayName
-	 */
-	virtual FString PlatformName( ) const = 0;
 
 	/**
 	 * Checks whether this platform requires cooked data (typically console platforms).
@@ -376,19 +376,47 @@ public:
 	 */ 
 	virtual bool PackageBuild(const FString& InPackgeDirectory) = 0;
 
+	/**
+	 * Returns true if the platform is part of a family of variants
+	 */
+	virtual bool SupportsVariants() const = 0;
+
+	/**
+	 * Gets the variant display name of this platform.
+	 * eg. For Android: "ETC1", "ETC2", ...
+	 *
+	 * @return FText display name for this platform variant.
+	 */
+	virtual FText GetVariantDisplayName() const = 0;
+
+	/**
+	 * Gets the variant title of this platform family
+	 * eg. For Android: "Texture Format"
+	 *
+	 * @return FText title for what variants mean to this family of platforms.
+	 */
+	virtual FText GetVariantTitle() const = 0;
+
+	/**
+	 * Gets the variant priority of this platform
+	 *
+	 * @return float priority for this platform variant.
+	 */
+	virtual float GetVariantPriority() const = 0;
+
 public:
 
 	/**
 	 * Gets an event delegate that is executed when a new target device has been discovered.
 	 */
-	DECLARE_EVENT_OneParam(ITargetPlatform, FOnTargetDeviceDiscovered, const ITargetDeviceRef& /*DiscoveredDevice*/);
-	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) = 0;
+	DECLARE_EVENT_OneParam(ITargetPlatform, FOnTargetDeviceDiscovered, ITargetDeviceRef /*DiscoveredDevice*/);
+	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered() = 0;
 
 	/**
 	 * Gets an event delegate that is executed when a target device has been lost, i.e. disconnected or timed out.
 	 */
-	DECLARE_EVENT_OneParam(ITargetPlatform, FOnTargetDeviceLost, const ITargetDeviceRef& /*LostDevice*/);
-	virtual FOnTargetDeviceLost& OnDeviceLost( ) = 0;
+	DECLARE_EVENT_OneParam(ITargetPlatform, FOnTargetDeviceLost, ITargetDeviceRef /*LostDevice*/);
+	virtual FOnTargetDeviceLost& OnDeviceLost() = 0;
 
 public:
 

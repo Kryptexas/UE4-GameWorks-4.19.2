@@ -15,9 +15,10 @@ JavaVM* GJavaVM;
 jobject GJavaGlobalThis = NULL;
 
 // Pointer to target widget for virtual keyboard contents
-static SVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
+static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 
 extern FString GFilePathBase;
+extern FString GFontPathBase;
 extern bool GOBBinAPK;
 
 #if USE_JNI_HELPER
@@ -104,24 +105,20 @@ JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
 
 //Declare all the static members of the class defs 
 jclass JDef_GameActivity::ClassID;
+jmethodID JDef_GameActivity::AndroidThunkJava_KeepScreenOn;
+jmethodID JDef_GameActivity::AndroidThunkJava_Vibrate;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput;
 jmethodID JDef_GameActivity::AndroidThunkJava_LaunchURL;
-jmethodID JDef_GameActivity::AndroidThunkJava_ShowLeaderboard;
-jmethodID JDef_GameActivity::AndroidThunkJava_ShowAchievements;
-jmethodID JDef_GameActivity::AndroidThunkJava_QueryAchievements;
 jmethodID JDef_GameActivity::AndroidThunkJava_ResetAchievements;
-jmethodID JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue;
-jmethodID JDef_GameActivity::AndroidThunkJava_GooglePlayConnect;
-jmethodID JDef_GameActivity::AndroidThunkJava_WriteAchievement;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_HideAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetAssetManager;
-
-jclass JDef_GameActivity::JavaAchievementClassID;
-jfieldID JDef_GameActivity::AchievementIDField;
-jfieldID JDef_GameActivity::AchievementProgressField;
+jmethodID JDef_GameActivity::AndroidThunkJava_Minimize;
+jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
+jmethodID JDef_GameActivity::AndroidThunkJava_GetFontDirectory;
+jmethodID JDef_GameActivity::AndroidThunkJava_IsMusicActive;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -144,6 +141,24 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 		GError->HandleError();
 		FPlatformMisc::RequestExit(true);
+	}
+}
+
+void AndroidThunkCpp_KeepScreenOn(bool Enable)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		// call the java side
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_KeepScreenOn, Enable);
+	}
+}
+
+void AndroidThunkCpp_Vibrate(int64_t Duration)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		// call the java side
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_Vibrate, Duration);
 	}
 }
 
@@ -179,7 +194,7 @@ void AndroidThunkCpp_ShowConsoleWindow()
 	}
 }
 
-void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<SVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
+void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
 {
 	if (JNIEnv* Env = GetJavaEnv())
 	{
@@ -204,7 +219,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 		if (VirtualKeyboardWidget != NULL)
 		{
 			const char* javaChars = jenv->GetStringUTFChars(contents, 0);
-			VirtualKeyboardWidget->SetText(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
+			VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
 
 			//Release the string
 			jenv->ReleaseStringUTFChars(contents, javaChars);
@@ -225,24 +240,6 @@ void AndroidThunkCpp_LaunchURL(const FString& URL)
 	}
 }
 
-void AndroidThunkCpp_ShowLeaderboard(const FString& CategoryName)
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		jstring Argument = Env->NewStringUTF(TCHAR_TO_UTF8(*CategoryName));
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowLeaderboard, Argument);
-		Env->DeleteLocalRef(Argument);
-	}
-}
-
-void AndroidThunkCpp_ShowAchievements()
-{
- 	if (JNIEnv* Env = GetJavaEnv())
- 	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowAchievements);
- 	}
-}
-
 void AndroidThunkCpp_ResetAchievements()
 {
 	if (JNIEnv* Env = GetJavaEnv())
@@ -250,43 +247,6 @@ void AndroidThunkCpp_ResetAchievements()
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ResetAchievements);
 	}
 }
-
-void AndroidThunkCpp_WriteLeaderboardValue(const FString& LeaderboardName, int64_t Value)
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		jstring LeaderboardNameArg = Env->NewStringUTF(TCHAR_TO_UTF8(*LeaderboardName));
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue, LeaderboardNameArg, Value);
-		Env->DeleteLocalRef(LeaderboardNameArg);
-	}
-}
-
-void AndroidThunkCpp_GooglePlayConnect()
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GooglePlayConnect);
-	}
-}
-
-void AndroidThunkCpp_WriteAchievement(const FString& AchievementID, float PercentComplete)
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		jstring AchievementIDArg = Env->NewStringUTF(TCHAR_TO_UTF8(*AchievementID));
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_WriteAchievement, AchievementIDArg, PercentComplete);
-		Env->DeleteLocalRef(AchievementIDArg);
-	}
-}
-
-void AndroidThunkCpp_QueryAchievements()
-{
-	if (JNIEnv* Env = GetJavaEnv())
-	{
-		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_QueryAchievements);
-	}
-}
-
 
 void AndroidThunkCpp_ShowAdBanner(const FString& AdUnitID, bool bShowOnBottomOfScreen)
 {
@@ -336,6 +296,33 @@ AAssetManager * AndroidThunkCpp_GetAssetManager()
 	return GAssetManagerRef;
 }
 
+void AndroidThunkCpp_Minimize()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_Minimize);
+	}
+}
+
+void AndroidThunkCpp_ForceQuit()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ForceQuit);
+	}
+}
+
+bool AndroidThunkCpp_IsMusicActive()
+{
+	bool active = false;
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		active = (bool)Env->CallObjectMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IsMusicActive);
+	}
+	
+	return active;
+}
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -346,6 +333,17 @@ AAssetManager * AndroidThunkCpp_GetAssetManager()
 // Use the JNI_OnLoad function to map all the class IDs and method IDs to their respective
 // variables. That way, later when the Java functions need to be called, the IDs will be ready.
 // It is much slower to keep looking up the class and method IDs.
+
+#if UE_BUILD_SHIPPING
+#define CHECK_JNI_RESULT( Id )
+#else
+#define CHECK_JNI_RESULT( Id ) \
+	if ( Id == 0 ) \
+	{ \
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("JNI_OnLoad: Failed to find " #Id)); \
+	}
+#endif
+
 JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"In the JNI_OnLoad function");
@@ -353,29 +351,43 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JNIEnv* env = NULL;
 	InJavaVM->GetEnv((void **)&env, JNI_CURRENT_VERSION);
 
+	// if you have problems with stuff being missing esspecially in distribution builds then it could be because proguard is stripping things from java
+	// check proguard-project.txt and see if your stuff is included in the exceptions
 	GJavaVM = InJavaVM;
 
 	JDef_GameActivity::ClassID = env->FindClass("com/epicgames/ue4/GameActivity");
+	CHECK_JNI_RESULT( JDef_GameActivity::ClassID );
 
+	JDef_GameActivity::AndroidThunkJava_KeepScreenOn = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_KeepScreenOn", "(Z)V");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_KeepScreenOn);
+	JDef_GameActivity::AndroidThunkJava_Vibrate = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_Vibrate", "(J)V");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_Vibrate);
 	JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow );
 	JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowVirtualKeyboardInput", "(ILjava/lang/String;Ljava/lang/String;)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowVirtualKeyboardInput );
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
-	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
-	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
-	JDef_GameActivity::AndroidThunkJava_QueryAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_QueryAchievements", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_LaunchURL );
 	JDef_GameActivity::AndroidThunkJava_ResetAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ResetAchievements", "()V");
-	JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteLeaderboardValue", "(Ljava/lang/String;J)V");
-	JDef_GameActivity::AndroidThunkJava_GooglePlayConnect = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GooglePlayConnect", "()V");
-	JDef_GameActivity::AndroidThunkJava_WriteAchievement = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteAchievement", "(Ljava/lang/String;F)V");
 	JDef_GameActivity::AndroidThunkJava_ShowAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ShowAdBanner );
 	JDef_GameActivity::AndroidThunkJava_HideAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_HideAdBanner", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_HideAdBanner );
 	JDef_GameActivity::AndroidThunkJava_CloseAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_CloseAdBanner", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_CloseAdBanner );
 	JDef_GameActivity::AndroidThunkJava_GetAssetManager = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetAssetManager", "()Landroid/content/res/AssetManager;");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GetAssetManager );
 
-	// Set up achievement query IDs
-	JDef_GameActivity::JavaAchievementClassID = env->FindClass("com/epicgames/ue4/GameActivity$JavaAchievement");
-	JDef_GameActivity::AchievementIDField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "ID", "Ljava/lang/String;");
-	JDef_GameActivity::AchievementProgressField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "Progress", "D");
+	JDef_GameActivity::AndroidThunkJava_Minimize = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_Minimize", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_Minimize );
+	JDef_GameActivity::AndroidThunkJava_ForceQuit = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ForceQuit", "()V");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_ForceQuit );
+	
+	JDef_GameActivity::AndroidThunkJava_GetFontDirectory = env->GetStaticMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetFontDirectory", "()Ljava/lang/String;");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_GetFontDirectory );
+	
+	JDef_GameActivity::AndroidThunkJava_IsMusicActive = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IsMusicActive", "()Z");
+	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_IsMusicActive );	
 
 	// hook signals
 #if UE_BUILD_DEBUG
@@ -405,10 +417,20 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	jmethodID isOBBInAPKMethod = env->GetStaticMethodID(JDef_GameActivity::ClassID, "isOBBInAPK", "()Z");
 	GOBBinAPK = (bool)env->CallStaticBooleanMethod(JDef_GameActivity::ClassID, isOBBInAPKMethod, nullptr);
 
+	// Get the system font directory
+	jstring fontPath = (jstring)env->CallStaticObjectMethod(JDef_GameActivity::ClassID, JDef_GameActivity::AndroidThunkJava_GetFontDirectory);
+	const char * nativeFontPathString = env->GetStringUTFChars(fontPath, 0);
+	GFontPathBase = FString(nativeFontPathString);
+	env->ReleaseStringUTFChars(fontPath, nativeFontPathString);
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Font Path found as '%s'\n"), *GFontPathBase);
+
 	// Wire up to core delegates, so core code can call out to Java
 	DECLARE_DELEGATE_OneParam(FAndroidLaunchURLDelegate, const FString&);
 	extern CORE_API FAndroidLaunchURLDelegate OnAndroidLaunchURL;
 	OnAndroidLaunchURL = FAndroidLaunchURLDelegate::CreateStatic(&AndroidThunkCpp_LaunchURL);
+
+	FPlatformMisc::LowLevelOutputDebugString(L"In the JNI_OnLoad function 5");
+
 
 	return JNI_CURRENT_VERSION;
 }

@@ -30,7 +30,7 @@ public:
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDesktopMetrics ) const override;
+	virtual IForceFeedbackSystem *GetForceFeedbackSystem() override;
 
 	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 	

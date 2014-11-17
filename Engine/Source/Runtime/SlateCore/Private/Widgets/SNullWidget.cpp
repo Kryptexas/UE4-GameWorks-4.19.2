@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SNullWidget.cpp: Implements the SNullWidget class.
-=============================================================================*/
- 
 #include "SlateCorePrivatePCH.h"
 
 
+FNoChildren NullWidgetNoChildren;
+
 class SLATECORE_API SNullWidgetContent
-	: public SLeafWidget
+	: public SWidget
 {
 public:
 
@@ -26,12 +24,20 @@ public:
 			InArgs._Cursor, 
 			InArgs._IsEnabled,
 			InArgs._Visibility,
-			InArgs._Tag
+			InArgs._RenderTransform,
+			InArgs._RenderTransformPivot,
+			InArgs._Tag,
+			InArgs.MetaData
 		);
 	}
 
+private:
+	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final
+	{
+		ensureMsg( false, TEXT("Attempting to SetVisibility() on SNullWidget. Mutating SNullWidget is not allowed.") );
+	}
 public:
-
+	
 	// SWidget interface
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
@@ -39,9 +45,20 @@ public:
 		return LayerId;
 	}
 
-	virtual FVector2D ComputeDesiredSize( ) const override
+	virtual FVector2D ComputeDesiredSize( ) const override final
 	{
 		return FVector2D(0.0f, 0.0f);
+	}
+
+	virtual FChildren* GetChildren( ) override final
+	{
+		return &NullWidgetNoChildren;
+	}
+
+
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override final
+	{
+		// Nothing to arrange; Null Widgets do not have children.
 	}
 
 	// End of SWidget interface

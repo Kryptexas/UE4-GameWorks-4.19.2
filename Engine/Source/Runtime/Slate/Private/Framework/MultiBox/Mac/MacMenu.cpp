@@ -2,70 +2,66 @@
 
 #include "SlatePrivatePCH.h"
 #include "MacMenu.h"
+#include "CocoaThread.h"
+#include "MacApplication.h"
+
+struct FMacMenuItemState
+{
+	TSharedPtr<const FMenuEntryBlock> Block;
+	EMultiBlockType::Type Type;
+	NSString* Title;
+	NSString* KeyEquivalent;
+	uint32 KeyModifiers;
+	NSImage* Icon;
+	bool IsSubMenu;
+	bool IsEnabled;
+	uint32 State;
+
+	FMacMenuItemState() : Type(EMultiBlockType::None), Title(nil), KeyEquivalent(nil), KeyModifiers(0), Icon(nil), IsSubMenu(false), IsEnabled(false), State(0) {}
+	~FMacMenuItemState()
+	{
+		if (Title) [Title release];
+		if (KeyEquivalent) [KeyEquivalent release];
+		if (Icon) [Icon release];
+	}
+};
+
+static TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>> GCachedMenuState;
 
 @interface FMacMenuItem : NSMenuItem
-{
-	TSharedPtr< const FMenuEntryBlock > MenuEntryBlock;
-}
-
+@property (assign) TSharedPtr<const FMenuEntryBlock> MenuEntryBlock;
 - (void)performAction;
-
 @end
 
 @implementation FMacMenuItem
 
-- (id)initWithMenuEntryBlock:(TSharedRef< const FMenuEntryBlock >&)Block
+- (id)initWithMenuEntryBlock:(TSharedPtr< const FMenuEntryBlock >)Block
 {
-	CFStringRef Title = FSlateMacMenu::GetMenuItemTitle(Block);
-	uint32 KeyModifiers;
-	CFStringRef KeyEquivalent = FSlateMacMenu::GetMenuItemKeyEquivalent(Block, &KeyModifiers);
-	self = [super initWithTitle:(NSString*)Title action:nil keyEquivalent:(NSString*)KeyEquivalent];
-	[self setKeyEquivalentModifierMask:KeyModifiers];
-	NSImage* MenuImage = FSlateMacMenu::GetMenuItemIcon(Block);
-	if(MenuImage)
-	{
-		[self setImage:MenuImage];
-		[MenuImage release];
-	}
-	CFRelease(Title);
-	CFRelease(KeyEquivalent);
-
-	MenuEntryBlock = Block;
-
-	if (FSlateMacMenu::IsMenuItemEnabled(Block))
-	{
-		[self setTarget:self];
-		[self setAction:@selector(performAction)];
-	}
-
+	self = [super initWithTitle:@"" action:nil keyEquivalent:@""];
+	self.MenuEntryBlock = Block;
 	return self;
 }
 
 - (void)performAction
 {
-	FSlateMacMenu::ExecuteMenuItemAction(MenuEntryBlock.ToSharedRef());
+	FCocoaMenu* CocoaMenu = [[self menu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[self menu] : nil;
+	if ( !CocoaMenu || ![CocoaMenu isHighlightingKeyEquivalent] )
+	{
+		FSlateMacMenu::ExecuteMenuItemAction(self.MenuEntryBlock.ToSharedRef());
+	}
 }
 
 @end
 
 @implementation FMacMenu
 
-- (id)initWithMenuEntryBlock:(TSharedRef< const FMenuEntryBlock >&)Block
+- (id)initWithMenuEntryBlock:(TSharedPtr< const FMenuEntryBlock >)Block
 {
-	CFStringRef Title = FSlateMacMenu::GetMenuItemTitle(Block);
-	self = [super initWithTitle:(NSString*)Title];
-	CFRelease(Title);
-
+	self = [super initWithTitle:@""];
 	[self setDelegate:self];
-
-	MenuEntryBlock = Block;
-	
+	self.MenuEntryBlock = Block;
+	GCachedMenuState.Add(self, TSharedPtr<TArray<FMacMenuItemState>>(new TArray<FMacMenuItemState>()));
 	return self;
-}
-
-- (void)dealloc
-{
-	[super dealloc];
 }
 
 - (void)menuNeedsUpdate:(NSMenu*)Menu
@@ -73,114 +69,281 @@
 	FSlateMacMenu::UpdateMenu(self);
 }
 
-- (BOOL)menuHasKeyEquivalent:(NSMenu*)menu forEvent:(NSEvent*)event target:(id*)target action:(SEL*)action
+- (void)menuWillOpen:(NSMenu*)Menu
 {
-	// @todo: FSlateMacMenu::GetMenuBuilderWidget is currently expensive, so to avoid a framerate drop when using, for example, WASD keys, we always return false if no modifier keys are pressed.
-	// That's OK for now, because for a rare case where a menu item has a shortcut without any modifiers, Slate will handle it, but it needs to be fixed.
-	if ([event modifierFlags] == 0 || ![menu isKindOfClass:[FMacMenu class]])
-	{
-		return NO;
-	}
-	else
-	{
-		FMacMenu* MacMenu = (FMacMenu*)menu;
+	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	
+	GameThreadCall(^{
+		FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::WindowActivate );
+	}, @[ NSDefaultRunLoopMode ], false);
 
-		FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
-		bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString([MacMenu title])) == 0);
-
-		unichar Character = toupper([[event characters] characterAtIndex:0]);
-
-		if (bIsWindowMenu)
-		{
-			return ([event modifierFlags] & NSCommandKeyMask) && (Character == 'W' || Character == 'M');
-		}
-		else
-		{
-			TSharedRef< SWidget > Widget = FSlateMacMenu::GetMenuBuilderWidget(MacMenu);
-
-			TSharedRef<const FMultiBox> MultiBox = StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox();
-			const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = MultiBox->GetBlocks();
-
-			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
-			{
-				EMultiBlockType::Type Type = MenuBlocks[Index]->GetType();
-
-				if (Type == EMultiBlockType::MenuEntry)
-				{
-					TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-					if (Block->GetAction().IsValid())
-					{
-						const TSharedRef<const FInputGesture>& Gesture = Block->GetAction()->GetActiveGesture();
-						if (!Gesture->GetKeyText().IsEmpty() && Gesture->GetKeyText().ToString()[0] == Character)
-						{
-							uint32 EventModifiers = [event modifierFlags] & (NSCommandKeyMask | NSShiftKeyMask | NSAlternateKeyMask | NSControlKeyMask);
-							uint32 GestureModfiers = 0;
-							if (Gesture->bCtrl)
-							{
-								GestureModfiers |= NSCommandKeyMask;
-							}
-							if (Gesture->bShift)
-							{
-								GestureModfiers |= NSShiftKeyMask;
-							}
-							if (Gesture->bAlt)
-							{
-								GestureModfiers |= NSAlternateKeyMask;
-							}
-							if (Gesture->bCmd)
-							{
-								GestureModfiers |= NSControlKeyMask;
-							}
-
-							return EventModifiers == GestureModfiers;
-						}
-					}
-				}
-			}
-		}
-
-		return NO;
-	}
-}
-
-- ( TSharedPtr< const FMenuEntryBlock >& )GetMenuEntryBlock
-{
-	return MenuEntryBlock;
 }
 
 @end
 
 void FSlateMacMenu::UpdateWithMultiBox(const TSharedRef< FMultiBox >& MultiBox)
 {
-	int32 NumItems = [[NSApp mainMenu] numberOfItems];
-	FText HelpTitle = NSLOCTEXT("MainMenu", "HelpMenu", "Help");
-	NSMenuItem* HelpMenu = [[[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] retain];
-	for (int32 Index = NumItems - 1; Index > 0; Index--)
+	MainThreadCall(^{
+		if (!FPlatformMisc::UpdateCachedMacMenuState)
+		{
+			FPlatformMisc::UpdateCachedMacMenuState = UpdateCachedState;
+		}
+
+		int32 NumItems = [[NSApp mainMenu] numberOfItems];
+		FText HelpTitle = NSLOCTEXT("MainMenu", "HelpMenu", "Help");
+		FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
+		NSMenuItem* HelpMenu = [[[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] retain];
+		for (int32 Index = NumItems - 1; Index > 0; Index--)
+		{
+			[[NSApp mainMenu] removeItemAtIndex:Index];
+		}
+		GCachedMenuState.Reset();
+
+		const TArray<TSharedRef<const FMultiBlock> >& MenuBlocks = MultiBox->GetBlocks();
+
+		for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
+		{
+			TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
+			FMacMenu* Menu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
+			NSString* Title = FSlateMacMenu::GetMenuItemTitle(Block);
+			[Menu setTitle:Title];
+
+			NSMenuItem* MenuItem = [[NSMenuItem new] autorelease];
+			[MenuItem setTitle:Title];
+			[[NSApp mainMenu] addItem:MenuItem];
+			[MenuItem setSubmenu:Menu];
+
+			const bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString(Title)) == 0);
+			if (bIsWindowMenu)
+			{
+				[NSApp setWindowsMenu:nil];
+
+				[Menu removeAllItems];
+
+				NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
+				NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
+				NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
+				NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+
+				[Menu addItem:MinimizeItem];
+				[Menu addItem:ZoomItem];
+				[Menu addItem:CloseItem];
+				[Menu addItem:[NSMenuItem separatorItem]];
+				[Menu addItem:BringAllToFrontItem];
+				[Menu addItem:[NSMenuItem separatorItem]];
+
+				[NSApp setWindowsMenu:Menu];
+				[Menu addItem:[NSMenuItem separatorItem]];
+			}
+		}
+
+		if ([[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] == nil && HelpMenu)
+		{
+			[[NSApp mainMenu] addItem:HelpMenu];
+			GCachedMenuState.Add((FMacMenu*)HelpMenu, TSharedPtr<TArray<FMacMenuItemState>>(new TArray<FMacMenuItemState>()));
+		}
+
+		if (HelpMenu)
+		{
+			[HelpMenu release];
+		}
+
+		FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	});
+}
+
+void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
+{
+	MainThreadCall(^{
+		FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
+		const bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString([Menu title])) == 0);
+
+		int32 ItemIndexOffset = 0;
+		if (bIsWindowMenu)
+		{
+			int32 SeparatorIndex = 0;
+			for (NSMenuItem* Item in [Menu itemArray])
+			{
+				SeparatorIndex += [Item isSeparatorItem] ? 1 : 0;
+				ItemIndexOffset++;
+				if (SeparatorIndex == 3)
+				{
+					break;
+				}
+			}
+		}
+
+		TSharedPtr<TArray<FMacMenuItemState>> MenuState = GCachedMenuState[Menu];
+		int32 ItemIndexAdjust = 0;
+		for (int32 Index = 0; Index < MenuState->Num(); Index++)
+		{
+			FMacMenuItemState& MenuItemState = (*MenuState)[Index];
+			const int32 ItemIndex = (bIsWindowMenu ? Index + ItemIndexOffset : Index) - ItemIndexAdjust;
+			NSMenuItem* MenuItem = [Menu numberOfItems] > ItemIndex ? [Menu itemAtIndex:ItemIndex] : nil;
+
+			if (MenuItemState.Type == EMultiBlockType::MenuEntry)
+			{
+				if (MenuItem && (![MenuItem isKindOfClass:[FMacMenuItem class]] || (MenuItemState.IsSubMenu && [MenuItem submenu] == nil) || (!MenuItemState.IsSubMenu && [MenuItem submenu] != nil)))
+				{
+					[Menu removeItem:MenuItem];
+					MenuItem = nil;
+				}
+				if (!MenuItem)
+				{
+					MenuItem = [[[FMacMenuItem alloc] initWithMenuEntryBlock:MenuItemState.Block] autorelease];
+
+					if (MenuItemState.IsSubMenu)
+					{
+						FMacMenu* SubMenu = [[FMacMenu alloc] initWithMenuEntryBlock:MenuItemState.Block];
+						[MenuItem setSubmenu:SubMenu];
+					}
+
+					if ([Menu numberOfItems] > ItemIndex)
+					{
+						[Menu insertItem:MenuItem atIndex:ItemIndex];
+					}
+					else
+					{
+						[Menu addItem:MenuItem];
+					}
+				}
+
+				[MenuItem setTitle:MenuItemState.Title];
+
+				[MenuItem setKeyEquivalent:MenuItemState.KeyEquivalent];
+				[MenuItem setKeyEquivalentModifierMask:MenuItemState.KeyModifiers];
+
+				if (bIsWindowMenu)
+				{
+					NSImage* MenuImage = MenuItemState.Icon;
+					if(MenuImage)
+					{
+						[MenuItem setImage:MenuImage];
+					}
+				}
+				else
+				{
+					[MenuItem setImage:nil];
+				}
+
+				if (MenuItemState.IsEnabled)
+				{
+					[MenuItem setTarget:MenuItem];
+					[MenuItem setAction:@selector(performAction)];
+				}
+
+				if (!MenuItemState.IsSubMenu)
+				{
+					[MenuItem setState:MenuItemState.State];
+				}
+			}
+			else if (MenuItemState.Type == EMultiBlockType::MenuSeparator)
+			{
+				if (MenuItem && ![MenuItem isSeparatorItem])
+				{
+					[Menu removeItem:MenuItem];
+				}
+				else if (!MenuItem)
+				{
+					if ([Menu numberOfItems] > ItemIndex)
+					{
+						[Menu insertItem:[NSMenuItem separatorItem] atIndex:ItemIndex];
+					}
+					else
+					{
+						[Menu addItem:[NSMenuItem separatorItem]];
+					}
+				}
+			}
+			else
+			{
+				// If it's a type we skip, update ItemIndexAdjust so we can properly calculate item's index in NSMenu
+				ItemIndexAdjust++;
+			}
+		}
+	});
+}
+
+void FSlateMacMenu::UpdateCachedState()
+{
+	bool bShouldUpdate = false;
+
+	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
+	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
+	const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
+	for (auto Window : AllWindows)
 	{
-		[[NSApp mainMenu] removeItemAtIndex:Index];
+		if (Window->IsRegularWindow() && Window->IsVisible())
+		{
+			bShouldUpdate = true;
+			break;
+		}
 	}
-	
-	const TArray<TSharedRef<const FMultiBlock> >& MenuBlocks = MultiBox->GetBlocks();
-	
-	for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
+
+	if (bShouldUpdate)
 	{
-		TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-		FMacMenu* Menu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
-		
-		NSMenuItem* MenuItem = [[NSMenuItem new] autorelease];
-		[MenuItem setTitle:[Menu title]];
-		[[NSApp mainMenu] addItem:MenuItem];
-		[MenuItem setSubmenu:Menu];
+		for (TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>>::TIterator It(GCachedMenuState); It; ++It)
+		{
+			FMacMenu* Menu = It.Key();
+			TSharedPtr<TArray<FMacMenuItemState>> MenuState = It.Value();
+
+			if (!Menu.MultiBox.IsValid())
+			{
+				const bool bShouldCloseWindowAfterMenuSelection = true;
+				FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Menu.MenuEntryBlock->GetActionList(), Menu.MenuEntryBlock->Extender);
+				{
+					// Have the menu fill its contents
+					Menu.MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
+				}
+				TSharedRef<SWidget> Widget = MenuBuilder.MakeWidget();
+				Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
+			}
+
+			const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox->GetBlocks();
+			for (int32 Index = MenuState->Num(); MenuBlocks.Num() > MenuState->Num(); Index++)
+			{
+				MenuState->Add(FMacMenuItemState());
+			}
+			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
+			{
+				FMacMenuItemState& ItemState = (*MenuState)[Index];
+				ItemState.Type = MenuBlocks[Index]->GetType();
+
+				if (ItemState.Type == EMultiBlockType::MenuEntry)
+				{
+					TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
+					ItemState.Block = Block;
+					ItemState.Title = [FSlateMacMenu::GetMenuItemTitle(Block) retain];
+					ItemState.KeyEquivalent = [FSlateMacMenu::GetMenuItemKeyEquivalent(Block, &ItemState.KeyModifiers) retain];
+					if (!ItemState.Icon)
+					{
+						ItemState.Icon = [FSlateMacMenu::GetMenuItemIcon(Block) retain];
+					}
+					ItemState.IsSubMenu = Block->bIsSubMenu;
+					ItemState.IsEnabled = FSlateMacMenu::IsMenuItemEnabled(Block);
+					ItemState.State = ItemState.IsSubMenu ? 0 : FSlateMacMenu::GetMenuItemState(Block);
+				}
+			}
+		}
 	}
-	
-	if([[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] == nil && HelpMenu)
-	{
-		[[NSApp mainMenu] addItem:HelpMenu];
-	}
-	if(HelpMenu)
-	{
-		[HelpMenu release];
-	}
+}
+
+void FSlateMacMenu::ExecuteMenuItemAction(const TSharedRef< const class FMenuEntryBlock >& Block)
+{
+    TSharedPtr< const class FMenuEntryBlock>* MenuBlock = new TSharedPtr< const class FMenuEntryBlock>(Block);
+	GameThreadCall(^{
+		TSharedPtr< const FUICommandList > ActionList = (*MenuBlock)->GetActionList();
+		if (ActionList.IsValid() && (*MenuBlock)->GetAction().IsValid())
+		{
+			ActionList->ExecuteAction((*MenuBlock)->GetAction().ToSharedRef());
+		}
+		else
+		{
+			// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
+			(*MenuBlock)->GetDirectActions().Execute();
+		}
+        delete MenuBlock;
+	}, @[ NSDefaultRunLoopMode ], false);
 }
 
 static const TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content)
@@ -204,7 +367,7 @@ static const TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content
 	return SNullWidget::NullWidget;
 }
 
-CFStringRef FSlateMacMenu::GetMenuItemTitle(const TSharedRef<const FMenuEntryBlock>& Block)
+NSString* FSlateMacMenu::GetMenuItemTitle(const TSharedRef<const FMenuEntryBlock>& Block)
 {
 	TAttribute<FText> Label;
 	if (!Block->LabelOverride.IsBound() && Block->LabelOverride.Get().IsEmpty() && Block->GetAction().IsValid())
@@ -220,34 +383,33 @@ CFStringRef FSlateMacMenu::GetMenuItemTitle(const TSharedRef<const FMenuEntryBlo
 		const TSharedRef<SWidget>& TextBlockWidget = FindTextBlockWidget(Block->EntryWidget.ToSharedRef());
 		if (TextBlockWidget != SNullWidget::NullWidget)
 		{
-			Label = FText::FromString(StaticCastSharedRef<STextBlock>(TextBlockWidget)->GetText());
+			Label = StaticCastSharedRef<STextBlock>(TextBlockWidget)->GetText();
 		}
 	}
 
-	CFStringRef Title = FPlatformString::TCHARToCFString(*Label.Get().ToString());
-	return Title;
+	return Label.Get().ToString().GetNSString();
 }
 
 NSImage* FSlateMacMenu::GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>& Block)
 {
 	NSImage* MenuImage = nil;
 	FSlateIcon Icon;
-	if(Block->IconOverride.IsSet())
+	if (Block->IconOverride.IsSet())
 	{
 		Icon = Block->IconOverride;
 	}
-	else if(Block->GetAction().IsValid() && Block->GetAction()->GetIcon().IsSet())
+	else if (Block->GetAction().IsValid() && Block->GetAction()->GetIcon().IsSet())
 	{
 		Icon = Block->GetAction()->GetIcon();
 	}
-	if(Icon.IsSet())
+	if (Icon.IsSet())
 	{
-		if(Icon.GetIcon())
+		if (Icon.GetIcon())
 		{
 			FSlateBrush const* IconBrush = Icon.GetIcon();
 			FName ResourceName = IconBrush->GetResourceName();
-			MenuImage = [[NSImage alloc] initWithContentsOfFile: ResourceName.ToString().GetNSString()];
-			if(MenuImage)
+			MenuImage = [[NSImage alloc] initWithContentsOfFile:ResourceName.ToString().GetNSString()];
+			if (MenuImage)
 			{
 				[MenuImage setSize:NSMakeSize(16.0f, 16.0f)];
 			}
@@ -256,21 +418,7 @@ NSImage* FSlateMacMenu::GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>&
 	return MenuImage;
 }
 
-void FSlateMacMenu::ExecuteMenuItemAction(const TSharedRef< const class FMenuEntryBlock >& Block)
-{
-	TSharedPtr< const FUICommandList > ActionList = Block->GetActionList();
-	if (ActionList.IsValid() && Block->GetAction().IsValid())
-	{
-		ActionList->ExecuteAction(Block->GetAction().ToSharedRef());
-	}
-	else
-	{
-		// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
-		Block->GetDirectActions().Execute();
-	}
-}
-
-CFStringRef FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class FMenuEntryBlock>& Block, uint32* OutModifiers)
+NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class FMenuEntryBlock>& Block, uint32* OutModifiers)
 {
 	if (Block->GetAction().IsValid())
 	{
@@ -295,86 +443,9 @@ CFStringRef FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class
 		}
 
 		FString KeyString = Gesture->GetKeyText().ToString().ToLower();
-		return FPlatformString::TCHARToCFString(*KeyString);
+		return KeyString.GetNSString();
 	}
-	return FPlatformString::TCHARToCFString(TEXT(""));
-}
-
-void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
-{
-	FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
-	
-	bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString([Menu title])) == 0);
-	
-	[Menu removeAllItems];
-	
-	if(bIsWindowMenu)
-	{
-		NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
-		NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
-		NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
-		NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
-		
-		[Menu addItem:MinimizeItem];
-		[Menu addItem:ZoomItem];
-		[Menu addItem:CloseItem];
-		[Menu addItem:[NSMenuItem separatorItem]];
-		[Menu addItem:BringAllToFrontItem];
-		[Menu addItem:[NSMenuItem separatorItem]];
-	}
-
-	TSharedRef< SWidget > Widget = GetMenuBuilderWidget(Menu);
-
-	TSharedRef<const FMultiBox> MultiBox = StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox();
-	const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = MultiBox->GetBlocks();
-
-	for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
-	{
-		EMultiBlockType::Type Type = MenuBlocks[Index]->GetType();
-
-		if (Type == EMultiBlockType::MenuEntry)
-		{
-			TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-			FMacMenuItem* MenuItem = [[[FMacMenuItem alloc] initWithMenuEntryBlock:Block] autorelease];
-
-			if (Block->bIsSubMenu)
-			{
-				FMacMenu* SubMenu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
-				[MenuItem setSubmenu:SubMenu];
-			}
-			else
-			{
-				[MenuItem setState:FSlateMacMenu::GetMenuItemState(Block)];
-			}
-			
-			if(!bIsWindowMenu)
-			{
-				bool bIsWindowSubMenu = false;
-				NSMenu* SuperMenu = [Menu supermenu];
-				while(!bIsWindowSubMenu && SuperMenu)
-				{
-					bIsWindowSubMenu = (WindowLabel.ToString().Compare(FString([SuperMenu title])) == 0);
-					SuperMenu = [SuperMenu supermenu];
-				}
-				
-				if(!bIsWindowSubMenu)
-				{
-					[MenuItem setImage:nil];
-				}
-			}
-
-			[Menu addItem:MenuItem];
-		}
-		else if (Type == EMultiBlockType::MenuSeparator)
-		{
-			[Menu addItem:[NSMenuItem separatorItem]];
-		}
-	}
-	
-	if(bIsWindowMenu)
-	{
-		[NSApp setWindowsMenu:Menu];
-	}
+	return @"";
 }
 
 bool FSlateMacMenu::IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlock>& Block)
@@ -399,11 +470,11 @@ bool FSlateMacMenu::IsMenuItemEnabled(const TSharedRef<const class FMenuEntryBlo
 
 int32 FSlateMacMenu::GetMenuItemState(const TSharedRef<const class FMenuEntryBlock>& Block)
 {
+	bool bIsChecked = false;
 	TSharedPtr<const FUICommandList> ActionList = Block->GetActionList();
 	TSharedPtr<const FUICommandInfo> Action = Block->GetAction();
 	const FUIAction& DirectActions = Block->GetDirectActions();
 
-	bool bIsChecked = true;
 	if (ActionList.IsValid() && Action.IsValid())
 	{
 		bIsChecked = ActionList->IsChecked(Action.ToSharedRef());
@@ -415,16 +486,4 @@ int32 FSlateMacMenu::GetMenuItemState(const TSharedRef<const class FMenuEntryBlo
 	}
 
 	return bIsChecked ? NSOnState : NSOffState;
-}
-
-TSharedRef<SWidget> FSlateMacMenu::GetMenuBuilderWidget(FMacMenu* Menu)
-{
-	// @todo: ideally this should be cached and updated only when the menu contents change. See menuHasKeyEquivalent.
-	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, [Menu GetMenuEntryBlock]->GetActionList(), [Menu GetMenuEntryBlock]->Extender);
-	{
-		// Have the menu fill its contents
-		[Menu GetMenuEntryBlock]->EntryBuilder.ExecuteIfBound(MenuBuilder);
-	}
-	return MenuBuilder.MakeWidget();
 }

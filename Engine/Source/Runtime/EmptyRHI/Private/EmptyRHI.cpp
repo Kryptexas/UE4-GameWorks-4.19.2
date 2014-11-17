@@ -49,7 +49,7 @@ FEmptyDynamicRHI::FEmptyDynamicRHI()
 // 	GMaxTextureArrayLayers = 8192;
 
 //	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_NumPlatforms;
-//	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM3] = SP_NumPlatforms;
+//	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_NumPlatforms;
 //	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_NumPlatforms;
 //	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = ;
 
@@ -143,12 +143,12 @@ void FEmptyDynamicRHI::RHIEndScene()
 
 }
 
-void FEmptyDynamicRHI::PushEvent(const TCHAR* Name)
+void FEmptyDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
 
 }
 
-void FEmptyDynamicRHI::PopEvent()
+void FEmptyDynamicRHI::RHIPopEvent()
 {
 
 }

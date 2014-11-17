@@ -8,7 +8,11 @@
 #pragma once
 
 /** Windows implementation of the process handle. */
+#if PLATFORM_WINDOWS && defined(__clang__)	// @todo clang: Clang on Windows has a bug with non-type template arguments
+struct FProcHandle : public TProcHandle<HANDLE>
+#else
 struct FProcHandle : public TProcHandle<HANDLE, nullptr>
+#endif
 {
 public:
 	/** Default constructor. */
@@ -93,6 +97,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
+	static bool GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage);
 	static bool IsApplicationRunning( uint32 ProcessId );
 	static bool IsApplicationRunning( const TCHAR* ProcName );
 	static FString GetApplicationName( uint32 ProcessId );	

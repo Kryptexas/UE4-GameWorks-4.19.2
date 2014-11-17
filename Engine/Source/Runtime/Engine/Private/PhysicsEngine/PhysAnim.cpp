@@ -109,7 +109,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			BodyInstance = Bodies[BodyIndex];
 
 			//if simulated body copy back and blend with animation
-			if(BodyInstance->IsInstanceSimulatingPhysics(true))
+			if(BodyInstance->IsInstanceSimulatingPhysics())
 			{
 				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform();
 
@@ -242,7 +242,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning)
+void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -254,7 +254,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
 
 	// If desired, update physics bodies associated with skeletal mesh component to match.
-	if( !bUpdateKinematics )
+	if( !bUpdateKinematics && !(bForceUpdate && IsAnySimulatingPhysics()))
 	{
 		// nothing to do 
 		return;
@@ -312,7 +312,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 				FBodyInstance* BodyInst = Bodies[i];
 				check(BodyInst);
 
-				if (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
+				if (bForceUpdate || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics()))
 				{
 					// Find the graphics bone index that corresponds to this physics body.
 					FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;
@@ -479,11 +479,11 @@ void USkeletalMeshComponent::UpdateRBJointMotors()
 
 					FMatrix Body1TM = CS->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1).ToMatrixNoScale();
 					Body1TM.SetOrigin(FVector::ZeroVector);
-					FMatrix Body1TMInv = Body1TM.Inverse();
+					FMatrix Body1TMInv = Body1TM.InverseFast();
 
 					FMatrix Body2TM = CS->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2).ToMatrixNoScale();
 					Body2TM.SetOrigin(FVector::ZeroVector);
-					FMatrix Body2TMInv = Body2TM.Inverse();
+					FMatrix Body2TMInv = Body2TM.InverseFast();
 
 					FMatrix JointRot = Body1TM * (LocalRot * ControlBodyToParentBoneTM) * Body2TMInv;
 					FQuat JointQuat(JointRot);

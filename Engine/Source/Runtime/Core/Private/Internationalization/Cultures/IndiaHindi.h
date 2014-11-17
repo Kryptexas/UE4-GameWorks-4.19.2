@@ -8,10 +8,10 @@
 class FIndiaHindiCulture
 {
 public:
-	static TSharedRef<FCulture, ESPMode::ThreadSafe> Create()
+	static FCultureRef Create()
 	{
 #if UE_ENABLE_ICU
-		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture( FString("hi-IN") ) );
+		FCultureRef Culture = MakeShareable( new FCulture( FString("hi-IN") ) );
 #else
 		TArray<FString> InNativeDigits;
 
@@ -44,8 +44,8 @@ public:
 			, "%"					//const FString PercentSymbol
 			, "‰"					//const FString PerMilleSymbol
 			, ""					//const FString PositiveSign
-			, ECurrencyNegativePattern::NegativeSymbolCurrencySymbolSpaceX
-			, ECurrencyPositivePattern::CurrencySymbolSpaceX
+			, ECurrencyNegativePattern::NegativeSymbolCurrencySymbolX
+			, ECurrencyPositivePattern::CurrencySymbolX
 			, EPercentNegativePattern::NegativeSymbolXPct
 			, EPercentPositivePattern::XPct
 			, ENumberNegativePattern::NegativeSymbolX
@@ -133,7 +133,7 @@ public:
 			);
 
 
-		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture(
+		FCultureRef Culture = MakeShareable( new FCulture(
 			  LOCTEXT("HindiDisplayName", "Hindi (India)")					//const FText DisplayName
 			, FString(TEXT("Hindi (India)"))		//const FString EnglishName
 			, 1081									//const int KeyboardLayoutId

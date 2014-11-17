@@ -2,14 +2,14 @@
 
 #pragma once
 
-class SVirtualKeyboardEntry;
+class IVirtualKeyboardEntry;
 
 class IPlatformTextField
 {
 public:
 	virtual ~IPlatformTextField() {};
 
-	virtual void ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget) = 0;
+	virtual void ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget) = 0;
 
 private:
 

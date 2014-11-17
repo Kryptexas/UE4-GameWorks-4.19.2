@@ -13,9 +13,9 @@ UUniformGridSlot::UUniformGridSlot(const FPostConstructInitializeProperties& PCI
 	VerticalAlignment = VAlign_Top;
 }
 
-void UUniformGridSlot::ReleaseNativeWidget()
+void UUniformGridSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	Slot = NULL;
 }
@@ -23,6 +23,8 @@ void UUniformGridSlot::ReleaseNativeWidget()
 void UUniformGridSlot::BuildSlot(TSharedRef<SUniformGridPanel> GridPanel)
 {
 	Slot = &GridPanel->AddSlot(Column, Row)
+		.HAlign(HorizontalAlignment)
+		.VAlign(VerticalAlignment)
 		[
 			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
@@ -64,7 +66,7 @@ void UUniformGridSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignme
 	}
 }
 
-void UUniformGridSlot::SyncronizeProperties()
+void UUniformGridSlot::SynchronizeProperties()
 {
 	SetRow(Row);
 	SetColumn(Column);

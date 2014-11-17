@@ -105,7 +105,13 @@ public:
 	virtual void GenerateTotals( const TArray< TWeakObjectPtr<UObject> >& InObjects, TMap<FString, FText>& OutTotals ) const = 0;
 
 	/** 
-	 * Get custom widget to display in the top part of the stats viewer, can return NULL 
+	 * Get custom filter to display in the top part of the stats viewer, can return nullptr 
+	 * @param	InParentStatsViewer	The parent stats viewer
+	 */
+	virtual TSharedPtr<SWidget> GetCustomFilter( TWeakPtr< class IStatsViewer > InParentStatsViewer ) = 0;
+
+	/** 
+	 * Get custom widget to display in the top part of the stats viewer, can return nullptr 
 	 * @param	InParentStatsViewer	The parent stats viewer
 	 */
 	virtual TSharedPtr<SWidget> GetCustomWidget( TWeakPtr< class IStatsViewer > InParentStatsViewer ) = 0;

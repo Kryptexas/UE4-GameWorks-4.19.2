@@ -20,7 +20,7 @@ public:
 	{
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -134,7 +134,7 @@ public:
 	{
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
-				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -220,7 +220,7 @@ public:
 	}
 
 private:
- 	FShaderParameter LightMapDensity;
+	FShaderParameter LightMapDensity;
 	FShaderParameter BuiltLightingAndSelectedFlags;
 	FShaderParameter DensitySelectedColor;
 	FShaderParameter LightMapResolutionScale;
@@ -296,7 +296,7 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType) const
 	{
 		// Set the base pass shader parameters for the material.
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -321,7 +321,8 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
-		const ElementDataType& ElementData
+		const ElementDataType& ElementData,
+		const ContextDataType PolicyContext
 		) const
 	{
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
@@ -342,13 +343,17 @@ public:
 		// LMResolutionScale is the physical resolution of the lightmap texture
 		FVector2D LMResolutionScale(1.0f,1.0f);
 
+		const auto FeatureLevel = View.GetFeatureLevel();
+
+		bool bHighQualityLightMaps = AllowHighQualityLightmaps(FeatureLevel);
+
 		bool bTextureMapped = false;
 		if (Mesh.LCI &&
-			(Mesh.LCI->GetLightMapInteraction().GetType() == LMIT_Texture) &&
-			Mesh.LCI->GetLightMapInteraction().GetTexture())
+			(Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetType() == LMIT_Texture) &&
+			Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetTexture(bHighQualityLightMaps))
 		{
-			LMResolutionScale.X = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeX();
-			LMResolutionScale.Y = Mesh.LCI->GetLightMapInteraction().GetTexture()->GetSizeY();
+			LMResolutionScale.X = Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetTexture(bHighQualityLightMaps)->GetSizeX();
+			LMResolutionScale.Y = Mesh.LCI->GetLightMapInteraction(FeatureLevel).GetTexture(bHighQualityLightMaps)->GetSizeY();
 			bTextureMapped = true;
 
 			BuiltLightingAndSelectedFlags.X = 1.0f;
@@ -357,23 +362,9 @@ public:
 		else
  		if (PrimitiveSceneProxy)
  		{
- 			LMResolutionScale = PrimitiveSceneProxy->GetLightMapResolutionScale();
+ 			LMResolutionScale = FVector2D(0, 0);
 			BuiltLightingAndSelectedFlags.X = 0.0f;
 			BuiltLightingAndSelectedFlags.Y = 1.0f;
-			if (PrimitiveSceneProxy->GetLightMapType() == LMIT_Texture)
-			{
-				if (PrimitiveSceneProxy->IsLightMapResolutionPadded() == true)
-				{
-					LMResolutionScale.X -= 2.0f;
-					LMResolutionScale.Y -= 2.0f;
-				}
-				bTextureMapped = true;
-				if (PrimitiveSceneProxy->HasStaticLighting())
-				{
-					BuiltLightingAndSelectedFlags.X = 1.0f;
-					BuiltLightingAndSelectedFlags.Y = 0.0f;
-				}
-			}
 		}
 
 		if (Mesh.MaterialRenderProxy && (Mesh.MaterialRenderProxy->IsSelected() == true))
@@ -388,7 +379,7 @@ public:
 		// Adjust for the grid texture being 2x2 repeating pattern...
 		LMResolutionScale *= 0.5f;
 		PixelShader->SetMesh(RHICmdList, VertexFactory,PrimitiveSceneProxy, BatchElement, View, bBackFace, BuiltLightingAndSelectedFlags, LMResolutionScale, bTextureMapped);	
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	/** 
@@ -454,7 +445,7 @@ public:
 		return (Material && 
 				!(	Material->IsSpecialEngineMaterial() || 
 					Material->IsMasked() ||
-					Material->MaterialModifiesMeshPosition()
+					Material->MaterialModifiesMeshPosition_RenderThread()
 				));
 	}
 };

@@ -15,8 +15,17 @@ class FWindowsTextInputMethodSystem;
 class FTSFActivationProxy : public ITfInputProcessorProfileActivationSink, public ITfActiveLanguageProfileNotifySink
 {
 public:
-	FTSFActivationProxy(FWindowsTextInputMethodSystem* InOwner) : Owner(InOwner), ReferenceCount(1)
-	{}
+	FTSFActivationProxy(FWindowsTextInputMethodSystem* InOwner) 
+		: TSFProfileCookie(TF_INVALID_COOKIE)
+		, TSFLanguageCookie(TF_INVALID_COOKIE)
+		, Owner(InOwner)
+		, ReferenceCount(1)
+	{
+	}
+
+	virtual ~FTSFActivationProxy()
+	{
+	}
 
 	// IUnknown Interface Begin
 	STDMETHODIMP QueryInterface(REFIID riid, void **ppvObj) override;
@@ -48,14 +57,18 @@ class FWindowsTextInputMethodSystem : public ITextInputMethodSystem
 	friend class FTSFActivationProxy;
 
 public:
+	virtual ~FWindowsTextInputMethodSystem() {}
+
 	bool Initialize();
 	void Terminate();
 
 	// ITextInputMethodSystem Interface Begin
+	virtual void ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow) override;
 	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual bool IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const override;
 	// ITextInputMethodSystem Interface End
 
 	int32 ProcessMessage(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
@@ -72,6 +85,10 @@ private:
 	// TSF Implementation
 	bool InitializeTSF();
 
+	void OnIMEActivationStateChanged(const bool bIsEnabled);
+
+	void ClearStaleWindowHandles();
+
 private:
 	TSharedPtr<ITextInputMethodContext> ActiveContext;
 	enum class EAPI
@@ -82,16 +99,28 @@ private:
 	} CurrentAPI;
 
 	// TSF Implementation
-	FCOMPtr<ITfInputProcessorProfiles> TSFInputProcessorProfiles;
-	FCOMPtr<ITfInputProcessorProfileMgr> TSFInputProcessorProfileManager;
-	FCOMPtr<ITfThreadMgr> TSFThreadManager;
+	TComPtr<ITfInputProcessorProfiles> TSFInputProcessorProfiles;
+	TComPtr<ITfInputProcessorProfileMgr> TSFInputProcessorProfileManager;
+	TComPtr<ITfThreadMgr> TSFThreadManager;
 	TfClientId TSFClientId;
-	FCOMPtr<ITfDocumentMgr> TSFDisabledDocumentManager;
-	FCOMPtr<FTSFActivationProxy> TSFActivationProxy;
+	TComPtr<ITfDocumentMgr> TSFDisabledDocumentManager;
+	TComPtr<FTSFActivationProxy> TSFActivationProxy;
 
 	struct FInternalContext
 	{
-		FCOMPtr<FTextStoreACP> TSFContext;
+		FInternalContext()
+			: WindowHandle(nullptr)
+		{
+			IMMContext.IsComposing = false;
+			IMMContext.IsDeactivating = false;
+			IMMContext.CompositionBeginIndex = 0;
+			IMMContext.CompositionLength = 0;
+		}
+
+		HWND WindowHandle;
+
+		TComPtr<FTextStoreACP> TSFContext;
+
 		struct
 		{
 			bool IsComposing;
@@ -103,7 +132,10 @@ private:
 	TMap< TWeakPtr<ITextInputMethodContext>, FInternalContext > ContextToInternalContextMap;
 
 	// IMM Implementation
-	DWORD IMEProperties;
+	HIMC IMMContextId;
+	DWORD IMMProperties;
+
+	TSet<TWeakPtr<FGenericWindow>> KnownWindows;
 };
 
 #include "HideWindowsPlatformTypes.h"

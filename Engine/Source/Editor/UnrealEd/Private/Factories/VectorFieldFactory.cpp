@@ -8,6 +8,7 @@
 
 #include "Particles/ParticleSystemComponent.h"
 #include "ComponentReregisterContext.h"
+#include "VectorField/VectorFieldStatic.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVectorFieldFactory, Log, All);
 

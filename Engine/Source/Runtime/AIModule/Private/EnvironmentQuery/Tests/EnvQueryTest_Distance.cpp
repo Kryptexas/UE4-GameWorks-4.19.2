@@ -25,14 +25,12 @@ namespace
 
 UEnvQueryTest_Distance::UEnvQueryTest_Distance(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Distance::RunTest);
-
 	DistanceTo = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::Low;
 	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 }
 
-void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
+void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 {
 // 	float ThresholdValue = 0.0f;
 // 	if (!QueryInstance.GetParamValue(FloatFilter, ThresholdValue, TEXT("FloatFilter")))

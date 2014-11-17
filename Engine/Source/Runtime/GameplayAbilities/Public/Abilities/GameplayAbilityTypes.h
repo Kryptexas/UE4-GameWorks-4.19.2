@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "GameplayEffect.h"
+#include "GameplayPrediction.h"
 #include "GameplayAbilityTypes.generated.h"
 
 class UGameplayEffect;
@@ -9,7 +11,10 @@ class UAnimInstance;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class AGameplayAbilityTargetActor;
+class UAbilityTask;
+class UAttributeSet;
 
+GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
@@ -31,8 +36,8 @@ UENUM(BlueprintType)
 namespace EGameplayAbilityNetExecutionPolicy
 {
 	/**
-	*	How does an ability execute on the network. Does a client "ask and predict", "ask and wait", "don't ask"
-	*/
+	 *	How does an ability execute on the network. Does a client "ask and predict", "ask and wait", "don't ask (just do it)"
+	 */
 
 	enum Type
 	{
@@ -46,8 +51,8 @@ UENUM(BlueprintType)
 namespace EGameplayAbilityReplicationPolicy
 {
 	/**
-	*	How an ability replicates state/events to everyone on the network.
-	*/
+	 *	How an ability replicates state/events to everyone on the network.
+	 */
 
 	enum Type
 	{
@@ -56,73 +61,6 @@ namespace EGameplayAbilityReplicationPolicy
 		ReplicateOwner		UMETA(DisplayName = "Replicate Owner"),	// Only replicate the instance of the ability to the owner.
 	};
 }
-
-USTRUCT(BlueprintType)
-struct FGameplayAbilityHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityHandle()
-	: Handle(INDEX_NONE)
-	{
-
-	}
-
-	FGameplayAbilityHandle(int32 InHandle)
-		: Handle(InHandle)
-	{
-
-	}
-
-	bool IsValid() const
-	{
-		return Handle != INDEX_NONE;
-	}
-
-	FGameplayAbilityHandle GetNextHandle()
-	{
-		return FGameplayAbilityHandle(Handle + 1);
-	}
-
-	bool operator==(const FGameplayAbilityHandle& Other) const
-	{
-		return Handle == Other.Handle;
-	}
-
-	bool operator!=(const FGameplayAbilityHandle& Other) const
-	{
-		return Handle != Other.Handle;
-	}
-
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("%d"), Handle);
-	}
-
-private:
-
-	UPROPERTY()
-	int32 Handle;
-};
-
-/**
-*	Not implemented yet, but we will need something like this to track ability + levels if we choose to support ability leveling in the base classes.
-*/
-
-USTRUCT()
-struct FGameplayAbilitySpec
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	int32	Level;
-
-	UPROPERTY()
-	class UGameplayAbility * Ability;
-
-	UPROPERTY()
-	FGameplayAbilityHandle	Handle;
-};
 
 
 UENUM(BlueprintType)
@@ -138,16 +76,56 @@ namespace EGameplayAbilityActivationMode
 	};
 }
 
+// ----------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FGameplayAbilitySpecHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilitySpecHandle()
+	: Handle(INDEX_NONE)
+	{
+
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	void GenerateNewHandle()
+	{
+		static int32 GHandle = 1;
+		Handle = GHandle++;
+	}
+
+	bool operator==(const FGameplayAbilitySpecHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FGameplayAbilitySpecHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+private:
+
+	UPROPERTY()
+	int32 Handle;
+};
+
 /**
-*	FGameplayAbilityActorInfo
-*
-*	Cached data associated with an Actor using an Ability.
-*		-Initialized from an AActor* in InitFromActor
-*		-Abilities use this to know what to actor upon. E.g., instead of being coupled to a specific actor class.
-*		-These are generally passed around as pointers to support polymorphism.
-*		-Projects can override UAbilitySystemGlobals::AllocAbilityActorInfo to override the default struct type that is created.
-*
-*/
+ *	FGameplayAbilityActorInfo
+ *
+ *	Cached data associated with an Actor using an Ability.
+ *		-Initialized from an AActor* in InitFromActor
+ *		-Abilities use this to know what to actor upon. E.g., instead of being coupled to a specific actor class.
+ *		-These are generally passed around as pointers to support polymorphism.
+ *		-Projects can override UAbilitySystemGlobals::AllocAbilityActorInfo to override the default struct type that is created.
+ *
+ */
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 {
@@ -175,32 +153,31 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	bool IsNetAuthority() const;
 
-	virtual void InitFromActor(AActor *Actor);
+	virtual void InitFromActor(AActor *Actor, UAbilitySystemComponent* InAbilitySystemComponent);
+	virtual void ClearActorInfo();
 };
 
 /**
-*	FGameplayAbilityActivationInfo
-*
-*	Data tied to a specific activation of an ability.
-*		-Tell us whether we are the authority, if we are predicting, confirmed, etc.
-*		-Holds PredictionKey
-*		-Generally not meant to be subclassed in projects.
-*		-Passed around by value since the struct is small.
-*/
-
+ *	FGameplayAbilityActivationInfo
+ *
+ *	Data tied to a specific activation of an ability.
+ *		-Tell us whether we are the authority, if we are predicting, confirmed, etc.
+ *		-Holds current and previous PredictionKey
+ *		-Generally not meant to be subclassed in projects.
+ *		-Passed around by value since the struct is small.
+ */
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityActivationInfo()
-	: ActivationMode(EGameplayAbilityActivationMode::Authority),
-	PredictionKey(0)
+		: ActivationMode(EGameplayAbilityActivationMode::Authority)
 	{
 
 	}
 
-	FGameplayAbilityActivationInfo(AActor * InActor, int32 InPredictionKey)
+	FGameplayAbilityActivationInfo(AActor * InActor, FPredictionKey InPredictionKey)
 		: PredictionKey(InPredictionKey)
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
@@ -208,236 +185,171 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 		ActivationMode = (InActor->Role == ROLE_Authority ? EGameplayAbilityActivationMode::Authority : EGameplayAbilityActivationMode::NonAuthority);
 	}
 
-	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, int32 InPredictionKey)
+	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, FPredictionKey InPredictionKey = FPredictionKey())
 		: ActivationMode(InType)
 		, PredictionKey(InPredictionKey)
 	{
 	}
 
-
-	void GeneratePredictionKey(UAbilitySystemComponent * Component) const;
-
-	void SetPredictionKey(int32 InPredictionKey);
+	void GenerateNewPredictionKey() const;
 
 	void SetActivationConfirmed();
+
+	void SetPredictionStale();
+
+	FPredictionKey GetPredictionKeyForNewAction() const
+	{
+		return PredictionKey.IsValidForMorePrediction() ? PredictionKey : FPredictionKey();
+	}
+
+	FPredictionKey GetPredictionKey() const
+	{
+		return PredictionKey;
+	}
+
+	void SetPredictionKey(FPredictionKey NewKey) const
+	{
+		PredictionKey = NewKey;
+	}
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
 
-	UPROPERTY()
-	mutable int32 PredictionKey;
-};
+private:
 
+	UPROPERTY()
+	mutable FPredictionKey	PredictionKey;
+	
+};
 
 // ----------------------------------------------------
 
-/**
-*	A generic structure for targeting data. We want generic functions to produce this data and other generic
-*	functions to consume this data.
-*
-*	We expect this to be able to hold specific actors/object reference and also generic location/direction/origin
-*	information.
-*
-*	Some example producers:
-*		-Overlap/Hit collision event generates TargetData about who was hit in a melee attack
-*		-A mouse input causes a hit trace and the actor infront of the crosshair is turned into TargetData
-*		-A mouse input causes TargetData to be generated from the owner's crosshair view origin/direction
-*		-An AOE/aura pulses and all actors in a radius around the instigator are added to TargetData
-*		-Panzer Dragoon style 'painting' targeting mode
-*		-MMORPG style ground AOE targeting style (potentially both a location on the ground and actors that were targeted)
-*
-*	Some example consumers:
-*		-Apply a GameplayEffect to all actors in TargetData
-*		-Find closest actor from all in TargetData
-*		-Call some function on all actors in TargetData
-*		-Filter or merge TargetDatas
-*		-Spawn a new actor at a TargetData location
-*
-*
-*
-*	Maybe it is better to distinguish between actor list targeting vs positional targeting data?
-*		-AOE/aura type of targeting data blurs the line
-*
-*
-*/
-
 USTRUCT()
-struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
+struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 {
 	GENERATED_USTRUCT_BODY()
 
-	virtual ~FGameplayAbilityTargetData() { }
-
-	void ApplyGameplayEffect(UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
-
-	virtual TArray<AActor*>	GetActors() const
-	{
-		return TArray<AActor*>();
-	}
-
-	// -------------------------------------
-
-	virtual bool HasHitResult() const
-	{
-		return false;
-	}
-
-	virtual const FHitResult * GetHitResult() const
-	{
-		return NULL;
-	}
-
-	// -------------------------------------
-
-	virtual bool HasOrigin() const
-	{
-		return false;
-	}
-
-	virtual FTransform* GetOrigin() const
-	{
-		return nullptr;
-	}
-
-	// -------------------------------------
-
-	virtual UScriptStruct * GetScriptStruct()
-	{
-		return FGameplayAbilityTargetData::StaticStruct();
-	}
-
-	virtual FString ToString() const;
-};
-
-USTRUCT()
-struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityTargetData_SingleTargetHit()
-	{ }
-
-	FGameplayAbilityTargetData_SingleTargetHit(const FHitResult InHitResult)
-	: HitResult(InHitResult)
-	{ }
-
-	// -------------------------------------
-
-	virtual TArray<AActor*>	GetActors() const
-	{
-		TArray<AActor*>	Actors;
-		if (HitResult.Actor.IsValid())
-		{
-			Actors.Push(HitResult.Actor.Get());
-		}
-		return Actors;
-	}
-	
-	// -------------------------------------
-
-	virtual bool HasHitResult() const
-	{
-		return true;
-	}
-
-	virtual const FHitResult * GetHitResult() const
-	{
-		return &HitResult;
-	}
-
-	// -------------------------------------
-
-	UPROPERTY()
-	FHitResult	HitResult;
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	virtual UScriptStruct * GetScriptStruct()
-	{
-		return FGameplayAbilityTargetData_SingleTargetHit::StaticStruct();
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithNetSerializer = true	// Fow now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
-	};
-};
-
-
-/**
-*	Handle for Targeting Data. This servers two main purposes:
-*		-Avoid us having to copy around the full targeting data structure in Blueprints
-*		-Allows us to leverage polymorphism in the target data structure
-*		-Allows us to implement NetSerialize and replicate by value between clients/server
-*
-*		-Avoid using UObjects could be used to give us polymorphism and by reference passing in blueprints.
-*		-However we would still be screwed when it came to replication
-*
-*		-Replication by value
-*		-Pass by reference in blueprints
-*		-Polymophism in TargetData structure
-*
-*/
-
-USTRUCT(BlueprintType)
-struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityTargetDataHandle() { }
-	FGameplayAbilityTargetDataHandle(FGameplayAbilityTargetData* DataPtr)
-		: Data(DataPtr)
+	FGameplayAbilitySpec()
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), IsActive(false)
 	{
 		
 	}
 
-	TSharedPtr<FGameplayAbilityTargetData>	Data;
-
-	void Clear()
+	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
+	: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), IsActive(false)
 	{
-		Data.Reset();
+		Handle.GenerateNewHandle();
 	}
 
-	bool IsValid() const
-	{
-		return Data.IsValid();
-	}
+	/** Handle for outside sources to refer to this spec by */
+	UPROPERTY()
+	FGameplayAbilitySpecHandle Handle;
+	
+	/** Ability of the spec (either CDO or instanced) */
+	UPROPERTY()
+	UGameplayAbility* Ability;
+	
+	/** Level of Ability */
+	UPROPERTY()
+	int32	Level;
 
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+	/** InputID, if bound */
+	UPROPERTY()
+	int32	InputID;
 
-	/** Comparison operator */
-	bool operator==(FGameplayAbilityTargetDataHandle const& Other) const
-	{
-		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
-		bool bBothValid = IsValid() && Other.IsValid();
-		bool bBothInvalid = !IsValid() && !Other.IsValid();
-		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
-	}
+	/** Is input currently pressed. Set to false when input is released */
+	UPROPERTY(NotReplicated)
+	bool	InputPressed;
 
-	/** Comparison operator */
-	bool operator!=(FGameplayAbilityTargetDataHandle const& Other) const
+	/** Is this ability active? (Literally: has EndAbility been called on it since ActivateAbility was called on it */
+	UPROPERTY()
+	bool	IsActive;
+
+	/** Activation state of this ability. This is not replicated since it needs to be overwritten locally on clients during prediction. */
+	UPROPERTY(NotReplicated)
+	FGameplayAbilityActivationInfo	ActivationInfo;
+
+	/** Non replicating instances of this ability. */
+	UPROPERTY(NotReplicated)
+	TArray<UGameplayAbility*> NonReplicatedInstances;
+
+	/** Replicated instances of this ability.. */
+	UPROPERTY()
+	TArray<UGameplayAbility*> ReplicatedInstances;
+
+	TArray<UGameplayAbility*> GetAbilityInstances()
 	{
-		return !(FGameplayAbilityTargetDataHandle::operator==(Other));
+		TArray<UGameplayAbility*> Abilities;
+		Abilities.Append(ReplicatedInstances);
+		Abilities.Append(NonReplicatedInstances);
+		return Abilities;
 	}
 };
 
-template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOpsTypeTraitsBase
+// ----------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayEventData
 {
-	enum
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEventData()
+	: Instigator(NULL)
+	, Target(NULL)
 	{
-		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
-		WithNetSerializer = true,
-		WithIdenticalViaEquality = true,
-	};
+		// do nothing
+	}
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	AActor* Instigator;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	AActor* Target;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	float Var1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	float Var2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	float Var3;
+
+	FPredictionKey PredictionKey;
 };
 
-/** Generic callback for returning when target data is available */
-DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityTargetData, FGameplayAbilityTargetDataHandle);
+/** 
+ *	Structure that tells AbilitySystemComponent what to bind to an InputComponent (see BindAbilityActivationToInputComponent) 
+ *	
+ */
+struct FGameplayAbiliyInputBinds
+{
+	FGameplayAbiliyInputBinds(FString InConfirmTargetCommand, FString InCancelTargetCommand, FString InEnumName)
+	: ConfirmTargetCommand(InConfirmTargetCommand)
+	, CancelTargetCommand(InCancelTargetCommand)
+	, EnumName(InEnumName)
+	{ }
+
+	/** Defines command string that will be bound to Confirm Targeting */
+	FString ConfirmTargetCommand;
+
+	/** Defines command string that will be bound to Cancel Targeting */
+	FString CancelTargetCommand;
+
+	/** Returns enum to use for ability bings. E.g., "Ability1"-"Ability8" input commands will be bound to ability activations inside the AbiltiySystemComponent */
+	FString	EnumName;
+
+	UEnum* GetBindEnum() { return FindObject<UEnum>(ANY_PACKAGE, *EnumName); }
+};
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FAttributeDefaults
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "AttributeTest")
+	TSubclassOf<UAttributeSet> Attributes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	class UDataTable*	DefaultStartingTable;
+};
+
 
 /** Used for cleaning up predicted data on network clients */
 DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);

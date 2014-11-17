@@ -12,6 +12,7 @@ public class DesktopPlatform : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
+            AddThirdPartyPrivateStaticDependencies(Target, "LinuxNativeDialogs");
             AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
 		}
 	}

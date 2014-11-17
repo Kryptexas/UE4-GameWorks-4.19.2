@@ -2,6 +2,7 @@
 
 #include "CodeViewPrivatePCH.h"
 #include "ModuleManager.h"
+#include "DesktopPlatformModule.h"
 
 class FCodeViewPlugin : public IModuleInterface
 {
@@ -20,7 +21,8 @@ public:
 
 	void AddCodeViewCategory(IDetailLayoutBuilder& DetailBuilder, const FGetSelectedActors& GetSelectedActors)
 	{
-		if (FModuleManager::Get().IsSolutionFilePresent())
+		FString SolutionPath;
+		if(FDesktopPlatformModule::Get()->GetSolutionPath(SolutionPath))
 		{
 			TSharedRef< CodeView::SCodeView > CodeViewWidget =
 				SNew( CodeView::SCodeView )

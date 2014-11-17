@@ -24,13 +24,11 @@
 #include "Editor/ActorPositioning.h"
 #include "Animation/SkeletalMeshActor.h"
 
+#include "ObjectEditorUtils.h"
+
 
 namespace AssetSelectionUtils
 {
-	const FName DevelopmentStatusKey(TEXT("DevelopmentStatus"));
-	const FString EarlyAccessValue(TEXT("EarlyAccess"));
-	const FString ExperimentalValue(TEXT("Experimental"));
-
 	bool IsClassPlaceable(const UClass* Class)
 	{
 		const bool bIsAddable =
@@ -205,23 +203,21 @@ namespace AssetSelectionUtils
 							}
 						}
 
-						// Check for experimental classes in the component hierarchy
-						FString DevelopmentStatus;
-						if (Component->GetClass()->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus))
-						{
-							ActorInfo.bHaveExperimentalClass = ActorInfo.bHaveExperimentalClass || (DevelopmentStatus == ExperimentalValue);
-							ActorInfo.bHaveEarlyAccessClass = ActorInfo.bHaveEarlyAccessClass || (DevelopmentStatus == EarlyAccessValue);
-						}
+						// Check for experimental/early-access classes in the component hierarchy
+						bool bIsExperimental, bIsEarlyAccess;
+						FObjectEditorUtils::GetClassDevelopmentStatus(Component->GetClass(), bIsExperimental, bIsEarlyAccess);
+
+						ActorInfo.bHaveExperimentalClass |= bIsExperimental;
+						ActorInfo.bHaveEarlyAccessClass |= bIsEarlyAccess;
 					}
 
-					// Check for experimental classes in the actor hierarchy
+					// Check for experimental/early-access classes in the actor hierarchy
 					{
-						FString DevelopmentStatus;
-						if (CurrentClass->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus))
-						{
-							ActorInfo.bHaveExperimentalClass = ActorInfo.bHaveExperimentalClass || (DevelopmentStatus == ExperimentalValue);
-							ActorInfo.bHaveEarlyAccessClass = ActorInfo.bHaveEarlyAccessClass || (DevelopmentStatus == EarlyAccessValue);
-						}
+						bool bIsExperimental, bIsEarlyAccess;
+						FObjectEditorUtils::GetClassDevelopmentStatus(CurrentClass, bIsExperimental, bIsEarlyAccess);
+
+						ActorInfo.bHaveExperimentalClass |= bIsExperimental;
+						ActorInfo.bHaveEarlyAccessClass |= bIsEarlyAccess;
 					}
 
 					if( CurrentActor->IsA( ALight::StaticClass() ) )
@@ -365,7 +361,12 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 		return NULL;
 	}
 
-	const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, Factory, GEditor->ClickLocation, GEditor->ClickPlane, NewActorTemplate->GetPlacementExtent());
+	const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
+		.UseFactory(Factory)
+		.UseStartTransform(NewActorTemplate->GetTransform())
+		.UsePlacementExtent(NewActorTemplate->GetPlacementExtent());
+
+	const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
 
 	// Do not fade snapping indicators over time if the viewport is not realtime
 	bool bClearImmediately = !GCurrentLevelEditingViewportClient || !GCurrentLevelEditingViewportClient->IsRealtime();
@@ -622,7 +623,7 @@ AActor* FActorFactoryAssetProxy::AddActorFromSelection( UClass* ActorClass, cons
 	{
 		UObject* TargetObject = GEditor->GetSelectedObjects()->GetTop<UObject>();
 
-		if( ActorFactory->CanCreateActorFrom( FAssetData(TargetObject), ErrorMessage ) )
+		if( TargetObject && ActorFactory->CanCreateActorFrom( FAssetData(TargetObject), ErrorMessage ) )
 		{
 			// Attempt to add the actor
 			Result = PrivateAddActor( TargetObject, ActorFactory, SelectActor, ObjectFlags );

@@ -81,7 +81,7 @@ FPlatformRect FWinRTApplication::GetWorkArea( const FPlatformRect& CurrentWindow
 	return WorkArea;
 }
 
-void FWinRTApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	//@todo WINRT: Use the actual device settings here.
 	OutDisplayMetrics.PrimaryDisplayWidth = 1920;

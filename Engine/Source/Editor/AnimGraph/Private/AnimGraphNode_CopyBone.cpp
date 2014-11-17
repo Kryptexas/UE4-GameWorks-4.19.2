@@ -18,18 +18,36 @@ FText UAnimGraphNode_CopyBone::GetControllerDescription() const
 	return LOCTEXT("CopyBone", "Copy Bone");
 }
 
-FString UAnimGraphNode_CopyBone::GetTooltip() const
+FText UAnimGraphNode_CopyBone::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_CopyBone_Tooltip", "The Copy Bone control copies the Transform data or any component of it - i.e. Translation, Rotation, or Scale - from one bone to another.").ToString();
+	return LOCTEXT("AnimGraphNode_CopyBone_Tooltip", "The Copy Bone control copies the Transform data or any component of it - i.e. Translation, Rotation, or Scale - from one bone to another.");
 }
 
 FText UAnimGraphNode_CopyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
-	Args.Add(TEXT("SourceBoneName"), FText::FromName(Node.SourceBone.BoneName));
-	Args.Add(TEXT("TargetBoneName"), FText::FromName(Node.TargetBone.BoneName));
-	return FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args);
+	if ((TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle) && (Node.TargetBone.BoneName == NAME_None) && (Node.SourceBone.BoneName == NAME_None))
+	{
+		return GetControllerDescription();
+	}
+	// @TODO: the bone can be altered in the property editor, so we have to 
+	//        choose to mark this dirty when that happens for this to properly work
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+		Args.Add(TEXT("SourceBoneName"), FText::FromName(Node.SourceBone.BoneName));
+		Args.Add(TEXT("TargetBoneName"), FText::FromName(Node.TargetBone.BoneName));
+
+		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_CopyBone_ListTitle", "{ControllerDescription} - Source Bone: {SourceBoneName} - Target Bone: {TargetBoneName}"), Args));
+		}
+		else
+		{
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}\nSource Bone: {SourceBoneName}\nTarget Bone: {TargetBoneName}"), Args));
+		}
+	}
+	return CachedNodeTitles[TitleType];
 }
 
 #undef LOCTEXT_NAMESPACE

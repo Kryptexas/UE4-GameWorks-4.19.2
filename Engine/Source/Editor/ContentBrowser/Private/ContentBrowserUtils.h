@@ -171,4 +171,13 @@ namespace ContentBrowserUtils
 
 	/** Gets the platform specific text for the "explore" command (FPlatformProcess::ExploreFolder) */
 	FText GetExploreFolderText();
+
+	/** Returns true if the specified path is available for object creation */
+	bool IsValidObjectPathForCreate(const FString& ObjectPath, FText& OutErrorMessage, bool bAllowExistingAsset = false);
+
+	/** Returns true if the specified folder name in the specified path is available for folder creation */
+	bool IsValidFolderPathForCreate(const FString& FolderPath, const FString& NewFolderName, FText& OutErrorMessage);
+
+	/** Checks to see whether the path is within the size restrictions for cooking */
+	bool IsValidPackageForCooking(const FString& PackageName, FText& OutErrorMessage);
 }

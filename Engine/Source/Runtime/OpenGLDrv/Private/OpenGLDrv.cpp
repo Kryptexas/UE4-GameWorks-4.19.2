@@ -19,7 +19,7 @@ IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 /** OpenGL Logging. */
 DEFINE_LOG_CATEGORY(LogOpenGL);
 
-void FOpenGLDynamicRHI::PushEvent(const TCHAR* Name)
+void FOpenGLDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
 #if ENABLE_OPENGL_DEBUG_GROUPS
 	// @todo-mobile: Fix string conversion ASAP!
@@ -33,7 +33,7 @@ void FOpenGLGPUProfiler::PushEvent(const TCHAR* Name)
 	FGPUProfiler::PushEvent(Name);
 }
 
-void FOpenGLDynamicRHI::PopEvent()
+void FOpenGLDynamicRHI::RHIPopEvent()
 {
 #if ENABLE_OPENGL_DEBUG_GROUPS
 	FOpenGL::PopGroupMarker();
@@ -337,7 +337,7 @@ void FOpenGLEventNodeFrame::LogDisjointQuery()
 	}
 	else
 	{
-		TEXT("Profiled range \"disjoinness\" could not be determined due to lack of disjoing timer query functionality on this platform.");
+		UE_LOG(LogRHI, Warning, TEXT("Profiled range \"disjoinness\" could not be determined due to lack of disjoint timer query functionality on this platform."));
 	}
 }
 
@@ -376,7 +376,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 };
 
@@ -404,16 +404,19 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 	{
 		FOpenGLViewport* Viewport = Viewports[LargestViewportIndex];
 
+		const auto FeatureLevel = GMaxRHIFeatureLevel;
+
 		FRHICommandList_RecursiveHazardous RHICmdList;
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
-		TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FOpenGLRHILongGPUTaskPS> PixelShader(GetGlobalShaderMap());
+		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
+		TShaderMapRef<FOpenGLRHILongGPUTaskPS> PixelShader(ShaderMap);
 
-		SetGlobalBoundShaderState(RHICmdList, LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
+		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
 
 		// Draw a fullscreen quad
 		FVector4 Vertices[4];
@@ -509,11 +512,51 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	#endif
 }
 
+void GetExtensionsString( FString& ExtensionsString)
+{
+	GLint ExtensionCount = 0;
+	ExtensionsString = TEXT("");
+	if ( FOpenGL::SupportsIndexedExtensions() )
+	{
+		glGetIntegerv(GL_NUM_EXTENSIONS, &ExtensionCount);
+		for (int32 ExtensionIndex = 0; ExtensionIndex < ExtensionCount; ++ExtensionIndex)
+		{
+			const ANSICHAR* ExtensionString = FOpenGL::GetStringIndexed(GL_EXTENSIONS, ExtensionIndex);
+
+			ExtensionsString += TEXT(" ");
+			ExtensionsString += ANSI_TO_TCHAR(ExtensionString);
+		}
+	}
+	else
+	{
+		const ANSICHAR* GlGetStringOutput = (const ANSICHAR*) glGetString( GL_EXTENSIONS );
+		if (GlGetStringOutput)
+		{
+			ExtensionsString += GlGetStringOutput;
+			ExtensionsString += TEXT(" ");
+		}
+	}
+}
+
 void InitDefaultGLContextState(void)
 {
+	// NOTE: This function can be called before capabilities setup, so extensions need to be checked directly
+	FString ExtensionsString;
+	GetExtensionsString(ExtensionsString);
+
 	// Intel HD4000 under <= 10.8.4 requires GL_DITHER disabled or dithering will occur on any channel < 8bits.
 	// No other driver does this but we don't need GL_DITHER on anyway.
 	glDisable(GL_DITHER);
-	// Render targets with TexCreate_SRGB should do sRGB conversion like in D3D11
-	glEnable(GL_FRAMEBUFFER_SRGB);
+
+	if (FOpenGL::SupportsFramebufferSRGBEnable())
+	{
+		// Render targets with TexCreate_SRGB should do sRGB conversion like in D3D11
+		glEnable(GL_FRAMEBUFFER_SRGB);
+	}
+
+	// Engine always expects seamless cubemap, so enable it if available
+	if (ExtensionsString.Contains(TEXT("GL_ARB_seamless_cube_map")))
+	{
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	}
 }

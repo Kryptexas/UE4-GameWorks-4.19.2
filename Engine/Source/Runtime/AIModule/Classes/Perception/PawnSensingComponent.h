@@ -123,6 +123,9 @@ public:
 	/** Get position where hearing/seeing occurs (i.e. ear/eye position).  If we ever need different positions for hearing/seeing, we'll deal with that then! */
 	virtual FVector GetSensorLocation() const;
 
+	/**  Get the rotation of this sensor. We need this for the sight component */
+	virtual FRotator GetSensorRotation() const;
+
 protected:
 
 	/** See if there are interesting sounds and sights that we want to detect, and respond to them if so. */

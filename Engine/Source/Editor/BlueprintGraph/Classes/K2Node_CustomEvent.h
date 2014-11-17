@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_Event.h"
+#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_CustomEvent.generated.h"
 
 UCLASS(MinimalAPI)
@@ -21,7 +22,7 @@ class UK2Node_CustomEvent : public UK2Node_Event
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
-	virtual FString GetTooltip() const override;
+	virtual FText GetTooltipText() const override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
@@ -29,7 +30,7 @@ class UK2Node_CustomEvent : public UK2Node_Event
 
 	// Begin UK2Node interface
 	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
-	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface
@@ -60,6 +61,10 @@ class UK2Node_CustomEvent : public UK2Node_Event
 	 * @return If this CustomEvent is an override, then this is the super's net flags, otherwise it's from the FunctionFlags set on this node.
 	 */
 	BLUEPRINTGRAPH_API uint32 GetNetFlags() const;
+
+private:
+	/** Constructing FText strings can be costly, so we cache the node's title */
+	FNodeTextCache CachedNodeTitle;
 };
 
 

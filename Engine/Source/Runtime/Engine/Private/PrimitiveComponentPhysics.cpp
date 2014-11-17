@@ -173,7 +173,11 @@ void UPrimitiveComponent::AddRadialImpulse(FVector Origin, float Radius, float S
 		return;
 	}
 
-	BodyInstance.AddRadialImpulseToBody(Origin, Radius, Strength, Falloff, bVelChange);
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->AddRadialImpulseToBody(Origin, Radius, Strength, Falloff, bVelChange);
+	}
 }
 
 
@@ -202,7 +206,11 @@ void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Str
 		return;
 	}
 
-	BodyInstance.AddRadialForceToBody(Origin, Radius, Strength, Falloff);
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->AddRadialForceToBody(Origin, Radius, Strength, Falloff);
+	}
 }
 
 void UPrimitiveComponent::AddTorque(FVector Torque, FName BoneName)
@@ -300,41 +308,73 @@ void UPrimitiveComponent::WakeAllRigidBodies()
 
 void UPrimitiveComponent::SetEnableGravity(bool bGravityEnabled)
 {
-	BodyInstance.SetEnableGravity(bGravityEnabled);
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->SetEnableGravity(bGravityEnabled);
+	}
 }
 
 bool UPrimitiveComponent::IsGravityEnabled() const
 {
-	return BodyInstance.bEnableGravity;
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		return BI->bEnableGravity;
+	}
+
+	return false;
 }
 
 void UPrimitiveComponent::SetLinearDamping(float InDamping)
 {
-	BodyInstance.LinearDamping = InDamping;
-	BodyInstance.UpdateDampingProperties();
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->LinearDamping = InDamping;
+		BI->UpdateDampingProperties();
+	}
 }
 
 float UPrimitiveComponent::GetLinearDamping() const
 {
-	return BodyInstance.LinearDamping;
+
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		return BI->LinearDamping;
+	}
+	
+	return 0.f;
 }
 
 void UPrimitiveComponent::SetAngularDamping(float InDamping)
 {
-	BodyInstance.AngularDamping = InDamping;
-	BodyInstance.UpdateDampingProperties();
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		BI->AngularDamping = InDamping;
+		BI->UpdateDampingProperties();
+	}
 }
 
 float UPrimitiveComponent::GetAngularDamping() const
 {
-	return BodyInstance.AngularDamping;
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
+	{
+		return BI->AngularDamping;
+	}
+	
+	return 0.f;
 }
 
 float UPrimitiveComponent::GetMass() const
 {
-	if (BodyInstance.IsValidBodyInstance())
+	FBodyInstance* BI = GetBodyInstance();
+	if (BI)
 	{
-		return BodyInstance.GetBodyMass();
+		return BI->GetBodyMass();
 	}
 
 	return 0.0f;
@@ -417,16 +457,20 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 	AActor* Owner = GetOwner();
 	if(Owner != NULL)
 	{
-		const bool bStillInWorld = Owner->CheckStillInWorld();
-		if (!bStillInWorld || Owner->IsPendingKill() || IsPendingKill() || !IsSimulatingPhysics())
+		if (Owner->IsPendingKill() || !Owner->CheckStillInWorld())
 		{
 			return;
 		}
 	}
 
+	if (IsPendingKill() || !IsSimulatingPhysics())
+	{
+		return;
+	}
+
 	// See if the transform is actually different, and if so, move the component to match physics
 	const FTransform NewTransform = UseBI->GetUnrealWorldTransform();	
-	if(!NewTransform.Equals(ComponentToWorld))
+	if(!NewTransform.EqualsNoScale(ComponentToWorld))
 	{
 		const FVector MoveBy = NewTransform.GetLocation() - ComponentToWorld.GetLocation();
 		const FRotator NewRotation = NewTransform.Rotator();
@@ -436,11 +480,210 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 	}
 }
 
-FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName) const
+
+UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent * PrimComponent, FName ParentSocketName = NAME_None, FName * OutSocketName = NULL, bool bAboutToWeld = false)
 {
-	return const_cast<FBodyInstance*>(&BodyInstance);
+	UPrimitiveComponent * Result = NULL;
+	UPrimitiveComponent * RootComponent = Cast<UPrimitiveComponent>(PrimComponent->AttachParent);	//we must find the root component along hierarchy that has bWelded set to true
+
+	//check that body itself is welded
+	if (FBodyInstance * BI = PrimComponent->GetBodyInstance(ParentSocketName, false))
+	{
+		if (bAboutToWeld == false && BI->bWelded == false && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
+		{
+			return NULL;
+		}
+	}
+
+	FName PrevSocketName = ParentSocketName;
+	FName SocketName = NAME_None; //because of skeletal mesh it's important that we check along the bones that we attached
+	FBodyInstance * RootBI = NULL;
+	for (; RootComponent; RootComponent = Cast<UPrimitiveComponent>(RootComponent->AttachParent))
+	{
+		Result = RootComponent;
+		SocketName = PrevSocketName;
+		PrevSocketName = RootComponent->AttachSocketName;
+
+		RootBI = RootComponent->GetBodyInstance(SocketName, false);
+		if (RootBI && RootBI->bWelded)
+		{
+			continue;
+		}
+
+		break;
+	}
+
+	if (OutSocketName)
+	{
+		*OutSocketName = SocketName;
+	}
+
+	return Result;
 }
 
+void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
+{
+	OutWeldedBodies.Add(&BodyInstance);
+	OutLabels.Add(NAME_None);
+
+	for (USceneComponent * Child : AttachChildren)
+	{
+		if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
+		{
+			if (FBodyInstance * BI = PrimChild->GetBodyInstance(NAME_None, false))
+			{
+				if (BI->bWelded)
+				{
+					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+				}
+			}
+		}
+	}
+}
+
+bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName ParentSocketName /* = Name_None */, bool bWeldSimulatedChild /* = false */)
+{
+	//WeldToInternal assumes attachment is already done
+	if (AttachParent != InParent || AttachSocketName != ParentSocketName)
+	{
+		return false;
+	}
+
+	//Check that we can actually our own socket name
+	FBodyInstance * BI = GetBodyInstance(NAME_None, false);
+	if (BI == NULL)
+	{
+		return false;
+	}
+
+	if (BI->ShouldInstanceSimulatingPhysics() && bWeldSimulatedChild == false)
+	{
+		return false;
+	}
+
+	UnWeldFromParent();	//make sure to unweld from wherever we currently are
+
+	FName SocketName;
+	UPrimitiveComponent * RootComponent = GetRootWelded(this, ParentSocketName, &SocketName, true);
+
+	if (RootComponent)
+	{
+		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName, false))
+		{
+			if (BI->WeldParent == RootBI)	//already welded so stop
+			{
+				return true;
+			}
+
+			BI->bWelded = true;
+			//There are multiple cases to handle:
+			//Root is kinematic, simulated
+			//Child is kinematic, simulated
+			//Child always inherits from root
+
+			//if root is kinematic simply set child to be kinematic and we're done
+			if (RootComponent->IsSimulatingPhysics(SocketName) == false)
+			{
+				BI->WeldParent = NULL;
+				SetSimulatePhysics(false);
+				return false;	//return false because we need to continue with regular body initialization
+			}
+
+			//root is simulated so we actually weld the body
+			FTransform RelativeTM = RootComponent == AttachParent ? GetRelativeTransform() : GetComponentToWorld().GetRelativeTransform(RootComponent->GetComponentToWorld());	//if direct parent we already have relative. Otherwise compute it
+			RootBI->Weld(BI, GetComponentToWorld());
+			BI->WeldParent = RootBI;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /* = NAME_None */)
+{
+	//automatically attach if needed
+	if (AttachParent != InParent || AttachSocketName != InSocketName)
+	{
+		AttachTo(InParent, InSocketName, EAttachLocation::KeepWorldPosition);
+	}
+
+	WeldToImplementation(InParent, InSocketName);
+}
+
+void UPrimitiveComponent::UnWeldFromParent()
+{
+	FBodyInstance * NewRootBI = GetBodyInstance(NAME_None, false);
+	UWorld* CurrentWorld = GetWorld();
+	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || IsPendingKill())
+	{
+		return;
+	}
+
+	FName SocketName;
+	UPrimitiveComponent * RootComponent = GetRootWelded(this, AttachSocketName, &SocketName);
+
+	if (RootComponent)
+	{
+		if (FBodyInstance * RootBI = RootComponent->GetBodyInstance(SocketName, false))
+		{
+			//create new root
+			RootBI->UnWeld(NewRootBI);
+			NewRootBI->bWelded = false;
+			NewRootBI->WeldParent = NULL;
+
+			bool bHasBodySetup = GetBodySetup() != NULL;
+
+			//if BodyInstance hasn't already been created we need to initialize it
+			if (bHasBodySetup && NewRootBI->IsValidBodyInstance() == false)
+			{
+				bool bPrevAutoWeld = NewRootBI->bAutoWeld;
+				NewRootBI->bAutoWeld = false;
+				NewRootBI->InitBody(GetBodySetup(), GetComponentToWorld(), this, CurrentWorld->GetPhysicsScene());
+				NewRootBI->bAutoWeld = bPrevAutoWeld;
+			}
+
+			//now weld its children to it
+			TArray<FBodyInstance*> ChildrenBodies;
+			TArray<FName> ChildrenLabels;
+			GetWeldedBodies(ChildrenBodies, ChildrenLabels);
+
+			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
+			{
+				FBodyInstance * ChildBI = ChildrenBodies[ChildIdx];
+				if (ChildBI != NewRootBI)
+				{
+					RootBI->UnWeld(NewRootBI);
+					if (bHasBodySetup)
+					{
+						NewRootBI->Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
+					}
+				}
+			}
+		}
+	}
+}
+
+FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWelded) const
+{
+	if (bGetWelded && BodyInstance.bWelded)
+	{
+		FName OutSocket;
+		if (UPrimitiveComponent * RootComponentWelded = GetRootWelded(this, AttachSocketName, &OutSocket))
+		{
+			if (FBodyInstance * BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
+			{
+				if (BI->bSimulatePhysics)
+				{
+					return BI;
+				}
+			}
+		}
+	}
+
+	return const_cast<FBodyInstance*>(&BodyInstance);
+}
 
 float UPrimitiveComponent::GetDistanceToCollision(const FVector & Point, FVector& ClosestPointOnCollision) const
 {
@@ -507,8 +750,6 @@ void UPrimitiveComponent::SetCollisionResponseToChannels(const FCollisionRespons
 
 void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 {
-	const bool bOldNavRelevant = IsRegistered() && IsNavigationRelevant(true);
-
 	if (BodyInstance.GetCollisionEnabled() != NewType)
 	{
 		BodyInstance.SetCollisionEnabled(NewType);
@@ -516,25 +757,11 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 
 		EnsurePhysicsStateCreated();
 	}
-
-	AActor* Owner = GetOwner();
-	if (Owner && IsRegistered())
-	{
-		const bool bNewNavRelevant = IsNavigationRelevant(true);
-		const bool bOwnerNavRelevant = Owner->IsNavigationRelevant();
-
-		if (bNewNavRelevant != bOldNavRelevant || bNewNavRelevant != bOwnerNavRelevant)
-		{
-			Owner->UpdateNavigationRelevancy();
-		}
-	}
 }
 
 // @todo : implement skeletalmeshcomponent version
 void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 {
-	const bool bOldNavRelevant = IsRegistered() && IsNavigationRelevant(true);
-
 	ECollisionEnabled::Type OldCollisionEnabled = BodyInstance.GetCollisionEnabled();
 	BodyInstance.SetCollisionProfileName(InCollisionProfileName);
 	OnComponentCollisionSettingsChanged();
@@ -544,18 +771,6 @@ void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 	if (OldCollisionEnabled != NewCollisionEnabled)
 	{
 		EnsurePhysicsStateCreated();
-	}
-
-	AActor* Owner = GetOwner();
-	if (Owner && IsRegistered())
-	{
-		const bool bNewNavRelevant = IsNavigationRelevant(true);
-		const bool bOwnerNavRelevant = Owner->IsNavigationRelevant();
-
-		if (bNewNavRelevant != bOldNavRelevant || bNewNavRelevant != bOwnerNavRelevant)
-		{
-			Owner->UpdateNavigationRelevancy();
-		}
 	}
 }
 
@@ -576,10 +791,18 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 	{
 		// changing collision settings could affect touching status, need to update
 		UpdateOverlaps();
+
+		// update navigation data if needed
+		const bool bNewNavRelevant = IsNavigationRelevant();
+		if (bNavigationRelevant != bNewNavRelevant)
+		{
+			bNavigationRelevant = bNewNavRelevant;
+			UNavigationSystem::UpdateNavOctree(this);
+		}
 	}
 }
 
-bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal)
+bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName & BoneName)
 {
 	FHitResult Hit;
 	static FName KismetTraceComponentName(TEXT("KismetTraceComponent"));
@@ -591,12 +814,14 @@ bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector Trac
 		// Fill in the results if we hit
 		HitLocation = Hit.Location;
 		HitNormal = Hit.Normal;
+		BoneName = Hit.BoneName;
 	}
 	else
 	{
 		// Blank these out to avoid confusion!
 		HitLocation = FVector::ZeroVector;
 		HitNormal = FVector::ZeroVector;
+		BoneName = NAME_None;
 	}
 
 	if( bShowTrace )

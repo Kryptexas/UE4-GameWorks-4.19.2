@@ -198,7 +198,7 @@ void TestLightmass()
 		TestMatrix.M[3][0], TestMatrix.M[3][1], TestMatrix.M[3][2], TestMatrix.M[3][3]
 		);
 
-	TestMatrix = TestMatrix.GetTransposed().Inverse();
+	TestMatrix = TestMatrix.GetTransposed().InverseFast();
 
 	UE_LOG(LogLightmass, Display, TEXT("Inverted Mat=\n  [%0.2f, %0.2f, %0.2f, %0.2f]\n  [%0.2f, %0.2f, %0.2f, %0.2f]\n  [%0.2f, %0.2f, %0.2f, %0.2f]\n  [%0.2f, %0.2f, %0.2f, %0.2f]"), 
 		TestMatrix.M[0][0], TestMatrix.M[0][1], TestMatrix.M[0][2], TestMatrix.M[0][3], 

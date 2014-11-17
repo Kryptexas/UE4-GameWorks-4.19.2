@@ -202,7 +202,7 @@ public:
 	uint32 AppendData(FBoneSkinning *DataStart, uint32 BoneCount);
 
 	/** only call if LockData() */
-	ENGINE_API void UnlockData(bool bAdvance);
+	ENGINE_API void UnlockData();
 
 	/** @return 0 if there should be no bone based motion blur (no previous data available or it's not active) */
 	FBoneDataVertexBuffer* GetReadData();
@@ -216,7 +216,7 @@ private:
 	/* !=0 if data is locked, does not change during the lock */
 	float* LockedData;
 	/** only valid if LockedData != 0, advances with every Append() */
-	uint32 LockedTexelPosition;
+	FThreadSafeCounter LockedTexelPosition;
 	/** only valid if LockedData != 0 */
 	uint32 LockedTexelCount;
 

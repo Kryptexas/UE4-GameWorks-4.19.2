@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UICommandList.h: Declares the FUICommandList class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -107,7 +103,6 @@ public:
 	 * Processes any UI commands which are activated by the specified keyboard event
 	 *
 	 * @param InKeyboardEvent	The keyboard event to check
-	 *
 	 * @return true if an action was processed
 	 */
 	bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const;
@@ -116,7 +111,6 @@ public:
 	 * Processes any UI commands which are activated by the specified mouse event
 	 *
 	 * @param InKeyboardEvent	The mouse event to check
-	 *
 	 * @return true if an action was processed
 	 */
 	bool ProcessCommandBindings( const FPointerEvent& InMouseEvent ) const;
@@ -127,7 +121,6 @@ public:
 	 * @param Key				The current key that is pressed
 	 * @param ModifierKeysState	Pressed state of keys that are commonly used as modifiers
 	 * @param bRepeat			True if input is repeating (held)
-	 *
 	 * @return true if an action was processed
 	 */
 	bool ProcessCommandBindings( const FKey Key, const FModifierKeysState& ModifierKeysState, const bool bRepeat ) const;

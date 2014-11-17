@@ -12,27 +12,32 @@ UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UComboBox::ReleaseNativeWidget()
+void UComboBox::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyComboBox.Reset();
 }
 
 TSharedRef<SWidget> UComboBox::RebuildWidget()
 {
-	TSharedRef< SComboBox<UObject*> > NewComboBox =
+	TSet<UObject*> UniqueItems(Items);
+	Items = UniqueItems.Array();
+
+	MyComboBox =
 		SNew(SComboBox<UObject*>)
 		.OptionsSource(&Items)
 		.OnGenerateWidget(BIND_UOBJECT_DELEGATE(SComboBox<UObject*>::FOnGenerateWidget, HandleGenerateWidget));
 
-	return NewComboBox;
+	return MyComboBox.ToSharedRef();
 }
 
 TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 {
 	// Call the user's delegate to see if they want to generate a custom widget bound to the data source.
-	if ( OnGenerateWidget.IsBound() )
+	if ( OnGenerateWidgetEvent.IsBound() )
 	{
-		UWidget* Widget = OnGenerateWidget.Execute(Item);
+		UWidget* Widget = OnGenerateWidgetEvent.Execute(Item);
 		if ( Widget != NULL )
 		{
 			return Widget->TakeWidget();
@@ -42,6 +47,20 @@ TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 	// If a row wasn't generated just create the default one, a simple text block of the item's name.
 	return SNew(STextBlock).Text(Item ? FText::FromString(Item->GetName()) : LOCTEXT("null", "null"));
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UComboBox::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.ComboBox");
+}
+
+const FText UComboBox::GetPaletteCategory()
+{
+	return LOCTEXT("Misc", "Misc");
+}
+
+#endif
 
 /////////////////////////////////////////////////////
 

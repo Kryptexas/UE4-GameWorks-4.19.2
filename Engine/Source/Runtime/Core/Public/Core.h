@@ -27,6 +27,17 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 #include "UnrealTemplate.h"						// Common template definitions.
 #include "MemoryOps.h"							// Functions for efficient handling of object arrays.
 
+#ifndef STUBBED
+#define STUBBED(x)   \
+    do {                                                                  \
+        static bool AlreadySeenThisStubbedSection = false;                 \
+        if (!AlreadySeenThisStubbedSection)                               \
+        {                                                                 \
+            AlreadySeenThisStubbedSection = true;                         \
+            fprintf(stderr, "STUBBED: %s at %s:%d (%s)\n", x, __FILE__, __LINE__, __FUNCTION__); \
+        }                                                                 \
+    } while (0)
+#endif
 
 /*----------------------------------------------------------------------------
 	Forward declarations.
@@ -111,7 +122,10 @@ extern CORE_API ITransaction* GUndo;
 extern CORE_API FOutputDeviceConsole* GLogConsole;
 
 extern CORE_API TCHAR GErrorHist[16384];
-extern CORE_API TCHAR GErrorExceptionDescription[1024];
+
+// @TODO yrx 2014-08-19 Combine into one.
+extern CORE_API TCHAR GErrorExceptionDescription[4096];
+extern CORE_API TCHAR GErrorMessage[4096];
 
 extern CORE_API const FText GTrue, GFalse, GYes, GNo, GNone;
 
@@ -461,6 +475,7 @@ extern CORE_API TArray<struct FScriptTraceStackNode> GScriptStack;
 #include "MonitoredProcess.h"
 #include "Attribute.h"
 #include "Optional.h"
+#include "EnumClassFlags.h"
 
 #ifdef TRUE
 	#undef TRUE

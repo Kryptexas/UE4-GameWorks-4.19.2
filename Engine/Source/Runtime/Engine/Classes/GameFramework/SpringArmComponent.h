@@ -40,9 +40,12 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraCollision)
 	uint32 bDoCollisionTest:1;
 
-	/** If this component is placed on a pawn, should it use the view rotation of the pawn where possible? */
+	/**
+	 * If this component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
+	 * @see APawn::GetViewRotation()
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
-	uint32 bUseControllerViewRotation:1;
+	uint32 bUsePawnControlRotation:1;
 
 	/** Should we inherit pitch from parent component. Does nothing if using Absolute Rotation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
@@ -81,6 +84,7 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	// UActorComponent interface
 	virtual void OnRegister() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void PostLoad() override;
 	// End of UActorComponent interface
 
 	// USceneComponent interface
@@ -106,4 +110,17 @@ protected:
 	 * by default it returns bHitSomething ? TraceHitLocation : DesiredArmLocation
 	 */
 	virtual FVector BlendLocations(const FVector& DesiredArmLocation, const FVector& TraceHitLocation, bool bHitSomething, float DeltaTime);
+
+public:
+
+	/**
+	* DEPRECATED variable: use "bUsePawnControlRotation" instead. Existing code using this value may not behave correctly.
+	* This is not a UPROPERTY, with good reason: we don't want to serialize in old values.
+	*/
+	DEPRECATED(4.5, "This variable is deprecated; existing code using this value may not behave correctly. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
+	bool bUseControllerViewRotation;
+
+private:
+	// Workaround for compiler-generated function using deprecated variable. Nobody should copy-construct this class anyway.
+	USpringArmComponent(const USpringArmComponent&);
 };

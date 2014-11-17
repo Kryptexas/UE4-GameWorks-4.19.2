@@ -56,7 +56,12 @@ enum EPixelFormat
 	PF_ETC2_RGBA			=47,
 	PF_R32G32B32A32_UINT	=48,
 	PF_R16G16_UINT			=49,
-	PF_MAX                  =50,
+	PF_ASTC_4x4             =50,
+	PF_ASTC_6x6             =51,
+	PF_ASTC_8x8             =52,
+	PF_ASTC_10x10           =53,
+	PF_ASTC_12x12           =54,
+	PF_MAX                  =55,
 };
 #define FOREACH_ENUM_EPIXELFORMAT(op) \
 	op(PF_Unknown) \
@@ -107,6 +112,11 @@ enum EPixelFormat
 	op(PF_ETC2_RGB) \
 	op(PF_ETC2_RGBA) \
 	op(PF_R32G32B32A32_UINT) \
-	op(PF_R16G16_UINT)
+	op(PF_R16G16_UINT) \
+	op(PF_ASTC_4x4) \
+	op(PF_ASTC_6x6) \
+	op(PF_ASTC_8x8) \
+	op(PF_ASTC_10x10) \
+	op(PF_ASTC_12x12)
 
 #endif		// __PixelFormat_h__

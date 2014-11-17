@@ -15,19 +15,22 @@ UScrollBar::UScrollBar(const FPostConstructInitializeProperties& PCIP)
 	bAlwaysShowScrollbar = true;
 	Orientation = Orient_Vertical;
 	Thickness = FVector2D(12.0f, 12.0f);
+
+	SScrollBar::FArguments Defaults;
+	WidgetStyle = *Defaults._Style;
+}
+
+void UScrollBar::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+
+	MyScrollBar.Reset();
 }
 
 TSharedRef<SWidget> UScrollBar::RebuildWidget()
 {
-	const FScrollBarStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FScrollBarStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		SScrollBar::FArguments Defaults;
-		StylePtr = Defaults._Style;
-	}
-
 	MyScrollBar = SNew(SScrollBar)
-		.Style(StylePtr)
+		.Style(&WidgetStyle)
 		.AlwaysShowScrollbar(bAlwaysShowScrollbar)
 		.Orientation(Orientation)
 		.Thickness(Thickness);
@@ -37,7 +40,7 @@ TSharedRef<SWidget> UScrollBar::RebuildWidget()
 	return MyScrollBar.ToSharedRef();
 }
 
-void UScrollBar::SyncronizeProperties()
+void UScrollBar::SynchronizeProperties()
 {
 	//MyScrollBar->SetScrollOffset(DesiredScrollOffset);
 }
@@ -50,11 +53,35 @@ void UScrollBar::SetState(float InOffsetFraction, float InThumbSizeFraction)
 	}
 }
 
+void UScrollBar::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_ASSETS )
+	{
+		if ( Style_DEPRECATED != nullptr )
+		{
+			const FScrollBarStyle* StylePtr = Style_DEPRECATED->GetStyle<FScrollBarStyle>();
+			if ( StylePtr != nullptr )
+			{
+				WidgetStyle = *StylePtr;
+			}
+
+			Style_DEPRECATED = nullptr;
+		}
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UScrollBar::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.ScrollBar");
+}
+
+const FText UScrollBar::GetPaletteCategory()
+{
+	return LOCTEXT("Primitive", "Primitive");
 }
 
 #endif

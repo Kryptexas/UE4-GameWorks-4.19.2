@@ -37,16 +37,3 @@ void USoundNodeModulator::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT N
 
 	Super::ParseNodes( AudioDevice, NodeWaveInstanceHash, ActiveSound, UpdatedParams, WaveInstances );
 }
-
-/**
- * Used to create a unique string to identify unique nodes
- */
-FString USoundNodeModulator::GetUniqueString() const
-{
-	FString Unique = TEXT( "Modulator" );
-
-	Unique += FString::Printf( TEXT( " %g %g %g %g" ), VolumeMin, VolumeMax, PitchMin, PitchMax );
-
-	Unique += TEXT( "/" );
-	return( Unique );
-}

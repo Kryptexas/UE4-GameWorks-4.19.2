@@ -15,8 +15,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 	class UClass* MaterialExpressionClass;
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FMaterialGraphSchemaAction_NewNode"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FMaterialGraphSchemaAction_NewNode"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FMaterialGraphSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
@@ -52,8 +52,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewFunctionCall : public FEdGraph
 	FString FunctionPath;
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FMaterialGraphSchemaAction_NewFunctionCall"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FMaterialGraphSchemaAction_NewFunctionCall"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FMaterialGraphSchemaAction_NewFunctionCall() 
 		: FEdGraphSchemaAction()
@@ -75,8 +75,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewComment : public FEdGraphSchem
 	GENERATED_USTRUCT_BODY();
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FMaterialGraphSchemaAction_NewComment"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FMaterialGraphSchemaAction_NewComment"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FMaterialGraphSchemaAction_NewComment() 
 		: FEdGraphSchemaAction()
@@ -98,8 +98,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_Paste : public FEdGraphSchemaActi
 	GENERATED_USTRUCT_BODY();
 
 	// Simple type info
-	static FString StaticGetTypeId() {static FString Type = TEXT("FMaterialGraphSchemaAction_Paste"); return Type;}
-	virtual FString GetTypeId() const override { return StaticGetTypeId(); } 
+	static FName StaticGetTypeId() {static FName Type("FMaterialGraphSchemaAction_Paste"); return Type;}
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FMaterialGraphSchemaAction_Paste() 
 		: FEdGraphSchemaAction()

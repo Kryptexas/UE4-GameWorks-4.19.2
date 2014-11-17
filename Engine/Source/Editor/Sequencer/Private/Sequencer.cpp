@@ -39,12 +39,7 @@ DEFINE_LOG_CATEGORY(LogSequencer);
 
 bool FSequencer::IsSequencerEnabled()
 {
-	if ( GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics )
-	{
-		return true;
-	}
-
-	return FParse::Param(FCommandLine::Get(), TEXT("Sequencer"));
+	return true;
 }
 
 
@@ -135,14 +130,14 @@ FSequencer::FSequencer()
 	: SequencerCommandBindings( new FUICommandList )
 	, TargetViewRange(0.f, 5.f)
 	, LastViewRange(0.f, 5.f)
+	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, ScrubPosition( 0.0f )
 	, bCleanViewEnabled( false )
-	, PlaybackState( EMovieScenePlayerStatus::Stopped )
 	, bLoopingEnabled( false )
 	, bAllowAutoKey( false )
 	, bPerspectiveViewportPossessionEnabled( true )
-	, bNeedTreeRefresh( false )
 	, bIsEditingWithinLevelEditor( false )
+	, bNeedTreeRefresh( false )
 {
 
 }
@@ -188,6 +183,32 @@ UMovieScene* FSequencer::GetFocusedMovieScene() const
 {
 	// the last item is the focused movie scene
 	return MovieSceneStack.Top()->GetMovieScene();
+}
+
+void FSequencer::ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISequencerObjectBindingManager> NewObjectBindingManager )
+{
+	DestroySpawnablesForAllMovieScenes();
+
+	//@todo Sequencer - Encapsulate this better
+	MovieSceneStack.Empty();
+	SelectedSections.Empty();
+	SelectedKeys.Empty();
+	FilteringShots.Empty();
+	UnfilterableSections.Empty();
+	UnfilterableObjects.Empty();
+	MovieSceneSectionToInstanceMap.Empty();
+
+	NewRoot.SetFlags(RF_Transactional);
+
+	ObjectBindingManager = NewObjectBindingManager;
+
+	// Focusing the initial movie scene needs to be done before the first time GetFocusedMovieSceneInstane or GetRootMovieSceneInstance is used
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneInstance(NewRoot));
+	MovieSceneStack.Add(RootMovieSceneInstance.ToSharedRef());
+
+	SequencerWidget->ResetBreadcrumbs();
+
+	NotifyMovieSceneDataChanged();
 }
 
 TSharedRef<FMovieSceneInstance> FSequencer::GetRootMovieSceneInstance() const
@@ -287,9 +308,12 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 	UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>( Section->GetOuter() );
 
 	// If this check fails then the section is outered to a type that doesnt know about the section
-	checkSlow( Track->HasSection(Section) );
+	//checkSlow( Track->HasSection(Section) );
 	
 	Track->SetFlags( RF_Transactional );
+
+	FScopedTransaction DeleteSectionTransaction( NSLOCTEXT("Sequencer", "DeleteSection_Transaction", "Delete Section") );
+	
 	Track->Modify();
 
 	Track->RemoveSection(Section);
@@ -305,11 +329,15 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 
 void FSequencer::DeleteSelectedKeys()
 {
+	FScopedTransaction DeleteKeysTransaction( NSLOCTEXT("Sequencer", "DeleteSelectedKeys_Transaction", "Delete Selected Keys") );
+
 	TArray<FSelectedKey> SelectedKeysArray = SelectedKeys.Array();
 	for ( const FSelectedKey& Key : SelectedKeysArray )
 	{
 		if (Key.IsValid())
 		{
+			Key.Section->Modify();
+
 			Key.KeyArea->DeleteKey(Key.KeyHandle.GetValue());
 		}
 	}

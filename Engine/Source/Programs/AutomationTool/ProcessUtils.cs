@@ -231,6 +231,14 @@ namespace AutomationTool
 			Proc.EnableRaisingEvents = false;
 		}
 
+        ~ProcessResult()
+        {
+            if(Proc != null)
+            {
+                Proc.Dispose();
+            }
+        }
+
 		/// <summary>
 		/// Removes a process from the list of tracked processes.
 		/// </summary>
@@ -248,6 +256,15 @@ namespace AutomationTool
 				Listener.TraceEvent(EventCache, Source, Verbosity, (int)Verbosity, Message);
 			}
 		}
+       
+		/// <summary>
+		/// Manually dispose of Proc and set it to null.
+		/// </summary>
+        public void DisposeProcess()
+        {
+            Proc.Dispose();
+            Proc = null;
+        }
 
 		/// <summary>
 		/// Process.OutputDataReceived event handler.
@@ -696,18 +713,13 @@ namespace AutomationTool
 				Result.WaitForExit();
 				var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
 				AddRunTime(App, (int)(BuildDuration));
-                if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
-                {
-                    Log(SpewVerbosity,"Run: Took {0}s to run " + Path.GetFileName(App), BuildDuration / 1000);
-
-                }
 				Result.ExitCode = Proc.ExitCode;
+				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
+                {
+                    Log(SpewVerbosity,"Run: Took {0}s to run {1}, ExitCode={2}", BuildDuration / 1000, Path.GetFileName(App), Result.ExitCode);
+                }
 				Result.OnProcessExited();
-				if (UnrealBuildTool.Utils.IsRunningOnMono)
-				{
-					// Mono's detection of process exit status is broken. It doesn't clean up after the process and it doesn't call Exited callback.
-					Proc.Dispose();					
-				}
+                Result.DisposeProcess();
 			}
 			else
 			{
@@ -804,6 +816,19 @@ namespace AutomationTool
                 return Result.Output;
             }
             return "";
+        }
+
+        /// <summary>
+        /// Runs external program and writes the output to a logfile.
+        /// </summary>
+        /// <param name="Env">Environment to use.</param>
+        /// <param name="App">Executable to run</param>
+        /// <param name="CommandLine">Commandline to pass on to the executable</param>
+        /// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
+        /// <returns>Whether the program executed successfully or not.</returns>
+        public static string RunAndLog(CommandEnvironment Env, string App, string CommandLine, out int SuccessCode, string LogName = null)
+        {
+            return RunAndLog(App, CommandLine, out SuccessCode, GetRunAndLogLogName(Env, App, LogName));
         }
 
 		/// <summary>
@@ -942,7 +967,7 @@ namespace AutomationTool
 						}
 					}
 
-					while (LogReader.EndOfStream && !LogProcess.HasExited)
+					while (LogReader.EndOfStream && !LogProcess.HasExited && bKeepReading)
 					{
 						Thread.Sleep(250);
 						// Tick the callback so that it can respond to external events

@@ -5,10 +5,7 @@
  */
 
 #pragma once
-
-#include "CameraTypes.h"
-#include "CameraShake.h"
-
+#include "Camera/CameraModifier.h"
 #include "CameraModifier_CameraShake.generated.h"
 
 USTRUCT()
@@ -122,6 +119,3 @@ public:
 	virtual bool ModifyCamera(APlayerCameraManager* Camera, float DeltaTime, struct FMinimalViewInfo& InOutPOV) override;
 	// End UCameraModifer Interface
 };
-
-
-

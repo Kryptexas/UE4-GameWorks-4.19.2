@@ -4,9 +4,13 @@
 #include "AndroidRuntimeSettings.h"
 #include "CoreUObject.h"
 
-FOnlineExternalUIGooglePlay::FOnlineExternalUIGooglePlay() 
-{
+#include "gpg/achievement_manager.h"
+#include "gpg/leaderboard_manager.h"
 
+FOnlineExternalUIGooglePlay::FOnlineExternalUIGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem)
+	: Subsystem(InSubsystem)
+{
+	check(Subsystem != nullptr);
 }
 
 bool FOnlineExternalUIGooglePlay::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate)
@@ -26,9 +30,7 @@ bool FOnlineExternalUIGooglePlay::ShowInviteUI(int32 LocalUserNum)
 
 bool FOnlineExternalUIGooglePlay::ShowAchievementsUI(int32 LocalUserNum) 
 {
-	// Will always show the achievements UI for the current local signed-in user
-	extern void AndroidThunkCpp_ShowAchievements();
-	AndroidThunkCpp_ShowAchievements();
+	Subsystem->GetGameServices()->Achievements().ShowAllUI();
 	return true;
 }
 
@@ -40,8 +42,9 @@ bool FOnlineExternalUIGooglePlay::ShowLeaderboardUI(const FString& LeaderboardNa
 	{
 		if(Mapping.Name == LeaderboardName)
 		{
-			extern void AndroidThunkCpp_ShowLeaderboard(const FString&);
-			AndroidThunkCpp_ShowLeaderboard(Mapping.LeaderboardID);
+			auto ConvertedId = FOnlineSubsystemGooglePlay::ConvertFStringToStdString(Mapping.LeaderboardID);
+			Subsystem->GetGameServices()->Leaderboards().ShowUI(ConvertedId);
+
 			return true;
 		}
 	}

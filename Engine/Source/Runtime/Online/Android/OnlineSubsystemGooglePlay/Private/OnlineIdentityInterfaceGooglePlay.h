@@ -5,7 +5,7 @@
 #include "OnlineIdentityInterface.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeCompletedConnection(JNIEnv* LocalJNIEnv, jobject LocalThiz, jint userID, jint errorCode);
+#include "gpg/status.h"
 
 class FOnlineIdentityGooglePlay :
 	public IOnlineIdentity
@@ -33,21 +33,15 @@ private:
 	/** Instance of the connection context data */
 	static FPendingConnection PendingConnectRequest;
 
-	/**
-	* Native function called from Java when we get the connection result callback.
-	*
-	* @param LocalJNIEnv the current JNI environment
-	* @param LocalThiz instance of the Java GameActivity class
-	* @param errorCode The reported error code from the connection attempt
-	*/
-	friend void Java_com_epicgames_ue4_GameActivity_nativeCompletedConnection(JNIEnv* LocalJNIEnv, jobject LocalThiz, jint userID, jint errorCode);
-
 PACKAGE_SCOPE:
 
 	/**
 	 * Default Constructor
 	 */
 	FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem);
+
+	/** Allow individual interfaces to access the currently signed-in user's id */
+	TSharedPtr<FUniqueNetId> GetCurrentUserId() const { return UniqueNetId; }
 
 public:
 
@@ -61,8 +55,12 @@ public:
 	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
 	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(const FString& Str) override;
 	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const override;
+	virtual ELoginStatus::Type GetLoginStatus(const FUniqueNetId& UserId) const override;
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;
+	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const override;
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
+	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
+	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
 	// End IOnlineIdentity interface
 
 public:
@@ -75,7 +73,7 @@ public:
 	void OnLogin(const bool InLoggedIn,  const FString& InPlayerId, const FString& InPlayerAlias);
 	void OnLogout(const bool InLoggedIn);
 
-	void OnLoginCompleted(const int playerID, const int errorCode);
+	void OnLoginCompleted(const int playerID, gpg::AuthStatus errorCode);
 
 };
 

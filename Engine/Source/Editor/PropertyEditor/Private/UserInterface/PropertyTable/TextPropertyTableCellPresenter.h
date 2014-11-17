@@ -10,6 +10,8 @@ public:
 
 	FTextPropertyTableCellPresenter( const TSharedRef< class FPropertyEditor >& InPropertyEditor, const TSharedRef< class IPropertyTableUtilities >& InPropertyUtilities, FSlateFontInfo InFont = FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ) );
 
+	virtual ~FTextPropertyTableCellPresenter() {}
+
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() override;
 
 	virtual bool RequiresDropDown() override;

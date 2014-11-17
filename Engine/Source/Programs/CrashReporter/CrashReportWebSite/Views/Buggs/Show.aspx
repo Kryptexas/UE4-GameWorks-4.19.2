@@ -13,44 +13,52 @@
 
 <asp:Content ID="ScriptContent"  ContentPlaceHolderID="ScriptContent" runat="server" >
 	<script type="text/javascript">
-	$(document).ready(function() {
-		$("#EditDescription").click(function() {
-			$("#CrashDescription").css("display", "none");
-			$("#ShowCrashDescription input").css("display", "block");
-			$("#EditDescription").css("display", "none");
-			$("#SaveDescription").css("display", "inline");
-		});
+		$(document).ready(function ()
+		{
+			$("#EditDescription").click(function ()
+			{
+				$("#CrashDescription").css("display", "none");
+				$("#ShowCrashDescription input").css("display", "block");
+				$("#EditDescription").css("display", "none");
+				$("#SaveDescription").css("display", "inline");
+			});
 
-		$("#SaveDescription").click(function() {
-			$('#EditCrashDescriptionForm').submit();
-		});
-		// Zebra stripes
-		$("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
-		$("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
+			$("#SaveDescription").click(function ()
+			{
+				$('#EditCrashDescriptionForm').submit();
+			});
+			// Zebra stripes
+			$("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
+			$("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
 
-		// Get Table Height and set Main Height
-		$("#main").height($("#CrashesTable").height() + 800);
-		$("#CrashesTable").width($("#ShowCommandLine").width());
+			// Get Table Height and set Main Height
+			$("#main").height($("#CrashesTable").height() + 800);
+			$("#CrashesTable").width($("#ShowCommandLine").width());
 
-		// Show/Hide parts of the call stack
-		$("#DisplayModuleNames").click(function () {
-			$(".module-name").toggle();
+			// Show/Hide parts of the call stack
+			$("#DisplayModuleNames").click(function ()
+			{
+				$(".module-name").toggle();
+			});
+			$("#DisplayFunctionNames").click(function ()
+			{
+				$(".function-name").toggle();
+			});
+			$("#DisplayFilePathNames").click(function ()
+			{
+				$(".file-path").toggle();
+			});
+			$("#DisplayFileNames").click(function ()
+			{
+				$(".file-name").toggle();
+			});
+			$("#DisplayUnformattedCallStack").click(function () 
+			{
+				$("#FormattedCallStackContainer").toggle();
+				$("#RawCallStackContainer").toggle();
+			});
 		});
-		$("#DisplayFunctionNames").click(function() {
-			$(".function-name").toggle();
-		});
-		$("#DisplayFilePathNames").click(function() {
-			$(".file-path").toggle();
-		});
-		$("#DisplayFileNames").click(function() {
-			$(".file-name").toggle();
-		});
-		$("#DisplayUnformattedCallStack").click(function() {
-			$("#FormattedCallStackContainer").toggle();
-			$("#RawCallStackContainer").toggle();
-		});
-	});
-</script>
+	</script>
 </asp:Content>
 
 <asp:Content ID="AboveMainContent" ContentPlaceHolderID="AboveMainContent" runat="server">
@@ -89,11 +97,17 @@
 		<dt>ID</dt>
 			<dd ><%=Html.DisplayFor( m => Model.Bugg.Id )%></dd>
 
+		<dt>Build Version of Latest Crash</dt>
+			<dd><%=Html.DisplayFor( m => Model.Bugg.BuildVersion )%></dd>
+			
 		<dt>Time of Latest Crash</dt> 
 			<dd class='even' style='width:8em'><%=Model.Bugg.TimeOfLastCrash%></dd>
 
 		<dt>Time of First Crash</dt>
 			<dd style='width:8em'><%=Model.Bugg.TimeOfFirstCrash%></dd>
+
+		<dt>Crash type</dt> 
+			<dd class='even' style='width:8em'><%=Model.Bugg.GetCrashTypeAsString()%></dd>
 
 		<dt>Number of Users</dt>
 			<dd class='even'><%=Html.DisplayFor( m => Model.Bugg.NumberOfUsers )%></dd>
@@ -113,8 +127,22 @@
 	</div>
 
 	<div id="CallStackContainer" >
-		<h3>Call Stack of Most Recent Crash</h3>
 
+		<% if( !string.IsNullOrEmpty( Model.Bugg.Summary ) ) 
+			{ %>
+				<div id='ShowErrorMessage'>
+					<br />
+					<h3>Error Message</h3>
+					<div id='ErrorMessage'>
+						<%=Model.Bugg.Summary %>
+					</div>
+				</div>
+				<br />
+		<%	}
+		%>
+
+
+		<h3>Call Stack of Most Recent Crash</h3>
 		<div id='RawCallStackContainer' style='display:none' >
 			<div>
 				<% foreach( CallStackEntry CallStackLine in Model.CallStack.CallStackEntries )
@@ -176,9 +204,9 @@
 			<h3>Crashes</h3>
 			<table id ='CrashesTable'>
 				<tr>
-					<th>&nbsp;</th>
 					<!-- if you add a new column be sure to update the switch statement in crashescontroller.cs -->
 					<th style='width: 6em;'><%=Url.TableHeader( "Id", "Id", Model )%></th>
+					<th style='width: 15em'><%=Url.TableHeader( "BuildVersion", "BuildVersion", Model )%></th>
 					<th style='width: 15em'><%=Url.TableHeader( "TimeStamp", "TimeStamp", Model )%></th>
 					<th style='width: 12em'><%=Url.TableHeader( "Details", "Details", Model )%></th>
 					<th style='width: 12em;'><%=Url.TableHeader( "CallStack", "RawCallStack", Model )%></th>
@@ -192,8 +220,8 @@
 						IterationCount++;%>
 			
 						<tr class='CrashRow <%=CrashInstance.User.UserGroup %>'>
-							<td class="CrashTd"><INPUT TYPE="CHECKBOX" Value="<%=IterationCount %>"NAME="<%=CrashInstance.Id%>" id="<%=CrashInstance.Id%>" class='input CrashCheckBox' ></td> 
-							<td class="Id"><%=Html.ActionLink( CrashInstance.Id.ToString(), "Show", new { controller = "crashes", id = CrashInstance.Id }, null )%></td> 
+							<td class="Id"><%=Html.ActionLink( CrashInstance.Id.ToString(), "Show", new { controller = "crashes", id = CrashInstance.Id }, null )%></td>
+							<td class="BuildVersion"><%=CrashInstance.BuildVersion%></td>
 							<td class="TimeOfCrash">
 								<%=CrashInstance.GetTimeOfCrash()[0]%><br />
 								<%=CrashInstance.GetTimeOfCrash()[1]%><br />

@@ -9,6 +9,7 @@ namespace UnrealBuildTool.Rules
             PublicIncludePaths.AddRange(
                 new string[] {
 				    "Developer/GameplayDebugger/Public",
+				    "Developer/AIModule/Public",
 				    // ... add public include paths required here ...
 			    }
             );
@@ -17,6 +18,7 @@ namespace UnrealBuildTool.Rules
                 new string[] {
 					"Developer/GameplayDebugger/Private",
                     "Runtime/Engine/Private",
+                    "Runtime/AIModule/Private",
 					// ... add other private include paths required here ...
 				    }
                 );
@@ -30,6 +32,7 @@ namespace UnrealBuildTool.Rules
 					"Engine",    
                     "RenderCore",
                     "RHI",
+                    "ShaderCore",
                     "AIModule",  // it have to be here for now. It'll be changed to remove any dependency to AIModule in future
 				}
                 );

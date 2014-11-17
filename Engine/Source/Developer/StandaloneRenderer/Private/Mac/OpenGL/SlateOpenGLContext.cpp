@@ -9,6 +9,7 @@
 
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
+#include "CocoaTextView.h"
 
 char const* const CompositedBlitVertexShader = "#version 120\n"
 "#extension GL_EXT_gpu_shader4 : require\n"
@@ -40,7 +41,7 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
 /**
  * Custom view class used to provide window OpenGL-enabled content view.
  */
-@interface FSlateCocoaView : FSlateTextView
+@interface FSlateCocoaView : FCocoaTextView
 {
 	@private
 

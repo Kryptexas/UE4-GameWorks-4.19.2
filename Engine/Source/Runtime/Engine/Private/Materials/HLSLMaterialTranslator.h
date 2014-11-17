@@ -336,14 +336,32 @@ public:
 				Chunk[MP_WorldDisplacement]			= Constant3(0.0f, 0.0f, 0.0f);
 			}
 			Chunk[MP_TessellationMultiplier]		= Material->CompilePropertyAndSetMaterialProperty(MP_TessellationMultiplier,this);
-			Chunk[MP_SubsurfaceColor]				= Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor       ,this);
+
+			EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
+
+			if (Material->GetMaterialDomain() == MD_Surface
+				&& (MaterialShadingModel == MSM_Subsurface || MaterialShadingModel == MSM_PreintegratedSkin || MaterialShadingModel == MSM_SubsurfaceProfile))
+			{
+				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
+
+				// another ForceCast as CompilePropertyAndSetMaterialProperty() can return MCT_Float which we don't want here
+				int32 SubsurfaceColor = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this), MCT_Float3, true);
+
+				static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
+
+				// 1.0f is is a not used profile - later this gets replaced with the actual profile
+				int32 CodeSubsurfaceProfile = ForceCast(ScalarParameter(NameSubsurfaceProfile, 1.0f), MCT_Float1);
+
+				Chunk[MP_SubsurfaceColor] = AppendVector(SubsurfaceColor, CodeSubsurfaceProfile);		
+			}
+
 			Chunk[MP_ClearCoat]						= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoat			   ,this);
 			Chunk[MP_ClearCoatRoughness]			= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoatRoughness    ,this);
 			Chunk[MP_AmbientOcclusion]				= Material->CompilePropertyAndSetMaterialProperty(MP_AmbientOcclusion      ,this);
 
 			{
 				int32 UserRefraction = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_Refraction, this), MCT_Float2);
-				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), GetRefractionDepthBiasValue()), MCT_Float1);
+				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), Material->GetRefractionDepthBiasValue()), MCT_Float1);
 
 				Chunk[MP_Refraction] = AppendVector(ForceCast(UserRefraction, MCT_Float1), RefractionDepthBias);
 			}
@@ -361,10 +379,6 @@ public:
 				if (CustomUVIndex - MP_CustomizedUVs0 < NumUserTexCoords)
 				{
 					Chunk[CustomUVIndex] = Material->CompilePropertyAndSetMaterialProperty((EMaterialProperty)CustomUVIndex, this);
-				}
-				else
-				{
-					Chunk[CustomUVIndex] = INDEX_NONE;
 				}
 			}
 
@@ -395,7 +409,7 @@ public:
 			}
 
 
-			if (Material->GetBlendMode() == BLEND_Modulate && Material->GetShadingModel() != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
+			if (Material->GetBlendMode() == BLEND_Modulate && MaterialShadingModel != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
 			}
@@ -431,12 +445,12 @@ public:
 				Errorf(TEXT("Light function materials must be opaque."));
 			}
 
-			if (Material->IsLightFunction() && Material->GetShadingModel() != MSM_Unlit)
+			if (Material->IsLightFunction() && MaterialShadingModel != MSM_Unlit)
 			{
 				Errorf(TEXT("Light function materials must use unlit."));
 			}
 
-			if (Material->GetMaterialDomain() == MD_PostProcess && Material->GetShadingModel() != MSM_Unlit)
+			if (Material->GetMaterialDomain() == MD_PostProcess && MaterialShadingModel != MSM_Unlit)
 			{
 				Errorf(TEXT("Post process materials must use unlit."));
 			}
@@ -510,6 +524,13 @@ public:
 			MaterialTemplateLineNumber += 3;
 
 			MaterialCompilationOutput.UniformExpressionSet.SetParameterCollections(ParameterCollections);
+
+/* test
+			if(MaterialShadingModel == MSM_SubsurfaceProfile)
+			{
+				MaterialCompilationOutput.UniformExpressionSet.SetCompileInSubsurfaceProfile();
+			}
+*/
 
 			// Create the material uniform buffer struct.
 			MaterialCompilationOutput.UniformExpressionSet.CreateBufferStruct();
@@ -1292,11 +1313,6 @@ protected:
 		return FeatureLevel;
 	}
 
-	virtual float GetRefractionDepthBiasValue() override
-	{
-		return Material->GetRefractionDepthBiasValue();
-	}
-
 	/** 
 	 * Casts the passed in code to DestType, or generates a compile error if the cast is not valid. 
 	 * This will truncate a type (float4 -> float3) but not add components (float2 -> float3), however a float1 can be cast to any float type by replication. 
@@ -2035,7 +2051,7 @@ protected:
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override
 	{
-		const uint32 MaxNumCoordinates = FeatureLevel == ERHIFeatureLevel::ES2 ? 3 : 8;
+		const uint32 MaxNumCoordinates = (FeatureLevel == ERHIFeatureLevel::ES2) ? 3 : 8;
 
 		if (CoordinateIndex >= MaxNumCoordinates)
 		{
@@ -2129,7 +2145,7 @@ protected:
 		{
 			// Mobile: Sampling of a particular level depends on an extension; iOS does have it by default but
 			// there's a driver as of 7.0.2 that will cause a GPU hang if used with an Aniso > 1 sampler, so show an error for now
-			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 			{
 				Errorf(TEXT("Sampling for a specific mip-level is not supported for mobile"));
 				return INDEX_NONE;
@@ -2251,7 +2267,7 @@ protected:
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2407,7 +2423,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2542,7 +2558,7 @@ protected:
 		{
 			return INDEX_NONE;
 		}
-		else if (GetFeatureLevel() != ERHIFeatureLevel::ES2)
+		else if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			FString WeightmapName = FString::Printf(TEXT("Weightmap%d"),WeightmapIndex);
 			int32 TextureCodeIndex = TextureParameter(FName(*WeightmapName),  GEngine->WeightMapPlaceholderTexture);
@@ -3101,7 +3117,7 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3193,7 +3209,7 @@ protected:
 
 	virtual int32 DDX( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3219,7 +3235,7 @@ protected:
 
 	virtual int32 DDY( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3244,7 +3260,7 @@ protected:
 
 	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3286,7 +3302,7 @@ protected:
 
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3334,7 +3350,7 @@ protected:
 
 	virtual int32 AtmosphericFogColor( int32 WorldPosition ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3483,7 +3499,7 @@ protected:
 	*/
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold) override 
 	{ 
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3508,7 +3524,7 @@ protected:
 	 */
 	virtual int32 TextureCoordinateOffset() override
 	{
-		if (FeatureLevel == ERHIFeatureLevel::ES2 && ShaderFrequency == SF_Vertex)
+		if (FeatureLevel < ERHIFeatureLevel::SM4 && ShaderFrequency == SF_Vertex)
 		{
 			return AddInlinedCodeChunk(MCT_Float2, TEXT("Parameters.TexCoordOffset"));
 		}

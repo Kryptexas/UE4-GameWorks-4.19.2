@@ -5,7 +5,7 @@
 #include "ListView.generated.h"
 
 /** Allows thousands of items to be displayed in a list.  Generates widgets dynamically for each item. */
-UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
+UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UListView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()
@@ -27,6 +27,11 @@ public:
 	/** Called when a widget needs to be generated */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnGenerateRowUObject OnGenerateRowEvent;
+
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual const FText GetPaletteCategory() override;
+#endif
 
 protected:
 	TSharedPtr< SListView<UObject*> > MyListView;

@@ -50,9 +50,9 @@ public:
 	 * Pushes the specified stat onto the hierarchy for this thread. Starts
 	 * the timing of the cycles used
 	 */
-	FORCEINLINE_STATS FScopeCycleCounter( TStatId StatId )
+	FORCEINLINE_STATS FScopeCycleCounter( TStatId StatId, bool bAlways = false )
 	{
-		Start( StatId );
+		Start( StatId, bAlways );
 	}
 
 	/**
@@ -83,7 +83,7 @@ typedef FNothing TStatId;
 class FScopeCycleCounter
 {
 public:
-	FORCEINLINE_STATS FScopeCycleCounter(TStatId)
+	FORCEINLINE_STATS FScopeCycleCounter(TStatId, bool bAlways = false)
 	{
 	}
 };

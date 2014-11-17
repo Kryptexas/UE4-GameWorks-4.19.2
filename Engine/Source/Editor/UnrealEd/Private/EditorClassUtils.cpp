@@ -18,23 +18,26 @@ FString FEditorClassUtils::GetDocumentationExcerpt(const UClass* Class)
 
 TSharedRef<SToolTip> FEditorClassUtils::GetTooltip(const UClass* Class)
 {
-	return (Class ? IDocumentation::Get()->CreateToolTip(Class->GetToolTipText(), nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class)) : SNew(SToolTip));
+	return (Class ? GetTooltip(Class, Class->GetToolTipText()) : SNew(SToolTip));
 }
 
-FString FEditorClassUtils::GetDocumentationLink(const UClass* Class)
+TSharedRef<SToolTip> FEditorClassUtils::GetTooltip(const UClass* Class, const TAttribute<FText>& OverrideText)
+{
+	return (Class ? IDocumentation::Get()->CreateToolTip(OverrideText, nullptr, GetDocumentationPage(Class), GetDocumentationExcerpt(Class)) : SNew(SToolTip));
+}
+
+FString FEditorClassUtils::GetDocumentationLinkFromExcerpt(const FString& DocLink, const FString DocExcerpt)
 {
 	FString DocumentationLink;
-	const FString ClassDocsPage = GetDocumentationPage(Class);
-
 	TSharedRef<IDocumentation> Documentation = IDocumentation::Get();
-	if (Documentation->PageExists(ClassDocsPage))
+	if (Documentation->PageExists(DocLink))
 	{
-		TSharedRef<IDocumentationPage> ClassDocs = Documentation->GetPage(ClassDocsPage, NULL);
+		TSharedRef<IDocumentationPage> ClassDocs = Documentation->GetPage(DocLink, NULL);
 
 		FExcerpt Excerpt;
-		if (ClassDocs->GetExcerpt(GetDocumentationExcerpt(Class), Excerpt))
+		if (ClassDocs->GetExcerpt(DocExcerpt, Excerpt))
 		{
-			FString* FullDocumentationLink = Excerpt.Variables.Find( TEXT("ToolTipFullLink") );
+			FString* FullDocumentationLink = Excerpt.Variables.Find(TEXT("ToolTipFullLink"));
 			if (FullDocumentationLink)
 			{
 				DocumentationLink = *FullDocumentationLink;
@@ -44,6 +47,16 @@ FString FEditorClassUtils::GetDocumentationLink(const UClass* Class)
 
 	return DocumentationLink;
 }
+
+
+FString FEditorClassUtils::GetDocumentationLink(const UClass* Class, const FString& OverrideExcerpt)
+{
+	const FString ClassDocsPage = GetDocumentationPage(Class);
+	const FString ExcerptSection = (OverrideExcerpt.IsEmpty() ? GetDocumentationExcerpt(Class) : OverrideExcerpt);
+
+	return GetDocumentationLinkFromExcerpt(ClassDocsPage, ExcerptSection);
+}
+
 
 TSharedRef<SWidget> FEditorClassUtils::GetDocumentationLinkWidget(const UClass* Class)
 {
@@ -60,7 +73,7 @@ TSharedRef<SWidget> FEditorClassUtils::GetDocumentationLinkWidget(const UClass* 
 
 TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const TWeakObjectPtr<UObject> ObjectWeakPtr)
 {
-	TSharedRef<SWidget> SourceHyperlink = SNullWidget::NullWidget;
+	TSharedRef<SWidget> SourceHyperlink = SNew( SSpacer );
 	UBlueprint* Blueprint = (Class ? Cast<UBlueprint>(Class->ClassGeneratedBy) : nullptr);
 
 	if (Blueprint)
@@ -116,4 +129,19 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const 
 	}
 
 	return SourceHyperlink;
+}
+
+UClass* FEditorClassUtils::GetClassFromString(const FString& ClassName)
+{
+	if(ClassName.IsEmpty() || ClassName == "None")
+	{
+		return nullptr;
+	}
+
+	UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+	if(!Class)
+	{
+		Class = LoadObject<UClass>(nullptr, *ClassName);
+	}
+	return Class;
 }

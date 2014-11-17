@@ -133,6 +133,10 @@ public:
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const override;
 #endif //WITH_ENGINE
 
+	virtual bool SupportsVariants() const override;
+
+	virtual FText GetVariantTitle() const override;
+
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{

@@ -56,7 +56,6 @@ public:
 
 	// Begin UActorComponent interface
 	virtual void OnRegister() override;
-	virtual void OnUnregister() override;
 	// End UActorComponent interface
 	
 	// Begin UPrimitiveComponent interface.

@@ -50,12 +50,15 @@ public:
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 	//	X
 	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const override;
-	//	
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 
 	void AddPendingEvent( SDL_Event event );
 
 	void OnMouseCursorLock( bool bLockEnabled );
+	
+	void RemoveEventWindow(SDL_HWindow Window);
+
+	EWindowZone::Type WindowHitTest( const TSharedPtr< FLinuxWindow > &window, int x, int y );
+	TSharedPtr< FLinuxWindow > FindWindowBySDLWindow( SDL_Window *win );
 
 private:
 	FLinuxApplication();
@@ -76,6 +79,14 @@ private:
 	 * @return true if character needs to be passed to OnKeyChar
 	 */
 	static bool GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDownEvent);
+
+	/**
+	 * Tracks window activation changes and sends notifications as required
+	 * 
+	 * @param Window window that caused the activation event
+	 * @param Event type of the activation change
+	 */
+	void TrackActivationChanges(const TSharedPtr<FLinuxWindow> Window, EWindowActivation::Type Event);
 
 private:
 
@@ -102,9 +113,14 @@ private:
 
 	TSharedPtr< FLinuxWindow > LastEventWindow;
 
+	/** Window that we think has been activated last*/
+	TSharedPtr< FLinuxWindow > CurrentlyActiveWindow;
+
 	SDL_HWindow MouseCaptureWindow;
 
 	SDLControllerState *ControllerStates;
+
+	float fMouseWheelScrollAccel;
 
 #if STEAM_CONTROLLER_SUPPORT
 	TSharedPtr< class SteamControllerInterface > SteamInput;

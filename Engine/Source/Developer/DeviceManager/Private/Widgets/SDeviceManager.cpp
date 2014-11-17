@@ -465,7 +465,7 @@ void SDeviceManager::HandleRemoveActionExecute( )
 
 	if (DeviceService.IsValid())
 	{
-		DeviceServiceManager->RemoveStartupService(DeviceService->GetDeviceId());
+		DeviceServiceManager->RemoveStartupService(DeviceService->GetDeviceName());
 	}
 }
 

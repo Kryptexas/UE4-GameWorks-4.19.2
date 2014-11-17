@@ -4,7 +4,8 @@
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
 #include "CookerSettings.h"
-
+#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -49,7 +50,7 @@ public:
 		if (SettingsModule != nullptr)
 		{
 			RegisterEngineSettings(*SettingsModule);
-			RegisterGameSettings(*SettingsModule);
+			RegisterProjectSettings(*SettingsModule);
 
 			SettingsModule->RegisterViewer("Project", *this);
 		}
@@ -91,7 +92,7 @@ protected:
 			GetMutableDefault<UAudioSettings>()
 		);
 
-		// packaging settings
+		// collision settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Collision",
 			LOCTEXT("ProjectCollisionSettingsName", "Collision"),
 			LOCTEXT("ProjectCollisionSettingsDescription", "Set up and modify collision settings."),
@@ -133,6 +134,13 @@ protected:
 			GetMutableDefault<UGameNetworkManagerSettings>()
 		);*/
 
+		// network settings
+		SettingsModule.RegisterSettings("Project", "Engine", "Network",
+			LOCTEXT("NetworkSettingsName", "Network"),
+			LOCTEXT("NetworkSettingsDescription", "Network settings."),
+			GetMutableDefault<UNetworkSettings>()
+		);
+
 		// Physics settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Physics",
 			LOCTEXT("EnginePhysicsSettingsName", "Physics"),
@@ -156,26 +164,26 @@ protected:
 	}
 
 	/**
-	 * Registers Game settings.
+	 * Registers Project settings.
 	 */
-	void RegisterGameSettings( ISettingsModule& SettingsModule )
+	void RegisterProjectSettings( ISettingsModule& SettingsModule )
 	{
 		// general project settings
-		SettingsModule.RegisterSettings("Project", "Game", "General",
+		SettingsModule.RegisterSettings("Project", "Project", "General",
 			LOCTEXT("GeneralGameSettingsName", "Description"),
-			LOCTEXT("GeneralGameSettingsDescription", "Descriptions and other information about your game."),
+			LOCTEXT("GeneralGameSettingsDescription", "Descriptions and other information about your project."),
 			GetMutableDefault<UGeneralProjectSettings>()
 		);
 
 		// map related settings
-		SettingsModule.RegisterSettings("Project", "Game", "Maps",
+		SettingsModule.RegisterSettings("Project", "Project", "Maps",
 			LOCTEXT("GameMapsSettingsName", "Maps & Modes"),
 			LOCTEXT("GameMapsSettingsDescription", "Default maps, game modes and other map related settings."),
 			GetMutableDefault<UGameMapsSettings>()
 		);
 
 		// packaging settings
-		SettingsModule.RegisterSettings("Project", "Game", "Packaging",
+		SettingsModule.RegisterSettings("Project", "Project", "Packaging",
 			LOCTEXT("ProjectPackagingSettingsName", "Packaging"),
 			LOCTEXT("ProjectPackagingSettingsDescription", "Fine tune how your project is packaged for release."),
 			GetMutableDefault<UProjectPackagingSettings>()
@@ -183,28 +191,28 @@ protected:
 
 		// platforms settings
 		TWeakPtr<SWidget> ProjectTargetPlatformEditorPanel = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").CreateProjectTargetPlatformEditorPanel();
-		SettingsModule.RegisterSettings("Project", "Game", "SupportedPlatforms",
+		SettingsModule.RegisterSettings("Project", "Project", "SupportedPlatforms",
 			LOCTEXT("ProjectSupportedPlatformsSettingsName", "Supported Platforms"),
 			LOCTEXT("ProjectSupportedPlatformsSettingsDescription", "Specify which platforms your project supports."),
 			ProjectTargetPlatformEditorPanel.Pin().ToSharedRef()
 		);
 
 		// movie settings
-		SettingsModule.RegisterSettings("Project", "Game", "Movies",
+		SettingsModule.RegisterSettings("Project", "Project", "Movies",
 			LOCTEXT("MovieSettingsName", "Movies"),
 			LOCTEXT("MovieSettingsDescription", "Movie player settings"),
 			GetMutableDefault<UMoviePlayerSettings>()
 		);
 /*
 		// game session
-		SettingsModule.RegisterSettings("Project", "Game", "GameSession",
+		SettingsModule.RegisterSettings("Project", "Project", "GameSession",
 			LOCTEXT("GameSessionettingsName", "Game Session"),
 			LOCTEXT("GameSessionSettingsDescription", "Game Session settings."),
 			GetMutableDefault<UGameSessionSettings>()
 		);
 
 		// head-up display
-		SettingsModule.RegisterSettings("Project", "Game", "HUD",
+		SettingsModule.RegisterSettings("Project", "Project", "HUD",
 			LOCTEXT("HudSettingsName", "HUD"),
 			LOCTEXT("HudSettingsDescription", "Head-up display (HUD) settings."),
 			GetMutableDefault<UHudSettings>()
@@ -227,19 +235,19 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Engine", "NavigationSystem");
 			SettingsModule->UnregisterSettings("Project", "Engine", "NavigationMesh");
 			SettingsModule->UnregisterSettings("Project", "Engine", "Input");
-			SettingsModule->UnregisterSettings("Project", "Game", "Collision");
+			SettingsModule->UnregisterSettings("Project", "Engine", "Collision");
 			SettingsModule->UnregisterSettings("Project", "Engine", "Physics");
 			SettingsModule->UnregisterSettings("Project", "Engine", "Rendering");
 //			SettingsModule->UnregisterSettings("Project", "Engine", "NetworkManager");
 
-			// game settings
-			SettingsModule->UnregisterSettings("Project", "Game", "General");
-			SettingsModule->UnregisterSettings("Project", "Game", "Maps");
-			SettingsModule->UnregisterSettings("Project", "Game", "Packaging");
-			SettingsModule->UnregisterSettings("Project", "Game", "SupportedPlatforms");
-			SettingsModule->UnregisterSettings("Project", "Game", "Movies");
-//			SettingsModule->UnregisterSettings("Project", "Game", "GameSession");
-//			SettingsModule->UnregisterSettings("Project", "Game", "HUD");
+			// project settings
+			SettingsModule->UnregisterSettings("Project", "Project", "General");
+			SettingsModule->UnregisterSettings("Project", "Project", "Maps");
+			SettingsModule->UnregisterSettings("Project", "Project", "Packaging");
+			SettingsModule->UnregisterSettings("Project", "Project", "SupportedPlatforms");
+			SettingsModule->UnregisterSettings("Project", "Project", "Movies");
+//			SettingsModule->UnregisterSettings("Project", "Project", "GameSession");
+//			SettingsModule->UnregisterSettings("Project", "Project", "HUD");
 		}
 	}
 

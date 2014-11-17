@@ -36,6 +36,12 @@ public:
 		FGeometryShaderRHIParamRef GeometryShader
 		);
 
+	/**
+	 * If this global bound shader state has been initialized return it, otherwise return null. Can be called from any thread.
+	 * @return The bound shader state RHI.
+	 */
+	FBoundShaderStateRHIParamRef GetPreinitializedRHI();
+
 private:
 
 	/** The cached bound shader state. */
@@ -74,8 +80,8 @@ struct FGlobalBoundShaderState
 {
 public:
 
-	FGlobalBoundShaderStateWorkArea* Get(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return WorkAreas[InFeatureLevel]; }
-	FGlobalBoundShaderStateWorkArea** GetPtr(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return &WorkAreas[InFeatureLevel]; }
+	FGlobalBoundShaderStateWorkArea* Get(ERHIFeatureLevel::Type InFeatureLevel)  { return WorkAreas[InFeatureLevel]; }
+	FGlobalBoundShaderStateWorkArea** GetPtr(ERHIFeatureLevel::Type InFeatureLevel)  { return &WorkAreas[InFeatureLevel]; }
 
 private:
 
@@ -97,6 +103,7 @@ private:
 
 ENGINE_API void SetGlobalBoundShaderState(
 	FRHICommandList& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel,
 	FGlobalBoundShaderState& BoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,

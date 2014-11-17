@@ -69,8 +69,6 @@ struct FGameplayCueViewInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
 	bool AttachParticleSystem;
 
-
-
 	/** Effects to play for weapon attacks against specific surfaces */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
 	class TSubclassOf<AGameplayCueActor> ActorClass;

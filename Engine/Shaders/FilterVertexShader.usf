@@ -8,7 +8,7 @@
 
 float4 SampleOffsets[(NUM_SAMPLES + 1) / 2];
 
-#if ES2_PROFILE
+#if (ES2_PROFILE || ES3_1_PROFILE)
 
 void Main(
 	float4 InPosition : ATTRIBUTE0,

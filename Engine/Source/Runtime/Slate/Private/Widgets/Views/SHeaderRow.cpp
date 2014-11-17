@@ -34,7 +34,7 @@ public:
 	{
 		check(InArgs._Style);
 
-		SWidget::Construct( InArgs._ToolTipText, InArgs._ToolTip, InArgs._Cursor, InArgs._IsEnabled, InArgs._Visibility, InArgs._Tag );
+		SWidget::Construct( InArgs._ToolTipText, InArgs._ToolTip, InArgs._Cursor, InArgs._IsEnabled, InArgs._Visibility, InArgs._RenderTransform, InArgs._RenderTransformPivot, InArgs._Tag, InArgs.MetaData );
 
 		Style = InArgs._Style;
 		ColumnId = Column.ColumnId;
@@ -48,11 +48,11 @@ public:
 
 		FMargin AdjustedDefaultHeaderContentPadding = DefaultHeaderContentPadding;
 
-		TAttribute< FString > LabelText = Column.DefaultText;
+		TAttribute< FText > LabelText = Column.DefaultText;
 
 		if (Column.HeaderContent.Widget == SNullWidget::NullWidget && !Column.DefaultText.IsBound() && Column.DefaultText.Get().IsEmpty())
 		{
-			LabelText = Column.ColumnId.ToString() + TEXT("[LabelMissing]");
+			LabelText = FText::FromString( Column.ColumnId.ToString() + TEXT("[LabelMissing]") );
 		}
 
 		TSharedPtr< SHorizontalBox > Box;
@@ -384,7 +384,7 @@ void SHeaderRow::Construct( const FArguments& InArgs )
 {
 	check(InArgs._Style);
 
-	SWidget::Construct( InArgs._ToolTipText, InArgs._ToolTip, InArgs._Cursor, InArgs._IsEnabled, InArgs._Visibility, InArgs._Tag );
+	SWidget::Construct( InArgs._ToolTipText, InArgs._ToolTip, InArgs._Cursor, InArgs._IsEnabled, InArgs._Visibility, InArgs._RenderTransform, InArgs._RenderTransformPivot, InArgs._Tag, InArgs.MetaData );
 
 	ScrollBarThickness = FVector2D::ZeroVector;
 	ScrollBarVisibility = EVisibility::Collapsed;

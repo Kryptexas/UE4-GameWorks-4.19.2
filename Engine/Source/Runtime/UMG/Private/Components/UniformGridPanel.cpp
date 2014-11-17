@@ -16,9 +16,9 @@ UUniformGridPanel::UUniformGridPanel(const FPostConstructInitializeProperties& P
 	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
-void UUniformGridPanel::ReleaseNativeWidget()
+void UUniformGridPanel::ReleaseSlateResources(bool bReleaseChildren)
 {
-	Super::ReleaseNativeWidget();
+	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyUniformGridPanel.Reset();
 }
@@ -69,9 +69,14 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
 }
 
-void UUniformGridPanel::SyncronizeProperties()
+UUniformGridSlot* UUniformGridPanel::AddChildToUniformGrid(UWidget* Content)
 {
-	Super::SyncronizeProperties();
+	return Cast<UUniformGridSlot>(Super::AddChild(Content));
+}
+
+void UUniformGridPanel::SynchronizeProperties()
+{
+	Super::SynchronizeProperties();
 
 	MyUniformGridPanel->SetSlotPadding(SlotPadding);
 }
@@ -81,6 +86,11 @@ void UUniformGridPanel::SyncronizeProperties()
 const FSlateBrush* UUniformGridPanel::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.UniformGrid");
+}
+
+const FText UUniformGridPanel::GetPaletteCategory()
+{
+	return LOCTEXT("Panel", "Panel");
 }
 
 #endif

@@ -7,6 +7,7 @@
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AddComponent"
 
@@ -73,10 +74,10 @@ void UK2Node_AddComponent::AllocateDefaultPins()
 
 	UEdGraphSchema const* Schema = GetSchema();
 	check(Schema != NULL);
-	Schema->ConstructBasicPinTooltip(*ManualAttachmentPin, LOCTEXT("ManualAttachmentPinTooltip", "Defines whether the component should attach to the root automatically, or be left unattached for the user to manually attach later.").ToString(), ManualAttachmentPin->PinToolTip);
+	Schema->ConstructBasicPinTooltip(*ManualAttachmentPin, LOCTEXT("ManualAttachmentPinTooltip", "Defines whether the component should attach to the root automatically, or be left unattached for the user to manually attach later."), ManualAttachmentPin->PinToolTip);
 
 	UEdGraphPin* TransformPin = GetRelativeTransformPin();
-	Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinTooltip", "Defines where to position the component (relative to its parent). If the component is left unattached, then the transform is relative to the world.").ToString(), TransformPin->PinToolTip);
+	Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinTooltip", "Defines where to position the component (relative to its parent). If the component is left unattached, then the transform is relative to the world."), TransformPin->PinToolTip);
 }
 
 void UK2Node_AddComponent::AllocatePinsForExposedVariables()
@@ -323,7 +324,7 @@ void UK2Node_AddComponent::PostPasteNode()
 FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* TemplateNamePin = GetTemplateNamePin();
-	if (TemplateNamePin != NULL)
+	if (CachedNodeTitle.IsOutOfDate() && (TemplateNamePin != NULL))
 	{
 		FString TemplateName = TemplateNamePin->DefaultValue;
 		UBlueprint* Blueprint = GetBlueprint();
@@ -339,35 +340,40 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("StaticMeshName"), FText::FromString(StaticMeshComp->StaticMesh->GetName()));
-				return FText::Format(LOCTEXT("AddStaticMesh", "Add StaticMesh {StaticMeshName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddStaticMesh", "Add StaticMesh {StaticMeshName}"), Args);
 			}
 			else if(SkelMeshComp != NULL && SkelMeshComp->SkeletalMesh != NULL)
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("SkeletalMeshName"), FText::FromString(SkelMeshComp->SkeletalMesh->GetName()));
-				return FText::Format(LOCTEXT("AddSkeletalMesh", "Add SkeletalMesh {SkeletalMeshName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddSkeletalMesh", "Add SkeletalMesh {SkeletalMeshName}"), Args);
 			}
 			else if(PSysComp != NULL && PSysComp->Template != NULL)
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ParticleSystemName"), FText::FromString(PSysComp->Template->GetName()));
-				return FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
 			}
 			else if (SubActorComp && SubActorComp->ChildActorClass)
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ComponentClassName"), FText::FromString(SubActorComp->ChildActorClass->GetName()));
-				return FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
+				CachedNodeTitle = FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
 			}
 			else
 			{
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ClassName"), FText::FromString(SourceTemplate->GetClass()->GetName()));
-				return FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);		
+				CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);
 			}
 		}
 	}
 
+	// FText::Format() is slow, so we cache the title to save on performance
+	if (!CachedNodeTitle.IsOutOfDate())
+	{
+		return CachedNodeTitle;
+	}
 	return Super::GetNodeTitle(TitleType);
 }
 
@@ -393,6 +399,12 @@ FString UK2Node_AddComponent::GetDocumentationExcerptName() const
 	}
 
 	return Super::GetDocumentationExcerptName();
+}
+
+bool UK2Node_AddComponent::IsCompatibleWithGraph(UEdGraph const* Graph) const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+	return (Blueprint != nullptr) && FBlueprintEditorUtils::IsActorBased(Blueprint) && Super::IsCompatibleWithGraph(Graph);
 }
 
 FNodeHandlingFunctor* UK2Node_AddComponent::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

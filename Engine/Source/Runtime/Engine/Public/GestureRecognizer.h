@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "KeyState.h"
-
 class FGestureRecognizer
 {
 public:

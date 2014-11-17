@@ -95,8 +95,8 @@ struct FPieLoginStruct
 	int32 NextX;
 	/** Y location for window positioning */
 	int32 NextY;
-	/** Will this instance run as a server */
-	bool bIsServer;
+	/** What net mode to run this instance as */
+	EPlayNetMode NetMode;
 	/** Passthrough condition of blueprint compilation*/
 	bool bAnyBlueprintErrors;
 	/** Passthrough condition of spectator mode */
@@ -109,7 +109,7 @@ struct FPieLoginStruct
 		SettingsIndex(0),
 		NextX(0),
 		NextY(0),
-		bIsServer(false),
+		NetMode(EPlayNetMode::PIE_Standalone),
 		bAnyBlueprintErrors(false),
 		bStartInSpectatorMode(false),
 		PIEStartTime(0)
@@ -506,13 +506,6 @@ public:
 	/** Annotation to track which PIE/SIE (PlayWorld) UObjects have counterparts in the EditorWorld **/
 	class FUObjectAnnotationSparseBool ObjectsThatExistInEditorWorld;
 
-	/** Called when a Hot Reload event has completed. */
-	DECLARE_EVENT( UEditorEngine, FHotReloadEvent );
-	FHotReloadEvent& OnHotReload() { return HotReloadEvent; }
-
-	/**	Broadcasts that a hot reload just finished. THIS SHOULD NOT BE PUBLIC */
-	void BroadcastHotReload() { HotReloadEvent.Broadcast(); }
-
 	/** Called when a Blueprint compile is completed. */
 	DECLARE_EVENT( UEditorEngine, FBlueprintCompiledEvent );
 	FBlueprintCompiledEvent& OnBlueprintCompiled() { return BlueprintCompiledEvent; }
@@ -548,7 +541,7 @@ public:
 	FOnEndTransformObject& OnEndObjectMovement() { return OnEndObjectTransformEvent; }
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
-	    be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
+		be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
 		should be set to true if recording features are needed. */
 	DECLARE_EVENT_OneParam( UEditorEngine, FGetActorRecordingState, bool& /* bIsRecordingActive */ );
 	FGetActorRecordingState& GetActorRecordingState() { return GetActorRecordingStateEvent; }
@@ -1470,6 +1463,24 @@ public:
 	 */
 	virtual void PlayMap( const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, int32 InPlayInViewportIndex = -1, bool bUseMobilePreview = false, bool bMovieCapture = false );
 
+
+
+	/**
+	 * Can the editor do cook by the book in the editor process space
+	 */
+	virtual bool CanCookByTheBookInEditor() const { return false; }
+
+	/**
+	 * Start cook by the book in the editor process space
+	 */
+	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections ) { }
+
+	/**
+	 * Checks if the cook by the book is finished
+	 */
+	virtual bool IsCookByTheBookInEditorFinished() const { return true; }
+
+
 	/**
 	 * Makes a request to start a play from a Slate editor session
 	 * @param	bAtPlayerStart			Whether or not we would really like to use the game or level's PlayerStart vs the StartLocation
@@ -2221,7 +2232,7 @@ public:
 	/** @return true if the editor is able to launch PIE with online platform support */
 	bool SupportsOnlinePIE() const;
 
-    /** @return true if there are active PIE instances logged into an online platform */
+	/** @return true if there are active PIE instances logged into an online platform */
 	bool IsPlayingWithOnlinePIE() const { return NumOnlinePIEInstances > 0; }
 
 	/**
@@ -2340,6 +2351,9 @@ public:
 	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
 private:
+	/** Gets the DPI Scale for the game viewport in the editor. */
+	float GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const;
+
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required
 	 *
@@ -2354,7 +2368,7 @@ private:
 	/**
 	 * Toggles PIE to SIE or vice-versa
 	 */
-	void ToggleBetweenPIEandSIE();
+	void ToggleBetweenPIEandSIE( bool bNewSession = false);
 
 	/**
 	 * Hack to switch worlds for the PIE window before and after a slate event
@@ -2455,7 +2469,7 @@ private:
 	virtual void PostUndo (bool bSuccess);
 
 	/** Delegate callback: the world origin is going to be moved. */
-	void PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin);
+	void PreWorldOriginOffset(UWorld* InWorld, FIntVector InSrcOrigin, FIntVector InDstOrigin);
 
 	/** Delegate callback for when a streaming level is added to world. */
 	void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
@@ -2494,9 +2508,6 @@ private:
 
 private:
 
-	/** Delegate broadcast when a module has been hot-reloaded */
-	FHotReloadEvent HotReloadEvent;
-
 	/** Delegate broadcast when blueprint is compiled */
 	FBlueprintCompiledEvent BlueprintCompiledEvent;
 
@@ -2516,7 +2527,7 @@ private:
 	FOnEndTransformObject OnEndObjectTransformEvent;
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
-	    be able to capture state for simulating actor (for Sequencer recording features) */
+		be able to capture state for simulating actor (for Sequencer recording features) */
 	FGetActorRecordingState GetActorRecordingStateEvent;
 
 	/** Reference to owner of the current popup */
@@ -2595,6 +2606,10 @@ protected:
 	void HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCompleted(bool Succeeded, double TotalTime, int32 ErrorCode, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+
+public:
+	/** True if world assets are enabled */
+	static bool IsUsingWorldAssets();
 
 private:
 	/** Handler for when any asset is loaded in the editor */

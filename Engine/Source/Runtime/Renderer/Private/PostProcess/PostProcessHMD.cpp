@@ -14,7 +14,7 @@
 #include "PostProcessEyeAdaptation.h"
 #include "IHeadMountedDisplay.h"
 #include "RHICommandList.h"
-
+#include "SceneUtils.h"
 
 /** The filter vertex declaration resource type. */
 class FDistortionVertexDeclaration : public FRenderResource
@@ -184,7 +184,7 @@ IMPLEMENT_SHADER_TYPE(template<>, FPostProcessHMDPS<false>, TEXT("PostProcessHMD
 
 void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(PostProcessHMD, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessHMD, DEC_SCENE_ITEMS);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -219,11 +219,11 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 	check(GEngine->HMDDevice.IsValid());
 
 	{
-		TShaderMapRef<FPostProcessHMDVS<false> > VertexShader(GetGlobalShaderMap());
-		TShaderMapRef<FPostProcessHMDPS<false> > PixelShader(GetGlobalShaderMap());
+		TShaderMapRef<FPostProcessHMDVS<false> > VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessHMDPS<false> > PixelShader(Context.GetShaderMap());
 		static FGlobalBoundShaderState BoundShaderState;
 		
-		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GDistortionVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GDistortionVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		VertexShader->SetVS(Context, View.StereoPass);
 		PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 	}

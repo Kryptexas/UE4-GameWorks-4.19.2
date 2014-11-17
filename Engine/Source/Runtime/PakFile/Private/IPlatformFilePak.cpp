@@ -11,6 +11,7 @@
 #include "SignedArchiveReader.h"
 #include "PublicKey.inl"
 #include "AES.h"
+#include "GenericPlatformChunkInstall.h"
 
 DEFINE_LOG_CATEGORY(LogPakFile);
 
@@ -510,9 +511,11 @@ void FPakPlatformFile::FindPakFilesInDirectory(IPlatformFile* LowLevelFile, cons
 	class FPakSearchVisitor : public IPlatformFile::FDirectoryVisitor
 	{
 		TArray<FString>& FoundPakFiles;
+		IPlatformChunkInstall* ChunkInstall;
 	public:
-		FPakSearchVisitor(TArray<FString>& InFoundPakFiles)
+		FPakSearchVisitor(TArray<FString>& InFoundPakFiles, IPlatformChunkInstall* InChunkInstall)
 			: FoundPakFiles(InFoundPakFiles)
+			, ChunkInstall(InChunkInstall)
 		{}
 		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
 		{
@@ -521,6 +524,26 @@ void FPakPlatformFile::FindPakFilesInDirectory(IPlatformFile* LowLevelFile, cons
 				FString Filename(FilenameOrDirectory);
 				if (FPaths::GetExtension(Filename) == TEXT("pak"))
 				{
+					// if a platform supports chunk style installs, make sure that the chunk a pak file resides in is actually fully installed before accepting pak files from it
+					if (ChunkInstall)
+					{
+						FString ChunkIdentifier(TEXT("pakchunk"));
+						FString BaseFilename = FPaths::GetBaseFilename(Filename);
+						if (BaseFilename.StartsWith(ChunkIdentifier))
+						{
+							int32 DelimiterIndex = 0;
+							int32 StartOfChunkIndex = ChunkIdentifier.Len();
+
+							BaseFilename.FindChar(TEXT('-'), DelimiterIndex);
+							FString ChunkNumberString = BaseFilename.Mid(StartOfChunkIndex, DelimiterIndex-StartOfChunkIndex);
+							int32 ChunkNumber = 0;
+							TTypeFromString<int32>::FromString(ChunkNumber, *ChunkNumberString);
+							if (ChunkInstall->GetChunkLocation(ChunkNumber) == EChunkLocation::NotAvailable)
+							{
+								return true;
+							}
+						}
+					}
 					FoundPakFiles.Add(Filename);
 				}
 			}
@@ -528,7 +551,7 @@ void FPakPlatformFile::FindPakFilesInDirectory(IPlatformFile* LowLevelFile, cons
 		}
 	};
 	// Find all pak files.
-	FPakSearchVisitor Visitor(OutPakFiles);
+	FPakSearchVisitor Visitor(OutPakFiles, FPlatformMisc::GetPlatformChunkInstall());
 	LowLevelFile->IterateDirectoryRecursively(Directory, Visitor);
 }
 

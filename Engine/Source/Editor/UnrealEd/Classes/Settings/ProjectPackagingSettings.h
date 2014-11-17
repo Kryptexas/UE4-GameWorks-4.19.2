@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProjectPackagingSettings.h: Declares the UProjectPackagingSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "ProjectPackagingSettings.generated.h"
@@ -15,19 +11,13 @@
 UENUM()
 enum EProjectPackagingBuildConfigurations
 {
-	/**
-	 * Debug configuration.
-	 */
+	/** Debug configuration. */
 	PPBC_DebugGame UMETA(DisplayName="DebugGame"),
 
-	/**
-	 * Development configuration.
-	 */
+	/** Development configuration. */
 	PPBC_Development UMETA(DisplayName="Development"),
 
-	/**
-	 * Shipping configuration.
-	 */
+	/** Shipping configuration. */
 	PPBC_Shipping UMETA(DisplayName="Shipping")
 };
 
@@ -41,23 +31,13 @@ class UNREALED_API UProjectPackagingSettings
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
-
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-	
-	// End UObject Interface
-
 public:
 
-	/**
-	 * The build configuration for which the project is packaged.
-	 */
+	/** The build configuration for which the project is packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Project)
 	TEnumAsByte<EProjectPackagingBuildConfigurations> BuildConfiguration;
 
-	/**
-	 * The directory to which the packaged project will be copied.
-	 */
+	/** The directory to which the packaged project will be copied. */
 	UPROPERTY(config, EditAnywhere, Category=Project)
 	FDirectoryPath StagingDirectory;
 
@@ -70,25 +50,27 @@ public:
 	bool FullRebuild;
 
 	/**
-	 * If enabled, a distribution build will be created
-	 * If disabled, a development build will be created
+	 * If enabled, a distribution build will be created and the shipping configuration will be used
+	 * If disabled, an development build will be created
 	 * Distribution builds are for publishing to the App Store
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Project, AdvancedDisplay)
 	bool ForDistribution;
 
-	/**
-	 * If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled).
-	 */
+	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
 
-
-	/**
-	* If enabled, on Android platforms, .pak files are placed inside the APK
-	*/
+	/** If enabled, on Android platforms, .pak files are placed inside the APK. */
 	UPROPERTY(config, EditAnywhere, Category = Packaging)
 	bool UseOBB_InAPK;
+
+	/**
+	 * ISO codes of cultures whose data should be cooked, staged, and packaged.
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cultures to Package"))
+	TArray<FString> CulturesToStage;
 
 	/**
 	 * Directories containing .uasset files that should always be cooked regardless of whether they're referenced by anything in your project
@@ -112,4 +94,11 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
 	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;
+
+public:
+
+	// UObject Interface
+
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
+	virtual bool CanEditChange( const UProperty* InProperty ) const;
 };

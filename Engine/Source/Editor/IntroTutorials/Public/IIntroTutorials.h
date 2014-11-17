@@ -4,6 +4,7 @@
 
 #include "ModuleManager.h"
 
+class UEditorTutorial;
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
@@ -36,18 +37,32 @@ public:
 	}
 
 	/**
-	 * Adds a tutorial association for a type of asset (will be summoned the first time an asset editor is opened for the specified asset class)
-	 * @param AssetClass		Asset type to register a tutorial for
-	 * @param TutorialDocPath	The path to the tutorial doc (must be rooted in the Shared directory, e.g., "Shared/Tutorials/InPersonaAnimEditorTutorial")
-	 * @param TutorialHasBeenSeenSettingName	The setting name to store whether this editor has been seen or not yet (stored in GEditorGameAgnosticIni in the [IntroTutorials] section)
-	 * @param SurveyGUIDString	Text representation of a GUID, used to uniquely identify this tutorial if required for a survey.
+	 * Launch a tutorial with the specified asset.
+	 *
+	 * @param TutorialAssetName The name of the tutorial asset.
 	 */
-	virtual void RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString)=0;
+	virtual void LaunchTutorial(const FString& TutorialAssetName) = 0;
 
 	/**
-	 * Removes the tutorial association for the specified class
-	 * @param AssetClass		Asset type to unregister the tutorial from
+	 * Launch a tutorial immediately, bypassing the tutorial browser.
+	 * 
+	 * @param	Tutorial	The tutorial to launch
+	 * @param	bRestart	Whether to restart the tutorial or resume from where we left off last time.
+	 * @param	InNavigationWindow	Optional window to launch the tutorial from - this is where navigation will be displayed.
 	 */
-	virtual void UnregisterTutorialForAssetEditor(UClass* AssetClass)=0;
+	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate()) = 0;
+
+	/**
+ 	 *  Close all tutorial content, including the browser.
+	 */
+	virtual void CloseAllTutorialContent() = 0;
+
+	/**
+	 * Create a widget that allows access to the tutorial for the current context.
+	 * @param	InContext			The name of the context this widget is attached to (e.g. "LevelEditor")
+	 * @param	InContextWindow		The window that the context is attached to (e.g. the main window, or an asset editor tab)
+	 * @return a widget used to access context-sensitive tutorials
+	 */
+	virtual TSharedRef<SWidget> CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow = nullptr) const = 0;
 };
 

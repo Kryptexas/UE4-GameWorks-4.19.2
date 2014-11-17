@@ -5,6 +5,7 @@
 #include "LevelViewportActions.h"
 #include "EditorShowFlags.h"
 #include "StatsData.h"
+#include "BufferVisualizationData.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportActions"
 

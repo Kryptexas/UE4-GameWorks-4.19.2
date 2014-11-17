@@ -27,7 +27,7 @@ public:
 	// Command to show Anim Notify window
 	TSharedPtr<FUICommandInfo> AnimNotifyWindow;
 	// Command to show Retarget Source Manager
-	TSharedPtr<FUICommandInfo> RetargetSourceMgr;
+	TSharedPtr<FUICommandInfo> RetargetManager;
 	// Import Mesh for this Skeleton
 	TSharedPtr<FUICommandInfo> ImportMesh;
 			
@@ -59,4 +59,6 @@ public:
 	TSharedPtr<FUICommandInfo> CreateBlendSpace2D;
 	TSharedPtr<FUICommandInfo> CreateAnimComposite;
 	TSharedPtr<FUICommandInfo> CreateAanimMontage;
+	// Command to allow users to remove unused bones (not referenced by any skeletalmesh) from the skeleton
+	TSharedPtr<FUICommandInfo> UpdateSkeletonRefPose;
 };

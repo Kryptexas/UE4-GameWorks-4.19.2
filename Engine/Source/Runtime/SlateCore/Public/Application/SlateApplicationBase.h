@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateApplicationBase.h: Declares the FSlateApplicationBase class.
-=============================================================================*/
-
 #pragma once
+
 
 class FHittestGrid;
 
@@ -28,6 +25,7 @@ public:
  */
 class SLATECORE_API FSlateApplicationBase
 {
+	friend class SWidget;
 public:
 
 	/**
@@ -67,7 +65,6 @@ public:
 	 * @param  InWidget       Widget to generate a path to
 	 * @param  OutWidgetPath  The generated widget path
 	 * @param  VisibilityFilter	Widgets must have this type of visibility to be included the path
-	 *
 	 * @return	True if the widget path was found
 	 */
 	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) = 0;
@@ -104,11 +101,18 @@ public:
 	virtual const double GetCurrentTime( ) const = 0;
 
 	/**
-	 * Gets the last known position of the cursor.
+	 * Gets the current position of the cursor.
 	 *
 	 * @return Cursor position.
 	 */
 	virtual FVector2D GetCursorPos( ) const = 0;
+
+	/**
+	* Gets the last known position of the cursor.
+	*
+	* @return Cursor position.
+	*/
+	virtual FVector2D GetLastCursorPos( ) const = 0;
 
 	/**
 	 * Gets the size of the cursor..
@@ -122,7 +126,7 @@ public:
 	 *
 	 * @param OutDisplayMetrics Will contain the display metrics.
 	 */
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const = 0;
+	void GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics) const { FDisplayMetrics::GetDisplayMetrics(OutDisplayMetrics); }
 
 	/**
 	 * Gets the widget that currently has keyboard focus, if any.
@@ -132,11 +136,31 @@ public:
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
 	/**
-	 * Gets the Widget that currently captures the mouse.
-	 *
-	 * @return The captor widget, or nullptr if no widget captured the mouse.
+	* Gets the Widget that currently captures the mouse.
+	*
+	* @return The captor widget, or nullptr if no widget captured the mouse.
+	*/
+	DEPRECATED(4.5, "This API is no longer supported.  You can check if a specific widget has capture using the SWidget::HasMouseCapture() API")
+	inline TSharedPtr< SWidget > GetMouseCaptor() const
+	{
+		return GetMouseCaptorImpl();
+	}
+
+protected:
+	/**
+	 * Implementation of GetMouseCaptor which can be overriden without warnings.
+	 * 
+	 * @return Widget with the mouse capture
 	 */
-	virtual TSharedPtr< SWidget > GetMouseCaptor( ) const = 0;
+	virtual TSharedPtr< SWidget > GetMouseCaptorImpl() const = 0;
+
+public:
+	/**
+	 * Gets whether or not a widget has captured the mouse.
+	 *
+	 * @return True if one or more widgets have capture, otherwise false.
+	 */
+	virtual bool HasAnyMouseCaptor( ) const = 0;
 
 	/**
 	 * Gets the platform application.
@@ -159,7 +183,6 @@ public:
 	 * Checks whether the specified widget has any descendants which are currently focused.
 	 *
 	 * @param Widget The widget to check.
-	 *
 	 * @return true if any descendants are focused, false otherwise.
 	 */
 	virtual bool HasFocusedDescendants( const TSharedRef< const SWidget >& Widget ) const = 0;
@@ -195,7 +218,6 @@ public:
 	 * Creates a tool tip with the specified string.
 	 *
 	 * @param ToolTipString The string attribute to assign to the tool tip.
-	 *
 	 * @return The tool tip.
 	 */
 	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) = 0;
@@ -213,7 +235,6 @@ public:
 	 * Creates a tool tip with the specified text.
 	 *
 	 * @param ToolTipText The text to assign to the tool tip.
-	 *
 	 * @return The tool tip.
 	 */
 	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) = 0;
@@ -225,7 +246,6 @@ public:
 	 * @param CenterContent Optional content for the title bar's center (will override window title).
 	 * @param CenterContentAlignment The horizontal alignment of the center content.
 	 * @param OutTitleBar Will hold a pointer to the title bar's interface.
-	 *
 	 * @return The new title bar widget.
 	 */
 	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const = 0;
@@ -244,12 +264,12 @@ public:
 	 *
 	 * @param  InWidget WidgetPath to the Widget to being focused
 	 * @param InCause The reason that keyboard focus is changing
-	 *
 	 * @return true if the widget is now focused, false otherwise.
 	 */
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) = 0;
 
 public:
+	const static uint32 CursorPointerIndex;
 
 	/**
 	 * Returns the current instance of the application. The application should have been initialized before
@@ -259,7 +279,7 @@ public:
 	 */
 	static FSlateApplicationBase& Get( )
 	{
-		check(IsInGameThread());
+		check(IsThreadSafeForSlateRendering());
 		return *CurrentBaseApplication;
 	}
 
@@ -272,6 +292,15 @@ public:
 	{
 		return CurrentBaseApplication.IsValid();
 	}
+
+protected:
+
+	/**
+	* Gets whether or not a particular widget has mouse capture.
+	*
+	* @return True if the widget has mouse capture, otherwise false.
+	*/
+	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const = 0;
 
 protected:
 

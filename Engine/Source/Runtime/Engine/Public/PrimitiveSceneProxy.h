@@ -5,18 +5,18 @@
 =============================================================================*/
 
 #pragma once
+#include "SceneView.h"
+#include "PrimitiveUniformShaderParameters.h"
+#include "PrimitiveViewRelevance.h"
 
+// Forward declarations.
 class FSimpleLightEntry;
 class HHitProxy;
 class FStaticPrimitiveDrawInterface;
 class FPrimitiveSceneInfo;
 class FLightSceneProxy;
 class FLightSceneInfo;
-
-
-#include "SceneView.h"
-#include "PrimitiveUniformShaderParameters.h"
-#include "PrimitiveViewRelevance.h"
+class FPrimitiveDrawInterface;
 
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry
@@ -35,6 +35,18 @@ public:
 	FVector Position;
 };
 
+/**
+* Index into the Per-view data for each instance.
+* Most uses wont need to add > 1 per view data.
+* This array will be the same size as InstanceData for uses that require per view data. Otherwise it will be empty.
+*/
+class FSimpleLightInstacePerViewIndexData
+{
+public:
+	uint32 PerViewIndex : 31;
+	uint32 bHasPerViewData;
+};
+
 /** Data pertaining to a set of simple dynamic lights */
 class FSimpleLightArray
 {
@@ -43,6 +55,8 @@ public:
 	TArray<FSimpleLightEntry, TMemStackAllocator<>> InstanceData;
 	/** Per-view data for each light */
 	TArray<FSimpleLightPerViewEntry, TMemStackAllocator<>> PerViewData;
+	/** Indices into the per-view data for each light. */
+	TArray<FSimpleLightInstacePerViewIndexData, TMemStackAllocator<>> InstancePerViewDataIndices;
 
 public:
 
@@ -57,12 +71,16 @@ public:
 		// If InstanceData has an equal number of elements to PerViewData then all views share the same PerViewData.
 		if (InstanceData.Num() == PerViewData.Num())
 		{
+			check(InstancePerViewDataIndices.Num() == 0);
 			return PerViewData[LightIndex];
 		}
 		else 
 		{
-			// Calculate strided per-view index.
-			const int32 PerViewDataIndex = (LightIndex * NumViews) + ViewIndex;
+			check(InstancePerViewDataIndices.Num() == InstanceData.Num());
+
+			// Calculate per-view index.
+			FSimpleLightInstacePerViewIndexData PerViewIndex = InstancePerViewDataIndices[LightIndex];
+			const int32 PerViewDataIndex = PerViewIndex.PerViewIndex + ( PerViewIndex.bHasPerViewData ? ViewIndex : 0 );
 			return PerViewData[PerViewDataIndex];
 		}
 	}
@@ -155,6 +173,20 @@ public:
 	 */
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, uint32 DrawDynamicFlags ) { DrawDynamicElements( PDI, View ); }
 
+	/** 
+	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.
+	 * This is called from the rendering thread for each set of views that might be rendered.  
+	 * Game thread state like UObjects must have their properties mirrored on the proxy to avoid race conditions.  The rendering thread must not dereference UObjects.
+	 * The gathered mesh elements will be used multiple times, any memory referenced must last as long as the Collector (eg no stack memory should be referenced).
+	 * This function should not modify the proxy but simply collect a description of things to render.  Updates to the proxy need to be pushed from game thread or external events.
+	 *
+	 * @param Views - the array of views to consider.  These may not exist in the ViewFamily.
+	 * @param ViewFamily - the view family, for convenience
+	 * @param VisibilityMap - a bit representing this proxy's visibility in the Views array
+	 * @param Collector - gathers the mesh elements to be rendered and provides mechanisms for temporary allocations
+	 */
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const {}
+
 	/**
 	 * Determines the relevance of this primitive's elements to the given view.
 	 * Called in the rendering thread.
@@ -192,11 +224,13 @@ public:
 		bShadowMapped = false;
 	}
 
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const 
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane) const 
 	{
 		LocalVolumeBounds = FBox(0);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
+		bOutBuiltAsIfTwoSided = false;
+		bMeshWasPlane = false;
 	}
 
 	/**
@@ -291,12 +325,6 @@ public:
 	inline bool IsLocalToWorldDeterminantNegative() const { return bIsLocalToWorldDeterminantNegative; }
 	inline const FBoxSphereBounds& GetBounds() const { return Bounds; }
 	inline const FBoxSphereBounds& GetLocalBounds() const { return LocalBounds; }
-	inline const FVector2D& GetLightMapResolutionScale() const { return LightMapResolutionScale; }
-	inline bool IsLightMapResolutionPadded() const { return bLightMapResolutionPadded; }
-	inline ELightMapInteractionType GetLightMapType() const { return (ELightMapInteractionType)LightMapType; }
-	inline void SetLightMapResolutionScale(const FVector2D& InLightMapResolutionScale) { LightMapResolutionScale = InLightMapResolutionScale; }
-	inline void SetIsLightMapResolutionPadded(bool bInLightMapResolutionPadded) { bLightMapResolutionPadded = bInLightMapResolutionPadded; }
-	inline void SetLightMapType(ELightMapInteractionType InLightMapType) { LightMapType = InLightMapType; }
 	inline FName GetOwnerName() const { return OwnerName; }
 	inline FName GetResourceName() const { return ResourceName; }
 	inline FName GetLevelName() const { return LevelName; }
@@ -326,6 +354,7 @@ public:
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool AffectsDynamicIndirectLighting() const { return bAffectDynamicIndirectLighting; }
 	inline float GetLpvBiasMultiplier() const { return LpvBiasMultiplier; }
+	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
 	inline bool CastsHiddenShadow() const { return bCastHiddenShadow; }
 	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
@@ -342,10 +371,15 @@ public:
 	inline bool WillEverBeLit() const { return bWillEverBeLit; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
 	inline bool AlwaysHasVelocity() const { return bAlwaysHasVelocity; }
+	inline bool UseEditorDepthTest() const { return bUseEditorDepthTest; }
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
 #endif
+
+	inline FLinearColor GetWireframeColor() const { return WireframeColor; }
+	inline FLinearColor GetLevelColor() const { return LevelColor; }
+	inline FLinearColor GetPropertyColor() const { return PropertyColor; }
 
 	/**
 	* Returns whether this proxy should be considered a "detail mesh".
@@ -408,11 +442,12 @@ protected:
 		OwnerName = InOwnerName;
 	}
 
+	FLinearColor WireframeColor;
+	FLinearColor LevelColor;
+	FLinearColor PropertyColor;
+
 private:
 	friend class FScene;
-
-	/** The LightMap method used by the primitive */
-	uint32 LightMapType : LMIT_NumBits;
 
 	uint32 bIsLocalToWorldDeterminantNegative : 1;
 	uint32 DrawInGame : 1;
@@ -426,9 +461,6 @@ private:
 	
 	/** true if the mouse is currently hovered over this primitive in a level viewport */
 	uint32 bHovered : 1;
-
-	/** true if the LightMapResolutionScale value has been padded. */
-	uint32 bLightMapResolutionPadded : 1;
 
 	/** true if ViewOwnerDepthPriorityGroup should be used. */
 	uint32 bUseViewOwnerDepthPriorityGroup : 1;
@@ -515,6 +547,9 @@ protected:
 	/** Whether the primitive should always be considered to have velocities, even if it hasn't moved. */
 	uint32 bAlwaysHasVelocity : 1;
 
+	/** Whether editor compositing depth testing should be used for this primitive.  Only matters for primitives with bUseEditorCompositing. */
+	uint32 bUseEditorDepthTest : 1;
+
 private:
 
 	/** If this is True, this primitive will be used to occlusion cull other primitives. */
@@ -526,9 +561,6 @@ private:
 	/** If this is True, this primitive can be selected in the editor. */
 	uint32 bSelectable : 1;
 
-	/** Determines whether or not we allow shadowing fading.  Some objects (especially in cinematics) having the shadow fade/pop out looks really bad. **/
-	uint32 bAllowShadowFade : 1;
-
 	/** If this primitive has per-instance hit proxies. */
 	uint32 bHasPerInstanceHitProxies : 1;
 
@@ -538,6 +570,9 @@ private:
 protected:
 	/** The bias applied to LPV injection */
 	float LpvBiasMultiplier;
+
+	/** Quality of interpolated indirect lighting for Movable components. */
+	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
 
 private:
 	/** The primitive's local to world transform. */
@@ -575,9 +610,6 @@ private:
 
 	/** The name of the level the primitive is in. */
 	FName LevelName;
-
-	/** The StaticLighting resolution for this mesh */
-	FVector2D LightMapResolutionScale;
 
 #if WITH_EDITOR
 	/** A copy of the actor's group membership for handling per-view group hiding */

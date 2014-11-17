@@ -17,6 +17,9 @@ public:
 	void Construct(const FArguments& InArgs);
 
 private:
+
+	/** Generates the toolbar perspective menu content */
+	TSharedRef<SWidget> GeneratePerspectiveMenu() const;
 	/** Generates the toolbar view menu content */
 	TSharedRef<SWidget> GenerateViewMenu() const;
 

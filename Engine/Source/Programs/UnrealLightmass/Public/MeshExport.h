@@ -7,7 +7,7 @@ namespace Lightmass
 
 enum { MAX_TEXCOORDS=4 };
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 #pragma pack(push, 1)
 #endif
 
@@ -96,7 +96,7 @@ struct FStaticMeshVertex
 	FVector2D		UVs[MAX_TEXCOORDS];
 };
 
-#if !PLATFORM_MAC
+#if !PLATFORM_MAC && !PLATFORM_LINUX
 #pragma pack(pop)
 #endif
 

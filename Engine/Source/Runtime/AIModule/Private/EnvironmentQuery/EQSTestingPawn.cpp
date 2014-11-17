@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "GameplayDebuggingTypes.h"
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
@@ -32,6 +31,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	, bDrawLabels(true)
 	, bDrawFailedItems(true)
 	, bReRunQueryOnlyOnFinishedMove(true)
+	, QueryingMode(EEnvQueryRunMode::AllMatching)
 {
 	static FName CollisionProfileName(TEXT("NoCollision"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
@@ -65,7 +65,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 			static FConstructorStatics ConstructorStatics;
 
 			SpriteComponent->Sprite = ConstructorStatics.TextureObject.Get();
-			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			SpriteComponent->RelativeScale3D = FVector(1, 1, 1);
 			SpriteComponent->bHiddenInGame = true;
 			//SpriteComponent->Mobility = EComponentMobility::Static;
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
@@ -104,18 +104,27 @@ void AEQSTestingPawn::OnEditorSelectionChanged(UObject* NewSelection)
 		}
 	}
 
-#if WITH_EDITOR
+#if WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GCurrentLevelEditingViewportClient != NULL && FGameplayDebuggerSettings::ShowFlagIndex != INDEX_NONE)
 	{
 		GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(FGameplayDebuggerSettings::ShowFlagIndex, bEQSPawnSelected);
 	}
-#endif // WITH_EDITOR
+#endif
 	*/
 }
 
 void AEQSTestingPawn::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
 	Super::Tick(DeltaTime);
+
+	if (QueryTemplate && !QueryInstance.IsValid())
+	{
+		UAISystem* AISys = UAISystem::GetCurrent(GetWorld());
+		if (AISys)
+		{
+			RunEQSQuery();
+		}
+	}
 
 	if (QueryInstance.IsValid() && QueryInstance->Status == EEnvQueryStatus::Processing)
 	{
@@ -131,17 +140,6 @@ void AEQSTestingPawn::PostLoad()
 	if (SpriteComponent != NULL)
 	{
 		SpriteComponent->bHiddenInGame = !bShouldBeVisibleInGame;
-	}
-
-	UEnvQueryManager* EQS = GetWorld() ? UAISystem::GetCurrentEQSManager(GetWorld()) : NULL;
-	if (EQS)
-	{
-		RunEQSQuery();
-	}
-	else
-	{
-		QueryTemplate = NULL;
-		QueryParams.Reset();
 	}
 }
 
@@ -170,7 +168,7 @@ void AEQSTestingPawn::Reset()
 
 void AEQSTestingPawn::MakeOneStep()
 {
-	UEnvQueryManager* EQS = UAISystem::GetCurrentEQSManager(GetWorld());
+	UEnvQueryManager* EQS = UEnvQueryManager::GetCurrent(GetWorld());
 	if (EQS == NULL)
 	{
 		return;
@@ -180,7 +178,7 @@ void AEQSTestingPawn::MakeOneStep()
 	{
 		FEnvQueryRequest QueryRequest(QueryTemplate, this);
 		QueryRequest.SetNamedParams(QueryParams);
-		QueryInstance = EQS->PrepareQueryInstance(QueryRequest, EEnvQueryRunMode::AllMatching);
+		QueryInstance = EQS->PrepareQueryInstance(QueryRequest, QueryingMode);
 	}
 
 	// possible still not valid 
@@ -240,6 +238,7 @@ void AEQSTestingPawn::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 	static const FName NAME_QueryParams = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, QueryParams);
 	static const FName NAME_DrawFailedItems = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, bDrawFailedItems);
 	static const FName NAME_ShouldBeVisibleInGame = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, bShouldBeVisibleInGame);
+	static const FName NAME_QueryingMode = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, QueryingMode);
 
 	if (PropertyChangedEvent.Property != NULL)
 	{
@@ -269,6 +268,10 @@ void AEQSTestingPawn::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 			{
 				SpriteComponent->bHiddenInGame = !bShouldBeVisibleInGame;
 			}
+		}
+		else if (PropName == NAME_QueryingMode)
+		{
+			RunEQSQuery();
 		}
 	}
 

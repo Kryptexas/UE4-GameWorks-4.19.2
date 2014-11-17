@@ -9,6 +9,8 @@
 #include "EdGraphUtilities.h"
 #include "AnimationStateMachineSchema.h"
 
+#define LOCTEXT_NAMESPACE "AnimStateEntryNode"
+
 /////////////////////////////////////////////////////
 // UAnimStateEntryNode
 
@@ -29,9 +31,9 @@ FText UAnimStateEntryNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(Graph->GetName());
 }
 
-FString UAnimStateEntryNode::GetTooltip() const
+FText UAnimStateEntryNode::GetTooltipText() const
 {
-	return TEXT("Entry point for state machine");
+	return LOCTEXT("StateEntryNodeTooltip", "Entry point for state machine");
 }
 
 UEdGraphNode* UAnimStateEntryNode::GetOutputNode() const
@@ -47,4 +49,4 @@ UEdGraphNode* UAnimStateEntryNode::GetOutputNode() const
 	return NULL;
 }
 
-
+#undef LOCTEXT_NAMESPACE

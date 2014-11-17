@@ -10,21 +10,36 @@ public class SlateViewer : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "AppFramework",
 				"Core",
 				"Projects",
 				"Slate",
 				"SlateCore",
 				"SlateReflector",
 				"StandaloneRenderer",
+				"SourceCodeAccess",
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PrivateDependencyModuleNames.Add("XCodeSourceCodeAccess");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PrivateDependencyModuleNames.Add("VisualStudioSourceCodeAccess");
+		}
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			PrivateDependencyModuleNames.Add("NetworkFile");
-			PrivateDependencyModuleNames.Add("StreamingFile");
+			PrivateDependencyModuleNames.AddRange(
+                new string [] {
+                    "NetworkFile",
+                    "StreamingFile"
+                }
+            );
 		}
 	}
 }

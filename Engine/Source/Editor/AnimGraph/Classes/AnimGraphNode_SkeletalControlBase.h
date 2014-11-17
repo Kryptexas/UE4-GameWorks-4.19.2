@@ -13,7 +13,7 @@ class UAnimGraphNode_SkeletalControlBase : public UAnimGraphNode_Base
 public:
 	// UEdGraphNode interface
 	ANIMGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
-	ANIMGRAPH_API virtual FString GetTooltip() const override;
+	ANIMGRAPH_API virtual FText GetTooltipText() const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
@@ -26,5 +26,5 @@ public:
 	ANIMGRAPH_API virtual void Draw( FPrimitiveDrawInterface* PDI, USkeletalMeshComponent * PreviewSkelMeshComp ) const {};
 protected:
 	// Returns the short descriptive name of the controller
-	virtual FText GetControllerDescription() const;
+	ANIMGRAPH_API virtual FText GetControllerDescription() const;
 };
