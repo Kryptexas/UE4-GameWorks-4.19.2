@@ -10,6 +10,7 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 : Super(ObjectInitializer)
 {
 	IsOverride = true;
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 #if WITH_EDITOR
