@@ -9,5 +9,12 @@
 FPaperAnimatedRenderSceneProxy::FPaperAnimatedRenderSceneProxy(const UPaperAnimatedRenderComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
 {
+	//@TODO: PAPER2D: WireframeColor = RenderComp->GetWireframeColor();
+
 	Material = InComponent->GetSpriteMaterial();
+
+	if (Material)
+	{
+		MaterialRelevance = Material->GetRelevance();
+	}
 }

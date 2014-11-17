@@ -15,6 +15,11 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 	{
 		TileComponent = InTileComponent;
 		Material = TileComponent->Material;
+
+		if (Material)
+		{
+			MaterialRelevance = Material->GetRelevance();
+		}
 	}
 }
 
@@ -220,7 +225,7 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 					SourceUV.X *= InverseTextureSize.X;
 					SourceUV.Y *= InverseTextureSize.Y;
 
-					const FVector DrawPos(TileSeparationX * (X - 0.5f) * PaperAxisX + TileSeparationY * -(Y - 0.5f) * PaperAxisY + ((LayerIndex * LayerSeparation) * PaperAxisZ));
+					const FVector DrawPos(TileSeparationX * (X - 0.5f) * PaperAxisX + TileSeparationY * -(Y + 0.5f) * PaperAxisY + ((LayerIndex * LayerSeparation) * PaperAxisZ));
 
 					FSpriteDrawCallRecord& NewTile = *(new (BatchedSprites) FSpriteDrawCallRecord());
 					NewTile.Destination = DrawPos;
@@ -230,10 +235,10 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 					const float W = TileSeparationX;
 					const float H = TileSeparationY;
 
-					const FVector4 BottomLeft(0.0f, 0.0f, SourceUV.X, SourceUV.Y);
-					const FVector4 BottomRight(W, 0.0f, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y);
-					const FVector4 TopRight(W, H, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y + SourceDimensionsUV.Y);
-					const FVector4 TopLeft(0.0f, H, SourceUV.X, SourceUV.Y + SourceDimensionsUV.Y);
+					const FVector4 BottomLeft(0.0f, 0.0f, SourceUV.X, SourceUV.Y + SourceDimensionsUV.Y);
+					const FVector4 BottomRight(W, 0.0f, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y + SourceDimensionsUV.Y);
+					const FVector4 TopRight(W, H, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y);
+					const FVector4 TopLeft(0.0f, H, SourceUV.X, SourceUV.Y);
 
 					new (NewTile.RenderVerts) FVector4(BottomLeft);
 					new (NewTile.RenderVerts) FVector4(TopRight);

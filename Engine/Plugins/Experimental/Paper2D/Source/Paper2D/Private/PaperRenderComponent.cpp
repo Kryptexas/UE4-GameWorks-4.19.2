@@ -26,6 +26,7 @@ FPrimitiveSceneProxy* UPaperRenderComponent::CreateSceneProxy()
 	FPaperRenderSceneProxy* NewProxy = new FPaperRenderSceneProxy(this);
 	FSpriteDrawCallRecord DrawCall;
 	DrawCall.BuildFromSprite(SourceSprite);
+	DrawCall.Color = SpriteColor;
 	NewProxy->SetDrawCall_RenderThread(DrawCall);
 	return NewProxy;
 }
