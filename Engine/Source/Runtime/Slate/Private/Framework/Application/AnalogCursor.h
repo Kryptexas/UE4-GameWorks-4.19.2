@@ -12,15 +12,19 @@ class FAnalogCursor
 public:
 	FAnalogCursor();
 
-	void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor);
+	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor);
 
 	bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
 	bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
 	bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent);
 
-private:
 
-	FVector2D CurrentPos;
+protected:
+
+	/** Handles updating the cursor position and processing a Mouse Move Event */
+	void UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition);
+
+private:
 
 	FVector2D AnalogValues;
 	FVector2D CurrentSpeed;
