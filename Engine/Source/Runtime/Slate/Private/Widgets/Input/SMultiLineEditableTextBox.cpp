@@ -237,12 +237,12 @@ void SMultiLineEditableTextBox::InsertRunAtCursor(TSharedRef<IRun> InRun)
 
 void SMultiLineEditableTextBox::GoTo(const FTextLocation& NewLocation)
 {
-	return EditableText->GoTo(NewLocation);
+	EditableText->GoTo(NewLocation);
 }
 
 void SMultiLineEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
 {
-	return EditableText->ScrollTo(NewLocation);
+	EditableText->ScrollTo(NewLocation);
 }
 
 void SMultiLineEditableTextBox::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
