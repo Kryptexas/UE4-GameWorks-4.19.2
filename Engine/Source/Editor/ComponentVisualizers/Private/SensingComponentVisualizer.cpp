@@ -30,7 +30,7 @@ void FSensingComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 			if (Senses->SightRadius > 0.0f)
 			{
 				TArray<FVector> Verts;
-				DrawWireCone(PDI, Transform, Senses->SightRadius, Senses->GetPeripheralVisionAngle(), 10, FColor::Green, SDPG_World, Verts);
+				DrawWireCone(PDI, Verts, Transform, Senses->SightRadius, Senses->GetPeripheralVisionAngle(), 10, FColor::Green, SDPG_World);
 			}
 		}
 	}

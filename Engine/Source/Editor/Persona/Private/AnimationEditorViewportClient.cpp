@@ -1860,7 +1860,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 			//Render Sphere for bone end point and a cone between it and its parent.
 			PDI->SetHitProxy( new HPersonaBoneProxy( MeshComponent->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) );
 			DrawWireSphere(PDI, End, LineColor, SphereRadius, 10, SDPG_Foreground);
-			DrawWireCone(PDI, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground, Verts);
+			DrawWireCone(PDI, Verts, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground);
 			PDI->SetHitProxy( NULL );
 		
 			// draw gizmo

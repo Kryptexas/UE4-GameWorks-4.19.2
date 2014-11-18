@@ -624,8 +624,8 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 	TArray<FVector> InnerVerts;
 
 	// Draw inner and outer cones
-	DrawWireCone(PDI, Transform, ConeRadius, ConeMinAngle, ConeSides, ModuleEditorColor, SDPG_World, InnerVerts);
-	DrawWireCone(PDI, Transform, ConeRadius, ConeMaxAngle, ConeSides, ModuleEditorColor, SDPG_World, OuterVerts);
+	DrawWireCone(PDI, InnerVerts, Transform, ConeRadius, ConeMinAngle, ConeSides, ModuleEditorColor, SDPG_World);
+	DrawWireCone(PDI, OuterVerts, Transform, ConeRadius, ConeMaxAngle, ConeSides, ModuleEditorColor, SDPG_World);
 
 	// Draw radial spokes
 	for (int32 i = 0; i < ConeSides; ++i)
