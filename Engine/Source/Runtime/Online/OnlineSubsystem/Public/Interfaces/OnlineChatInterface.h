@@ -109,7 +109,7 @@ typedef FOnChatRoomMemberUpdate::FDelegate FOnChatRoomMemberUpdateDelegate;
  * @param RoomId room that member is in
  * @param ChatMessage the message that was received
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnChatRoomMessageReceived, const FUniqueNetId& /*UserId*/, const FChatRoomId& /*RoomId*/, const FChatMessage& /*ChatMessage*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnChatRoomMessageReceived, const FUniqueNetId& /*UserId*/, const FChatRoomId& /*RoomId*/, const TSharedRef<FChatMessage>& /*ChatMessage*/);
 typedef FOnChatRoomMessageReceived::FDelegate FOnChatRoomMessageReceivedDelegate;
 
 /**
@@ -118,7 +118,7 @@ typedef FOnChatRoomMessageReceived::FDelegate FOnChatRoomMessageReceivedDelegate
  * @param UserId user that received the message
  * @param ChatMessage the message that was received
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnChatPrivateMessageReceived, const FUniqueNetId& /*UserId*/, const FChatMessage& /*ChatMessage*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnChatPrivateMessageReceived, const FUniqueNetId& /*UserId*/, const TSharedRef<FChatMessage>& /*ChatMessage*/);
 typedef FOnChatPrivateMessageReceived::FDelegate FOnChatPrivateMessageReceivedDelegate;
 
 /**
@@ -229,6 +229,6 @@ public:
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberJoin, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberExit, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberUpdate, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
-	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMessageReceived, const FUniqueNetId&, const FChatRoomId&, const FChatMessage&);
-	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnChatPrivateMessageReceived, const FUniqueNetId&, const FChatMessage&);
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMessageReceived, const FUniqueNetId&, const FChatRoomId&, const TSharedRef<FChatMessage>&);
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnChatPrivateMessageReceived, const FUniqueNetId&, const TSharedRef<FChatMessage>&);
 };

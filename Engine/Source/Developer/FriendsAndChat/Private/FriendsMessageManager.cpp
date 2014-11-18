@@ -257,16 +257,16 @@ private:
 	{
 	}
 
-	void OnChatRoomMessageReceived(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FChatMessage& ChatMessage)
+	void OnChatRoomMessageReceived(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const TSharedRef<FChatMessage>& ChatMessage)
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
-		ChatItem->FromName = FText::FromString(*ChatMessage.GetNickname());
-		ChatItem->Message = FText::FromString(*ChatMessage.GetBody());
+		ChatItem->FromName = FText::FromString(*ChatMessage->GetNickname());
+		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
 		ChatItem->MessageType = EChatMessageType::Global;
-		ChatItem->MessageTimeText = FText::AsTime(ChatMessage.GetTimestamp());
-		ChatItem->bIsFromSelf = ChatMessage.GetUserId() == *LoggedInUser;
-		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
+		ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp());
+		ChatItem->bIsFromSelf = ChatMessage->GetUserId() == *LoggedInUser;
+		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
 		if(FoundFriend.IsValid())
 		{
 			ChatItem->SenderId = FoundFriend->GetUniqueID();
@@ -275,11 +275,11 @@ private:
 
 	}
 
-	void OnChatPrivateMessageReceived(const FUniqueNetId& UserId, const FChatMessage& ChatMessage)
+	void OnChatPrivateMessageReceived(const FUniqueNetId& UserId, const TSharedRef<FChatMessage>& ChatMessage)
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
-		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
+		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
 		if(FoundFriend.IsValid())
 		{
 			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());
@@ -289,9 +289,9 @@ private:
 		{
 			ChatItem->FromName = FText::FromString("Unknown");
 		}
-		ChatItem->Message = FText::FromString(*ChatMessage.GetBody());
+		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
 		ChatItem->MessageType = EChatMessageType::Whisper;
-		ChatItem->MessageTimeText = FText::AsTime(ChatMessage.GetTimestamp());
+		ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp());
 		ChatItem->bIsFromSelf = false;
 		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 	}
