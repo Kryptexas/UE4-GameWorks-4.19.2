@@ -136,7 +136,10 @@ protected:
 
 private:
 
-	// Since Windows can only have one directory at a time, this stack is used to reset the previous DllDirectory
+	/**
+	 * Since Windows can only have one directory at a time,
+	 * this stack is used to reset the previous DllDirectory.
+	 */
 	static TArray<FString> DllDirectoryStack;
 };
 
