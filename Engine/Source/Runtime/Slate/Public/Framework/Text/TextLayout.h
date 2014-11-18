@@ -400,6 +400,11 @@ protected:
 	void CreateWrappingCache();
 
 	/**
+	* Create the wrapping cache for the given line based upon the current scale
+	*/
+	void CreateLineWrappingCache(FLineModel& LineModel);
+
+	/**
 	 * Clears the current wrapping cache for all lines
 	 */
 	void ClearWrappingCache();
@@ -415,9 +420,19 @@ protected:
 	virtual void BeginLayout();
 
 	/**
+	* Notifies all Runs on the given line is beginning to have a new layout generated.
+	*/
+	void BeginLineLayout(FLineModel& LineModel);
+
+	/**
 	* Notifies all Runs that the layout has finished generating.
 	*/
 	virtual void EndLayout();
+
+	/**
+	* Notifies all Runs on the given line has finished having a new layout generated.
+	*/
+	void EndLineLayout(FLineModel& LineModel);
 
 	/**
 	 * Called to generate a new empty text run for this text layout
@@ -426,7 +441,11 @@ protected:
 
 private:
 
+	float GetWrappingDrawWidth() const;
+
 	void FlowLayout();
+
+	void FlowLineLayout(const int32 LineModelIndex, const float WrappingDrawWidth, TArray<TSharedRef<ILayoutBlock>>& SoftLine);
 
 	void FlowHighlights();
 

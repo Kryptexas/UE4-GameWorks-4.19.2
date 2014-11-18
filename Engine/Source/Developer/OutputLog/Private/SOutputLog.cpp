@@ -772,9 +772,6 @@ void SOutputLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const
 		const float DistanceFromBottom = MessagesTextBox->GetVScrollBar()->DistanceFromBottom();
 		if( DistanceFromBottom <= KINDA_SMALL_NUMBER )
 		{
-			// Force a refresh so that the message has been added before we try and jump to it
-			//MessagesTextBox->Refresh();
-
 			MessagesTextBox->ScrollTo(FTextLocation(MessagesTextMarshaller->GetNumMessages() - 1));
 		}
 	}
