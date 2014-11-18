@@ -28,12 +28,12 @@ USCS_Node::USCS_Node(const FObjectInitializer& ObjectInitializer)
 
 void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
 {
-	check(Actor != nullptr);
-	check((ParentComponent != nullptr && !ParentComponent->IsPendingKill()) || (RootTransform != nullptr)); // must specify either a parent component or a world transform
+	check(Actor != NULL);
+	check((ParentComponent != NULL && !ParentComponent->IsPendingKill()) || (RootTransform != NULL)); // must specify either a parent component or a world transform
 
 	// Create a new component instance based on the template
 	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ComponentTemplate, VariableName.ToString());
-	if(NewActorComp != nullptr)
+	if(NewActorComp != NULL)
 	{
 		bool bDeferRegisterStaticComponent = false;
 		EComponentMobility::Type OriginalMobility = EComponentMobility::Movable;
@@ -43,10 +43,19 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 
 		// Special handling for scene components
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewActorComp);
-		if (NewSceneComp != nullptr)
+		if (NewSceneComp != NULL)
 		{
+			// Components with Mobility set to EComponentMobility::Static or EComponentMobility::Stationary can't be properly set up in SCS (all changes will be rejected
+			// due to EComponentMobility::Static flag) so we're going to temporarily change the flag and defer the registration until SCS has finished.
+			bDeferRegisterStaticComponent = NewSceneComp->Mobility != EComponentMobility::Movable;
+			OriginalMobility = NewSceneComp->Mobility;
+			if (bDeferRegisterStaticComponent)
+			{
+				NewSceneComp->Mobility = EComponentMobility::Movable;
+			}
+
 			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
-			if (ParentComponent == nullptr || (ParentComponent && ParentComponent->IsPendingKill()))
+			if (ParentComponent == NULL || (ParentComponent && ParentComponent->IsPendingKill()))
 			{
 				FTransform WorldTransform = *RootTransform;
 				if(bIsDefaultTransform)
@@ -67,9 +76,16 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 		// Call function to notify component it has been created
 		NewActorComp->OnComponentCreated();
 
-		// need to defer component registration until after the construction script
-		// is ran, since the construction script can mutate the object (for collision, etc.)
-		FDeferRegisterComponents::Get().DeferComponentRegistration(Actor, NewActorComp);
+		if (bDeferRegisterStaticComponent)
+		{
+			// need to defer component registration until after the construction script
+			// is ran, since the construction script can mutate the object (for collision, etc.)
+			FDeferRegisterComponents::Get().DeferComponentRegistration(Actor, NewSceneComp, OriginalMobility);
+		}
+		else
+		{
+			NewActorComp->RegisterComponent();
+		}
 
 		if (NewActorComp->GetIsReplicated())
 		{
@@ -92,7 +108,7 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 #if WITH_EDITOR
 				// If we're constructing editable components in the SCS editor, set the component instance corresponding to this node for editing purposes
 				USimpleConstructionScript* SCS = GetSCS();
-				if(SCS != nullptr && (SCS->IsConstructingEditorComponents() || SCS->GetComponentEditorActorInstance() == Actor))
+				if(SCS != NULL && (SCS->IsConstructingEditorComponents() || SCS->GetComponentEditorActorInstance() == Actor))
 				{
 					EditorComponentInstance = NewSceneComp;
 				}
@@ -101,14 +117,14 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 		}
 
 		// Determine the parent component for our children (it's still our parent if we're a non-scene component)
-		USceneComponent* ParentSceneComponentOfChildren = (NewSceneComp != nullptr) ? NewSceneComp : ParentComponent;
+		USceneComponent* ParentSceneComponentOfChildren = (NewSceneComp != NULL) ? NewSceneComp : ParentComponent;
 
 		// If we made a component, go ahead and process our children
 		for (int32 NodeIdx = 0; NodeIdx < ChildNodes.Num(); NodeIdx++)
 		{
 			USCS_Node* Node = ChildNodes[NodeIdx];
-			check(Node != nullptr);
-			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, nullptr, false);
+			check(Node != NULL);
+			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, NULL, false);
 		}
 	}
 }
