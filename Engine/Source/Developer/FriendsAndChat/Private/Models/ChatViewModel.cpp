@@ -284,11 +284,8 @@ private:
 
 	void HandleMessageReceived(const TSharedRef<FFriendChatMessage> NewMessage)
 	{
-		if(bAllowGlobalChat || NewMessage->MessageType != EChatMessageType::Global)
-		{
-			ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
-			FilterChatList();
-		}
+		ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
+		FilterChatList();
 	}
 
 	void HandleSetFocus()
