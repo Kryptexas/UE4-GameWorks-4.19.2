@@ -14,7 +14,7 @@ FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
 	Attribute = Cast<UNumericProperty>(NewProperty);
 }
 
-void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
+void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
 	void* ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
