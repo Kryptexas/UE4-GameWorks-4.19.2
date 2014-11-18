@@ -53,9 +53,9 @@ void UProjectileMovementComponent::PostLoad()
 }
 
 
-void UProjectileMovementComponent::OnRegister()
+void UProjectileMovementComponent::InitializeComponent()
 {
-	Super::OnRegister();
+	Super::InitializeComponent();
 
 	if (Velocity.SizeSquared() > 0.f)
 	{

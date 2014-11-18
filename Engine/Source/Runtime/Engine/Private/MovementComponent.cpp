@@ -34,6 +34,7 @@ UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializ
 	bWantsInitializeComponent = true;
 	bAutoActivate = true;
 	bInOnRegister = false;
+	bInInitializeComponent = false;
 }
 
 
@@ -59,7 +60,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
 
-		if (!bInOnRegister)
+		if (!bInOnRegister && !bInInitializeComponent)
 		{
 			// UpdateOverlaps() in component registration will take care of this.
 			UpdatedComponent->UpdatePhysicsVolume(true);
@@ -78,10 +79,10 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 }
 
 
-void UMovementComponent::OnRegister()
+void UMovementComponent::InitializeComponent()
 {
-	TGuardValue<bool> InOnRegisterGuard(bInOnRegister, true);
-	Super::OnRegister();
+	TGuardValue<bool> InInitializeComponentGuard(bInInitializeComponent, true);
+	Super::InitializeComponent();
 
 	UPrimitiveComponent* NewUpdatedComponent = NULL;
 	if (UpdatedComponent != NULL)
@@ -97,7 +98,7 @@ void UMovementComponent::OnRegister()
 			NewUpdatedComponent = Cast<UPrimitiveComponent>(MyActor->GetRootComponent());
 			if (!NewUpdatedComponent)
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("NoRootPrimitiveWarning", "Movement component {0} must update a PrimitiveComponent, but owning actor '{1}' does not have a root PrimitiveComponent. Auto registration failed."), 
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("NoRootPrimitiveWarning", "Movement component {0} must update a PrimitiveComponent, but owning actor '{1}' does not have a root PrimitiveComponent. Auto registration failed."),
 					FText::FromString(GetName()),
 					FText::FromString(MyActor->GetName())
 					));
@@ -105,13 +106,26 @@ void UMovementComponent::OnRegister()
 		}
 	}
 
+	SetUpdatedComponent(NewUpdatedComponent);
+}
+
+
+void UMovementComponent::OnRegister()
+{
+	TGuardValue<bool> InOnRegisterGuard(bInOnRegister, true);
+	Super::OnRegister();
+
 	if (PlaneConstraintAxisSetting != EPlaneConstraintAxisSetting::Custom)
 	{
 		SetPlaneConstraintAxisSetting(PlaneConstraintAxisSetting);
 	}
 
 	PlaneConstraintNormal = PlaneConstraintNormal.SafeNormal();
-	SetUpdatedComponent(NewUpdatedComponent);
+
+	if (bSnapToPlaneAtStart)
+	{
+		SnapUpdatedComponentToPlane();
+	}
 }
 
 void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
