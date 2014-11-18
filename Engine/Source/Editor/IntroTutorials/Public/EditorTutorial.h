@@ -239,6 +239,14 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY(EditAnywhere, Category="Tutorial", meta=(MetaClass="EditorTutorial"))
 	FStringClassReference NextTutorial;
 
+	/**
+	* Attempts to find the actor specified by PathToActor in the current editor world
+	* @param	PathToActor	The path to the actor (e.g. PersistentLevel.PlayerStart)
+	* @return	A reference to the actor, or none if it wasn't found
+	*/
+	UFUNCTION(BlueprintPure, Category = "Tutorial")
+	AActor* GetActorReference(FString PathToActor);
+
 	/** A standalone tutorial displays no navigation buttons and each content widget has a close button */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	bool bIsStandalone;

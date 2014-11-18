@@ -73,3 +73,11 @@ void UEditorTutorial::OpenAsset(UObject* Asset)
 	FAssetEditorManager::Get().OpenEditorForAsset(Asset);
 }
 
+AActor* UEditorTutorial::GetActorReference(FString PathToActor)
+{
+#if WITH_EDITOR
+	return Cast<AActor>(StaticFindObject(AActor::StaticClass(), GEditor->GetEditorWorldContext().World(), *PathToActor, false));
+#else
+	return nullptr;
+#endif //WITH_EDITOR
+}
