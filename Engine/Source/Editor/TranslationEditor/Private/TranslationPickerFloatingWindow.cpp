@@ -2,6 +2,7 @@
 #include "TranslationEditorPrivatePCH.h"
 #include "TranslationPickerFloatingWindow.h"
 #include "Editor/Documentation/Public/SDocumentationToolTip.h"
+#include "TranslationPickerEditWindow.h"
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
 
@@ -9,15 +10,22 @@ void STranslationPickerFloatingWindow::Construct(const FArguments& InArgs)
 {
 	ParentWindow = InArgs._ParentWindow;
 
+	WindowContents = SNew(SBox);
+
+	WindowContents->SetContent(
+		SNew(SToolTip)
+		.Text(this, &STranslationPickerFloatingWindow::GetPickerStatusText)
+		);
+
 	ChildSlot
-		[
-			SNew(SToolTip)
-			.Text(this, &STranslationPickerFloatingWindow::GetPickerStatusText)
-		];
+	[
+		WindowContents.ToSharedRef()
+	];
 }
 
 void STranslationPickerFloatingWindow::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	PickedTexts.Empty();
 	TranslationInfoPreviewText = FText::GetEmpty();
 
 	FWidgetPath Path = FSlateApplication::Get().LocateWindowUnderMouse(FSlateApplication::Get().GetCursorPos(), FSlateApplication::Get().GetInteractiveTopLevelWindows(), true);
@@ -31,7 +39,7 @@ void STranslationPickerFloatingWindow::Tick(const FGeometry& AllottedGeometry, c
 
 		if (!TextBlockDescription.IsEmpty())
 		{
-			TranslationInfoPreviewText = FText::Format(LOCTEXT("TextBlockLocalizationDescription", "{0}\n\n\n\n\nTextBlockInfo: {1}"),
+			TranslationInfoPreviewText = FText::Format(LOCTEXT("TextBlockLocalizationDescription", "{0}\n\n\n\n\nTextBlock info:\n{1}"),
 				TranslationInfoPreviewText, TextBlockDescription);
 		}
 
@@ -44,7 +52,7 @@ void STranslationPickerFloatingWindow::Tick(const FGeometry& AllottedGeometry, c
 			TooltipDescription = GetTextDescription(Tooltip->AsWidget());
 			if (!TooltipDescription.IsEmpty())
 			{
-				TranslationInfoPreviewText = FText::Format(LOCTEXT("TooltipLocalizationDescription", "{0}\n\n\n\n\nTooltip Info:{1}"),
+				TranslationInfoPreviewText = FText::Format(LOCTEXT("TooltipLocalizationDescription", "{0}\n\n\n\n\nTooltip Info:\n{1}"),
 					TranslationInfoPreviewText, TooltipDescription);
 			}
 		}
@@ -62,14 +70,15 @@ void STranslationPickerFloatingWindow::Tick(const FGeometry& AllottedGeometry, c
 
 FText STranslationPickerFloatingWindow::GetTextDescription(TSharedRef<SWidget> Widget)
 {
-	FText OutText = FText::GetEmpty();
+	FText OriginalText = FText::GetEmpty();
+	FText FormattedText = FText::GetEmpty();
 
 	// Parse STextBlocks
 	STextBlock* TextBlock = (STextBlock*)&Widget.Get();
 	if ((Widget->GetTypeAsString() == "STextBlock" && TextBlock))
 	{
-		FText Text = TextBlock->GetText();
-		OutText = FormatFTextInfo(Text);
+		OriginalText = TextBlock->GetText();
+		FormattedText = FormatFTextInfo(OriginalText);
 	}
 
 	// Parse SToolTips
@@ -78,10 +87,11 @@ FText STranslationPickerFloatingWindow::GetTextDescription(TSharedRef<SWidget> W
 		SToolTip* ToolTip = ((SToolTip*)&Widget.Get());
 		if (ToolTip != nullptr)
 		{
-			OutText = GetTextDescription(ToolTip->GetContentWidget());
-			if (OutText.IsEmpty())
+			FormattedText = GetTextDescription(ToolTip->GetContentWidget());
+			if (FormattedText.IsEmpty())
 			{
-				OutText = FormatFTextInfo(ToolTip->GetTextTooltip());
+				OriginalText = ToolTip->GetTextTooltip();
+				FormattedText = FormatFTextInfo(OriginalText);
 			}
 		}
 	}
@@ -92,10 +102,17 @@ FText STranslationPickerFloatingWindow::GetTextDescription(TSharedRef<SWidget> W
 		SDocumentationToolTip* DocumentationToolTip = (SDocumentationToolTip*)&Widget.Get();
 		if (DocumentationToolTip != nullptr)
 		{
-			OutText = FormatFTextInfo(DocumentationToolTip->GetTextTooltip());
+			OriginalText = DocumentationToolTip->GetTextTooltip();
+			FormattedText = FormatFTextInfo(OriginalText);
 		}
 	}
-	return OutText;
+	
+	if (!OriginalText.IsEmpty())
+	{
+		PickedTexts.Add(OriginalText);
+	}
+
+	return FormattedText;
 }
 
 FText STranslationPickerFloatingWindow::FormatFTextInfo(FText TextToFormat)
@@ -121,7 +138,7 @@ FText STranslationPickerFloatingWindow::FormatFTextInfo(FText TextToFormat)
 		FText TableName = TextTableName.IsValid() ? FText::FromString(*(TextTableName.Get())) : FText::GetEmpty();
 		FText Translation = FText::FromString(TextTranslation);
 
-		OutText = FText::Format(LOCTEXT("LocalizationStringDescription", "\n\n\n\n\n\nText Namespace: {0}\nText Key: {1}\nText Source: {2}\nTable Name: {3}"), Namespace, Key, Source, TableName);
+		OutText = FText::Format(LOCTEXT("LocalizationStringDescription", "Text Namespace: {0}\nText Key: {1}\nText Source: {2}\nTable Name: {3}"), Namespace, Key, Source, TableName);
 		OutText = FText::Format(LOCTEXT("LocalizationStringDescription2", "{0}\nTranslation: {1}"), OutText, Translation);
 	}
 
@@ -132,20 +149,50 @@ FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, 
 {
 	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
-		//TODO: pop up window for in-place translation
+		// Open a different window to allow editing of the translation
+		TSharedRef<SWindow> NewWindow = SNew(SWindow)
+		.Title(LOCTEXT("TranslationPickerEditWindowTitle", "Edit Translation(s)"))
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		.CreateTitleBar(true)
+		.SizingRule(ESizingRule::Autosized);
+		NewWindow->MoveWindowTo(FSlateApplication::Get().GetCursorPos());
 
-		TranslationInfoPreviewText = FText::GetEmpty();
+		NewWindow->SetContent(
+			SNew(STranslationPickerEditWindow)
+			.ParentWindow(NewWindow)
+			.PickedTexts(PickedTexts)
+			);
 
-		if (ParentWindow.IsValid())
+		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+		if (RootWindow.IsValid())
 		{
-			FSlateApplication::Get().RequestDestroyWindow(ParentWindow.Pin().ToSharedRef());
-			ParentWindow.Reset();
+			FSlateApplication::Get().AddWindowAsNativeChild(NewWindow, RootWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(NewWindow);
 		}
 
+		Close();
+
+		TranslationInfoPreviewText = FText::GetEmpty();
+		
 		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
+}
+
+FReply STranslationPickerFloatingWindow::Close()
+{
+	if (ParentWindow.IsValid())
+	{
+		FSlateApplication::Get().RequestDestroyWindow(ParentWindow.Pin().ToSharedRef());
+		ParentWindow.Reset();
+	}
+
+	return FReply::Handled();
 }
 
 

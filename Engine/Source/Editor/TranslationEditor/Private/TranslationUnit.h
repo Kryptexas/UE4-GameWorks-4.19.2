@@ -78,6 +78,10 @@ public:
 	UPROPERTY(Category=Translation, EditAnywhere)
 	FString TranslationBeforeImport;
 
+	/** Optional: Which Locres File this translation is in */
+	UPROPERTY(Category = Translation, EditAnywhere)
+	FString LocresPath;
+
 	/**
 	* Returns an event delegate that is executed when a property has changed.
 	*

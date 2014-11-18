@@ -76,9 +76,6 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 			}
 			GWarn->EndSlowTask();
 
-			// Once we have the context information, we can look up history
-			GetHistoryForTranslationUnits(TranslationUnits, ManifestFilePath);
-
 			LoadFromArchive(TranslationUnits);
 		}
 		else  // ArchivePtr.IsValid() is false
@@ -342,9 +339,15 @@ bool FTranslationDataManager::WriteJSONToTextFile(TSharedRef<FJsonObject>& Outpu
 	return CheckoutAndSaveWasSuccessful;
 }
 
-void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& InManifestFilePath )
+void FTranslationDataManager::GetHistoryForTranslationUnits()
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingSourceControlHistory", "Loading Translation History from Source Control..."), true);
+
+	TArray<UTranslationUnit*>& TranslationUnits = AllTranslations;
+	const FString& InManifestFilePath = ManifestFilePath;
+
+	// Unload any previous history information, going to retrieve it all again.
+	UnloadHistoryInformation();
 
 	// Force history update
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -473,6 +476,61 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 		TranslationEditorMessageLog.Warning(FText::Format(LOCTEXT("SourceControlStateQueryFailed", "Failed to query source control state of file {ManifestFilePath}."), Arguments));
 		TranslationEditorMessageLog.Notify(LOCTEXT("RetrieveTranslationHistoryFailed", "Unable to Retrieve Translation History from Source Control!"));
 	}
+
+
+	// Go though all translation units
+	for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
+	{
+		UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
+		if (TranslationUnit != nullptr)
+		{
+			if (TranslationUnit->Translation.IsEmpty())
+			{
+				bool bHasTranslationHistory = false;
+				int32 MostRecentNonNullTranslationIndex = -1;
+				int32 ContextForRecentTranslation = -1;
+
+				// Check all contexts for history
+				for (int32 ContextIndex = 0; ContextIndex < TranslationUnit->Contexts.Num(); ++ContextIndex)
+				{
+					for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit->Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
+					{
+						if (!(TranslationUnit->Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
+						{
+							bHasTranslationHistory = true;
+							MostRecentNonNullTranslationIndex = ChangeIndex;
+							ContextForRecentTranslation = ContextIndex;
+							break;
+						}
+					}
+
+					if (bHasTranslationHistory)
+					{
+						break;
+					}
+				}
+
+				// If we have history, but current translation is empty, this goes in the Needs Review tab
+				if (bHasTranslationHistory)
+				{
+					// Offer the most recent translation (for the first context in the list) as a suggestion or starting point (not saved unless user checks "Has Been Reviewed")
+					TranslationUnit->Translation = TranslationUnit->Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
+					TranslationUnit->HasBeenReviewed = false;
+
+					// Move from Untranslated to review
+					if (Untranslated.Contains(TranslationUnit))
+					{
+						Untranslated.Remove(TranslationUnit);
+					}
+					if (!Review.Contains(TranslationUnit))
+					{
+						Review.Add(TranslationUnit);
+					}
+				}
+			}
+		}
+	}
+
 
 	GWarn->EndSlowTask();
 }
@@ -675,6 +733,115 @@ void FTranslationDataManager::RemoveTranslationUnitArrayfromRoot(TArray<UTransla
 	{
 		TranslationUnit->RemoveFromRoot();
 	}
+}
+
+void FTranslationDataManager::UnloadHistoryInformation()
+{
+	TArray<UTranslationUnit*>& TranslationUnits = AllTranslations;
+
+	for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
+	{
+		UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
+		if (TranslationUnit != nullptr)
+		{
+			// If HasBeenReviewed is false, this is a suggestion translation from a previous translation for the same Namespace/Key pair
+			if (!TranslationUnit->HasBeenReviewed)
+			{
+				if (!Untranslated.Contains(TranslationUnit))
+				{
+					Untranslated.Add(TranslationUnit);
+				}
+				if (Review.Contains(TranslationUnit))
+				{
+					Review.Remove(TranslationUnit);
+				}
+
+				// Erase previously suggested translation from history (it has not been reviewed)
+				TranslationUnit->Translation.Empty();
+
+				// Remove all history entries
+				for (FTranslationContextInfo Context : TranslationUnit->Contexts)
+				{
+					Context.Changes.Empty();
+				}
+			}
+		}
+	}
+}
+
+bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave)
+{
+	bool bSucceeded = true;
+	
+	TMap<FString, TSharedPtr<TArray<UTranslationUnit*>>> TextsToSavePerProject;
+
+	// Regroup the translations to save by project
+	for (UTranslationUnit* TextToSave : TranslationUnitsToSave)
+	{
+		FString LocresFilePath = TextToSave->LocresPath;
+		if (!LocresFilePath.IsEmpty())
+		{
+			if (!TextsToSavePerProject.Contains(LocresFilePath))
+			{
+				TextsToSavePerProject.Add(LocresFilePath, MakeShareable(new TArray<UTranslationUnit*>()));
+			}
+
+			TSharedPtr<TArray<UTranslationUnit*>> ProjectArray = TextsToSavePerProject.FindRef(LocresFilePath);
+			ProjectArray->Add(TextToSave);
+		}
+	}
+
+	for (auto TextIt = TextsToSavePerProject.CreateIterator(); TextIt; ++TextIt)
+	{
+		auto Item = *TextIt;
+		FString CurrentLocResPath = Item.Key;
+		FString ManifestAndArchiveName = FPaths::GetBaseFilename(CurrentLocResPath);
+		FString ArchiveFilePath = FPaths::GetPath(CurrentLocResPath);
+		FString CultureName = FPaths::GetBaseFilename(ArchiveFilePath);
+		FString ManifestPath = FPaths::GetPath(ArchiveFilePath);
+		FString ArchiveFullPath = ArchiveFilePath / ManifestAndArchiveName + ".archive";
+		FString ManifestFullPath = ManifestPath / ManifestAndArchiveName + ".manifest";
+
+		if (FPaths::FileExists(ManifestFullPath) && FPaths::FileExists(ArchiveFullPath))
+		{
+			TSharedRef<FTranslationDataManager> DataManager = MakeShareable(new FTranslationDataManager(ManifestFullPath, ArchiveFullPath));
+
+			TArray<UTranslationUnit*>& TranslationsArray = DataManager->GetAllTranslationsArray();
+			TSharedPtr<TArray<UTranslationUnit*>> EditedItems = Item.Value;
+
+			// For each edited item belonging to this manifest/archive pair
+			for (auto EditedItemIt = EditedItems->CreateIterator(); EditedItemIt; ++EditedItemIt)
+			{
+				UTranslationUnit* EditedItem = *EditedItemIt;
+
+				// Search all translations for the one that matches this FText
+				for (UTranslationUnit* Translation : TranslationsArray)
+				{
+					// If namespace matches...
+					if (Translation->Namespace == EditedItem->Namespace)
+					{
+						// And source matches
+						if (Translation->Source == EditedItem->Source)
+						{
+							// Update the translation in TranslationDataManager, and finish searching these translations
+							Translation->Translation = EditedItem->Translation;
+							break;
+						}
+					}
+				}
+			}
+
+			// Save the data to file, and preview in editor
+			bSucceeded = bSucceeded && DataManager->WriteTranslationData();
+			DataManager->PreviewAllTranslationsInEditor();
+		}
+		else
+		{
+			bSucceeded = false;
+		}
+	}
+
+	return bSucceeded;
 }
 
 #undef LOCTEXT_NAMESPACE
