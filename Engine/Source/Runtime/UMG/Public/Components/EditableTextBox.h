@@ -115,14 +115,14 @@ public:
 public:
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="GetText (Text Box)"))
 	FText GetText() const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="SetText (Text Box)"))
 	void SetText(FText InText);
 
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget",  meta=(FriendlyName="SetError (Text Box)"))
 	void SetError(FText InError);
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
