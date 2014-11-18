@@ -1122,8 +1122,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	UPROPERTY()
 	TArray<FActiveGameplayEffect>	GameplayEffects;
 
-	UPROPERTY()
-	TArray<FActiveGameplayEffect>	GameplayEffectsPendingAdd;
+	TQueue<FActiveGameplayEffect>	GameplayEffectsPendingAdd;
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
 	

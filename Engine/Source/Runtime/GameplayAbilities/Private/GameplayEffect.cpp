@@ -1405,7 +1405,7 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	FActiveGameplayEffect& NewEffect = *NewEffectPtr;
 	if (FScopedActiveGameplayEffectLock::IsLockInEffect())
 	{
-		GameplayEffectsPendingAdd.Add(NewEffect);
+		GameplayEffectsPendingAdd.Enqueue(NewEffect);
 		FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Add(TWeakObjectPtr<UAbilitySystemComponent>(Owner)));
 	}
 	else
@@ -2207,8 +2207,9 @@ void FActiveGameplayEffectAction_Add::PerformAction()
 	if (OwningASC.IsValid())
 	{
 		UAbilitySystemComponent* ASC = OwningASC.Get();
-		check(ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.Num());
-		ASC->ActiveGameplayEffects.GameplayEffects.Add(ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd[0]);
-		ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.RemoveAt(0, 1, false);
+		check(!ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.IsEmpty());
+		FActiveGameplayEffect TempEffect;
+		ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.Dequeue(TempEffect);
+		ASC->ActiveGameplayEffects.GameplayEffects.Add(TempEffect);
 	}
 }
