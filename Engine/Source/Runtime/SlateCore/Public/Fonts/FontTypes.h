@@ -3,28 +3,45 @@
 
 struct SLATECORE_API FSlateFontKey
 {
-	FSlateFontInfo FontInfo;
-	float Scale;
-
-	FSlateFontKey( const FSlateFontInfo& InInfo, float InScale )
+public:
+	FSlateFontKey( const FSlateFontInfo& InInfo, const float InScale )
 		: FontInfo( InInfo )
 		, Scale( InScale )
+		, KeyHash( 0 )
 	{
-
+		KeyHash = HashCombine(KeyHash, GetTypeHash(FontInfo));
+		KeyHash = HashCombine(KeyHash, GetTypeHash(Scale));
 	}
 
-	bool operator==(const FSlateFontKey& Other ) const
+	FORCEINLINE const FSlateFontInfo& GetFontInfo() const
+	{
+		return FontInfo;
+	}
+
+	FORCEINLINE float GetScale() const
+	{
+		return Scale;
+	}
+
+	FORCEINLINE bool operator==(const FSlateFontKey& Other ) const
 	{
 		return FontInfo == Other.FontInfo && Scale == Other.Scale;
 	}
 
+	FORCEINLINE bool operator!=(const FSlateFontKey& Other ) const
+	{
+		return !(*this == Other);
+	}
+
 	friend inline uint32 GetTypeHash( const FSlateFontKey& Key )
 	{
-		uint32 Hash = 0;
-		Hash = HashCombine(Hash, GetTypeHash(Key.FontInfo));
-		Hash = HashCombine(Hash, GetTypeHash(Key.Scale));
-		return Hash;
+		return Key.KeyHash;
 	}
+
+private:
+	FSlateFontInfo FontInfo;
+	float Scale;
+	uint32 KeyHash;
 };
 
 /** Measurement details for a specific character */
