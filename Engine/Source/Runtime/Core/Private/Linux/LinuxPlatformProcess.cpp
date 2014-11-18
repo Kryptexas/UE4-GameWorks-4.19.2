@@ -403,11 +403,11 @@ void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FStr
 FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite)
 {
 	// @TODO bLaunchHidden bLaunchReallyHidden are not handled
-	// When using OptionalWorkingDirectory, we need an absolute path to executable
+	// We need an absolute path to executable
 	FString ProcessPath = URL;
-	if (*URL != '/' && OptionalWorkingDirectory)
+	if (*URL != '/')
 	{
-		ProcessPath = FString(BaseDir()) + ProcessPath;
+		ProcessPath = FPaths::ConvertRelativePathToFull(ProcessPath);
 	}
 
 	if (!FPaths::FileExists(ProcessPath))
