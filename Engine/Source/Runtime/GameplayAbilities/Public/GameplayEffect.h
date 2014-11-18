@@ -1289,6 +1289,11 @@ struct FActiveGameplayEffectAction
 	{
 	}
 
+	virtual ~FActiveGameplayEffectAction()
+	{
+
+	}
+
 	virtual void PerformAction()
 	{
 	}
