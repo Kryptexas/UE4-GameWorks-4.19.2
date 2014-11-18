@@ -19,63 +19,6 @@ class UAbilitySystemComponent;
 class UGameplayModMagnitudeCalculation;
 class UGameplayEffectExecutionCalculation;
 
-// Repurposing(?) this to be the inplace/custom/scoped modifier used by FGameplayEffectExecutionDefinition
-//	I would expect this to be the thing that is built off to be a "scalable float/attribute reference/custom magnitude" thing.
-//	This would potentially need to be snapshot/not
-// 
-USTRUCT()
-struct GAMEPLAYABILITIES_API FExtensionAttributeModifierInfo
-{
-	GENERATED_USTRUCT_BODY()
-
-	FExtensionAttributeModifierInfo()
-		: ModifierOp( EGameplayModOp::Additive )
-	{
-
-	}
-
-	/** The Attribute we modify or the GE we modify modifies. */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	FGameplayAttribute Attribute;
-
-	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
-
-	/** How much this modifies what it is applied to */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	FScalableFloat Magnitude;
-
-	/** Source of the gameplay attribute */
-	UPROPERTY(EditDefaultsOnly, Category = Capture)
-	EGameplayEffectAttributeCaptureSource Source;
-
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
-	FGameplayTagRequirements	SourceTags;
-
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
-	FGameplayTagRequirements	TargetTags;
-};
-
-
-// Should this just go away now?
-USTRUCT()
-struct GAMEPLAYABILITIES_API FGameplayModifierCallback
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	TSubclassOf<class UGameplayEffectExtension> ExtensionClass;
-
-	/** Modifications to attributes on the source instigator to be used in the extension class */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	TArray<FExtensionAttributeModifierInfo> SourceAttributeModifiers;
-
-	/** Modifications to attributes on the target to be used in the extension class */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	TArray<FExtensionAttributeModifierInfo> TargetAttributeModifiers;
-};
-
 USTRUCT()
 struct FGameplayEffectStackingCallbacks
 {
@@ -375,9 +318,6 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
-
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier, meta=(DisplayName="Custom Ops"))
-	TArray<FGameplayModifierCallback> Callbacks;
 
 	// @todo: Remove this after content resave
 	/** Now "deprecated," though being handled in a custom manner to avoid engine version bump. */
@@ -1025,7 +965,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	UPROPERTY(NotReplicated)
 	float StartWorldTime;
 
-	// Not sure if this should replicate or not. If replicated, we may have trouble where IsHibited doesn't appear to change when we do tag checks (because it was previously inhibited, but replication made it inhibited).
+	// Not sure if this should replicate or not. If replicated, we may have trouble where IsInhibited doesn't appear to change when we do tag checks (because it was previously inhibited, but replication made it inhibited).
 	UPROPERTY()
 	bool IsInhibited;
 

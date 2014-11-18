@@ -32,65 +32,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
 
 	TArray<UProperty*> PropertiesToAdd;
-
-
 	
-/*
-	const bool bIsExtensionAttribute = (StructPropertyHandle->GetProperty()->GetOuter() == FExtensionAttributeModifierInfo::StaticStruct());
-	if (bIsExtensionAttribute)
-	{
-		// Attributes in FExtensionAttributeModifierInfo in FGameplayModifierInfos can only be set to the attributes in the extension class
-		TSharedPtr<IPropertyHandle> ExtensionAttributeModifierInfoHandle = StructPropertyHandle->GetParentHandle();
-		TSharedPtr<IPropertyHandle> AttributeModifierArrayHandle = ExtensionAttributeModifierInfoHandle.IsValid() ? ExtensionAttributeModifierInfoHandle->GetParentHandle() : nullptr;
-		TSharedPtr<IPropertyHandle> ModifierCallbackHandle = AttributeModifierArrayHandle.IsValid() ? AttributeModifierArrayHandle->GetParentHandle() : nullptr;
-		if ( ModifierCallbackHandle.IsValid() )
-		{
-			TArray<const void*> RawPtrs;
-			ModifierCallbackHandle->AccessRawData(RawPtrs);
-			if ( RawPtrs.Num() > 0 )
-			{
-				// Only allow setting of attributes of all selected structs have the same extension class
-				const FGameplayModifierCallback& FirstCallback = *reinterpret_cast<const FGameplayModifierCallback*>(RawPtrs[0]);
-				TSubclassOf<UGameplayEffectExtension> CommonExtensionClass = FirstCallback.ExtensionClass;
-				bool bHasCommonExtensionClass = true;
-
-				for( const void* Ptr : RawPtrs )
-				{
-					const FGameplayModifierCallback& Callback = *reinterpret_cast<const FGameplayModifierCallback*>(Ptr);
-					if ( Callback.ExtensionClass != CommonExtensionClass )
-					{
-						bHasCommonExtensionClass = false;
-						break;
-					}
-				}
-
-				if ( bHasCommonExtensionClass && CommonExtensionClass != nullptr )
-				{
-					UGameplayEffectExtension* ExtensionCDO = CommonExtensionClass->GetDefaultObject<UGameplayEffectExtension>();
-					if ( ensure(ExtensionCDO) )
-					{
-						const bool bIsSourceAttributeModifiers = (AttributeModifierArrayHandle->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FGameplayModifierCallback, SourceAttributeModifiers));
-						if ( bIsSourceAttributeModifiers )
-						{
-							for (const FGameplayAttribute& RelevantAttribute : ExtensionCDO->RelevantSourceAttributes)
-							{
-								PropertiesToAdd.Add(RelevantAttribute.GetUProperty());
-							}
-						}
-						else
-						{
-							for (const FGameplayAttribute& RelevantAttribute : ExtensionCDO->RelevantTargetAttributes)
-							{
-								PropertiesToAdd.Add(RelevantAttribute.GetUProperty());
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	else
-*/
 	{
 		// Gather all UAttribute classes
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -345,14 +287,6 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
-
-	/* Debug?
-	for (uint32 i = 0; i < NumChildren; i++)
-	{
-		FString PropName = StructPropertyHandle->GetChildHandle(i)->GetPropertyDisplayName();
-		PropName;
-	}
-	*/
 
 	ValueProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Value));
 	CurveTableHandleProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Curve));

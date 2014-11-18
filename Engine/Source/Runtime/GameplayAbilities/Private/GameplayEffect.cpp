@@ -1391,7 +1391,7 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
-
+	
 	if (Owner && Owner->OwnerActor)
 	{
 		if ( IsNetAuthority() )

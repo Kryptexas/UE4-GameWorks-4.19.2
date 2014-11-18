@@ -53,36 +53,6 @@ void FGameplayModifierInfoCustomization::CustomizeChildren(TSharedRef<IPropertyH
 
 void FGameplayModifierInfoCustomization::OnModifierOpChanged(TSharedRef<IPropertyHandle> StructPropertyHandle)
 {
-	// When changing to a callback op, automatically add an initial entry in the callbacks list.
-	// When changing back to a non-callback op, clear the entry if it is the only one and has no data (just to be clean)
-	TArray<void*> StructPtrs;
-	StructPropertyHandle->AccessRawData(StructPtrs);
-	if (StructPtrs.Num() == 1)
-	{
-		FGameplayModifierInfo& Modifier = *reinterpret_cast<FGameplayModifierInfo*>(StructPtrs[0]);
-
-		if ( Modifier.ModifierOp == EGameplayModOp::Callback )
-		{
-			// We switched to Callback. See if we should add an initial callback.
-			if ( Modifier.Callbacks.Num() == 0 )
-			{
-				new(Modifier.Callbacks) FGameplayModifierCallback();
-			}
-		}
-		else
-		{
-			// We switched away from Callback. See if we only have a single item with no data. If so, remove it.
-			if ( Modifier.Callbacks.Num() == 1 )
-			{
-				const FGameplayModifierCallback& Callback = Modifier.Callbacks[0];
-				if ( Callback.ExtensionClass == nullptr && Callback.SourceAttributeModifiers.Num() == 0 && Callback.TargetAttributeModifiers.Num() == 0 )
-				{
-					Modifier.Callbacks.Empty();
-				}
-			}
-		}
-	}
-
 	UpdateHiddenProperties(StructPropertyHandle);
 }
 

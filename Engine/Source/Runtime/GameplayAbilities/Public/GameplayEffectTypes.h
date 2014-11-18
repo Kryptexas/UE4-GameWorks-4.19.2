@@ -43,7 +43,6 @@ namespace EGameplayModOp
 
 		// Other
 		Override 			UMETA(DisplayName="Override"),	// This should always be the first non numeric ModOp
-		Callback			UMETA(DisplayName="Custom"),
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
