@@ -2369,6 +2369,7 @@ void AActor::EnableInput(APlayerController* PlayerController)
 			InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
 			InputComponent->RegisterComponent();
 			InputComponent->bBlockInput = bBlockInput;
+			InputComponent->Priority = InputPriority;
 
 			// Only do this if this actor is of a blueprint class
 			UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());

@@ -244,6 +244,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Input)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoReceiveInput;
 
+	/** The priority of this input component when pushed in to the stack. */
+	UPROPERTY(EditAnywhere, Category=Input)
+	int32 InputPriority;
+
 	/** Component that handles input for this actor, if input is enabled. */
 	UPROPERTY()
 	class UInputComponent* InputComponent;

@@ -550,6 +550,9 @@ class ENGINE_API UInputComponent
 	/** The collection of gesture bindings. */
 	TArray<struct FInputGestureBinding> GestureBindings;
 
+	/** The priority of this input component when pushed in to the stack. */
+	int32 Priority;
+
 	/** Whether any components lower on the input stack should be allowed to receive input. */
 	uint32 bBlockInput:1;
 

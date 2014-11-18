@@ -2346,6 +2346,10 @@ void APlayerController::BuildInputStack(TArray<UInputComponent*>& InputStack)
 		{
 			InputStack.Push(IC);
 		}
+		else
+		{
+			CurrentInputStack.RemoveAt(Idx--);
+		}
 	}
 }
 
@@ -4066,7 +4070,26 @@ void APlayerController::PushInputComponent(UInputComponent* InputComponent)
 {
 	if (InputComponent)
 	{
-		CurrentInputStack.Push(InputComponent);
+		bool bPushed = false;
+		CurrentInputStack.RemoveSingle(InputComponent);
+		for (int32 Index = CurrentInputStack.Num() - 1; Index >= 0; --Index)
+		{
+			UInputComponent* IC = CurrentInputStack[Index].Get();
+			if (IC == nullptr)
+			{
+				CurrentInputStack.RemoveAt(Index);
+			}
+			else if (IC->Priority <= InputComponent->Priority)
+			{
+				CurrentInputStack.Insert(InputComponent, Index + 1);
+				bPushed = true;
+				break;
+			}
+		}
+		if (!bPushed)
+		{
+			CurrentInputStack.Insert(InputComponent, 0);
+		}
 	}
 }
 
