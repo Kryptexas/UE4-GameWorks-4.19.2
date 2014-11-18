@@ -838,11 +838,27 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 		{
 			TSharedPtr<FOnlineFriend> OnlineFriend = FriendsInterface->GetFriend( 0, *UserIds[UserIdx], EFriendsLists::ToString( EFriendsLists::Default ) );
 			TSharedPtr<FOnlineUser> OnlineUser = OnlineSubMcp->GetUserInterface()->GetUserInfo( LocalPlayer, *UserIds[UserIdx] );
-
 			if (OnlineFriend.IsValid() && OnlineUser.IsValid())
 			{
-				TSharedPtr< FFriendItem > FriendItem = MakeShareable(new FFriendItem(OnlineFriend, OnlineUser, EFriendsDisplayLists::DefaultDisplay));
-				PendingFriendsList.Add( FriendItem );
+				TSharedPtr<IFriendItem> Existing;
+				for (auto FriendEntry : PendingFriendsList)
+				{
+					if (*FriendEntry->GetUniqueID() == *UserIds[UserIdx])
+					{
+						Existing = FriendEntry;
+						break;
+					}
+				}
+				if (Existing.IsValid())
+				{
+					Existing->SetOnlineUser(OnlineUser);
+					Existing->SetOnlineFriend(OnlineFriend);
+				}
+				else
+				{
+					TSharedPtr< FFriendItem > FriendItem = MakeShareable(new FFriendItem(OnlineFriend, OnlineUser, EFriendsDisplayLists::DefaultDisplay));
+					PendingFriendsList.Add(FriendItem);
+				}
 			}
 			else
 			{
