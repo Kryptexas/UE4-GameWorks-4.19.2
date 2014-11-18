@@ -200,7 +200,7 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 			const FCharacterEntry& Entry = CharacterList[CurrentChar];
 
 			int32 Kerning = 0;
-			if( CharIndex > 0 )
+			if( PreviousCharEntry )
 			{
 				Kerning = CharacterList.GetKerning( *PreviousCharEntry, Entry );
 			}
