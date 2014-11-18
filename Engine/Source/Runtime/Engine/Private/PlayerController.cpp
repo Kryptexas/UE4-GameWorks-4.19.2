@@ -4076,19 +4076,7 @@ bool APlayerController::PopInputComponent(UInputComponent* InputComponent)
 	{
 		if (CurrentInputStack.RemoveSingle(InputComponent) > 0)
 		{
-			for (FInputAxisBinding& AxisBinding : InputComponent->AxisBindings)
-			{
-				AxisBinding.AxisValue = 0.f;
-			}
-			for (FInputAxisKeyBinding& AxisKeyBinding : InputComponent->AxisKeyBindings)
-			{
-				AxisKeyBinding.AxisValue = 0.f;
-			}
-			for (FInputVectorAxisBinding& VectorAxisBinding : InputComponent->VectorAxisBindings)
-			{
-				VectorAxisBinding.AxisValue = FVector::ZeroVector;
-			}
-
+			InputComponent->ClearBindingValues();
 			return true;
 		}
 	}

@@ -629,6 +629,9 @@ public:
 	 */
 	void RemoveActionBinding( const int32 BindingIndex );
 
+	/** Clears all cached binding values. */
+	void ClearBindingValues();
+
 public:
 
 	/**
