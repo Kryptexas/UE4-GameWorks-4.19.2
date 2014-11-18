@@ -1011,6 +1011,19 @@ void FSlateApplication::DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow )
 	}
 }
 
+
+TArray<TSharedRef<SWindow>> GatherAllDescendants(const TArray< TSharedRef<SWindow> >& InWindowList)
+{
+	TArray<TSharedRef<SWindow>> GatheredDescendants(InWindowList);
+
+	for (const TSharedRef<SWindow>& SomeWindow : InWindowList)
+	{
+		GatheredDescendants.Append( GatherAllDescendants( SomeWindow->GetChildWindows() ) );
+	}
+	
+	return GatheredDescendants;
+}
+
 void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWindow )
 {
 	check(Renderer.IsValid());
@@ -1072,6 +1085,16 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 		}
 	}
 
+
+	// Some windows may have been destroyed/removed.
+	// Do not attempt to draw any windows that have been removed.
+	TArray<TSharedRef<SWindow>> AllWindows = GatherAllDescendants(SlateWindows);
+	DrawWindowArgs.OutDrawBuffer.GetWindowElementLists().RemoveAll([&]( FSlateWindowElementList& Candidate )
+	{
+		TSharedPtr<SWindow> CandidateWindow = Candidate.GetWindow();
+		return !CandidateWindow.IsValid() || !AllWindows.Contains(CandidateWindow.ToSharedRef());
+	});
+	
 	Renderer->DrawWindows( DrawWindowArgs.OutDrawBuffer );
 }
 
