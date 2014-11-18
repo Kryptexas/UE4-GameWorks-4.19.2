@@ -52,7 +52,7 @@ const TSharedRef< FUniqueNetId > FFriendRecentPlayerItem::GetUniqueID() const
 
 const EFriendsDisplayLists::Type FFriendRecentPlayerItem::GetListType() const
 {
-	return EFriendsDisplayLists::GameInviteDisplay;
+	return EFriendsDisplayLists::RecentPlayersDisplay;
 }
 
 void FFriendRecentPlayerItem::SetOnlineFriend( TSharedPtr< FOnlineFriend > InOnlineFriend )
