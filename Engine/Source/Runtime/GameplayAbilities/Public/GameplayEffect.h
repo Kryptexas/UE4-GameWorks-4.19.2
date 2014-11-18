@@ -169,6 +169,48 @@ public:
 	FGameplayTagContainer TargetTagFilter;
 };
 
+USTRUCT()
+struct FCustomCalculationBasedFloat
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCustomCalculationBasedFloat()
+		: CalculationClassMagnitude(nullptr)
+		, Coefficient(1.f)
+		, PreMultiplyAdditiveValue(0.f)
+		, PostMultiplyAdditiveValue(0.f)
+	{}
+
+public:
+
+	/**
+	 * Calculate and return the magnitude of the float given the specified gameplay effect spec.
+	 * 
+	 * @note:	This function assumes (and asserts on) the existence of the required captured attribute within the spec.
+	 *			It is the responsibility of the caller to verify that the spec is properly setup before calling this function.
+	 *			
+	 *	@param InRelevantSpec	Gameplay effect spec providing the backing attribute capture
+	 *	
+	 *	@return Evaluated magnitude based upon the spec & calculation policy
+	 */
+	float CalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const;
+
+	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation)
+	TSubclassOf<UGameplayModMagnitudeCalculation> CalculationClassMagnitude;
+
+	/** Coefficient to the custom calculation */
+	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation)
+	FScalableFloat Coefficient;
+
+	/** Additive value to the attribute calculation, added in before the coefficient applies */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FScalableFloat PreMultiplyAdditiveValue;
+
+	/** Additive value to the attribute calculation, added in after the coefficient applies */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FScalableFloat PostMultiplyAdditiveValue;
+};
+
 /** Struct representing the magnitude of a gameplay effect modifier, potentially calculated in numerous different ways */
 USTRUCT()
 struct FGameplayEffectModifierMagnitude
@@ -182,7 +224,7 @@ public:
 		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::ScalableFloat)
 		, ScalableFloatMagnitude()
 		, AttributeBasedMagnitude()
-		, CalculationClassMagnitude(nullptr)
+		, CustomMagnitude()
 	{
 	}
 
@@ -234,7 +276,7 @@ protected:
 
 	/** Magnitude value represented by a custom calculation class */
 	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
-	TSubclassOf<UGameplayModMagnitudeCalculation> CalculationClassMagnitude;
+	FCustomCalculationBasedFloat CustomMagnitude;
 
 	// @hack: @todo: This is temporary to aid in post-load fix-up w/o exposing members publicly
 	friend class UGameplayEffect;
@@ -1099,6 +1141,11 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
 	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle, bool IncludeEffectsBlockedByStackingRules = false) const;
+
+	void SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue);
+
+	/** Actually applies given mod to the attribute */
+	void ApplyModToAttribute(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude, const FGameplayEffectModCallbackData* ModData=nullptr);
 
 	/**
 	 * Get the source tags from the gameplay spec represented by the specified handle, if possible

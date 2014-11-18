@@ -185,6 +185,23 @@ float FAttributeBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRele
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
+//	FCustomCalculationBasedFloat
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float FCustomCalculationBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const
+{
+	const UGameplayModMagnitudeCalculation* CalcCDO = CalculationClassMagnitude->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+	check(CalcCDO);
+
+	float CustomBaseValue = CalcCDO->CalculateBaseMagnitude(InRelevantSpec);
+
+	const float SpecLvl = InRelevantSpec.GetLevel();
+	return ((Coefficient.GetValueAtLevel(SpecLvl) * (CustomBaseValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
 //	FGameplayEffectMagnitude
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -219,10 +236,7 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 
 			case EGameplayEffectMagnitudeCalculation::CustomCalculationClass:
 			{
-				const UGameplayModMagnitudeCalculation* CalcCDO = CalculationClassMagnitude->GetDefaultObject<UGameplayModMagnitudeCalculation>();
-				check(CalcCDO);
-
-				OutCalculatedMagnitude = CalcCDO->CalculateMagnitude(InRelevantSpec);
+				OutCalculatedMagnitude = CustomMagnitude.CalculateMagnitude(InRelevantSpec);
 			}
 			break;
 
@@ -278,9 +292,9 @@ void FGameplayEffectModifierMagnitude::GetAttributeCaptureDefinitions(OUT TArray
 
 		case EGameplayEffectMagnitudeCalculation::CustomCalculationClass:
 		{
-			if (CalculationClassMagnitude)
+			if (CustomMagnitude.CalculationClassMagnitude)
 			{
-				const UGameplayModMagnitudeCalculation* CalcCDO = CalculationClassMagnitude->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+				const UGameplayModMagnitudeCalculation* CalcCDO = CustomMagnitude.CalculationClassMagnitude->GetDefaultObject<UGameplayModMagnitudeCalculation>();
 				check(CalcCDO);
 
 				OutCaptureDefs.Append(CalcCDO->GetAttributeCaptureDefinitions());
@@ -1275,12 +1289,28 @@ void FActiveGameplayEffectsContainer::CaptureAttributeForGameplayEffect(OUT FGam
 void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData)
 {
 	ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewValue);
-	Owner->SetNumericAttribute(Attribute, NewValue);
+	Owner->SetNumericAttribute_Internal(Attribute, NewValue);
 
 	FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute);
 	if (Delegate)
 	{
 		Delegate->Broadcast(NewValue, ModData);
+	}
+}
+
+void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue)
+{
+	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
+	if (RefPtr)
+	{
+		// There is an aggregator for this attribute, so set the base value. The dirty callback chain
+		// will update the actual AttributeSet property value for us.
+		RefPtr->Get()->SetBaseValue(NewBaseValue);
+	}
+	else
+	{
+		// There is no aggregator yet, so we can just set the numeric value directly
+		InternalUpdateNumericalAttribute(Attribute, NewBaseValue, nullptr);
 	}
 }
 
@@ -1301,21 +1331,7 @@ bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Sp
 		 */
 		if (AttributeSet->PreGameplayEffectExecute(ExecuteData))
 		{
-			// Do we have active GE's that are already modifying this?
-			FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(ModEvalData.Attribute);
-			if (RefPtr)
-			{
-				ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *ModEvalData.Attribute.GetName());
-				RefPtr->Get()->ExecModOnBaseValue(ModEvalData.ModifierOp, ModEvalData.Magnitude);
-			}
-			else
-			{
-				// Modify the property in place, without putting it in the AttributeAggregatorMap map
-				float		CurrentValueOfProperty = Owner->GetNumericAttribute(ModEvalData.Attribute);
-				const float NewPropertyValue = FAggregator::StaticExecModOnBaseValue(CurrentValueOfProperty, ModEvalData.ModifierOp, ModEvalData.Magnitude);
-
-				InternalUpdateNumericalAttribute(ModEvalData.Attribute, NewPropertyValue, &ExecuteData);
-			}
+			ApplyModToAttribute(ModEvalData.Attribute, ModEvalData.ModifierOp, ModEvalData.Magnitude, &ExecuteData);
 
 			FGameplayEffectModifiedAttribute* ModifiedAttribute = Spec.GetModifiedAttribute(ModEvalData.Attribute);
 			if (!ModifiedAttribute)
@@ -1338,6 +1354,25 @@ bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Sp
 	}
 
 	return bExecuted;
+}
+
+void FActiveGameplayEffectsContainer::ApplyModToAttribute(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude, const FGameplayEffectModCallbackData* ModData)
+{
+	// Do we have active GE's that are already modifying this?
+	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
+	if (RefPtr)
+	{
+		ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *Attribute.GetName());
+		RefPtr->Get()->ExecModOnBaseValue(ModifierOp, ModifierMagnitude);
+	}
+	else
+	{
+		// Modify the property in place, without putting it in the AttributeAggregatorMap map
+		float		CurrentValueOfProperty = Owner->GetNumericAttribute(Attribute);
+		const float NewPropertyValue = FAggregator::StaticExecModOnBaseValue(CurrentValueOfProperty, ModifierOp, ModifierMagnitude);
+
+		InternalUpdateNumericalAttribute(Attribute, NewPropertyValue, ModData);
+	}
 }
 
 void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()

@@ -324,7 +324,7 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 				if (Set->ShouldInitProperty(bInitialInit, DataPair.Property))
 				{
 					FGameplayAttribute AttributeToModify(DataPair.Property);
-					AbilitySystemComponent->SetNumericAttribute(AttributeToModify, DataPair.Value);
+					AbilitySystemComponent->SetNumericAttributeBase(AttributeToModify, DataPair.Value);
 				}
 			}
 		}		
