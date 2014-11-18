@@ -48,7 +48,7 @@ void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 // 	TagContainer.AppendTags(InheritableClearTagsContainer.CombinedTags);
 // }
 
-void UGameplayEffect::GetTargetEffects(TArray<UGameplayEffect*>& OutEffects) const
+void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*>& OutEffects) const
 {
 	OutEffects.Append(TargetEffects);
 
@@ -357,7 +357,10 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
 
 	// Make TargetEffectSpecs too
-	for (UGameplayEffect* TargetDef : InDef->TargetEffects)
+	TArray<const UGameplayEffect*> TargetEffectDefs;
+	InDef->GetTargetEffects(TargetEffectDefs);
+
+	for (const UGameplayEffect* TargetDef : TargetEffectDefs)
 	{
 		TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, EffectContext, Level)));
 	}
