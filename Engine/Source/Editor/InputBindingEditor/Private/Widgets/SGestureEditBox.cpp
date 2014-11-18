@@ -16,6 +16,8 @@ void SGestureEditBox::Construct( const FArguments& InArgs, TSharedPtr<FGestureTr
 	BorderImageHovered = FEditorStyle::GetBrush( "EditableTextBox.Background.Hovered" );
 	BorderImageFocused = FEditorStyle::GetBrush( "EditableTextBox.Background.Focused" );
 
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	ChildSlot
 	[
 		SAssignNew( ConflictPopup, SMenuAnchor )
@@ -29,7 +31,7 @@ void SGestureEditBox::Construct( const FArguments& InArgs, TSharedPtr<FGestureTr
 				.VAlign(VAlign_Center)
 				.Padding( FMargin( 4.0f, 2.0f ) )
 				.BorderImage( this, &SGestureEditBox::GetBorderImage )
-				.ForegroundColor( FEditorStyle::GetSlateColor("InvertedForeground") )
+				.ForegroundColor( FEditorStyle::GetSlateColor(InvertedForegroundName) )
 				[
 					SNew( SHorizontalBox )
 					+ SHorizontalBox::Slot()

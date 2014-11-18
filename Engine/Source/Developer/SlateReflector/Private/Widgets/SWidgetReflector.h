@@ -164,9 +164,12 @@ private:
 	/** Callback for getting the color of the pick button text. */
 	FSlateColor HandlePickButtonColorAndOpacity() const
 	{
+		static const FName SelectionColor("SelectionColor");
+		static const FName DefaultForeground("DefaultForeground");
+
 		return bIsPicking
-			? FCoreStyle::Get().GetSlateColor("SelectionColor")
-			: FCoreStyle::Get().GetSlateColor("DefaultForeground");
+			? FCoreStyle::Get().GetSlateColor(SelectionColor)
+			: FCoreStyle::Get().GetSlateColor(DefaultForeground);
 	}
 
 	/** Callback for getting the text of the pick button. */

@@ -31,13 +31,15 @@ void SMaterialEditorViewportToolBar::Construct(const FArguments& InArgs)
 	}
 	ToolbarBuilder.EndSection();
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	ChildSlot
 	[
 		SNew(SBorder)
 		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 		// Color and opacity is changed based on whether or not the mouse cursor is hovering over the toolbar area
 		.ColorAndOpacity(this, &SViewportToolBar::OnGetColorAndOpacity)
-		.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
+		.ForegroundColor(FEditorStyle::GetSlateColor(DefaultForegroundName))
 		.HAlign(HAlign_Right)
 		[
 			ToolbarBuilder.MakeWidget()

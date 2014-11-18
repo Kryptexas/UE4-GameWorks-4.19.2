@@ -2133,7 +2133,10 @@ FLinearColor SAssetView::GetThumbnailHintColorAndOpacity() const
 
 FSlateColor SAssetView::GetViewButtonForegroundColor() const
 {
-	return ViewOptionsComboButton->IsHovered() ? FEditorStyle::GetSlateColor("InvertedForeground") : FEditorStyle::GetSlateColor("DefaultForeground");
+	static const FName InvertedForegroundName("InvertedForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+
+	return ViewOptionsComboButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
 }
 
 TSharedRef<SWidget> SAssetView::GetViewButtonContent()

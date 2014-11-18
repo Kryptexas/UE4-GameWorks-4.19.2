@@ -340,11 +340,13 @@ private:
 
 			if ( CrumbButton.IsValid() && CrumbButton->IsHovered() )
 			{
-				return FCoreStyle::Get().GetSlateColor("InvertedForeground");
+				static const FName InvertedForegroundName("InvertedForeground");
+				return FCoreStyle::Get().GetSlateColor(InvertedForegroundName);
 			}
 		}
 
-		return FCoreStyle::Get().GetSlateColor("DefaultForeground");
+		static const FName DefaultForegroundName;
+		return FCoreStyle::Get().GetSlateColor(DefaultForegroundName);
 	}
 
 	/** Handler for when a crumb is clicked. Will pop crumbs down to the selected one. */

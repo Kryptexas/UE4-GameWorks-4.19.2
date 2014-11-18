@@ -243,7 +243,8 @@ const FSlateBrush* STileLayerItem::GetVisibilityBrushForLayer() const
 
 FSlateColor STileLayerItem::GetForegroundColorForVisibilityButton() const
 {
-	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor("InvertedForeground") : FSlateColor::UseForeground();
+	static const FName InvertedForeground("InvertedForeground");
+	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor(InvertedForeground) : FSlateColor::UseForeground();
 }
 
 //////////////////////////////////////////////////////////////////////////

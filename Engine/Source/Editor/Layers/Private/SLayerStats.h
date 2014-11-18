@@ -124,7 +124,9 @@ private:
 
 		const auto Button = StatButtonWidgets[ StatsIndex ];
 
-		return ( Button.IsValid() && ( Button->IsHovered() || Button->IsPressed() ) ) ? FEditorStyle::GetSlateColor( "InvertedForeground" ) : FSlateColor::UseForeground();
+		static const FName InvertedForegroundName("InvertedForeground");
+
+		return ( Button.IsValid() && ( Button->IsHovered() || Button->IsPressed() ) ) ? FEditorStyle::GetSlateColor(InvertedForegroundName): FSlateColor::UseForeground();
 	}
 
 	/**

@@ -9,10 +9,12 @@ void SPropertyEditorBool::Construct( const FArguments& InArgs, const TSharedRef<
 {
 	PropertyEditor = InPropertyEditor;
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	CheckBox = SNew( SCheckBox )
 		.OnCheckStateChanged( this, &SPropertyEditorBool::OnCheckStateChanged )
 		.IsChecked( this, &SPropertyEditorBool::OnGetCheckState )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		.Padding(0.0f);
 
 	ChildSlot

@@ -420,7 +420,8 @@ FSlateColor InvertOnHover( const TWeakPtr< SWidget > WidgetPtr )
 	TSharedPtr< SWidget > Widget = WidgetPtr.Pin();
 	if ( Widget.IsValid() && Widget->IsHovered() )
 	{
-		return FEditorStyle::GetSlateColor( "InvertedForeground" );
+		static const FName InvertedForegroundName("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	return FSlateColor::UseForeground();

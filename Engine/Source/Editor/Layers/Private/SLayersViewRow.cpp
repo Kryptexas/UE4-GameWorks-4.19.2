@@ -156,7 +156,8 @@ FReply SLayersViewRow::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent&
 
 FSlateColor SLayersViewRow::GetForegroundColorForButton() const
 {
-	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor("InvertedForeground") : FSlateColor::UseForeground();
+	static const FName InvertedForegroundName("InvertedForeground");
+	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FSlateColor::UseForeground();
 }
 
 FSlateColor SLayersViewRow::GetColorAndOpacity() const

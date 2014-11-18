@@ -328,18 +328,21 @@ FSlateColor FPListNodeString::GetKeyBackgroundColor() const
 /** Delegate: Changes the color of the key string text box based on validity */
 FSlateColor FPListNodeString::GetKeyForegroundColor() const
 {
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	if(bArrayMember)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	if(!bKeyValid)
 	{
-		return FEditorStyle::GetColor("ErrorReporting.ForegroundColor");
+		static const FName ForegroundColor("ErrorReporting.ForegroundColor");
+		return FEditorStyle::GetColor(ForegroundColor);
 	}
 	else
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 }
 
@@ -349,7 +352,8 @@ FSlateColor FPListNodeString::GetValueBackgroundColor() const
 {
 	if(!bValueValid)
 	{
-		return FEditorStyle::GetColor("ErrorReporting.BackgroundColor");
+		static const FName BackgroundColor("ErrorReporting.BackgroundColor");
+		return FEditorStyle::GetColor(BackgroundColor);
 	}
 	else
 	{
@@ -362,11 +366,13 @@ FSlateColor FPListNodeString::GetValueForegroundColor() const
 {
 	if(!bValueValid)
 	{
-		return FEditorStyle::GetSlateColor("ErrorReporting.ForegroundColor");
+		static const FName ForegroundColor("ErrorReporting.ForegroundColor");
+		return FEditorStyle::GetSlateColor(ForegroundColor);
 	}
 	else
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		static const FName InvertedForegroundName("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 }
 

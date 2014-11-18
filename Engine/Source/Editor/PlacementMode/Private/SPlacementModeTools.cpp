@@ -568,7 +568,8 @@ const FSlateBrush* SPlacementModeTools::PlacementGroupBorderImage( int32 Placeme
 {
 	if ( WidgetSwitcher->GetActiveWidgetIndex() == PlacementGroupIndex )
 	{
-		return FEditorStyle::GetBrush( "PlacementBrowser.ActiveTabBar" );
+		static FName PlacementBrowserActiveTabBarBrush( "PlacementBrowser.ActiveTabBar" );
+		return FEditorStyle::GetBrush( PlacementBrowserActiveTabBarBrush );
 	}
 	else
 	{

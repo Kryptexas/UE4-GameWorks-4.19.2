@@ -210,7 +210,9 @@ private:
 		{
 			if (Value.IsEmpty() || IsValidMapName(Value))
 			{
-				return FEditorStyle::GetSlateColor("InvertedForeground");
+				static const FName InvertedForegroundName("InvertedForeground");
+
+				return FEditorStyle::GetSlateColor(InvertedForegroundName);
 			}
 		}
 

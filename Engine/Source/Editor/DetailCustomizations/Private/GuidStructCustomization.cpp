@@ -116,7 +116,8 @@ FSlateColor FGuidStructCustomization::HandleTextBoxForegroundColor( ) const
 {
 	if (InputValid)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		static const FName InvertedForegroundName("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	return FLinearColor::Red;

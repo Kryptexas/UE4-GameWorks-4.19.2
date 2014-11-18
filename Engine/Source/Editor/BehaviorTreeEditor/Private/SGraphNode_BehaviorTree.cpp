@@ -1069,7 +1069,11 @@ FSlateColor SGraphNode_BehaviorTree::GetIndexColor(bool bHovered) const
 {
 	UBehaviorTreeGraphNode* ParentNode = GetParentNode(GraphNode);
 	const bool bHighlightHover = bHovered || (ParentNode && ParentNode->bHighlightChildNodeIndices);
-	return bHighlightHover ? FEditorStyle::Get().GetSlateColor("BTEditor.Graph.BTNode.Index.HoveredColor") : FEditorStyle::Get().GetSlateColor("BTEditor.Graph.BTNode.Index.Color");
+
+	static const FName HoveredColor("BTEditor.Graph.BTNode.Index.HoveredColor");
+	static const FName DefaultColor("BTEditor.Graph.BTNode.Index.Color");
+
+	return bHighlightHover ? FEditorStyle::Get().GetSlateColor(HoveredColor) : FEditorStyle::Get().GetSlateColor(DefaultColor);
 }
 
 EVisibility SGraphNode_BehaviorTree::GetIndexVisibility() const

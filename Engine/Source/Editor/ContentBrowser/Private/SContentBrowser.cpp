@@ -63,6 +63,8 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
 	TextFilter = MakeShareable( new FFrontendFilter_Text() );
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	FContentBrowserCommands::Register();
 
 	BindCommands();
@@ -273,7 +275,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							SNew(SButton)
 							.VAlign(EVerticalAlignment::VAlign_Center)
 							.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
-							.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+							.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 							.ToolTipText( this, &SContentBrowser::GetHistoryBackTooltip )
 							.ContentPadding( FMargin(1, 0) )
 							.OnClicked(this, &SContentBrowser::BackClicked)
@@ -299,7 +301,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							SNew(SButton)
 							.VAlign(EVerticalAlignment::VAlign_Center)
 							.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
-							.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+							.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 							.ToolTipText( this, &SContentBrowser::GetHistoryForwardTooltip )
 							.ContentPadding( FMargin(1, 0) )
 							.OnClicked(this, &SContentBrowser::ForwardClicked)
@@ -435,7 +437,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
 									.ToolTipText( LOCTEXT( "SourcesTreeToggleTooltip", "Show or hide the sources panel" ) )
 									.ContentPadding( FMargin( 1, 0 ) )
-									.ForegroundColor( FEditorStyle::GetSlateColor( "DefaultForeground" ) )
+									.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 									.OnClicked( this, &SContentBrowser::SourcesViewExpandClicked )
 									[
 										SNew( SImage )
@@ -493,7 +495,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
 								.ToolTipText( LOCTEXT( "SourcesTreeToggleTooltip", "Show or hide the sources panel" ) )
 								.ContentPadding( FMargin( 1, 0 ) )
-								.ForegroundColor( FEditorStyle::GetSlateColor( "DefaultForeground" ) )
+								.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 								.OnClicked( this, &SContentBrowser::SourcesViewExpandClicked )
 								.Visibility( this, &SContentBrowser::GetPathExpanderVisibility )
 								[

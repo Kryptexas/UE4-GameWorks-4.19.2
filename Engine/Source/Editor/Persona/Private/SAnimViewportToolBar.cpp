@@ -337,6 +337,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 			];
 	//@TODO: Need clipping horizontal box: LeftToolbar->AddWrapButton();
 
+	static const FName DefaultForegroundName("DefaultForeground");
 
 	ChildSlot
 	[
@@ -344,7 +345,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		// Color and opacity is changed based on whether or not the mouse cursor is hovering over the toolbar area
 		.ColorAndOpacity( this, &SViewportToolBar::OnGetColorAndOpacity )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		[
 			SNew( SVerticalBox )
 			+ SVerticalBox::Slot()

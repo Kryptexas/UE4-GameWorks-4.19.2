@@ -308,17 +308,17 @@ private:
 	const FSlateBrush* GetBackgroundBrush() const
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
-		FName Substyle;
+		FString Substyle;
 		if ( AssetData.AssetClass == UClass::StaticClass()->GetFName() )
 		{
-			Substyle = FName(".ClassBackground");
+			Substyle = TEXT(".ClassBackground");
 		}
 		else
 		{
-			Substyle = FName(".AssetBackground");
+			Substyle = TEXT(".AssetBackground");
 		}
 
-		const FName BackgroundBrushName( *(Style.ToString() + Substyle.ToString()) );
+		const FName BackgroundBrushName( *(Style.ToString() + Substyle) );
 		return FEditorStyle::GetBrush(BackgroundBrushName);
 	}
 

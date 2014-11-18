@@ -52,6 +52,8 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::LoadModuleChecked<FEditorWidgetsModule>("EditorWidgets");
 	TSharedRef<SWidget> AssetDiscoveryIndicator = EditorWidgetsModule.CreateAssetDiscoveryIndicator(EAssetDiscoveryIndicatorScaleMode::Scale_None, FMargin(16, 8), false);
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -71,7 +73,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-				.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+				.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 				.ToolTipText( this, &SReferenceViewer::GetHistoryBackTooltip )
 				.ContentPadding( 0 )
 				.OnClicked(this, &SReferenceViewer::BackClicked)
@@ -89,7 +91,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-				.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+				.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 				.ToolTipText( this, &SReferenceViewer::GetHistoryForwardTooltip )
 				.ContentPadding( 0 )
 				.OnClicked(this, &SReferenceViewer::ForwardClicked)

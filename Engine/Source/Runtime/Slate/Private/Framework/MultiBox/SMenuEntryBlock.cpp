@@ -1184,7 +1184,8 @@ FSlateColor SMenuEntryBlock::TintOnHover() const
 		TSharedPtr<SMultiBoxWidget> MultiBoxWidget = OwnerMultiBoxWidget.Pin();
 		const ISlateStyle* const StyleSet = MultiBoxWidget->GetStyleSet();
 
-		return StyleSet->GetSlateColor("SelectionColor");
+		static const FName SelectionColorName("SelectionColor");
+		return StyleSet->GetSlateColor(SelectionColorName);
 	}
 	else
 	{

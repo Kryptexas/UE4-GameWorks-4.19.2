@@ -30,6 +30,8 @@ void SContentReference::Construct(const FArguments& InArgs)
 	BorderImageNormal = FEditorStyle::GetBrush(InArgs._Style, ".Background.Normal");
 	BorderImageHovered = FEditorStyle::GetBrush(InArgs._Style, ".Background.Hovered");
 
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	// Create the widgets
 	ChildSlot
 	[
@@ -44,7 +46,7 @@ void SContentReference::Construct(const FArguments& InArgs)
 			.BorderImage(this, &SContentReference::GetBorderImage)
 			.Padding(FEditorStyle::GetMargin(InArgs._Style, ".BorderPadding"))
 			.BorderBackgroundColor( FLinearColor::White )
-			.ForegroundColor(FEditorStyle::GetSlateColor("InvertedForeground"))
+			.ForegroundColor(FEditorStyle::GetSlateColor(InvertedForegroundName))
 			.ToolTipText(this, &SContentReference::GetAssetFullName)
 			[
 				SNew(SBox)

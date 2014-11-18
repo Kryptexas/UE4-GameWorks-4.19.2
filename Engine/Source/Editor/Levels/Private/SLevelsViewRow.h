@@ -67,7 +67,8 @@ public:
 
 	FSlateColor GetForegroundBasedOnSelection() const
 	{
-		return FEditorStyle::GetSlateColor("DefaultForeground");
+		static const FName DefaultForegroundName("DefaultForeground");
+		return FEditorStyle::GetSlateColor(DefaultForegroundName);
 	}
 
 protected:

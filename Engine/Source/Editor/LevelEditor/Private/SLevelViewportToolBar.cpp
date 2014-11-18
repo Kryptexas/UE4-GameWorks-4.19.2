@@ -112,13 +112,15 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 	const FMargin ToolbarSlotPadding( 2.0f, 2.0f );
 	const FMargin ToolbarButtonPadding( 2.0f, 0.0f );
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	ChildSlot
 	[
 		SNew( SBorder )
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		// Color and opacity is changed based on whether or not the mouse cursor is hovering over the toolbar area
 		.ColorAndOpacity( this, &SViewportToolBar::OnGetColorAndOpacity )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		[
 			SNew( SVerticalBox )
 			+ SVerticalBox::Slot()

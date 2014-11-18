@@ -1914,13 +1914,15 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 				FOnActorPicked::CreateStatic( &FLevelEditorToolBar::OnMatineeActorPicked ) )
 		];
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	// Give the scene outliner a border and background
 	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush( "Menu.Background" );
 	TSharedRef< SBorder > RootBorder =
 		SNew( SBorder )
 		.Padding(3)
 		.BorderImage( BackgroundBrush )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 
 		// Assign the box panel as the child
 		[

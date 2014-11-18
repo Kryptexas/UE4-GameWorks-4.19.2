@@ -349,17 +349,20 @@ FSlateColor FPListNodeBoolean::GetKeyBackgroundColor() const
 /** Delegate: Changes the color of the key string text box based on validity */
 FSlateColor FPListNodeBoolean::GetKeyForegroundColor() const
 {
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	if(bArrayMember)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	if(!bKeyValid)
 	{
-		return FEditorStyle::GetColor("ErrorReporting.ForegroundColor");
+		static const FName ForegroundColor("ErrorReporting.ForegroundColor");
+		return FEditorStyle::GetColor(ForegroundColor);
 	}
 	else
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 }

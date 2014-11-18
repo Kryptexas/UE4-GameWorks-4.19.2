@@ -183,12 +183,15 @@ private:
 
 	FSlateColor GetInvertedForegroundIfHovered() const
 	{
-		return ( ToggleModeButton.IsValid() && ( ToggleModeButton->IsHovered() || ToggleModeButton->IsPressed() ) ) ? FEditorStyle::GetSlateColor( "InvertedForeground" ) : FSlateColor::UseForeground();
+		static const FName InvertedForegroundName("InvertedForeground");
+		return ( ToggleModeButton.IsValid() && ( ToggleModeButton->IsHovered() || ToggleModeButton->IsPressed() ) ) ? FEditorStyle::GetSlateColor(InvertedForegroundName): FSlateColor::UseForeground();
 	}
 
 	const FSlateBrush* GetToggleModeButtonImageBrush() const
 	{
-		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( "LayerBrowser.ExploreLayerContents" ) : FEditorStyle::GetBrush( "LayerBrowser.ReturnToLayersList" );
+		static const FName ExploreLayerContents("LayerBrowser.ExploreLayerContents");
+		static const FName ReturnToLayersList("LayerBrowser.ReturnToLayersList");
+		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( ExploreLayerContents ) : FEditorStyle::GetBrush( ReturnToLayersList );
 	}
 
 	FText GetLayerContentsHeaderText() const;

@@ -2772,7 +2772,8 @@ FSlateColor SActorPreview::GetBorderColorAndOpacity() const
 
 	if (HighlightSequence.IsPlaying())
 	{
-		const FLinearColor SelectionColor = FEditorStyle::Get().GetSlateColor("SelectionColor").GetSpecifiedColor().CopyWithNewOpacity(0.5f);
+		static const FName SelectionColorName("SelectionColor");
+		const FLinearColor SelectionColor = FEditorStyle::Get().GetSlateColor(SelectionColorName).GetSpecifiedColor().CopyWithNewOpacity(0.5f);
 		
 		const float Interp = FMath::Sin(HighlightSequence.GetLerp()*6*PI) / 2 + 1;
 		Color = FMath::Lerp(SelectionColor, Color, Interp);
@@ -3295,7 +3296,9 @@ EVisibility SLevelViewport::GetMouseCaptureLabelVisibility() const
 
 FLinearColor SLevelViewport::GetMouseCaptureLabelColorAndOpacity() const
 {
-	FSlateColor SlateColor = FEditorStyle::GetSlateColor("DefaultForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+
+	FSlateColor SlateColor = FEditorStyle::GetSlateColor(DefaultForegroundName);
 	FLinearColor Col = SlateColor.IsColorSpecified() ? SlateColor.GetSpecifiedColor() : FLinearColor::White; 
 
 	float Alpha = 0.0f;

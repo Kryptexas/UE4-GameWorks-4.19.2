@@ -1911,7 +1911,10 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 		TArray<FBoneIndexType> RequiredBones;
 
 		const FReferenceSkeleton& RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
-		const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
+
+		static const FName SelectionColorName("SelectionColor");
+
+		const FSlateColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName);
 		const FLinearColor LinearSelectionColor( SelectionColor.IsColorSpecified() ? SelectionColor.GetSpecifiedColor() : FLinearColor::White );
 
 		// we could cache parent bones as we calculate, but right now I'm not worried about perf issue of this

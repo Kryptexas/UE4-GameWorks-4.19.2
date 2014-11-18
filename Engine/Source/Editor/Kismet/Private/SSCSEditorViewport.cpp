@@ -28,12 +28,14 @@ public:
 	{
 		EditorViewport = InArgs._EditorViewport;
 
+		static const FName DefaultForegroundName("DefaultForeground");
+
 		this->ChildSlot
 		[
 			SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 			.ColorAndOpacity(this, &SViewportToolBar::OnGetColorAndOpacity)
-			.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
+			.ForegroundColor(FEditorStyle::GetSlateColor(DefaultForegroundName))
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()

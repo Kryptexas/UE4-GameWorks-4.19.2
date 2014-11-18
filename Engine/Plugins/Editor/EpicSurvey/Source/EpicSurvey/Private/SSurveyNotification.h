@@ -88,7 +88,8 @@ private:
 
 	FSlateColor GetInvertedForegroundIfHovered() const
 	{
-		return this->IsHovered() ? FEditorStyle::GetSlateColor( "InvertedForeground" ) : FSlateColor::UseForeground();
+		static const FName InvertedForeground("InvertedForeground");
+		return this->IsHovered() ? FEditorStyle::GetSlateColor( InvertedForeground ) : FSlateColor::UseForeground();
 	}
 
 	FSlateColor GetPinColorAndOpacity() const

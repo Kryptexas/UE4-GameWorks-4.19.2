@@ -22,7 +22,9 @@ void SPropertyTableCell::Construct( const FArguments& InArgs, const TSharedRef< 
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SPropertyTableCell::OnCellValueChanged);
 
-	SetForegroundColor( FEditorStyle::GetSlateColor( "InvertedForeground" ) );
+	static const FName InvertedForegroundName("InvertedForeground");
+
+	SetForegroundColor( FEditorStyle::GetSlateColor(InvertedForegroundName) );
 }
 
 void SPropertyTableCell::SetContent( const TSharedRef< SWidget >& NewContents )
