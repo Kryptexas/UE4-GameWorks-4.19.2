@@ -9,45 +9,40 @@
 #include "HideWindowsPlatformTypes.h"
 
 
-FSocketSubsystemWindows* FSocketSubsystemWindows::SocketSingleton = NULL;
+FSocketSubsystemWindows* FSocketSubsystemWindows::SocketSingleton = nullptr;
 
-/**
- * Create the socket subsystem for the given platform service
- */
+
 FName CreateSocketSubsystem( FSocketSubsystemModule& SocketSubsystemModule )
 {
 	FName SubsystemName(TEXT("WINDOWS"));
+
 	// Create and register our singleton factory with the main online subsystem for easy access
 	FSocketSubsystemWindows* SocketSubsystem = FSocketSubsystemWindows::Create();
 	FString Error;
+
 	if (SocketSubsystem->Init(Error))
 	{
 		SocketSubsystemModule.RegisterSocketSubsystem(SubsystemName, SocketSubsystem);
+
 		return SubsystemName;
 	}
-	else
-	{
-		FSocketSubsystemWindows::Destroy();
-		return NAME_None;
-	}
+
+	FSocketSubsystemWindows::Destroy();
+	
+	return NAME_None;
 }
 
-/**
- * Tear down the socket subsystem for the given platform service
- */
+
 void DestroySocketSubsystem( FSocketSubsystemModule& SocketSubsystemModule )
 {
 	SocketSubsystemModule.UnregisterSocketSubsystem(FName(TEXT("WINDOWS")));
 	FSocketSubsystemWindows::Destroy();
 }
 
-/** 
- * Singleton interface for the Windows socket subsystem 
- * @return the only instance of the Windows socket subsystem
- */
+
 FSocketSubsystemWindows* FSocketSubsystemWindows::Create()
 {
-	if (SocketSingleton == NULL)
+	if (SocketSingleton == nullptr)
 	{
 		SocketSingleton = new FSocketSubsystemWindows();
 	}
@@ -55,63 +50,55 @@ FSocketSubsystemWindows* FSocketSubsystemWindows::Create()
 	return SocketSingleton;
 }
 
-/** 
- * Destroy the singleton Windows socket subsystem
- */
+
 void FSocketSubsystemWindows::Destroy()
 {
-	if (SocketSingleton != NULL)
+	if (SocketSingleton != nullptr)
 	{
 		SocketSingleton->Shutdown();
 		delete SocketSingleton;
-		SocketSingleton = NULL;
+		SocketSingleton = nullptr;
 	}
 }
 
-/**
- * Does Windows platform initialization of the sockets library
- *
- * @param Error a string that is filled with error information
- *
- * @return true if initialized ok, false otherwise
- */
+
 bool FSocketSubsystemWindows::Init(FString& Error)
 {
 	bool bSuccess = false;
+
 	if (bTriedToInit == false)
 	{
 		bTriedToInit = true;
 		WSADATA WSAData;
-		// Init WSA
-		int32 Code = WSAStartup(0x0101,&WSAData);
+
+		// initialize WSA
+		int32 Code = WSAStartup(0x0101, &WSAData);
+
 		if (Code == 0)
 		{
 			bSuccess = true;
 			UE_LOG(LogInit, Log, TEXT("%s: version %i.%i (%i.%i), MaxSocks=%i, MaxUdp=%i"),
 				GetSocketAPIName(),
-				WSAData.wVersion >> 8,WSAData.wVersion & 0xFF,
-				WSAData.wHighVersion >> 8,WSAData.wHighVersion & 0xFF,
-				WSAData.iMaxSockets,WSAData.iMaxUdpDg);
+				WSAData.wVersion >> 8, WSAData.wVersion & 0xFF,
+				WSAData.wHighVersion >> 8, WSAData.wHighVersion & 0xFF,
+				WSAData.iMaxSockets, WSAData.iMaxUdpDg);
 		}
 		else
 		{
 			Error = FString::Printf(TEXT("WSAStartup failed (%s)"), GetSocketError(TranslateErrorCode(Code)));
 		}
 	}
+
 	return bSuccess;
 }
 
-/**
- * Performs Windows specific socket clean up
- */
+
 void FSocketSubsystemWindows::Shutdown(void)
 {
 	WSACleanup();
 }
 
-/**
- * Returns the last error that has happened
- */
+
 ESocketErrors FSocketSubsystemWindows::GetLastErrorCode()
 {
 	return TranslateErrorCode(WSAGetLastError());
@@ -236,22 +223,17 @@ ESocketErrors FSocketSubsystemWindows::TranslateErrorCode(int32 Code)
 
 	UE_LOG(LogSockets, Warning, TEXT("Unhandled socket error! Error Code: %d"), Code);
 	check(0);
+
 	return SE_NO_ERROR;
 }
 
 
-/**
- * @return Whether the machine has a properly configured network device or not
- */
 bool FSocketSubsystemWindows::HasNetworkDevice()
 {
 	return true;
 }
 
-/**
- *	Get the name of the socket subsystem
- * @return a string naming this subsystem
- */
+
 const TCHAR* FSocketSubsystemWindows::GetSocketAPIName() const
 {
 	return TEXT("WinSock");

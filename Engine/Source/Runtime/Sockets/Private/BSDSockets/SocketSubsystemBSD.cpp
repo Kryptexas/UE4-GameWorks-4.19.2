@@ -8,28 +8,32 @@
 #include "SocketsBSD.h"
 
 
-class FSocketBSD* FSocketSubsystemBSD::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
+FSocketBSD* FSocketSubsystemBSD::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
 {
 	// return a new socket object
 	return new FSocketBSD(Socket, SocketType, SocketDescription, this);
 }
 
+
 FSocket* FSocketSubsystemBSD::CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP)
 {
 	SOCKET Socket = INVALID_SOCKET;
-	FSocket* NewSocket = NULL;
+	FSocket* NewSocket = nullptr;
+
 	switch (SocketType.GetComparisonIndex())
 	{
 	case NAME_DGram:
 		// Creates a data gram (UDP) socket
 		Socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		NewSocket = (Socket != INVALID_SOCKET) ? InternalBSDSocketFactory(Socket, SOCKTYPE_Datagram, SocketDescription) : NULL;
+		NewSocket = (Socket != INVALID_SOCKET) ? InternalBSDSocketFactory(Socket, SOCKTYPE_Datagram, SocketDescription) : nullptr;
 		break;
+
 	case NAME_Stream:
 		// Creates a stream (TCP) socket
 		Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		NewSocket = (Socket != INVALID_SOCKET) ? InternalBSDSocketFactory(Socket, SOCKTYPE_Streaming, SocketDescription) : NULL;
+		NewSocket = (Socket != INVALID_SOCKET) ? InternalBSDSocketFactory(Socket, SOCKTYPE_Streaming, SocketDescription) : nullptr;
 		break;
+
 	default:
 		break;
 	}
@@ -42,11 +46,7 @@ FSocket* FSocketSubsystemBSD::CreateSocket(const FName& SocketType, const FStrin
 	return NewSocket;
 }
 
-/**
- * Cleans up a socket class
- *
- * @param Socket the socket object to destroy
- */
+
 void FSocketSubsystemBSD::DestroySocket(FSocket* Socket)
 {
 	delete Socket;
@@ -57,14 +57,14 @@ ESocketErrors FSocketSubsystemBSD::GetHostByName(const ANSICHAR* HostName, FInte
 {
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
 	FScopeLock ScopeLock(&HostByNameSynch);
-	addrinfo* AddrInfo = NULL;
+	addrinfo* AddrInfo = nullptr;
 
 	// Limit the IP Addresses we get back to just IPv4
 	addrinfo HintAddrInfo;
 	FMemory::Memzero(&HintAddrInfo, sizeof(HintAddrInfo));
 	HintAddrInfo.ai_family = AF_INET;
 
-	int32 ErrorCode = getaddrinfo(HostName, NULL, &HintAddrInfo, &AddrInfo);
+	int32 ErrorCode = getaddrinfo(HostName, nullptr, &HintAddrInfo, &AddrInfo);
 	ESocketErrors SocketError = TranslateErrorCode(ErrorCode);
 	if (SocketError == SE_NO_ERROR)
 	{
@@ -90,13 +90,7 @@ ESocketErrors FSocketSubsystemBSD::GetHostByName(const ANSICHAR* HostName, FInte
 #endif
 }
 
-/**
- * Determines the name of the local machine
- *
- * @param HostName the string that receives the data
- *
- * @return true if successful, false otherwise
- */
+
 bool FSocketSubsystemBSD::GetHostName(FString& HostName)
 {
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
@@ -114,20 +108,12 @@ bool FSocketSubsystemBSD::GetHostName(FString& HostName)
 }
 
 
-/**
- *	Get the name of the socket subsystem
- * @return a string naming this subsystem
- */
 const TCHAR* FSocketSubsystemBSD::GetSocketAPIName() const
 {
 	return TEXT("BSD");
 }
 
-/**
- *	Create a proper FInternetAddr representation
- * @param Address host address
- * @param Port host port
- */
+
 TSharedRef<FInternetAddr> FSocketSubsystemBSD::CreateInternetAddr(uint32 Address, uint32 Port)
 {
 	TSharedRef<FInternetAddr> Result = MakeShareable(new FInternetAddrBSD);
@@ -135,6 +121,7 @@ TSharedRef<FInternetAddr> FSocketSubsystemBSD::CreateInternetAddr(uint32 Address
 	Result->SetPort(Port);
 	return Result;
 }
+
 
 ESocketErrors FSocketSubsystemBSD::GetLastErrorCode()
 {
@@ -221,5 +208,6 @@ ESocketErrors FSocketSubsystemBSD::TranslateErrorCode(int32 Code)
 	check(0);
 	return SE_NO_ERROR;
 }
+
 
 #endif	//PLATFORM_HAS_BSD_SOCKETS
