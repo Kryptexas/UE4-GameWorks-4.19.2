@@ -1120,7 +1120,10 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	UAbilitySystemComponent* Owner;
 
 	UPROPERTY()
-	TArray< FActiveGameplayEffect >	GameplayEffects;
+	TArray<FActiveGameplayEffect>	GameplayEffects;
+
+	UPROPERTY()
+	TArray<FActiveGameplayEffect>	GameplayEffectsPendingAdd;
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
 	
@@ -1282,7 +1285,7 @@ struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructO
 
 
 USTRUCT()
-struct FActiveGameplayEffectAction
+struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction
 {
 	GENERATED_USTRUCT_BODY()
 	FActiveGameplayEffectAction()
@@ -1298,37 +1301,51 @@ struct FActiveGameplayEffectAction
 	}
 };
 
+
 USTRUCT()
-struct FActiveGameplayEffectAction_Remove : public FActiveGameplayEffectAction
+struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction_Add : public FActiveGameplayEffectAction
 {
 	GENERATED_USTRUCT_BODY()
-	FActiveGameplayEffectAction_Remove()
+	FActiveGameplayEffectAction_Add()
 	{
 	}
 
-	FActiveGameplayEffectAction_Remove(FActiveGameplayEffectsContainer& InContainer, FActiveGameplayEffectHandle& InHandle)
-		: Handle(InHandle)
-	{
-		OwningASC = InContainer.Owner;
-	}
-
-	FActiveGameplayEffectAction_Remove(UAbilitySystemComponent* InOwningASC, FActiveGameplayEffectHandle& InHandle)
-		: OwningASC(InOwningASC)
-		, Handle(InHandle)
+	FActiveGameplayEffectAction_Add(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC)
+	: OwningASC(InOwningASC)
 	{
 	}
 
 	virtual void PerformAction() override;
 
 	UPROPERTY()
-	UAbilitySystemComponent* OwningASC;
+	TWeakObjectPtr<UAbilitySystemComponent> OwningASC;
+};
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction_Remove : public FActiveGameplayEffectAction
+{
+	GENERATED_USTRUCT_BODY()
+	FActiveGameplayEffectAction_Remove()
+	{
+	}
+
+	FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC, FActiveGameplayEffectHandle& InHandle)
+	: OwningASC(InOwningASC)
+	, Handle(InHandle)
+	{
+	}
+
+	virtual void PerformAction() override;
+
+	UPROPERTY()
+	TWeakObjectPtr<UAbilitySystemComponent> OwningASC;
 
 	UPROPERTY()
 	FActiveGameplayEffectHandle Handle;
 };
 
 USTRUCT()
-struct FActiveGameplayEffectActionHandle
+struct GAMEPLAYABILITIES_API FActiveGameplayEffectActionHandle
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -1365,7 +1382,7 @@ struct FActiveGameplayEffectActionHandle
 	TArray<TSharedPtr<FActiveGameplayEffectAction>>	Data;
 };
 
-struct FScopedActiveGameplayEffectLock
+struct GAMEPLAYABILITIES_API FScopedActiveGameplayEffectLock
 {
 	FScopedActiveGameplayEffectLock();
 	~FScopedActiveGameplayEffectLock();

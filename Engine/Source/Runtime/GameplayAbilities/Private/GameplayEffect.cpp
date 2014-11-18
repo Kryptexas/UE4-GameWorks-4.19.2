@@ -1392,8 +1392,6 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
 
-	//TODO Add FScopedActiveGameplayEffectLock here once we can get a crash to happen
-
 	if (Owner && Owner->OwnerActor)
 	{
 		if ( IsNetAuthority() )
@@ -1403,7 +1401,17 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	}
 
 	FActiveGameplayEffectHandle NewHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
-	FActiveGameplayEffect& NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
+	FActiveGameplayEffect* NewEffectPtr = new FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
+	FActiveGameplayEffect& NewEffect = *NewEffectPtr;
+	if (FScopedActiveGameplayEffectLock::IsLockInEffect())
+	{
+		GameplayEffectsPendingAdd.Add(NewEffect);
+		FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Add(TWeakObjectPtr<UAbilitySystemComponent>(Owner)));
+	}
+	else
+	{
+		GameplayEffects.Add(NewEffect);
+	}
 
 	UAbilitySystemGlobals::Get().GlobalPreGameplayEffectSpecApply(NewEffect.Spec, Owner);
 
@@ -1573,7 +1581,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 			//Block removal if we're scope-locked
 			if (FScopedActiveGameplayEffectLock::IsLockInEffect())
 			{
-				FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Remove(*this, Handle));
+				FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent>(Owner), Handle));
 				return true;		//We are assuming the "ensure(Idx < GameplayEffects.Num())" would be passed.
 			}
 			return InternalRemoveActiveGameplayEffect(Idx);
@@ -2188,6 +2196,19 @@ void FInheritedTagContainer::RemoveTag(FGameplayTag TagToRemove)
 
 void FActiveGameplayEffectAction_Remove::PerformAction()
 {
-	check(OwningASC);		//This should not have been destroyed during the lock. If it has been, something unusual may be going on.
-	OwningASC->RemoveActiveGameplayEffect(Handle);
+	if (OwningASC.IsValid())
+	{
+		OwningASC.Get()->RemoveActiveGameplayEffect(Handle);
+	}
+}
+
+void FActiveGameplayEffectAction_Add::PerformAction()
+{
+	if (OwningASC.IsValid())
+	{
+		UAbilitySystemComponent* ASC = OwningASC.Get();
+		check(ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.Num());
+		ASC->ActiveGameplayEffects.GameplayEffects.Add(ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd[0]);
+		ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.RemoveAt(0, 1, false);
+	}
 }

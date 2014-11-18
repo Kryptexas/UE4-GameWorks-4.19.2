@@ -53,6 +53,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Used to register callbacks to confirm/cancel input */
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
+	friend struct FActiveGameplayEffectAction_Add;
 	friend FGameplayEffectSpec;
 	friend class AAbilitySystemDebugHUD;
 
