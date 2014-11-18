@@ -56,34 +56,36 @@ void FSocketSubsystemBSD::DestroySocket(FSocket* Socket)
 ESocketErrors FSocketSubsystemBSD::GetHostByName(const ANSICHAR* HostName, FInternetAddr& OutAddr)
 {
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
-	ESocketErrors ErrorCode = SE_NO_ERROR;
-	// gethostbyname() touches a static object so lock for thread safety
 	FScopeLock ScopeLock(&HostByNameSynch);
-	hostent* HostEnt = gethostbyname(HostName);
-	if (HostEnt != NULL)
+	addrinfo* AddrInfo = NULL;
+
+	// Limit the IP Addresses we get back to just IPv4
+	addrinfo HintAddrInfo;
+	FMemory::Memzero(&HintAddrInfo, sizeof(HintAddrInfo));
+	HintAddrInfo.ai_family = AF_INET;
+
+	int32 ErrorCode = getaddrinfo(HostName, NULL, &HintAddrInfo, &AddrInfo);
+	ESocketErrors SocketError = TranslateErrorCode(ErrorCode);
+	if (SocketError == SE_NO_ERROR)
 	{
-		// Make sure it's a valid type
-		if (HostEnt->h_addrtype == PF_INET)
+		for (; AddrInfo != nullptr; AddrInfo = AddrInfo->ai_next)
 		{
-			// Copy the data before letting go of the lock. This is safe only
-			// for the copy locally. If another thread is reading this while
-			// we are copying they will get munged data. This relies on the
-			// consumer of this class to call the resolved() accessor before
-			// attempting to read this data
-			((FInternetAddrBSD&)OutAddr).SetIp(*(in_addr*)(*HostEnt->h_addr_list));
+			if (AddrInfo->ai_family == AF_INET)
+			{
+				sockaddr_in* IPv4SockAddr = reinterpret_cast<sockaddr_in*>(AddrInfo->ai_addr);
+				if (IPv4SockAddr != nullptr)
+				{
+					uint32 HostIP = ntohl(IPv4SockAddr->sin_addr.s_addr);
+					static_cast<FInternetAddrBSD&>(OutAddr).SetIp(HostIP);
+					return SE_NO_ERROR;
+				}
+			}
 		}
-		else
-		{
-			ErrorCode = SE_HOST_NOT_FOUND;
-		}
+		return SE_HOST_NOT_FOUND;
 	}
-	else
-	{
-		ErrorCode = GetLastErrorCode();
-	}
-	return ErrorCode;
+	return SocketError;
 #else
-	UE_LOG(LogSockets, Error, TEXT("Platform has no gethostbyname(), but did not override FSocketSubsystem::GetHostByName()"));
+	UE_LOG(LogSockets, Error, TEXT("Platform has no getaddrinfo(), but did not override FSocketSubsystem::GetHostByName()"));
 	return SE_NO_RECOVERY;
 #endif
 }
@@ -209,6 +211,7 @@ ESocketErrors FSocketSubsystemBSD::TranslateErrorCode(int32 Code)
 	case TRY_AGAIN: return SE_TRY_AGAIN;
 	case NO_RECOVERY: return SE_NO_RECOVERY;
 #endif
+
 //	case NO_DATA: return SE_NO_DATA;
 		// case : return SE_UDP_ERR_PORT_UNREACH; //@TODO Find it's replacement
 	}

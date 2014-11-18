@@ -321,7 +321,7 @@ TSharedRef<FInternetAddr> ISocketSubsystem::GetLocalHostAddr(FOutputDevice& Out,
 		}
 		else
 		{
-			Out.Logf(TEXT("gethostbyname failed (%s)"), GetSocketError());
+			Out.Logf(TEXT("GetHostByName failed (%s)"), GetSocketError());
 		}
 	}
 
