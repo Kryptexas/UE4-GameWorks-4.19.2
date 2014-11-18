@@ -2789,3 +2789,14 @@ public:
 /** The global null color vertex buffer, which is set with a stride of 0 on meshes without a color component. */
 extern TGlobalResource<FNullDynamicParameterVertexBuffer> GNullDynamicParameterVertexBuffer;
 
+FORCEINLINE FVector GetParticleBaseSize(const FBaseParticle& Particle, bool bKeepFlipScale = false)
+{
+	return bKeepFlipScale ? Particle.BaseSize : FVector(FMath::Abs(Particle.BaseSize.X), FMath::Abs(Particle.BaseSize.Y), FMath::Abs(Particle.BaseSize.Z));
+}
+
+FORCEINLINE FVector2D GetParticleSizeWithUVFlipInSign(const FBaseParticle& Particle, const FVector2D& ScaledSize)
+{
+	return FVector2D(
+		Particle.BaseSize.X >= 0.0f ? ScaledSize.X : -ScaledSize.X,
+		Particle.BaseSize.Y >= 0.0f ? ScaledSize.Y : -ScaledSize.Y);
+}

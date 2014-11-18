@@ -864,7 +864,7 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexData(void* VertexData, void* Dy
 		FillVertex->OldPosition	= ParticleOldPosition;
 		// Create a floating point particle ID from the counter, map into approximately 0-1
 		FillVertex->ParticleId = (Particle.Flags & STATE_CounterMask) / 10000.0f;
-		FillVertex->Size		= Size;
+		FillVertex->Size = GetParticleSizeWithUVFlipInSign(Particle, Size);
 		FillVertex->Rotation	= Particle.Rotation;
 		FillVertex->SubImageIndex = SubImageIndex;
 		FillVertex->Color		= Particle.Color;
@@ -996,7 +996,7 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 			FillVertex[I].OldPosition	= ParticleOldPosition;
 			// Create a floating point particle ID from the counter, map into approximately 0-1
 			FillVertex[I].ParticleId = (Particle.Flags & STATE_CounterMask) / 10000.0f;
-			FillVertex[I].Size		= Size;
+			FillVertex[I].Size = GetParticleSizeWithUVFlipInSign(Particle, Size);
 			FillVertex[I].Rotation	= Particle.Rotation;
 			FillVertex[I].SubImageIndex = SubImageIndex;
 			FillVertex[I].Color		= Particle.Color;

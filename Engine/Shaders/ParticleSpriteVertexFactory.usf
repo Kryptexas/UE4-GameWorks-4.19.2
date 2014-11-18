@@ -393,10 +393,16 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	// Vertex position.
 	float4 VertexWorldPosition = float4(ParticleWorldPosition.xyz + View.PreViewTranslation,1);
-	float2 Size = Input.SizeRotSubImage.xy;
+	float2 Size = abs(Input.SizeRotSubImage.xy);
 	VertexWorldPosition += Size.x * (Input.TexCoord.x + SpriteVF.PivotOffset.x) * float4(Right,0);
 	VertexWorldPosition += Size.y * (Input.TexCoord.y + SpriteVF.PivotOffset.y) * float4(Up,0);
 	Intermediates.VertexWorldPosition = VertexWorldPosition.xyz;
+	
+	//We encode the UV flip in the sign of the size data.
+	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
+	float2 FlippedUV = Input.TexCoord.xy;
+	FlippedUV.x = UVFlip.x < 0.0 ? 1.0 - FlippedUV.x : FlippedUV.x;
+	FlippedUV.y = UVFlip.y < 0.0 ? 1.0 - FlippedUV.y : FlippedUV.y;
 
 	// SubUV.
 	float SubImageIndex = Input.SizeRotSubImage.w;
@@ -407,8 +413,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float SubImageBH = fmod( SubImageB, SpriteVF.SubImageSize.x );
 	float SubImageAV = floor( SubImageA * SpriteVF.SubImageSize.z );
 	float SubImageBV = floor( SubImageB * SpriteVF.SubImageSize.z );
-	Intermediates.TexCoord.xy = (float2( SubImageAH, SubImageAV ) + Input.TexCoord.xy) * SpriteVF.SubImageSize.zw;
-	Intermediates.TexCoord.zw = (float2( SubImageBH, SubImageBV ) + Input.TexCoord.xy) * SpriteVF.SubImageSize.zw;
+	Intermediates.TexCoord.xy = (float2( SubImageAH, SubImageAV ) + FlippedUV) * SpriteVF.SubImageSize.zw ;
+	Intermediates.TexCoord.zw = (float2( SubImageBH, SubImageBV ) + FlippedUV) * SpriteVF.SubImageSize.zw ;
 	Intermediates.SubImageLerp = SubImageLerp;
 
 	Intermediates.Color = Input.Color;

@@ -377,7 +377,7 @@ void PixelMain(
 	float4 MiscCurve = MiscCurveSample * Simulation.MiscScale + Simulation.MiscBias;
 
 	// Compute the size of the sprite. Note it is (0,0) if the sprite is dead.
-	float2 InitialSize = RenderAttributeSample.xy;
+	float2 InitialSize = abs(RenderAttributeSample.xy);
 	float2 SizeScale = MiscCurve.xy;
 	float2 Size = InitialSize * SizeScale * LocalToWorldScale;
 

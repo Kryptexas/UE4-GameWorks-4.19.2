@@ -96,8 +96,10 @@ void UParticleModuleSize::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset,
 {
 	SPAWN_INIT;
 	FVector Size		 = StartSize.GetValue(Owner->EmitterTime, Owner->Component, 0, InRandomStream);
-	Particle.Size		+= Size;
-	Particle.BaseSize	+= Size;
+	Particle.Size	+= Size;
+
+	AdjustParticleBaseSizeForUVFlipping(Size, Owner->CurrentLODLevel->RequiredModule->UVFlippingMode);
+	Particle.BaseSize += Size;
 }
 
 /*-----------------------------------------------------------------------------
@@ -406,14 +408,14 @@ void UParticleModuleSizeScale::Spawn(FParticleEmitterInstance* Owner, int32 Offs
 {
 	SPAWN_INIT;
 	FVector ScaleFactor = SizeScale.GetValue(Particle.RelativeTime, Owner->Component);
-	Particle.Size = Particle.BaseSize * ScaleFactor;
+	Particle.Size = GetParticleBaseSize(*ParticleBase) * ScaleFactor;
 }
 
 void UParticleModuleSizeScale::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {
 	BEGIN_UPDATE_LOOP;
 		FVector ScaleFactor = SizeScale.GetValue(Particle.RelativeTime, Owner->Component);
-		Particle.Size = Particle.BaseSize * ScaleFactor;
+		Particle.Size = GetParticleBaseSize(Particle) * ScaleFactor;
 	END_UPDATE_LOOP;
 }
 
@@ -447,7 +449,7 @@ void UParticleModuleSizeScaleBySpeed::Update(FParticleEmitterInstance* Owner, in
 		FVector Size = Scale * Particle.Velocity.Size();
 		Size = Size.ComponentMax(FVector(1.0f));
 		Size = Size.ComponentMin(ScaleMax);
-		Particle.Size = Particle.BaseSize * Size;
+		Particle.Size = GetParticleBaseSize(Particle) * Size;
 	END_UPDATE_LOOP;
 }
 

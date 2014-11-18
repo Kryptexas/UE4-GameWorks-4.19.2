@@ -3772,8 +3772,14 @@ private:
 			NewParticle->Position = TempParticle->Location + InterpFraction * EmitterDelta + SpawnInfo.StartTime * NewParticle->Velocity + EmitterInfo.OrbitOffsetBase + EmitterInfo.OrbitOffsetRange * RandomOrbit;
 			NewParticle->RelativeTime = TempParticle->RelativeTime;
 			NewParticle->TimeScale = FMath::Max<float>(TempParticle->OneOverMaxLifetime, 0.001f);
-			NewParticle->Size.X = TempParticle->BaseSize.X * EmitterInfo.InvMaxSize.X;
-			NewParticle->Size.Y = bSquare ? (NewParticle->Size.X) : (TempParticle->BaseSize.Y * EmitterInfo.InvMaxSize.Y);
+
+			//So here I'm reducing the size to 0-0.5 range and using < 0.5 to indicate flipped UVs.
+			FVector BaseSize = GetParticleBaseSize(*TempParticle, true);
+			FVector2D UVFlipSizeOffset = FVector2D(BaseSize.X < 0.0f ? 0.0f : 0.5f, BaseSize.Y < 0.0f ? 0.0f : 0.5f);
+			NewParticle->Size.X = (FMath::Abs(BaseSize.X) * EmitterInfo.InvMaxSize.X * 0.5f);
+			NewParticle->Size.Y = bSquare ? (NewParticle->Size.X) : (FMath::Abs(BaseSize.Y) * EmitterInfo.InvMaxSize.Y * 0.5f);
+			NewParticle->Size += UVFlipSizeOffset;
+
 			NewParticle->Rotation = FMath::Fractional( TempParticle->Rotation * OneOverTwoPi );
 			NewParticle->RelativeRotationRate = TempParticle->BaseRotationRate * OneOverTwoPi * EmitterInfo.InvRotationRateScale / NewParticle->TimeScale;
 			NewParticle->RandomOrbit = RandomOrbit;

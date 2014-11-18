@@ -10,6 +10,40 @@
 class UInterpCurveEdSetup;
 
 UENUM()
+enum class EParticleUVFlipMode : uint8
+{
+	/** Flips UV on all particles. */
+	None,
+	/** Flips UV on all particles. */
+	FlipUV,
+	/** Flips U only on all particles. */
+	FlipUOnly,
+	/** Flips V only on all particles. */
+	FlipVOnly,
+	/** Flips UV randomly for each particle on spawn. */
+	RandomFlipUV,
+	/** Flips U only randomly for each particle on spawn. */
+	RandomFlipUOnly,
+	/** Flips V only randomly for each particle on spawn. */
+	RandomFlipVOnly,
+};
+
+/** Flips the sign of a particle's base size based on it's UV flip mode. */
+FORCEINLINE void AdjustParticleBaseSizeForUVFlipping(FVector& OutSize, EParticleUVFlipMode FlipMode)
+{
+	static const int32 HalfRandMax = RAND_MAX / 2;
+	switch (FlipMode)
+	{
+	case EParticleUVFlipMode::FlipUV:			OutSize = -OutSize;			return;
+	case EParticleUVFlipMode::FlipUOnly:		OutSize.X = -OutSize.X;		return;
+	case EParticleUVFlipMode::FlipVOnly:		OutSize.Y = -OutSize.Y;		return;
+	case EParticleUVFlipMode::RandomFlipUV:		OutSize = FMath::Rand() > HalfRandMax ? -OutSize : OutSize;			return;
+	case EParticleUVFlipMode::RandomFlipUOnly:	OutSize.X = FMath::Rand() > HalfRandMax ? -OutSize.X : OutSize.X;	return;
+	case EParticleUVFlipMode::RandomFlipVOnly:	OutSize.Y = FMath::Rand() > HalfRandMax ? -OutSize.Y : OutSize.Y;	return;
+	};
+}
+
+UENUM()
 enum EParticleSortMode
 {
 	PSORTMODE_None,
@@ -278,6 +312,12 @@ class UParticleModuleRequired : public UParticleModule
 	 */
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	uint32 bOrbitModuleAffectsVelocityAlignment:1;
+
+	/**
+	* Controls UV Flipping for this emitter.
+	*/
+	UPROPERTY(EditAnywhere, Category = Rendering)
+	EParticleUVFlipMode UVFlippingMode;
 
 	/** 
 	*	Named material overrides for this emitter. 
