@@ -444,7 +444,10 @@ private:
 
 	void OnGlocalOptionChanged(ESlateCheckBoxState::Type NewState)
 	{
-		ViewModel->SetAllowGlobalChat(NewState == ESlateCheckBoxState::Unchecked ? false : true);
+		const bool bDisabled = NewState == ESlateCheckBoxState::Unchecked;
+		ViewModel->SetAllowGlobalChat(!bDisabled);
+
+		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), !bDisabled, TEXT("Social.Chat.Toggle"));
 	}
 
 	ESlateCheckBoxState::Type GetGlobalOptionState() const

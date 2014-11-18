@@ -22,7 +22,14 @@ public:
 	 *
 	 * @param UserSettings - The Friends and chat user settings
 	 */
-	virtual void SetUserSettings(FFriendsAndChatSettings UserSettings) = 0;
+	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) = 0;
+
+	/**
+	 * Set the analytics provider for capturing friends/chat events
+	 *
+	 * @param AnalyticsProvider the provider to use
+	 */
+	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) = 0;
 
 	/**
 	 * Create the a friends list widget without a container.
@@ -48,7 +55,7 @@ public:
 	 * Insert a network chat message.
 	 * @param InMessage The chat message.
 	 */
-	virtual void InsertNetworkChatMessage(const FString InMessage) = 0;
+	virtual void InsertNetworkChatMessage(const FString& InMessage) = 0;
 
 	/**
 	 * Join a global chat room
