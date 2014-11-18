@@ -2185,3 +2185,9 @@ void FInheritedTagContainer::RemoveTag(FGameplayTag TagToRemove)
 {
 	CombinedTags.RemoveTag(TagToRemove);
 }
+
+void FActiveGameplayEffectAction_Remove::PerformAction()
+{
+	check(OwningASC);		//This should not have been destroyed during the lock. If it has been, something unusual may be going on.
+	OwningASC->RemoveActiveGameplayEffect(Handle);
+}

@@ -1291,7 +1291,6 @@ struct FActiveGameplayEffectAction
 
 	virtual ~FActiveGameplayEffectAction()
 	{
-
 	}
 
 	virtual void PerformAction()
@@ -1308,18 +1307,21 @@ struct FActiveGameplayEffectAction_Remove : public FActiveGameplayEffectAction
 	}
 
 	FActiveGameplayEffectAction_Remove(FActiveGameplayEffectsContainer& InContainer, FActiveGameplayEffectHandle& InHandle)
-		: Container(InContainer)
+		: Handle(InHandle)
+	{
+		OwningASC = InContainer.Owner;
+	}
+
+	FActiveGameplayEffectAction_Remove(UAbilitySystemComponent* InOwningASC, FActiveGameplayEffectHandle& InHandle)
+		: OwningASC(InOwningASC)
 		, Handle(InHandle)
 	{
 	}
 
-	virtual void PerformAction()
-	{
-		Container.RemoveActiveGameplayEffect(Handle);
-	}
+	virtual void PerformAction() override;
 
 	UPROPERTY()
-	FActiveGameplayEffectsContainer Container;
+	UAbilitySystemComponent* OwningASC;
 
 	UPROPERTY()
 	FActiveGameplayEffectHandle Handle;
