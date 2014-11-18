@@ -44,7 +44,7 @@ public:
 		UnInitialize();
 	}
 
-	virtual void SendRoomMessage(const FString& RoomName, const FString& MsgBody) override
+	virtual bool SendRoomMessage(const FString& RoomName, const FString& MsgBody) override
 	{
 		if (OnlineSub != nullptr &&
 			LoggedInUser.IsValid())
@@ -58,25 +58,31 @@ public:
 					if (RoomInfo.IsValid() &&
 						RoomInfo->IsJoined())
 					{
-						ChatInterface->SendRoomChat(*LoggedInUser, FChatRoomId(RoomName), MsgBody);
+						return ChatInterface->SendRoomChat(*LoggedInUser, FChatRoomId(RoomName), MsgBody);
 					}
 				}
 				else
 				{
 					// send to all joined rooms
+					bool bAbleToSend = false;
 					TArray<FChatRoomId> JoinedRooms;
 					OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
 					for (auto RoomId : JoinedRooms)
 					{
-						ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody);
+						if (ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody))
+						{
+							bAbleToSend = true;
+						}
 					}
+					return bAbleToSend;
 				}
 
 			}
 		}
+		return false;
 	}
 
-	virtual void SendPrivateMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) override
+	virtual bool SendPrivateMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) override
 	{
 		if (OnlineSub != nullptr &&
 			LoggedInUser.IsValid())
@@ -84,9 +90,10 @@ public:
 			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
 			if(ChatInterface.IsValid())
 			{
-				ChatInterface->SendPrivateChat(*LoggedInUser, RecipientId, MsgBody);
+				return ChatInterface->SendPrivateChat(*LoggedInUser, RecipientId, MsgBody);
 			}
 		}
+		return false;
 	}
 
 	virtual void InsertNetworkMessage(const FString& MsgBody) override
