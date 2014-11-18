@@ -337,6 +337,11 @@ public:
 			FName UnloadedName = MakeUniqueObjectName(NewPackage, UBlueprint::StaticClass(), BlueprintObj->GetFName());
 			BlueprintObj->Rename(*UnloadedName.ToString(), NewPackage, REN_DontCreateRedirectors|REN_DoNotDirty);
 
+			// Rename() will mark the OldPackage dirty (since it is removing the
+			// blueprint from it), we don't want this to affect the dirty flag 
+			// (for if/when we load it again)
+			OldPackage->SetDirtyFlag(/*bIsDirty =*/false);
+
 			// make sure the blueprint is properly trashed so we can rerun tests on it
 			BlueprintObj->SetFlags(RF_Transient);
 			BlueprintObj->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);

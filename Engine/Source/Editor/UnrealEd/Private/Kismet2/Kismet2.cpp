@@ -495,14 +495,14 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		const bool bShouldSaveOnCompile = !bIsRegeneratingOnLoad && ( Settings->SaveOnCompile == SoC_Always ) || ( ( Settings->SaveOnCompile == SoC_SuccessOnly ) && ( BlueprintObj->Status == BS_UpToDate ) );
 
 		// Only try to save on compile if we aren't running a commandlet (i.e. cooking a blueprint shouldn't try to save it)
-		if ( !IsRunningCommandlet() && bShouldSaveOnCompile )
+		if ( !IsRunningCommandlet() && bShouldSaveOnCompile && !GIsAutomationTesting )
 		{
 			bool const bIsLevelPackage = (UWorld::FindWorldInPackage(BlueprintPackage) != nullptr);
 			// we don't want to save the entire level (especially if this 
 			// compile was already kicked off as a result of a level save, as it
 			// could cause a recursive save)... let the "SaveOnCompile" setting 
 			// only save blueprint assets
-			if (!bIsLevelPackage && !IsRunningCommandlet())
+			if (!bIsLevelPackage)
 			{
 				TArray<UPackage*> PackagesToSave;
 				PackagesToSave.Add(BlueprintPackage);
