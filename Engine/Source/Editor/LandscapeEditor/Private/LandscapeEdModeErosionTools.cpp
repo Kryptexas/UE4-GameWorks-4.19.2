@@ -96,8 +96,11 @@ public:
 		HeightCache.GetCachedData(X1, Y1, X2, Y2, HeightData);
 
 		TArray<uint8> WeightDatas; // Weight*Layers...
-		WeightCache.CacheData(X1, Y1, X2, Y2);
-		WeightCache.GetCachedData(X1, Y1, X2, Y2, WeightDatas, LayerNum);
+		if (bWeightApplied)
+		{
+			WeightCache.CacheData(X1, Y1, X2, Y2);
+			WeightCache.GetCachedData(X1, Y1, X2, Y2, WeightDatas, LayerNum);
+		}
 
 		// Apply the brush	
 		uint16 Thresh = UISettings->ErodeThresh;
@@ -250,8 +253,8 @@ public:
 		if (bWeightApplied)
 		{
 			WeightCache.SetCachedData(X1, Y1, X2, Y2, WeightDatas, LayerNum, ELandscapeLayerPaintingRestriction::None);
+			WeightCache.Flush();
 		}
-		WeightCache.Flush();
 	}
 };
 
