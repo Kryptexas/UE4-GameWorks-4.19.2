@@ -31,6 +31,7 @@ void UAbilityTask_WaitDelay::OnDestroy(bool AbilityEnded)
 void UAbilityTask_WaitDelay::OnTimeFinish()
 {
 	OnFinish.Broadcast();
+	EndTask();
 }
 
 FString UAbilityTask_WaitDelay::GetDebugString() const
