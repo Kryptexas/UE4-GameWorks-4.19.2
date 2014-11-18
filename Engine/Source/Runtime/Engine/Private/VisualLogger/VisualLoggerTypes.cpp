@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "ObjectBase.h"
 #include "VisualLogger/VisualLogger.h"
 
 #if ENABLE_VISUAL_LOG
 
-#define VISUAL_LOGGER_MAGIC_NUMBER 0xFAFAAFAF
+#define DEPRECATED_VISUAL_LOGGER_MAGIC_NUMBER 0xFAFAAFAF
+#define VISUAL_LOGGER_MAGIC_NUMBER 0xAFAFFAFA
 
 bool FVisualLogStatusCategory::GetDesc(int32 Index, FString& Key, FString& Value) const
 {
@@ -314,6 +316,12 @@ FArchive& operator<<(FArchive& Ar, FVisualLogEntry& LogEntry)
 	Ar << LogEntry.ElementsToDraw;
 	Ar << LogEntry.DataBlocks;
 
+	const int32 VLogsVer = Ar.CustomVer(EVisualLoggerVersion::GUID);
+	if (VLogsVer > EVisualLoggerVersion::Initial)
+	{
+		Ar << LogEntry.HistogramSamples;
+	}
+
 	return Ar;
 }
 
@@ -360,15 +368,27 @@ FArchive& FVisualLoggerHelpers::Serialize(FArchive& Ar, TArray<FVisualLogDevice:
 
 	if (Ar.IsLoading())
 	{
-		TArray<FVisualLogDevice::FVisualLogEntryItem> CurrentFrame;;
-
+		TArray<FVisualLogDevice::FVisualLogEntryItem> CurrentFrame;
 		while (Ar.AtEnd() == false)
 		{
 			int32 FrameTag = VISUAL_LOGGER_MAGIC_NUMBER;
 			Ar << FrameTag;
-			if (FrameTag != VISUAL_LOGGER_MAGIC_NUMBER)
+			if (FrameTag != DEPRECATED_VISUAL_LOGGER_MAGIC_NUMBER && FrameTag != VISUAL_LOGGER_MAGIC_NUMBER)
 			{
 				break;
+			}
+
+			if (FrameTag == DEPRECATED_VISUAL_LOGGER_MAGIC_NUMBER)
+			{
+				Ar.SetCustomVersion(EVisualLoggerVersion::GUID, EVisualLoggerVersion::Initial, TEXT("VisualLogger"));
+			}
+			else
+			{
+				int32 ArchiveVer = -1;
+				Ar << ArchiveVer;
+				check(ArchiveVer >= EVisualLoggerVersion::Initial);
+
+				Ar.SetCustomVersion(EVisualLoggerVersion::GUID, ArchiveVer, TEXT("VisualLogger"));
 			}
 
 			Ar << CurrentFrame;
@@ -380,10 +400,55 @@ FArchive& FVisualLoggerHelpers::Serialize(FArchive& Ar, TArray<FVisualLogDevice:
 	{
 		int32 FrameTag = VISUAL_LOGGER_MAGIC_NUMBER;
 		Ar << FrameTag;
+
+		int32 ArchiveVer = Ar.CustomVer(EVisualLoggerVersion::GUID);
+		Ar << ArchiveVer;
 		Ar << RecordedLogs;
 	}
 
+	int32 CustomVer = Ar.CustomVer(EVisualLoggerVersion::GUID);
+
 	return Ar;
+}
+
+void FVisualLoggerHelpers::GetCategories(const FVisualLogEntry& EntryItem, TArray<FVisualLoggerCategoryVerbosityPair>& OutCategories)
+{
+	for (const auto& CurrentEvent : EntryItem.Events)
+	{
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(*CurrentEvent.Name, CurrentEvent.Verbosity));
+	}
+
+	for (const auto& CurrentLine : EntryItem.LogLines)
+	{
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentLine.Category, CurrentLine.Verbosity));
+	}
+
+	for (const auto& CurrentElement : EntryItem.ElementsToDraw)
+	{
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentElement.Category, CurrentElement.Verbosity));
+	}
+
+	for (const auto& CurrentSample : EntryItem.HistogramSamples)
+	{
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentSample.Category, CurrentSample.Verbosity));
+	}
+
+	for (const auto& CurrentBlock : EntryItem.DataBlocks)
+	{
+		OutCategories.Add(FVisualLoggerCategoryVerbosityPair(CurrentBlock.Category, CurrentBlock.Verbosity));
+	}
+}
+
+void FVisualLoggerHelpers::GetHistogramCategories(const FVisualLogEntry& EntryItem, TMap<FString, TArray<FString> >& OutCategories)
+{
+	for (const auto& CurrentSample : EntryItem.HistogramSamples)
+	{
+		auto& DataNames = OutCategories.FindOrAdd(CurrentSample.GraphName.ToString());
+		if (DataNames.Find(CurrentSample.DataName.ToString()) == INDEX_NONE)
+		{
+			DataNames.Add(CurrentSample.DataName.ToString());
+		}
+	}
 }
 
 #endif //ENABLE_VISUAL_LOG

@@ -26,6 +26,7 @@ namespace EVisualLoggerVersion
 	enum Type
 	{
 		Initial = 0,
+		HistogramGraphsSerialization = 1,
 		// -----<new versions can be added before this line>-------------------------------------------------
 		// - this needs to be the last line (see note below)
 		VersionPlusOne,
@@ -47,6 +48,7 @@ enum class EVisualLoggerShapeElement : uint8
 	Cone,
 	Cylinder,
 	Capsule,
+	Polygon,
 	// note that in order to remain backward compatibility in terms of log
 	// serialization new enum values need to be added at the end
 };
@@ -230,12 +232,22 @@ public:
 	virtual bool HasFlags(int32 InFlags) const { return !!(InFlags & EVisualLoggerDeviceFlags::NoFlags); }
 };
 
+struct ENGINE_API FVisualLoggerCategoryVerbosityPair
+{
+	FVisualLoggerCategoryVerbosityPair(FName Category, ELogVerbosity::Type InVerbosity) : CategoryName(Category), Verbosity(InVerbosity) {}
+
+	FName CategoryName;
+	ELogVerbosity::Type Verbosity;
+};
+
 struct ENGINE_API FVisualLoggerHelpers
 {
 	static FString GenerateTemporaryFilename(const FString& FileExt);
 	static FString GenerateFilename(const FString& TempFileName, const FString& Prefix, float StartRecordingTime, float EndTimeStamp);
 	static FArchive& Serialize(FArchive& Ar, FName& Name);
 	static FArchive& Serialize(FArchive& Ar, TArray<FVisualLogDevice::FVisualLogEntryItem>& RecordedLogs);
+	static void GetCategories(const FVisualLogEntry& RecordedLogs, TArray<FVisualLoggerCategoryVerbosityPair>& OutCategories);
+	static void GetHistogramCategories(const FVisualLogEntry& RecordedLogs, TMap<FString, TArray<FString> >& OutCategories);
 };
 
 ENGINE_API  FArchive& operator<<(FArchive& Ar, FVisualLogDevice::FVisualLogEntryItem& FrameCacheItem);
