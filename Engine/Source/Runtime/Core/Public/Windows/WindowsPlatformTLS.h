@@ -1,22 +1,22 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	WindowsPlatformTLS.h: Windows platform TLS (Thread local storage and thread ID) functions
-==============================================================================================*/
-
 #pragma once
+
 #include "GenericPlatform/GenericPlatformTLS.h"
 #include "HAL/Platform.h"
 #include "Windows/WindowsSystemIncludes.h"
 
+
 /**
-* Windows implementation of the TLS OS functions
-**/
-struct CORE_API FWindowsPlatformTLS : public FGenericPlatformTLS
+ * Windows implementation of the TLS OS functions.
+ */
+struct CORE_API FWindowsPlatformTLS
+	: public FGenericPlatformTLS
 {
 	/**
-	 * Returns the currently executing thread's id
+	 * Returns the currently executing thread's identifier.
+	 *
+	 * @return The thread identifier.
 	 */
 	static FORCEINLINE uint32 GetCurrentThreadId(void)
 	{
@@ -24,7 +24,9 @@ struct CORE_API FWindowsPlatformTLS : public FGenericPlatformTLS
 	}
 
 	/**
-	 * Allocates a thread local store slot
+	 * Allocates a thread local store slot.
+	 *
+	 * @return The index of the allocated slot.
 	 */
 	static FORCEINLINE uint32 AllocTlsSlot(void)
 	{
@@ -32,10 +34,10 @@ struct CORE_API FWindowsPlatformTLS : public FGenericPlatformTLS
 	}
 
 	/**
-	 * Sets a value in the specified TLS slot
+	 * Sets a value in the specified TLS slot.
 	 *
-	 * @param SlotIndex the TLS index to store it in
-	 * @param Value the value to store in the slot
+	 * @param SlotIndex the TLS index to store it in.
+	 * @param Value the value to store in the slot.
 	 */
 	static FORCEINLINE void SetTlsValue(uint32 SlotIndex,void* Value)
 	{
@@ -43,9 +45,10 @@ struct CORE_API FWindowsPlatformTLS : public FGenericPlatformTLS
 	}
 
 	/**
-	 * Reads the value stored at the specified TLS slot
+	 * Reads the value stored at the specified TLS slot.
 	 *
-	 * @return the value stored in the slot
+	 * @param SlotIndex The index of the slot to read.
+	 * @return The value stored in the slot.
 	 */
 	static FORCEINLINE void* GetTlsValue(uint32 SlotIndex)
 	{
@@ -63,5 +66,5 @@ struct CORE_API FWindowsPlatformTLS : public FGenericPlatformTLS
 	}
 };
 
-typedef FWindowsPlatformTLS FPlatformTLS;
 
+typedef FWindowsPlatformTLS FPlatformTLS;

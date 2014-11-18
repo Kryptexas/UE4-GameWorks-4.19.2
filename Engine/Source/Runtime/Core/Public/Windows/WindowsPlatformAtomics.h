@@ -1,14 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	WindowsPlatformAtomics.h: Windows platform Atomics functions
-==============================================================================================*/
-
 #pragma once
 
 #include "GenericPlatform/GenericPlatformAtomics.h"
 #include "Windows/WindowsSystemIncludes.h"
+
 
 /**
  * Windows implementation of the Atomics OS functions
@@ -161,5 +157,3 @@ protected:
 
 
 typedef FWindowsPlatformAtomics FPlatformAtomics;
-
-

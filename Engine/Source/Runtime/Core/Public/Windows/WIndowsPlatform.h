@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	WindowsPlatform.h: Setup for the windows platform
-==================================================================================*/
-
 #pragma once
+
 
 /**
 * Windows specific types

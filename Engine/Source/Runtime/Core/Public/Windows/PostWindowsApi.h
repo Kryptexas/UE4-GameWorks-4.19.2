@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	PostWindowsApi.h: The post-include part of UE4's Win32 API wrapper.
-=============================================================================*/
-
 // Undo any Windows defines.
 #undef uint8
 #undef uint16
@@ -30,11 +26,10 @@
 
 // Notify people of the windows dependency. For CRITICAL_SECTION
 #if !defined(_WINBASE_) && !defined(_XTL_)
-#error CRITICAL_SECTION relies on Windows.h/Xtl.h being included ahead of it
+	#error CRITICAL_SECTION relies on Windows.h/Xtl.h being included ahead of it
 #endif
 
 // Make sure version is high enough for API to be defined. For CRITICAL_SECTION
 #if !defined(_XTL_) && (_WIN32_WINNT < 0x0403)
-#error SetCriticalSectionSpinCount requires _WIN32_WINNT >= 0x0403
+	#error SetCriticalSectionSpinCount requires _WIN32_WINNT >= 0x0403
 #endif
-

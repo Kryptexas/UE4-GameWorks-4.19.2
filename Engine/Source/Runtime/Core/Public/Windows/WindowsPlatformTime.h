@@ -1,27 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	WindowsPlatformTime.h: Windows platform Time functions
-==============================================================================================*/
-
 #pragma once
+
 #include "GenericPlatform/GenericPlatformTime.h"
 #include "Windows/WindowsSystemIncludes.h"
 
+
 /**
+ * Windows implementation of the Time OS functions.
+ *
  * Please see following UDN post about using rdtsc on processors that support
  * result being invariant across cores.
  *
  * https://udn.epicgames.com/lists/showpost.php?id=46794&list=unprog3
  */
-
-
-
-/**
-* Windows implementation of the Time OS functions
-**/
-struct CORE_API FWindowsPlatformTime : public FGenericPlatformTime
+struct CORE_API FWindowsPlatformTime
+	: public FGenericPlatformTime
 {
 	static double InitTiming();
 
@@ -29,7 +23,8 @@ struct CORE_API FWindowsPlatformTime : public FGenericPlatformTime
 	{
 		LARGE_INTEGER Cycles;
 		QueryPerformanceCounter(&Cycles);
-		// Add big number to make bugs apparent where return value is being passed to float
+
+		// add big number to make bugs apparent where return value is being passed to float
 		return Cycles.QuadPart * GetSecondsPerCycle() + 16777216.0;
 	}
 
@@ -47,9 +42,10 @@ struct CORE_API FWindowsPlatformTime : public FGenericPlatformTime
 	static FCPUTime GetCPUTime();	
 
 protected:
+
 	/** Percentage CPU utilization for the last interval relative to one core. */
 	static float CPUTimePctRelative;
 };
 
-typedef FWindowsPlatformTime FPlatformTime;
 
+typedef FWindowsPlatformTime FPlatformTime;

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WindowsPlatformProcess.cpp: Windows implementations of Process functions
-=============================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "EngineVersion.h"
 #include "Resources/Windows/ModuleVersionResource.h"
@@ -28,8 +24,10 @@
 
 #pragma comment(lib, "psapi.lib")
 
+
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
+
 
 void FWindowsPlatformProcess::AddDllDirectory(const TCHAR* Directory)
 {

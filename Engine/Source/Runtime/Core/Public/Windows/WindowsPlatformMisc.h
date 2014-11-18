@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	WindowsPlatformMisc.h: Windows platform misc functions
-==============================================================================================*/
-
 #pragma once
+
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Windows/WindowsHWrapper.h"
+
 
 /** Helper struct used to get the string version of the Windows version. */
 struct FWindowsOSVersionHelper
@@ -23,10 +20,12 @@ struct FWindowsOSVersionHelper
 	static int32 GetOSVersions( FString& out_OSVersion, FString& out_OSSubVersion );
 };
 
+
 /**
 * Windows implementation of the misc OS functions
 **/
-struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
+struct CORE_API FWindowsPlatformMisc
+	: public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
@@ -215,5 +214,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static bool IsRunningOnBattery();
 };
+
 
 typedef FWindowsPlatformMisc FPlatformMisc;

@@ -1,16 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MinWindows.h: Minimal includes from Windows.h
-=============================================================================*/
-
 #pragma once
 
 #ifdef _WINDOWS_
-#pragma message ( " " )
-#pragma message ( "You have included windows.h before MinWindows.h" )
-#pragma message ( "All useless stuff from the windows headers won't be excluded !!!" )
-#pragma message ( " " )
+	#pragma message ( " " )
+	#pragma message ( "You have included windows.h before MinWindows.h" )
+	#pragma message ( "All useless stuff from the windows headers won't be excluded !!!" )
+	#pragma message ( " " )
 #endif // _WINDOWS_
 
 // WIN32_LEAN_AND_MEAN excludes rarely-used services from windows headers.
@@ -64,5 +60,3 @@
 
 // Finally now we can include windows.h
 #include <windows.h>
-
-
