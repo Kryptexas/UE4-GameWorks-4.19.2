@@ -2482,7 +2482,7 @@ void FK2ActionMenuBuilder::GetMacroTools(FBlueprintPaletteListBuilder& ActionMen
 	{
 		UBlueprint* MacroBP = *BlueprintIt;
 		if ((ActionMenuBuilder.Blueprint == MacroBP) || //add local Macros
-			(MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ActionMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass)))
+			((MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ActionMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass))))
 		{
 			for (TArray<UEdGraph*>::TIterator GraphIt(MacroBP->MacroGraphs); GraphIt; ++GraphIt)
 			{
@@ -2521,7 +2521,7 @@ void FK2ActionMenuBuilder::GetPinAllowedMacros(FBlueprintGraphActionListBuilder&
 	{
 		UBlueprint* MacroBP = *BlueprintIt;
 		if ((MacroBP == ContextMenuBuilder.Blueprint) || //let local macros be added
-			(MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ContextMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass)))
+			((MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ContextMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass))))
 		{
 			// getting 'top-level' of the macros
 			for (TArray<UEdGraph*>::TIterator GraphIt(MacroBP->MacroGraphs); GraphIt; ++GraphIt)

@@ -525,7 +525,7 @@ void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase
 			ULightComponent* Light = Cast<ULightComponent>(LightBase);
 
 			// Only add enabled lights and lights that can potentially be enabled at runtime (toggleable)
-			if (Light && (Light->bVisible || !Light->HasStaticLighting() && Light->AffectsPrimitive(Level->ModelComponents[ComponentIndex])))
+			if (Light && (Light->bVisible || (!Light->HasStaticLighting() && Light->AffectsPrimitive(Level->ModelComponents[ComponentIndex]))))
 			{
 				RelevantLights->Add(Light);
 			}

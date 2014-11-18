@@ -51,8 +51,8 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 
 	const bool bIsRotateObjectMode = InViewportClient->IsOrtho() && ControlDown && RightMouseButtonDown;
 	// Ctrl + LEFT/RIGHT mouse button acts the same as dragging the most appropriate widget handle.
-	if( (!InViewportClient->ShouldOrbitCamera() && bIsRotateObjectMode ) || (!bIsRotateObjectMode && ControlDown && !AltDown ) &&
-		(LeftMouseButtonDown || RightMouseButtonDown) )
+	if( (!InViewportClient->ShouldOrbitCamera() && bIsRotateObjectMode ) || ((!bIsRotateObjectMode && ControlDown && !AltDown ) &&
+		(LeftMouseButtonDown || RightMouseButtonDown)) )
 	{
 		// Only try to pick an axis if we're not dragging by widget handle.
 		if ( InViewportClient->GetCurrentWidgetAxis() == EAxisList::None )

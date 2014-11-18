@@ -131,7 +131,7 @@ void SSingleProperty::SetObject( UObject* InObject )
 
 		bIsAcceptableProperty = true;
 		// not an array property (dynamic or static)
-		bIsAcceptableProperty &= !( Property->IsA( UArrayProperty::StaticClass() ) || Property->ArrayDim > 1 && ValueNode->GetArrayIndex() == INDEX_NONE );
+		bIsAcceptableProperty &= !( Property->IsA( UArrayProperty::StaticClass() ) || (Property->ArrayDim > 1 && ValueNode->GetArrayIndex() == INDEX_NONE) );
 		// not a struct property unless its a built in type like a vector
 		bIsAcceptableProperty &= ( !Property->IsA( UStructProperty::StaticClass() ) || PropertyEditorHelpers::IsBuiltInStructProperty( Property ) );
 	}

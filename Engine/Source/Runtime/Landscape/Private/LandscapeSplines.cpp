@@ -910,12 +910,12 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 {
 	ULandscapeSplinesComponent* OuterSplines = GetOuterULandscapeSplinesComponent();
 
-	if (MeshComponent == NULL && Mesh != NULL ||
-		MeshComponent != NULL &&
+	if ((MeshComponent == NULL && Mesh != NULL) ||
+		(MeshComponent != NULL &&
 			(MeshComponent->StaticMesh != Mesh ||
 			MeshComponent->RelativeLocation != Location ||
 			MeshComponent->RelativeRotation != Rotation ||
-			MeshComponent->RelativeScale3D  != MeshScale)
+			MeshComponent->RelativeScale3D  != MeshScale))
 		)
 	{
 		OuterSplines->Modify();

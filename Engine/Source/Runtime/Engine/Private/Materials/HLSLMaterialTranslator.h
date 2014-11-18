@@ -704,7 +704,7 @@ protected:
 
 		checkf(Index >= 0 && Index < CodeChunks[MaterialProperty][ShaderFrequency].Num(), TEXT("Index %d/%d, Platform=%d"), Index, CodeChunks[MaterialProperty][ShaderFrequency].Num(), Platform);
 		const FShaderCodeChunk& CodeChunk = CodeChunks[MaterialProperty][ShaderFrequency][Index];
-		if(CodeChunk.UniformExpression && CodeChunk.UniformExpression->IsConstant() || CodeChunk.bInline)
+		if((CodeChunk.UniformExpression && CodeChunk.UniformExpression->IsConstant()) || CodeChunk.bInline)
 		{
 			// Constant uniform expressions and code chunks which are marked to be inlined are accessed via Definition
 			return CodeChunk.Definition;
@@ -2864,10 +2864,10 @@ protected:
 
 		EMaterialValueType	VectorType = GetParameterType(Vector);
 
-		if(	A && (VectorType & MCT_Float) < MCT_Float4 ||
-			B && (VectorType & MCT_Float) < MCT_Float3 ||
-			G && (VectorType & MCT_Float) < MCT_Float2 ||
-			R && (VectorType & MCT_Float) < MCT_Float1)
+		if(	(A && (VectorType & MCT_Float) < MCT_Float4) ||
+			(B && (VectorType & MCT_Float) < MCT_Float3) ||
+			(G && (VectorType & MCT_Float) < MCT_Float2) ||
+			(R && (VectorType & MCT_Float) < MCT_Float1))
 		{
 			return Errorf(TEXT("Not enough components in (%s: %s) for component mask %u%u%u%u"),*GetParameterCode(Vector),DescribeType(GetParameterType(Vector)),R,G,B,A);
 		}

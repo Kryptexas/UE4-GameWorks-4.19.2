@@ -146,7 +146,7 @@ bool FPlacementMode::MouseLeave( FEditorViewportClient* ViewportClient, FViewpor
 
 bool FPlacementMode::AllowPreviewActors( FEditorViewportClient* ViewportClient ) const
 {
-	return IsCurrentlyPlacing() && ( ViewportClient->IsTracking() && AllowPreviewActorsWhileTracking ) || !ViewportClient->IsTracking();
+	return (IsCurrentlyPlacing() && ( ViewportClient->IsTracking() && AllowPreviewActorsWhileTracking )) || !ViewportClient->IsTracking();
 }
 
 bool FPlacementMode::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )

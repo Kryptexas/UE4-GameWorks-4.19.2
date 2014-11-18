@@ -964,7 +964,7 @@ static bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const
 			// Do not add this child node to the current map if its a single object property in a category (serves no purpose for UI)
 			bIsVisibleStandalone = !ParentArrayProperty && (PropertyNode.GetNumChildNodes() == 0 || PropertyNode.GetNumChildNodes() > 1);
 		}
-		else if (Property->IsA(UArrayProperty::StaticClass()) || Property->ArrayDim > 1 && PropertyNode.GetArrayIndex() == INDEX_NONE)
+		else if (Property->IsA(UArrayProperty::StaticClass()) || (Property->ArrayDim > 1 && PropertyNode.GetArrayIndex() == INDEX_NONE))
 		{
 			// Base array properties are always visible
 			bIsVisibleStandalone = true;

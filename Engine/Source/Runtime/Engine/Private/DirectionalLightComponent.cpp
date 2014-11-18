@@ -699,8 +699,8 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 		{
 			return CastShadows 
 				&& CastDynamicShadows 
-				&& (DynamicShadowDistanceMovableLight > 0 && Mobility == EComponentMobility::Movable
-					|| DynamicShadowDistanceStationaryLight > 0 && Mobility == EComponentMobility::Stationary);
+				&& ((DynamicShadowDistanceMovableLight > 0 && Mobility == EComponentMobility::Movable)
+					|| (DynamicShadowDistanceStationaryLight > 0 && Mobility == EComponentMobility::Stationary));
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, DistanceFieldShadowDistance)
