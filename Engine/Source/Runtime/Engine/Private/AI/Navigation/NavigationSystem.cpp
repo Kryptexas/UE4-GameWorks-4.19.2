@@ -2781,7 +2781,7 @@ void UNavigationSystem::RebuildAll()
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
 
-		if (NavData && NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame))
+		if (NavData && (NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame)))
 		{
 			NavData->RebuildAll();
 		}
