@@ -22,20 +22,27 @@ public:
 	bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
 	bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent);
 
-
 protected:
+
+	/** Getter */
+	FORCEINLINE FVector2D GetAnalogValues() const
+	{
+		return AnalogValues;
+	}
 
 	/** Handles updating the cursor position and processing a Mouse Move Event */
 	void UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition);
 
-private:
-
-	FVector2D AnalogValues;
+	/** Current speed of the cursor */
 	FVector2D CurrentSpeed;
 
-	static const float Acceleration;
-	static const float Decceleration;
-	static const float MaxSpeed;
-	static const float OverWidgetMultiplier;
+	/** Helpful statics */
+	static const float DefaultAcceleration;
+	static const float DefaultMaxSpeed;
+
+private:
+
+	/** Input from the gamepad */
+	FVector2D AnalogValues;
 };
 
