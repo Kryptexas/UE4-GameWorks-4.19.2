@@ -2276,6 +2276,7 @@ void UNavigationSystem::PopulateNavOctree()
 	for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); ++LevelIndex) 
 	{
 		ULevel* Level = World->GetLevel(LevelIndex);
+		AddLevelCollisionToOctree(Level);
 
 		for (int32 ActorIndex=0; ActorIndex<Level->Actors.Num(); ActorIndex++)
 		{
