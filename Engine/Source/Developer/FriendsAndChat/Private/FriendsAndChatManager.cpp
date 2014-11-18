@@ -176,8 +176,6 @@ void FFriendsAndChatManager::Logout()
 
 	if ( ChatWindow.IsValid() )
 	{
-		Analytics.FlushChatStats();
-
 		ChatWindow->RequestDestroyWindow();
 		ChatWindow = nullptr;
 	}
@@ -412,8 +410,6 @@ void FFriendsAndChatManager::SetChatFriend( TSharedPtr< IFriendItem > FriendItem
 void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& InWindow)
 {
 	ChatWindow.Reset();
-
-	Analytics.FlushChatStats();
 }
 
 void FFriendsAndChatManager::SetChatWindowContents()
@@ -1446,42 +1442,6 @@ void FFriendsAndChatAnalytics::RecordToggleChat(const FString& Channel, bool bEn
 			}
 		}
 	}
-}
-
-void FFriendsAndChatAnalytics::RecordPrivateChat(const FString& ToUser)
-{
-	int32& Count = ChatCounts.FindOrAdd(ToUser);
-	Count += 1;
-	int32& TotalCount = ChatCounts.FindOrAdd(TEXT("TotalPrivate"));
-	TotalCount += 1;
-}
-
-void FFriendsAndChatAnalytics::RecordChannelChat(const FString& ToChannel)
-{
-	int32& Count = ChatCounts.FindOrAdd(ToChannel);
-	Count += 1;
-}
-
-void FFriendsAndChatAnalytics::FlushChatStats()
-{
-	if (Provider.IsValid())
-	{
-		IOnlineIdentityPtr OnlineIdentity = Online::GetIdentityInterface(MCP_SUBSYSTEM);
-		if (OnlineIdentity.IsValid())
-		{
-			TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if (UserId.IsValid())
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				for (auto It = ChatCounts.CreateConstIterator(); It; ++It)
-				{
-					Attributes.Add(FAnalyticsEventAttribute(It.Key(), It.Value()));
-				}
-				Provider->RecordEvent(TEXT("Social.Chat.Counts"), Attributes);
-			}
-		}
-	}
-	ChatCounts.Empty();
 }
 
 void FFriendsAndChatAnalytics::AddPresenceAttributes(const FUniqueNetId& UserId, TArray<FAnalyticsEventAttribute>& Attributes) const

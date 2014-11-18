@@ -32,11 +32,6 @@ namespace EChatMessageType
 			default: return FText::GetEmpty();
 		}
 	}
-
-	inline FString ToString(EChatMessageType::Type Type)
-	{
-		return ToText(Type).ToString();
-	}
 };
 
 // Stuct for holding chat message information. Will probably be replaced by OSS version
