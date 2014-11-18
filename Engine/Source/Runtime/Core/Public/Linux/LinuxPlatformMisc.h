@@ -101,9 +101,14 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	}
 
 	/**
-	 * Linux-specific function initializing video (and not only) subsystem.
+	 * Initializes video (and not only) subsystem.
 	 */
 	static bool PlatformInitMultimedia();
+
+	/**
+	 * Returns whether the program has been started remotely (e.g. over SSH)
+	 */
+	static bool HasBeenStartedRemotely();
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;

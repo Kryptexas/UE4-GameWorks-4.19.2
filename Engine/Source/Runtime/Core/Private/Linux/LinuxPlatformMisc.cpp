@@ -124,6 +124,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - this process' id (pid) is %d, parent process' id (ppid) is %d"), static_cast< int32 >(getpid()), static_cast< int32 >(getppid()));
 	UE_LOG(LogInit, Log, TEXT(" - we are %srunning under debugger"), IsDebuggerPresent() ? TEXT("") : TEXT("not "));
 	UE_LOG(LogInit, Log, TEXT(" - machine network name is '%s'"), FPlatformProcess::ComputerName());
+	UE_LOG(LogInit, Log, TEXT(" - we're logged in %s"), FPlatformMisc::HasBeenStartedRemotely() ? TEXT("remotely") : TEXT("locally"));
 	UE_LOG(LogInit, Log, TEXT(" - Number of physical cores available for the process: %d"), FPlatformMisc::NumberOfCores());
 	UE_LOG(LogInit, Log, TEXT(" - Number of logical cores available for the process: %d"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
@@ -144,6 +145,12 @@ void FLinuxPlatformMisc::PlatformInit()
 	if (!UE_SERVER && !IS_PROGRAM)
 	{
 		PlatformInitMultimedia();
+	}
+
+	if (FPlatformMisc::HasBeenStartedRemotely())
+	{
+		// print output immediately
+		setvbuf(stdout, NULL, _IONBF, 0);
 	}
 }
 
@@ -664,3 +671,18 @@ bool FLinuxPlatformMisc::IsDebuggerPresent()
 	return bDebugging;
 }
 #endif // !UE_BUILD_SHIPPING
+
+bool FLinuxPlatformMisc::HasBeenStartedRemotely()
+{
+	static bool bHaveAnswer = false;
+	static bool bResult = false;
+
+	if (!bHaveAnswer)
+	{
+		const char * VarValue = secure_getenv("SSH_CONNECTION");
+		bResult = (VarValue && strlen(VarValue) != 0);
+		bHaveAnswer = true;
+	}
+
+	return bResult;
+}
