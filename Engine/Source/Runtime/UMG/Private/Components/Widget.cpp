@@ -13,7 +13,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	bIsEnabled = true;
 	bIsVariable = true;
 	bDesignTime = false;
-	Visibility = ESlateVisibility::Visible;
+	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 
 	//TODO UMG ToolTipWidget

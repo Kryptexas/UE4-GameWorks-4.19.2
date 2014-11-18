@@ -18,7 +18,7 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
-	Visibility = ESlateVisibility::SelfHitTestInvisible;
+	Visiblity_DEPRECATED = Visibility = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
 	bSupportsKeyboardFocus = true;
