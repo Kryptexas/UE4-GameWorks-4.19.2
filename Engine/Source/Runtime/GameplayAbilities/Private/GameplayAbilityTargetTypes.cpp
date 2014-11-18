@@ -73,7 +73,7 @@ void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHa
 		Context.AddActors(GetActors());
 	}
 
-	if (HasHitResult())
+	if (HasHitResult() && !Context.GetHitResult())
 	{
 		Context.AddHitResult(*GetHitResult());
 	}
