@@ -429,7 +429,7 @@ void InitDebugContext()
 		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
 	}
 #endif // GL_AMD_debug_output
-	if (!bDebugOutputInitialized)
+	if (!bDebugOutputInitialized && !PLATFORM_MAC)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
 	}
