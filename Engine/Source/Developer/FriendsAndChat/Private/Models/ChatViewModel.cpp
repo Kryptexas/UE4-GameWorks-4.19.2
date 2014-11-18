@@ -126,28 +126,41 @@ public:
 				{
 					if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 					{
-						MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), NewMessage.ToString());
-						TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-						ChatItem->FromName = SelectedFriend->FriendName;
-						ChatItem->Message = NewMessage;
-						ChatItem->MessageType = EChatMessageType::Whisper;
-						ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
-						ChatItem->bIsFromSelf = true;
-						ChatItem->SenderId = SelectedFriend->UserID;
-						ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
-						FilterChatList();
+						if (MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), NewMessage.ToString()))
+						{
+							TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+							ChatItem->FromName = SelectedFriend->FriendName;
+							ChatItem->Message = NewMessage;
+							ChatItem->MessageType = EChatMessageType::Whisper;
+							ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
+							ChatItem->bIsFromSelf = true;
+							ChatItem->SenderId = SelectedFriend->UserID;
+							ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
+							FilterChatList();
+							bSuccess = true;
+						}
+
+						FFriendsAndChatManager::Get()->GetAnalytics().RecordPrivateChat(SelectedFriend->UserID->ToString());
 					}
 				}
 				break;
 				case EChatMessageType::Global:
 				{
 					//@todo samz - send message to specific room (empty room name will send to all rooms)
-					MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
+					if (MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString()))
+					{
+						bSuccess = true;
+					}
+
+					FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Global"));
 				}
 				break;
 				case EChatMessageType::Party:
 				{
-					OnNewtworkMessageSentEvent().Broadcast(NewMessage.ToString());
+					OnNetworkMessageSentEvent().Broadcast(NewMessage.ToString());
+					bSuccess = true;
+
+					FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Party"));
 				}
 				break;
 			}

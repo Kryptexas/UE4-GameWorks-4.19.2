@@ -81,12 +81,26 @@ public:
 	 * Record chat option toggle
 	 */
 	void RecordToggleChat(const FString& Channel, bool bEnabled, const FString& EventStr) const;
+	/**
+	 * Record a private chat to a user (aggregates pending FlushChat)
+	 */
+	void RecordPrivateChat(const FString& ToUser);
+	/**
+	 * Record a public chat to a channel (aggregates pending FlushChat)
+	 */
+	void RecordChannelChat(const FString& ToChannel);
+	/**
+	 * Flush any aggregated chat stats
+	 */
+	void FlushChatStats();
 
 private:
 	void AddPresenceAttributes(const FUniqueNetId& UserId, TArray<FAnalyticsEventAttribute>& Attributes) const;
 
 	// cached analytics provider for pushing events
 	TSharedPtr<IAnalyticsProvider> Provider;
+	// map of chat id to # of messages sent
+	TMap<FString, int32> ChatCounts;
 };
 
 /**
@@ -121,7 +135,7 @@ public:
 	/**
 	 * Get the analytics for recording friends chat events
 	 */
-	const FFriendsAndChatAnalytics& GetAnalytics() const
+	FFriendsAndChatAnalytics& GetAnalytics()
 	{
 		return Analytics;
 	}
