@@ -5,7 +5,10 @@
 #include "LinuxCursor.h"
 #include "LinuxWindow.h"
 
-FLinuxCursor::FLinuxCursor() : bHidden(false)
+FLinuxCursor::FLinuxCursor()
+	: 	bHidden(false)
+	,	AccumulatedOffsetX(0)
+	,	AccumulatedOffsetY(0)
 {
 	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
@@ -162,6 +165,8 @@ FVector2D FLinuxCursor::GetPosition() const
 	int CursorX, CursorY;
 
 	SDL_GetGlobalMouseState(&CursorX, &CursorY);
+	CursorX += AccumulatedOffsetX;
+	CursorY += AccumulatedOffsetY;
 
 	return FVector2D( CursorX, CursorY );
 }
@@ -174,6 +179,17 @@ void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 
 	SDL_GetWindowPosition( WndFocus, &WndX, &WndY );	//	get top left
 	SDL_WarpMouseInWindow( NULL, X - WndX, Y - WndY );
+}
+
+void FLinuxCursor::AddOffset(const int32 DX, const int32 DY)
+{
+	AccumulatedOffsetX += DX; 
+	AccumulatedOffsetY += DY;
+}
+
+void FLinuxCursor::ResetOffset()
+{
+	AccumulatedOffsetX = AccumulatedOffsetY = 0;
 }
 
 void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
