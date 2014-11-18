@@ -68,17 +68,10 @@ T* UAbilitySystemGlobals::InternalGetLoadTable(T*& Table, FString TableName)
 
 void UAbilitySystemGlobals::OnTableReimported(UObject* InObject)
 {
-	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalCurveTable)
-	{
-	}
-	
 	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeDefaultsTable)
 	{
-	}
-
-	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeMetaDataTable)
-	{
-	}
+		ReloadAttributeDefaults();
+	}	
 }
 
 #endif
@@ -188,9 +181,14 @@ void UAbilitySystemGlobals::InitAttributeDefaults()
 {
 	if (InternalGetLoadTable<UCurveTable>(GlobalAttributeDefaultsTable, GlobalAttributeSetDefaultsTableName))
 	{	
-		AllocAttributeSetInitter();
-		GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
+		ReloadAttributeDefaults();
 	}
+}
+
+void UAbilitySystemGlobals::ReloadAttributeDefaults()
+{
+	AllocAttributeSetInitter();
+	GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
 }
 
 // --------------------------------------------------------------------

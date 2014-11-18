@@ -92,6 +92,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 protected:
 
 	virtual void InitAttributeDefaults();
+	virtual void ReloadAttributeDefaults();
 	virtual void AllocAttributeSetInitter();
 
 private:
