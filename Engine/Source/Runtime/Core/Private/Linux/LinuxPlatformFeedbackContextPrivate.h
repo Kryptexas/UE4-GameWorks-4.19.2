@@ -73,10 +73,9 @@ public:
 			GLog->Serialize( V, Verbosity, Category );
 		}
 	}
-	VARARG_BODY( bool, YesNof, const TCHAR*, VARARG_NONE )
+	/** Ask the user a binary question, returning their answer */
+	virtual bool YesNof( const FText& Question )
 	{
-		TCHAR TempStr[4096];
-		GET_VARARGS( TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr)-1, Fmt, Fmt );
 		if( ( GIsClient || GIsEditor ) && ( ( GIsSilent != true ) && ( FApp::IsUnattended() != true ) ) )
 		{
 			//return( ::MessageBox( NULL, TempStr, *NSLOCTEXT("Core", "Question", "Question").ToString(), MB_YESNO|MB_TASKMODAL ) == IDYES);

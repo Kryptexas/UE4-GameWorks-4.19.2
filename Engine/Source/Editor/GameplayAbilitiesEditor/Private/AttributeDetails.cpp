@@ -346,11 +346,13 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
 
+	/* Debug?
 	for (uint32 i = 0; i < NumChildren; i++)
 	{
 		FString PropName = StructPropertyHandle->GetChildHandle(i)->GetPropertyDisplayName();
 		PropName;
 	}
+	*/
 
 	ValueProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Value));
 	CurveTableHandleProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Curve));

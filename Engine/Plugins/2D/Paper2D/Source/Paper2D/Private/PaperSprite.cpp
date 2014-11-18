@@ -297,7 +297,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	if (CollisionGeometry.GeometryType == ESpritePolygonMode::Diced)
 	{
 		// Disallow dicing on collision geometry for now
-		CollisionGeometry.GeometryType == ESpritePolygonMode::SourceBoundingBox;
+		CollisionGeometry.GeometryType = ESpritePolygonMode::SourceBoundingBox;
 	}
 	RenderGeometry.PixelsPerSubdivisionX = FMath::Max(RenderGeometry.PixelsPerSubdivisionX, 4);
 	RenderGeometry.PixelsPerSubdivisionY = FMath::Max(RenderGeometry.PixelsPerSubdivisionY, 4);

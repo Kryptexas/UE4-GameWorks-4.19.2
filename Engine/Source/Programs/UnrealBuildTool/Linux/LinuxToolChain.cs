@@ -294,14 +294,6 @@ namespace UnrealBuildTool
 			Result += " -fno-math-errno";               // do not assume that math ops have side effects
             Result += " -fno-rtti";                     // no run-time type info
 
-            // these needs to be removed ASAP
-            Result += " -Wno-delete-non-virtual-dtor";
-            Result += " -Wno-reorder";
-            Result += " -Wno-logical-op-parentheses";
-            Result += " -Wno-ignored-attributes";
-            Result += " -Wno-overloaded-virtual";
-            Result += " -Wno-unused-value";
-
             if (String.IsNullOrEmpty(ClangPath))
             {
                 // GCC only option

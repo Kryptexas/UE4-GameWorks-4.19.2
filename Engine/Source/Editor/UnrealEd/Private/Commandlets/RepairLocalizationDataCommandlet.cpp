@@ -16,7 +16,7 @@ void RepairManifestAndArchives(TSharedRef<FInternationalizationManifest> Manifes
 	if (Manifest->GetFormatVersion() < FInternationalizationManifest::EFormatVersion::EscapeFixes)
 	{
 		TManifestEntryBySourceTextContainer::TConstIterator Iterator = Manifest->GetEntriesBySourceTextIterator();
-		for(Iterator; Iterator; ++Iterator)
+		for(; Iterator; ++Iterator)
 		{
 			const FString& Source = Iterator.Key();
 			const TSharedRef<FManifestEntry>& ManifestEntry = Iterator.Value();
@@ -39,7 +39,7 @@ void RepairManifestAndArchives(TSharedRef<FInternationalizationManifest> Manifes
 		{
 			TArchiveEntryContainer::TConstIterator Iterator = Archive->GetEntryIterator();
 
-			for (Iterator; Iterator; ++Iterator)
+			for (; Iterator; ++Iterator)
 			{
 				const FString& Source = Iterator.Key();
 				const TSharedRef<FArchiveEntry>& ArchiveEntry = Iterator.Value();
@@ -62,7 +62,7 @@ void RepairManifestAndArchives(TSharedRef<FInternationalizationManifest> Manifes
 	const FRegexPattern Pattern(TEXT(".* - line \\d+"));
 
 	TManifestEntryBySourceTextContainer::TConstIterator Iterator = Manifest->GetEntriesBySourceTextIterator();
-	for(Iterator; Iterator; ++Iterator)
+	for(; Iterator; ++Iterator)
 	{
 		const FString& Source = Iterator.Key();
 		const TSharedRef<FManifestEntry>& ManifestEntry = Iterator.Value();

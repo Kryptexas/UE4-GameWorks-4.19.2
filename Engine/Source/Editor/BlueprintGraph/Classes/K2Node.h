@@ -334,7 +334,7 @@ class UK2Node : public UEdGraphNode
 	 */
 	virtual FBlueprintNodeSignature GetSignature() const { return FBlueprintNodeSignature(GetClass()); }
 
-	BLUEPRINTGRAPH_API enum EBaseNodeRefreshPriority
+	enum BLUEPRINTGRAPH_API EBaseNodeRefreshPriority
 	{
 		Low_UsesDependentWildcard = 100,
 		Normal = 200,
