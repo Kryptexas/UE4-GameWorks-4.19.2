@@ -196,6 +196,8 @@ class FPhysCommandHandler
 {
 public:
 
+	~FPhysCommandHandler();
+	
 	/** Executes pending commands and clears buffer **/
 	void ENGINE_API Flush();
 

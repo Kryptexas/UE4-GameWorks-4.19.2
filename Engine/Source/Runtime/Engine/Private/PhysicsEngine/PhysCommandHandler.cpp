@@ -9,6 +9,14 @@
 	#include "../Vehicles/PhysXVehicleManager.h"
 #endif
 
+FPhysCommandHandler::~FPhysCommandHandler()
+{
+	if(PendingCommands.Num() != 0)
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("~FPhysCommandHandler() - Pending command list is not empty. %d item remain."), PendingCommands.Num());
+	}
+}
+
 void FPhysCommandHandler::Flush()
 {
 	check(IsInGameThread());
