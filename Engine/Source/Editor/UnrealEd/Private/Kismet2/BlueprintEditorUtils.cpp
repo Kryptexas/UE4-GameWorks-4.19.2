@@ -826,6 +826,16 @@ struct FRegenerationHelper
 								ProcessHierarchy(ParentFunction, Dependencies);
 							}
 						}
+
+						// load Enums
+						for (auto Pin : Node->Pins)
+						{
+							auto SubCategoryObject = Pin ? Pin->PinType.PinSubCategoryObject.Get() : NULL;
+							if (SubCategoryObject && SubCategoryObject->IsA<UEnum>())
+							{
+								ForcedLoad(SubCategoryObject);
+							}
+						}
 					}
 				}
 			}
