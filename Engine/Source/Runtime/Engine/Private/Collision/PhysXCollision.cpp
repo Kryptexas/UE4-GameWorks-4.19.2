@@ -531,14 +531,6 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilte
 		{
 			return PxSceneQueryHitType::eTOUCH;
 		}
-		else if (QuerierChannel == ECC_OverlapAllDynamic_Deprecated)
-		{
-			return bStaticShape ? PxSceneQueryHitType::eNONE : PxSceneQueryHitType::eTOUCH;
-		}
-		else if (QuerierChannel == ECC_OverlapAllStatic_Deprecated)
-		{
-			return !bStaticShape ? PxSceneQueryHitType::eNONE : PxSceneQueryHitType::eTOUCH;
-		}
 		// @todo delete once we fix up object/trace APIs to work separate
 
 		PxU32 const QuerierBit = ECC_TO_BITFIELD(QuerierChannel);

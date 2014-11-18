@@ -318,11 +318,7 @@ enum ECollisionChannel
 	 /**
 	  * can't add displaynames because then it will show up in the collision channel option
 	  */
-	ECC_OverlapAll_Deprecated,
-	/** Like ECC_OverlapAll, but only returns objects that are NOT static */
-	ECC_OverlapAllDynamic_Deprecated,
-	/** Like ECC_OverlapAll, but only returns objects that are static */
-	ECC_OverlapAllStatic_Deprecated,
+	ECC_OverlapAll_Deprecated UMETA(Hidden),
 	ECC_MAX,
 };
 
