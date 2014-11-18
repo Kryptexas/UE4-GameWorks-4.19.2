@@ -5,15 +5,30 @@
 #include "MacApplication.h"
 #include "CocoaThread.h"
 #include "CocoaWindow.h"
+#import <objc/runtime.h>
+
+static char PositionPropertyKey;
 
 @implementation NSEvent (FCachedWindowAccess)
+
+@dynamic windowPosition;
+
 -(void)CacheWindow
 {
 	_window = [[self window] retain];
+	self.windowPosition = _window.frame.origin;
 }
 -(NSWindow*)GetWindow
 {
 	return _window;
+}
+-(void)setWindowPosition:(NSPoint)position
+{
+	objc_setAssociatedObject(self, &PositionPropertyKey, [NSValue valueWithPoint:position], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+-(NSPoint)windowPosition
+{
+	return [(NSValue*)objc_getAssociatedObject(self, &PositionPropertyKey) pointValue];
 }
 -(void)ResetWindow
 {

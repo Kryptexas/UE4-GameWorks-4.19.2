@@ -11,6 +11,8 @@ enum EMacEventSendMethod
 };
 
 @interface NSEvent (FCachedWindowAccess)
+@property (readwrite, nonatomic) NSPoint windowPosition;
+
 -(void)CacheWindow;
 -(NSWindow*)GetWindow;
 -(void)ResetWindow;
