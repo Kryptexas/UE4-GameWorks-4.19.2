@@ -544,7 +544,7 @@ namespace UnrealBuildTool
 
 				// ensure the headers are up to date
 				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(UObjectModules));
-				if( bUHTNeedsToRun )
+				if( bUHTNeedsToRun || UnrealBuildTool.IsGatheringBuild )
 				{
 					// Since code files are definitely out of date, we'll now finish computing information about the UObject modules for UHT.  We
 					// want to save this work until we know that UHT actually needs to be run to speed up best-case iteration times.
