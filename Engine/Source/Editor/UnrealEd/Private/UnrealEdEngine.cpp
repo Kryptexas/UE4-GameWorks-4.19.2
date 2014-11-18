@@ -114,7 +114,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave;
 	BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 
-	if ( !ExperimentalSettings->bDisableCookInEditor)
+	if ( ExperimentalSettings->bEnableCookInEditor)
 	{
 		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
 		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags );
