@@ -16,6 +16,7 @@
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleModuleRequired.h"
 
 UParticleModuleSizeBase::UParticleModuleSizeBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
