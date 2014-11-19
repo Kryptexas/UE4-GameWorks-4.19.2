@@ -81,6 +81,7 @@
 #include "ParticleSystemComponentDetails.h"
 #include "ParticleSysParamStructCustomization.h"
 #include "RawDistributionVectorStructCustomization.h"
+#include "CollisionProfileNameCustomization.h"
 #include "DocumentationActorDetails.h"
 #include "MediaPlayerCustomization.h"
 #include "MediaSoundWaveCustomization.h"
