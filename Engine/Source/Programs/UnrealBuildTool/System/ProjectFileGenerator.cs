@@ -501,7 +501,10 @@ namespace UnrealBuildTool
 
 					// Add all of the Android C# projects
 					AddAndroidProjects( ProgramsFolder );
-				}
+
+                    // Add all of the PS4 C# projects
+                    AddPS4Projects( ProgramsFolder );
+                }
 
 
 				// Eliminate all redundant master project folders.  E.g., folders which contain only one project and that project
@@ -1219,6 +1222,19 @@ namespace UnrealBuildTool
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/MobileDeviceInterface" ) );
 			}
 		}
+
+        /// <summary>
+        /// Adds all of the PS4 C# projects to the master project
+        /// </summary>
+        private void AddPS4Projects(MasterProjectFolder Folder)
+        {
+            string ProjectFolderName = Path.Combine(EngineRelativePath, "Source", "Programs", "PS4");
+            DirectoryInfo ProjectFolderInfo = new DirectoryInfo(ProjectFolderName);
+            if (ProjectFolderInfo.Exists)
+            {
+                Folder.ChildProjects.Add(AddSimpleCSharpProject("PS4/PS4DevKitUtil"));
+            }
+        }
 
 		/// <summary>
 		/// Adds all of the Android C# projects to the master project
