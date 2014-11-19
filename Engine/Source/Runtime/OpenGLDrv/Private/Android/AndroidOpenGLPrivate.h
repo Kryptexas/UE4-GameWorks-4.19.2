@@ -5,6 +5,7 @@
 =============================================================================*/
 #pragma once
 
+bool GAndroidGPUInfoReady = false;
 
 class FAndroidGPUInfo
 {
@@ -93,4 +94,5 @@ private:
 
 #endif
 	}
+	GAndroidGPUInfoReady = true;
 };

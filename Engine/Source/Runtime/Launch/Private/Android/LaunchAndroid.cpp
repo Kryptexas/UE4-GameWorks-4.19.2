@@ -483,6 +483,8 @@ void android_main(struct android_app* state)
 	AndroidMain(state);
 }
 
+extern bool GAndroidGPUInfoReady;
+
 //Called from the event process thread
 static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 {
@@ -554,6 +556,11 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 				FAndroidWindow::CalculateSurfaceSize(Window, Width, Height);
 			}
 
+			// make sure OpenGL context created before accepting touch events.. FAndroidWindow::GetScreenRect() may try to create it early from wrong thread if this is the first call
+			if (!GAndroidGPUInfoReady)
+			{
+				return 0;
+			}
 			FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 
 			if(isActionTargeted)
