@@ -10,11 +10,10 @@ UInAppPurchaseCallbackProxy::UInAppPurchaseCallbackProxy(const FObjectInitialize
 {
 	PurchaseRequest = nullptr;
 	WorldPtr = nullptr;
-    SavedPurchaseReceipt = nullptr;
 }
 
 
-void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, const FString& ProductIdentifier)
+void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, const FInAppPurchaseProductRequest& ProductRequest)
 {
 	bFailedToEvenSubmit = true;
 
@@ -35,7 +34,7 @@ void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, c
 				// Set-up, and trigger the transaction through the store interface
 				PurchaseRequest = MakeShareable(new FOnlineInAppPurchaseTransaction());
 				FOnlineInAppPurchaseTransactionRef PurchaseRequestRef = PurchaseRequest.ToSharedRef();
-				StoreInterface->BeginPurchase(ProductIdentifier, PurchaseRequestRef);
+				StoreInterface->BeginPurchase(ProductRequest, PurchaseRequestRef);
 			}
 			else
 			{
@@ -59,11 +58,10 @@ void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, c
 }
 
 
-void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState, const IPlatformPurchaseReceipt* ProductReceipt)
+void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState)
 {
 	RemoveDelegate();
 	SavedPurchaseState = CompletionState;
-    SavedPurchaseReceipt = ProductReceipt;
     
 	if (UWorld* World = WorldPtr.Get())
 	{
@@ -95,7 +93,6 @@ void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete_Delayed()
 		OnFailure.Broadcast(SavedPurchaseState, ProductInformation);
 	}
     
-    SavedPurchaseReceipt = nullptr;
     PurchaseRequest = nullptr;
 }
 
@@ -125,9 +122,9 @@ void UInAppPurchaseCallbackProxy::BeginDestroy()
 }
 
 
-UInAppPurchaseCallbackProxy* UInAppPurchaseCallbackProxy::CreateProxyObjectForInAppPurchase(class APlayerController* PlayerController, const FString& ProductIdentifier)
+UInAppPurchaseCallbackProxy* UInAppPurchaseCallbackProxy::CreateProxyObjectForInAppPurchase(class APlayerController* PlayerController, const FInAppPurchaseProductRequest& ProductRequest)
 {
 	UInAppPurchaseCallbackProxy* Proxy = NewObject<UInAppPurchaseCallbackProxy>();
-	Proxy->Trigger(PlayerController, ProductIdentifier);
+	Proxy->Trigger(PlayerController, ProductRequest);
 	return Proxy;
 }

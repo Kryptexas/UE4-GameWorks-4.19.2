@@ -162,6 +162,10 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	TSharedRef<IPropertyHandle> AdMobAdUnitIDProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, AdMobAdUnitID));
 	GooglePlayCategory.AddProperty(AdMobAdUnitIDProperty)
 		.EditCondition(SetupForGooglePlayAttribute, NULL);
+
+	TSharedRef<IPropertyHandle> GooglePlayLicenseKeyProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, GooglePlayLicenseKey));
+	GooglePlayCategory.AddProperty(GooglePlayLicenseKeyProperty)
+		.EditCondition(SetupForGooglePlayAttribute, NULL);
 }
 
 void FAndroidTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder& DetailLayout)

@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "OnlineAsyncTaskGooglePlayQueryInAppPurchases.h"
+#include "TaskGraphInterfaces.h"
 #include <jni.h>
 
 
@@ -15,11 +16,11 @@ FOnlineStoreGooglePlay::FOnlineStoreGooglePlay(FOnlineSubsystemGooglePlay* InSub
 {
 	UE_LOG(LogOnline, Display, TEXT( "FOnlineStoreGooglePlay::FOnlineStoreGooglePlay" ));
 	
-	FString ProductKey;
-	GConfig->GetString(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("GooglePlayProductKey"), ProductKey, GEngineIni);
+	FString LicenseKey;
+	GConfig->GetString(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("GooglePlayLicenseKey"), LicenseKey, GEngineIni);
 
 	extern void AndroidThunkCpp_Iap_SetupIapService(const FString&);
-	AndroidThunkCpp_Iap_SetupIapService(ProductKey);
+	AndroidThunkCpp_Iap_SetupIapService(LicenseKey);
 }
 
 
@@ -111,16 +112,26 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete
 		}
 	}
 
-	if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
-	{
-		FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get();
-		if (StoreInterface)
-		{
-			StoreInterface->ProcessQueryAvailablePurchasesResults(bSuccess, ProvidedProductInformation);
-		}
-	}
 
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase query was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessQueryIapResult"), STAT_FSimpleDelegateGraphTask_ProcessQueryIapResult, STATGROUP_TaskGraphTasks);
+
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+		FSimpleDelegateGraphTask::FDelegate::CreateLambda([=](){
+			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
+			{
+				// call store implementation to process query results.
+				if (FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get())
+				{
+					StoreInterface->ProcessQueryAvailablePurchasesResults(bSuccess, ProvidedProductInformation);
+				}
+			}
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase query was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+		}),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_ProcessQueryIapResult), 
+		nullptr, 
+		ENamedThreads::GameThread
+	);
+
 }
 
 
@@ -138,7 +149,7 @@ void FOnlineStoreGooglePlay::ProcessQueryAvailablePurchasesResults(bool bInSucce
 }
 
 
-bool FOnlineStoreGooglePlay::BeginPurchase(const FString& ProductId, FOnlineInAppPurchaseTransactionRef& InPurchaseStateObject)
+bool FOnlineStoreGooglePlay::BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InPurchaseStateObject)
 {
 	UE_LOG(LogOnline, Display, TEXT( "FOnlineStoreGooglePlay::BeginPurchase" ));
 	
@@ -149,7 +160,7 @@ bool FOnlineStoreGooglePlay::BeginPurchase(const FString& ProductId, FOnlineInAp
 		CachedPurchaseStateObject = InPurchaseStateObject;
 
 		extern bool AndroidThunkCpp_Iap_BeginPurchase(const FString&, const bool);
-		bCreatedNewTransaction = AndroidThunkCpp_Iap_BeginPurchase(ProductId, true); // TPMB - update begin purchase to use a consumable flag.
+		bCreatedNewTransaction = AndroidThunkCpp_Iap_BeginPurchase(ProductRequest.ProductIdentifier, ProductRequest.bIsConsumable); // TPMB - update begin purchase to use a consumable flag.
 		UE_LOG(LogOnline, Display, TEXT("Created Transaction? - %s"), 
 			bCreatedNewTransaction ? TEXT("Created a transaction.") : TEXT("Failed to create a transaction."));
 
@@ -157,7 +168,7 @@ bool FOnlineStoreGooglePlay::BeginPurchase(const FString& ProductId, FOnlineInAp
 		{
 			UE_LOG(LogOnline, Display, TEXT("FOnlineStoreGooglePlay::BeginPurchase - Could not create a new transaction."));
 			CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Failed;
-			TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Invalid, nullptr);
+			TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Invalid);
 		}
 		else
 		{
@@ -169,7 +180,7 @@ bool FOnlineStoreGooglePlay::BeginPurchase(const FString& ProductId, FOnlineInAp
 		UE_LOG(LogOnline, Display, TEXT("This device is not able to make purchases."));
 
 		InPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Failed;
-		TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::NotAllowed, nullptr);
+		TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::NotAllowed);
 	}
 
 
@@ -179,47 +190,59 @@ bool FOnlineStoreGooglePlay::BeginPurchase(const FString& ProductId, FOnlineInAp
 
 extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring productId, jstring receiptData)
 {
-	if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
+	FString ProductId, ReceiptData;
+	if (bSuccess)
 	{
-		// call store implementation to process query results.
-		if (FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get())
-		{
-			FString ProductId, ReceiptData;
-			if (bSuccess)
-			{
-				const char* charsId = jenv->GetStringUTFChars(productId, 0);
-				ProductId = FString(UTF8_TO_TCHAR(charsId));
-				jenv->ReleaseStringUTFChars(productId, charsId);
+		const char* charsId = jenv->GetStringUTFChars(productId, 0);
+		ProductId = FString(UTF8_TO_TCHAR(charsId));
+		jenv->ReleaseStringUTFChars(productId, charsId);
 
-				const char* charsReceipt = jenv->GetStringUTFChars(receiptData, 0);
-				ReceiptData = FString(UTF8_TO_TCHAR(charsReceipt));
-				jenv->ReleaseStringUTFChars(receiptData, charsReceipt);
-			}
-
-			StoreInterface->ProcessPurchaseResult(bSuccess, ProductId, ReceiptData);
-
-		}
+		const char* charsReceipt = jenv->GetStringUTFChars(receiptData, 0);
+		ReceiptData = FString(UTF8_TO_TCHAR(charsReceipt));
+		jenv->ReleaseStringUTFChars(receiptData, charsReceipt);
 	}
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("1... ProductId: %s, ReceiptData: %s\n"), *ProductId, *ReceiptData );
 
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessIapResult"), STAT_FSimpleDelegateGraphTask_ProcessIapResult, STATGROUP_TaskGraphTasks);
+
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+		FSimpleDelegateGraphTask::FDelegate::CreateLambda([=](){
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
+			{
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("2... ProductId: %s, ReceiptData: %s\n"), *ProductId, *ReceiptData);
+				// call store implementation to process query results.
+				if (FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get())
+				{
+					StoreInterface->ProcessPurchaseResult(bSuccess, ProductId, ReceiptData);
+				}
+			}
+		}),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_ProcessIapResult), 
+		nullptr, 
+		ENamedThreads::GameThread
+	);
+
 }
 
 
 void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FString& ProductId, const FString& InReceiptData)
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineStoreGooglePlay::ProcessPurchaseResult"));
+	UE_LOG(LogOnline, Display, TEXT("3... ProductId: %s, ReceiptData: %s\n"), *ProductId, *InReceiptData);
 
-	FGooglePlayPurchaseReceipt Receipt;
-	if (ProductId.Len() > 0 && InReceiptData.Len() > 0)
-	{
-		Receipt.Identifier = ProductId;
-		Receipt.Data = InReceiptData;
-	}
 
 	if (CachedPurchaseStateObject.IsValid())
 	{
+		FInAppPurchaseProductInfo& ProductInfo = CachedPurchaseStateObject->ProvidedProductInformation;
+		ProductInfo.Identifier = ProductId;
+		ProductInfo.DisplayName = TEXT("n/a");
+		ProductInfo.DisplayDescription = TEXT("n/a");
+		ProductInfo.DisplayPrice = TEXT("n/a");
+		ProductInfo.ReceiptData = InReceiptData;
+
 		CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
 	}
 
-	TriggerOnInAppPurchaseCompleteDelegates(bInSuccessful ? EInAppPurchaseState::Success : EInAppPurchaseState::Failed, &Receipt);
+	TriggerOnInAppPurchaseCompleteDelegates(bInSuccessful ? EInAppPurchaseState::Success : EInAppPurchaseState::Failed);
 }

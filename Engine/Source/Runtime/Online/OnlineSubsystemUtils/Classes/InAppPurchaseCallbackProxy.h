@@ -21,7 +21,7 @@ class UInAppPurchaseCallbackProxy : public UObject
 
 	// Kicks off a transaction for the provided product identifier
 	UFUNCTION(BlueprintCallable, meta = (FriendlyName="Make an In-App Purchase"), Category="Online|InAppPurchase")
-	static UInAppPurchaseCallbackProxy* CreateProxyObjectForInAppPurchase(class APlayerController* PlayerController, const FString& ProductIdentifier);
+	static UInAppPurchaseCallbackProxy* CreateProxyObjectForInAppPurchase(class APlayerController* PlayerController, const FInAppPurchaseProductRequest& ProductRequest);
 
 public:
 
@@ -33,13 +33,13 @@ private:
 
 	/** Called by the InAppPurchase system when the transaction has finished */
 	void OnInAppPurchaseComplete_Delayed();
-	void OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState, const IPlatformPurchaseReceipt* ProductReceipt = nullptr);
+	void OnInAppPurchaseComplete(EInAppPurchaseState::Type CompletionState);
 
 	/** Unregisters our delegate from the In-App Purchase system */
 	void RemoveDelegate();
 
 	/** Triggers the In-App Purchase Transaction for the specifed user; the Purchase Request object must already be set up */
-	void Trigger(class APlayerController* PlayerController, const FString& ProductIdentifier);
+	void Trigger(class APlayerController* PlayerController, const FInAppPurchaseProductRequest& ProductRequest);
 
 private:
 
@@ -57,7 +57,4 @@ private:
 
 	/** Did the purchase succeed? */
 	EInAppPurchaseState::Type SavedPurchaseState;
-    
-    /** Copy of the provided purchase receipt */
-    const IPlatformPurchaseReceipt* SavedPurchaseReceipt;
 };

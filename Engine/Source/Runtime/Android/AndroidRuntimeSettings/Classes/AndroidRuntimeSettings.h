@@ -150,6 +150,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString AdMobAdUnitID;
 
+	// The unique identifier for the ad obtained from AdMob.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
+	FString GooglePlayLicenseKey;
+
 	/** Android Audio encoding options */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
 	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;

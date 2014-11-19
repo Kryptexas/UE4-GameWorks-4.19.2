@@ -32,4 +32,7 @@ private:
 
 	// The consume flags provided for this task
 	const TArray<bool> IsConsumableFlags;
+
+	/** Flag indicating that the request has been sent */
+	bool bWasRequestSent;
 };
