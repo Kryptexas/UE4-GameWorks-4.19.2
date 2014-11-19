@@ -4485,6 +4485,10 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 
 		// Anim Notify Editor
 		Set("AnimNotifyEditor.BranchingPoint", new IMAGE_BRUSH("Persona/NotifyEditor/BranchingPoints_24x", Icon24x24));
+
+		// AnimBlueprint Preview Warning Background
+		FSlateColor PreviewPropertiesWarningColour(FLinearColor(0.1f, 0.2f, 0.5f));
+		Set("Persona.PreviewPropertiesWarning", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, PreviewPropertiesWarningColour));
 	}
 
 	// Kismet 2

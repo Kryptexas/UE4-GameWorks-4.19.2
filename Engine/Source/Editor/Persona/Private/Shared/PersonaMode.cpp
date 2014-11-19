@@ -329,7 +329,25 @@ TSharedRef<SWidget> FAnimBlueprintDefaultsEditorSummoner::CreateTabBody(const FW
 					.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 					.Visibility( this, &FAnimBlueprintDefaultsEditorSummoner::IsEditorVisible, EAnimBlueprintEditorMode::PreviewMode)
 					[
-						PersonaPtr->GetPreviewEditor()
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.f, 8.f, 0.f, 0.f)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("Persona.PreviewPropertiesWarning"))
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("AnimBlueprintEditPreviewText", "Changes to preview options are not saved in the asset."))
+								.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
+								.ShadowColorAndOpacity(FLinearColor::Black.CopyWithNewOpacity(0.3f))
+								.ShadowOffset(FVector2D::UnitVector)
+							]
+						]
+						+SVerticalBox::Slot()
+						[
+							PersonaPtr->GetPreviewEditor()
+						]
 					]
 				]
 				+SOverlay::Slot()
