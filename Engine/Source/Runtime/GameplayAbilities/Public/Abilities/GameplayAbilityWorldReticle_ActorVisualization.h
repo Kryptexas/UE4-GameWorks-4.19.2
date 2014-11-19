@@ -14,8 +14,9 @@ class AGameplayAbilityWorldReticle_ActorVisualization : public AGameplayAbilityW
 	GENERATED_UCLASS_BODY()
 
 public:
+	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
+	void InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
 
 private:
 	/** Hardcoded collision component, so other objects don't think they can collide with the visualization actor */

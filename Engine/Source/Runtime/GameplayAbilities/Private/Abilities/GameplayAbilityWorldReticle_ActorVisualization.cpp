@@ -29,7 +29,15 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 	RootComponent = CollisionComponent;
 }
 
-void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial)
+
+void AGameplayAbilityWorldReticle_ActorVisualization::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	FaceTowardSource(true);
+}
+
+void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial)
 {
 	if (VisualizationActor)
 	{
@@ -38,6 +46,8 @@ void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualiza
 		USceneComponent* MyRoot = GetRootComponent();
 		VisualizationActor->GetComponents(MeshComps);
 		check(MyRoot);
+
+		TargetingActor = InTargetingActor;
 
 		for (UMeshComponent* MeshComp : MeshComps)
 		{

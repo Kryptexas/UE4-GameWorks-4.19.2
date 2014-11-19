@@ -58,7 +58,7 @@ public:
 	void SetReticleMaterialParamVector(FName ParamName, FVector value);
 
 	UFUNCTION(BlueprintCallable, Category = Reticle)
-	void FaceTowardSource();
+	void FaceTowardSource(bool bFaceIn2D);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
 	FWorldReticleParameters Parameters;
