@@ -599,7 +599,8 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 			}
 			else
 			{
-				OutFilesToAdd.AddUnique(FileInput);
+				OutFilesToAdd.Add(FileInput);
+				AddedFiles.Add(FileInput.Source);
 			}
 		}
 	}
