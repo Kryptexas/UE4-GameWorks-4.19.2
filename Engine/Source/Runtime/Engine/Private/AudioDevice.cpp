@@ -1340,7 +1340,7 @@ void FAudioDevice::InvalidateCachedInteriorVolumes() const
 
 void FListener::ApplyInteriorSettings( class AAudioVolume* InVolume, const FInteriorSettings& Settings )
 {
-	if( InVolume != Volume )
+	if( InVolume != Volume || Settings != InteriorSettings)
 	{
 		// Use previous/ current interpolation time if we're transitioning to the default worldsettings zone.
 		InteriorStartTime = FApp::GetCurrentTime();
