@@ -90,8 +90,8 @@ public:
 	{
 		CurveInfo = InCurveInfo;
 		Color = InColor;
+		bIsVisible = true;
 		bIsLocked = bInIsLocked;
-		bIsLocked = false;
 	}
 };
 
