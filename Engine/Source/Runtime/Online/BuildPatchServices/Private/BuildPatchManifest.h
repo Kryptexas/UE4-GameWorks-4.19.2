@@ -339,6 +339,11 @@ public:
 	FBuildPatchAppManifest(const uint32& InAppID, const FString& AppName);
 
 	/**
+	 * Copy constructor
+	 */
+	FBuildPatchAppManifest(const FBuildPatchAppManifest& Other);
+
+	/**
 	 * Default destructor
 	 */
 	~FBuildPatchAppManifest();

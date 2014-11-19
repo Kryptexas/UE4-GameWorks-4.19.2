@@ -475,6 +475,13 @@ FBuildPatchAppManifest::FBuildPatchAppManifest(const uint32& InAppID, const FStr
 	Data->AppName = AppName;
 }
 
+FBuildPatchAppManifest::FBuildPatchAppManifest(const FBuildPatchAppManifest& Other)
+{
+	Data = DuplicateObject<UBuildPatchManifest>(Other.Data, Other.Data->GetOuter());
+	InitLookups();
+	bNeedsResaving = Other.bNeedsResaving;
+}
+
 FBuildPatchAppManifest::~FBuildPatchAppManifest()
 {
 //	Data->MarkPendingKill(); ??? Mark for destory and run GC?
