@@ -30,6 +30,17 @@ namespace EModifierKey
 
 	/** Cmd key (Control key on Mac, Win key on Windows) */
 	const Type Command = 1 << 3;
+
+	FORCEINLINE EModifierKey::Type FromBools(const bool bControl, const bool bAlt, const bool bShift, const bool bCommand)
+	{
+		EModifierKey::Type ModifierMask = EModifierKey::None;
+		if (bControl)	ModifierMask |= EModifierKey::Control;
+		if (bAlt)		ModifierMask |= EModifierKey::Alt;
+		if (bShift)		ModifierMask |= EModifierKey::Shift;
+		if (bCommand)	ModifierMask |= EModifierKey::Command;
+
+		return ModifierMask;
+	}
 };
 
 namespace EPopUpOrientation

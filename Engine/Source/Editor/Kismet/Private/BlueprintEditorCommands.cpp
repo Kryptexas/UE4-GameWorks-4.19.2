@@ -374,11 +374,7 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 				FParse::Bool(*NodeSpawns[x], TEXT("Cmd="), bCmd);
 			}
 
-			FInputGesture Gesture(Key);
-			Gesture.bAlt = bAlt;
-			Gesture.bCtrl = bCtrl;
-			Gesture.bShift = bShift;
-			Gesture.bCmd = bCmd;
+			FInputGesture Gesture(Key, EModifierKey::FromBools(bCtrl, bAlt, bShift, bCmd));
 
 			FText CommandLabelText = FText::FromString( CommandLabel );
 			FText Description = FText::Format( NSLOCTEXT("BlueprintEditor", "NodeSpawnDescription", "Hold down the bound keys and left click in the graph panel to spawn a {0} node."), CommandLabelText );

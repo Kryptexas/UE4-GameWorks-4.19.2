@@ -136,9 +136,9 @@ bool FEditorViewportSnapping::IsSnapToVertexEnabled()
 
 		const FInputGesture& Gesture = *Commands.HoldToEnableVertexSnapping->GetActiveGesture();
 
-		return (Gesture.bCtrl == GCurrentLevelEditingViewportClient->IsCtrlPressed() ) 
-			&& (Gesture.bAlt ==  GCurrentLevelEditingViewportClient->IsAltPressed() ) 
-			&& (Gesture.bShift == GCurrentLevelEditingViewportClient->IsShiftPressed() ) 
+		return (Gesture.NeedsControl() == GCurrentLevelEditingViewportClient->IsCtrlPressed() ) 
+			&& (Gesture.NeedsAlt() ==  GCurrentLevelEditingViewportClient->IsAltPressed() ) 
+			&& (Gesture.NeedsShift() == GCurrentLevelEditingViewportClient->IsShiftPressed() ) 
 			&& GCurrentLevelEditingViewportClient->Viewport->KeyState(Gesture.Key) == true;
 	}
 	else

@@ -2227,10 +2227,10 @@ static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKe
 {
 	const FInputGesture& Gesture = *Command->GetActiveGesture();
 
-	return (!Gesture.bCtrl	|| ViewportClient.IsCtrlPressed() ) 
-		&& (!Gesture.bAlt	|| ViewportClient.IsAltPressed() ) 
-		&& (!Gesture.bShift || ViewportClient.IsShiftPressed() ) 
-		&& (!Gesture.bCmd	|| ViewportClient.IsCmdPressed() )
+	return (!Gesture.NeedsControl()	|| ViewportClient.IsCtrlPressed() ) 
+		&& (!Gesture.NeedsAlt()		|| ViewportClient.IsAltPressed() ) 
+		&& (!Gesture.NeedsShift()	|| ViewportClient.IsShiftPressed() ) 
+		&& (!Gesture.NeedsCommand()		|| ViewportClient.IsCmdPressed() )
 		&& Gesture.Key == Key;
 }
 

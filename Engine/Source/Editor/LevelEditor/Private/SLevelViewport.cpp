@@ -3329,10 +3329,7 @@ FText SLevelViewport::GetMouseCaptureLabelText() const
 			if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
 			{
 				FKeyBind Binding = TargetPlayer->PlayerController->PlayerInput->GetExecBind(TEXT("ShowMouseCursor"));
-				Gesture.Key = Binding.Key;
-				Gesture.bAlt = Binding.Alt;
-				Gesture.bCtrl = Binding.Control;
-				Gesture.bShift = Binding.Shift;
+				Gesture = FInputGesture(Binding.Key, EModifierKey::FromBools(Binding.Control, Binding.Alt, Binding.Shift, Binding.Cmd));
 				bInitedGesture = true;
 			}
 		}

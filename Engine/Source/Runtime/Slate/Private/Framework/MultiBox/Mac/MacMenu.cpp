@@ -428,19 +428,19 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 		const TSharedRef<const FInputGesture>& Gesture = Block->GetAction()->GetActiveGesture();
 
 		*OutModifiers = 0;
-		if (Gesture->bCtrl)
+		if (Gesture->NeedsControl())
 		{
 			*OutModifiers |= NSCommandKeyMask;
 		}
-		if (Gesture->bShift)
+		if (Gesture->NeedsShift())
 		{
 			*OutModifiers |= NSShiftKeyMask;
 		}
-		if (Gesture->bAlt)
+		if (Gesture->NeedsAlt())
 		{
 			*OutModifiers |= NSAlternateKeyMask;
 		}
-		if (Gesture->bCmd)
+		if (Gesture->NeedsCommand())
 		{
 			*OutModifiers |= NSControlKeyMask;
 		}

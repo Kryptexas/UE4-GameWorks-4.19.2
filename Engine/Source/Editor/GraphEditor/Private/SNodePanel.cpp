@@ -854,11 +854,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 					OnSpawnNodeByShortcut.Execute(LastKeyGestureDetected, PanelCoordToGraphCoord(  MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) ));
 				}
 
-				LastKeyGestureDetected.Key = EKeys::Invalid;
-				LastKeyGestureDetected.bAlt = false;
-				LastKeyGestureDetected.bCtrl = false;
-				LastKeyGestureDetected.bShift = false;
-				LastKeyGestureDetected.bCmd = false;
+				LastKeyGestureDetected = FInputGesture();
 			}
 		}
 		else if ( Marquee.IsValid() )
@@ -923,11 +919,7 @@ FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 {
 	if( IsEditable.Get() )
 	{
-		LastKeyGestureDetected.Key = InKeyEvent.GetKey();
-		LastKeyGestureDetected.bAlt = InKeyEvent.IsAltDown();
-		LastKeyGestureDetected.bCtrl = InKeyEvent.IsControlDown();
-		LastKeyGestureDetected.bShift = InKeyEvent.IsShiftDown();
-		LastKeyGestureDetected.bCmd = InKeyEvent.IsCommandDown();
+		LastKeyGestureDetected = FInputGesture(InKeyEvent.GetKey(), EModifierKey::FromBools(InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown()));
 	}
 
 	return FReply::Unhandled();
@@ -937,11 +929,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyE
 {
 	if(LastKeyGestureDetected.Key == InKeyEvent.GetKey())
 	{
-		LastKeyGestureDetected.Key = EKeys::Invalid;
-		LastKeyGestureDetected.bAlt = false;
-		LastKeyGestureDetected.bCtrl = false;
-		LastKeyGestureDetected.bShift = false;
-		LastKeyGestureDetected.bCmd = false;
+		LastKeyGestureDetected = FInputGesture();
 	}
 
 	return FReply::Unhandled();
@@ -949,11 +937,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyE
 
 void SNodePanel::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	LastKeyGestureDetected.Key = EKeys::Invalid;
-	LastKeyGestureDetected.bAlt = false;
-	LastKeyGestureDetected.bCtrl = false;
-	LastKeyGestureDetected.bShift = false;
-	LastKeyGestureDetected.bCmd = false;
+	LastKeyGestureDetected = FInputGesture();
 }
 
 FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )

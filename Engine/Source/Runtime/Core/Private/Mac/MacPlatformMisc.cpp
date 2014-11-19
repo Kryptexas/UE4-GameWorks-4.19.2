@@ -545,16 +545,15 @@ uint32 FMacPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 
 		ADDKEYMAP( kVK_F11, TEXT("F11") );
 		ADDKEYMAP( kVK_F12, TEXT("F12") );
 
-		// Mac pretends the Command key is Ctrl and Ctrl is Command key
-		ADDKEYMAP( MMK_RightCommand, TEXT("RightControl") );
-		ADDKEYMAP( MMK_LeftCommand, TEXT("LeftControl") );
+		ADDKEYMAP( MMK_RightControl, TEXT("RightControl") );
+		ADDKEYMAP( MMK_LeftControl, TEXT("LeftControl") );
 		ADDKEYMAP( MMK_LeftShift, TEXT("LeftShift") );
 		ADDKEYMAP( MMK_CapsLock, TEXT("CapsLock") );
 		ADDKEYMAP( MMK_LeftAlt, TEXT("LeftAlt") );
-		ADDKEYMAP( MMK_LeftControl, TEXT("LeftCommand") );
+		ADDKEYMAP( MMK_LeftCommand, TEXT("LeftCommand") );
 		ADDKEYMAP( MMK_RightShift, TEXT("RightShift") );
 		ADDKEYMAP( MMK_RightAlt, TEXT("RightAlt") );
-		ADDKEYMAP( MMK_RightControl, TEXT("RightCommand") );
+		ADDKEYMAP( MMK_RightCommand, TEXT("RightCommand") );
 	}
 
 	check(NumMappings < MaxMappings);

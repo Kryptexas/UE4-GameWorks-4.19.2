@@ -127,10 +127,7 @@ void FMaterialEditorSpawnNodeCommands::RegisterCommands()
 				FParse::Bool(*NodeSpawns[x], TEXT("Ctrl="), bCtrl);
 			}
 
-			FInputGesture Gesture(Key);
-			Gesture.bAlt = bAlt;
-			Gesture.bCtrl = bCtrl;
-			Gesture.bShift = bShift;
+			FInputGesture Gesture(Key, EModifierKey::FromBools(bCtrl, bAlt, bShift, false));
 
 			const FText CommandLabelText = FText::FromString( CommandLabel );
 			const FText Description = FText::Format( NSLOCTEXT("MaterialEditor", "NodeSpawnDescription", "Hold down the bound keys and left click in the graph panel to spawn a {0} node."), CommandLabelText);

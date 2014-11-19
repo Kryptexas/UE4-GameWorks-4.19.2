@@ -18,6 +18,17 @@ UK2Node_InputKey::UK2Node_InputKey(const FObjectInitializer& ObjectInitializer)
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;
+
+#if PLATFORM_MAC && WITH_EDITOR
+	if (IsTemplate())
+	{
+		UProperty* ControlProp = GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UK2Node_InputKey, bControl));
+		UProperty* CommandProp = GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UK2Node_InputKey, bCommand));
+
+		ControlProp->SetMetaData(TEXT("DisplayName"), TEXT("Command"));
+		CommandProp->SetMetaData(TEXT("DisplayName"), TEXT("Control"));
+	}
+#endif
 }
 
 void UK2Node_InputKey::PostLoad()
@@ -29,6 +40,14 @@ void UK2Node_InputKey::PostLoad()
 		// Don't change existing behaviors
 		bOverrideParentBinding = false;
 	}
+}
+
+void UK2Node_InputKey::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	CachedNodeTitle.Clear();
+	CachedTooltip.Clear();
 }
 
 void UK2Node_InputKey::AllocateDefaultPins()
@@ -48,179 +67,82 @@ FLinearColor UK2Node_InputKey::GetNodeTitleColor() const
 
 FName UK2Node_InputKey::GetModifierName() const
 {
-	if ( bControl && !bAlt && !bShift && !bCommand )
-	{
-		return FName("Ctrl");
-	}
-	else if ( bControl && bAlt && !bShift && !bCommand )
-	{
-		return FName("Ctrl+Alt");
-	}
-	else if ( bControl && !bAlt && bShift && !bCommand )
-	{
-		return FName("Ctrl+Shift");
-	}
-	else if ( bControl && !bAlt && !bShift && bCommand )
-	{
-		return FName("Ctrl+Cmd");
-	}
-	else if ( bControl && bAlt && bShift && !bCommand )
-	{
-		return FName("Ctrl+Alt+Shift");
-	}
-	else if ( bControl && bAlt && !bShift && bCommand )
-	{
-		return FName("Ctrl+Cmd+Alt");
-	}
-	else if ( bControl && !bAlt && bShift && bCommand )
-	{
-		return FName("Ctrl+Cmd+Shift");
-	}
-	else if ( !bControl && bAlt && bShift && bCommand )
-	{
-		return FName("Cmd+Alt+Shift");
-	}
-	else if ( bControl && bAlt && bShift && bCommand )
-	{
-		return FName("Ctrl+Cmd+Alt+Shift");
-	}
-	else if ( !bControl && bAlt && !bShift && !bCommand )
-	{
-		return FName("Alt");
-	}
-	else if ( !bControl && bAlt && bShift && !bCommand )
-	{
-		return FName("Alt+Shift");
-	}
-	else if ( !bControl && bAlt && !bShift && bCommand )
-	{
-		return FName("Cmd+Alt");
-	}
-	else if ( !bControl && !bAlt && bShift && bCommand )
-	{
-		return FName("Cmd+Shift");
-	}
-	else if ( !bControl && !bAlt && bShift && !bCommand )
-	{
-		return FName("Shift");
-	}
-	else if ( !bControl && !bAlt && !bShift && bCommand )
-	{
-		return FName("Cmd");
-	}
+    FString ModName;
+    bool bPlus = false;
+    if (bControl)
+    {
+        ModName += TEXT("Ctrl");
+        bPlus = true;
+    }
+    if (bCommand)
+    {
+        if (bPlus) ModName += TEXT("+");
+        ModName += TEXT("Cmd");
+        bPlus = true;
+    }
+    if (bAlt)
+    {
+        if (bPlus) ModName += TEXT("+");
+        ModName += TEXT("Alt");
+        bPlus = true;
+    }
+    if (bShift)
+    {
+        if (bPlus) ModName += TEXT("+");
+        ModName += TEXT("Shift");
+        bPlus = true;
+    }
 
-	return NAME_None;
+	return FName(*ModName);
 }
 
 FText UK2Node_InputKey::GetModifierText() const
 {
-	//@todo This should be unified with other places in the editor [10/11/2013 justin.sargent]
-	if ( bControl && !bAlt && !bShift && !bCommand )
-	{
 #if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Cmd");
+    const FText CommandText = NSLOCTEXT("UK2Node_InputKey", "KeyName_Control", "Ctrl");
+    const FText ControlText = NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Cmd");
 #else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control", "Ctrl");
+    const FText ControlText = NSLOCTEXT("UK2Node_InputKey", "KeyName_Control", "Ctrl");
+    const FText CommandText = NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Cmd");
 #endif
-	}
-	else if ( bControl && bAlt && !bShift && !bCommand )
+    const FText AltText = NSLOCTEXT("UK2Node_InputKey", "KeyName_Alt", "Alt");
+    const FText ShiftText = NSLOCTEXT("UK2Node_InputKey", "KeyName_Shift", "Shift");
+    
+	const FText AppenderText = NSLOCTEXT("UK2Node_InputKey", "ModAppender", "+");
+
+	FFormatNamedArguments Args;
+	int32 ModCount = 0;
+
+    if (bControl)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), ControlText);
+    }
+    if (bCommand)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), CommandText);
+    }
+    if (bAlt)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), AltText);
+    }
+    if (bShift)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), ShiftText);
+    }
+
+	for (int32 i = 1; i <= 4; ++i)
 	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Cmd+Alt");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt", "Ctrl+Alt");
-#endif
-	}
-	else if ( bControl && !bAlt && bShift && !bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Shift", "Cmd+Shift");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Shift", "Ctrl+Shift");
-#endif
-	}
-	else if ( bControl && !bAlt && !bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control", "Cmd+Ctrl");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command", "Ctrl+Cmd");
-#endif
-	}
-	else if ( !bControl && bAlt && !bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt", "Ctrl+Alt");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Cmd+Alt");
-#endif
-	}
-	else if ( !bControl && !bAlt && bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Shift", "Ctrl+Shift");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Shift", "Cmd+Shift");
-#endif
-	}
-	else if ( bControl && bAlt && bShift && !bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt + KeyName_Shift", "Cmd+Alt+Shift");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt + KeyName_Shift", "Ctrl+Alt+Shift");
-#endif
-	}
-	else if ( bControl && bAlt && !bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control + KeyName_Alt", "Cmd+Ctrl+Alt");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command + KeyName_Alt", "Ctrl+Cmd+Alt");
-#endif
-	}
-	else if ( bControl && !bAlt && bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control + KeyName_Shift", "Cmd+Ctrl+Shift");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command + KeyName_Shift", "Ctrl+Cmd+Shift");
-#endif
-	}
-	else if ( bControl && bAlt && bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Control + KeyName_Alt + KeyName_Shift", "Cmd+Ctrl+Alt+Shift");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Command + KeyName_Alt + KeyName_Shift", "Ctrl+Cmd+Alt+Shift");
-#endif
-	}
-	else if ( !bControl && bAlt && !bShift && !bCommand )
-	{
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Alt", "Alt");
-	}
-	else if ( !bControl && bAlt && bShift && !bCommand )
-	{
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Alt + KeyName_Shift", "Alt+Shift");
-	}
-	else if ( !bControl && bAlt && !bShift && bCommand )
-	{
-#if PLATFORM_MAC
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Control + KeyName_Alt", "Ctrl+Alt");
-#else
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command + KeyName_Alt", "Cmd+Alt");
-#endif
-	}
-	else if ( !bControl && !bAlt && bShift && !bCommand )
-	{
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Shift", "Shift");
-	}
-	else if ( !bControl && !bAlt && !bShift && bCommand )
-	{
-		return NSLOCTEXT("UK2Node_InputKey", "KeyName_Command", "Cmd");
+		if (i > ModCount)
+		{
+			Args.Add(FString::Printf(TEXT("Mod%d"), i), FText::GetEmpty());
+		}
+
+		Args.Add(FString::Printf(TEXT("Appender%d"), i), (i < ModCount ? AppenderText : FText::GetEmpty()));
 	}
 
-	return FText::GetEmpty();
+	Args.Add(TEXT("Key"), GetKeyText());
+
+	return FText::Format(NSLOCTEXT("UK2Node_InputKey", "NodeTitle", "{Mod1}{Appender1}{Mod2}{Appender2}{Mod3}{Appender3}{Mod4}"), Args);
 }
 
 FText UK2Node_InputKey::GetKeyText() const
@@ -230,7 +152,7 @@ FText UK2Node_InputKey::GetKeyText() const
 
 FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (bControl || bAlt || bShift)
+	if (bControl || bAlt || bShift || bCommand)
 	{
 		if (CachedNodeTitle.IsOutOfDate())
 		{

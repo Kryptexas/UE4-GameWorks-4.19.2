@@ -1461,7 +1461,11 @@ bool UPlayerInput::IsAltPressed() const
 
 bool UPlayerInput::IsCtrlPressed() const
 {
+#if PLATFORM_MAC
+	return IsPressed(EKeys::LeftCommand) || IsPressed(EKeys::RightCommand);
+#else
 	return IsPressed(EKeys::LeftControl) || IsPressed(EKeys::RightControl);
+#endif
 }
 
 bool UPlayerInput::IsShiftPressed() const
@@ -1471,7 +1475,11 @@ bool UPlayerInput::IsShiftPressed() const
 
 bool UPlayerInput::IsCmdPressed() const
 {
+#if PLATFORM_MAC
+	return IsPressed(EKeys::LeftControl) || IsPressed(EKeys::RightControl);
+#else
 	return IsPressed(EKeys::LeftCommand) || IsPressed(EKeys::RightCommand);
+#endif
 }
 
 void UPlayerInput::ConditionalInitAxisProperties()
