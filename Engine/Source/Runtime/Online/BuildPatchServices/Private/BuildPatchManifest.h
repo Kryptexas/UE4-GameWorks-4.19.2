@@ -357,11 +357,12 @@ public:
 	virtual void GetRemovableFiles(IBuildManifestRef OldManifest, TArray< FString >& RemovableFiles) const override;
 	virtual void GetRemovableFiles(const TCHAR* InstallPath, TArray< FString >& RemovableFiles) const override;
 	virtual bool NeedsResaving() const override;
-	virtual IBuildManifestRef Duplicate() const override;
+	virtual void CopyCustomFields(IBuildManifestRef Other, bool bClobber) override;
 	virtual const IManifestFieldPtr GetCustomField(const FString& FieldName) const override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const FString& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const double& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const int64& Value) override;
+	virtual IBuildManifestRef Duplicate() const override;
 	// END IBuildManifest Interface
 
 	/**
