@@ -196,6 +196,11 @@ public:
 		return 0.0f;
 	}
 
+	virtual bool SendLowerCaseFilePaths() const override
+	{
+		return false;
+	}
+
 protected:
 
 	FTargetPlatformBase(const PlatformInfo::FPlatformInfo *const InPlatformInfo)

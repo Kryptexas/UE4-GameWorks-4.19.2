@@ -367,6 +367,11 @@ public:
 	 */
 	virtual float GetVariantPriority() const = 0;
 
+	/** 
+	 * Whether or not to send all lower-case filepaths when connecting over a fileserver connection. 
+	 */
+	virtual bool SendLowerCaseFilePaths() const = 0;
+
 public:
 
 	/**
