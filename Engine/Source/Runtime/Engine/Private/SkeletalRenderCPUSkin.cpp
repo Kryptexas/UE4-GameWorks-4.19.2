@@ -488,9 +488,11 @@ uint32 InitEvalInfos(const TArray<FActiveVertexAnim>& ActiveVertexAnims, int32 L
 		FVertexAnimEvalInfo NewInfo;
 
 		const FActiveVertexAnim& ActiveAnim = ActiveVertexAnims[AnimIdx];
+		const float ActiveAnimAbsVertexWeight = FMath::Abs(ActiveAnim.Weight);
+
 		if( ActiveAnim.VertAnim != NULL &&
-			ActiveAnim.Weight >= MinVertexAnimBlendWeight && 
-			ActiveAnim.Weight <= MaxVertexAnimBlendWeight &&				
+			ActiveAnimAbsVertexWeight >= MinVertexAnimBlendWeight &&
+			ActiveAnimAbsVertexWeight <= MaxVertexAnimBlendWeight &&
 			ActiveAnim.VertAnim->HasDataForLOD(LODIndex) )
 		{
 			// start at the first vertex since they affect base mesh verts in ascending order

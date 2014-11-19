@@ -1689,8 +1689,10 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	for(int32 AnimIdx=0; AnimIdx < ActiveAnims.Num(); AnimIdx++)
 	{
 		const FActiveVertexAnim& ActiveAnim = ActiveAnims[AnimIdx];
+		const float ActiveAnimAbsWeight = FMath::Abs(ActiveAnim.Weight);
+
 		// Check it has valid weight, and works on this SkeletalMesh
-		if(	ActiveAnim.Weight > MinVertexAnimBlendWeight &&
+		if (	ActiveAnimAbsWeight > MinVertexAnimBlendWeight &&
 			ActiveAnim.VertAnim != NULL &&
 			ActiveAnim.VertAnim->BaseSkelMesh == InSkeletalMesh)
 		{
@@ -1706,7 +1708,7 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 		const float& Weight	= (CurveIter).Value();
 
 		// If it has a valid weight
-		if(Weight > MinVertexAnimBlendWeight)
+		if(FMath::Abs(Weight) > MinVertexAnimBlendWeight)
 		{
 			// Find morph reference
 			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTarget(CurveName) : NULL;

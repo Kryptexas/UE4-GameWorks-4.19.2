@@ -15,6 +15,8 @@ static const FName ColumnId_MorphTargetNameLabel( "MorphTargetName" );
 static const FName ColumnID_MorphTargetWeightLabel( "Weight" );
 static const FName ColumnID_MorphTargetVertCountLabel( "NumberOfVerts" );
 
+const float MaxMorphWeight = 5.f;
+
 //////////////////////////////////////////////////////////////////////////
 // SMorphTargetListRow
 
@@ -118,8 +120,10 @@ TSharedRef< SWidget > SMorphTargetListRow::GenerateWidgetForColumn( const FName&
 			.VAlign( VAlign_Center )
 			[
 				SNew( SSpinBox<float> )
-				.MinValue(0.00f)
-				.MaxValue(1.0f)
+				.MinSliderValue(-1.f)
+				.MaxSliderValue(1.f)
+				.MinValue(-MaxMorphWeight)
+				.MaxValue(MaxMorphWeight)
 				.Value( this, &SMorphTargetListRow::GetWeight )
 				.OnValueChanged( this, &SMorphTargetListRow::OnMorphTargetWeightChanged )
 			];
@@ -169,7 +173,7 @@ void SMorphTargetListRow::OnMorphTargetWeightChanged( float NewWeight )
 
 		if ( RowItem != Item ) // Don't do "this" row again if it's selected
 		{
-			RowItem->Weight = FMath::Clamp( RowItem->Weight + Delta, 0.0f, 1.0f );
+			RowItem->Weight = FMath::Clamp(RowItem->Weight + Delta, -MaxMorphWeight, MaxMorphWeight);
 			MorphTargetViewer->AddMorphTargetOverride( RowItem->Name, RowItem->Weight );
 		}
 	}

@@ -361,7 +361,9 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				const FActiveVertexAnim& VertAnim = ActiveVertexAnims[AnimIdx];
 				checkSlow(VertAnim.VertAnim != NULL);
 				checkSlow(VertAnim.VertAnim->HasDataForLOD(LODIndex));
-				checkSlow(VertAnim.Weight >= MinVertexAnimBlendWeight && VertAnim.Weight <= MaxVertexAnimBlendWeight);
+
+				const float VertAnimAbsWeight = FMath::Abs(VertAnim.Weight);
+				checkSlow(VertAnimAbsWeight >= MinVertexAnimBlendWeight && VertAnimAbsWeight <= MaxVertexAnimBlendWeight);
 
 				// Allocate temp state
 				FVertexAnimEvalStateBase* AnimState = VertAnim.VertAnim->InitEval();
@@ -384,7 +386,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 						// add to accumulated tangent Z
 						DeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
 						// accumulate the weight so we can normalized it later
-						AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnim.Weight;
+						AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnimAbsWeight;
 					}
 				} // for all vertices
 
@@ -998,9 +1000,11 @@ FDynamicSkelMeshObjectDataGPUSkin::FDynamicSkelMeshObjectDataGPUSkin(
 	for( int32 AnimIdx=ActiveVertexAnims.Num()-1; AnimIdx >= 0; AnimIdx-- )
 	{
 		const FActiveVertexAnim& Anim = ActiveVertexAnims[AnimIdx];
+		const float AnimAbsWeight = FMath::Abs(Anim.Weight);
+
 		if( Anim.VertAnim != NULL && 
-			Anim.Weight >= MinVertexAnimBlendWeight &&
-			Anim.Weight <= MaxVertexAnimBlendWeight &&
+			AnimAbsWeight >= MinVertexAnimBlendWeight &&
+			AnimAbsWeight <= MaxVertexAnimBlendWeight &&
 			Anim.VertAnim->HasDataForLOD(LODIndex) ) 
 		{
 			NumWeightedActiveVertexAnims++;
