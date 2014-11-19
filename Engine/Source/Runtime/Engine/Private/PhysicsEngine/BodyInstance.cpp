@@ -3057,6 +3057,28 @@ void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
 }
 
 
+void FBodyInstance::AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics)
+{
+	
+#if WITH_PHYSX
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
+	{
+		const PxScene* PScene = PRigidBody->getScene();
+		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		PhysScene->AddCustomPhysics(this, CalculateCustomPhysics);
+	}
+#endif // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr)
+	{
+		// Since Box2D does not have any substepping, might as well apply custom forces now
+		CalculateCustomPhysics.ExecuteIfBound(0.0f, this);
+	}
+#endif
+}
+
 void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX

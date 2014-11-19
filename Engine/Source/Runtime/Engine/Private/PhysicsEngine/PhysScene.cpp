@@ -229,6 +229,25 @@ void FPhysScene::SetKinematicTarget(FBodyInstance* BodyInstance, const FTransfor
 #endif
 }
 
+void FPhysScene::AddCustomPhysics(FBodyInstance* BodyInstance, FCalculateCustomPhysics& CalculateCustomPhysics)
+{
+#if WITH_PHYSX
+#if WITH_SUBSTEPPING
+	uint32 BodySceneType = SceneType(BodyInstance);
+	if (IsSubstepping(BodySceneType))
+	{
+		FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+		PhysSubStepper->AddCustomPhysics(BodyInstance, CalculateCustomPhysics);
+	}
+	else
+#endif
+	{
+		// Since physics frame is set up before "pre-physics" tick group is called, can just fetch delta time from there
+		CalculateCustomPhysics.ExecuteIfBound(this->DeltaSeconds, BodyInstance);
+	}
+#endif
+}
+
 void FPhysScene::AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX

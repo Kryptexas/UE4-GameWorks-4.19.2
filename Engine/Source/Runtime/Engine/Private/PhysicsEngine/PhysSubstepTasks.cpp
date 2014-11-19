@@ -85,6 +85,23 @@ bool FPhysSubstepTask::GetKinematicTarget(const FBodyInstance* Body, FTransform&
 	return false;
 }
 
+void FPhysSubstepTask::AddCustomPhysics(FBodyInstance* Body, const FCalculateCustomPhysics& CalculateCustomPhysics)
+{
+#if WITH_PHYSX
+	check(Body);
+	PxRigidBody* PRigidBody = Body->GetPxRigidBody();
+	SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+	//Limit custom physics to non kinematic actors
+	if (IsRigidBodyNonKinematic(PRigidBody))
+	{
+		FCustomTarget CustomTarget(CalculateCustomPhysics);
+
+		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
+		TargetState.CustomPhysics.Add(CustomTarget);
+	}
+#endif
+}
+
 void FPhysSubstepTask::AddForce(FBodyInstance* Body, const FVector& Force)
 {
 #if WITH_PHYSX
@@ -140,6 +157,19 @@ void FPhysSubstepTask::AddTorque(FBodyInstance* Body, const FVector& Torque)
 
 		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
 		TargetState.Torques.Add(TorqueTarget);
+	}
+#endif
+}
+
+/** Applies custom physics - Assumes caller has obtained writer lock */
+void FPhysSubstepTask::ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float DeltaTime)
+{
+#if WITH_PHYSX
+	for (int32 i = 0; i < PhysTarget.CustomPhysics.Num(); ++i)
+	{
+		const FCustomTarget& CustomTarget = PhysTarget.CustomPhysics[i];
+
+		CustomTarget.CalculateCustomPhysics->ExecuteIfBound(DeltaTime, BodyInstance);
 	}
 #endif
 }
@@ -211,7 +241,7 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget& PhysTarget, 
 #endif
 }
 
-void FPhysSubstepTask::SubstepInterpolation(float InAlpha)
+void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 {
 #if WITH_PHYSX
 #if WITH_APEX
@@ -239,6 +269,7 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha)
 		//We should only be iterating over actors that belong to this scene
 		check(PRigidBody->getScene() == PScene);
 
+		ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
 		ApplyForces(PhysTarget, BodyInstance);
 		ApplyTorques(PhysTarget, BodyInstance);
 		InterpolateKinematicActor(PhysTarget, BodyInstance, InAlpha);
@@ -335,7 +366,7 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	}
 #endif
 
-	SubstepInterpolation(Interpolation);
+	SubstepInterpolation(Interpolation, DeltaTime);
 
 #if WITH_APEX
 	PAScene->simulate(DeltaTime, bLastSubstep, SubstepTask);

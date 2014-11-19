@@ -73,6 +73,13 @@ struct FTorqueTarget
 	FVector Torque;
 };
 
+struct FCustomTarget
+{
+	FCustomTarget(){ }
+	FCustomTarget(const FCalculateCustomPhysics& GivenCalculateCustomPhysics) : CalculateCustomPhysics(&GivenCalculateCustomPhysics){}
+	const FCalculateCustomPhysics* CalculateCustomPhysics;
+};
+
 /** Holds information on everything we need to fix for substepping of a single frame */
 struct FPhysTarget
 {
@@ -80,6 +87,7 @@ struct FPhysTarget
 
 	TArray<FForceTarget>  Forces;	//we can apply force at multiple places
 	TArray<FTorqueTarget> Torques;
+	TArray<FCustomTarget> CustomPhysics; //for calculating custom physics forces
 	FKinematicTarget KinematicTarget;
 
 	/** Tells us if the kinematic target has been set */
@@ -106,6 +114,7 @@ public:
 
 	void SetKinematicTarget(FBodyInstance* Body, const FTransform& TM);
 	bool GetKinematicTarget(const FBodyInstance* Body, FTransform& OutTM) const;
+	void AddCustomPhysics(FBodyInstance* Body, const FCalculateCustomPhysics& CalculateCustomPhysics);
 	void AddForce(FBodyInstance* Body, const FVector& Force);
 	void AddForceAtPosition(FBodyInstance* Body, const FVector& Force, const FVector& Position);
 	void AddTorque(FBodyInstance* Body, const FVector& Torque);
@@ -127,7 +136,8 @@ public:
 private:
 
 	/** Applies interpolation and forces on all needed actors*/
-	void SubstepInterpolation(float Scale);
+	void SubstepInterpolation(float Scale, float DeltaTime);
+	void ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float DeltaTime);
 	void ApplyForces(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
 	void ApplyTorques(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance);
 	void InterpolateKinematicActor(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance, float Alpha);

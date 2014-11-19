@@ -396,6 +396,9 @@ public:
 	/** Lets the scene update anything related to this BodyInstance as it's now being terminated */
 	void TermBody(FBodyInstance* BodyInstance);
 
+	/** Add a custom callback for next step that will be called on every substep */
+	void AddCustomPhysics(FBodyInstance* BodyInstance, FCalculateCustomPhysics& CalculateCustomPhysics);
+
 	/** Adds a force to a body - We need to go through scene to support substepping */
 	void AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping);
 
