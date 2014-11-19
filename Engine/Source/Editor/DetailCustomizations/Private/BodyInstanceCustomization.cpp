@@ -640,9 +640,18 @@ FString FBodyInstanceCustomization::GetObjectTypeComboBoxContent() const
 
 TSharedRef<SWidget> FBodyInstanceCustomization::MakeCollisionProfileComboWidget(TSharedPtr<FString> InItem)
 {
+	FString ProfileMessage;
+
+	FCollisionResponseTemplate ProfileData;
+	if (CollisionProfile->GetProfileTemplate(FName(**InItem), ProfileData))
+	{
+		ProfileMessage = ProfileData.HelpMessage;
+	}
+
 	return
 		SNew(STextBlock)
 		.Text(*InItem)
+		.ToolTipText(FText::FromString(ProfileMessage))
 		.Font(IDetailLayoutBuilder::GetDetailFont());
 }
 
