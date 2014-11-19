@@ -1699,39 +1699,6 @@ void FK2ActionMenuBuilder::GetAnimNotifyMenuItems(FBlueprintGraphActionListBuild
 				EventNode->CustomFunctionName = EventNode->EventSignatureName;
 				Action->NodeTemplate = EventNode;
 			}
-
-			// @todo anim: fix this to be same as notifies, save same list in the 
-			// add montage menus
-			// find all montages that uses current target skeleton
-			TArray<FName> BrancingPointHandlers;
-
-			for ( FObjectIterator Iter(UAnimMontage::StaticClass()); Iter; ++Iter )
-			{
-				UAnimMontage * Montage = CastChecked<UAnimMontage>(*Iter);
-				if ( Montage && Montage->GetSkeleton() == AnimBlueprint->TargetSkeleton )
-				{
-					// now add event handler if exists
-					for ( int32 I=0; I<Montage->BranchingPoints.Num(); ++I )
-					{
-						BrancingPointHandlers.AddUnique(Montage->BranchingPoints[I].EventName);
-					}
-				}
-			}
-
-			for ( int32 I=0; I<BrancingPointHandlers.Num(); ++I )
-			{
-				FName NotifyName = BrancingPointHandlers[I];
-				FString Label = NotifyName.ToString();
-
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::BranchPointCategory, FText::FromString(Label), TEXT(""));
-
-				UK2Node_Event* EventNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_Event>();
-				FString SignatureName = FString::Printf(TEXT("MontageBranchingPoint_%s"), *Label);
-				EventNode->EventSignatureName = FName(*SignatureName);
-				EventNode->EventSignatureClass = UAnimInstance::StaticClass();
-				EventNode->CustomFunctionName = EventNode->EventSignatureName;
-				Action->NodeTemplate = EventNode;
-			}
 		}
 
 		// State machine events

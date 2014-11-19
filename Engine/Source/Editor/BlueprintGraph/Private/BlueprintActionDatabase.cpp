@@ -694,31 +694,6 @@ static void BlueprintActionDatabaseImpl::AddSkeletonActions(const USkeleton& Ske
 		FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
 		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName), FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AnimNotify)));
 	}
-
-	// @todo anim: fix this to be same as notifies, save same list in the 
-	// add montage menus
-	// find all montages that uses current target skeleton
-	TArray<FName> BranchingPointHandlers;
-
-	for (FObjectIterator Iter(UAnimMontage::StaticClass()); Iter; ++Iter)
-	{
-		UAnimMontage * Montage = CastChecked<UAnimMontage>(*Iter);
-		if (Montage && Montage->GetSkeleton() == &Skeleton)
-		{
-			// now add event handler if exists
-			for (int32 I = 0; I < Montage->BranchingPoints.Num(); ++I)
-			{
-				BranchingPointHandlers.AddUnique(Montage->BranchingPoints[I].EventName);
-			}
-		}
-	}
-
-	for( auto NotifyName: BranchingPointHandlers )
-	{
-		FString Label = NotifyName.ToString();
-		FString SignatureName = FString::Printf(TEXT("MontageBranchingPoint_%s"), *Label);
-		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName),  FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::BranchPoint)));
-	}
 }
 
 //------------------------------------------------------------------------------

@@ -168,6 +168,7 @@ private:
 	
 	FVector2D					TextSize;
 	float						LabelWidth;
+	FVector2D					BranchingPointIconSize;
 
 	/** Last position the user clicked in the widget */
 	FVector2D					LastMouseDownPosition;
@@ -936,6 +937,8 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 	ViewInputMax = InArgs._ViewInputMax;
 
 	MarkerBars = InArgs._MarkerBars;
+
+	SetToolTipText(TAttribute<FText>(this, &SAnimNotifyNode::GetNodeTooltip));
 }
 
 FReply SAnimNotifyNode::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -999,13 +1002,22 @@ FText SAnimNotifyNode::GetNodeTooltip() const
 	const FText Frame = FText::AsNumber( (int32)(Percentage * Sequence->GetNumberOfFrames()) );
 	const FText Seconds = FText::AsNumber( Time );
 
+	FText ToolTipText;
 	if (NotifyEvent->GetDuration() > 0.0f)
 	{
 		const FText Duration = FText::AsNumber( NotifyEvent->GetDuration() );
-		return FText::Format( LOCTEXT("NodeToolTipLong", "@ {0} sec (frame {1}) for {2} sec"), Seconds, Frame, Duration );
+		ToolTipText = FText::Format( LOCTEXT("NodeToolTipLong", "@ {0} sec (frame {1}) for {2} sec"), Seconds, Frame, Duration );
+	}
+	else
+	{
+		ToolTipText = FText::Format(LOCTEXT("NodeToolTipShort", "@ {0} sec (frame {1})"), Seconds, Frame);
 	}
 
-	return FText::Format( LOCTEXT("NodeToolTipShort", "@ {0} sec (frame {1})"), Seconds, Frame );
+	if (NotifyEvent->IsBranchingPoint())
+	{
+		ToolTipText = FText::Format(LOCTEXT("AnimNotify_ToolTipBranchingPoint", "{0} (BranchingPoint)"), ToolTipText);
+	}
+	return ToolTipText;
 }
 
 /** @return the Node's position within the graph */
@@ -1089,18 +1101,23 @@ void SAnimNotifyNode::UpdateSizeAndPosition(const FGeometry& AllottedGeometry)
 
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	TextSize = FontMeasureService->Measure( GetNotifyText(), Font );
+	LabelWidth = TextSize.X + (TextBorderSize.X * 2.f) + (ScrubHandleSize.X / 2.f);
 
-	LabelWidth = TextSize.X + (TextBorderSize.X * 2.f) + (ScrubHandleSize.X/2.f);
+	bool bDrawBranchingPoint = NotifyEvent->IsBranchingPoint();
+	BranchingPointIconSize = FVector2D(TextSize.Y, TextSize.Y);
+	if (bDrawBranchingPoint)
+	{
+		LabelWidth += BranchingPointIconSize.X + TextBorderSize.X * 2.f;
+	}
 
+	//Calculate scrub handle box size (the notional box around the scrub handle and the alignment marker)
+	float NotifyHandleBoxWidth = FMath::Max(ScrubHandleSize.X, AlignmentMarkerSize.X * 2);
 
 	// Work out where we will have to draw the tool tip
 	FVector2D Size = GetSize();
 	float LeftEdgeToNotify = NotifyTimePositionX;
 	float RightEdgeToNotify = AllottedGeometry.Size.X - NotifyTimePositionX;
 	bDrawTooltipToRight = (RightEdgeToNotify > LabelWidth) || (RightEdgeToNotify > LeftEdgeToNotify);
-
-	//Calculate scrub handle box size (the notional box around the scrub handle and the alignment marker)
-	float NotifyHandleBoxWidth = FMath::Max(ScrubHandleSize.X, AlignmentMarkerSize.X*2);
 
 	// Calculate widget width/position based on where we are drawing the tool tip
 	WidgetX = bDrawTooltipToRight ? (NotifyTimePositionX - (NotifyHandleBoxWidth / 2.f)) : (NotifyTimePositionX - LabelWidth);
@@ -1137,6 +1154,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	int32 MarkerLayer = LayerId + 1;
 	int32 ScrubHandleID = MarkerLayer + 1;
 	int32 TextLayerID = ScrubHandleID + 1;
+	int32 BranchPointLayerID = TextLayerID + 1;
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT("SpecialEditableTextImageNormal") );
 	FSlateDrawElement::MakeBox( 
@@ -1183,15 +1201,18 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		}
 	}
 
+	// Branching point
+	bool bDrawBranchingPoint = NotifyEvent->IsBranchingPoint();
+
 	// Background
 	FVector2D LabelSize = TextSize + TextBorderSize * 2.f;
-	LabelSize.X += HalfScrubHandleWidth;
+	LabelSize.X += HalfScrubHandleWidth + (bDrawBranchingPoint ? (BranchingPointIconSize.X + TextBorderSize.X * 2.f) : 0.f);
 
 	float LabelX = bDrawTooltipToRight ? NotifyScrubHandleCentre : NotifyScrubHandleCentre - LabelSize.X;
 	float BoxHeight = (NotifyDurationSizeX > 0.f) ? (NotifyHeight - LabelSize.Y) : ((NotifyHeight - LabelSize.Y) / 2.f);
 
-	FVector2D LabelPosition(LabelX, BoxHeight); 
-	
+	FVector2D LabelPosition(LabelX, BoxHeight);
+
 	FLinearColor NodeColor = SAnimNotifyNode::GetNotifyColor();
 
 	FSlateDrawElement::MakeBox( 
@@ -1252,7 +1273,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	if(NotifyEvent->TriggerTimeOffset != 0.f) //Do we have an offset to render?
 	{
 		float NotifyTime = NotifyEvent->GetTime();
-		if(NotifyTime != 0.f && NotifyTime != Sequence->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesnt help the user
+		if(NotifyTime != 0.f && NotifyTime != Sequence->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesn't help the user
 		{
 			float HandleCentre = NotifyScrubHandleCentre;
 			float &Offset = NotifyEvent->TriggerTimeOffset;
@@ -1260,6 +1281,22 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			DrawHandleOffset(NotifyEvent->TriggerTimeOffset, NotifyScrubHandleCentre, OutDrawElements, MarkerLayer, AllottedGeometry, MyClippingRect);
 		}
 	}
+
+	// Draw Branching Point
+	if (bDrawBranchingPoint)
+	{
+		FVector2D BranchPointIconPos = LabelPosition + LabelSize - BranchingPointIconSize - FVector2D(bDrawTooltipToRight ? TextBorderSize.X * 2.f : TextBorderSize.X * 4.f, 0.f);
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			BranchPointLayerID,
+			AllottedGeometry.ToPaintGeometry(BranchPointIconPos, BranchingPointIconSize),
+			FEditorStyle::GetBrush(TEXT("AnimNotifyEditor.BranchingPoint")),
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			FLinearColor::White
+			);
+	}	
+
 	return TextLayerID;
 }
 

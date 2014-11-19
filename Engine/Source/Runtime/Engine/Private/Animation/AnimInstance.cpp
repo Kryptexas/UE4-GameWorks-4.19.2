@@ -1113,44 +1113,8 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 			continue;
 		}
 
-		if(AnimNotifyEvent->Notify != NULL)
-		{
-			// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
-			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->Notify->GetOuter()));
-		}
-		else if( AnimNotifyEvent->NotifyName != NAME_None )
-		{
-			// Custom Event based notifies. These will call a AnimNotify_* function on the AnimInstance.
-			FString FuncName = FString::Printf(TEXT("AnimNotify_%s"), *AnimNotifyEvent->NotifyName.ToString());
-			FName FuncFName = FName(*FuncName);
-
-			UFunction* Function = FindFunction(FuncFName);
-			if( Function )
-			{
-				// if parameter is none, add event
-				if ( Function->NumParms == 0 )
-				{
-					ProcessEvent( Function, NULL );								
-				}
-				else if ( Function->NumParms == 1 &&  
-					Cast<UObjectProperty>(Function->PropertyLink) != NULL)
-				{
-					struct FAnimNotifierHandler_Parms
-					{
-						UAnimNotify* Notify;
-					};
-
-					FAnimNotifierHandler_Parms Parms;
-					Parms.Notify = AnimNotifyEvent->Notify;
-					ProcessEvent( Function, &Parms );								
-				}
-				else
-				{
-					// Actor has event, but with different parameters. Print warning
-					UE_LOG(LogAnimNotify, Warning, TEXT("Anim notifier named %s, but the parameter number does not match or not of the correct type"), *FuncName);
-				}
-			}
-		}
+		// Trigger non 'state' AnimNotifies
+		TriggerSingleAnimNotify(AnimNotifyEvent);
 	}
 
 	// Send end notification to AnimNotifyState not active anymore.
@@ -1175,6 +1139,51 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	{
 		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
 		AnimNotifyEvent.NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent.NotifyStateClass->GetOuter()), DeltaSeconds);
+	}
+}
+
+void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEvent)
+{
+	// This is for non 'state' anim notifies.
+	if (AnimNotifyEvent && (AnimNotifyEvent->NotifyStateClass == NULL))
+	{
+		if (AnimNotifyEvent->Notify != NULL)
+		{
+			// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
+			AnimNotifyEvent->Notify->Notify(GetSkelMeshComponent(), Cast<UAnimSequenceBase>(AnimNotifyEvent->Notify->GetOuter()));
+		}
+		else if (AnimNotifyEvent->NotifyName != NAME_None)
+		{
+			// Custom Event based notifies. These will call a AnimNotify_* function on the AnimInstance.
+			FString FuncName = FString::Printf(TEXT("AnimNotify_%s"), *AnimNotifyEvent->NotifyName.ToString());
+			FName FuncFName = FName(*FuncName);
+
+			UFunction* Function = FindFunction(FuncFName);
+			if (Function)
+			{
+				// if parameter is none, add event
+				if (Function->NumParms == 0)
+				{
+					ProcessEvent(Function, NULL);
+				}
+				else if ((Function->NumParms == 1) && (Cast<UObjectProperty>(Function->PropertyLink) != NULL))
+				{
+					struct FAnimNotifierHandler_Parms
+					{
+						UAnimNotify* Notify;
+					};
+
+					FAnimNotifierHandler_Parms Parms;
+					Parms.Notify = AnimNotifyEvent->Notify;
+					ProcessEvent(Function, &Parms);
+				}
+				else
+				{
+					// Actor has event, but with different parameters. Print warning
+					UE_LOG(LogAnimNotify, Warning, TEXT("Anim notifier named %s, but the parameter number does not match or not of the correct type"), *FuncName);
+				}
+			}
+		}
 	}
 }
 

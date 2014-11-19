@@ -161,11 +161,6 @@ bool SMontageEditor::ValidSection(int32 SectionIndex) const
 	return (MontageObj != NULL && MontageObj->CompositeSections.IsValidIndex(SectionIndex));
 }
 
-bool SMontageEditor::ValidBranch(int32 BranchIndex) const
-{
-	return (MontageObj != NULL && MontageObj->BranchingPoints.IsValidIndex(BranchIndex));
-}
-
 void SMontageEditor::RefreshNotifyTriggerOffsets()
 {
 	for(auto Iter = MontageObj->Notifies.CreateIterator(); Iter; ++Iter)
@@ -186,14 +181,6 @@ void SMontageEditor::RefreshNotifyTriggerOffsets()
 		{
 			Notify.EndTriggerTimeOffset = 0.0f;
 		}
-	}
-
-	for(auto Iter = MontageObj->BranchingPoints.CreateIterator(); Iter; ++Iter)
-	{
-		FBranchingPoint& BranchPoint = (*Iter);
-
-		EAnimEventTriggerOffsets::Type PredictedOffset = MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.GetTime());
-		BranchPoint.RefreshTriggerOffset(PredictedOffset);
 	}
 }
 
@@ -244,13 +231,6 @@ TArray<FTrackMarkerBar> SMontageEditor::GetMarkerBarInformation() const
 			FTrackMarkerBar Bar;
 			Bar.Time = MontageObj->CompositeSections[I].GetTime();
 			Bar.DrawColour = FLinearColor(0.f,1.f,0.f);
-			MarkerBars.Add(Bar);
-		}
-		for( int32 I = 0; I < MontageObj->BranchingPoints.Num(); ++I )
-		{
-			FTrackMarkerBar Bar;
-			Bar.Time = MontageObj->BranchingPoints[I].GetTime();
-			Bar.DrawColour = FLinearColor(0.8f,0.f,0.8f);
 			MarkerBars.Add(Bar);
 		}
 	}
@@ -378,8 +358,6 @@ void SMontageEditor::SortAndUpdateMontage()
 
 	SortSections();
 
-	SortBranchPoints();
-
 	RefreshNotifyTriggerOffsets();
 
 	// Update view (this will recreate everything)
@@ -401,22 +379,6 @@ void SMontageEditor::SortAnimSegments()
 	for (int32 I=0; I < MontageObj->SlotAnimTracks.Num(); I++)
 	{
 		MontageObj->SlotAnimTracks[I].AnimTrack.SortAnimSegments();
-	}
-}
-
-/** Sort BranchPoints by time */
-void SMontageEditor::SortBranchPoints()
-{
-	struct FCompareBranchPoints
-	{
-		bool operator()( const FBranchingPoint &A, const FBranchingPoint &B ) const
-		{
-			return A.GetTriggerTime() < B.GetTriggerTime();
-		}
-	};
-	if (MontageObj != NULL)
-	{
-		MontageObj->BranchingPoints.Sort(FCompareBranchPoints());
 	}
 }
 
@@ -468,7 +430,7 @@ void SMontageEditor::EnsureSlotNode()
 	}
 }
 
-/** Make sure all Sections, Branches, and Notifies are clamped to NewEndTime (called before NewEndTime is set to SequenceLength) */
+/** Make sure all Sections and Notifies are clamped to NewEndTime (called before NewEndTime is set to SequenceLength) */
 bool SMontageEditor::ClampToEndTime(float NewEndTime)
 {
 	bool bClampingNeeded = SAnimEditorBase::ClampToEndTime(NewEndTime);
@@ -482,17 +444,6 @@ bool SMontageEditor::ClampToEndTime(float NewEndTime)
 			{
 				float CurrentTime = MontageObj->CompositeSections[i].GetTime();
 				MontageObj->CompositeSections[i].SetTime(CurrentTime * ratio);
-			}
-		}
-
-		for(int32 i=0; i < MontageObj->BranchingPoints.Num(); i++)
-		{
-			FBranchingPoint& BranchPoint = MontageObj->BranchingPoints[i];
-			float BranchingPointTime = BranchPoint.GetTime();
-			if(BranchingPointTime > NewEndTime)
-			{
-				BranchPoint.SetTime(BranchingPointTime * ratio);
-				BranchPoint.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
 			}
 		}
 
@@ -548,147 +499,6 @@ FString	SMontageEditor::GetSectionName(int32 SectionIndex) const
 		return MontageObj->GetSectionName(SectionIndex).ToString();
 	}
 	return FString();
-}
-
-float SMontageEditor::GetBranchPointStartPos(int32 BranchPointIndex) const
-{
-	if (ValidBranch(BranchPointIndex))
-	{
-		return MontageObj->BranchingPoints[BranchPointIndex].GetTime();
-	}
-	return 0.f;
-}
-
-FString	SMontageEditor::GetBranchPointName(int32 BranchPointIndex) const
-{
-	if (ValidBranch(BranchPointIndex))
-	{
-		return MontageObj->BranchingPoints[BranchPointIndex].EventName.ToString();
-	}
-	return FString();
-}
-
-const float SMontageEditor::MinimumBranchPointSeperation = 1.0f/30.0f;
-
-void SMontageEditor::SetBranchPointStartPos(float NewStartPos, int32 BranchPointIndex)
-{
-	if (ValidBranch(BranchPointIndex))
-	{
-		const FScopedTransaction Transaction( LOCTEXT("SetBranchPoint", "Set Branch Point Start Time") );
-		MontageObj->Modify();
-
-		FBranchingPoint& BranchPoint = MontageObj->BranchingPoints[BranchPointIndex];
-
-		float OriginalPosition = BranchPoint.GetTime();
-		float TempPosition = NewStartPos;
-		int32 MovementDirection = 1;
-
-		int32 BranchIndex = 0;
-		bool bHasSnapped = false;
-		float Prediction = NewStartPos;
-		for (; MontageObj->BranchingPoints.IsValidIndex(BranchIndex); BranchIndex += MovementDirection)
-		{
-			// Don't check self
-			if (BranchPointIndex == BranchIndex)
-			{
-				continue;
-			}
-
-			float BranchTime = MontageObj->BranchingPoints[BranchIndex].GetTime();
-			float LowerBound = BranchTime - MinimumBranchPointSeperation;
-			float UpperBound = BranchTime + MinimumBranchPointSeperation;
-
-			if (Prediction > BranchTime && Prediction < UpperBound)
-			{
-				if (!bHasSnapped)
-				{
-					bHasSnapped = true;
-					MovementDirection = 1;
-				}
-
-				Prediction = MovementDirection == 1 ? UpperBound : LowerBound;
-			}
-			else if (Prediction <= BranchTime && Prediction > LowerBound)
-			{
-				if (!bHasSnapped)
-				{
-					bHasSnapped = true;
-					MovementDirection = -1;
-				}
-
-				Prediction = MovementDirection == 1 ? UpperBound : LowerBound;
-			}
-			else if (bHasSnapped)
-			{
-				break;
-			}
-		}
-
-		if (bHasSnapped)
-		{
-			float ToOrig = FMath::Abs(OriginalPosition - NewStartPos);
-			float ToPrediction = FMath::Abs(Prediction - NewStartPos);
-			
-			NewStartPos = ToOrig < ToPrediction ? OriginalPosition : Prediction;
-		}
-
-		float CurrentLowerBound = NewStartPos - MinimumBranchPointSeperation;
-		float CurrentUpperBound = NewStartPos + MinimumBranchPointSeperation;
-
-		if (!(CurrentLowerBound >= 0.0f && CurrentUpperBound <= MontageObj->SequenceLength))
-		{
-			NewStartPos = OriginalPosition;
-		}
-
-		BranchPoint.LinkMontage(MontageObj, NewStartPos, BranchPoint.GetSlotIndex());
-		BranchPoint.RefreshTriggerOffset(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
-
-		if(AnimMontagePanel.IsValid())
-		{
-			AnimMontagePanel->ShowBranchPointInDetailsView(BranchPointIndex);
-		}
-	}
-}
-
-void SMontageEditor::RemoveBranchPoint(int32 BranchPointIndex)
-{
-	if(ValidBranch(BranchPointIndex))
-	{
-		const FScopedTransaction Transaction( LOCTEXT("RemoveBranchPoint", "Remove Branch Point") );
-		MontageObj->Modify();
-
-		MontageObj->BranchingPoints.RemoveAt(BranchPointIndex);
-		MontageObj->MarkPackageDirty();
-		SortAndUpdateMontage();
-	}
-}
-void SMontageEditor::AddBranchPoint(float StartTime, FString EventName)
-{
-	if(MontageObj!=NULL)
-	{
-		const FScopedTransaction Transaction( LOCTEXT("AddBranchPoint", "Add Branch Point") );
-		MontageObj->Modify();
-
-		FBranchingPoint NewBranch;
-		NewBranch.LinkMontage(MontageObj, StartTime);
-		NewBranch.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForBranchingPoint(NewBranch.GetTime()));
-		NewBranch.EventName=FName(*EventName);
-		MontageObj->BranchingPoints.Add(NewBranch);
-		MontageObj->MarkPackageDirty();
-		SortAndUpdateMontage();
-	}
-}
-
-void SMontageEditor::RenameBranchPoint(int32 BranchIndex, FString NewEventName)
-{
-	if(ValidBranch(BranchIndex))
-	{
-		const FScopedTransaction Transaction( LOCTEXT("RenameBranchPoint", "Rename Branch Point") );
-		MontageObj->Modify();
-
-		MontageObj->BranchingPoints[BranchIndex].EventName = FName( *NewEventName );
-		MontageObj->MarkPackageDirty();
-	}
 }
 
 void SMontageEditor::RenameSlotNode(int32 SlotIndex, FString NewSlotName)

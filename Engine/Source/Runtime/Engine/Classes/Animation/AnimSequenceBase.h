@@ -29,6 +29,19 @@ namespace EAnimEventTriggerOffsets
 
 ENGINE_API float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type OffsetType);
 
+/** Ticking method for AnimNotifies in AnimMontages */
+UENUM()
+namespace EMontageNotifyTickType
+{
+	enum Type
+	{
+		/** Queue notifies, and trigger them at the end of the evaluation phase (faster). Not suitable for changing sections or montage position. */
+		Queued,
+		/** Trigger notifies as they are encountered (Slower). Suitable for changing sections or montage position. */
+		BranchingPoint,
+	};
+}
+
 /**
  * Triggers an animation notify.  Each AnimNotifyEvent contains an AnimNotify object
  * which has its Notify method called and passed to the animation.
@@ -69,6 +82,13 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	UPROPERTY()
 	FAnimLinkableElement EndLink;
 
+	/** If TRUE, this notify has been converted from an old BranchingPoint. */
+	UPROPERTY()
+	bool bConvertedFromBranchingPoint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotifyEvent)
+	TEnumAsByte<EMontageNotifyTickType::Type> MontageTickType;
+
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
 	UPROPERTY()
@@ -90,6 +110,8 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 #endif // WITH_EDITORONLY_DATA
 		, NotifyStateClass(NULL)
 		, Duration(0)
+		, bConvertedFromBranchingPoint(false)
+		, MontageTickType(EMontageNotifyTickType::Queued)
 #if WITH_EDITORONLY_DATA
 		, TrackIndex(0)
 #endif // WITH_EDITORONLY_DATA
@@ -111,6 +133,12 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	ENGINE_API float GetDuration() const;
 
 	ENGINE_API void SetDuration(float NewDuration);
+
+	/** Returns true is this AnimNotify is a BranchingPoint */
+	ENGINE_API bool IsBranchingPoint() const
+	{
+		return (MontageTickType == EMontageNotifyTickType::BranchingPoint) && GetLinkedMontage();
+	}
 
 	/** Returns true if this is blueprint derived notifies **/
 	bool IsBlueprintNotify() const

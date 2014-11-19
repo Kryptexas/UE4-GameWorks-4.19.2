@@ -88,6 +88,9 @@ struct FAnimLinkableElement
 	/** Gets the sequence this element is linked to */
 	ENGINE_API const UAnimSequenceBase* GetLinkedSequence() {return LinkedSequence;}
 
+	/** Gets the Montage this element is linked to, if any */
+	ENGINE_API const UAnimMontage* GetLinkedMontage() const { return LinkedMontage; }
+
 	/** Changes the way this element is linked to its segment
 	 * @param NewLinkMethod The new linking method to use
 	 */

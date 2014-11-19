@@ -632,6 +632,7 @@ public:
 
 	/** Trigger AnimNotifies **/
 	void TriggerAnimNotifies(float DeltaSeconds);
+	void TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEvent);
 
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);

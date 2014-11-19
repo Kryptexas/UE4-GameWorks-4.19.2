@@ -69,11 +69,7 @@ struct FSlotAnimationTrack
 };
 
 /** 
- * Special event handler for branching point
- * This is different from Notifies since they handle multiple calls in a frame
- * when you can modify positions when it gets called, and Tick will handle correctly
- * however that limits multi threading, so this is expensive
- * Use notifies if possible
+ * Remove FBranchingPoint when VER_UE4_MONTAGE_BRANCHING_POINT_REMOVAL is removed.
  */
 USTRUCT()
 struct FBranchingPoint : public FAnimLinkableElement
@@ -92,9 +88,50 @@ struct FBranchingPoint : public FAnimLinkableElement
 
 	/** Returns the time this branching point should be triggered */
 	float GetTriggerTime() const { return GetTime() + TriggerTimeOffset; }
+};
 
-	/** Updates trigger offset based on a combination of predicted offset and current offset */
-	ENGINE_API void RefreshTriggerOffset(EAnimEventTriggerOffsets::Type PredictedOffsetType);
+/**  */
+UENUM()
+namespace EAnimNotifyEventType
+{
+	enum Type
+	{
+		/** */
+		Begin,
+		/** */
+		End,
+	};
+}
+
+/** AnimNotifies marked as BranchingPoints will create these markers on their Begin/End times.
+	They create stopping points when the Montage is being ticked to dispatch events. */
+USTRUCT()
+struct FBranchingPointMarker
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 NotifyIndex;
+	
+	UPROPERTY()
+	float TriggerTime;
+
+	UPROPERTY()
+	TEnumAsByte<EAnimNotifyEventType::Type> NotifyEventType;
+
+	FBranchingPointMarker()
+		: NotifyIndex(INDEX_NONE)
+		, TriggerTime(0.f)
+		, NotifyEventType(EAnimNotifyEventType::Begin)
+	{
+	}
+
+	FBranchingPointMarker(int32 InNotifyIndex, float InTriggerTime, EAnimNotifyEventType::Type InNotifyEventType)
+		: NotifyIndex(InNotifyIndex)
+		, TriggerTime(InTriggerTime)
+		, NotifyEventType(InNotifyEventType)
+	{
+	}
 };
 
 /**
@@ -159,6 +196,12 @@ public:
 
 	// transient PreviousWeight - Weight of previous tick
 	float PreviousWeight;
+
+	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
+		call NotifyEnd on the event after a deletion in the editor. After this the event
+		is removed correctly. */
+	UPROPERTY(Transient)
+	TArray<FAnimNotifyEvent> ActiveStateBranchingPoints;
 
 private:
 	UPROPERTY()
@@ -258,8 +301,13 @@ private:
 
 	/** Delegate function handlers
 	 */
-	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPoint* BranchingPoint);
-	void TriggerEventHandler(FName EventName);
+	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
+	
+	/** Updates ActiveStateBranchingPoints array and triggers Begin/End notifications based on CurrentTrackPosition */
+	void UpdateActiveStateBranchingPoints(float CurrentTrackPosition);
+
+	/** Trigger associated events when Montage ticking reaches given FBranchingPointMarker */
+	void BranchingPointEventHandler(const FBranchingPointMarker* BranchingPointMarker);
 	void RefreshNextPrevSections();
 };
 
@@ -284,9 +332,9 @@ class UAnimMontage : public UAnimCompositeBase
 	UPROPERTY()
 	TArray<struct FSlotAnimationTrack> SlotAnimTracks;
 
-	// slot data, each slot contains anim track
+	// Remove this when VER_UE4_MONTAGE_BRANCHING_POINT_REMOVAL is removed.
 	UPROPERTY()
-	TArray<struct FBranchingPoint> BranchingPoints;
+	TArray<struct FBranchingPoint> BranchingPoints_DEPRECATED;
 
 	/** If this is on, it will allow extracting root motion translation. DEPRECATED in 4.5 root motion is controlled by anim sequences **/
 	UPROPERTY()
@@ -334,9 +382,6 @@ public:
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 	// End UAnimationAsset interface
 
-	/** Calculates what (if any) offset should be applied to the trigger time of a branch point given its display time */
-	ENGINE_API EAnimEventTriggerOffsets::Type CalculateOffsetForBranchingPoint(float BranchingPointDisplayTime) const;
-
 	/** Update all linkable elements contained in the montage */
 	ENGINE_API void UpdateLinkableElements();
 
@@ -347,10 +392,6 @@ public:
 	 */
 	ENGINE_API void UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx);
 #endif
-
-	/** Find First BranchingPoint between ]StartTrackPos,EndTrackPos] 
-	 * Has to be contiguous range, does not handle looping and wrapping over. **/
-	const FBranchingPoint* FindFirstBranchingPoint(float StartTrackPos, float EndTrackPos);
 
 	/** Get FCompositeSection with InSectionName */
 	FCompositeSection& GetAnimCompositeSection(int32 SectionIndex);
@@ -448,10 +489,29 @@ private:
 
 private:
 
-	/** Sort CompositeSections in the order of StartPos */
-	void SortAnimBranchingPointByTime();
+	/** Convert all branching points to AnimNotifies */
+	void ConvertBranchingPointsToAnimNotifies();
+	/** Recreate BranchingPoint markers from AnimNotifies marked 'BranchingPoints' */
+	void RefreshBranchingPointMarkers();
+	void AddBranchingPointMarker(FBranchingPointMarker Marker, TMap<float, FAnimNotifyEvent*>& TriggerTimes);
+	
+	/** Cached list of Branching Point markers */
+	UPROPERTY()
+	TArray<FBranchingPointMarker> BranchingPointMarkers;
 
+	UPROPERTY(Transient)
 	// @remove me: temporary variable to do sort while property window changed
 	// this should be fixed when we have tool to do so.
 	bool bAnimBranchingPointNeedsSort;
+
+public:
+
+	/** Keep track of which AnimNotify_State are marked as BranchingPoints, so we can update their state when the Montage is ticked */
+	UPROPERTY()
+	TArray<int32> BranchingPointStateNotifyIndices;
+
+	/** Find first branching point marker between track positions */
+	const FBranchingPointMarker* FindFirstBranchingPointMarker(float StartTrackPos, float EndTrackPos);
+	/** Filter out notifies from array that are marked as 'BranchingPoints' */
+	void FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*>& InAnimNotifies);
 };
