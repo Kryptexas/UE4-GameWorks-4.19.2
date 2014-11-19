@@ -35,7 +35,13 @@ public:
 	bool IsHidden();
 
 	uint32 GetCursorEvent();
-	
+
+	/** Updates accumulated offset which is used for maintaining a "shadow" cursor position */
+	void AddOffset(const int32 DX, const int32 DY);
+
+	/** Resets accumulated offsets to (0,0), */
+	void ResetOffset();
+
 private:
 
 	bool bHidden;
@@ -46,5 +52,10 @@ private:
 	FIntRect CursorClipRect;
 
 	uint32 CursorEvent;
-};
 
+	/** Accumulated X offset (from relative mouse movement events) used for reconstructing global cursor position */
+	int32 AccumulatedOffsetX;
+
+	/** Accumulated Y offset (from relative mouse movement events) used for reconstructing global cursor position */
+	int32 AccumulatedOffsetY;
+};

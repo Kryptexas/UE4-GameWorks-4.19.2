@@ -302,7 +302,8 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 			if(bUsingHighPrecisionMouseInput)
 			{
-				MessageHandler->OnRawMouseMove( motionEvent.xrel, motionEvent.yrel );
+					LinuxCursor->AddOffset(motionEvent.xrel, motionEvent.yrel);
+ 					MessageHandler->OnRawMouseMove(motionEvent.xrel, motionEvent.yrel);
 			}
 			else
 			{
@@ -992,6 +993,7 @@ void FLinuxApplication::SetHighPrecisionMouseMode( const bool Enable, const TSha
 {
 	MessageHandler->OnCursorSet();
 	bUsingHighPrecisionMouseInput = Enable;
+	((FLinuxCursor*)Cursor.Get())->ResetOffset();
 }
 
 
