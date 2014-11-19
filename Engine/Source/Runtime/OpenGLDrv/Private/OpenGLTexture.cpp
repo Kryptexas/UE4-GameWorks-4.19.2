@@ -1129,7 +1129,7 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 		}
 		if(bUseClientStorage)
 		{
-			glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
+			glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_FALSE);
 		}
 		else
 		{
