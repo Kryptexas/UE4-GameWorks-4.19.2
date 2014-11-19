@@ -128,3 +128,9 @@ void UMeshComponent::SetTextureForceResidentFlag( bool bForceMiplevelsToBeReside
 		}
 	}
 }
+
+
+TArray<class UMaterialInterface*> UMeshComponent::GetMaterials() const
+{
+	return Materials;
+}

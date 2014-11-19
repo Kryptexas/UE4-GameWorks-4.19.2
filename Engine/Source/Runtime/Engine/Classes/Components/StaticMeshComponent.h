@@ -296,6 +296,9 @@ public:
 #endif
 	// End UPrimitiveComponent interface.
 
+	// Begin UMeshComponent interface
+	virtual TArray<class UMaterialInterface*> GetMaterials() const override;
+	// End UMeshComponent interface
 	/**
 	 *	Returns true if the component uses texture lightmaps
 	 *

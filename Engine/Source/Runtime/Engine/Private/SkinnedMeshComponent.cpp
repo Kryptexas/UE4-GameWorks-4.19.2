@@ -314,6 +314,22 @@ void USkinnedMeshComponent::UpdateSlaveComponent()
 	MarkRenderDynamicDataDirty();
 }
 
+TArray<class UMaterialInterface*> USkinnedMeshComponent::GetMaterials() const
+{
+	TArray<class UMaterialInterface*> Materials = Super::GetMaterials();
+
+	// if no material is overriden, look for mesh material;
+	if(Materials.Num() == 0 && SkeletalMesh)
+	{
+		for (auto Material : SkeletalMesh->Materials)
+		{
+			Materials.Add(Material.MaterialInterface);
+		}
+	}
+
+	return Materials;
+}
+
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
 	if (Materials.Num() > 0)
