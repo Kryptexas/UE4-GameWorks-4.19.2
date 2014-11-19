@@ -399,7 +399,10 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		if(CachedSamples.Num() > 0)
 		{
 			TOptional<FVector2D> PreviewBSInput = GetWidgetPosFromEditorPos(PreviewInput.Get(), WindowRect);
-			DrawSamplePoint(PreviewBSInput.GetValue(), EBlendSpaceSampleState::Highlighted, AllottedGeometry, MyClippingRect, OutDrawElements, HighlightLayer);
+			if (PreviewBSInput.IsSet())
+			{
+				DrawSamplePoint(PreviewBSInput.GetValue(), EBlendSpaceSampleState::Highlighted, AllottedGeometry, MyClippingRect, OutDrawElements, HighlightLayer);
+			}
 		}
 		
 		if(const FLineElement* LineElement = ElementGenerator.GetLineElementForBlendInput(PreviewInput.Get()))
