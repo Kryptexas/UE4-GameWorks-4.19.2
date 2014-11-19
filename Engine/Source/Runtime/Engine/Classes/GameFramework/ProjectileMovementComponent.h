@@ -146,7 +146,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 
 	//Begin UMovementComponent Interface
 	virtual float GetMaxSpeed() const override { return MaxSpeed; }
-	virtual void OnRegister() override;
+	virtual void InitializeComponent() override;
 	//End UMovementComponent Interface
 
 	/**

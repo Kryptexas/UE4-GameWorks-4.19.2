@@ -135,6 +135,9 @@ public:
 	virtual void PostLoad() override;
 
 	/** Overridden to auto-register the updated component if it starts NULL, and we can find a root component on our owner. */
+	virtual void InitializeComponent() override;
+
+	/** Overridden to update component properties that should be updated while being edited. */	
 	virtual void OnRegister() override;
 
 
@@ -384,6 +387,9 @@ private:
 
 	/** Transient flag indicating whether we are executing OnRegister(). */
 	bool bInOnRegister;
+	
+	/** Transient flag indicating whether we are executing InitializeComponent(). */
+	bool bInInitializeComponent;
 };
 
 
