@@ -402,6 +402,13 @@ void SDetailsViewBase::OnShowOnlyModifiedClicked()
 	UpdateFilteredDetails();
 }
 
+void SDetailsViewBase::OnShowAllAdvancedClicked()
+{
+	CurrentFilter.bShowAllAdvanced = !CurrentFilter.bShowAllAdvanced;
+
+	UpdateFilteredDetails();
+}
+
 void SDetailsViewBase::OnShowOnlyDifferingClicked()
 {
 	CurrentFilter.bShowOnlyDiffering = !CurrentFilter.bShowOnlyDiffering;
@@ -409,9 +416,9 @@ void SDetailsViewBase::OnShowOnlyDifferingClicked()
 	UpdateFilteredDetails();
 }
 
-void SDetailsViewBase::OnShowAllAdvancedClicked()
+void SDetailsViewBase::OnShowAllChildrenIfCategoryMatchesClicked()
 {
-	CurrentFilter.bShowAllAdvanced = !CurrentFilter.bShowAllAdvanced;
+	CurrentFilter.bShowAllChildrenIfCategoryMatches = !CurrentFilter.bShowAllChildrenIfCategoryMatches;
 
 	UpdateFilteredDetails();
 }

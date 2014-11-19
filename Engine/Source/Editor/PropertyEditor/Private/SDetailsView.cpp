@@ -54,67 +54,77 @@ void SDetailsView::Construct(const FArguments& InArgs)
 	TSharedRef<SScrollBar> ExternalScrollbar = SNew(SScrollBar);
 	ExternalScrollbar->SetVisibility( TAttribute<EVisibility>( this, &SDetailsView::GetScrollBarVisibility ) );
 
-	FMenuBuilder DetailViewOptions( true, NULL );
+		FMenuBuilder DetailViewOptions( true, NULL );
 
-	FUIAction ShowOnlyModifiedAction( 
-		FExecuteAction::CreateSP( this, &SDetailsView::OnShowOnlyModifiedClicked ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SDetailsView::IsShowOnlyModifiedChecked )
-	);
+		if (DetailsViewArgs.bShowModifiedPropertiesOption)
+		{
+			DetailViewOptions.AddMenuEntry( 
+				LOCTEXT("ShowOnlyModified", "Show Only Modified Properties"),
+				LOCTEXT("ShowOnlyModified_ToolTip", "Displays only properties which have been changed from their default"),
+				FSlateIcon(),
+				FUIAction( 
+					FExecuteAction::CreateSP( this, &SDetailsView::OnShowOnlyModifiedClicked ),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP( this, &SDetailsView::IsShowOnlyModifiedChecked )
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton 
+			);
+		}
 
-	if (DetailsViewArgs.bShowModifiedPropertiesOption)
-	{
-		DetailViewOptions.AddMenuEntry( 
-			LOCTEXT("ShowOnlyModified", "Show Only Modified Properties"),
-			LOCTEXT("ShowOnlyModified_ToolTip", "Displays only properties which have been changed from their default"),
+		if( DetailsViewArgs.bShowDifferingPropertiesOption )
+		{
+			DetailViewOptions.AddMenuEntry(
+				LOCTEXT("ShowOnlyDiffering", "Show Only Differing Properties"),
+				LOCTEXT("ShowOnlyDiffering_ToolTip", "Displays only properties in this instance which have been changed or added from the instance being compared"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SDetailsView::OnShowOnlyDifferingClicked),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(this, &SDetailsView::IsShowOnlyDifferingChecked)
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+		}
+
+		DetailViewOptions.AddMenuEntry(
+			LOCTEXT("ShowAllAdvanced", "Show All Advanced Details"),
+			LOCTEXT("ShowAllAdvanced_ToolTip", "Shows all advanced detail sections in each category"),
 			FSlateIcon(),
-			ShowOnlyModifiedAction,
+			FUIAction( 
+			FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllAdvancedChecked )
+				),
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton 
 		);
-	}
 
-	if( DetailsViewArgs.bShowDifferingPropertiesOption )
-	{
 		DetailViewOptions.AddMenuEntry(
-			LOCTEXT("ShowOnlyDiffering", "Show Only Differing Properties"),
-			LOCTEXT("ShowOnlyDiffering_ToolTip", "Displays only properties in this instance which have been changed or added from the instance being compared"),
+			LOCTEXT("ShowAllChildrenIfCategoryMatches", "Show Child On Category Match"),
+			LOCTEXT("ShowAllChildrenIfCategoryMatches_ToolTip", "Shows children if their category matches the search criteria"),
 			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &SDetailsView::OnShowOnlyDifferingClicked),
+			FUIAction( 
+				FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllChildrenIfCategoryMatchesClicked ),
 				FCanExecuteAction(),
-				FIsActionChecked::CreateSP(this, &SDetailsView::IsShowOnlyDifferingChecked)
+				FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllChildrenIfCategoryMatchesChecked )
 			),
 			NAME_None,
-			EUserInterfaceActionType::ToggleButton
-		);
-	}
+			EUserInterfaceActionType::ToggleButton 
+			);
 
-	FUIAction ShowAllAdvancedAction( 
-		FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllAdvancedChecked )
-	);
+		DetailViewOptions.AddMenuEntry(
+			LOCTEXT("CollapseAll", "Collapse All Categories"),
+			LOCTEXT("CollapseAll_ToolTip", "Collapses all root level categories"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/false, /*bRecurse=*/false )));
 
-	DetailViewOptions.AddMenuEntry(
-		LOCTEXT("ShowAllAdvanced", "Show All Advanced Details"),
-		LOCTEXT("ShowAllAdvanced_ToolTip", "Shows all advanced detail sections in each category"),
-		FSlateIcon(),
-		ShowAllAdvancedAction,
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton 
-		);
-
-	DetailViewOptions.AddMenuEntry(
-		LOCTEXT("CollapseAll", "Collapse All Categories"),
-		LOCTEXT("CollapseAll_ToolTip", "Collapses all root level categories"),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/false, /*bRecurse=*/false )));
-	DetailViewOptions.AddMenuEntry(
-		LOCTEXT("ExpandAll", "Expand All Categories"),
-		LOCTEXT("ExpandAll_ToolTip", "Expands all root level categories"),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false )));
+		DetailViewOptions.AddMenuEntry(
+			LOCTEXT("ExpandAll", "Expand All Categories"),
+			LOCTEXT("ExpandAll_ToolTip", "Expands all root level categories"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false )));
 
 	TSharedRef<SHorizontalBox> FilterRow = SNew( SHorizontalBox )
 		.Visibility( this, &SDetailsView::GetFilterBoxVisibility )

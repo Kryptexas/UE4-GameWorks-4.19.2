@@ -54,9 +54,10 @@ struct FDetailFilter
 		: bShowOnlyModifiedProperties(false)
 		, bShowAllAdvanced(false)
 		, bShowOnlyDiffering(false)
+		, bShowAllChildrenIfCategoryMatches(true)
 	{}
 
-	bool IsEmptyFilter() const { return FilterStrings.Num() == 0 && bShowOnlyModifiedProperties == false && bShowAllAdvanced == false && bShowOnlyDiffering == false; }
+	bool IsEmptyFilter() const { return FilterStrings.Num() == 0 && bShowOnlyModifiedProperties == false && bShowAllAdvanced == false && bShowOnlyDiffering == false && bShowAllChildrenIfCategoryMatches == false; }
 
 	/** Any user search terms that items must match */
 	TArray<FString> FilterStrings;
@@ -66,6 +67,8 @@ struct FDetailFilter
 	bool bShowAllAdvanced;
 	/** If we should only show differing properties */
 	bool bShowOnlyDiffering;
+	/** If we should show all the children if their category name matches the search */
+	bool bShowAllChildrenIfCategoryMatches;
 	TSet<FPropertyPath> WhitelistedProperties;
 };
 
@@ -350,14 +353,20 @@ protected:
 	/** @return true if show only differing is checked */
 	bool IsShowOnlyDifferingChecked() const { return CurrentFilter.bShowOnlyDiffering; }
 
+	/** @return true if show all advanced is checked */
+	bool IsShowAllChildrenIfCategoryMatchesChecked() const { return CurrentFilter.bShowAllChildrenIfCategoryMatches; }
+
 	/** Called when show only modified is clicked */
 	void OnShowOnlyModifiedClicked();
+
+	/** Called when show all advanced is clicked */
+	void OnShowAllAdvancedClicked();
 
 	/** Called when show only differing is clicked */
 	void OnShowOnlyDifferingClicked();
 
-	/** Called when show all advanced is clicked */
-	void OnShowAllAdvancedClicked();
+	/** Called when show all children if category matches is clicked */
+	void OnShowAllChildrenIfCategoryMatchesClicked();
 
 	/**
 	* Updates the details with the passed in filter

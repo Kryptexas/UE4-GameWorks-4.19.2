@@ -277,13 +277,36 @@ ENodeVisibility::Type FDetailItemNode::GetVisibility() const
 	return Visibility;
 }
 
-static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization, const FDetailFilter& InFilter )
-{
+static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization, const FDetailFilter& InFilter, const FString& InCategoryName )
+{	
+	struct Local
+	{
+		static bool StringPassesFilter(const FDetailFilter& InFilter, const FString& InString)
+		{
+			// Make sure the passed string matches all filter strings
+			if( InString.Len() > 0 )
+			{
+				for (int32 TestNameIndex = 0; TestNameIndex < InFilter.FilterStrings.Num(); ++TestNameIndex)
+				{
+					const FString& TestName = InFilter.FilterStrings[TestNameIndex];
+					if ( !InString.Contains(TestName) ) 
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			return false;
+		}
+	};
+
 	bool bPassesAllFilters = true;
-	
+
 	if( InFilter.FilterStrings.Num() > 0 || InFilter.bShowOnlyModifiedProperties == true || InFilter.bShowOnlyDiffering == true )
 	{
 		TSharedPtr<FPropertyNode> PropertyNodePin = InCustomization.GetPropertyNode();
+
+		const bool bPassesCategoryFilter = InFilter.bShowAllChildrenIfCategoryMatches ? Local::StringPassesFilter(InFilter, InCategoryName) : false;
 
 		bPassesAllFilters = false;
 		if( PropertyNodePin.IsValid() && !PropertyNodePin->AsCategoryNode() )
@@ -295,36 +318,16 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 
 			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
-			bool bPassesDifferingFilter = true;
-			if( InFilter.bShowOnlyDiffering )
-			{
-				 bPassesDifferingFilter = InFilter.WhitelistedProperties.Find(*FPropertyNode::CreatePropertyPath(PropertyNodePin.ToSharedRef())) != NULL;
-			}
+			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering ? InFilter.WhitelistedProperties.Find(*FPropertyNode::CreatePropertyPath(PropertyNodePin.ToSharedRef())) != NULL : true;
 
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
-			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter;
+			bPassesAllFilters = (bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter) || bPassesCategoryFilter;
 		}
 		else if( InCustomization.HasCustomWidget() )
 		{
-			if( InFilter.FilterStrings.Num() > 0 && InCustomization.WidgetDecl->FilterTextString.Len() > 0  )
-			{
-				// We default to acceptable
-				bPassesAllFilters = true;
+			const bool bPassesTextFilter = Local::StringPassesFilter(InFilter, InCustomization.WidgetDecl->FilterTextString);
 
-				const FString& FilterMatch = InCustomization.WidgetDecl->FilterTextString;
-
-				// Make sure the filter match matches all filter strings
-				for (int32 TestNameIndex = 0; TestNameIndex < InFilter.FilterStrings.Num(); ++TestNameIndex)
-				{
-					const FString& TestName =  InFilter.FilterStrings[TestNameIndex];
-
-					if ( !FilterMatch.Contains( TestName) ) 
-					{
-						bPassesAllFilters = false;
-						break;
-					}
-				}
-			}
+			bPassesAllFilters = bPassesTextFilter || bPassesCategoryFilter;
 		}
 	}
 
@@ -399,7 +402,7 @@ FPropertyPath FDetailItemNode::GetPropertyPath() const
 
 void FDetailItemNode::FilterNode( const FDetailFilter& InFilter )
 {
-	bShouldBeVisibleDueToFiltering = PassesAllFilters( Customization, InFilter );
+	bShouldBeVisibleDueToFiltering = PassesAllFilters( Customization, InFilter, ParentCategory.Pin()->GetDisplayName() );
 
 	bShouldBeVisibleDueToChildFiltering = false;
 
