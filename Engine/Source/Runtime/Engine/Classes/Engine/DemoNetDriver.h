@@ -30,6 +30,9 @@ class UDemoNetDriver : public UNetDriver
 	/** during playback, set to total number of frames recorded in the demo */
 	int32				PlaybackTotalFrames;
 
+	/** during playback, set to offset of where the stream ends (we don't want to continue reading into the meta data section) */
+	int32				EndOfStreamOffset;
+
 	/** True if we're in the middle of recording a frame */
 	bool				bIsRecordingDemoFrame;
 
