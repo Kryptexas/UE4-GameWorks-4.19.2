@@ -53,11 +53,17 @@ public:
 	virtual void SetInGameUI(bool bIsInGame) override
 	{
 		bInGame = bIsInGame;
-		if(bIsInGame)
+
+		if (OnNetworkMessageSentEvent().IsBound())
 		{
 			SetViewChannel(EChatMessageType::Party);
-			SetAllowGlobalChat(false);
 		}
+		else
+		{
+			SetViewChannel(EChatMessageType::Global);
+		}
+		
+		SetAllowGlobalChat(!bIsInGame);
 		FilterChatList();
 	}
 
@@ -156,7 +162,7 @@ public:
 	virtual void SetChannelUserClicked(const TSharedRef<FFriendChatMessage> ChatItemSelected) override
 	{
 		bool bFoundUser = false;
-		TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(ChatItemSelected->MessageRef->GetUserId());
+		TSharedPtr< IFriendItem > ExistingFriend = ChatItemSelected->MessageRef.IsValid() ? FFriendsAndChatManager::Get()->FindUser(ChatItemSelected->MessageRef->GetUserId()) : NULL;
 
 		if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
 		{

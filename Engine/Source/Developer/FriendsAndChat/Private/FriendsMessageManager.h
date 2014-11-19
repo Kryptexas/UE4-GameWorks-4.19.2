@@ -34,7 +34,7 @@ namespace EChatMessageType
 	}
 };
 
-// Stuct for holding chat message information. Will probably be replaced by OSS version
+// Struct for holding chat message information. Will probably be replaced by OSS version
 struct FFriendChatMessage
 {
 	EChatMessageType::Type MessageType;
