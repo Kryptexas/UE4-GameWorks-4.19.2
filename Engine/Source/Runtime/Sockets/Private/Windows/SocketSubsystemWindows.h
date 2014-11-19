@@ -4,10 +4,12 @@
 
 #include "SocketSubsystem.h"
 #include "BSDSockets/SocketSubsystemBSD.h"
+#include "BSDSockets/SocketsBSD.h"
 #include "SocketSubsystemPackage.h"
 
+
 /**
- * Windows specific socket subsystem implementation
+ * Windows specific socket subsystem implementation.
  */
 class FSocketSubsystemWindows
 	: public FSocketSubsystemBSD
@@ -26,6 +28,7 @@ public:
 
 	// FSocketSubsystemBSD overrides
 
+	virtual class FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false) override;
 	virtual bool HasNetworkDevice() override;
 	virtual ESocketErrors GetLastErrorCode() override;
 	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) override;

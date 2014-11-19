@@ -40,6 +40,9 @@ void DestroySocketSubsystem( FSocketSubsystemModule& SocketSubsystemModule )
 }
 
 
+/* FSocketSubsystemWindows interface
+*****************************************************************************/
+
 FSocketSubsystemWindows* FSocketSubsystemWindows::Create()
 {
 	if (SocketSingleton == nullptr)
@@ -59,6 +62,45 @@ void FSocketSubsystemWindows::Destroy()
 		delete SocketSingleton;
 		SocketSingleton = nullptr;
 	}
+}
+
+
+/* FSocketSubsystemBSD overrides
+*****************************************************************************/
+
+FSocket* FSocketSubsystemWindows::CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP)
+{
+	SOCKET Socket = INVALID_SOCKET;
+	FSocketBSD* NewSocket = nullptr;
+
+	switch (SocketType.GetComparisonIndex())
+	{
+	case NAME_DGram:
+		// Creates a data gram (UDP) socket
+		Socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		NewSocket = (Socket != INVALID_SOCKET) ? InternalBSDSocketFactory(Socket, SOCKTYPE_Datagram, SocketDescription) : nullptr;
+		break;
+
+	case NAME_Stream:
+		// Creates a stream (TCP) socket
+		Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		NewSocket = (Socket != INVALID_SOCKET) ? InternalBSDSocketFactory(Socket, SOCKTYPE_Streaming, SocketDescription) : nullptr;
+		break;
+
+	default:
+		break;
+	}
+
+	if (NewSocket != nullptr)
+	{
+		::SetHandleInformation((HANDLE)NewSocket->GetNativeSocket(), HANDLE_FLAG_INHERIT, 0);
+	}
+	else
+	{
+		UE_LOG(LogSockets, Warning, TEXT("Failed to create socket %s [%s]"), *SocketType.ToString(), *SocketDescription);
+	}
+
+	return NewSocket;
 }
 
 
