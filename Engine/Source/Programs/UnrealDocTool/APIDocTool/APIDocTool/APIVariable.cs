@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.IO;
+using DoxygenLib;
 
 namespace APIDocTool
 {
@@ -26,6 +27,7 @@ namespace APIDocTool
 		public string Definition = "";
 
 		public string Type = "";
+		public string AbbreviatedType = "";
 
 		public bool IsMutable = false;
 		public bool IsStatic = false;
@@ -62,6 +64,7 @@ namespace APIDocTool
 
 			XmlNode type = Node.SelectSingleNode("type");
 			Type = ConvertToMarkdown(type);
+			AbbreviatedType = Markdown.Truncate(Type, 20, "...");
 
 			XmlNodeList SimpleNodes = Node.SelectNodes("detaileddescription/para/simplesect");
 			foreach (XmlNode node in SimpleNodes)
@@ -139,8 +142,19 @@ namespace APIDocTool
 			}
         }
 
-		public UdnIconListItem GetListItem()
+		public override bool ShouldOutputPage()
 		{
+			return (MetadataDirective != null || BriefDescription != FullDescription || Type != AbbreviatedType);
+		}
+
+		public void WriteListItem(UdnWriter Writer)
+		{
+			bool OutputPage = ShouldOutputPage();
+
+			// Enter the object
+			Writer.EnterObject(OutputPage? "VariableListItem" : "VariableListItemNoLink");
+
+			// Get all the icons
 			List<Icon> Icons = new List<Icon>();
 			Icons.Add(APIDocTool.Icons.Variable[(int)Protection]);
 			if (IsStatic)
@@ -152,7 +166,42 @@ namespace APIDocTool
 				Icons.Add(APIDocTool.Icons.ReflectedVariable);
 				Icons.AddRange(MetadataDirective.Icons);
 			}
-			return new UdnIconListItem(Icons, Name, BriefDescription, LinkPath);
+			Writer.WriteParam("icons", Icons);
+
+			// Write the type
+			Writer.WriteParam("type", AbbreviatedType);
+			Writer.WriteParam("name", Name);
+			if(OutputPage)
+			{
+				Writer.WriteParam("link", "[RELATIVE:" + LinkPath + "]");
+			}
+			Writer.WriteParam("description", BriefDescription);
+
+			// Leave the object
+			Writer.LeaveObject();
+		}
+		
+		public static void WriteList(UdnWriter Writer, IEnumerable<APIVariable> Variables)
+		{
+			Writer.WriteObject("VariableListHead");
+			foreach (APIVariable Variable in Variables)
+			{
+				Variable.WriteListItem(Writer);
+			}
+			Writer.WriteObject("VariableListTail");
+		}
+
+		public static bool WriteListSection(UdnWriter Writer, string SectionId, string SectionTitle, IEnumerable<APIVariable> Variables)
+		{
+			APIVariable[] VariableArray = Variables.ToArray();
+			if (VariableArray.Length > 0)
+			{
+				Writer.EnterSection(SectionId, SectionTitle);
+				WriteList(Writer, Variables);
+				Writer.LeaveSection();
+				return true;
+			}
+			return false;
 		}
 	}
 }

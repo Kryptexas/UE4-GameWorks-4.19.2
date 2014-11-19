@@ -256,20 +256,23 @@ namespace APIDocTool
 				Console.WriteLine();
 				Console.WriteLine("Options:");
 				Console.WriteLine("    -rebuild:                        Clean and build everything");
-				Console.WriteLine("    -rebuild<step>:					Clean and build specific steps");
+				Console.WriteLine("    -rebuild<step>:                  Clean and build specific steps");
 				Console.WriteLine("    -clean:                          Clean all files");
-				Console.WriteLine("    -clean<step>:					Clean specific steps");
-				Console.WriteLine("    -build:						    Build everything");
-				Console.WriteLine("    -build<step>:					Build specific output steps");
-				Console.WriteLine("    -archive:						Archive everything");
-				Console.WriteLine("    -archive<step>:					Archive specific output steps");
-				Console.WriteLine("    -enginedir=<...>:				Specifies the root engine directory");
-				Console.WriteLine("    -intermediatedir=<...>:			Specifies the intermediate directory");
-				Console.WriteLine("    -documentationdir=<...>:			Specifies the documentation directory");
-				Console.WriteLine("    -indexonly:						Just build index pages");
-				Console.WriteLine("    -filter=<...>,<...>:             Filter conversion, eg.");
-				Console.WriteLine("                                       Folders:  -filter=Core/Containers/...");
-				Console.WriteLine("                                       Entities: -filter=Core/TArray");
+				Console.WriteLine("    -clean<step>:                    Clean specific steps");
+				Console.WriteLine("    -build:                          Build everything");
+				Console.WriteLine("    -build<step>:                    Build specific output steps");
+				Console.WriteLine("    -archive:                        Archive everything");
+				Console.WriteLine("    -archive<step>:                  Archive specific output steps");
+				Console.WriteLine("    -enginedir=<...>:                Specifies the root engine directory");
+				Console.WriteLine("    -intermediatedir=<...>:          Specifies the intermediate directory");
+				Console.WriteLine("    -documentationdir=<...>:         Specifies the documentation directory");
+				Console.WriteLine("    -indexonly:                      Just build index pages");
+				Console.WriteLine("    -filter=<...>,<...>:             Filter which things to convert, eg.");
+				Console.WriteLine("                                     Folders:  -filter=Core/Containers/...");
+				Console.WriteLine("                                     Entities: -filter=Core/TArray");
+				Console.WriteLine("Valid steps are:");
+				Console.WriteLine("   code, codetarget, codemeta, codexml, codeudn, codehtml, codechm");
+				Console.WriteLine("   blueprint, blueprintjson, blueprintudn, blueprinthtml, blueprintchm");
 				return 1;
 			}
 
@@ -795,6 +798,10 @@ namespace APIDocTool
 
 				// Build a list of pages to output
 				List<APIPage> OutputPages = new List<APIPage>(Index.GatherPages().OrderBy(x => x.LinkPath));
+
+				// Remove any pages that don't want to be written
+				int NumRemoved = OutputPages.RemoveAll(x => !x.ShouldOutputPage());
+				Console.WriteLine("Removed {0} pages", NumRemoved);
 
 				// Dump the output stats
 				string StatsPath = Path.Combine(SitemapDir, "Stats.txt");

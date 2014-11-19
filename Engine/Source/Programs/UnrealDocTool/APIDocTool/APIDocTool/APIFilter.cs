@@ -118,7 +118,7 @@ namespace APIDocTool
 
 				// Write the variable list
 				Writer.EnterTag("[PARAM:variables]");
-				Writer.WriteListSection("variables", "Variables", "Name", "Description", FilteredMembers.OfType<APIVariable>().Select(x => x.GetListItem()));
+				APIVariable.WriteListSection(Writer, "variables", "Variables", FilteredMembers.OfType<APIVariable>());
 				Writer.LeaveTag("[/PARAM]");
 
 				// Close the module template

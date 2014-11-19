@@ -86,6 +86,11 @@ namespace APIDocTool
 			return VisitedSet;
 		}
 
+		public virtual bool ShouldOutputPage()
+		{
+			return true;
+		}
+
 		public virtual SitemapNode CreateSitemapNode()
 		{
 			return new SitemapNode(Name, SitemapLinkPath);
