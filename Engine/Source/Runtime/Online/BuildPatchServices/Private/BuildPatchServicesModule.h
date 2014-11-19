@@ -115,6 +115,11 @@ private:
 	 */
 	bool Tick( float Delta );
 
+	/**
+	 * This will get called when core PreExits. Make sure any running installers are canceled out.
+	 */
+	void PreExit();
+
 private:
 	// Holds the cloud directory where chunks should belong
 	static FString CloudDirectory;
