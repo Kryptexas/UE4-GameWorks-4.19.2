@@ -541,6 +541,43 @@ enum ETravelType
 	TRAVEL_MAX,
 };
 
+/** Types of demo play failures broadcast from the engine */
+UENUM(BlueprintType)
+namespace EDemoPlayFailure
+{
+	enum Type
+	{
+		/** A Generic failure */
+		Generic,
+		/** Demo was not found */
+		DemoNotFound,
+		/** Demo is corrupt */
+		Corrupt,
+		/** Invalid version */
+		InvalidVersion,
+	};
+}
+
+namespace EDemoPlayFailure
+{
+	inline const TCHAR* ToString(EDemoPlayFailure::Type FailureType)
+	{
+		switch (FailureType)
+		{
+		case Generic:
+			return TEXT("Gneric");
+		case DemoNotFound:
+			return TEXT("DemoNotFound");
+		case Corrupt:
+			return TEXT("Corrupt");
+		case InvalidVersion:
+			return TEXT("InvalidVersion");
+		}
+
+		return TEXT("Unknown EDemoPlayFailure error occurred.");
+	}
+}
+
 //URL structure.
 USTRUCT()
 struct ENGINE_API FURL

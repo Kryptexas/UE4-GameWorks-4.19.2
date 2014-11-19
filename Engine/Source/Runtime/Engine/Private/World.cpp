@@ -72,6 +72,7 @@
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "Engine/Polys.h"
 #include "Engine/LightMapTexture2D.h"
+#include "Engine/GameInstance.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -2687,13 +2688,20 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 			Ar.Logf( TEXT( "Demo playback failed: %s" ), *Error );
 			DestroyDemoNetDriver();
 		}
-
-		FCoreUObjectDelegates::PostDemoPlay.Broadcast();
+		else
+		{
+			FCoreUObjectDelegates::PostDemoPlay.Broadcast();
+		}
 #endif
 	}
 	else
 	{
 		Ar.Log( TEXT( "You must specify a filename" ) );
+
+		if ( GetGameInstance() != nullptr )
+		{
+			GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "You must specify a filename " ) ) );
+		}
 	}
 
 	return true;

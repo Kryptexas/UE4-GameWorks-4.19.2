@@ -153,5 +153,8 @@ public:
 	TArray<class ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator();
 	const TArray<class ULocalPlayer*> &			GetLocalPlayers();
 
+	/** Called when demo playback fails for any reason */
+	virtual void			HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
+
 	static void				AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 };

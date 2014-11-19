@@ -14,6 +14,7 @@
 #include "Engine/LevelStreamingKismet.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/SpectatorPawnMovement.h"
+#include "Engine/GameInstance.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 
@@ -70,9 +71,24 @@ FString UDemoNetDriver::LowLevelGetNetworkNumber()
 
 bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error )
 {
+	if ( GetWorld() == nullptr )
+	{
+		UE_LOG( LogDemo, Error, TEXT( "GetWorld() == nullptr" ) );
+		return false;
+	}
+
+	if ( GetWorld()->GetGameInstance() == nullptr )
+	{
+		UE_LOG( LogDemo, Error, TEXT( "GetWorld()->GetGameInstance() == nullptr" ) );
+		return false;
+	}
+
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+
 	// handle default initialization
 	if ( !InitBase( true, InNotify, ConnectURL, false, Error ) )
 	{
+		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "InitBase FAILED" ) ) );
 		return false;
 	}
 
@@ -83,6 +99,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	{
 		Error = FString::Printf( TEXT( "Couldn't open demo file %s for reading" ), *DemoFilename );
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
 		return false;
 	}
 
@@ -115,16 +132,17 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	FURL DemoURL;
 	DemoURL.Map = LevelName;
 
-	FWorldContext * WorldContext = GEngine->GetWorldContextFromWorld( World );
+	FWorldContext * WorldContext = GEngine->GetWorldContextFromWorld( GetWorld() );
 
 	if ( WorldContext == NULL )
 	{
 		Error = FString::Printf( TEXT( "No world context" ), *DemoFilename );
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "No world context" ) ) );
 		return false;
 	}
 
-	World->DemoNetDriver = NULL;
+	GetWorld()->DemoNetDriver = NULL;
 	SetWorld( NULL );
 
 	UDemoPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FObjectInitializer() );
@@ -137,6 +155,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	{
 		Error = LoadMapError;
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: LoadMap failed: failed: %s" ), *Error );
+		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "LoadMap failed" ) ) );
 		return false;
 	}
 
