@@ -555,12 +555,13 @@ private:
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
 	* Called when an asset is dropped upon an existing actor.
@@ -571,12 +572,13 @@ private:
 	* @param    DroppedUponSlot     The material slot/submesh that was identified as the drop location.  If unknown use -1.
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
+	* @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	* @param	FactoryToUse		The preferred actor factory to use (optional)
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -587,12 +589,13 @@ private:
 	 * @param	TargetProxy			Hit proxy representing the dropped upon model
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse );
+	bool DropObjectsOnBSPSurface(FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a manipulation widget.
@@ -600,10 +603,11 @@ private:
 	 * @param	View				The SceneView for the dropped-in viewport
 	 * @param	Cursor				Mouse cursor location
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
+	 * @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnWidget( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects);
+	bool DropObjectsOnWidget(FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, bool bCreateDropPreview = false);
 
 	
 
