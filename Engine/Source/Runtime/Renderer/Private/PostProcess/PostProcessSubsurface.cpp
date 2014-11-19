@@ -88,7 +88,11 @@ public:
 		{
 			const IPooledRenderTarget* PooledRT = GetSubsufaceProfileTexture_RT(Context.RHICmdList);
 
-			check(PooledRT);
+			if(!PooledRT)
+			{
+				// no subsurface profile was used yet
+				PooledRT = GSystemTextures.BlackDummy;
+			}
 
 			const FSceneRenderTargetItem& Item = PooledRT->GetRenderTargetItem();
 
