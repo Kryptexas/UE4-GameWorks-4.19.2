@@ -681,6 +681,8 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 		{
 			// empty, just skip over this data
 			Ar.Seek( RecastNavMeshSizePos + RecastNavMeshSizeBytes );
+			// if it's not getting filled it's better to just remove it
+			RecastNavMeshImpl->ReleaseDetourNavMesh();
 		}
 	}
 	else

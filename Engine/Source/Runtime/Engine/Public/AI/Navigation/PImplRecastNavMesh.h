@@ -184,6 +184,7 @@ public:
 public:
 	class dtNavMesh const* GetRecastMesh() const { return DetourNavMesh; };
 	class dtNavMesh* GetRecastMesh() { return DetourNavMesh; };
+	void ReleaseDetourNavMesh();
 
 	bool GetOwnsNavMeshData() const { return bOwnsNavMeshData; }
 

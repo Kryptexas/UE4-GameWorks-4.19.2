@@ -251,15 +251,20 @@ FPImplRecastNavMesh::FPImplRecastNavMesh(ARecastNavMesh* Owner)
 
 FPImplRecastNavMesh::~FPImplRecastNavMesh()
 {
+	ReleaseDetourNavMesh();
+
+	DEC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
+};
+
+void FPImplRecastNavMesh::ReleaseDetourNavMesh()
+{
 	// release navmesh only if we own it
 	if (DetourNavMesh != nullptr)
 	{
 		dtFreeNavMesh(DetourNavMesh);
 	}
 	DetourNavMesh = nullptr;
-
-	DEC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
-};
+}
 
 /**
  * Serialization.
