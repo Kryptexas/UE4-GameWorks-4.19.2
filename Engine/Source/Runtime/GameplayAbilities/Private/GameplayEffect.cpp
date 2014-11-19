@@ -628,8 +628,6 @@ bool FGameplayEffectAttributeCaptureSpec::HasValidCapture() const
 
 bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const
 {
-	OutMagnitude = 0.f;
-
 	FAggregator* Agg = AttributeAggregator.Get();
 	if (Agg)
 	{
@@ -640,10 +638,20 @@ bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeMagnitude(con
 	return false;
 }
 
+bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeMagnitudeWithBase(const FAggregatorEvaluateParameters& InEvalParams, float InBaseValue, OUT float& OutMagnitude) const
+{
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutMagnitude = Agg->EvaluateWithBase(InBaseValue, InEvalParams);
+		return true;
+	}
+
+	return false;
+}
+
 bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeBaseValue(OUT float& OutBaseValue) const
 {
-	OutBaseValue = 0.f;
-
 	FAggregator* Agg = AttributeAggregator.Get();
 	if (Agg)
 	{
@@ -656,8 +664,6 @@ bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeBaseValue(OUT
 
 bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeBonusMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutBonusMagnitude) const
 {
-	OutBonusMagnitude = 0.f;
-
 	FAggregator* Agg = AttributeAggregator.Get();
 	if (Agg)
 	{

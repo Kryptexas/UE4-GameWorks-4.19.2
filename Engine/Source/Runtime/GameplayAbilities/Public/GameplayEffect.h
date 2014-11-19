@@ -633,17 +633,29 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	 * a valid capture yet.
 	 * 
 	 * @param InEvalParams	Parameters to evaluate the attribute under
-	 * @param OutMagnitude	[OUT] Computed magnitude, falls back to 0.f in the event of failure
+	 * @param OutMagnitude	[OUT] Computed magnitude
 	 * 
 	 * @return True if the magnitude was successfully calculated, false if it was not
 	 */
 	bool AttemptCalculateAttributeMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const;
 
 	/**
+	 * Attempts to calculate the magnitude of the captured attribute given the specified parameters, including a starting base value. 
+	 * Can fail if the spec doesn't have a valid capture yet.
+	 * 
+	 * @param InEvalParams	Parameters to evaluate the attribute under
+	 * @param InBaseValue	Base value to evaluate the attribute under
+	 * @param OutMagnitude	[OUT] Computed magnitude
+	 * 
+	 * @return True if the magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateAttributeMagnitudeWithBase(const FAggregatorEvaluateParameters& InEvalParams, float InBaseValue, OUT float& OutMagnitude) const;
+
+	/**
 	 * Attempts to calculate the base value of the captured attribute given the specified parameters. Can fail if the spec doesn't have
 	 * a valid capture yet.
 	 * 
-	 * @param OutBaseValue	[OUT] Computed base value, falls back to 0.f in the event of failure
+	 * @param OutBaseValue	[OUT] Computed base value
 	 * 
 	 * @return True if the base value was successfully calculated, false if it was not
 	 */
@@ -654,7 +666,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	 * a valid capture yet.
 	 * 
 	 * @param InEvalParams		Parameters to evaluate the attribute under
-	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude, falls back to 0.f in the event of failure
+	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude
 	 * 
 	 * @return True if the bonus magnitude was successfully calculated, false if it was not
 	 */
@@ -820,7 +832,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	/** Deletes any modified attributes that aren't needed. Call before replication */
 	void PruneModifiedAttributes();
 
-	/** Sets duration. This should onlyt be called as the GameplayEffect is being created */
+	/** Sets duration. This should only be called as the GameplayEffect is being created */
 	void SetDuration(float NewDuration);
 
 	float GetDuration() const;

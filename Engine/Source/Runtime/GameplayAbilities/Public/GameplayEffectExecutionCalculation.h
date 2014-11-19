@@ -37,18 +37,31 @@ public:
 	 * 
 	 * @param InCaptureDef	Attribute definition to attempt to calculate the magnitude of
 	 * @param InEvalParams	Parameters to evaluate the attribute under
-	 * @param OutMagnitude	[OUT] Computed magnitude, falls back to 0.f in the event of failure
+	 * @param OutMagnitude	[OUT] Computed magnitude
 	 * 
 	 * @return True if the magnitude was successfully calculated, false if it was not
 	 */
 	bool AttemptCalculateCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const;
 	
 	/**
+	 * Attempts to calculate the magnitude of a captured attribute given the specified parameters, including a starting base value. 
+	 * Can fail if the gameplay spec doesn't have a valid capture for the attribute.
+	 * 
+	 * @param InCaptureDef	Attribute definition to attempt to calculate the magnitude of
+	 * @param InEvalParams	Parameters to evaluate the attribute under
+	 * @param InBaseValue	Base value to evaluate the attribute under
+	 * @param OutMagnitude	[OUT] Computed magnitude
+	 * 
+	 * @return True if the magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateCapturedAttributeMagnitudeWithBase(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, float InBaseValue, OUT float& OutMagnitude) const;
+
+	/**
 	 * Attempts to calculate the base value of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have
 	 * a valid capture for the attribute.
 	 * 
 	 * @param InCaptureDef	Attribute definition to attempt to calculate the base value of
-	 * @param OutBaseValue	[OUT] Computed base value, falls back to 0.f in the event of failure
+	 * @param OutBaseValue	[OUT] Computed base value
 	 * 
 	 * @return True if the base value was successfully calculated, false if it was not
 	 */
@@ -60,7 +73,7 @@ public:
 	 * 
 	 * @param InCaptureDef		Attribute definition to attempt to calculate the bonus magnitude of
 	 * @param InEvalParams		Parameters to evaluate the attribute under
-	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude, falls back to 0.f in the event of failure
+	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude
 	 * 
 	 * @return True if the bonus magnitude was successfully calculated, false if it was not
 	 */

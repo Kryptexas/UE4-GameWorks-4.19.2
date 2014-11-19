@@ -65,8 +65,6 @@ bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttribute
 {
 	check(OwningSpec);
 
-	OutMagnitude = 0.f;
-
 	const FAggregator* CalcAgg = ScopedModifierAggregators.Find(InCaptureDef);
 	if (CalcAgg)
 	{
@@ -85,11 +83,31 @@ bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttribute
 	return false;
 }
 
-bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeBaseValue(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT float& OutBaseValue) const
+bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeMagnitudeWithBase(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, float InBaseValue, OUT float& OutMagnitude) const
 {
 	check(OwningSpec);
 
-	OutBaseValue = 0.f;
+	const FAggregator* CalcAgg = ScopedModifierAggregators.Find(InCaptureDef);
+	if (CalcAgg)
+	{
+		OutMagnitude = CalcAgg->EvaluateWithBase(InBaseValue, InEvalParams);
+		return true;
+	}
+	else
+	{
+		const FGameplayEffectAttributeCaptureSpec* CaptureSpec = OwningSpec->CapturedRelevantAttributes.FindCaptureSpecByDefinition(InCaptureDef, true);
+		if (CaptureSpec)
+		{
+			return CaptureSpec->AttemptCalculateAttributeMagnitudeWithBase(InEvalParams, InBaseValue, OutMagnitude);
+		}
+	}
+
+	return false;
+}
+
+bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeBaseValue(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT float& OutBaseValue) const
+{
+	check(OwningSpec);
 
 	const FAggregator* CalcAgg = ScopedModifierAggregators.Find(InCaptureDef);
 	if (CalcAgg)
@@ -112,8 +130,6 @@ bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttribute
 bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeBonusMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutBonusMagnitude) const
 {
 	check(OwningSpec);
-
-	OutBonusMagnitude = 0.f;
 
 	const FAggregator* CalcAgg = ScopedModifierAggregators.Find(InCaptureDef);
 	if (CalcAgg)
