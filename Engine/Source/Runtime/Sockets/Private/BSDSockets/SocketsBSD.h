@@ -118,8 +118,6 @@ protected:
 		LastActivityTime = FDateTime::UtcNow();
 	}
 
-private:
-
 	/** Holds the BSD socket object. */
 	SOCKET Socket;
 
