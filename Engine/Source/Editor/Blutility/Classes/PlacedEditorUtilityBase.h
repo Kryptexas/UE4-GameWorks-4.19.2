@@ -35,4 +35,12 @@ class BLUTILITY_API APlacedEditorUtilityBase : public AActor
 	 */
 	UFUNCTION(BlueprintPure, Category = "Development|Editor")
 	bool GetLevelViewportCameraInfo(FVector& CameraLocation, FRotator& CameraRotation);
+
+	// Remove all actors from the selection set
+	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
+		void ClearActorSelectionSet();
+
+	// Set the selection state for the selected actor
+	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
+		void SetActorSelectionState(AActor* Actor, bool bShouldBeSelected);
 };

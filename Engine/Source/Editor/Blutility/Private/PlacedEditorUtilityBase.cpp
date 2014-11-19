@@ -65,6 +65,18 @@ bool APlacedEditorUtilityBase::GetLevelViewportCameraInfo(FVector& CameraLocatio
 	return RetVal;
 }
 
+void APlacedEditorUtilityBase::ClearActorSelectionSet()
+{
+	//GEditor->GetSelectedActors()->DeselectAll();
+		
+	GEditor->SelectNone(true, true, false);
+}
+
+void APlacedEditorUtilityBase::SetActorSelectionState(AActor* Actor, bool bShouldBeSelected)
+{
+	GEditor->SelectActor(Actor, bShouldBeSelected, /*bNotify=*/ false);
+}
+
 /*
 
 
