@@ -113,6 +113,7 @@ public:
 	// @param InRendererModule first call needs to have it != 0
 	void UpdateProfile(int32 AllocationId, const FSubsurfaceProfileStruct Settings);
 
+	// @return can be 0 if there is no SubsurfaceProfile
 	const struct IPooledRenderTarget* GetTexture(FRHICommandListImmediate& RHICmdList);
 
 
