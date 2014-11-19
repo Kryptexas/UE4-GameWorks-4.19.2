@@ -14,13 +14,15 @@ public:
 	virtual FText GetMessage() = 0;
 	virtual FText GetMessageTypeText() = 0;
 	virtual const EChatMessageType::Type GetMessageType() const =0;
-	virtual FText GetFriendID() = 0;
+	virtual const FText GetFriendNameDisplayText() const = 0;
+	virtual const FText GetFriendName() const = 0;
 	virtual TSharedRef<FFriendChatMessage> GetMessageItem() const = 0;
 	virtual FText GetMessageTime() = 0;
 	virtual const bool IsFromSelf() const = 0;
 	virtual const float GetFadeAmountColor() const = 0;
-	virtual const bool UseOverrideColor() const  = 0;
-	virtual const FSlateColor GetOverrideColor() const  = 0;
+	virtual const bool UseOverrideColor() const = 0;
+	virtual const FSlateColor GetOverrideColor() const = 0;
+	virtual void FriendNameSelected() const = 0;
 };
 
 /**

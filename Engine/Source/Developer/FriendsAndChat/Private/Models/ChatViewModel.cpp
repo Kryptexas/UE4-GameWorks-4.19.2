@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatItemViewModel.h"
 #include "ChatViewModel.h"
+#include "OnlineChatInterface.h"
 
 class FChatViewModelImpl
 	: public FChatViewModel
@@ -64,18 +65,11 @@ public:
 	{
 		if(ItemSelected->GetMessageType() == EChatMessageType::Whisper)
 		{
-			TSharedPtr<FSelectedFriend> NewFriend = FindFriend(ItemSelected->GetMessageItem()->SenderId);
-			if(!NewFriend.IsValid())
-			{
-				NewFriend = MakeShareable(new FSelectedFriend());
-				NewFriend->FriendName = ItemSelected->GetFriendID();
-				NewFriend->UserID = ItemSelected->GetMessageItem()->SenderId;
-				RecentPlayerList.AddUnique(NewFriend);
-			}
-			SetWhisperChannel(NewFriend);
+			SetWhisperChannel(GetRecentFriend(ItemSelected->GetFriendName(), ItemSelected->GetMessageItem()->SenderId));
 		}
 		else
 		{
+			SelectedFriend = nullptr;
 			SetChatChannel(ItemSelected->GetMessageType());
 		}
 
@@ -89,13 +83,51 @@ public:
 
 	virtual FText GetChatGroupText() const override
 	{
-		return SelectedChatChannel == EChatMessageType::Whisper && SelectedFriend.IsValid() ? SelectedFriend->FriendName : EChatMessageType::ToText(SelectedChatChannel);
+		return SelectedFriend.IsValid() ? SelectedFriend->FriendName : EChatMessageType::ToText(SelectedChatChannel);
 	}
 
 	virtual void EnumerateChatChannelOptionsList(TArray<EChatMessageType::Type>& OUTChannelType) override
 	{
 		OUTChannelType.Add(EChatMessageType::Global);
-		OUTChannelType.Add(EChatMessageType::Party);
+		if (OnNetworkMessageSentEvent().IsBound() && FFriendsAndChatManager::Get()->IsInGameSession())
+		{
+			OUTChannelType.Add(EChatMessageType::Party);
+		}
+	}
+
+	virtual void EnumerateFriendOptions(TArray<EFriendActionType::Type>& OUTActionList) override
+	{
+		// Enumerate actions
+		if(SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
+		{
+			if(SelectedFriend->ViewModel.IsValid())
+			{
+				SelectedFriend->ViewModel->EnumerateActions(OUTActionList, true);
+			}
+			else
+			{
+				OUTActionList.Add(EFriendActionType::SendFriendRequest);
+			}
+		}
+		else
+		{
+			OUTActionList.Add(EFriendActionType::SendFriendRequest);
+		}
+	}
+
+	virtual void PerformFriendAction(EFriendActionType::Type ActionType) override
+	{
+		if(SelectedFriend.IsValid())
+		{
+			if(SelectedFriend->ViewModel.IsValid())
+			{
+				SelectedFriend->ViewModel->PerformAction(ActionType);
+			}
+			else if(ActionType == EFriendActionType::SendFriendRequest)
+			{
+				FFriendsAndChatManager::Get()->RequestFriend(SelectedFriend->FriendName);
+			}
+		}
 	}
 
 	virtual void SetChatChannel(const EChatMessageType::Type NewOption) override
@@ -107,6 +139,11 @@ public:
 	{
 		SelectedChatChannel = EChatMessageType::Whisper;
 		SelectedFriend = InFriend;
+		if(SelectedFriend->UserID.IsValid())
+		{
+			SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+		}
+		SelectedFriend->MessageType = EChatMessageType::Whisper;
 	}
 
 	virtual void SetViewChannel(const EChatMessageType::Type NewOption) override
@@ -116,8 +153,31 @@ public:
 		FilterChatList();
 	}
 
-	virtual void SendMessage(const FText NewMessage) override
+	virtual void SetChannelUserClicked(const TSharedRef<FFriendChatMessage> ChatItemSelected) override
 	{
+		bool bFoundUser = false;
+		TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(ChatItemSelected->MessageRef->GetUserId());
+
+		if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
+		{
+			bFoundUser = true;
+			SetWhisperChannel(GetRecentFriend(FText::FromString(ExistingFriend->GetName()), ExistingFriend->GetUniqueID()));
+		}
+
+		if(!bFoundUser)
+		{
+			SelectedFriend = MakeShareable(new FSelectedFriend());
+			SelectedFriend->FriendName = ChatItemSelected->FromName;
+			SelectedFriend->MessageType = ChatItemSelected->MessageType;
+			SelectedFriend->ViewModel = nullptr;
+			SelectedFriend->SelectedMessage = ChatItemSelected;
+			SetChatChannel(ChatItemSelected->MessageType);
+		}
+	}
+
+	virtual bool SendMessage(const FText NewMessage) override
+	{
+		bool bSuccess = false;
 		if(!NewMessage.IsEmpty())
 		{
 			switch(SelectedChatChannel)
@@ -126,34 +186,48 @@ public:
 				{
 					if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 					{
-						MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), NewMessage.ToString());
-						TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-						ChatItem->FromName = SelectedFriend->FriendName;
-						ChatItem->Message = NewMessage;
-						ChatItem->MessageType = EChatMessageType::Whisper;
-						ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
-						ChatItem->bIsFromSelf = true;
-						ChatItem->SenderId = SelectedFriend->UserID;
-						ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
-						FilterChatList();
+						if (MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), NewMessage.ToString()))
+						{
+							TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+							ChatItem->FromName = SelectedFriend->FriendName;
+							ChatItem->Message = NewMessage;
+							ChatItem->MessageType = EChatMessageType::Whisper;
+							ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
+							ChatItem->bIsFromSelf = true;
+							ChatItem->SenderId = SelectedFriend->UserID;
+							ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
+							FilterChatList();
+							bSuccess = true;
+						}
+
+						FFriendsAndChatManager::Get()->GetAnalytics().RecordPrivateChat(SelectedFriend->UserID->ToString());
 					}
 				}
 				break;
 				case EChatMessageType::Global:
 				{
 					//@todo samz - send message to specific room (empty room name will send to all rooms)
-					MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
+					if (MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString()))
+					{
+						bSuccess = true;
+					}
+
+					FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Global"));
 				}
 				break;
 				case EChatMessageType::Party:
 				{
-					OnNewtworkMessageSentEvent().Broadcast(NewMessage.ToString());
+					OnNetworkMessageSentEvent().Broadcast(NewMessage.ToString());
+					bSuccess = true;
+
+					FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Party"));
 				}
 				break;
 			}
 		}
 		// Callback to let some UI know to stay active
 		OnChatMessageCommitted().Broadcast();
+		return bSuccess;
 	}
 
 	virtual void SetTimeDisplayTransparency(const float TimeTransparency)
@@ -180,26 +254,32 @@ public:
 	{
 		if(ChatFriend.IsValid())
 		{
-			TSharedPtr<FSelectedFriend> NewFriend = FindFriend(ChatFriend->GetUniqueID());
-			if(!NewFriend.IsValid())
-			{
-				NewFriend = MakeShareable(new FSelectedFriend());
-				NewFriend->FriendName = FText::FromString(ChatFriend->GetName());
-				NewFriend->UserID = ChatFriend->GetUniqueID();
-				RecentPlayerList.AddUnique(NewFriend);
-			}
-			SetWhisperChannel(NewFriend);
+			SetWhisperChannel(GetRecentFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID()));
 		}
-	}
-
-	virtual EVisibility GetSScrollBarVisibility() const override
-	{
-		return bInGame ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
 	virtual bool IsGlobalChatEnabled() const override
 	{
 		return bAllowGlobalChat;
+	}
+
+	virtual const bool IsChatHidden() override
+	{
+		return FilteredChatLists.Num() == 0 || (bInGame && GetOverrideColorSet());
+	}
+
+	virtual bool HasValidSelectedFriend() const override
+	{
+		return SelectedFriend.IsValid();
+	}
+
+	virtual bool HasFriendChatAction() const override
+	{
+		if(SelectedFriend.IsValid() && SelectedFriend->ViewModel.IsValid())
+		{
+			return SelectedFriend->ViewModel->HasChatAction();
+		}
+		return true;
 	}
 
 	virtual void SetCaptureFocus(bool bInCaptureFocus) override
@@ -237,7 +317,7 @@ public:
 	}
 
 	DECLARE_DERIVED_EVENT(FChatViewModelImpl, IChatViewModel::FOnFriendsSendNetworkMessageEvent, FOnFriendsSendNetworkMessageEvent)
-	virtual FOnFriendsSendNetworkMessageEvent& OnNewtworkMessageSentEvent() override
+	virtual FOnFriendsSendNetworkMessageEvent& OnNetworkMessageSentEvent() override
 	{
 		return FriendsSendNetworkMessageEvent;
 	}
@@ -245,6 +325,7 @@ public:
 private:
 	void Initialize()
 	{
+		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
 		MessageManager.Pin()->OnChatMessageRecieved().AddSP(this, &FChatViewModelImpl::HandleMessageReceived);
 		FilterChatList();
 	}
@@ -291,6 +372,34 @@ private:
 	void HandleSetFocus()
 	{
 		OnChatListSetFocus().Broadcast();
+	}
+
+	TSharedRef<FSelectedFriend> GetRecentFriend(const FText Username, TSharedPtr<FUniqueNetId> UniqueID)
+	{
+		TSharedPtr<FSelectedFriend> NewFriend = FindFriend(UniqueID);
+		if (!NewFriend.IsValid())
+		{
+			NewFriend = MakeShareable(new FSelectedFriend());
+			NewFriend->FriendName = Username;
+			NewFriend->UserID = UniqueID;
+			RecentPlayerList.AddUnique(NewFriend);
+		}
+		return NewFriend.ToSharedRef();
+	}
+
+	void UpdateSelectedFriendsViewModel()
+	{
+		if( SelectedFriend.IsValid())
+		{
+			if(SelectedFriend->UserID.IsValid())
+			{
+				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+			}
+			else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->MessageRef.IsValid())
+			{
+				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(SelectedFriend->SelectedMessage->MessageRef->GetUserId());
+			}
+		}
 	}
 
 	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager)

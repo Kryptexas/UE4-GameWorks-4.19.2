@@ -41,6 +41,7 @@ struct FFriendChatMessage
 	FText FromName;
 	FText Message;
 	FText MessageTimeText;
+	TSharedPtr<class FChatMessage> MessageRef;
 	TSharedPtr<FUniqueNetId> SenderId;
 	bool bIsFromSelf;
 };

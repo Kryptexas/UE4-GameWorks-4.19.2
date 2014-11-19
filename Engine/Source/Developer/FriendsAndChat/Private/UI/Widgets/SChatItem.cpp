@@ -16,21 +16,15 @@ public:
 		MenuMethod = InArgs._Method;
 		this->ViewModel = InViewModel;
 
-		const EVisibility FromSelfVisibility = ViewModel->IsFromSelf() ? EVisibility::Visible : EVisibility::Collapsed;
-		EVisibility FriendNameVisibility = !ViewModel->IsFromSelf() || ViewModel->GetMessageType() == EChatMessageType::Whisper ? EVisibility::Visible : EVisibility::Collapsed;
-
-		// ToDo: Temp while messages go through old network system
-		if(ViewModel->GetMessageType() == EChatMessageType::Party)
-		{
-			FriendNameVisibility = EVisibility::Collapsed;
-		}
-
-		FText DisplayNameText = ViewModel->GetFriendID();
+		FText DisplayNameText = ViewModel->GetFriendNameDisplayText();
 		if(ViewModel->IsFromSelf())
 		{ 
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("Username"), ViewModel->GetFriendID());
-			DisplayNameText = FText::Format(LOCTEXT("SChatItem_To", "To {Username}"), Args);
+			if (ViewModel->GetMessageType() == EChatMessageType::Whisper)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Username"), ViewModel->GetFriendNameDisplayText());
+				DisplayNameText = FText::Format(LOCTEXT("SChatItem_To", "To {Username}"), Args);
+			}
 		}
 
 		SUserWidget::Construct(SUserWidget::FArguments()
@@ -52,10 +46,28 @@ public:
 			.MaxWidth(150)
 			[
 				SNew(STextBlock)
-				.Visibility(FriendNameVisibility)
+				.Visibility(ViewModel->IsFromSelf() && ViewModel->GetMessageType() != EChatMessageType::Party ? EVisibility::Visible : EVisibility::Collapsed)
 				.Text(DisplayNameText)
 				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
 				.Font(FriendStyle.FriendsFontStyleSmallBold)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(FMargin(5, 1))
+			.MaxWidth(150)
+			[
+				SNew(SButton)
+				.Visibility(ViewModel->IsFromSelf() || ViewModel->GetMessageType() == EChatMessageType::Party ? EVisibility::Collapsed : EVisibility::Visible)
+				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
+				.OnClicked(this, &SChatItemImpl::HandleNameClicked)
+				.ContentPadding(0)
+				[
+					SNew(STextBlock)
+					.Text(DisplayNameText)
+					.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
+					.Font(FriendStyle.FriendsFontStyleSmallBold)
+				]
 			]
 			+SHorizontalBox::Slot()
 			.Padding(FMargin(5,1))
@@ -140,6 +152,12 @@ private:
 				return nullptr;
 			}
 		}
+	}
+
+	FReply HandleNameClicked()
+	{
+		ViewModel->FriendNameSelected();
+		return FReply::Handled();
 	}
 
 private:

@@ -6,9 +6,12 @@ class SChatWindow : public SUserWidget
 {
 public:
 	SLATE_USER_ARGS(SChatWindow)
+	: _MaxChatLength(200)
 	{ }
-	SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
-	SLATE_ARGUMENT(SMenuAnchor::EMethod, Method)
+		SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
+		SLATE_ARGUMENT(SMenuAnchor::EMethod, Method)
+		SLATE_ARGUMENT(int32, MaxChatLength)
+		SLATE_ARGUMENT(bool, bInGameUI)
 	SLATE_END_ARGS()
 
 	/**

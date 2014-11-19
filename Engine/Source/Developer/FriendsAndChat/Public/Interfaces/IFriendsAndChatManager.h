@@ -43,7 +43,7 @@ public:
 	 * @param InStyle The style to use to create the widgets.
 	 * @return The chat widget.
 	 */
-	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle) = 0;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, bool bInGameUI) = 0;
 
 	/**
 	 * Get the chat system view model for manipulating the chat widget.
@@ -67,6 +67,9 @@ public:
 
 	/** Log in and start checking for Friends. */
 	virtual void Login() = 0;
+
+	/** Is the chat manager logged in. */
+	virtual bool IsLoggedIn() = 0;
 
 	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationEvent, const bool /*Show or Clear */)
 	virtual FOnFriendsNotificationEvent& OnFriendsNotification() = 0;

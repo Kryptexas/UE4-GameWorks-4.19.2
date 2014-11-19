@@ -278,6 +278,8 @@ private:
 		{
 			ChatItem->SenderId = FoundFriend->GetUniqueID();
 		}
+
+		ChatItem->MessageRef = ChatMessage;
 		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 
 	}

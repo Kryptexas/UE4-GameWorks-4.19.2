@@ -81,12 +81,26 @@ public:
 	 * Record chat option toggle
 	 */
 	void RecordToggleChat(const FString& Channel, bool bEnabled, const FString& EventStr) const;
+	/**
+	 * Record a private chat to a user (aggregates pending FlushChat)
+	 */
+	void RecordPrivateChat(const FString& ToUser);
+	/**
+	 * Record a public chat to a channel (aggregates pending FlushChat)
+	 */
+	void RecordChannelChat(const FString& ToChannel);
+	/**
+	 * Flush any aggregated chat stats
+	 */
+	void FlushChatStats();
 
 private:
 	void AddPresenceAttributes(const FUniqueNetId& UserId, TArray<FAnalyticsEventAttribute>& Attributes) const;
 
 	// cached analytics provider for pushing events
 	TSharedPtr<IAnalyticsProvider> Provider;
+	// map of chat id to # of messages sent
+	TMap<FString, int32> ChatCounts;
 };
 
 /**
@@ -109,11 +123,12 @@ public:
 	// IFriendsAndChatManager
 	virtual void Logout() override;
 	virtual void Login() override;
+	virtual bool IsLoggedIn() override;
 	virtual void CreateFriendsListWidget(const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
-	virtual TSharedPtr< SWidget > GenerateFriendsListWidget(const FFriendsAndChatStyle* InStyle) override;
-	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle) override;
+	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, bool bInGameUI) override;
 	virtual TSharedPtr<IChatViewModel> GetChatViewModel() override;
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
@@ -121,7 +136,7 @@ public:
 	/**
 	 * Get the analytics for recording friends chat events
 	 */
-	const FFriendsAndChatAnalytics& GetAnalytics() const
+	FFriendsAndChatAnalytics& GetAnalytics()
 	{
 		return Analytics;
 	}
@@ -269,20 +284,23 @@ public:
 	void SetUserIsOnline(EOnlinePresenceState::Type OnlineState);
 
 	/**
-	 * Find a user.
-	 *
-	 * @param InUserId The user id to find.
-	 * @return The Friend ID.
-	 */
-	TSharedPtr< IFriendItem > FindUser(const FUniqueNetId& InUserID);
-
-	/**
 	 * Find a recent player.
 	 *
 	 * @param InUserId The user id to find.
 	 * @return The recent player ID.
 	 */
 	TSharedPtr< IFriendItem > FindRecentPlayer(const FUniqueNetId& InUserID);
+
+	/**
+	 * Find a user.
+	 *
+	 * @param InUserName The user name to find.
+	 * @return The Friend ID.
+	 */
+	TSharedPtr< IFriendItem > FindUser(const FUniqueNetId& InUserID);
+
+	TSharedPtr<class FFriendViewModel> GetFriendViewModel(const FUniqueNetId& InUserID);
+
 
 	// External events
 	DECLARE_DERIVED_EVENT(FFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsNotificationEvent, FOnFriendsNotificationEvent)
@@ -667,8 +685,6 @@ private:
 	TSharedPtr< SWindow > FriendWindow;
 	// Holds the Friends List widget
 	TSharedPtr< SWidget > FriendListWidget;
-	// Holds the chat widget
-	TSharedPtr< SWidget > ChatWidget;
 	// Holds the chat window
 	TSharedPtr< SWindow > ChatWindow;
 	// Holds the style used to create the Friends List widget

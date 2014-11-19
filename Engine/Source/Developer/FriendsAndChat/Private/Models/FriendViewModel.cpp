@@ -8,7 +8,7 @@ class FFriendViewModelImpl
 {
 public:
 
-	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions)
+	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false)
 	{
 		if(FriendItem->IsGameRequest())
 		{
@@ -36,11 +36,14 @@ public:
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}
-					if (FriendItem->IsOnline())
+					if(!bFromChat)
 					{
-						Actions.Add(EFriendActionType::Chat);
+						if (FriendItem->IsOnline())
+						{
+							Actions.Add(EFriendActionType::Chat);
+						}
+						Actions.Add(EFriendActionType::RemoveFriend);
 					}
-					Actions.Add(EFriendActionType::RemoveFriend);
 				}
 				break;
 				case EInviteStatus::PendingInbound :
@@ -59,6 +62,13 @@ public:
 				break;
 			}
 		}
+	}
+	
+	virtual const bool HasChatAction() const override
+	{
+		return FriendItem->GetInviteStatus() != EInviteStatus::Accepted
+			|| FriendItem->IsGameJoinable()
+			|| FFriendsAndChatManager::Get()->IsInJoinableGameSession();
 	}
 
 	virtual void PerformAction(const EFriendActionType::Type ActionType)

@@ -20,7 +20,7 @@ public:
 	virtual FOnFriendsChatMessageCommitted& OnChatMessageCommitted() = 0;
 
 	DECLARE_EVENT_OneParam(IChatViewModel, FOnFriendsSendNetworkMessageEvent, /*struct*/ const FString& /* the message */)
-	virtual FOnFriendsSendNetworkMessageEvent& OnNewtworkMessageSentEvent() = 0;
+	virtual FOnFriendsSendNetworkMessageEvent& OnNetworkMessageSentEvent() = 0;
 
 	DECLARE_EVENT(IChatViewModel, FChatListUpdated)
 	virtual FChatListUpdated& OnChatListUpdated() = 0;

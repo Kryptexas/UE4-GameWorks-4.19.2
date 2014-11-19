@@ -24,12 +24,17 @@ public:
 		return EChatMessageType::ToText(ChatMessage->MessageType);
 	}
 
-	virtual FText GetFriendID() override
+	virtual const FText GetFriendNameDisplayText() const override
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Username"), ChatMessage->FromName);
 		const FText DisplayName = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayName", "{Username}: "), Args);
 		return DisplayName;
+	}
+
+	virtual const FText GetFriendName() const override
+	{
+		return ChatMessage->FromName;
 	}
 
 	virtual TSharedRef<FFriendChatMessage> GetMessageItem() const override
@@ -61,6 +66,12 @@ public:
 	{
 		return Owner->GetFontOverrideColor();
 	}
+
+	virtual void FriendNameSelected() const override
+	{
+		Owner->SetChannelUserClicked(ChatMessage);
+	}
+
 private:
 
 	FChatItemViewModelImpl(TSharedRef<FFriendChatMessage> ChatMessage, TSharedPtr<FChatViewModel> Owner)
