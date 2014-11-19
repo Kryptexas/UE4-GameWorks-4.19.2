@@ -354,6 +354,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	void RemoveActiveEffectsWithTags(FGameplayTagContainer Tags);
+
 	/** Removes all active effects that match given query */
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query);
 
