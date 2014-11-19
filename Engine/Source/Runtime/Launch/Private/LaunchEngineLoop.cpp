@@ -1697,11 +1697,13 @@ void FEngineLoop::LoadPreInitModules()
 		FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
 	}
 #endif
-	
+
+	FModuleManager::Get().LoadModule(TEXT("Landscape"));
+
 	// Initialize ShaderCore before loading or compiling any shaders,
 	// But after Renderer and any other modules which implement shader types.
 	FModuleManager::Get().LoadModule(TEXT("ShaderCore"));
-
+	
 #if WITH_EDITORONLY_DATA
 	// Load the texture compressor module before any textures load. They may
 	// compress asynchronously and that can lead to a race condition.
