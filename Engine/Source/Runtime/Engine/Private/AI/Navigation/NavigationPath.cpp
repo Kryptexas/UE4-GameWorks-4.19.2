@@ -1032,11 +1032,10 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 
 	// draw corridor
 #if WITH_RECAST
-	FVisualLogShapeElement CorridorElem(EVisualLoggerShapeElement::Segment);
-	CorridorElem.SetColor(FColorList::Cyan);
-	CorridorElem.Category = LogNavigation.GetCategoryName();
-	CorridorElem.Points.Reserve(PathCorridor.Num() * 6);
-	CorridorElem.Thicknes = 2;
+	FVisualLogShapeElement CorridorPoly(EVisualLoggerShapeElement::Polygon);
+	CorridorPoly.SetColor(FColorList::Cyan);
+	CorridorPoly.Category = LogNavigation.GetCategoryName();
+	CorridorPoly.Points.Reserve(PathCorridor.Num() * 6);
 
 	const FVector CorridorOffset = NavigationDebugDrawing::PathOffset * 1.25f;
 	int32 NumAreaMark = 1;
@@ -1049,27 +1048,27 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	{
 		Verts.Reset();
 		NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
-		
-		FVector CenterPt = FVector::ZeroVector;
-		for (int32 VIdx = 0; VIdx < Verts.Num(); VIdx++)
-		{
-			CenterPt += Verts[VIdx];
-
-			CorridorElem.Points.Add(Verts[VIdx] + CorridorOffset);
-			CorridorElem.Points.Add(Verts[(VIdx + 1) % Verts.Num()] + CorridorOffset);
-		}
+		CorridorPoly.Points.Reset();
+		CorridorPoly.Points.Append(Verts);
+		Snapshot->ElementsToDraw.Add(CorridorPoly);
 
 		const uint8 AreaID = NavMesh->GetPolyAreaID(PathCorridor[Idx]);
 		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 		{
+			FVector CenterPt = FVector::ZeroVector;
+			for (int32 VIdx = 0; VIdx < Verts.Num(); VIdx++)
+			{
+				CenterPt += Verts[VIdx];
+			}
+			CenterPt /= Verts.Num();
+
 			FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
 			AreaMarkElem.SetColor(FColorList::Orange);
 			AreaMarkElem.Category = LogNavigation.GetCategoryName();
 			AreaMarkElem.Thicknes = 2;
 			AreaMarkElem.Description = AreaClass->GetName();
 
-			CenterPt /= Verts.Num();
 			AreaMarkElem.Points.Add(CenterPt + CorridorOffset);
 			AreaMarkElem.Points.Add(CenterPt + CorridorOffset + FVector(0,0,100.0f + NumAreaMark * 50.0f));
 			Snapshot->ElementsToDraw.Add(AreaMarkElem);
@@ -1079,7 +1078,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	}
 
 	NavMesh->FinishBatchQuery();
-	Snapshot->ElementsToDraw.Add(CorridorElem);
+	//Snapshot->ElementsToDraw.Add(CorridorElem);
 #endif
 }
 

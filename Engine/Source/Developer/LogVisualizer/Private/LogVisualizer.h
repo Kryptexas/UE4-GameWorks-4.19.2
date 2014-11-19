@@ -72,6 +72,7 @@ public:
 	virtual bool IsRecording();
 	// End ILogVisualizer interface
 
+
 	/** Change the current recording state */
 	void SetIsRecording(bool bNewRecording);
 

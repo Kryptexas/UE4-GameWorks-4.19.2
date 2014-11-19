@@ -33,6 +33,7 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	, QueryDataSource(NULL)
 	, bDrawOnlyWhenSelected(bInDrawOnlyWhenSelected)
 {
+	DrawType = SolidAndWireMeshes;
 	TextWithoutShadowDistance = 1500;
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
@@ -55,21 +56,22 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 
 #if  USE_EQS_DEBUGGER 
 	TArray<EQSDebug::FDebugHelper> DebugItems;
-	FEQSSceneProxy::CollectEQSData(InComponent, QueryDataSource, SolidSpheres, Texts, DebugItems);
+	FEQSSceneProxy::CollectEQSData(InComponent, QueryDataSource, Spheres, Texts, DebugItems);
 #endif
 }
 
-FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& InViewFlagName, bool bInDrawOnlyWhenSelected, const TArray<FSphere>& Spheres, const TArray<FText3d>& InTexts)
+FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& InViewFlagName, bool bInDrawOnlyWhenSelected, const TArray<FSphere>& InSpheres, const TArray<FText3d>& InTexts)
 	: FDebugRenderSceneProxy(InComponent)
 	, ActorOwner(NULL)
 	, QueryDataSource(NULL)
 	, bDrawOnlyWhenSelected(bInDrawOnlyWhenSelected)
 {
+	DrawType = SolidAndWireMeshes;
 	TextWithoutShadowDistance = 1500;
 	ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*InViewFlagName));
 	ViewFlagName = InViewFlagName;
 
-	SolidSpheres = Spheres;
+	Spheres = InSpheres;
 	Texts = InTexts;
 
 	if (InComponent == NULL)

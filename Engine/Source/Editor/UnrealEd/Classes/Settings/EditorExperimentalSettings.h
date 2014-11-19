@@ -85,6 +85,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Enable Blueprint Merge Tool"))
 	bool bEnableBlueprintMergeTool;
 
+	/** Enables Visual Logger visualizer/viewer */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Visual Logger"))
+	bool bVisualLogger;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

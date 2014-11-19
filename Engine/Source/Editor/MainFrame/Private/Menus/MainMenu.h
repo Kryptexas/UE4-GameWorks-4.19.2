@@ -92,4 +92,13 @@ private:
 	{
 		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("BlutilityShelfApp")));
 	}
+
+	/**
+	* Opens the experimental Visual Logger tab.
+	* Remove this when it is no longer experimental.
+	*/
+	static void OpenVisualLogger()
+	{
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
+	}
 };

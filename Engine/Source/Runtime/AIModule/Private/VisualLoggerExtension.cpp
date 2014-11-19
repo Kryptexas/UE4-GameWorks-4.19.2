@@ -68,21 +68,23 @@ extern RENDERCORE_API FTexture* GWhiteTexture;
 void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp)
 {
 #if USE_EQS_DEBUGGER
-	if (TagName == *EVisLogTags::TAG_EQS && HelperActor)
+	if (TagName == *EVisLogTags::TAG_EQS)
 	{
-		UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
-		if (!EQSRenderComp)
-		{
-			EQSRenderComp = ConstructObject<UEQSRenderingComponent>(UEQSRenderingComponent::StaticClass(), HelperActor);
-			EQSRenderComp->bDrawOnlyWhenSelected = false;
-			EQSRenderComp->RegisterComponent();
-			EQSRenderComp->SetHiddenInGame(true);
-		}
-
 		EQSDebug::FQueryData DebugData;
 		UEnvQueryDebugHelpers::BlobArrayToDebugData(DataBlock.Data, DebugData, false);
-		if (DebugData.Id != CachedEQSId || (EQSRenderComp && EQSRenderComp->bHiddenInGame))
+		if (HelperActor)
 		{
+			UEQSRenderingComponent* EQSRenderComp = HelperActor->FindComponentByClass<UEQSRenderingComponent>();
+			if (!EQSRenderComp)
+			{
+				EQSRenderComp = ConstructObject<UEQSRenderingComponent>(UEQSRenderingComponent::StaticClass(), HelperActor);
+				EQSRenderComp->bDrawOnlyWhenSelected = false;
+				EQSRenderComp->RegisterComponent();
+				EQSRenderComp->SetHiddenInGame(true);
+			}
+
+			if (DebugData.Id != CachedEQSId || (EQSRenderComp && EQSRenderComp->bHiddenInGame))
+			{
 				if (SelectedEQSId == INDEX_NONE)
 				{
 					SelectedEQSId = DebugData.Id;
@@ -95,11 +97,12 @@ void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* 
 					EQSRenderComp->SetHiddenInGame(false);
 					EQSRenderComp->MarkRenderStateDirty();
 				}
+			}
 		}
 
 		/** find and draw item selection */
 		int32 BestItemIndex = INDEX_NONE;
-		if (SelectedEQSId != INDEX_NONE && DebugData.Id == SelectedEQSId)
+		if (SelectedEQSId != INDEX_NONE && DebugData.Id == SelectedEQSId && Canvas)
 		{
 			FVector FireDir = Canvas->SceneView->GetViewDirection();
 			FVector CamLocation = Canvas->SceneView->ViewMatrices.ViewOrigin;

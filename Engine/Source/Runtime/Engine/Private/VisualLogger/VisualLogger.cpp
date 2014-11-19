@@ -157,8 +157,10 @@ FCustomVersionRegistration GVisualLoggerVersion(EVisualLoggerVersion::GUID, EVis
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-#include "Developer/LogVisualizer/Public/LogVisualizerModule.h"
-
+#include "Developer/NewLogVisualizer/Public/LogVisualizerModule.h"
+#if WITH_EDITOR
+#include "SlateBasics.h"
+#endif
 static class FLogVisualizerExec : private FSelfRegisteringExec
 {
 public:
@@ -187,14 +189,9 @@ public:
 				return true;
 			}
 #if WITH_EDITOR
-			else if (Command == TEXT("exit"))
-			{
-				FLogVisualizerModule::Get()->CloseUI(InWorld);
-				return true;
-			}
 			else
 			{
-				FLogVisualizerModule::Get()->SummonUI(InWorld);
+				FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
 				return true;
 			}
 #endif
