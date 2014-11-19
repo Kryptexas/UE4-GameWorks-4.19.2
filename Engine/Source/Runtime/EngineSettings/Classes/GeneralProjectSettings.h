@@ -50,4 +50,8 @@ class ENGINESETTINGS_API UGeneralProjectSettings
 	/** The project's support contact information. */
 	UPROPERTY(config, EditAnywhere, Category=Publisher)
 	FString SupportContact;
+
+	/** The project's title as displayed on the window title bar */
+	UPROPERTY(config, EditAnywhere, Category=Displayed)
+	FText ProjectDisplayedTitle;
 };

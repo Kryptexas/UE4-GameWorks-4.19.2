@@ -206,7 +206,11 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "TRUE"))
 	static void PrintWarning(const FString& InString);
 
-	/** 
+	/** Sets the game window title */
+	UFUNCTION(BlueprintCallable, Category = "Utilities")
+	static void SetWindowTitle(const FText& Title);
+
+	/**
 	 * Executes a console command, optionally on a specific controller
 	 * 
 	 * @param	Command			Command to send to the console

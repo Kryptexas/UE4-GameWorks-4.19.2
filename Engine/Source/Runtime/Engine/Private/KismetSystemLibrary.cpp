@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/GameEngine.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Engine/Console.h"
 #include "LatentActions.h"
@@ -216,6 +217,19 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 void UKismetSystemLibrary::PrintWarning(const FString& InString)
 {
 	PrintString(NULL, InString, true, true);
+}
+
+void UKismetSystemLibrary::SetWindowTitle(const FText& Title)
+{
+	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+	if (GameEngine != nullptr)
+	{
+		TSharedPtr<SWindow> GameViewportWindow = GameEngine->GameViewportWindow.Pin();
+		if (GameViewportWindow.IsValid())
+		{
+			GameViewportWindow->SetTitle(Title);
+		}
+	}
 }
 
 void UKismetSystemLibrary::ExecuteConsoleCommand(UObject* WorldContextObject, const FString& Command, APlayerController* Player)
