@@ -75,7 +75,7 @@ namespace APIDocTool
 				Writer.WritePageHeader(Name, PageCrumbs, "Overload list");
 
 				Writer.EnterTag("[REGION:members]");
-				APIFunction.WriteList(Writer, Overloads);
+				APIFunction.WriteList(Writer, Overloads, Overloads.First().FunctionType != APIFunctionType.Constructor);
 				Writer.LeaveTag("[/REGION]");
 			}
 		}

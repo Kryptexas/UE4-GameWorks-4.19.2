@@ -113,7 +113,7 @@ namespace APIDocTool
 
 				// Write the function list
 				Writer.EnterTag("[PARAM:functions]");
-				APIFunction.WriteListSection(Writer, "functions", "Functions", AllFunctions);
+				APIFunction.WriteListSection(Writer, "functions", "Functions", AllFunctions, false);
 				Writer.LeaveTag("[/PARAM]");
 
 				// Write the variable list

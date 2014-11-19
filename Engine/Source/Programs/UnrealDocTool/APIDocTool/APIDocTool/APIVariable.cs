@@ -63,7 +63,7 @@ namespace APIDocTool
 			}
 
 			XmlNode type = Node.SelectSingleNode("type");
-			Type = ConvertToMarkdown(type);
+			Type = APIMember.RemoveElaborations(ConvertToMarkdown(type));
 			AbbreviatedType = Markdown.Truncate(Type, 20, "...");
 
 			XmlNodeList SimpleNodes = Node.SelectNodes("detaileddescription/para/simplesect");
