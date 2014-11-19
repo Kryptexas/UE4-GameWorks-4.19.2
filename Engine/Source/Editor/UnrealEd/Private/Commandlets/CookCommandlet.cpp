@@ -174,6 +174,10 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 				}
 			}
 
+
+			// Shaders need to be updated
+			GShaderCompilingManager->ProcessAsyncResults(true, false);
+
 			ProcessDeferredCommands();
 
 			// handle server timeout
