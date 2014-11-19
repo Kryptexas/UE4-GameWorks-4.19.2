@@ -3342,7 +3342,9 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 	}
 	else if (Output.PinCategory == Input.PinCategory)
 	{
-		if ((Output.PinSubCategory == Input.PinSubCategory) && (Output.PinSubCategoryObject == Input.PinSubCategoryObject))
+		if ((Output.PinSubCategory == Input.PinSubCategory) 
+			&& (Output.PinSubCategoryObject == Input.PinSubCategoryObject)
+			&& (Output.PinSubCategoryMemberReference == Input.PinSubCategoryMemberReference))
 		{
 			return true;
 		}
@@ -3404,7 +3406,25 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		else if (PC_Delegate == Output.PinCategory || PC_MCDelegate == Output.PinCategory)
 		{
 			const UFunction* OutFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Output.PinSubCategoryMemberReference);
+			if (!OutFunction && Output.PinSubCategoryMemberReference.MemberParentClass)
+			{
+				const auto ParentClass = Output.PinSubCategoryMemberReference.MemberParentClass;
+				const auto BPOwner = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
+				if (BPOwner && BPOwner->SkeletonGeneratedClass && (BPOwner->SkeletonGeneratedClass != ParentClass))
+				{
+					OutFunction = BPOwner->SkeletonGeneratedClass->FindFunctionByName(Output.PinSubCategoryMemberReference.MemberName);
+				}
+			}
 			const UFunction* InFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Input.PinSubCategoryMemberReference);
+			if (!InFunction && Input.PinSubCategoryMemberReference.MemberParentClass)
+			{
+				const auto ParentClass = Input.PinSubCategoryMemberReference.MemberParentClass;
+				const auto BPOwner = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
+				if (BPOwner && BPOwner->SkeletonGeneratedClass && (BPOwner->SkeletonGeneratedClass != ParentClass))
+				{
+					InFunction = BPOwner->SkeletonGeneratedClass->FindFunctionByName(Input.PinSubCategoryMemberReference.MemberName);
+				}
+			}
 			return !OutFunction || !InFunction || OutFunction->IsSignatureCompatibleWith(InFunction);
 		}
 	}

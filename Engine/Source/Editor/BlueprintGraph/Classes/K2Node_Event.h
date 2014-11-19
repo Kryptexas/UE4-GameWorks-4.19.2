@@ -71,7 +71,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	BLUEPRINTGRAPH_API virtual bool IsFunctionEntryCompatible(const class UK2Node_FunctionEntry* EntryNode) const;
 	
 	UFunction* FindEventSignatureFunction();
-	BLUEPRINTGRAPH_API void UpdateDelegatePin();
+	BLUEPRINTGRAPH_API void UpdateDelegatePin(bool bSilent = false);
 	BLUEPRINTGRAPH_API FName GetFunctionName() const;
 	BLUEPRINTGRAPH_API virtual bool IsUsedByAuthorityOnlyDelegate() const { return false; }
 	BLUEPRINTGRAPH_API virtual bool IsCosmeticTickEvent() const;
