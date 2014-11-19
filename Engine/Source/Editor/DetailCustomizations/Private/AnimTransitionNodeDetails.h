@@ -18,10 +18,6 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 protected:
-
-	bool NameIsNone(TSharedPtr<IPropertyHandle> Property) const;
-	bool ObjIsNULL(TSharedPtr<IPropertyHandle> Property) const;
-
 	void CreateTransitionEventPropertyWidgets(IDetailCategoryBuilder& TransitionCategory, FString TransitionName);
 
 	FReply OnClickEditBlendGraph();

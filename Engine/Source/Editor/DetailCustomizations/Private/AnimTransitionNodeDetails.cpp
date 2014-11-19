@@ -367,38 +367,9 @@ EVisibility FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility() const
 void FAnimTransitionNodeDetails::CreateTransitionEventPropertyWidgets(IDetailCategoryBuilder& TransitionCategory, FString TransitionName)
 {
 	TSharedPtr<IPropertyHandle> NameProperty = TransitionCategory.GetParentLayout().GetProperty(*(TransitionName + TEXT(".NotifyName")));
-	TSharedPtr<IPropertyHandle> NotifyProperty = TransitionCategory.GetParentLayout().GetProperty(*(TransitionName + TEXT(".Notify")));
 
 	TransitionCategory.AddProperty( NameProperty )
-		.DisplayName( LOCTEXT("CreateTransition_CustomBlueprintEvent", "Custom Blueprint Event").ToString() )
-		.IsEnabled( TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP( this, &FAnimTransitionNodeDetails::ObjIsNULL, NotifyProperty ) ) );
-
-	TransitionCategory.AddProperty( NotifyProperty )
-		.DisplayName( LOCTEXT("CreateTransition_NotifyBlueprintName", "Blueprint Notify").ToString() )
-		.IsEnabled( TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP( this, &FAnimTransitionNodeDetails::NameIsNone, NameProperty ) ) );
-}
-
-bool FAnimTransitionNodeDetails::NameIsNone(TSharedPtr<IPropertyHandle> Property) const
-{
-	if (Property.IsValid())
-	{
-		FName Name = NAME_None;
-		FPropertyAccess::Result Result = Property->GetValue(Name);
-		return (Name == NAME_None);
-	}
-	return true;
-}
-
-bool FAnimTransitionNodeDetails::ObjIsNULL(TSharedPtr<IPropertyHandle> Property) const
-{
-	if (Property.IsValid())
-	{
-		UObject* Obj = NULL;
-		FPropertyAccess::Result Result = Property->GetValue(Obj);
-		return (Obj == NULL);
-
-	}
-	return true;
+		.DisplayName( LOCTEXT("CreateTransition_CustomBlueprintEvent", "Custom Blueprint Event").ToString() );
 }
 
 TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(FString TypeName, FString SharedName, bool bIsCurrentlyShared,  FOnClicked PromoteClick, FOnClicked DemoteClick, FOnGetContent GetContentMenu)
