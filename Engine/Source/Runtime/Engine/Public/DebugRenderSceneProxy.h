@@ -212,11 +212,11 @@ public:
 
 		}
 
-		FVector Location; //Center pointer of the base of the cylinder.
-		FVector X, Y, Z; //X, Y, and Z alignment axes to draw along.
-		FColor Color;
 		float Radius;
+		FVector Location; //Center pointer of the base of the cylinder.
+		FColor Color;
 		float HalfHeight;
+		FVector X, Y, Z; //X, Y, and Z alignment axes to draw along.
 	};
 
 	TArray<FDebugLine> Lines;

@@ -39,6 +39,7 @@ public:
 	{
 	public:
 		FVisualLoggerDevice(SVisualLogger* Owner);
+		virtual ~FVisualLoggerDevice();
 		virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
 
 	protected:

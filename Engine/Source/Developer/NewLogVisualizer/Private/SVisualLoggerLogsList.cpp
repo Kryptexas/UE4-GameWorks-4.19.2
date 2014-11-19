@@ -166,3 +166,4 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 	//SetCurrentViewedTime(LogEntry.Entry.TimeStamp);
 	LogsLinesWidget->RequestListRefresh();
 }
+#undef LOCTEXT_NAMESPACE

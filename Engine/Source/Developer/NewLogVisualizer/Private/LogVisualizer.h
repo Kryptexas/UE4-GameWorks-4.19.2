@@ -3,12 +3,12 @@
 
 /* Dependencies
 *****************************************************************************/
-
+#include "Engine.h"
 #include "Messaging.h"
 #include "ModuleManager.h"
 #include "SlateBasics.h"
 #include "SlateStyle.h"
-
+#include "EditorStyle.h"
 
 /* Private includes
 *****************************************************************************/
@@ -33,6 +33,7 @@ struct FVisualLoggerEvents
 
 struct IVisualLoggerInterface
 {
+	virtual ~IVisualLoggerInterface() {}
 	virtual bool HasValidCategories(TArray<FVisualLoggerCategoryVerbosityPair> Categories) = 0;
 	virtual bool IsValidCategory(const FString& InCategoryName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All) = 0;
 	virtual bool IsValidCategory(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All) = 0;

@@ -45,6 +45,8 @@ struct FVisualLoggerInterface : public IVisualLoggerInterface
 		VisualLoggerEvents = InVisualLoggerEvents;
 	}
 
+	virtual ~FVisualLoggerInterface() {}
+
 	virtual bool HasValidCategories(TArray<FVisualLoggerCategoryVerbosityPair> Categories) override
 	{
 		for (const auto& CurrentCategory : Categories)
@@ -119,7 +121,10 @@ protected:
 SVisualLogger::FVisualLoggerDevice::FVisualLoggerDevice(SVisualLogger* InOwner)
 	:Owner(InOwner)
 {
+}
 
+SVisualLogger::FVisualLoggerDevice::~FVisualLoggerDevice() 
+{
 }
 
 void SVisualLogger::FVisualLoggerDevice::Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
@@ -616,3 +621,4 @@ void SVisualLogger::OnFiltersSearchChanged(const FText& Filter)
 	LogsList->OnFiltersChanged();
 	MainView->OnFiltersChanged();
 }
+#undef LOCTEXT_NAMESPACE
