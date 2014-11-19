@@ -5,7 +5,6 @@
 #include "AttributeDetails.h"
 #include "AttributeSet.h"
 #include "GameplayEffectDetails.h"
-#include "GameplayModifierInfoDetails.h"
 #include "GameplayEffectExecutionScopedModifierInfoDetails.h"
 #include "GameplayEffectExecutionDefinitionDetails.h"
 #include "GameplayEffectModifierMagnitudeDetails.h"
