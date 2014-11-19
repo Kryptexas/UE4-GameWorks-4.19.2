@@ -1030,6 +1030,16 @@ public:
 	bool LineTraceTest(const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Trace a ray against the world using a specific profile and return if a blocking hit is found.
+	 *  @param  Start           Start location of the ray
+	 *  @param  End             End location of the ray
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if a blocking hit is found
+	 */
+	bool LineTraceTestByProfile(const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Trace a ray against the world using a specific channel and return the first blocking hit
 	 *  @param  OutHit          First blocking hit found
 	 *  @param  Start           Start location of the ray
@@ -1051,6 +1061,17 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool LineTraceSingle(struct FHitResult& OutHit,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Trace a ray against the world using a specific profile and return the first blocking hit
+	 *  @param  OutHit          First blocking hit found
+	 *  @param  Start           Start location of the ray
+	 *  @param  End             End location of the ray
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if a blocking hit is found
+	 */
+	bool LineTraceSingleByProfile(struct FHitResult& OutHit, const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Trace a ray against the world using a specific channel and return overlapping hits and then first blocking hit
@@ -1080,6 +1101,19 @@ public:
 	bool LineTraceMulti(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Trace a ray against the world using a specific profile and return overlapping hits and then first blocking hit
+	 *  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	 *  Only the single closest blocking result will be generated, no tests will be done after that
+	 *  @param  OutHits         Array of hits found between ray and the world
+	 *  @param  Start           Start location of the ray
+	 *  @param  End             End location of the ray
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutHits contains any blocking hit entries
+	 */
+	bool LineTraceMultiByProfile(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Sweep a sphere against the world using a specific channel and return if a blocking hit is found.
 	 *  @param  Start           Start location of the sphere
 	 *  @param  End             End location of the sphere
@@ -1101,6 +1135,17 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool SweepTest(const FVector& Start, const FVector& End, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Sweep a sphere against the world using a specific profile and return if a blocking hit is found.
+	 *  @param  Start           Start location of the sphere
+	 *  @param  End             End location of the sphere
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if a blocking hit is found
+	 */
+	bool SweepTestByProfile(const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Sweep a sphere against the world and return the first blocking hit using a specific channel
@@ -1126,6 +1171,18 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool SweepSingle(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Sweep a sphere against the world and return the first blocking hit using a specific profile
+	 *  @param  OutHit          First blocking hit found
+	 *  @param  Start           Start location of the sphere
+	 *  @param  End             End location of the sphere
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutHits contains any blocking hit entries
+	 */
+	bool SweepSingleByProfile(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Sweep a sphere against the world and return all initial overlaps using a specific channel (including blocking) if requested, then overlapping hits and then first blocking hit
@@ -1157,6 +1214,20 @@ public:
 	bool SweepMulti(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Sweep a sphere against the world and return all initial overlaps using a specific profile, then overlapping hits and then first blocking hit
+	 *  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	 *  Only the single closest blocking result will be generated, no tests will be done after that
+	 *  @param  OutHits         Array of hits found between ray and the world
+	 *  @param  Start           Start location of the sphere
+	 *  @param  End             End location of the sphere
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutHits contains any blocking hit entries
+	 */
+	bool SweepMultiByProfile(TArray<FHitResult>& OutHits, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Test the collision of an AABB at the supplied location using a specific channel, and return if any blocking overlap is found
 	 *  @param  Pos             Location of center of box to test against the world
 	 *  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
@@ -1176,6 +1247,16 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool OverlapTest(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Test the collision of an AABB at the supplied location using a specific profile, and return if any blocking overlap is found
+	 *  @param  Pos             Location of center of box to test against the world
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if any blocking results are found
+	 */
+	bool OverlapTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Test the collision of a sphere at the supplied location using a specific channel, and determine the set of components that it overlaps
@@ -1201,6 +1282,17 @@ public:
 	bool OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Test the collision of a sphere at the supplied location using a specific profile, and determine the set of components that it overlaps
+	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	 *  @param  Pos             Location of center of sphere to test against the world
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutOverlaps contains any blocking results
+	 */
+	bool OverlapSingleByProfile(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Test the collision of a sphere at the supplied location using a specific channel, and determine the set of components that it overlaps
 	 *  @param  OutOverlaps     Array of components found to overlap supplied box
 	 *  @param  Pos             Location of center of sphere to test against the world
@@ -1223,6 +1315,17 @@ public:
 	 */
 	bool OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 	
+	/**
+	 *  Test the collision of a sphere at the supplied location using a specific profile, and determine the set of components that it overlaps
+	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	 *  @param  Pos             Location of center of sphere to test against the world
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutOverlaps contains any blocking results
+	 */
+	bool OverlapMultiByProfile(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
 	// COMPONENT SWEEP
 
 	/**

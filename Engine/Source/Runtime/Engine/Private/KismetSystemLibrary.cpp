@@ -603,6 +603,12 @@ void UKismetSystemLibrary::SetTransformPropertyByName(UObject* Object, FName Pro
 	}
 }
 
+void UKismetSystemLibrary::SetCollisionProfileNameProperty(UObject* Object, FName PropertyName, const FCollisionProfileName& Value)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.
+	check(0);
+}
+
 void UKismetSystemLibrary::Generic_SetStructurePropertyByName(UObject* OwnerObject, FName StructPropertyName, const void* SrcStructAddr)
 {
 	if (OwnerObject != NULL)

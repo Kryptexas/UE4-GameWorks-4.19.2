@@ -3959,6 +3959,11 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 		static FName SetTransformName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetTransformPropertyByName));
 		SetFunctionName = SetTransformName;
 	}
+	else if (PinType.PinCategory == K2Schema->PC_Struct && PinType.PinSubCategoryObject == FCollisionProfileName::StaticStruct())
+	{
+		static FName SetStructureName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetCollisionProfileNameProperty));
+		SetFunctionName = SetStructureName;
+	}
 	else if (PinType.PinCategory == K2Schema->PC_Struct && FIsCustomStructureParamHelper::Is(PinType.PinSubCategoryObject.Get()))
 	{
 		static FName SetStructureName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetStructurePropertyByName));

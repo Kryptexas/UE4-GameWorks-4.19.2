@@ -4,6 +4,7 @@
 
 #include "Engine/LatentActionManager.h"
 #include "BlueprintFunctionLibrary.h"
+#include "Engine/CollisionProfile.h"
 #include "KismetSystemLibrary.generated.h"
 
 /** It's just a proxy for FTimerDynamicDelegate */
@@ -386,6 +387,23 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/** Set a TRANSFORM property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetTransformPropertyByName(UObject* Object, FName PropertyName, const FTransform& Value);
+
+	/** Set a CollisionProfileName property by name */
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value"))
+	static void SetCollisionProfileNameProperty(UObject* Object, FName PropertyName, const FCollisionProfileName& Value);
+
+	DECLARE_FUNCTION(execSetCollisionProfileNameProperty)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, StructPropertyName);
+
+		Stack.StepCompiledIn<UStructProperty>(NULL);
+		void* SrcStructAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		Generic_SetStructurePropertyByName(OwnerObject, StructPropertyName, SrcStructAddr);
+	}
 
 	/** Set a custom structure property by name */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", CustomStructureParam = "Value"))

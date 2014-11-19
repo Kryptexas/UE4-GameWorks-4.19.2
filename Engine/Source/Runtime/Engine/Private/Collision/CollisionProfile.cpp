@@ -60,6 +60,24 @@ UCollisionProfile* UCollisionProfile::Get()
 	return CollisionProfile;
 }
 
+void UCollisionProfile::GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList)
+{
+	UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
+	check(CollisionProfile);
+
+	int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
+
+	OutNameList.Empty(NumProfiles);
+
+	for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
+	{
+		const FCollisionResponseTemplate* ProfileTemplate = CollisionProfile->GetProfileByIndex(ProfileId);
+		check(ProfileTemplate);
+
+		OutNameList.Add(MakeShareable(new FName(ProfileTemplate->Name)));
+	}
+}
+
 bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const
 {
 	// verify if it is in redirect first
@@ -95,6 +113,11 @@ bool UCollisionProfile::CheckRedirect(FName ProfileName, FBodyInstance& BodyInst
 	}
 
 	return false;
+}
+
+const FName* UCollisionProfile::LookForProfileRedirect(FName ProfileName) const
+{
+	return ProfileRedirectsMap.Find(ProfileName);
 }
 
 bool UCollisionProfile::FindProfileData(const TArray<FCollisionResponseTemplate>& ProfileList, FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const

@@ -10,6 +10,20 @@
 #include "CollisionProfile.generated.h"
 
 
+USTRUCT(BlueprintType)
+struct FCollisionProfileName
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCollisionProfileName()
+		: Name(NAME_None)
+	{}
+
+	UPROPERTY(EditAnywhere, Category = Collision)
+	FName Name;
+};
+
+
 /**
  * Structure for collision response templates.
  */
@@ -160,11 +174,17 @@ public:
 	/** Accessor and initializer **/
 	ENGINE_API static UCollisionProfile* Get();
 
+	/** Fill up the array with the profile names **/
+	ENGINE_API static void GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList);
+
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
 	bool ReadConfig(FName ProfileName, struct FBodyInstance& BodyInstance) const;
 
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
 	ENGINE_API bool GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const;
+
+	/** Check if this profile name has been redirected **/
+	ENGINE_API const FName* LookForProfileRedirect(FName ProfileName) const;
 
 	/** Accessor for UI customization **/
 	int32 GetNumOfProfiles() const { return Profiles.Num(); }
