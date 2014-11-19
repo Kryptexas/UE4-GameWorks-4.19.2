@@ -14,7 +14,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 	
 	FGameplayEffectSpec	SpecToApply(GameplayEffect, EffectContext, Level);
 	
-	AddTargetDataToContext(EffectContext);
+	AddTargetDataToContext(EffectContext, false);
 
 	TArray<TWeakObjectPtr<AActor> > Actors = GetActors();
 	TArray<FActiveGameplayEffectHandle>	AppliedHandles;
@@ -45,7 +45,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 	}
 
 	FGameplayEffectContextHandle EffectContext = Spec.GetContext();
-	AddTargetDataToContext(EffectContext);
+	AddTargetDataToContext(EffectContext, false);
 
 	TArray<TWeakObjectPtr<AActor> > Actors = GetActors();
 	
@@ -66,9 +66,9 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 	return AppliedHandles;
 }
 
-void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHandle& Context)
+void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray)
 {
-	if (GetActors().Num() > 0)
+	if (bIncludeActorArray && (GetActors().Num() > 0))
 	{
 		Context.AddActors(GetActors());
 	}

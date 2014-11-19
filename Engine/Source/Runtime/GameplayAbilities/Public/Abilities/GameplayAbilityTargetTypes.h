@@ -67,7 +67,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpec(FGameplayEffectSpec& Spec, FPredictionKey PredictionKey = FPredictionKey());
 
-	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context);
+	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray);
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const
 	{

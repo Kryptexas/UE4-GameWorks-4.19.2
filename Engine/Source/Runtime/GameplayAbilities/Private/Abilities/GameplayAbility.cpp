@@ -750,7 +750,7 @@ FGameplayEffectContextHandle UGameplayAbility::GetContextFromOwner(FGameplayAbil
 	{
 		if (Data.IsValid())
 		{
-			Data->AddTargetDataToContext(Context);
+			Data->AddTargetDataToContext(Context, true);
 		}
 	}
 

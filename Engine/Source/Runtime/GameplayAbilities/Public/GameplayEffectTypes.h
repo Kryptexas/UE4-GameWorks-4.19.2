@@ -539,7 +539,7 @@ struct FGameplayEffectContextHandle
 		}
 	}
 
-	const TArray<TWeakObjectPtr<AActor>> GetActors() const
+	TArray<TWeakObjectPtr<AActor>> GetActors()
 	{
 		return Data->GetActors();
 	}

@@ -271,10 +271,18 @@ bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueP
 	return Parameters.EffectContext.IsLocallyControlled();
 }
 
-
-TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActors(FGameplayCueParameters Parameters)
+int32 UAbilitySystemBlueprintLibrary::GetActorCount(FGameplayCueParameters Parameters)
 {
-	return Parameters.EffectContext.GetActors();
+	return Parameters.EffectContext.GetActors().Num();
+}
+
+AActor* UAbilitySystemBlueprintLibrary::GetActorByIndex(FGameplayCueParameters Parameters, int32 Index)
+{
+	if (Parameters.EffectContext.GetActors().IsValidIndex(Index))
+	{
+		return Parameters.EffectContext.GetActors()[Index].Get();
+	}
+	return NULL;
 }
 
 FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters Parameters)
