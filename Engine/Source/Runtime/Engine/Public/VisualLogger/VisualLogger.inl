@@ -159,7 +159,7 @@ VARARG_BODY(void, FVisualLogger::CategorizedLogf, const TCHAR*, VARARG_EXTRA(con
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddText(Buffer, Category.GetCategoryName());
+		CurrentEntry->AddText(Buffer, Category.GetCategoryName(), Verbosity);
 	);
 }
 
@@ -175,7 +175,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Start, End, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Start, End, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -191,7 +191,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Location, Category.GetCategoryName(), Color, Buffer, Radius);
+		CurrentEntry->AddElement(Location, Category.GetCategoryName(), Verbosity, Color, Buffer, Radius);
 	);
 }
 
@@ -207,7 +207,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Box, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Box, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -223,7 +223,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Orgin, Direction, Length, Angle, Angle, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Orgin, Direction, Length, Angle, Angle, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -239,7 +239,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Start, End, Radius, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Start, End, Radius, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -255,7 +255,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Center, HalfHeight, Radius, Rotation, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Center, HalfHeight, Radius, Rotation, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -271,7 +271,7 @@ VARARG_BODY(void, FVisualLogger::HistogramDataLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddHistogramData(Data, Category.GetCategoryName(), GraphName, DataName);
+		CurrentEntry->AddHistogramData(Data, Category.GetCategoryName(), Verbosity, GraphName, DataName);
 	);
 }
 

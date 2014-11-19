@@ -76,11 +76,6 @@ uint32 STimelineBar::GetClosestItem(float Time) const
 			continue;
 		}
 		TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
-		//FVisualLoggerHelpers::GetCategories(CurrentEntryItem.Entry, OutCategories);
-		//if (VisualLoggerInterface->HasValidCategories(OutCategories) == false)
-		//{
-		//	continue;
-		//}
 		const float CurrentDist = FMath::Abs(CurrentEntryItem.Entry.TimeStamp - Time);
 		if (CurrentDist < BestDistance)
 		{

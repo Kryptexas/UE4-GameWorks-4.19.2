@@ -143,6 +143,6 @@ void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FLo
 	Line.UniqueId = UniqueId;
 
 	CurrentEntry->LogLines.Add(Line);
-	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, Category.GetCategoryName()).UniqueId = UniqueId;
+	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, Category.GetCategoryName(), Verbosity).UniqueId = UniqueId;
 }
 #endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER

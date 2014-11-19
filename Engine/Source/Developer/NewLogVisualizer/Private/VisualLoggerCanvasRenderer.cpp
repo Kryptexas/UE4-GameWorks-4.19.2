@@ -54,7 +54,7 @@ namespace LogVisualizer
 
 void FVisualLoggerCanvasRenderer::OnItemSelectionChanged(const struct FVisualLogEntry& EntryItem)
 {
-	SelectedEntry = &EntryItem;
+	SelectedEntry = EntryItem;
 }
 
 void FVisualLoggerCanvasRenderer::ObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
@@ -64,7 +64,7 @@ void FVisualLoggerCanvasRenderer::ObjectSelectionChanged(TSharedPtr<class STimel
 
 void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APlayerController*)
 {
-	if (SelectedEntry == NULL || GEditor == NULL || CurrentTimeLine.IsValid() == false)
+	if (GEngine == NULL || CurrentTimeLine.IsValid() == false)
 	{
 		return;
 	}
@@ -78,10 +78,10 @@ void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APla
 	UFont* Font = GEngine->GetSmallFont();
 	FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), Font, FLinearColor::White);
 
-	const FString TimeStampString = FString::Printf(TEXT("%.2f"), SelectedEntry->TimeStamp);
-	LogVisualizer::DrawTextShadowed(Canvas, Font, TimeStampString, SelectedEntry->Location);
+	const FString TimeStampString = FString::Printf(TEXT("%.2f"), SelectedEntry.TimeStamp);
+	LogVisualizer::DrawTextShadowed(Canvas, Font, TimeStampString, SelectedEntry.Location);
 
-	for (const auto CurrentData : SelectedEntry->DataBlocks)
+	for (const auto CurrentData : SelectedEntry.DataBlocks)
 	{
 		const FName TagName = CurrentData.TagName;
 		const bool bIsValidByFilter = VisualLoggerInterface->IsValidCategory(CurrentData.Category.ToString(), ELogVerbosity::All) && VisualLoggerInterface->IsValidCategory(CurrentData.TagName.ToString(), ELogVerbosity::All);
@@ -93,11 +93,11 @@ void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APla
 
 		if (!bIsValidByFilter)
 		{
-			Extension->DisableDrawingForData(VisualLoggerInterface->GetWorld(), Canvas, NULL, TagName, CurrentData, SelectedEntry->TimeStamp);
+			Extension->DisableDrawingForData(VisualLoggerInterface->GetWorld(), Canvas, NULL, TagName, CurrentData, SelectedEntry.TimeStamp);
 		}
 		else
 		{
-			Extension->DrawData(VisualLoggerInterface->GetWorld(), Canvas, NULL, TagName, CurrentData, SelectedEntry->TimeStamp);
+			Extension->DrawData(VisualLoggerInterface->GetWorld(), Canvas, NULL, TagName, CurrentData, SelectedEntry.TimeStamp);
 		}
 	}
 
@@ -134,7 +134,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 	const float LocalViewRangeMax = LocalViewRange.GetUpperBoundValue();
 	const float LocalSequenceLength = LocalViewRangeMax - LocalViewRangeMin;
 	const float WindowHalfWidth = LocalSequenceLength * TimeSliderArgs.CursorSize.Get() * 0.5f;
-	const FVector2D TimeStampWindow(SelectedEntry->TimeStamp - WindowHalfWidth, SelectedEntry->TimeStamp + WindowHalfWidth);
+	const FVector2D TimeStampWindow(SelectedEntry.TimeStamp - WindowHalfWidth, SelectedEntry.TimeStamp + WindowHalfWidth);
 
 	const TArray<FVisualLogDevice::FVisualLogEntryItem> &ObjectItems = CurrentTimeLine.Pin()->GetEntries();
 	int32 ColorIndex = 0;
@@ -257,7 +257,7 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 
 			HistogramGraph->DrawCursorOnGraph(true);
 			HistogramGraph->UseTinyFont(CollectedGraphs.Num() >= 5);
-			HistogramGraph->SetCursorLocation(SelectedEntry->TimeStamp);
+			HistogramGraph->SetCursorLocation(SelectedEntry.TimeStamp);
 			HistogramGraph->SetNumThresholds(0);
 			HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
 			HistogramGraph->SetBackgroundColor(FColor(0, 0, 0, 200));
