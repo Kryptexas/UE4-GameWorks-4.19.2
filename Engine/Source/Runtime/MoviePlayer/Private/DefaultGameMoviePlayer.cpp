@@ -194,6 +194,10 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 
             bBeganPlaying = true;
         }
+		else
+		{
+			LoadingIsDone.Set(1);
+		}
 	}
 
 	return bBeganPlaying;
