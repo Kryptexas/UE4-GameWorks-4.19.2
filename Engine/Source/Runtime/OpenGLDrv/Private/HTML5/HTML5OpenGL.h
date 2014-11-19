@@ -7,14 +7,13 @@
 #pragma once
 
 #define GL_GLEXT_PROTOTYPES 
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+#include <SDL_opengles2.h>
 
 typedef char UGLsync; 
 typedef unsigned long long  GLuint64;
 
 // empty functions. 
-#if !PLATFORM_HTML5_WIN32 
+#if PLATFORM_HTML5_BROWSER 
 void glDeleteQueriesEXT(GLsizei n,  const GLuint * ids);
 void glGenQueriesEXT(GLsizei n,  GLuint * ids); 
 void glBeginQueryEXT(GLenum target,  GLuint id);

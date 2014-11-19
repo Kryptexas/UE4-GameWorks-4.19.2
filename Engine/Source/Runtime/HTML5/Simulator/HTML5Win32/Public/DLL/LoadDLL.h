@@ -6,6 +6,5 @@ namespace HTML5Win32
 {
 	void LoadANGLE(const char*);
 	void LoadPhysXDLL(const char*); 
-	void LoadSDLDLL(const char*); 
 	void LoadOpenAL(const char*); 
 }

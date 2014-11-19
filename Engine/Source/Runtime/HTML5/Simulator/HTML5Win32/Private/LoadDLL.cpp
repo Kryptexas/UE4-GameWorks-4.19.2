@@ -53,14 +53,6 @@ void ShutDownPhysXDLL()
 {
 	 
 }
-
-
-void LoadSDLDLL(const char* EngineRoot)
-{
-	std::string  DllRoot  =   std::string(EngineRoot)  +  std::string("Binaries/ThirdParty/SDL/Win32/SDL.dll");
-	LoadLibraryA( DllRoot.c_str()); 
-} 
-
 void LoadOpenAL(const char* EngineRoot)
 {
 	std::string  DllRoot  =   std::string(EngineRoot)  +  std::string("Binaries/ThirdParty/OpenAL/OpenAL32.dll");

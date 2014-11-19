@@ -172,8 +172,13 @@ void FOpenGLDynamicRHI::RHIEndScene()
 
 bool GDisableOpenGLDebugOutput = false;
 
-#if defined(GL_ARB_debug_output) || defined(GL_KHR_debug)
+// workaround for HTML5. 
+#if PLATFORM_HTML5
+#undef GL_ARB_debug_output
+#undef GL_KHR_debug
+#endif 
 
+#if defined(GL_ARB_debug_output) || defined(GL_KHR_debug)
 /**
  * Map GL_DEBUG_SOURCE_*_ARB to a human-readable string.
  */

@@ -144,11 +144,12 @@ public class Core : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
             PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
-			AddThirdPartyPrivateStaticDependencies(Target, "SDL");
+			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
 			AddThirdPartyPrivateStaticDependencies(Target, "OpenAL");
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
         {
+            AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
             PrivateDependencyModuleNames.Add("HTML5JS");
         }
 

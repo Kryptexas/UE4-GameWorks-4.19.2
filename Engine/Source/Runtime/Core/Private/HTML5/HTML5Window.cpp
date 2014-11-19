@@ -6,7 +6,7 @@
 #if !PLATFORM_HTML5_WIN32 
 #include <emscripten.h>
 #endif
-#include <SDL/SDL.h>
+#include <SDL.h>
 
 FHTML5Window::~FHTML5Window()
 {
@@ -49,9 +49,8 @@ FPlatformRect FHTML5Window::GetScreenRect()
 	int fs;
 	emscripten_get_canvas_size(&Width, &Height, &fs);
 #else
-	const SDL_VideoInfo* Info = SDL_GetVideoInfo();
-	Width  = Info->current_w;
-	Height = Info->current_h;
+	SDL_Window* WindowHandle= SDL_GL_GetCurrentWindow();
+	SDL_GetWindowSize(WindowHandle, &Width, &Height);
 #endif 
 	CalculateSurfaceSize(NULL,Width,Height);
 	ScreenRect.Right = Width;
@@ -82,9 +81,4 @@ EWindowMode::Type FHTML5Window::GetWindowMode() const
 
 void FHTML5Window::ReshapeWindow(int32 X, int32 Y, int32 Width, int32 Height)
 {
-	static SDL_ResizeEvent ResizeEvent; 
-	ResizeEvent.h = Height; 
-	ResizeEvent.w = Width; 
-	ResizeEvent.type = SDL_VIDEORESIZE; 
-	SDL_PushEvent((SDL_Event*)&ResizeEvent);
 }
