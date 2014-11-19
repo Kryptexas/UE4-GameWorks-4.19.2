@@ -762,6 +762,19 @@ struct FRegenerationHelper
 		TSet<UStruct*> Dependencies;
 		ProcessHierarchy(Blueprint->ParentClass, Dependencies);
 
+		for (const auto& NewVar : Blueprint->NewVariables)
+		{
+			if (UObject* TypeObject = NewVar.VarType.PinSubCategoryObject.Get())
+			{
+				ForcedLoad(TypeObject);
+			}
+
+			if (UClass* TypeClass = NewVar.VarType.PinSubCategoryMemberReference.MemberParentClass)
+			{
+				ForcedLoad(TypeClass);
+			}
+		}
+
 		TSet<UBlueprint*> MacroSources;
 		TArray<UEdGraph*> Graphs;
 		Blueprint->GetAllGraphs(Graphs);
