@@ -488,7 +488,7 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecH
 const FGameplayTagContainer* UGameplayAbility::GetCooldownTags() const
 {
 	UGameplayEffect* CDGE =GetCooldownGameplayEffect();
-	return CDGE ? &CDGE->InheritableClearTagsContainer.CombinedTags : nullptr;
+	return CDGE ? &CDGE->InheritableOwnedTagsContainer.CombinedTags : nullptr;
 }
 
 FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const

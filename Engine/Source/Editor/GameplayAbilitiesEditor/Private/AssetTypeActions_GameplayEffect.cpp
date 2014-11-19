@@ -36,9 +36,9 @@ void CopyInfoFromDataGE(const UGameplayEffect& InGE, UGameplayEffect& OutGE)
 	OutGE.InheritableOwnedTagsContainer.Added.AppendTags(InGE.OwnedTagsContainer);
 	OutGE.InheritableOwnedTagsContainer.Removed = InGE.InheritableOwnedTagsContainer.Removed;
 
-	OutGE.InheritableClearTagsContainer.Added = InGE.InheritableClearTagsContainer.Added;
-	OutGE.InheritableClearTagsContainer.Added.AppendTags(InGE.ClearTagsContainer);
-	OutGE.InheritableClearTagsContainer.Removed = InGE.InheritableClearTagsContainer.Removed;
+	OutGE.RemoveGameplayEffectsWithTags.Added = InGE.RemoveGameplayEffectsWithTags.Added;
+	OutGE.RemoveGameplayEffectsWithTags.Added.AppendTags(InGE.ClearTagsContainer);
+	OutGE.RemoveGameplayEffectsWithTags.Removed = InGE.RemoveGameplayEffectsWithTags.Removed;
 
 	for (FGameplayEffectCue InCue : InGE.GameplayCues)
 	{

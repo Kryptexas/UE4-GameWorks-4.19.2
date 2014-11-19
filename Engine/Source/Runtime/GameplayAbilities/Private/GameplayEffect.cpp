@@ -43,11 +43,6 @@ void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 	TagContainer.AppendTags(InheritableOwnedTagsContainer.CombinedTags);
 }
 
-// void UGameplayEffect::GetClearGameplayTags(FGameplayTagContainer& TagContainer) const
-// {
-// 	TagContainer.AppendTags(InheritableClearTagsContainer.CombinedTags);
-// }
-
 void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*>& OutEffects) const
 {
 	OutEffects.Append(TargetEffects);
@@ -85,7 +80,7 @@ void UGameplayEffect::PostLoad()
 	InheritableOwnedTagsContainer.Added.AppendTags(OwnedTagsContainer);
 	OwnedTagsContainer.RemoveAllTags();
 
-	InheritableClearTagsContainer.Added.AppendTags(ClearTagsContainer);
+	RemoveGameplayEffectsWithTags.Added.AppendTags(ClearTagsContainer);
 	ClearTagsContainer.RemoveAllTags();
 
 	UpdateInheritedTagProperties();
@@ -97,7 +92,7 @@ void UGameplayEffect::PostInitProperties()
 
 	InheritableGameplayEffectTags.PostInitProperties();
 	InheritableOwnedTagsContainer.PostInitProperties();
-	InheritableClearTagsContainer.PostInitProperties();
+	RemoveGameplayEffectsWithTags.PostInitProperties();
 }
 
 #if WITH_EDITOR
@@ -119,9 +114,9 @@ void UGameplayEffect::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		{
 			InheritableOwnedTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableOwnedTagsContainer : NULL);
 		}
-		else if (PropName == GET_MEMBER_NAME_CHECKED(UGameplayEffect, InheritableClearTagsContainer))
+		else if (PropName == GET_MEMBER_NAME_CHECKED(UGameplayEffect, RemoveGameplayEffectsWithTags))
 		{
-			InheritableClearTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableClearTagsContainer : NULL);
+			RemoveGameplayEffectsWithTags.UpdateInheritedTagProperties(Parent ? &Parent->RemoveGameplayEffectsWithTags : NULL);
 		}
 	}
 }
@@ -134,7 +129,7 @@ void UGameplayEffect::UpdateInheritedTagProperties()
 
 	InheritableGameplayEffectTags.UpdateInheritedTagProperties(Parent ? &Parent->InheritableGameplayEffectTags : NULL);
 	InheritableOwnedTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableOwnedTagsContainer : NULL);
-	InheritableClearTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableClearTagsContainer : NULL);
+	RemoveGameplayEffectsWithTags.UpdateInheritedTagProperties(Parent ? &Parent->RemoveGameplayEffectsWithTags : NULL);
 }
 
 void UGameplayEffect::ValidateGameplayEffect()
@@ -999,6 +994,12 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			}
 		}
 	}
+
+	// ------------------------------------------------------
+	//	Remove gameplay effects with tags
+	//		Remove any active gameplay effects that match the RemoveGameplayEffectsWithTags in the definition for this spec
+	// ------------------------------------------------------
+	RemoveActiveEffects(FActiveGameplayEffectQuery(&Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags));
 
 	// ------------------------------------------------------
 	//	Invoke GameplayCue events

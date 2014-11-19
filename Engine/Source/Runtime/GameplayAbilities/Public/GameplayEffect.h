@@ -553,13 +553,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
 	FGameplayTagRequirements ApplicationTagRequirements;
 
-	// Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be.
-	/** CURRENTLY NOT IMPLEMENTED */
+	/** GameplayEffects that *have* tags in this container will be cleared upon effect application. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
-	FInheritedTagContainer InheritableClearTagsContainer;
+	FInheritedTagContainer RemoveGameplayEffectsWithTags;
 
-	// Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be.
-	/** CURRENTLY NOT IMPLEMENTED */
+	/** Deprecated. Use RemoveGameplayEffectsWithTags instead */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Deprecated)
 	FGameplayTagContainer ClearTagsContainer;
 
