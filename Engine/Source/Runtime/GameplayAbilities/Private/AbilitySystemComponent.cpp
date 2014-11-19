@@ -581,9 +581,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		ABILITY_LOG(Warning, TEXT("%s is periodic but also applies GameplayEffects to its target. GameplayEffects will only be applied once, not every period."), *Spec.Def->GetPathName());
 	}
 	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?
-	for (const TSharedRef<FGameplayEffectSpec> TargetSpec : Spec.TargetEffectSpecs)
+	for (const FGameplayEffectSpecHandle TargetSpec: Spec.TargetEffectSpecs)
 	{
-		ApplyGameplayEffectSpecToSelf(TargetSpec.Get(), PredictionKey);
+		if (TargetSpec.IsValid())
+		{
+			ApplyGameplayEffectSpecToSelf(*TargetSpec.Data.Get(), PredictionKey);
+		}
 	}
 
 	return MyHandle;

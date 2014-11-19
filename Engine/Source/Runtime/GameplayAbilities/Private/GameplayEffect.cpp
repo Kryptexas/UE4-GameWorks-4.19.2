@@ -236,7 +236,7 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 			break;
 
 			case EGameplayEffectMagnitudeCalculation::SetByCaller:
-				// Add check that we've been set?
+				OutCalculatedMagnitude = InRelevantSpec.GetMagnitude(SetByCallerMagnitude.DataName);
 				break;
 			default:
 				ABILITY_LOG(Error, TEXT("Unknown MagnitudeCalculationType %d in AttemptCalculateMagnitude"), (int32)MagnitudeCalculationType);
@@ -357,7 +357,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 
 	for (const UGameplayEffect* TargetDef : TargetEffectDefs)
 	{
-		TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, EffectContext, Level)));
+		TargetEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, EffectContext, Level)));
 	}
 
 	// Everything is setup now, capture data from our source
@@ -567,38 +567,33 @@ void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container
 	Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
 }
 
-void FGameplayEffectSpec::SetModifierMagnitude(int32 ModIdx, float EvaluatedMagnitude)
+void FGameplayEffectSpec::SetMagnitude(FName DataName, float Magnitude)
 {
-	if (Def->Modifiers.IsValidIndex(ModIdx) == false)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const float* CurrentValue = SetByCallerMagnitudes.Find(DataName);
+	if (CurrentValue)
 	{
-		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetModifierMagnitude called on invalid index %d for Def: %s"), ModIdx, *Def->GetName());
-		return;
+		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetMagnitude called on Data %s for Def %s when this magnitude was already set. Current Value: %.2f"), *DataName.ToString(), *Def->GetName(), *CurrentValue);
 	}
+#endif
 
-	if (Def->Modifiers[ModIdx].ModifierMagnitude.GetMagnitudeCalculationType() != EGameplayEffectMagnitudeCalculation::SetByCaller)
-	{
-		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetModifierMagnitude called on index %d for Def: %s - this modifier not SetByCaller!"), ModIdx, *Def->GetName());
-		return;
-	}
-	
-	Modifiers[ModIdx].EvaluatedMagnitude = EvaluatedMagnitude;
+	SetByCallerMagnitudes.Add(DataName) = Magnitude;
 }
 
-void FGameplayEffectSpec::SetModifierMagnitude(FGameplayAttribute Attribute, float EvaluatedMagnitude)
+float FGameplayEffectSpec::GetMagnitude(FName DataName) const
 {
-	for (int32 ModIdx=0; ModIdx < Def->Modifiers.Num(); ++ModIdx)
+	float Magnitude = 0.f;
+	const float* Ptr = SetByCallerMagnitudes.Find(DataName);
+	if (Ptr)
 	{
-		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
-		FModifierSpec& ModSpec = Modifiers[ModIdx];
-
-		if (ModDef.Attribute == Attribute && ModDef.ModifierMagnitude.GetMagnitudeCalculationType() == EGameplayEffectMagnitudeCalculation::SetByCaller )
-		{
-			ModSpec.EvaluatedMagnitude = EvaluatedMagnitude;
-			return;
-		}
+		Magnitude = *Ptr;
+	}
+	else
+	{
+		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::GetMagnitude called for Data %s on Def %s when magnitude had not yet been set by caller."), *DataName.ToString(), *Def->GetName());
 	}
 
-	ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetModifierMagnitude - called on Def %s for Attribute %s but no valid modifier was found."), *Def->GetName(), *Attribute.GetName());
+	return Magnitude;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------

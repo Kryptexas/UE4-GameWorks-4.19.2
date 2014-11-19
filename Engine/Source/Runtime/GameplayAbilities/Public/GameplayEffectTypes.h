@@ -5,6 +5,7 @@
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
 #include "GameplayPrediction.h"
+#include "AbilitySystemLog.h"
 #include "GameplayEffectTypes.generated.h"
 
 #define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
@@ -776,4 +777,65 @@ private:
 
 	mutable FGameplayTagContainer CachedAggregator;
 	mutable bool CacheIsValid;
+};
+
+
+/** Allows blueprints to generate a GameplayEffectSpec once and then reference it by handle, to apply it multiple times/multiple targets. */
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectSpecHandle() { }
+	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)
+		: Data(DataPtr)
+	{
+
+	}
+
+	TSharedPtr<FGameplayEffectSpec>	Data;
+
+	bool IsValidCache;
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	bool IsValid() const
+	{
+		return Data.IsValid();
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+	{
+		ABILITY_LOG(Fatal, TEXT("FGameplayEffectSpecHandle should not be NetSerialized"));
+		return false;
+	}
+
+	/** Comparison operator */
+	bool operator==(FGameplayEffectSpecHandle const& Other) const
+	{
+		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
+		bool bBothValid = IsValid() && Other.IsValid();
+		bool bBothInvalid = !IsValid() && !Other.IsValid();
+		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
+	}
+
+	/** Comparison operator */
+	bool operator!=(FGameplayEffectSpecHandle const& Other) const
+	{
+		return !(FGameplayEffectSpecHandle::operator==(Other));
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
+	};
 };

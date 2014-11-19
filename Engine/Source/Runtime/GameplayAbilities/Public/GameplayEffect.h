@@ -112,6 +112,7 @@ public:
 	FGameplayTagContainer TargetTagFilter;
 };
 
+/** Structure to encapsulte magnitude that are calculated via custom calculation */
 USTRUCT()
 struct FCustomCalculationBasedFloat
 {
@@ -138,7 +139,7 @@ public:
 	 */
 	float CalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const;
 
-	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation)
+	UPROPERTY(EditDefaultsOnly, Category=CustomCalculation, DisplayName="Calculation Class")
 	TSubclassOf<UGameplayModMagnitudeCalculation> CalculationClassMagnitude;
 
 	/** Coefficient to the custom calculation */
@@ -152,6 +153,21 @@ public:
 	/** Additive value to the attribute calculation, added in after the coefficient applies */
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	FScalableFloat PostMultiplyAdditiveValue;
+};
+
+/** Struct for holding SetBytCaller data */
+USTRUCT()
+struct FSetByCallerFloat
+{
+	GENERATED_USTRUCT_BODY()
+
+	FSetByCallerFloat()
+	: DataName(NAME_None)
+	{}
+
+	/** The Name the caller (code or blueprint) will use to set this magnitude by. */
+	UPROPERTY(EditDefaultsOnly, Category=SetByCaller)
+	FName	DataName;
 };
 
 /** Struct representing the magnitude of a gameplay effect modifier, potentially calculated in numerous different ways */
@@ -220,6 +236,10 @@ protected:
 	/** Magnitude value represented by a custom calculation class */
 	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
 	FCustomCalculationBasedFloat CustomMagnitude;
+
+	/** Magnitude value represented by a SetByCaller magnitude */
+	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
+	FSetByCallerFloat SetByCallerMagnitude;
 
 	// @hack: @todo: This is temporary to aid in post-load fix-up w/o exposing members publicly
 	friend class UGameplayEffect;
@@ -480,7 +500,7 @@ public:
 	FScalableFloat	ChanceToExecuteOnGameplayEffect;
 
 	/** other gameplay effects that will be applied to the target of this effect if this effect applies */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "LinkedGameplayEffects"))
 	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses;
 
 	/** Deprecated. Use TargetEffectClasses instead */
@@ -842,7 +862,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 
 	/** other effects that need to be applied to the target if this effect is successful */
-	TArray< TSharedRef< FGameplayEffectSpec > > TargetEffectSpecs;
+	TArray< FGameplayEffectSpecHandle > TargetEffectSpecs;
 
 	/** Set the context info: who and where this spec came from. */
 	void SetContext(FGameplayEffectContextHandle NewEffectContext);
@@ -854,11 +874,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	void GetAllGrantedTags(OUT FGameplayTagContainer& Container) const;
 
-	/** Sets the magnitude of one of our modifiers. This must be done on modifiers which are EGameplayEffectMagnitudeCalculation::SetByCaller  */
-	void SetModifierMagnitude(int32 ModIdx, float EvaluatedMagnitude);
+	/** Sets the magnitude of a SetByCaller modifier */
+	void SetMagnitude(FName DataName, float Magnitude);
 
-	/** Set magnitude of (the first) SetByCaller modifier with the given GameplayAttribute  */
-	void SetModifierMagnitude(FGameplayAttribute Attribute, float EvaluatedMagnitude);
+	/** Returns the magnitude of a SetByCaller modifier. Will return 0.f and Warn if the magnitude has not been set. */
+	float GetMagnitude(FName DataName) const;
 
 	// The duration in seconds of this effect
 	// instantaneous effects should have a duration of UGameplayEffect::INSTANT_APPLICATION
@@ -917,6 +937,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	}
 
 private:
+
+	/** Map of set by caller magnitudes */
+	TMap<FName, float>	SetByCallerMagnitudes;
 
 	void CaptureDataFromSource();
 
@@ -1354,62 +1377,3 @@ public:
 };
 
 
-/** Allows blueprints to generate a GameplayEffectSpec once and then reference it by handle, to apply it multiple times/multiple targets. */
-USTRUCT(BlueprintType)
-struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayEffectSpecHandle() { }
-	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)
-		: Data(DataPtr)
-	{
-
-	}
-
-	TSharedPtr<FGameplayEffectSpec>	Data;
-
-	bool IsValidCache;
-
-	void Clear()
-	{
-		Data.Reset();
-	}
-
-	bool IsValid() const
-	{
-		return Data.IsValid();
-	}
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-	{
-		ABILITY_LOG(Fatal, TEXT("FGameplayEffectSpecHandle should not be NetSerialized"));
-		return false;
-	}
-
-	/** Comparison operator */
-	bool operator==(FGameplayEffectSpecHandle const& Other) const
-	{
-		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
-		bool bBothValid = IsValid() && Other.IsValid();
-		bool bBothInvalid = !IsValid() && !Other.IsValid();
-		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
-	}
-
-	/** Comparison operator */
-	bool operator!=(FGameplayEffectSpecHandle const& Other) const
-	{
-		return !(FGameplayEffectSpecHandle::operator==(Other));
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
-		WithNetSerializer = true,
-		WithIdenticalViaEquality = true,
-	};
-};
