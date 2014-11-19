@@ -772,14 +772,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		return;
 	}
 
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if(!InputDesc)
-	{
-		// input is not hooked up correctly
-		return;
-	}
-
 	TArray<FTransientDecalRenderData, SceneRenderingAllocator> SortedDecals;
 	SortedDecals.Empty(Scene.Decals.Num());
 
