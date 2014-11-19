@@ -95,7 +95,7 @@ enum class EGameplayEffectAttributeCaptureSource : uint8
  *	through a handle. a pointer or index into the active list is not sufficient.
  */
 USTRUCT(BlueprintType)
-struct FActiveGameplayEffectHandle
+struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -120,6 +120,8 @@ struct FActiveGameplayEffectHandle
 
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent();
 	const UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
+
+	void RemoveFromGlobalMap();
 
 	bool operator==(const FActiveGameplayEffectHandle& Other) const
 	{

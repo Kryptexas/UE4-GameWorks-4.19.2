@@ -1638,6 +1638,9 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 			Owner->OwnerActor->FlushNetDormancy();
 		}
 
+		// Remove this handle from the global map
+		Effect.Handle.RemoveFromGlobalMap();
+
 		// Finally remove the ActiveGameplayEffect
 		GameplayEffects.RemoveAtSwap(Idx);
 		MarkArrayDirty();
@@ -2111,6 +2114,11 @@ const UAbilitySystemComponent* FActiveGameplayEffectHandle::GetOwningAbilitySyst
 	}
 
 	return nullptr;
+}
+
+void FActiveGameplayEffectHandle::RemoveFromGlobalMap()
+{
+	GlobalActiveGameplayEffectHandles::Map.Remove(*this);
 }
 
 // -----------------------------------------------------------------
