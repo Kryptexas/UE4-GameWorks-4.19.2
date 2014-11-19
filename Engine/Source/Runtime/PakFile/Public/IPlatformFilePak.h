@@ -1094,14 +1094,18 @@ public:
 		{
 			const FString Path(FPaths::GetPath(Filename));
 			const FPakDirectory* PakDirectory = PakFile->FindDirectory(*Path);
-			const FString* RealFilename = PakDirectory->FindKey(const_cast<FPakEntry*>(FileEntry));
-			return *RealFilename;
+			if (PakDirectory != nullptr)
+			{
+				const FString* RealFilename = PakDirectory->FindKey(const_cast<FPakEntry*>(FileEntry));
+				if (RealFilename != nullptr)
+				{
+					return *RealFilename;
+				}
+			}
 		}
-		else
-		{
-			// Fall back to lower level.
-			return LowerLevel->GetFilenameOnDisk(Filename);
-		}
+
+		// Fall back to lower level.
+		return LowerLevel->GetFilenameOnDisk(Filename);
 	}
 
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
