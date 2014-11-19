@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
     {
         public GameplayDebugger(TargetInfo Target)
         {
-            bIsAutoStartupModule = true;
+            bIsAutoStartupModule = false; //we have to hold on with this feature for now.
 
             PublicIncludePaths.AddRange(
                 new string[] {
