@@ -192,7 +192,7 @@ void FMainFrameActionCallbacks::ChoosePackagesToSave()
 	FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved );
 }
 
-void FMainFrameActionCallbacks::ChoosePackagesToCheckInCompleted(TArray<UPackage*> LoadedPackages, TArray<FString> PackageNames)
+void FMainFrameActionCallbacks::ChoosePackagesToCheckInCompleted(const TArray<UPackage*>& LoadedPackages, const TArray<FString>& PackageNames, const TArray<FString>& ConfigFiles)
 {
 	if (ChoosePackagesToCheckInNotification.IsValid())
 	{
@@ -200,7 +200,7 @@ void FMainFrameActionCallbacks::ChoosePackagesToCheckInCompleted(TArray<UPackage
 	}
 	ChoosePackagesToCheckInNotification.Reset();
 	
-	check(PackageNames.Num() > 0);
+	check(PackageNames.Num() > 0 || ConfigFiles.Num() > 0);
 
 	// Prompt the user to ask if they would like to first save any dirty packages they are trying to check-in
 	const FEditorFileUtils::EPromptReturnCode UserResponse = FEditorFileUtils::PromptForCheckoutAndSave( LoadedPackages, true, true );
@@ -211,7 +211,7 @@ void FMainFrameActionCallbacks::ChoosePackagesToCheckInCompleted(TArray<UPackage
 	if ( bShouldProceed )
 	{
 		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-		FSourceControlWindows::PromptForCheckin(PackageNames);
+		FSourceControlWindows::PromptForCheckin(PackageNames, ConfigFiles);
 	}
 	else
 	{
@@ -280,9 +280,18 @@ void FMainFrameActionCallbacks::ChoosePackagesToCheckInCallback(const FSourceCon
 			}
 		}
 
-		if ( PackageNames.Num() > 0 )
+		// Get a list of all the checked out config files
+		TMap<FString, FSourceControlStatePtr> ConfigFileStates;
+		TArray<FString> ConfigFilesToSubmit;
+		FEditorFileUtils::FindAllSubmittableConfigFiles(ConfigFileStates);
+		for (TMap<FString, FSourceControlStatePtr>::TConstIterator It(ConfigFileStates); It; ++It)
 		{
-			ChoosePackagesToCheckInCompleted(LoadedPackages, PackageNames);
+			ConfigFilesToSubmit.Add(It.Key());
+		}
+
+		if ( PackageNames.Num() > 0 || ConfigFilesToSubmit.Num() > 0 )
+		{
+			ChoosePackagesToCheckInCompleted(LoadedPackages, PackageNames, ConfigFilesToSubmit);
 		}
 		else
 		{
@@ -308,10 +317,16 @@ void FMainFrameActionCallbacks::ChoosePackagesToCheckIn()
 			// make sure we update the SCC status of all packages (this could take a long time, so we will run it as a background task)
 			TArray<FString> Packages;
 			FEditorFileUtils::FindAllPackageFiles(Packages);
+
+			// Get list of filenames corresponding to packages
+			TArray<FString> Filenames = SourceControlHelpers::PackageFilenames(Packages);
+
+			// Add game config files to the list
+			FEditorFileUtils::FindAllConfigFiles(Filenames);
 			
 			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 			FSourceControlOperationRef Operation = ISourceControlOperation::Create<FUpdateStatus>();
-			SourceControlProvider.Execute(Operation, SourceControlHelpers::PackageFilenames(Packages), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateStatic(&FMainFrameActionCallbacks::ChoosePackagesToCheckInCallback));
+			SourceControlProvider.Execute(Operation, Filenames, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateStatic(&FMainFrameActionCallbacks::ChoosePackagesToCheckInCallback));
 
 			if (ChoosePackagesToCheckInNotification.IsValid())
 			{

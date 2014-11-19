@@ -454,27 +454,27 @@ private:
 	ESlateCheckBoxState::Type	KeepCheckedOut;
 };
 
-static void FindFilesForCheckIn(const TArray<FString>& InPackagesNames, TArray<FString>& OutAddFiles, TArray<FString>& OutOpenFiles)
+static void FindFilesForCheckIn(const TArray<FString>& InFilenames, TArray<FString>& OutAddFiles, TArray<FString>& OutOpenFiles)
 {
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 	TArray<FSourceControlStateRef> States;
-	SourceControlProvider.GetState(SourceControlHelpers::PackageFilenames(InPackagesNames), States, EStateCacheUsage::ForceUpdate);
+	SourceControlProvider.GetState(InFilenames, States, EStateCacheUsage::ForceUpdate);
 
-	for( int32 PackageIndex = 0 ; PackageIndex < InPackagesNames.Num() ; ++PackageIndex )
+	for (const FString& Filename : InFilenames)
 	{
-		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(InPackagesNames[PackageIndex]), EStateCacheUsage::Use);
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Filename, EStateCacheUsage::Use);
 		if(SourceControlState.IsValid())
 		{
 			if (SourceControlState->CanCheckIn())
 			{
-				OutOpenFiles.Add(InPackagesNames[PackageIndex]);
+				OutOpenFiles.Add(Filename);
 			}
 			else
 			{
 				if( !SourceControlState->IsSourceControlled() )
 				{
-					OutAddFiles.Add(InPackagesNames[PackageIndex]);
+					OutAddFiles.Add(Filename);
 				}
 			}
 		}
@@ -482,13 +482,17 @@ static void FindFilesForCheckIn(const TArray<FString>& InPackagesNames, TArray<F
 }
 
 
-bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNames)
+bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNames, const TArray<FString>& InConfigFiles)
 {
 	bool bCheckInSuccess = true;
 
+	// Get filenames for package names
+	TArray<FString> AllFiles = SourceControlHelpers::PackageFilenames(InPackageNames);
+	AllFiles.Append(InConfigFiles);
+
 	TArray<FString> AddFiles;
 	TArray<FString> OpenFiles;
-	FindFilesForCheckIn(InPackageNames, AddFiles, OpenFiles);
+	FindFilesForCheckIn(AllFiles, AddFiles, OpenFiles);
 
 	if (AddFiles.Num() || OpenFiles.Num())
 	{
@@ -520,10 +524,6 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 			//Get description from the dialog
 			SourceControlWidget->FillChangeListDescription(Description, AddFiles, OpenFiles);
 
-			// Convert to source control paths
-			Description.FilesForAdd = SourceControlHelpers::PackageFilenames(Description.FilesForAdd);
-			Description.FilesForSubmit = SourceControlHelpers::PackageFilenames(Description.FilesForSubmit);
-
 			//revert all unchanged files that were submitted
 			if ( Description.FilesForSubmit.Num() > 0 )
 			{
@@ -532,9 +532,7 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 				//make sure all files are still checked out
 				for (int32 VerifyIndex = Description.FilesForSubmit.Num()-1; VerifyIndex >= 0; --VerifyIndex)
 				{
-					FString TempFilename = Description.FilesForSubmit[VerifyIndex];
-					const FString PackageName = FPackageName::FilenameToLongPackageName(TempFilename);
-					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(PackageName), EStateCacheUsage::Use);
+					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Description.FilesForSubmit[VerifyIndex], EStateCacheUsage::Use);
 					if( SourceControlState.IsValid() && !SourceControlState->IsCheckedOut() && !SourceControlState->IsAdded() )
 					{
 						Description.FilesForSubmit.RemoveAt(VerifyIndex);

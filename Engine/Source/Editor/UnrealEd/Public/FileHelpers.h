@@ -343,9 +343,23 @@ public:
 	 * @param	OutPackages		All found package filenames and their source control state
 	 * @param	bIncludeMaps	If true, also adds maps to the list
 	 */
-	UNREALED_API static void FindAllSubmittablePackageFiles(TMap<FString, TSharedPtr<class ISourceControlState, ESPMode::ThreadSafe> >& OutPackages, const bool bIncludeMaps);
+	UNREALED_API static void FindAllSubmittablePackageFiles(TMap<FString, FSourceControlStatePtr>& OutPackages, const bool bIncludeMaps);
 
-	/** 
+	/**
+	 * Looks for config files for the current project.
+	 *
+	 * @param	OutConfigFiles	All found config filenames.
+	 */
+	UNREALED_API static void FindAllConfigFiles(TArray<FString>& OutConfigFiles);
+
+	/**
+	 * Looks for source control submittable config files for the current project.
+	 *
+	 * @param	OutConfigFiles	All found config filenames and their source control state.
+	 */
+	UNREALED_API static void FindAllSubmittableConfigFiles(TMap<FString, FSourceControlStatePtr>& OutConfigFiles);
+
+	/**
 	 * Helper function used to decide whether a package name is a map package or not. Map packages aren't added to the additional package list.
 	 *
 	 * @param	ObjectPath		The path to the package to test

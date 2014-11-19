@@ -3101,6 +3101,40 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 	}
 }
 
+void FEditorFileUtils::FindAllConfigFiles(TArray<FString>& OutConfigFiles)
+{
+	TArray<FString> IniFilenames;
+	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::GameConfigDir() / TEXT("*.ini")), true, false);
+	for (const FString& IniFilename : IniFilenames)
+	{
+		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir() / IniFilename));
+	}
+}
+
+void FEditorFileUtils::FindAllSubmittableConfigFiles(TMap<FString, TSharedPtr<class ISourceControlState, ESPMode::ThreadSafe> >& OutConfigFiles)
+{
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	TArray<FString> ConfigFilenames;
+	FEditorFileUtils::FindAllConfigFiles(ConfigFilenames);
+
+	for (const FString& ConfigFilename : ConfigFilenames)
+	{
+		// Only check files which are intended to be under source control
+		if (FPaths::GetCleanFilename(ConfigFilename) != TEXT("DefaultEditorUserSettings.ini"))
+		{
+			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilename, EStateCacheUsage::Use);
+
+			// Only include config files that are currently checked out or packages not under source control
+			if (SourceControlState.IsValid() &&
+				(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())))
+			{
+				OutConfigFiles.Add(ConfigFilename, SourceControlState);
+			}
+		}
+	}
+}
+
 bool FEditorFileUtils::IsMapPackageAsset(const FString& ObjectPath)
 {
 	FString MapFilePath;

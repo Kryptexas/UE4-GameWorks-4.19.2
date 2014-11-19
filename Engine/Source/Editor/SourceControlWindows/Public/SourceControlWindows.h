@@ -11,8 +11,9 @@ public:
 	 * Display check in dialog for the specified packages
 	 *
 	 * @param	InPackageNames	Names of packages to check in
+	 * @param	InConfigFiles	Config filenames to check in
 	 */
-	static bool PromptForCheckin(const TArray<FString>& InPackageNames);
+	static bool PromptForCheckin(const TArray<FString>& InPackageNames, const TArray<FString>& InConfigFiles = TArray<FString>());
 
 	/**
 	 * Display file revision history for the provided packages
