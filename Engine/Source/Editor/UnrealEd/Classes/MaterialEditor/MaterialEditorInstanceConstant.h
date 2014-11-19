@@ -227,10 +227,10 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	UPROPERTY(EditAnywhere, Category = MaterialEditorInstanceConstant)
 	uint32 bOverrideSubsurfaceProfile : 1;
 
-	UPROPERTY(EditAnywhere, Category = MaterialOverrides)
-	uint32 bOverrideBaseProperties:1;
+	UPROPERTY()
+	uint32 bOverrideBaseProperties_DEPRECATED : 1;
 
-	UPROPERTY(EditAnywhere, Category=MaterialOverrides, meta=(editcondition="bOverrideBaseProperties"))
+	UPROPERTY(EditAnywhere, Category=MaterialOverrides)
 	FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
 	UPROPERTY()

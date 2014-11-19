@@ -201,10 +201,10 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	TArray<struct FVectorParameterValue> VectorParameterValues;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
-	bool bOverrideBaseProperties;
+	UPROPERTY()
+	bool bOverrideBaseProperties_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance, meta=(editcondition = "bOverrideBaseProperties"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	struct FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
 	/** 
@@ -277,23 +277,19 @@ public:
 	virtual ENGINE_API bool GetRefractionSettings(float& OutBiasValue) const override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	
-	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
-	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
-	ENGINE_API virtual bool IsTwoSided_Internal() const;
-	ENGINE_API virtual bool IsMasked_Internal() const;
-	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
+	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread=IsInGameThread()) const;
+	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
 
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool GetOpacityMaskClipValueOverride(float& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool GetBlendModeOverride(EBlendMode& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool GetShadingModelOverride(EMaterialShadingModel& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool IsTwoSidedOverride(bool& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool IsMaskedOverride(bool& OutResult) const;
+	ENGINE_API float RenderThread_GetOpacityMaskClipValue() const;
+	ENGINE_API EBlendMode RenderThread_GetBlendMode() const;
+	ENGINE_API EMaterialShadingModel RenderThread_GetShadingModel() const;
+	ENGINE_API bool RenderThread_IsTwoSided() const;
+	ENGINE_API bool RenderThread_IsMasked() const;
+	
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
@@ -333,6 +329,8 @@ public:
 	 */
 	ENGINE_API void InitStaticPermutation();
 
+	ENGINE_API void UpdateOverridableBaseProperties();
+
 	/** 
 	 * Cache resource shaders for rendering on the given shader platform. 
 	 * If a matching shader map is not found in memory or the DDC, a new one will be compiled.
@@ -358,6 +356,7 @@ public:
 	void GetAllStaticSwitchParameterValues(TArray<FStaticTerrainLayerWeightParameter> &TerrainLayerWeightParameters, UMaterial* ParentMaterial);
 
 	void GetBasePropertyOverridesHash(FSHAHash& OutHash)const;
+	bool HasOverridenBaseProperties()const;
 
 	// For all materials instances, UMaterialInstance::CacheResourceShadersForRendering
 	static void AllMaterialsCacheResourceShadersForRendering();

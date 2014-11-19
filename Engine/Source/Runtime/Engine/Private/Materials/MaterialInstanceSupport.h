@@ -97,6 +97,9 @@ public:
 
 	/** Called from the game thread to update DistanceFieldPenumbraScale. */
 	void GameThread_UpdateDistanceFieldPenumbraScale(float NewDistanceFieldPenumbraScale);
+	
+	/** Called from the game thread to update the overridable base properties in the proxy. */
+	void GameThread_UpdateOverridableBaseProperties(const UMaterialInterface* MaterialInterface);
 
 	/**
 	 * Clears all parameters set on this material instance.
@@ -152,6 +155,11 @@ public:
 		return NULL;
 	}
 
+	float GetOpacityMaskClipValue()const{ return OpacityMaskClipValue; }
+	EBlendMode GetBlendMode()const{ return BlendMode; }
+	EMaterialShadingModel GetShadingModel()const{ return ShadingModel; }
+	bool IsTwoSided()const{ return TwoSided; }
+
 private:
 	/**
 	 * Retrieves the array of values for a given type.
@@ -177,6 +185,15 @@ private:
 	TArray<TNamedParameter<float> > ScalarParameterArray;
 	/** Texture parameters for this material instance. */
 	TArray<TNamedParameter<const UTexture*> > TextureParameterArray;
+
+	/** 
+		Potentially overridden properties of the base material. 
+		Cached here from the game thread so that the render thread doesn't have to traverse up the parent chain.
+	*/
+	float OpacityMaskClipValue;
+	EBlendMode BlendMode;
+	EMaterialShadingModel ShadingModel;
+	bool TwoSided;
 };
 
 template <> FORCEINLINE TArray<FMaterialInstanceResource::TNamedParameter<float> >& FMaterialInstanceResource::GetValueArray() { return ScalarParameterArray; }

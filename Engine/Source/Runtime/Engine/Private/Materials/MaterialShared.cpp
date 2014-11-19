@@ -828,52 +828,27 @@ ETranslucencyLightingMode FMaterialResource::GetTranslucencyLightingMode() const
 
 float FMaterialResource::GetOpacityMaskClipValue() const 
 {
-	float Ret;
-	if( !(MaterialInstance && MaterialInstance->GetOpacityMaskClipValueOverride(Ret)) )
-	{
-		Ret = Material->OpacityMaskClipValue;
-	}
-	return Ret;
+	return MaterialInstance ? MaterialInstance->GetOpacityMaskClipValue() : Material->GetOpacityMaskClipValue();
 }
 
 EBlendMode FMaterialResource::GetBlendMode() const 
 {
-	EBlendMode Ret;
-	if( !(MaterialInstance && MaterialInstance->GetBlendModeOverride(Ret)) )
-	{
-		Ret = Material->BlendMode;
-	}
-	return Ret;
+	return MaterialInstance ? MaterialInstance->GetBlendMode() : Material->GetBlendMode();
 }
 
 EMaterialShadingModel FMaterialResource::GetShadingModel() const 
-{ 
-	EMaterialShadingModel Ret;
-	if( !(MaterialInstance && MaterialInstance->GetShadingModelOverride(Ret)) )
-	{
-		Ret = Material->GetShadingModel_Internal();
-	}
-	return Ret;
+{
+	return MaterialInstance ? MaterialInstance->GetShadingModel() : Material->GetShadingModel();
 }
 
 bool FMaterialResource::IsTwoSided() const 
 {
-	bool Ret;
-	if( !(MaterialInstance && MaterialInstance->IsTwoSidedOverride(Ret)) )
-	{
-		Ret = Material->TwoSided != 0;
-	}
-	return Ret;
+	return MaterialInstance ? MaterialInstance->IsTwoSided() : Material->IsTwoSided();
 }
 
 bool FMaterialResource::IsMasked() const 
-{ 
-	bool Ret;
-	if (!(MaterialInstance && MaterialInstance->IsMaskedOverride(Ret)))
-	{
-		Ret = Material->bIsMasked != 0;
-	}
-	return Ret;
+{
+	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
 }
 
 bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion; }
@@ -2359,12 +2334,14 @@ void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver)
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+
 FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 	:bOverride_OpacityMaskClipValue(false)
 	,bOverride_BlendMode(false)
 	,bOverride_ShadingModel(false)
 	,bOverride_TwoSided(false)
-	,OpacityMaskClipValue(0.0f)
+	,OpacityMaskClipValue(.333333f)
 	,BlendMode(BLEND_Opaque)
 	,ShadingModel(MSM_DefaultLit)
 	,TwoSided(0)
@@ -2372,71 +2349,24 @@ FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 
 }
 
-void FMaterialInstanceBasePropertyOverrides::Init(const UMaterialInstance& Instance)
+bool FMaterialInstanceBasePropertyOverrides::operator==(const FMaterialInstanceBasePropertyOverrides& Other)const
 {
-	OpacityMaskClipValue = Instance.GetOpacityMaskClipValue();
-	BlendMode = Instance.GetBlendMode();
-	ShadingModel = Instance.GetShadingModel();
-	TwoSided = (uint32)Instance.IsTwoSided();
+	return	bOverride_OpacityMaskClipValue == Other.bOverride_OpacityMaskClipValue &&
+			bOverride_BlendMode == Other.bOverride_BlendMode &&
+			bOverride_ShadingModel == Other.bOverride_ShadingModel &&
+			bOverride_TwoSided == Other.bOverride_TwoSided &&
+			OpacityMaskClipValue == Other.OpacityMaskClipValue &&
+			BlendMode == Other.BlendMode &&
+			ShadingModel == Other.ShadingModel &&
+			TwoSided == Other.TwoSided;
 }
 
-void FMaterialInstanceBasePropertyOverrides::UpdateHash(FSHA1& HashState) const
+bool FMaterialInstanceBasePropertyOverrides::operator!=(const FMaterialInstanceBasePropertyOverrides& Other)const
 {
-	if(bOverride_OpacityMaskClipValue)
-	{
-		const FString HashString = TEXT("bOverride_OpacityMaskClipValue");
-		HashState.UpdateWithString(*HashString, HashString.Len());
-		HashState.Update((const uint8*)&OpacityMaskClipValue, sizeof(OpacityMaskClipValue));
-	}
-
-	if(bOverride_BlendMode)
-	{
-		const FString HashString = TEXT("bOverride_BlendMode");
-		HashState.UpdateWithString(*HashString, HashString.Len());
-		HashState.Update((const uint8*)&BlendMode, sizeof(BlendMode));
-	}
-
-	if(bOverride_ShadingModel)
-	{
-		const FString HashString = TEXT("bOverride_ShadingModel");
-		HashState.UpdateWithString(*HashString, HashString.Len());
-		HashState.Update((const uint8*)&ShadingModel, sizeof(ShadingModel));
-	}
-
-	//This does seem like it needs to be in the hash but due to some shaders being added to when two sided is enabled
-	//it causes a recompile anyway.
-// 	if(bOverride_TwoSided)
-// 	{
-// 		HashString = TEXT("bOverride_TwoSided");
-// 		HashState.UpdateWithString(*HashString, HashString.Len());
-// 		bool bIsTwoSided = TwoSided;
-// 		HashState.Update((uint8*)&bIsTwoSided, sizeof(bIsTwoSided));
-// 	}
-
-	//Some properties may not need to be in the shader map ID so don't add them unnecessarily.
+	return !(*this == Other);
 }
 
-bool FMaterialInstanceBasePropertyOverrides::Update(const FMaterialInstanceBasePropertyOverrides& Updated)
-{
-	bool bRet = false;
-	//Work out if we need a recompile.
-	bRet |= (Updated.bOverride_OpacityMaskClipValue != bOverride_OpacityMaskClipValue);
-	bRet |= Updated.bOverride_OpacityMaskClipValue && (OpacityMaskClipValue != Updated.OpacityMaskClipValue);
-
-	bRet |= (Updated.bOverride_BlendMode != bOverride_BlendMode);
-	bRet |= Updated.bOverride_BlendMode && (BlendMode != Updated.BlendMode);
-
-	bRet |= (Updated.bOverride_ShadingModel != bOverride_ShadingModel);
-	bRet |= Updated.bOverride_ShadingModel && (ShadingModel != Updated.ShadingModel);
-
-	bRet |= (Updated.bOverride_TwoSided != bOverride_TwoSided);
-	bRet |= Updated.bOverride_TwoSided && (TwoSided != Updated.TwoSided);
-
-	//Update the data.
-	*this = Updated;
-
-	return bRet;
-}
+//////////////////////////////////////////////////////////////////////////
 
 bool FMaterialShaderMapId::ContainsShaderType(const FShaderType* ShaderType) const
 {

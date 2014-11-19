@@ -3497,17 +3497,17 @@ static FAutoConsoleCommand CmdListSceneColorMaterials(
 	FConsoleCommandDelegate::CreateStatic(ListSceneColorMaterials)
 	);
 
-float UMaterial::GetOpacityMaskClipValue_Internal() const
+float UMaterial::GetOpacityMaskClipValue(bool bIsInGameThread) const
 {
 	return OpacityMaskClipValue;
 }
 
-EBlendMode UMaterial::GetBlendMode_Internal() const
+EBlendMode UMaterial::GetBlendMode(bool bIsInGameThread) const
 {
 	return BlendMode;
 }
 
-EMaterialShadingModel UMaterial::GetShadingModel_Internal() const
+EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
 {
 	switch (MaterialDomain)
 	{
@@ -3526,12 +3526,12 @@ EMaterialShadingModel UMaterial::GetShadingModel_Internal() const
 	}
 }
 
-bool UMaterial::IsTwoSided_Internal() const
+bool UMaterial::IsTwoSided(bool bIsInGameThread) const
 {
 	return TwoSided != 0;
 }
 
-bool UMaterial::IsMasked_Internal() const
+bool UMaterial::IsMasked(bool bIsInGameThread) const
 {
 	return bIsMasked != 0;
 }

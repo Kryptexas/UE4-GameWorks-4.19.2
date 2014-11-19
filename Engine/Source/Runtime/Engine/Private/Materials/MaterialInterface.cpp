@@ -235,85 +235,34 @@ bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* C
 	return false;
 }
 
-float UMaterialInterface::GetOpacityMaskClipValue() const
-{
-	if( IsInGameThread() )
-	{
-		return GetOpacityMaskClipValue_Internal();
-	}
-
-	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->GetOpacityMaskClipValue();
-}
-
-EBlendMode UMaterialInterface::GetBlendMode() const
-{
-	if( IsInGameThread() )
-	{
-		return GetBlendMode_Internal();
-	}
-
-	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->GetBlendMode();
-}
-
-bool UMaterialInterface::IsTwoSided() const
-{
-	if( IsInGameThread() )
-	{
-		return IsTwoSided_Internal();
-	}
-
-	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->IsTwoSided();
-}
-
-bool UMaterialInterface::IsMasked() const
-{
-	if (IsInGameThread())
-	{
-		return IsMasked_Internal();
-	}
-
-	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->IsMasked();
-}
-
-EMaterialShadingModel UMaterialInterface::GetShadingModel() const
-{
-	if( IsInGameThread() )
-	{
-		return GetShadingModel_Internal();
-	}
-
-	//We're on the render thread so get it from the proxy.
-	return GetRenderProxy(0)->GetMaterial(GMaxRHIFeatureLevel)->GetShadingModel();
-
-}
-
-float UMaterialInterface::GetOpacityMaskClipValue_Internal() const
+float UMaterialInterface::GetOpacityMaskClipValue(bool bIsInGameThread) const
 {
 	return 0.0f;
 }
 
-EBlendMode UMaterialInterface::GetBlendMode_Internal() const
+EBlendMode UMaterialInterface::GetBlendMode(bool bIsInGameThread) const
 {
 	return BLEND_Opaque;
 }
 
-bool UMaterialInterface::IsTwoSided_Internal() const
+bool UMaterialInterface::IsTwoSided(bool bIsInGameThread) const
 {
 	return false;
 }
 
-bool UMaterialInterface::IsMasked_Internal() const
+bool UMaterialInterface::IsMasked(bool bIsInGameThread) const
 {
 	return false;
 }
 
-EMaterialShadingModel UMaterialInterface::GetShadingModel_Internal() const
+EMaterialShadingModel UMaterialInterface::GetShadingModel(bool bIsInGameThread) const
 {
 	return MSM_DefaultLit;
+}
+
+USubsurfaceProfile* UMaterialInterface::GetSubsurfaceProfile_Internal() const
+{
+	return NULL;
 }
 
 void UMaterialInterface::SetFeatureLevelToCompile(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile)
@@ -356,7 +305,7 @@ void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
 	// no 0 pointer
 	check(&Proxy);
 
-	EMaterialShadingModel MaterialShadingModel = GetShadingModel_Internal();
+	EMaterialShadingModel MaterialShadingModel = GetShadingModel(true);
 
 	// for better performance we only update SubsurfaceProfileRT if the feature is used
 	if (MaterialShadingModel == MSM_SubsurfaceProfile)

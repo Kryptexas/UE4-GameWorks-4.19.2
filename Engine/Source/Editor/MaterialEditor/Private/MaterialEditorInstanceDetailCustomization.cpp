@@ -49,13 +49,6 @@ void FMaterialInstanceParameterDetails::OnValueCommitted(float NewValue, ETextCo
 
 void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
-	// Create a new category for a custom layout for the MIC parameters at the very top
-	FName GroupsCategoryName = TEXT("ParameterGroups");
-	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, LOCTEXT("MICParamGroupsTitle", "Parameter Groups").ToString());
-	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
-
-	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
-
 	// Create default category for class properties
 	const FName DefaultCategoryName = NAME_None;
 	IDetailCategoryBuilder& DefaultCategory = DetailLayout.EditCategory(DefaultCategoryName);
@@ -95,7 +88,6 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 	DefaultCategory.AddProperty("LightmassSettings");
 	DetailLayout.HideProperty("bUseOldStyleMICEditorGroups");
 	DetailLayout.HideProperty("ParameterGroups");
-	DetailLayout.HideProperty("BasePropertyOverrides");
 
 	{
 		IDetailPropertyRow& PropertyRow = DefaultCategory.AddProperty("RefractionDepthBias");
@@ -112,11 +104,15 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		PropertyRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile)));
 	}
 
-	//////////////////////////////////////////////////////////////////////////
 	DetailLayout.HideProperty("BasePropertyOverrides");
-	IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory(TEXT("MaterialOverrides"), LOCTEXT("MICMaterialOverridesTitle", "Material Overrides").ToString());
-	MaterialCategory.AddProperty("bOverrideBaseProperties");
-	MaterialCategory.AddProperty("BasePropertyOverrides");
+	CreateBasePropertyOverrideWidgets(DetailLayout);
+
+	// Create a new category for a custom layout for the MIC parameters at the very top
+	FName GroupsCategoryName = TEXT("ParameterGroups");
+	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, LOCTEXT("MICParamGroupsTitle", "Parameter Groups").ToString());
+	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
+
+	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
 }
 
 void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, IDetailCategoryBuilder& GroupsCategory)
@@ -442,10 +438,101 @@ EVisibility FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSetti
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile() const
 {
-	EMaterialShadingModel Model = MaterialEditorInstance->SourceInstance->GetMaterial()->GetShadingModel_Internal();
+	EMaterialShadingModel Model = MaterialEditorInstance->SourceInstance->GetShadingModel();
 
 	return (Model == MSM_SubsurfaceProfile) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+
+void FMaterialInstanceParameterDetails::CreateBasePropertyOverrideWidgets(IDetailLayoutBuilder& DetailLayout)
+{
+	IDetailCategoryBuilder& DetailCategory = DetailLayout.EditCategory(NAME_None);
+	
+	static FName GroupName(TEXT("BasePropertyOverrideGroup"));
+	IDetailGroup& BasePropertyOverrideGroup = DetailCategory.AddGroup(GroupName, LOCTEXT("BasePropertyOverrideGroup", "Material Property Overrides").ToString(), false, false);
+
+	TAttribute<bool> IsOverrideOpacityClipMaskValueEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideOpacityClipMaskValueEnabled));
+	TAttribute<bool> IsOverrideBlendModeEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideBlendModeEnabled));
+	TAttribute<bool> IsOverrideShadingModelEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideShadingModelEnabled));
+	TAttribute<bool> IsOverrideTwoSidedEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideTwoSidedEnabled));
+
+	TSharedRef<IPropertyHandle> BasePropertyOverridePropery = DetailLayout.GetProperty("BasePropertyOverrides");
+	TSharedPtr<IPropertyHandle> OpacityClipMaskValueProperty = BasePropertyOverridePropery->GetChildHandle("OpacityMaskClipValue");
+	TSharedPtr<IPropertyHandle> BlendModeProperty = BasePropertyOverridePropery->GetChildHandle("BlendMode");
+	TSharedPtr<IPropertyHandle> ShadingModelProperty = BasePropertyOverridePropery->GetChildHandle("ShadingModel");
+	TSharedPtr<IPropertyHandle> TwoSidedProperty = BasePropertyOverridePropery->GetChildHandle("TwoSided");
+
+	IDetailPropertyRow& OpacityClipMaskValuePropertyRow = BasePropertyOverrideGroup.AddPropertyRow(OpacityClipMaskValueProperty.ToSharedRef());
+	OpacityClipMaskValuePropertyRow
+		.DisplayName(OpacityClipMaskValueProperty->GetPropertyDisplayName())
+		.ToolTip(OpacityClipMaskValueProperty->GetToolTipText())
+		.EditCondition(IsOverrideOpacityClipMaskValueEnabled, FOnBooleanValueChanged::CreateSP(this, &FMaterialInstanceParameterDetails::OnOverrideOpacityClipMaskValueChanged));
+
+	IDetailPropertyRow& BlendModePropertyRow = BasePropertyOverrideGroup.AddPropertyRow(BlendModeProperty.ToSharedRef());
+	BlendModePropertyRow
+		.DisplayName(BlendModeProperty->GetPropertyDisplayName())
+		.ToolTip(BlendModeProperty->GetToolTipText())
+		.EditCondition(IsOverrideBlendModeEnabled, FOnBooleanValueChanged::CreateSP(this, &FMaterialInstanceParameterDetails::OnOverrideBlendModeChanged));
+
+	IDetailPropertyRow& ShadingModelPropertyRow = BasePropertyOverrideGroup.AddPropertyRow(ShadingModelProperty.ToSharedRef());
+	ShadingModelPropertyRow
+		.DisplayName(ShadingModelProperty->GetPropertyDisplayName())
+		.ToolTip(ShadingModelProperty->GetToolTipText())
+		.EditCondition(IsOverrideShadingModelEnabled, FOnBooleanValueChanged::CreateSP(this, &FMaterialInstanceParameterDetails::OnOverrideShadingModelChanged));
+
+	IDetailPropertyRow& TwoSidedPropertyRow = BasePropertyOverrideGroup.AddPropertyRow(TwoSidedProperty.ToSharedRef());
+	TwoSidedPropertyRow
+		.DisplayName(TwoSidedProperty->GetPropertyDisplayName())
+		.ToolTip(TwoSidedProperty->GetToolTipText())
+		.EditCondition(IsOverrideTwoSidedEnabled, FOnBooleanValueChanged::CreateSP(this, &FMaterialInstanceParameterDetails::OnOverrideTwoSidedChanged));
+}
+
+bool FMaterialInstanceParameterDetails::OverrideOpacityClipMaskValueEnabled() const
+{
+	return MaterialEditorInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue;
+}
+
+bool FMaterialInstanceParameterDetails::OverrideBlendModeEnabled() const
+{
+	return MaterialEditorInstance->BasePropertyOverrides.bOverride_BlendMode;
+}
+
+bool FMaterialInstanceParameterDetails::OverrideShadingModelEnabled() const
+{
+	return MaterialEditorInstance->BasePropertyOverrides.bOverride_ShadingModel;
+}
+
+bool FMaterialInstanceParameterDetails::OverrideTwoSidedEnabled() const
+{
+	return MaterialEditorInstance->BasePropertyOverrides.bOverride_TwoSided;
+}
+
+void FMaterialInstanceParameterDetails::OnOverrideOpacityClipMaskValueChanged(bool NewValue)
+{
+	MaterialEditorInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue = NewValue;
+	MaterialEditorInstance->PostEditChange();
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+void FMaterialInstanceParameterDetails::OnOverrideBlendModeChanged(bool NewValue)
+{
+	MaterialEditorInstance->BasePropertyOverrides.bOverride_BlendMode = NewValue;
+	MaterialEditorInstance->PostEditChange();
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+void FMaterialInstanceParameterDetails::OnOverrideShadingModelChanged(bool NewValue)
+{
+	MaterialEditorInstance->BasePropertyOverrides.bOverride_ShadingModel = NewValue;
+	MaterialEditorInstance->PostEditChange();
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+void FMaterialInstanceParameterDetails::OnOverrideTwoSidedChanged(bool NewValue)
+{
+	MaterialEditorInstance->BasePropertyOverrides.bOverride_TwoSided = NewValue;
+	MaterialEditorInstance->PostEditChange();
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
 #undef LOCTEXT_NAMESPACE
 

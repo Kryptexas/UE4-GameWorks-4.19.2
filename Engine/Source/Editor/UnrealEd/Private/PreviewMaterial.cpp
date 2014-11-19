@@ -573,9 +573,12 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 		}
 
 		//Check for changes to see if we need to force a recompile
-		bool bForceRecompile = SourceInstance->BasePropertyOverrides.Update(BasePropertyOverrides);
-		bForceRecompile |= SourceInstance->bOverrideBaseProperties != bOverrideBaseProperties;
-		SourceInstance->bOverrideBaseProperties = bOverrideBaseProperties;
+		bool bForceRecompile = false;
+		if (SourceInstance->BasePropertyOverrides != BasePropertyOverrides)
+		{
+			bForceRecompile = true;
+			SourceInstance->BasePropertyOverrides = BasePropertyOverrides;
+		}
 		
 		FStaticParameterSet NewStaticParameters;
 		BuildStaticParametersForSourceInstance(NewStaticParameters);
@@ -672,9 +675,6 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 	Parent = SourceInstance->Parent;
 	PhysMaterial = SourceInstance->PhysMaterial;
 
-	//Init the base property overrides.
-	BasePropertyOverrides.Init(*SourceInstance);
-	bOverrideBaseProperties = SourceInstance->bOverrideBaseProperties;
 	BasePropertyOverrides = SourceInstance->BasePropertyOverrides;
 
 	// Copy the Lightmass settings...
