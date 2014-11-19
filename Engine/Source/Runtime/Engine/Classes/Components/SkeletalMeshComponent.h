@@ -642,7 +642,7 @@ public:
 	struct 
 	{
 		int32 BodyIndex;
-		int32 BoneIndex;
+		FTransform TransformToRoot;
 	} RootBodyData;
 
 	/** Set Root Body Index */

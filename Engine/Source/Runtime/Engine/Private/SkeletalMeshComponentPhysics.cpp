@@ -4924,12 +4924,6 @@ FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyIn
 {
 	// undo root transform so that it only moves according to what actor itself suppose to move
 	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
-	if (RootBodyData.BoneIndex != INDEX_NONE)
-	{
-		FTransform RootTransform(GetSpaceBases()[RootBodyData.BoneIndex]);
-		return RootTransform.GetRelativeTransformReverse(BodyTransform);
-	}
-
-	return BodyTransform;
+	return RootBodyData.TransformToRoot * BodyTransform;
 }
 #undef LOCTEXT_NAMESPACE

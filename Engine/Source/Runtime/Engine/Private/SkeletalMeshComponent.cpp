@@ -1911,14 +1911,36 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 {
 	RootBodyData.BodyIndex = InBodyIndex;
 
-	if(Bodies.IsValidIndex(RootBodyData.BodyIndex) && 
+	if(Bodies.IsValidIndex(RootBodyData.BodyIndex) && SkeletalMesh && 
 		Bodies[RootBodyData.BodyIndex]->BodySetup.IsValid() && Bodies[RootBodyData.BodyIndex]->BodySetup.Get()->BoneName != NAME_None)
 	{
-		RootBodyData.BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
+		int32 BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
+		// if bone index is valid and not 0, it SHOULD have parnet index
+		if (ensure (BoneIndex != INDEX_NONE))
+		{
+			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+			if (BoneIndex != 0 && ensure (ParentIndex != INDEX_NONE))
+			{
+				const TArray<FTransform>& RefPose = SkeletalMesh->RefSkeleton.GetRefBonePose();
+
+				FTransform RelativeTransform = FTransform(SkeletalMesh->RefBasesInvMatrix[BoneIndex]) * RefPose[ParentIndex];
+				// now get offset 
+				RootBodyData.TransformToRoot = RelativeTransform;
+			}
+			else
+			{
+				RootBodyData.TransformToRoot = FTransform::Identity;
+			}
+		}
+		else
+		{
+			RootBodyData.TransformToRoot = FTransform::Identity;
+		}
 	}
 	else
 	{
-		// error
-		RootBodyData.BoneIndex = INDEX_NONE;
+		// error - this should not happen
+		ensure(false);
+		RootBodyData.TransformToRoot = FTransform::Identity;
 	}
 }
