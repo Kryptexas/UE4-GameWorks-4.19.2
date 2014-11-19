@@ -48,6 +48,7 @@ void UK2Node_EditablePinBase::RemoveUserDefinedPin(TSharedPtr<FUserPinInfo> PinT
 		{
 			Pin->BreakAllPinLinks();
 			Pins.Remove(Pin);
+			Pin->MarkPendingKill();
 		}
 	}
 
