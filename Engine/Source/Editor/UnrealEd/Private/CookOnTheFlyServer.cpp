@@ -20,6 +20,7 @@
 #include "AssetRegistryModule.h"
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
+#include "PhysicsPublic.h"
 
 // cook by the book requirements
 #include "Commandlets/ChunkManifestGenerator.h"
