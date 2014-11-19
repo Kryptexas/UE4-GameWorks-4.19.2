@@ -726,6 +726,11 @@ public:
 
 	/// Helper for creating links in off-mesh connections
 	void linkOffMeshHelper(dtMeshTile* tile0, unsigned int polyIdx0, dtMeshTile* tile1, unsigned int polyIdx1, unsigned char side, unsigned char edge);
+
+	inline bool isEmpty() const
+	{
+		return (m_tileWidth > 0 && m_tileHeight > 0) == false;
+	}
 	//@UE4 END
 	
 private:
