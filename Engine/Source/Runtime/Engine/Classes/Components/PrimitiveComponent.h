@@ -1244,6 +1244,12 @@ public:
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
+	virtual void MarkAsEditorOnlySubobject() override
+	{
+		AlwaysLoadOnClient = false;
+		AlwaysLoadOnServer = false;
+	}
+
 #if WITH_EDITOR
 	/**
 	 * Called after importing property values for this object (paste, duplicate or .t3d import)

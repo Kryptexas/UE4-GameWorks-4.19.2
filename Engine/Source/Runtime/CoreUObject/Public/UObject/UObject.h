@@ -51,6 +51,80 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	{
 	}
 
+	UObject* CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient);
+
+	/**
+	* Create a component or subobject only to be used with the editor.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateEditorOnlyDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateEditorOnlyDefaultSubobjectImpl(SubobjectName, ReturnType, bTransient));
+	}
+
+	/**
+	* Create a component or subobject
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+	}
+	
+	/**
+	* Create a component or subobject
+	* @param TReturnType class of return type, all overrides must be of this type
+	* @param TClassToConstructByDefault class to construct by default
+	* @param Outer outer to construct the subobject in
+	* @param SubobjectName name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType, class TClassToConstructByDefault>
+	TReturnType* CreateDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, TReturnType::StaticClass(), TClassToConstructByDefault::StaticClass(), /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+	}
+	
+	/**
+	* Create optional component or subobject. Optional subobjects may not get created
+	* when a derived class specified DoNotCreateDefaultSubobject with the subobject's name.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateOptionalDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
+	}
+	
+	/**
+	* Create optional component or subobject. Optional subobjects may not get created
+	* when a derived class specified DoNotCreateDefaultSubobject with the subobject's name.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateAbstractDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
+	}
+
 	//==========================================
 	// UObject interface.
 	//==========================================	
@@ -813,6 +887,8 @@ public:
 	 */
 	void DestroyNonNativeProperties();
 
+	virtual void MarkAsEditorOnlySubobject() { }
+
 	// UnrealScript intrinsics.
 
 	// Undefined native handler
@@ -1000,6 +1076,15 @@ protected:
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);
+
+	/**
+	* Create a component or subobject only to be used with the editor.
+	* @param	Outer						outer to construct the subobject in
+	* @param	ReturnType					type of the new component
+	* @param	SubobjectName				name of the new component
+	* @param	bTransient					true if the component is being assigned to a transient property
+	*/
+	UObject* CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UClass* ReturnType, bool bTransient = false);
 };
 
 #endif	// __UNOBJUOBJECT_H__

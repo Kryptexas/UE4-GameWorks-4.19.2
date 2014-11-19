@@ -8,6 +8,7 @@
 #include "Misc/SecureHash.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UObjectAnnotation.h"
+#include "UObject/TlsObjectInitializers.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -1865,6 +1866,7 @@ FObjectInitializer::FObjectInitializer() :
 	// Mark we're in the constructor now.	
 	GIsInConstructor++;
 	GConstructedObject = Obj;
+	FTlsObjectInitializers::Push(this);
 }	
 
 FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph) :
@@ -1880,6 +1882,7 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
 	// Mark we're in the constructor now.
 	GIsInConstructor++;
 	GConstructedObject = Obj;
+	FTlsObjectInitializers::Push(this);
 }
 
 /**
@@ -1887,6 +1890,7 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
  **/
 FObjectInitializer::~FObjectInitializer()
 {
+	FTlsObjectInitializers::Pop();
 	// Let the FObjectFinders know we left the constructor.
 	GIsInConstructor--;
 	check(GIsInConstructor >= 0);
@@ -2599,4 +2603,20 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 		}
 	}
 	return Result;
+}
+
+UObject* FObjectInitializer::CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, UClass* ReturnType, bool bTransient /*= false*/) const
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		UObject* EditorSubobject = CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient);
+		if (EditorSubobject)
+		{
+			EditorSubobject->MarkAsEditorOnlySubobject();
+		}
+		return EditorSubobject;
+	}
+#endif
+	return nullptr;
 }
