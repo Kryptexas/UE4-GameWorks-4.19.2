@@ -121,6 +121,9 @@ public:
 #endif
 	// End of UObject interface
 
+	// Returns true if the flipbook asset contains the specified sprite asset in any frames
+	bool ContainsSprite(UPaperSprite* SpriteAsset) const;
+
 private:
 	friend class FScopedFlipbookMutator;
 };

@@ -209,3 +209,16 @@ void UPaperFlipbook::InvalidateCachedData()
 {
 	// No cached data yet, but the functions that currently have to iterate over all frames can use cached data in the future
 }
+
+bool UPaperFlipbook::ContainsSprite(UPaperSprite* SpriteAsset) const
+{
+	for (const FPaperFlipbookKeyFrame& KeyFrame : KeyFrames)
+	{
+		if (KeyFrame.Sprite == SpriteAsset)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
