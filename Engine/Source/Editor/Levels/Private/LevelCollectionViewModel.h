@@ -376,6 +376,9 @@ private:
 	/** Handler for when a level is selected after invoking AddExistingLevel */
 	void HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter);
 
+	/** Handler for when the dialog is cancelled after invoking AddExistingLevel */
+	void HandleAddExistingLevelCancelled();
+
 	/** Add Selected Actors to New Level; prompts for level save location */
 	void AddSelectedActorsToNewLevel_Executed();
 
@@ -544,6 +547,9 @@ private:
 	
 	/** Flag for whether the selection of levels or actors has changed */
 	bool bSelectionHasChanged;
+
+	/** Boolean indicating whether the asset dialog is currently open */
+	bool bAssetDialogOpen;
 };
 
 

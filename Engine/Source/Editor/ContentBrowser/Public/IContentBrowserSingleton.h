@@ -307,8 +307,9 @@ public:
 	 *
 	 * @param OpenAssetConfig				A struct containing details about how the open asset dialog should behave
 	 * @param OnAssetsChosenForOpen			A delegate that is fired when assets are chosen and the open button is pressed
+	 * @param OnAssetDialogCancelled		A delegate that is fired when the asset dialog is closed or cancelled
 	 */
-	virtual void CreateOpenAssetDialog(const FOpenAssetDialogConfig& OpenAssetConfig, const FOnAssetsChosenForOpen& OnAssetsChosenForOpen) = 0;
+	virtual void CreateOpenAssetDialog(const FOpenAssetDialogConfig& OpenAssetConfig, const FOnAssetsChosenForOpen& OnAssetsChosenForOpen, const FOnAssetDialogCancelled& OnAssetDialogCancelled) = 0;
 
 	/**
 	 * Opens the Open Asset dialog in a modal window
@@ -323,8 +324,9 @@ public:
 	 *
 	 * @param SaveAssetConfig				A struct containing details about how the save asset dialog should behave
 	 * @param OnAssetNameChosenForSave		A delegate that is fired when an object path is chosen and the save button is pressed
+	 * @param OnAssetDialogCancelled		A delegate that is fired when the asset dialog is closed or cancelled
 	 */
-	virtual void CreateSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig, const FOnObjectPathChosenForSave& OnAssetNameChosenForSave) = 0;
+	virtual void CreateSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig, const FOnObjectPathChosenForSave& OnAssetNameChosenForSave, const FOnAssetDialogCancelled& OnAssetDialogCancelled) = 0;
 
 	/**
 	 * Opens the Save Asset dialog in a modal window

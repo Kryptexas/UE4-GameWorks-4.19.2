@@ -81,11 +81,14 @@ TSharedRef<class SWidget> FContentBrowserSingleton::CreateCollectionPicker(const
 		.CollectionPickerConfig(CollectionPickerConfig);
 }
 
-void FContentBrowserSingleton::CreateOpenAssetDialog(const FOpenAssetDialogConfig& InConfig, const FOnAssetsChosenForOpen& InOnAssetsChosenForOpen)
+void FContentBrowserSingleton::CreateOpenAssetDialog(const FOpenAssetDialogConfig& InConfig,
+													 const FOnAssetsChosenForOpen& InOnAssetsChosenForOpen,
+													 const FOnAssetDialogCancelled& InOnAssetDialogCancelled)
 {
 	const bool bModal = false;
 	TSharedRef<SAssetDialog> AssetDialog = SNew(SAssetDialog, InConfig);
 	AssetDialog->SetOnAssetsChosenForOpen(InOnAssetsChosenForOpen);
+	AssetDialog->SetOnAssetDialogCancelled(InOnAssetDialogCancelled);
 	SharedCreateAssetDialogWindow(AssetDialog, InConfig, bModal);
 }
 
@@ -112,11 +115,14 @@ TArray<FAssetData> FContentBrowserSingleton::CreateModalOpenAssetDialog(const FO
 	return ModalWindowResults.SavedResults;
 }
 
-void FContentBrowserSingleton::CreateSaveAssetDialog(const FSaveAssetDialogConfig& InConfig, const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave)
+void FContentBrowserSingleton::CreateSaveAssetDialog(const FSaveAssetDialogConfig& InConfig,
+													 const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave,
+													 const FOnAssetDialogCancelled& InOnAssetDialogCancelled)
 {
 	const bool bModal = false;
 	TSharedRef<SAssetDialog> AssetDialog = SNew(SAssetDialog, InConfig);
 	AssetDialog->SetOnObjectPathChosenForSave(InOnObjectPathChosenForSave);
+	AssetDialog->SetOnAssetDialogCancelled(InOnAssetDialogCancelled);
 	SharedCreateAssetDialogWindow(AssetDialog, InConfig, bModal);
 }
 

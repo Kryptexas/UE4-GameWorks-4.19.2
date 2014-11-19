@@ -10,7 +10,16 @@ SAssetDialog::SAssetDialog()
 	, ExistingAssetPolicy(ESaveAssetDialogExistingAssetPolicy::Disallow)
 	, bLastInputValidityCheckSuccessful(false)
 	, bPendingFocusNextFrame(true)
+	, bValidAssetsChosen(false)
 {
+}
+
+SAssetDialog::~SAssetDialog()
+{
+	if (!bValidAssetsChosen)
+	{
+		OnAssetDialogCancelled.ExecuteIfBound();
+	}
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -228,6 +237,11 @@ void SAssetDialog::SetOnObjectPathChosenForSave(const FOnObjectPathChosenForSave
 	OnObjectPathChosenForSave = InOnObjectPathChosenForSave;
 }
 
+void SAssetDialog::SetOnAssetDialogCancelled(const FOnAssetDialogCancelled& InOnAssetDialogCancelled)
+{
+	OnAssetDialogCancelled = InOnAssetDialogCancelled;
+}
+
 void SAssetDialog::FocusNameBox()
 {
 	if ( NameEditableText.IsValid() )
@@ -434,6 +448,7 @@ void SAssetDialog::ChooseAssetsForOpen(const TArray<FAssetData>& SelectedAssets)
 	{
 		if (SelectedAssets.Num() > 0)
 		{
+			bValidAssetsChosen = true;
 			OnAssetsChosenForOpen.ExecuteIfBound(SelectedAssets);
 			CloseDialog();
 		}
@@ -469,6 +484,7 @@ void SAssetDialog::CommitObjectPathForSave()
 
 			if ( bProceedWithSave )
 			{
+				bValidAssetsChosen = true;
 				OnObjectPathChosenForSave.ExecuteIfBound(ObjectPath);
 				CloseDialog();
 			}

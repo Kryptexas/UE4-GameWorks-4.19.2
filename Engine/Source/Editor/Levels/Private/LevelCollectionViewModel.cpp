@@ -1405,9 +1405,14 @@ void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLeve
 {
 	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
-		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
-		const bool bAllowMultipleSelection = true;
-		FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, bAllowMultipleSelection);
+		if (!bAssetDialogOpen)
+		{
+			bAssetDialogOpen = true;
+			FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
+			FEditorFileUtils::FOnLevelPickingCancelled DialogCancelledDelegate = FEditorFileUtils::FOnLevelPickingCancelled::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelCancelled);
+			const bool bAllowMultipleSelection = true;
+			FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, DialogCancelledDelegate, bAllowMultipleSelection);
+		}
 	}
 	else
 	{
@@ -1491,6 +1496,7 @@ void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLeve
 
 void FLevelCollectionViewModel::HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter)
 {
+	bAssetDialogOpen = false;
 	TArray<FString> PackageNames;
 	for (const auto& AssetData : SelectedAssets)
 	{
@@ -1503,6 +1509,11 @@ void FLevelCollectionViewModel::HandleAddExistingLevelSelected(const TArray<FAss
 	{
 		RemoveInvalidSelectedLevels_Executed();
 	}
+}
+
+void FLevelCollectionViewModel::HandleAddExistingLevelCancelled()
+{
+	bAssetDialogOpen = false;
 }
 
 void FLevelCollectionViewModel::AddSelectedActorsToNewLevel_Executed()

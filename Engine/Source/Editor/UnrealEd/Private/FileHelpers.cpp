@@ -1543,7 +1543,7 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 	return FEditorFileUtils::PromptToCheckoutLevels( bCheckDirty, LevelsToCheckOut );	
 }
 
-void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
+void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, const FOnLevelPickingCancelled& OnLevelPickingCancelled, bool bAllowMultipleSelection)
 {
 	struct FLocal
 	{
@@ -1569,6 +1569,11 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 				OnLevelsChosen.ExecuteIfBound(SelectedLevels);
 			}
 		}
+
+		static void OnDialogCancelled(FOnLevelPickingCancelled OnLevelPickingCancelled)
+		{
+			OnLevelPickingCancelled.ExecuteIfBound();
+		}
 	};
 
 	// Determine the starting path. Try to use the most recently used directory
@@ -1589,7 +1594,9 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 	OpenAssetDialogConfig.bAllowMultipleSelection = bAllowMultipleSelection;
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().CreateOpenAssetDialog(OpenAssetDialogConfig, FOnAssetsChosenForOpen::CreateStatic(&FLocal::OnLevelsSelected, OnLevelsChosen));
+	ContentBrowserModule.Get().CreateOpenAssetDialog(OpenAssetDialogConfig,
+													 FOnAssetsChosenForOpen::CreateStatic(&FLocal::OnLevelsSelected, OnLevelsChosen),
+													 FOnAssetDialogCancelled::CreateStatic(&FLocal::OnDialogCancelled, OnLevelPickingCancelled));
 }
 
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)
@@ -1741,10 +1748,14 @@ void FEditorFileUtils::LoadMap()
 
 	if (UEditorEngine::IsUsingWorldAssets())
 	{
+		static bool bIsDialogOpen = false;
+
 		struct FLocal
 		{
 			static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets)
 			{
+				bIsDialogOpen = false;
+
 				if ( SelectedAssets.Num() > 0 )
 				{
 					const FAssetData& AssetData = SelectedAssets[0];
@@ -1767,10 +1778,21 @@ void FEditorFileUtils::LoadMap()
 					FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 				}
 			}
+
+			static void HandleDialogCancelled()
+			{
+				bIsDialogOpen = false;
+			}
 		};
 		
-		const bool bAllowMultipleSelection = false;
-		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen), bAllowMultipleSelection);
+		if (!bIsDialogOpen)
+		{
+			bIsDialogOpen = true;
+			const bool bAllowMultipleSelection = false;
+			OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen),
+								   FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
+								   bAllowMultipleSelection);
+		}
 	}
 	else
 	{

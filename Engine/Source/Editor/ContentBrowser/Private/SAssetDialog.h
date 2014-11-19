@@ -10,6 +10,7 @@ public:
 	SLATE_END_ARGS()
 
 	SAssetDialog();
+	virtual ~SAssetDialog();
 
 	virtual void Construct(const FArguments& InArgs, const FSharedAssetDialogConfig& InConfig);
 
@@ -21,6 +22,9 @@ public:
 
 	/** Sets the delegate handler for when a save operation is committed */
 	void SetOnObjectPathChosenForSave(const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave);
+
+	/** Sets the delegate handler for when the dialog is closed or cancelled */
+	void SetOnAssetDialogCancelled(const FOnAssetDialogCancelled& InOnAssetDialogCancelled);
 
 private:
 
@@ -100,6 +104,9 @@ private:
 	/** Fired when an object path was chosen for save. Only fired in save dialogs. */
 	FOnObjectPathChosenForSave OnObjectPathChosenForSave;
 
+	/** Fired when the asset dialog is cancelled or closed */
+	FOnAssetDialogCancelled OnAssetDialogCancelled;
+
 	/** The assets that are currently selected in the asset picker */
 	TArray<FAssetData> CurrentlySelectedAssets;
 
@@ -123,4 +130,7 @@ private:
 
 	/** Used to focus the name box after opening the dialog */
 	bool bPendingFocusNextFrame;
+
+	/** Used to specify that valid assets were chosen */
+	bool bValidAssetsChosen;
 };
