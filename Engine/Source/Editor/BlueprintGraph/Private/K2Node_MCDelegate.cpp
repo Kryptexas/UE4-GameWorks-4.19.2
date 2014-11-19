@@ -210,6 +210,55 @@ void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FS
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetPropertyName().ToString() ));
 }
 
+void UK2Node_BaseMCDelegate::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+
+	// Since nodes no longer have a sense of scope when they're placed, look at the connection we're coming from, and use that to coerce the Target pin
+	if (FromPin != nullptr)
+	{
+		bool bConnected = false;
+
+		// Only do the fixup if we're going coming from an output pin, which implies a contextual drag
+		if (FromPin->Direction == EGPD_Output)
+		{
+			if (FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
+			{
+				UProperty* DelegateProperty = DelegateReference.ResolveMember<UProperty>(this);
+				if (DelegateProperty)
+				{
+					UClass* DelegateOwner = DelegateProperty->GetOwnerClass();
+					if (FromPin->PinType.PinSubCategoryObject == DelegateOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(DelegateOwner))
+					{
+						// If we get here, then the property delegate is also available on the FromPin's class.
+						// Fix up the type by propagating it from the FromPin to our target pin
+						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
+						TargetPin->PinType.PinSubCategory.Empty();
+						TargetPin->PinType.PinSubCategoryObject = DelegateOwner;
+
+						// And finally, try to establish the connection
+						if (K2Schema->TryCreateConnection(FromPin, TargetPin))
+						{
+							bConnected = true;
+
+							DelegateReference.SetFromField<UProperty>(DelegateProperty, false);
+							TargetPin->bHidden = false;
+							FromPin->GetOwningNode()->NodeConnectionListChanged();
+							this->NodeConnectionListChanged();
+						}
+
+					}
+				}
+			}
+		}
+
+		if (!bConnected)
+		{
+			Super::AutowireNewNode(FromPin);
+		}
+	}
+}
+
 /////// UK2Node_AddDelegate ///////////
 
 UK2Node_AddDelegate::UK2Node_AddDelegate(const FObjectInitializer& ObjectInitializer)
