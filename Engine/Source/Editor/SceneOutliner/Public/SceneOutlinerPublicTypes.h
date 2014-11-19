@@ -128,6 +128,9 @@ namespace SceneOutliner
 		/** If true, the search box will gain focus when the scene outliner is created */
 		bool bFocusSearchBoxWhenOpened : 1;
 
+		/** If true, the Scene Outliner will expose a Create New Folder button */
+		bool bShowCreateNewFolder : 1;
+
 		/** Optional collection of filters to use when filtering in the Scene Outliner */
 		TSharedPtr<FOutlinerFilters> Filters;
 
@@ -141,6 +144,7 @@ namespace SceneOutliner
 			: bShowHeaderRow( true )
 			, bShowSearchBox( true )
 			, bFocusSearchBoxWhenOpened( false )
+			, bShowCreateNewFolder( true )
 			, Filters( new FOutlinerFilters )
 		{}
 	};

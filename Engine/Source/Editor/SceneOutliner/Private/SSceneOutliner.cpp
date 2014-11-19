@@ -221,7 +221,7 @@ namespace SceneOutliner
 			.OnTextCommitted( this, &SSceneOutliner::OnFilterTextCommitted )
 		];
 
-		if (SharedData->Mode == ESceneOutlinerMode::ActorBrowsing)
+		if (SharedData->Mode == ESceneOutlinerMode::ActorBrowsing && InInitOptions.bShowCreateNewFolder)
 		{
 			Toolbar->AddSlot()
 				.VAlign(VAlign_Center)

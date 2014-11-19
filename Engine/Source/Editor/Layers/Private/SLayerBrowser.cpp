@@ -128,6 +128,7 @@ void SLayerBrowser::Construct(const FArguments& InArgs)
 		// We hide the header row to keep the UI compact.
 		InitOptions.bShowHeaderRow = false;
 		InitOptions.bShowParentTree = false;
+		InitOptions.bShowCreateNewFolder = false;
 		InitOptions.CustomDelete = FCustomSceneOutlinerDeleteDelegate::CreateSP(this, &SLayerBrowser::RemoveActorsFromSelectedLayer);
 
 		// Outliner Gutter
