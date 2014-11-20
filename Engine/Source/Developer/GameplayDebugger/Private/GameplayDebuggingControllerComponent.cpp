@@ -275,7 +275,7 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 
 			if (IsViewActive(EAIDebugDrawDataView::NavMesh))
 			{
-				GetWorld()->GetTimerManager().SetTimer(this, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer, 5.0f, true);
+				GetWorld()->GetTimerManager().SetTimer(TimerHandle_UpdateNavMeshTimer, this, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer, 5.0f, true);
 				UpdateNavMeshTimer();
 
 				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::NavMesh);
@@ -283,7 +283,7 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 			}
 			else
 			{
-				GetWorld()->GetTimerManager().ClearTimer(this, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer);
+				GetWorld()->GetTimerManager().ClearTimer(TimerHandle_UpdateNavMeshTimer);
 
 				GetDebuggingReplicator()->ServerReplicateMessage(Pawn, EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::NavMesh);
 				OwnerComp->ServerDiscardNavmeshData();
@@ -344,6 +344,11 @@ void UGameplayDebuggingControllerComponent::TickComponent(float DeltaTime, enum 
 	{
 		return;
 	}
+}
+
+float UGameplayDebuggingControllerComponent::GetUpdateNavMeshTimeRemaining() const
+{
+	return GetWorld()->GetTimerManager().GetTimerRemaining(TimerHandle_UpdateNavMeshTimer);
 }
 
 void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()

@@ -634,19 +634,14 @@ void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DebugComponent && DebugComponent->NavmeshRepData.Num())
 	{
-		float TimeLeft = 0.0f;
 		UGameplayDebuggingControllerComponent*  GDC = PC ? PC->FindComponentByClass<UGameplayDebuggingControllerComponent>() : NULL;
+		FString NextUpdateDesc;
 		if (GDC)
 		{
-			TimeLeft = GetWorldTimerManager().GetTimerRemaining(GDC, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer);
-		}
-
-		FString NextUpdateDesc;
-		if (TimeLeft > 0.0f)
-		{
+			const float TimeLeft = GDC->GetUpdateNavMeshTimeRemaining();
 			NextUpdateDesc = FString::Printf(TEXT(", next update: {yellow}%.1fs"), TimeLeft);
 		}
-	
+
 		PrintString(DefaultContext, FString::Printf(TEXT("\n\n{green}Showing NavMesh (%.1fkB)%s\n"),
 			DebugComponent->NavmeshRepData.Num() / 1024.0f, *NextUpdateDesc));
 	}

@@ -20,7 +20,10 @@ void UAbilityTask_WaitDelay::Activate()
 {
 	UWorld* World = GetWorld();
 	TimeStarted = World->GetTimeSeconds();
-	World->GetTimerManager().SetTimer(this, &UAbilityTask_WaitDelay::OnTimeFinish, Time, false);
+
+	// Use a dummy timer handle as we don't need to store it for later but we don't need to look for something to clear
+	FTimerHandle TimerHandle;
+	World->GetTimerManager().SetTimer(TimerHandle, this, &UAbilityTask_WaitDelay::OnTimeFinish, Time, false);
 }
 
 void UAbilityTask_WaitDelay::OnDestroy(bool AbilityEnded)

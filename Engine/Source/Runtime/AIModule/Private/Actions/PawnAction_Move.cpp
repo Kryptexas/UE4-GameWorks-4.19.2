@@ -106,7 +106,7 @@ bool UPawnAction_Move::PerformMoveAction()
 	if (bUsePathfinding && MyController->ShouldPostponePathUpdates())
 	{
 		UE_VLOG(MyController, LogPawnAction, Log, TEXT("Can't path right now, waiting..."));
-		MyController->GetWorldTimerManager().SetTimer(this, &UPawnAction_Move::DeferredPerformMoveAction, 0.1f);
+		MyController->GetWorldTimerManager().SetTimer(TimerHandle_DeferredPerformMoveAction, this, &UPawnAction_Move::DeferredPerformMoveAction, 0.1f);
 		return true;
 	}
 
@@ -282,7 +282,7 @@ void UPawnAction_Move::TryToRepath()
 		}
 		else if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().SetTimer(this, &UPawnAction_Move::TryToRepath, 0.25f);
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle_TryToRepath, this, &UPawnAction_Move::TryToRepath, 0.25f);
 		}
 	}
 }
@@ -291,7 +291,7 @@ void UPawnAction_Move::ClearPendingRepath()
 {
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(this, &UPawnAction_Move::TryToRepath);
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_TryToRepath);
 	}
 }
 

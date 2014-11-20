@@ -106,6 +106,8 @@ void ULeaderboardQueryCallbackProxy::OnStatsRead(bool bWasSuccessful)
 
 	if (UWorld* World = WorldPtr.Get())
 	{
+		// Use a dummy timer handle as we don't need to store it for later but we don't need to look for something to clear
+		FTimerHandle TimerHandle;
 		World->GetTimerManager().SetTimer(this, &ULeaderboardQueryCallbackProxy::OnStatsRead_Delayed, 0.001f, false);
 	}
 	ReadObject = NULL;

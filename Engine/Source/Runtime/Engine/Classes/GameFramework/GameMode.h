@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "TimerManager.h"
 #include "GameFramework/Info.h"
 #include "GameMode.generated.h"
 
@@ -593,6 +594,10 @@ public:
 	virtual void DefaultTimer();	
 
 protected:
+
+	/** Handle for efficient management of DefaultTimer timer */
+	FTimerHandle TimerHandle_DefaultTimer;
+
 	/**
 	 * Customize incoming player based on URL options
 	 *

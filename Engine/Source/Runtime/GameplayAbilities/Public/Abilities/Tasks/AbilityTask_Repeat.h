@@ -36,5 +36,8 @@ protected:
 	int32 ActionCounter;
 	float TimeBetweenActions;
 
+	/** Handle for efficient management of PerformAction timer */
+	FTimerHandle TimerHandle_PerformAction;
+
 	virtual void OnDestroy(bool AbilityIsEnding) override;
 };

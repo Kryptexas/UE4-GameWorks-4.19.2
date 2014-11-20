@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "TimerManager.h"
 #include "AI/RVOAvoidanceInterface.h"
 #include "AvoidanceManager.generated.h"
 
@@ -154,6 +155,9 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	// End FExec Interface
 
 private:
+
+	/** Handle for efficient management of RemoveOutdatedObjects timer */
+	FTimerHandle TimerHandle_RemoveOutdatedObjects;
 
 	/** Cleanup AvoidanceObjects, called by timer */
 	void RemoveOutdatedObjects();

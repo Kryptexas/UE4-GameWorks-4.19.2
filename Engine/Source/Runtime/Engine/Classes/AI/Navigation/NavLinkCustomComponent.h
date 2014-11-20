@@ -194,6 +194,9 @@ protected:
 	/** delegate to call when link is reached */
 	FOnMoveReachedLink OnMoveReachedLink;
 
+	/** Handle for efficient management of BroadcastStateChange timer */
+	FTimerHandle TimerHandle_BroadcastStateChange;
+
 	/** notify nearby agents about link changing state */
 	void BroadcastStateChange();
 	

@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "TimerManager.h"
 #include "GameplayDebuggingTypes.h"
 #include "GameplayDebugger.h"
 #include "GameplayDebuggingControllerComponent.generated.h"
@@ -41,6 +42,8 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingControllerComponent : public UActor
 	/** periodic update of navmesh data */
 	void UpdateNavMeshTimer();
 
+	float GetUpdateNavMeshTimeRemaining() const;
+
 	FOnChangeEQSQuery OnNextEQSQuery;
 	FOnChangeEQSQuery OnPreviousEQSQuery;
 protected:
@@ -76,6 +79,9 @@ protected:
 	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
+
+	/** Handle for efficient management of UpdateNavMesh timer */
+	FTimerHandle TimerHandle_UpdateNavMeshTimer;
 
 	FInputChord ActivationKey;
 	const float KeyPressActivationTime;

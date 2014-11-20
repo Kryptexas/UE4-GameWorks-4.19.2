@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "TimerManager.h"
 #include "GameNetworkManager.generated.h"
 
 /** Describes which standby detection event occured so the game can take appropriate action */
@@ -152,6 +153,11 @@ class ENGINE_API AGameNetworkManager : public AInfo
 	/** If true, actor network relevancy is constrained by whether they are within their NetCullDistanceSquared from the client's view point. */
 	UPROPERTY(globalconfig)
 	bool	bUseDistanceBasedRelevancy;
+
+protected:
+
+	/** Handle for efficient management of UpdateNetSpeeds timer */
+	FTimerHandle TimerHandle_UpdateNetSpeedsTimer;	
 };
 
 

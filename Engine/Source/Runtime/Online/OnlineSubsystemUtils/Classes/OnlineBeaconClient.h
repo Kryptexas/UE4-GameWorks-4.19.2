@@ -4,6 +4,7 @@
 // Basic beacon
 //
 #pragma once
+#include "TimerManager.h"
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeacon.h"
 #include "OnlineBeaconClient.generated.h"
 
@@ -63,6 +64,9 @@ protected:
 	/** Owning beacon host of this beacon actor */
 	UPROPERTY()
 	class AOnlineBeaconHostObject* BeaconOwner;
+
+	/** Handle for efficient management of OnFailure timer */
+	FTimerHandle TimerHandle_OnFailure;
 
 private:
 

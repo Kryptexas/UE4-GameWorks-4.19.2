@@ -210,7 +210,7 @@ void UNavLinkCustomComponent::SetEnabled(bool bNewEnabled)
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().ClearTimer(this, &UNavLinkCustomComponent::BroadcastStateChange);
+			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_BroadcastStateChange);
 
 			if ((bLinkEnabled && bNotifyWhenEnabled) || (!bLinkEnabled && bNotifyWhenDisabled))
 			{
@@ -324,7 +324,7 @@ void UNavLinkCustomComponent::BroadcastStateChange()
 
 	if (BroadcastInterval > 0.0f)
 	{
-		GetWorld()->GetTimerManager().SetTimer(this, &UNavLinkCustomComponent::BroadcastStateChange, BroadcastInterval);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_BroadcastStateChange, this, &UNavLinkCustomComponent::BroadcastStateChange, BroadcastInterval);
 	}
 }
 

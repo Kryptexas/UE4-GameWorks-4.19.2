@@ -166,8 +166,7 @@ void FPropertyEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TS
 	PropertyTree->SetObjectArray( AdjustedObjectsToEditWeak );
 
 	PinColor = FSlateColor( FLinearColor( 1, 1, 1, 0 ) );
-	TickPinColorDelegate.BindSP( this, &FPropertyEditorToolkit::TickPinColorAndOpacity );
-	GEditor->GetTimerManager()->SetTimer( TickPinColorDelegate, 0.1f, true );
+	GEditor->GetTimerManager()->SetTimer( TimerHandle_TickPinColor, FTimerDelegate::CreateSP(this, &FPropertyEditorToolkit::TickPinColorAndOpacity), 0.1f, true );
 }
 
 
@@ -398,7 +397,7 @@ bool FPropertyEditorToolkit::TableHasCustomColumns() const
 
 bool FPropertyEditorToolkit::CloseWindow()
 {
-	GEditor->GetTimerManager()->ClearTimer( TickPinColorDelegate );
+	GEditor->GetTimerManager()->ClearTimer( TimerHandle_TickPinColor );
 	return FAssetEditorToolkit::CloseWindow();
 }
 

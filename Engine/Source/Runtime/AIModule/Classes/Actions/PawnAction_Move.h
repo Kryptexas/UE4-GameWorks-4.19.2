@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "TimerManager.h"
 #include "PawnAction_Move.generated.h"
 
 class AAIController;
@@ -84,6 +84,12 @@ protected:
 
 	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
 	
+	/** Handle for efficient management of DeferredPerformMoveAction timer */
+	FTimerHandle TimerHandle_DeferredPerformMoveAction;
+
+	/** Handle for efficient management of TryToRepath timer */
+	FTimerHandle TimerHandle_TryToRepath;
+
 	void ClearPath();
 	virtual bool Start() override;
 	virtual bool Pause(const UPawnAction* PausedBy) override;

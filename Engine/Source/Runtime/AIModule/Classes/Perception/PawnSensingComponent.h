@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-
 #pragma once
+#include "TimerManager.h"
 #include "Components/ActorComponent.h"
 #include "PawnSensingComponent.generated.h"
 
@@ -133,9 +132,12 @@ protected:
 
 	/** See if there are interesting sounds and sights that we want to detect, and respond to them if so. */
 	virtual void SensePawn(APawn& Pawn);
-	
+
 	/** Update function called on timer intervals. */
 	virtual void OnTimer();
+
+	/** Handle for efficient management of OnTimer timer */
+	FTimerHandle TimerHandle_OnTimer;
 
 	/** Modify the timer to fire in TimeDelay seconds. A value <= 0 disables the timer. */
 	virtual void SetTimer(const float TimeDelay);

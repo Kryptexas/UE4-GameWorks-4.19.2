@@ -90,7 +90,7 @@ private:
 
 	/** Animation sequence to pulse the pin image */
 	FCurveSequence PinSequence;
-	FTimerDelegate TickPinColorDelegate;
+	FTimerHandle TimerHandle_TickPinColor;
 	FSlateColor PinColor;
 	TArray< TWeakPtr<IPropertyTreeRow> > PinRows;
 

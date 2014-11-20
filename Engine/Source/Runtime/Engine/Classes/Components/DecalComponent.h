@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "TimerManager.h"
 #include "DecalComponent.generated.h"
 
 class FDeferredDecalProxy;
@@ -52,8 +53,14 @@ public:
 	 */
 	ENGINE_API void PushSelectionToProxy();
 
+protected:
+	/** Handle for efficient management of DestroyDecalComponent timer */
+	FTimerHandle TimerHandle_DestroyDecalComponent;
 
+public:
 	
+	void SetLifeSpan(const float LifeSpan);
+
 	/**
 	 * Retrieves the materials used in this component
 	 *

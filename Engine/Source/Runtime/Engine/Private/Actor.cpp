@@ -3424,11 +3424,11 @@ void AActor::SetLifeSpan( float InLifespan )
 	{
 		if( InLifespan > 0.0f)
 		{
-			GetWorldTimerManager().SetTimer( this, &AActor::LifeSpanExpired, InLifespan );
+			GetWorldTimerManager().SetTimer( TimerHandle_LifeSpanExpired, this, &AActor::LifeSpanExpired, InLifespan );
 		}
 		else
 		{
-			GetWorldTimerManager().ClearTimer( this, &AActor::LifeSpanExpired );		
+			GetWorldTimerManager().ClearTimer( TimerHandle_LifeSpanExpired );		
 		}
 	}
 }
@@ -3436,7 +3436,7 @@ void AActor::SetLifeSpan( float InLifespan )
 float AActor::GetLifeSpan() const
 {
 	// Timer remaining returns -1.0f if there is no such timer - return this as ZERO
-	const float CurrentLifespan = GetWorldTimerManager().GetTimerRemaining( this, &AActor::LifeSpanExpired );
+	const float CurrentLifespan = GetWorldTimerManager().GetTimerRemaining(TimerHandle_LifeSpanExpired);
 	return ( CurrentLifespan != -1.0f ) ? CurrentLifespan : 0.0f;
 }
 

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Engine/EngineBaseTypes.h"
-
+#include "TimerManager.h"
 #include "MatineeActor.generated.h"
 
 /** Signature of function to handle a matinee event track key */
@@ -266,6 +266,11 @@ public:
 	/** Fix up our references to any objects that have been replaced (e.g. through blueprint compiling) */
 	ENGINE_API void OnObjectsReplaced(const TMap<UObject*,UObject*>& ReplacementMap);
 #endif //WITH_EDITOR
+
+protected:
+
+	/** Handle for efficient management of CheckPriorityRefresh timer */
+	FTimerHandle TimerHandle_CheckPriorityRefresh;
 
 private:
 

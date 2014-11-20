@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "TimerManager.h"
 #include "GameState.generated.h"
 
 //=============================================================================
@@ -112,12 +112,16 @@ public:
 	/** Remove PlayerState from the PlayerArray. */
 	virtual void RemovePlayerState(class APlayerState* PlayerState);
 
-
 	/** Called periodically, overridden by subclasses */
 	virtual void DefaultTimer();
 
 	/** Should players show gore? */
 	virtual bool ShouldShowGore() const;
+
+protected:
+
+	/** Handle for efficient management of DefaultTimer timer */
+	FTimerHandle TimerHandle_DefaultTimer;
 
 private:
 	// Hidden functions that don't make sense to use on this class.

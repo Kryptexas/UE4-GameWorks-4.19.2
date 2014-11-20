@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
-
+#include "TimerManager.h"
 #include "AbilityTask.h"
 #include "AbilityTask_VisualizeTargeting.generated.h"
 
@@ -17,6 +17,8 @@ class UAbilityTask_VisualizeTargeting: public UAbilityTask
 	FVisualizeTargetingDelegate TimeElapsed;
 
 	void OnTimeElapsed();
+
+	void SetDuration(const float Duration);
 
 	/** Spawns Targeting actor. */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true", HideSpawnParms="Instigator"), Category="Ability|Tasks")
@@ -36,6 +38,9 @@ protected:
 
 	/** The TargetActor that we spawned, or the class CDO if this is a static targeting task */
 	TWeakObjectPtr<AGameplayAbilityTargetActor>	MyTargetActor;
+
+	/** Handle for efficient management of OnTimeElapsed timer */
+	FTimerHandle TimerHandle_OnTimeElapsed;
 };
 
 

@@ -73,7 +73,7 @@ void AGameNetworkManager::UpdateNetSpeeds(bool bIsLanMatch)
 
 	if ( GetWorld()->TimeSeconds - LastNetSpeedUpdateTime < 1.0f )
 	{
-		GetWorldTimerManager().SetTimer(this, &AGameNetworkManager::UpdateNetSpeedsTimer, 1.0f);
+		GetWorldTimerManager().SetTimer(TimerHandle_UpdateNetSpeedsTimer, this, &AGameNetworkManager::UpdateNetSpeedsTimer, 1.0f);
 		return;
 	}
 

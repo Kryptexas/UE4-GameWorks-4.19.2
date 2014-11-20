@@ -67,7 +67,7 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 	SetAutonomousProxy(true);
 
 	// Fail safe for connection to server but no client connection RPC
-	GetWorldTimerManager().ClearTimer(this, &AOnlineBeaconClient::OnFailure);
+	GetWorldTimerManager().ClearTimer(TimerHandle_OnFailure);
 
 	if (NetDriver)
 	{
@@ -83,7 +83,7 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 void AOnlineBeaconClient::DestroyBeacon()
 {
 	// Fail safe for connection to server but no client connection RPC
-	GetWorldTimerManager().ClearTimer(this, &AOnlineBeaconClient::OnFailure);
+	GetWorldTimerManager().ClearTimer(TimerHandle_OnFailure);
 	Super::DestroyBeacon();
 }
 
@@ -140,7 +140,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 					// Server will send ClientOnConnected() when it gets this control message
 
 					// Fail safe for connection to server but no client connection RPC
-					GetWorldTimerManager().SetTimer(this, &AOnlineBeaconClient::OnFailure, BEACON_RPC_TIMEOUT, false);
+					GetWorldTimerManager().SetTimer(TimerHandle_OnFailure, this, &AOnlineBeaconClient::OnFailure, BEACON_RPC_TIMEOUT, false);
 				}
 				else
 				{

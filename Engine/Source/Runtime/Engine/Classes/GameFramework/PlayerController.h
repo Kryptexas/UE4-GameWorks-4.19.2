@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "TimerManager.h"
 #include "GameFramework/PlayerMuteList.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Camera/CameraTypes.h"
@@ -1095,7 +1095,7 @@ private:
 	uint32 bInputEnabled:1;
 
 	/** Whether the PlayerController's voice chat is enabled. */
-	bool bSpeaking;
+	uint32 bSpeaking:1;
 
 protected:
 
@@ -1115,6 +1115,15 @@ protected:
 	UPROPERTY()
 	class UTouchInterface* CurrentTouchInterface;
 
+	/** Handle for efficient management of UnFreeze timer */
+	FTimerHandle TimerHandle_UnFreeze;
+
+private:
+	/** Handle for efficient management of DelayedPrepareMapChange timer */
+	FTimerHandle TimerHandle_DelayedPrepareMapChange;
+
+	/** Handle for efficient management of ClientCommitMapChange timer */
+	FTimerHandle TimerHandle_ClientCommitMapChange;
 
 public:
 	/** Adds an inputcomponent to the top of the input stack. */

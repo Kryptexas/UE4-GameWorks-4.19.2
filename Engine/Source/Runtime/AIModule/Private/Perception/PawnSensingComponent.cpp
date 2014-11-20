@@ -76,7 +76,7 @@ void UPawnSensingComponent::SetTimer(const float TimeInterval)
 	AActor* const Owner = GetOwner();
 	if (IsValid(Owner) && GEngine->GetNetMode(GetWorld()) < NM_Client)
 	{
-		Owner->GetWorldTimerManager().SetTimer(this, &UPawnSensingComponent::OnTimer, TimeInterval, false);
+		Owner->GetWorldTimerManager().SetTimer(TimerHandle_OnTimer, this, &UPawnSensingComponent::OnTimer, TimeInterval, false);
 	}
 }
 
@@ -96,7 +96,7 @@ void UPawnSensingComponent::SetSensingInterval(const float NewSensingInterval)
 			}
 			else if (bEnableSensingUpdates)
 			{
-				float CurrentElapsed = Owner->GetWorldTimerManager().GetTimerElapsed(this, &UPawnSensingComponent::OnTimer);
+				float CurrentElapsed = Owner->GetWorldTimerManager().GetTimerElapsed(TimerHandle_OnTimer);
 				CurrentElapsed = FMath::Max(0.f, CurrentElapsed);
 
 				if (CurrentElapsed < SensingInterval)

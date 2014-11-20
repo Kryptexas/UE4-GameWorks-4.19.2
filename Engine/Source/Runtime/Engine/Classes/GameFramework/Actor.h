@@ -8,6 +8,7 @@
 #include "Engine/EngineTypes.h"
 #include "InputCoreTypes.h"
 #include "RenderCommandFence.h"
+#include "TimerManager.h"
 
 struct FHitResult;
 class AActor;
@@ -367,6 +368,13 @@ protected:
 	/** How long this Actor lives before dying, 0=forever. Note this is the INITIAL value and should not be modified once play has begun. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Actor)
 	float InitialLifeSpan; 
+
+private:
+
+	/** Handle for efficient management of LifeSpanExpired timer */
+	FTimerHandle TimerHandle_LifeSpanExpired;
+
+protected:
 
 	/**
 	 * If false, the Blueprint ReceiveTick() event will be disabled on dedicated servers.
@@ -1501,7 +1509,7 @@ public:
 	 */
 	virtual void PostActorCreated();
 
-	/** Called when the lifespawn of an actor expires (if he has one). */
+	/** Called when the lifespan of an actor expires (if he has one). */
 	virtual void LifeSpanExpired();
 
 	// Always called immediately before properties are received from the remote.

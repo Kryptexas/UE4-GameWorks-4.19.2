@@ -108,7 +108,7 @@ void UAvoidanceManager::RequestUpdateTimer()
 	if (!bRequestedUpdateTimer && MyWorld)
 	{
 		bRequestedUpdateTimer = true;
-		MyWorld->GetTimerManager().SetTimer(this, &UAvoidanceManager::RemoveOutdatedObjects, DefaultTimeToLive * 0.5f, false);
+		MyWorld->GetTimerManager().SetTimer(TimerHandle_RemoveOutdatedObjects, this, &UAvoidanceManager::RemoveOutdatedObjects, DefaultTimeToLive * 0.5f, false);
 	}
 }
 
