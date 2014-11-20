@@ -455,8 +455,8 @@ public:
 
 	FGameplayEffectSpecHandle MakeOutgoingGameplayEffectSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level = 1.f) const;
 
-	/** Add the Ability's tags to the given GameplayEffectSpec. This is likely to be overriden per project. */
-	virtual void ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec) const;	
+	/** Add the Ability's tags to the given GameplayEffectSpec. This is likely to be overridden per project. */
+	virtual void ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec, FGameplayAbilitySpec* AbilitySpec) const;
 
 	/** Returns the currently playing montage for this ability, if any */
 	UFUNCTION(BlueprintCallable, Category = Animation)

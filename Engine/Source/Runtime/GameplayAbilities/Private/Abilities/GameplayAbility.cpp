@@ -542,14 +542,28 @@ FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(const
 	FGameplayEffectSpecHandle NewHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(GameplayEffectClass, Level, GetEffectContext(ActorInfo));
 	if (NewHandle.IsValid())
 	{
-		ApplyAbilityTagsToGameplayEffectSpec(*NewHandle.Data.Get());
+		FGameplayAbilitySpec* AbilitySpec =  ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+		ApplyAbilityTagsToGameplayEffectSpec(*NewHandle.Data.Get(), AbilitySpec);
 	}
 	return NewHandle;
 }
 
-void UGameplayAbility::ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec) const
+void UGameplayAbility::ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec, FGameplayAbilitySpec* AbilitySpec) const
 {
 	Spec.CapturedSourceTags.GetSpecTags().AppendTags(AbilityTags);
+
+	// Allow the source object of the ability to propagate tags along as well
+	if (AbilitySpec)
+	{
+		const IGameplayTagAssetInterface* SourceObjAsTagInterface = Cast<IGameplayTagAssetInterface>(AbilitySpec->SourceObject);
+		if (SourceObjAsTagInterface)
+		{
+			FGameplayTagContainer SourceObjTags;
+			SourceObjAsTagInterface->GetOwnedGameplayTags(SourceObjTags);
+
+			Spec.CapturedSourceTags.GetSpecTags().AppendTags(SourceObjTags);
+		}
+	}
 }
 
 /** Fixme: Naming is confusing here */
