@@ -858,11 +858,8 @@ ARecastNavMesh* UGameplayDebuggingComponent::GetNavData()
 	APawn* TargetPawn = Cast<APawn>(TargetActor);
 	if (TargetPawn != NULL)
 	{
-		const FNavAgentProperties* NavAgentProperties = TargetPawn->GetNavAgentProperties();
-		if (NavAgentProperties != NULL)
-		{
-			return Cast<ARecastNavMesh>(NavSys->GetNavDataForProps(*NavAgentProperties));
-		}
+		const FNavAgentProperties& NavAgentProperties = TargetPawn->GetNavAgentProperties();
+		return Cast<ARecastNavMesh>(NavSys->GetNavDataForProps(NavAgentProperties));
 	}
 
 	// If it wasn't found, just get the main nav-mesh data.
