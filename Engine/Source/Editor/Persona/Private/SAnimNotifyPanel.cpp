@@ -13,6 +13,7 @@
 #include "STextEntryPopup.h"
 #include "SExpandableArea.h"
 #include "Toolkits/AssetEditorManager.h"
+#include "BlueprintActionDatabase.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -2555,6 +2556,8 @@ void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Typ
 		const FScopedTransaction Transaction( LOCTEXT("AddNewNotifyEvent", "Add New Anim Notify") );
 		FName NewName = FName( *NewNotifyName.ToString() );
 		SeqSkeleton->AddNewAnimationNotify(NewName);
+
+		FBlueprintActionDatabase::Get().RefreshAssetActions(SeqSkeleton);
 
 		CreateNewNotifyAtCursor(NewNotifyName.ToString(), (UClass*)nullptr);
 	}
