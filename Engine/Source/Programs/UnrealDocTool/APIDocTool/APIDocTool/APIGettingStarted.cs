@@ -38,7 +38,6 @@ namespace APIDocTool
 				Writer.WriteLine("Code in each module can use other modules by referencing them in their *build rules*. Build rules for each module are given by C# scripts with the .build.cs extension. *Target rules* are given by C# scripts with the .target.cs extension.");
 				Writer.WriteLine();
 				Writer.WriteLine(Manifest, "Modules supplied with the Unreal Engine are divided into three categories; the {Runtime|ModuleIndex:Runtime Modules}, functionality for the {Editor|ModuleIndex:Editor Modules}, and {Developer|ModuleIndex:Developer Modules} utilities.");
-				Writer.WriteLine();
 				Writer.WriteLine(Manifest, "Most gameplay programming just uses runtime modules, and the three most commonly encountered are {Core|Filter:Core}, {CoreUObject|Filter:CoreUObject} and {Engine|Filter:Engine}.");
 				Writer.WriteLine();
 

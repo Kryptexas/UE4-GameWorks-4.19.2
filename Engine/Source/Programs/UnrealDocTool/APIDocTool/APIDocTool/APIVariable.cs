@@ -54,7 +54,13 @@ namespace APIDocTool
 
 			ParseBriefAndFullDescription(Node, out BriefDescription, out FullDescription);
 
-			GetModifiers();
+            XmlNode BitfieldNode = Node.SelectSingleNode("bitfield");
+            if (BitfieldNode != null)
+            {
+                Bitfield = BitfieldNode.InnerText;
+            }
+			IsMutable = Node.Attributes.GetNamedItem("mutable").InnerText == "yes";
+			IsStatic = Node.Attributes.GetNamedItem("static").InnerText == "yes";
 
 			XmlNode DefNode = Node.SelectSingleNode("definition");
 			if (DefNode != null)
@@ -64,7 +70,7 @@ namespace APIDocTool
 
 			XmlNode type = Node.SelectSingleNode("type");
 			Type = APIMember.RemoveElaborations(ConvertToMarkdown(type));
-			AbbreviatedType = Markdown.Truncate(Type, 20, "...");
+			AbbreviatedType = Markdown.Truncate(Type + Bitfield, 15, "...");
 
 			XmlNodeList SimpleNodes = Node.SelectNodes("detaileddescription/para/simplesect");
 			foreach (XmlNode node in SimpleNodes)
@@ -77,17 +83,6 @@ namespace APIDocTool
 				}
 			}
 		}
-
-        public void GetModifiers()
-        {
-            XmlNode BitfieldNode = Node.SelectSingleNode("bitfield");
-            if (BitfieldNode != null)
-            {
-                Bitfield = BitfieldNode.InnerText;
-            }
-			IsMutable = Node.Attributes.GetNamedItem("mutable").InnerText == "yes";
-			IsStatic = Node.Attributes.GetNamedItem("static").InnerText == "yes";
-        }
 
 		private void WriteDefinition(UdnWriter Writer)
 		{

@@ -82,13 +82,13 @@
     <Compile Include="APIRecord.cs" />
     <Compile Include="APIRecordIndex.cs" />
     <Compile Include="BuildTarget.cs" />
-    <Compile Include="fastJSON\Formatter.cs" />
-    <Compile Include="fastJSON\Getters.cs" />
-    <Compile Include="fastJSON\JSON.cs" />
-    <Compile Include="fastJSON\JsonParser.cs" />
-    <Compile Include="fastJSON\JsonSerializer.cs" />
-    <Compile Include="fastJSON\Reflection.cs" />
-    <Compile Include="fastJSON\SafeDictionary.cs" />
+    <Compile Include="FastJSON\Formatter.cs" />
+    <Compile Include="FastJSON\Getters.cs" />
+    <Compile Include="FastJSON\JSON.cs" />
+    <Compile Include="FastJSON\JsonParser.cs" />
+    <Compile Include="FastJSON\JsonSerializer.cs" />
+    <Compile Include="FastJSON\Reflection.cs" />
+    <Compile Include="FastJSON\SafeDictionary.cs" />
     <Compile Include="Icons.cs" />
     <Compile Include="IniFile.cs" />
     <Compile Include="Metadata.cs" />
@@ -122,7 +122,16 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\..\..\..\Documentation\Source\Include\CSS\udn_public.css">
-      <Link>Source\CSS\udn_public.css</Link>
+      <Link>Pages\udn_public.css</Link>
+    </Content>
+    <Content Include="..\..\..\..\..\Documentation\Source\Include\Javascript\udn.js">
+      <Link>Pages\udn.js</Link>
+    </Content>
+    <Content Include="..\..\..\..\..\Documentation\Source\Include\Templates\Default.html">
+      <Link>Pages\Default.html</Link>
+    </Content>
+    <Content Include="..\..\..\..\..\Documentation\Source\Include\Templates\DefaultAPI.html">
+      <Link>Pages\DefaultAPI.html</Link>
     </Content>
     <Content Include="..\..\..\..\..\Documentation\Source\Include\Templates\Objects\ActionPinListItem.html">
       <Link>Source\Objects\ActionPinListItem.html</Link>
