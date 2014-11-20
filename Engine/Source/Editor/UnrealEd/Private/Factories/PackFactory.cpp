@@ -214,7 +214,7 @@ namespace PackFactoryHelper
 				}
 				for (const FInputAxisKeyMapping& AxisKeyMapping : AxisMappingsToAdd)
 				{
-					InputSettingsCDO->AddxisMapping(AxisKeyMapping);
+					InputSettingsCDO->AddAxisMapping(AxisKeyMapping);
 				}
 					
 				InputSettingsCDO->SaveKeyMappings();
