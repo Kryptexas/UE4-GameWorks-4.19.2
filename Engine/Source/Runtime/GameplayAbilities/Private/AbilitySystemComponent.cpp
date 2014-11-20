@@ -456,7 +456,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		return FActiveGameplayEffectHandle();
 	}
 
-	// Don't allow prediciton of periodic effects
+	// Don't allow prediction of periodic effects
 	if(PredictionKey.IsValidKey() && Spec.GetPeriod() > 0.f)
 	{
 		if(IsOwnerActorAuthoritative())
@@ -471,7 +471,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		}
 	}
 
-	// Are we currently immunte to this? (ApplicationImmunity)
+	// Are we currently immune to this? (ApplicationImmunity)
 	if (ActiveGameplayEffects.CheckApplicationImmunity(Spec))
 	{
 		return FActiveGameplayEffectHandle();
@@ -502,7 +502,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}
 
 	// Get MyTags.
-	//	We may want to cache off a GameplayTagContainer instead of rebuilding it everytime.
+	//	We may want to cache off a GameplayTagContainer instead of rebuilding it every time.
 	//	But this will also be where we need to merge in context tags? (Headshot, executing ability, etc?)
 	//	Or do we push these tags into (our copy of the spec)?
 

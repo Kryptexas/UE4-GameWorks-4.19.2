@@ -940,28 +940,38 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 		}
 	}
 
-	float ChanceToExecute = Spec.GetChanceToExecuteOnGameplayEffect();		// Not implemented? Should we just remove ChanceToExecute?
+	// The process of executing a gameplay spec may cause modifications to the spec, however those modifications
+	// should not persist across multiple executions on the same spec. Therefore, if the spec isn't instantaneous, make a 
+	// copy that can be modified and pass it along to each part of the execution process.
+	TSharedPtr<FGameplayEffectSpec> StackSpec;
+	if (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION)
+	{
+		StackSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(Spec));
+	}
+	FGameplayEffectSpec& SpecToUse = StackSpec.IsValid() ? *(StackSpec.Get()) : Spec;
+
+	float ChanceToExecute = SpecToUse.GetChanceToExecuteOnGameplayEffect();		// Not implemented? Should we just remove ChanceToExecute?
 
 	// Capture our own tags.
 	// TODO: We should only capture them if we need to. We may have snapshotted target tags (?) (in the case of dots with exotic setups?)
 
-	Spec.CapturedTargetTags.GetActorTags().RemoveAllTags();
-	Owner->GetOwnedGameplayTags(Spec.CapturedTargetTags.GetActorTags());
+	SpecToUse.CapturedTargetTags.GetActorTags().RemoveAllTags();
+	Owner->GetOwnedGameplayTags(SpecToUse.CapturedTargetTags.GetActorTags());
 
-	Spec.CalculateModifierMagnitudes();
+	SpecToUse.CalculateModifierMagnitudes();
 
 	// ------------------------------------------------------
 	//	Modifiers
 	//		These will modify the base value of attributes
 	// ------------------------------------------------------
 
-	for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
+	for (int32 ModIdx = 0; ModIdx < SpecToUse.Modifiers.Num(); ++ModIdx)
 	{
-		const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
-		const FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
+		const FGameplayModifierInfo& ModDef = SpecToUse.Def->Modifiers[ModIdx];
+		const FModifierSpec& ModSpec = SpecToUse.Modifiers[ModIdx];
 
 		FGameplayModifierEvaluatedData EvalData(ModDef.Attribute, ModDef.ModifierOp, ModSpec.GetEvaluatedMagnitude());
-		InvokeGameplayCueExecute |= InternalExecuteMod(Spec, EvalData);
+		InvokeGameplayCueExecute |= InternalExecuteMod(SpecToUse, EvalData);
 	}
 
 	// ------------------------------------------------------
@@ -969,7 +979,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	//		This will run custom code to 'do stuff'
 	// ------------------------------------------------------
 	
-	for (const FGameplayEffectExecutionDefinition& CurExecDef : Spec.Def->Executions)
+	for (const FGameplayEffectExecutionDefinition& CurExecDef : SpecToUse.Def->Executions)
 	{
 		if (CurExecDef.CalculationClass)
 		{
@@ -979,13 +989,13 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			TArray<FGameplayModifierEvaluatedData> OutModifiers;
 
 			// Run the custom execution
-			FGameplayEffectCustomExecutionParameters ExecutionParams(Spec, CurExecDef.CalculationModifiers, Owner);
+			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner);
 			ExecCDO->Execute(ExecutionParams, OutModifiers);
 
 			// Execute any mods the custom execution yielded
 			for (FGameplayModifierEvaluatedData& CurExecMod : OutModifiers)
 			{
-				InvokeGameplayCueExecute |= InternalExecuteMod(Spec, CurExecMod);
+				InvokeGameplayCueExecute |= InternalExecuteMod(SpecToUse, CurExecMod);
 			}
 		}
 	}
@@ -995,15 +1005,15 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	// ------------------------------------------------------
 	
 	// Prune the modified attributes before we replicate
-	Spec.PruneModifiedAttributes();
+	SpecToUse.PruneModifiedAttributes();
 
-	if (InvokeGameplayCueExecute && Spec.Def->GameplayCues.Num())
+	if (InvokeGameplayCueExecute && SpecToUse.Def->GameplayCues.Num())
 	{
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
 
-		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
+		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *SpecToUse.ToSimpleString());
 		Owner->ForceReplication();
-		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(Spec, PredictionKey);
+		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(SpecToUse, PredictionKey);
 	}
 }
 

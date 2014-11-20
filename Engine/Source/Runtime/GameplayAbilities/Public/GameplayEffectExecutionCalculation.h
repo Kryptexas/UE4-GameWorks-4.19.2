@@ -20,10 +20,13 @@ public:
 
 	// Constructors
 	FGameplayEffectCustomExecutionParameters();
-	FGameplayEffectCustomExecutionParameters(const FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent);
+	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent);
 
 	/** Simple accessor to owning gameplay spec */
 	const FGameplayEffectSpec& GetOwningSpec() const;
+
+	/** Simple non-const accessor to owning gameplay spec */
+	FGameplayEffectSpec& GetOwningSpec();
 
 	/** Simple accessor to target ability system component */
 	UAbilitySystemComponent* GetTargetAbilitySystemComponent() const;
@@ -96,7 +99,7 @@ private:
 	TMap<FGameplayEffectAttributeCaptureDefinition, FAggregator> ScopedModifierAggregators;
 
 	/** Owning gameplay effect spec */
-	const FGameplayEffectSpec* OwningSpec;
+	FGameplayEffectSpec* OwningSpec;
 
 	/** Target ability system component of the execution */
 	TWeakObjectPtr<UAbilitySystemComponent> TargetAbilitySystemComponent;
@@ -135,5 +138,5 @@ public:
 	 * @param OutAdditionalModifiers	[OUT] Additional modifiers the custom execution has generated and would like executed upon the target
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Calculation")
-	void Execute(const FGameplayEffectCustomExecutionParameters& ExecutionParams, TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const;
+	void Execute(FGameplayEffectCustomExecutionParameters& ExecutionParams, TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const;
 };
