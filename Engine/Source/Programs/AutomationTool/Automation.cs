@@ -283,6 +283,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Check for build machine override (force local)
 			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : IsBuildMachine;
 			Log.TraceInformation("IsBuildMachine={0}", IsBuildMachine);
+			Environment.SetEnvironmentVariable("IsBuildMachine", IsBuildMachine ? "1" : "0");
 
 			// should we kill processes on exit
 			ShouldKillProcesses = !GlobalCommandLine.NoKill;
