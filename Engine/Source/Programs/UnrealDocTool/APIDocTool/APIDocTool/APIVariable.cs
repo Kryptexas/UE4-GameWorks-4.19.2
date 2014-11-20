@@ -144,7 +144,7 @@ namespace APIDocTool
 
 		public override bool ShouldOutputPage()
 		{
-			return (MetadataDirective != null || BriefDescription != FullDescription || Type != AbbreviatedType);
+			return (BriefDescription != FullDescription || Type != AbbreviatedType);
 		}
 
 		public void WriteListItem(UdnWriter Writer)
