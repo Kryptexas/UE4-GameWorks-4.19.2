@@ -395,6 +395,10 @@ namespace DoxygenLib
 				{
 					Result.Append("&#33;");
 				}
+				else if(Text[Idx] == '*')
+				{
+					Result.Append("&#42;");
+				}
 				else
 				{
 					Result.Append(Text[Idx]);

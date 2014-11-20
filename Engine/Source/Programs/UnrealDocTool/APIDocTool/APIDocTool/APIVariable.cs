@@ -16,8 +16,9 @@ namespace APIDocTool
 		public readonly XmlNode Node;
 		public readonly APIProtection Protection;
 
-        public Boolean Mutable;
-        public String Bitfield = "";
+        public bool Mutable;
+        public string Bitfield = "";
+		public string ArgsString = "";
 
 		public string BriefDescription = "";
 		public string FullDescription = "";
@@ -72,7 +73,17 @@ namespace APIDocTool
 			XmlNode type = Node.SelectSingleNode("type");
 			Type = APIMember.RemoveElaborations(ConvertToMarkdown(type));
 
+			XmlNode ArgsStringNode = Node.SelectSingleNode("argsstring");
+			if(ArgsStringNode != null)
+			{
+				ArgsString = ConvertToMarkdown(ArgsStringNode);
+			}
+
 			IsolatedType = Type;
+			if(!String.IsNullOrEmpty(ArgsString))
+			{
+				IsolatedType += ArgsString;
+			}
 			if(!String.IsNullOrEmpty(Bitfield))
 			{
 				IsolatedType += ": " + Bitfield;
@@ -105,6 +116,7 @@ namespace APIDocTool
 			if (IsMutable) Definition.Append("mutable ");
 			Definition.Append(Type + " " + Name);
 			if (Bitfield != "") Definition.Append(": " + Bitfield);
+			if (ArgsString != "") Definition.Append(ArgsString);
 			Definition.Append("  ");
 			Lines.Add(Definition.ToString());
 
