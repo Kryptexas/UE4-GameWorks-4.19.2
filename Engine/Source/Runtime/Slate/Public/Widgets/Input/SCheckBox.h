@@ -7,7 +7,7 @@
 #include "SCheckBox.generated.h"
 
 /** Current state of the check box */
-UENUM()
+UENUM(BlueprintType)
 namespace ESlateCheckBoxState
 {
 	enum Type
