@@ -2505,13 +2505,11 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 {
 	check(IsInGameThread());
 
-	const UMaterial* Mat = GetMaterial();
-	check(Mat);
-
-	if ((FMath::Abs(GetOpacityMaskClipValue(true) - Mat->GetOpacityMaskClipValue(true)) > SMALL_NUMBER) ||
-		(GetBlendMode(true) != Mat->GetBlendMode(true)) ||
-		(GetShadingModel(true) != Mat->GetShadingModel(true)) ||
-		(IsTwoSided(true) != Mat->IsTwoSided(true))
+	if (Parent && (
+		(FMath::Abs(GetOpacityMaskClipValue(true) - Parent->GetOpacityMaskClipValue(true)) > SMALL_NUMBER) ||
+		(GetBlendMode(true) != Parent->GetBlendMode(true)) ||
+		(GetShadingModel(true) != Parent->GetShadingModel(true)) ||
+		(IsTwoSided(true) != Parent->IsTwoSided(true)))
 		)
 	{
 		return true;
