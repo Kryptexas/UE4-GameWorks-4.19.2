@@ -48,6 +48,7 @@ void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualiza
 		check(MyRoot);
 
 		TargetingActor = InTargetingActor;
+		AddTickPrerequisiteActor(TargetingActor);		//We want the reticle to tick after the targeting actor so that designers have the final say on the position
 
 		for (UMeshComponent* MeshComp : MeshComps)
 		{
