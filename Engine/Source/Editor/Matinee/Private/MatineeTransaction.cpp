@@ -26,7 +26,9 @@ void FMatineeTransaction::SaveObject( UObject* Object )
 		Object->IsA( UInterpGroupInst::StaticClass() ) ||
 		Object->IsA( UInterpTrackInst::StaticClass() ) ||
 		Object->IsA( UMatineeOptions::StaticClass() ) ||
-		Object->IsA( UK2Node_MatineeController::StaticClass() ) )
+		Object->IsA( UK2Node_MatineeController::StaticClass() ) || 
+		// or bIsMatineeControllerPin...
+		(Object->IsA<UEdGraphPin>() && Object->GetOuter()->IsA<UK2Node_MatineeController>()) )
 	{
 		// Save the object.
 		new( Records )FObjectRecord( this, Object, NULL, 0, 0, 0, 0, NULL, NULL, NULL );

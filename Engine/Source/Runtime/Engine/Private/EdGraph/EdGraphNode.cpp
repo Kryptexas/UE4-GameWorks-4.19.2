@@ -104,9 +104,10 @@ UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName) const
 void UEdGraphNode::DiscardPin(UEdGraphPin* Pin)
 {
 	check( Pin );
-
+	
 	Modify();
 	Pins.Remove( Pin );
+	Pin->BreakAllPinLinks();
 }
 
 void UEdGraphNode::BreakAllNodeLinks()
