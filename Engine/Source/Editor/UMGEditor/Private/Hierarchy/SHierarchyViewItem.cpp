@@ -692,6 +692,12 @@ bool FHierarchyWidget::OnVerifyNameTextChanged(const FText& InText, FText& OutEr
 {
 	FString NewName = InText.ToString();
 
+	if (NewName.IsEmpty())
+	{
+		OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
+		return false;
+	}
+
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
 
@@ -870,7 +876,7 @@ bool SHierarchyViewItem::OnVerifyNameTextChanged(const FText& InText, FText& Out
 
 void SHierarchyViewItem::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
-	return Model->OnNameTextCommited(InText, CommitInfo);
+	Model->OnNameTextCommited(InText, CommitInfo);
 }
 
 FSlateFontInfo SHierarchyViewItem::GetItemFont() const

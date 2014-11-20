@@ -360,9 +360,15 @@ bool SWidgetDetailsView::HandleVerifyNameTextChanged(const FText& InText, FText&
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
-		UWidget* PreviewWidget = Cast<UWidget>(SelectedObjects[0].Get());
-
 		FString NewName = InText.ToString();
+
+		if (NewName.IsEmpty())
+		{
+			OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
+			return false;
+		}
+
+		UWidget* PreviewWidget = Cast<UWidget>(SelectedObjects[0].Get());
 
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
@@ -416,6 +422,11 @@ void SWidgetDetailsView::HandleNameTextCommitted(const FText& Text, ETextCommit:
 			}
 		}
 		IsReentrant = false;
+
+		if (CommitType == ETextCommit::OnUserMovedFocus || CommitType == ETextCommit::OnCleared)
+		{
+			NameTextBox->SetError(FText::GetEmpty());
+		}
 	}
 }
 
