@@ -48,7 +48,6 @@ public:
 
 		SLATE_ATTRIBUTE( EMenuPlacement, Placement )
 
-		DEPRECATED(4.7, "Popup method now determined automatically; prefer not setting it. Use EPopupMethod when setting explicitly.")
 		SLATE_ARGUMENT(TOptional<EPopupMethod>, Method)
 
 	SLATE_END_ARGS()

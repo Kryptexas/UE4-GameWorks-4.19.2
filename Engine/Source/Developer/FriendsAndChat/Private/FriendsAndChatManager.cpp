@@ -297,7 +297,7 @@ void FFriendsAndChatManager::BuildFriendsUI()
 				[
 					SNew(SFriendsContainer, FFriendsViewModelFactory::Create(SharedThis(this)))
 					.FriendStyle( &Style )
-					.Method(SMenuAnchor::CreateNewWindow)
+					.Method(EPopupMethod::CreateNewWindow)
 				]
 			]
 			+SOverlay::Slot()
@@ -321,7 +321,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 		[
 			 SNew(SFriendsContainer, FFriendsViewModelFactory::Create(SharedThis(this)))
 			.FriendStyle( &Style )
-			.Method(SMenuAnchor::UseCurrentWindow)
+			.Method(EPopupMethod::UseCurrentWindow)
 		]
 		+SOverlay::Slot()
 		.HAlign(HAlign_Fill)
@@ -347,7 +347,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 	Style = *InStyle;
 	SAssignNew(ChatWidget, SChatWindow, ChatViewModel.ToSharedRef())
 	.FriendStyle( &Style )
-	.Method(SMenuAnchor::UseCurrentWindow)
+	.Method(EPopupMethod::UseCurrentWindow)
 	.bInGameUI(bInGameUI);
 	return ChatWidget;
 }

@@ -171,7 +171,7 @@ private:
 	FFriendsAndChatStyle FriendStyle;
 
 	// Holds the menu method - Full screen requires use owning window or crashes.
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 };
 
 TSharedRef<SChatItem> SChatItem::New()

@@ -9,7 +9,7 @@ public:
 	SLATE_USER_ARGS(SFriendsList)
 	{ }
 	SLATE_ARGUMENT(const FFriendsAndChatStyle*, FriendStyle)
-	SLATE_ARGUMENT( SMenuAnchor::EMethod, Method )
+	SLATE_ARGUMENT(EPopupMethod, Method)
 	SLATE_END_ARGS()
 
 	/**

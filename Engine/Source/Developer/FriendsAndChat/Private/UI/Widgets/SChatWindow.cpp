@@ -78,7 +78,7 @@ public:
 					[
 						SAssignNew(ActionMenu, SMenuAnchor)
 						.Placement(EMenuPlacement::MenuPlacement_AboveAnchor)
-						.Method(SMenuAnchor::UseCurrentWindow)
+						.Method(EPopupMethod::UseCurrentWindow)
 						.OnGetMenuContent(this, &SChatWindowImpl::GetMenuContent)
 						[
 							SNew(SButton)
@@ -140,7 +140,7 @@ public:
 									[
 										SAssignNew(ChatItemActionMenu, SMenuAnchor)
 										.Placement(EMenuPlacement::MenuPlacement_AboveAnchor)
-										.Method(SMenuAnchor::UseCurrentWindow)
+										.Method(EPopupMethod::UseCurrentWindow)
 										.OnGetMenuContent(this, &SChatWindowImpl::GetFriendActionMenu)
 										[
 											SNew(SImage)
@@ -651,7 +651,7 @@ private:
 	FFriendsAndChatStyle FriendStyle;
 
 	// Holds the menu method - Full screen requires use owning window or crashes.
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 
 	// Holds the time transparency.
 	float TimeTransparency;

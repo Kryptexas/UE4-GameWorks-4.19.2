@@ -39,7 +39,7 @@ void SLevelViewportControlsPopup::Construct(const FArguments& InArgs)
 		ChildSlot
 		[
 			SAssignNew(MenuAnchor, SMenuAnchor)
-			.Method(SMenuAnchor::UseCurrentWindow)
+			.Method(EPopupMethod::UseCurrentWindow)
 			.Placement(MenuPlacement_AboveAnchor)
 			.OnGetMenuContent(this, &SLevelViewportControlsPopup::OnGetMenuContent)
 			[

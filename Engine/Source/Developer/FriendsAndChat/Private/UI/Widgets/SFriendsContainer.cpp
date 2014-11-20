@@ -194,7 +194,7 @@ private:
 	TSharedPtr<FFriendsViewModel> ViewModel;
 
 	// Holds the menu method - Full screen requires use owning window or crashes.
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 
 	/** Holds the list of friends. */
 	TArray< TSharedPtr< IFriendItem > > FriendsList;

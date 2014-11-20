@@ -23,7 +23,6 @@ void UMenuAnchor::ReleaseSlateResources(bool bReleaseChildren)
 TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 {
 	MyMenuAnchor = SNew(SMenuAnchor)
-		.Method(SMenuAnchor::UseCurrentWindow)
 		.Placement(Placement)
 		.OnGetMenuContent(BIND_UOBJECT_DELEGATE(FOnGetContent, HandleGetMenuContent));
 

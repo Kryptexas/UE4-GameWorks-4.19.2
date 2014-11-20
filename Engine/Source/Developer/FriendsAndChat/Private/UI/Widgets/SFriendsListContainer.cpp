@@ -154,7 +154,7 @@ private:
 
 	TSharedPtr<FFriendListViewModel> ViewModel;
 
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 };
 
 TSharedRef<SFriendsListContainer> SFriendsListContainer::New()

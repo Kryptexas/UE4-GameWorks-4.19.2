@@ -53,7 +53,7 @@ private:
 	FFriendsAndChatStyle FriendStyle;
 	TSharedPtr<FFriendListViewModel> ViewModel;
 	TSharedPtr<SVerticalBox> FriendsContents;
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 };
 
 TSharedRef<SFriendsList> SFriendsList::New()
