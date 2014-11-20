@@ -24,7 +24,7 @@ public:
 		, _MenuPlacement(MenuPlacement_ComboBox)
 		, _HAlign(HAlign_Fill)
 		, _VAlign(VAlign_Center)
-		, _Method( SMenuAnchor::CreateNewWindow )
+		, _Method()
 		{}
 
 		SLATE_STYLE_ARGUMENT( FComboButtonStyle, ComboButtonStyle )
@@ -52,7 +52,7 @@ public:
 		SLATE_ARGUMENT( EVerticalAlignment, VAlign )
 
 		/** Spawn a new window or reuse current window for this combo*/
-		SLATE_ARGUMENT( SMenuAnchor::EMethod, Method )
+		SLATE_ARGUMENT( TOptional<EPopupMethod>, Method )
 	SLATE_END_ARGS()
 	
 	/**

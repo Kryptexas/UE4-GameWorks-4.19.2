@@ -50,6 +50,8 @@ public:
 	 */
 	void Construct( const FArguments& InArgs )
 	{
+		PopupMethod = EPopupMethod::CreateNewWindow;
+
 		// example of tab activation registration
 		{
 			IsActiveTabVisibility = EVisibility::Visible;
@@ -257,38 +259,44 @@ public:
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[
-							SNew(SFxWidget).IgnoreClipping(false)
-							[
 							SNew(SVerticalBox)
 
 							+ SVerticalBox::Slot()
-								.AutoHeight()
+							[
+								SNew(SCheckBox)
+								.IsChecked(this, &SWidgetGallery::IsCreateNewWindowChecked)
+								.OnCheckStateChanged( this, &SWidgetGallery::CreateNewWindowToggled )
 								[
-									// selector combo box
-									SAssignNew(SelectorComboBox, SComboBox<TSharedPtr<FString> >)
-										.Method(SMenuAnchor::UseCurrentWindow)
-										.OptionsSource(&SelectorComboBoxOptions)
-										.OnSelectionChanged(this, &SWidgetGallery::HandleSelectorComboBoxSelectionChanged)
-										.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
-										[
-											SNew(STextBlock)
-												.Text(this, &SWidgetGallery::HandleSelectorComboBoxText)
-										]
+									SNew(STextBlock).Text(LOCTEXT("CreateNewWindowCheckbox", "Create new window for popups."))
 								]
+							]
 
 							+ SVerticalBox::Slot()
-								.AutoHeight()
-								[
-									// second combo box
-									SAssignNew(SecondComboBox, SComboBox<TSharedPtr<FString> >)
-										.OptionsSource(&SecondComboBoxOptions)
-										.OnSelectionChanged(this, &SWidgetGallery::HandleSecondComboBoxSelectionChanged)
-										.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
-										[
-											SNew(STextBlock)
-												.Text(this, &SWidgetGallery::HandleSecondComboBoxText)
-										]
-								]
+							.AutoHeight()
+							[
+								// selector combo box
+								SAssignNew(SelectorComboBox, SComboBox<TSharedPtr<FString> >)
+									.OptionsSource(&SelectorComboBoxOptions)
+									.OnSelectionChanged(this, &SWidgetGallery::HandleSelectorComboBoxSelectionChanged)
+									.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
+									[
+										SNew(STextBlock)
+											.Text(this, &SWidgetGallery::HandleSelectorComboBoxText)
+									]
+							]
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								// second combo box
+								SAssignNew(SecondComboBox, SComboBox<TSharedPtr<FString> >)
+									.OptionsSource(&SecondComboBoxOptions)
+									.OnSelectionChanged(this, &SWidgetGallery::HandleSecondComboBoxSelectionChanged)
+									.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
+									[
+										SNew(STextBlock)
+											.Text(this, &SWidgetGallery::HandleSecondComboBoxText)
+									]
 							]
 						]
 
@@ -306,7 +314,6 @@ public:
 							SNew(SFxWidget).IgnoreClipping(false)
 							[
 								SNew(SComboButton)
-								.Method(SMenuAnchor::UseCurrentWindow)
 								.ButtonContent()
 								[
 									SNew(STextBlock)
@@ -934,6 +941,21 @@ protected:
 
 private:
 
+	EPopupMethod PopupMethod;
+
+	ESlateCheckBoxState::Type IsCreateNewWindowChecked() const
+	{
+		return this->PopupMethod == EPopupMethod::CreateNewWindow ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void CreateNewWindowToggled(ESlateCheckBoxState::Type NewState)
+	{
+		this->PopupMethod = (PopupMethod == EPopupMethod::CreateNewWindow)
+			? EPopupMethod::UseCurrentWindow
+			: EPopupMethod::CreateNewWindow;
+	}
+
+
 	// Callback for clicking the Add button in the SBreadcrumbTrail example.
 	FReply HandleBreadcrumbTrailAddButtonClicked( )
 	{
@@ -1072,6 +1094,11 @@ private:
 	void HandleTextComboPopupTextChosen( const FString& ChosenText )
 	{
 		FSlateApplication::Get().DismissAllMenus();
+	}
+
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override
+	{
+		return PopupMethod;
 	}
 
 private:

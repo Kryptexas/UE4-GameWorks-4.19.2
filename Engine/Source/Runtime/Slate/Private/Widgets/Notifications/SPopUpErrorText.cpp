@@ -7,7 +7,6 @@ void SPopupErrorText::Construct( const FArguments& InArgs )
 {
 	SComboButton::Construct( SComboButton::FArguments()
 		.ComboButtonStyle( FCoreStyle::Get(), "MessageLogListingComboButton" )
-		.Method( InArgs._ShowInNewWindow ? SMenuAnchor::CreateNewWindow : SMenuAnchor::UseCurrentWindow )
 		.HasDownArrow(false)
 		.ContentPadding(0)
 		.ButtonContent()

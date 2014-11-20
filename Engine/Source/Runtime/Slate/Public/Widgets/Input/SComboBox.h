@@ -85,7 +85,7 @@ public:
 		, _OnSelectionChanged()
 		, _OnGenerateWidget()
 		, _InitiallySelectedItem( nullptr)
-		, _Method( SMenuAnchor::CreateNewWindow )
+		, _Method()
 		, _MaxListHeight(450.0f)
 		, _HasDownArrow( true )
 		{}
@@ -111,7 +111,7 @@ public:
 		/** The option that should be selected when the combo box is first created */
 		SLATE_ARGUMENT( OptionType, InitiallySelectedItem )
 
-		SLATE_ARGUMENT( SMenuAnchor::EMethod, Method )
+		SLATE_ARGUMENT( TOptional<EPopupMethod>, Method )
 
 		/** The max height of the combo box menu */
 		SLATE_ARGUMENT(float, MaxListHeight)

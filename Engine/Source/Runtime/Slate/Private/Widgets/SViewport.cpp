@@ -287,6 +287,11 @@ FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEv
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMotionDetected(MyGeometry, InMotionEvent) : FReply::Unhandled();
 }
 
+TOptional<EPopupMethod> SViewport::OnQueryPopupMethod() const
+{
+	return EPopupMethod::UseCurrentWindow;
+}
+
 void SViewport::OnFinishedPointerInput()
 {
 	TSharedPtr<ISlateViewport> PinnedInterface = ViewportInterface.Pin();

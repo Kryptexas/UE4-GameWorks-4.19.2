@@ -285,6 +285,16 @@ FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEven
 	return FReply::Unhandled();
 }
 
+TOptional<EPopupMethod> SWidget::OnQueryPopupMethod() const
+{
+	return TOptional<EPopupMethod>();
+}
+
+TSharedPtr<struct FVirtualPointerPosition> SWidget::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
+{
+	return nullptr;
+}
+
 
 void SWidget::OnFinishedPointerInput()
 {

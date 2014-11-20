@@ -32,9 +32,9 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 	SPanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	TSharedPtr<SWindow> PopupWindow = PopupWindowPtr.Pin();
-	if ( PopupWindow.IsValid() && Method == CreateNewWindow )
+	if ( IsOpenViaCreatedWindow() )
 	{
-		// Figure out where our attached pop-up window should be placed.				
+		// Figure out where our attached pop-up window should be placed.
 		const FVector2D PopupContentDesiredSize = PopupWindow->GetContent()->GetDesiredSize();
 		FGeometry PopupGeometry = ComputeMenuPlacement( AllottedGeometry, PopupContentDesiredSize, Placement.Get( ) );
 		const FVector2D NewPosition = PopupGeometry.AbsolutePosition;
@@ -190,7 +190,7 @@ FGeometry SMenuAnchor::ComputeMenuPlacement( const FGeometry& AllottedGeometry, 
 void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindow )
 {
 	bDismissedThisTick = true;
-	if (ensure(Method == CreateNewWindow))
+	if (ensure(IsOpenViaCreatedWindow()))
 	{
 		FSlateApplication::Get().RequestDestroyWindow(PopupWindow);
 		
@@ -204,11 +204,18 @@ void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindo
 void SMenuAnchor::OnClickedOutsidePopup()
 {
 	bDismissedThisTick = true;
-	if (ensure(Method == UseCurrentWindow))
-	{
-		FSlateApplication::Get().GetPopupSupport().UnregisterClickNotification( FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
-		SetIsOpen(false);	
-	}
+	FSlateApplication::Get().GetPopupSupport().UnregisterClickNotification( FOnClickedOutside::CreateSP(this, &SMenuAnchor::OnClickedOutsidePopup) );
+	SetIsOpen(false);	
+}
+
+bool SMenuAnchor::IsOpenAndReusingWindow() const
+{
+	return Children[1].GetWidget() != SNullWidget::NullWidget;
+}
+
+bool SMenuAnchor::IsOpenViaCreatedWindow() const
+{
+	return PopupWindowPtr.Pin().IsValid() && Children[1].GetWidget() == SNullWidget::NullWidget;
 }
 
 void SMenuAnchor::SetContent(TSharedRef<SWidget> InContent)
@@ -224,6 +231,21 @@ void SMenuAnchor::SetMenuContent(TSharedRef<SWidget> InMenuContent)
 {
 	MenuContent = InMenuContent;
 }
+
+EPopupMethod QueryPopupMethod(const FWidgetPath& PathToQuery)
+{
+	for (int32 WidgetIndex = PathToQuery.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
+	{
+		TOptional<EPopupMethod> PopupMethod = PathToQuery.Widgets[WidgetIndex].Widget->OnQueryPopupMethod();
+		if (PopupMethod.IsSet())
+		{
+			return PopupMethod.GetValue();
+		}
+	}
+
+	return EPopupMethod::CreateNewWindow;
+}
+
 
 /**
  * Open or close the popup
@@ -291,7 +313,11 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 						TransitionEffect = FPopupTransitionEffect( FPopupTransitionEffect::SubMenu );
 					}
 
-					if ( Method == CreateNewWindow )
+					const EPopupMethod PopupMethod = Method.IsSet()
+						? Method.GetValue()
+						: QueryPopupMethod(MyWidgetPath);
+
+					if (PopupMethod == EPopupMethod::CreateNewWindow)
 					{
 						// Open the pop-up
 						TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu( AsShared(), MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, false, NewWindowSize, SummonLocationSize );
@@ -302,11 +328,11 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 					{
 						// We are re-using the current window instead of creating a new one.
 						// The popup will be presented via an overlay service.
-						ensure( Method == UseCurrentWindow );
+						ensure(PopupMethod == EPopupMethod::UseCurrentWindow);
 						Children[1]
-							[
-								MenuContentRef
-							];
+						[
+							MenuContentRef
+						];
 
 						// We want to support dismissing the popup widget when the user clicks outside it.
 						FSlateApplication::Get().GetPopupSupport().RegisterClickNotification( MenuContentRef, FOnClickedOutside::CreateSP( this, &SMenuAnchor::OnClickedOutsidePopup ) );
@@ -323,21 +349,21 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 		{
 			// CLOSE POPUP
 
-			if (Method == CreateNewWindow)
+			if (IsOpenAndReusingWindow())
 			{
-				// Close the Popup window.
+				// Window reuse case; remove child widget.
+				Children[1].DetachWidget();
+			}
+			else
+			{
+				// New window case
+				ensure(IsOpenViaCreatedWindow());
 				TSharedPtr<SWindow> PopupWindow = PopupWindowPtr.Pin();
-				if ( PopupWindow.IsValid() )
+				if (PopupWindow.IsValid())
 				{
 					// Request that the popup be closed.
 					PopupWindow->RequestDestroyWindow();
 				}
-			}
-			else
-			{
-				// Close the popup overlay
-				ensure(Method==UseCurrentWindow);
-				Children[1].DetachWidget();
 			}
 
 			if (OnMenuOpenChanged.IsBound())
@@ -350,7 +376,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 bool SMenuAnchor::IsOpen() const
 {
-	return PopupWindowPtr.Pin().IsValid() || Children[1].GetWidget() != SNullWidget::NullWidget;
+	return PopupWindowPtr.Pin().IsValid() || IsOpenAndReusingWindow();
 }
 
 bool SMenuAnchor::ShouldOpenDueToClick() const
@@ -392,7 +418,7 @@ SMenuAnchor::~SMenuAnchor()
 	if (PopupWindow.IsValid())
 	{
 		// Close the Popup window.
-		if (Method == CreateNewWindow)
+		if (IsOpenViaCreatedWindow())
 		{
 			// Request that the popup be closed.
 			PopupWindow->RequestDestroyWindow();

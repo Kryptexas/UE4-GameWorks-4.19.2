@@ -6,6 +6,17 @@
 /** Notification when popup is opened/closed. */
 DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
 
+
+enum class EPopupMethod : uint8
+{
+	/** Creating a new window allows us to place popups outside of the window in which the menu anchor resides. */
+	CreateNewWindow,
+	/** Place the popup into the current window. Applications that intend to run in fullscreen cannot create new windows, so they must use this method.. */
+	UseCurrentWindow
+};
+
+;
+
 /**
  * A PopupAnchor summons a Popup relative to its content.
  * Summoning a popup relative to the cursor is accomplished via the application.
@@ -13,13 +24,10 @@ DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
 class SLATE_API SMenuAnchor : public SPanel
 {
 public:
-	enum EMethod
-	{
-		/** Creating a new window allows us to place popups outside of the window in which the menu anchor resides. */
-		CreateNewWindow,
-		/** Applications that intend to run in fullscreen cannot create new windows. */
-		UseCurrentWindow
-	};
+	DEPRECATED(4.7, "You probably do not need this setting any more. See OnQueryPopupMethod() in SWidget.h.")
+	typedef ::EPopupMethod EMethod;
+	static const EPopupMethod CreateNewWindow = EPopupMethod::CreateNewWindow;
+	static const EPopupMethod UseCurrentWindow = EPopupMethod::UseCurrentWindow;
 	
 public:
 	SLATE_BEGIN_ARGS( SMenuAnchor )
@@ -27,7 +35,7 @@ public:
 		, _MenuContent( SNew(STextBlock) .Text( NSLOCTEXT("SMenuAnchor", "NoMenuContent", "No Menu Content Assigned; use .MenuContent") ) )
 		, _OnGetMenuContent()
 		, _Placement( MenuPlacement_BelowAnchor )
-		, _Method( CreateNewWindow )
+		, _Method()
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -40,7 +48,8 @@ public:
 
 		SLATE_ATTRIBUTE( EMenuPlacement, Placement )
 
-		SLATE_ARGUMENT( EMethod, Method )
+		DEPRECATED(4.7, "Popup method now determined automatically; prefer not setting it. Use EPopupMethod when setting explicitly.")
+		SLATE_ARGUMENT(TOptional<EPopupMethod>, Method)
 
 	SLATE_END_ARGS()
 
@@ -108,6 +117,12 @@ protected:
 	/** Invoked when a click occurred outside the widget that is our popup; used for popup auto-dismissal */
 	void OnClickedOutsidePopup();
 
+	/** @return true if the popup is currently open and reusing an existing window */
+	bool IsOpenAndReusingWindow() const;
+
+	/** @return true if the popup is currently open and we created a dedicated window for it */
+	bool IsOpenViaCreatedWindow() const;
+
 protected:
 	/** A pointer to the window presenting this popup. Pointer is null when the popup is not visible */
 	TWeakPtr<SWindow> PopupWindowPtr;
@@ -128,7 +143,7 @@ protected:
 	bool bDismissedThisTick;
 
 	/** Should we summon a new window for this popup or  */
-	EMethod Method;
+	TOptional<EPopupMethod> Method;
 
 	TPanelChildren<FSimpleSlot> Children;
 };
