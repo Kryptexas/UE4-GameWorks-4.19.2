@@ -408,7 +408,7 @@ bool SMenuAnchor::HasOpenSubMenus() const
 SMenuAnchor::SMenuAnchor()
 	: MenuContent( SNullWidget::NullWidget )
 	, bDismissedThisTick( false )
-	, Method(CreateNewWindow)
+	, Method(EPopupMethod::CreateNewWindow)
 {
 }
 
