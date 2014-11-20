@@ -1124,7 +1124,7 @@ struct FLightmassPrimitiveSettings
 	{
 		bUseTwoSidedLighting = false;
 		bShadowIndirectOnly = false;
-		bUseEmissiveForStaticLighting = true;
+		bUseEmissiveForStaticLighting = false;
 		EmissiveLightFalloffExponent = 8.0f;
 		EmissiveLightExplicitInfluenceRadius = 0.0f;
 		EmissiveBoost = 1.0f;
