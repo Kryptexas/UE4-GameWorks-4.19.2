@@ -552,7 +552,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 			// Apply transmission
 			PathAlpha *= PathIntersection.Transmission;
 
-			if (PathAlpha.R < DELTA && PathAlpha.G < DELTA && PathAlpha.B < DELTA
+			if ((PathAlpha.R < DELTA && PathAlpha.G < DELTA && PathAlpha.B < DELTA)
 				// Ray can hit translucent meshes if they have bCastShadowAsMasked, but we don't have diffuse for translucency, so just terminate
 				|| PathIntersection.Mesh->IsTranslucent(PathIntersection.ElementIndex))
 			{
@@ -979,8 +979,8 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 						// Only allow creating an irradiance photon if one or more indirect bounces are required
 						// The final gather is the first bounce when enabled
 						bShouldCreateIrradiancePhoton = 
-							PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1
-							|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0;
+							(PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1)
+							|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0);
 					}
 					else
 					{
@@ -989,8 +989,8 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 						// Only allow creating an irradiance photon if two or more indirect bounces are required
 						// The final gather is the first bounce when enabled
 						bShouldCreateIrradiancePhoton = 
-							PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 2
-							|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1;
+							(PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 2)
+							|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1);
 					}
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -1225,7 +1225,7 @@ void FStaticLightingSystem::MarkIrradiancePhotonsWorkRange(
 		FIrradiancePhoton& CurrentIrradiancePhoton = CurrentArray[PhotonIndex];
 
 		// Only add direct contribution if we are final gathering and at least one bounce is required,
-		if (PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0
+		if ((PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0)
 			// Or if photon mapping is being used for direct lighting.
 			|| PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting)
 		{
@@ -1406,7 +1406,7 @@ void FStaticLightingSystem::CalculateIrradiancePhotonsWorkRange(
 
 		FLinearColor AccumulatedIrradiance(FLinearColor::Black);
 		// Only add direct contribution if we are final gathering and at least one bounce is required,
-		if ((PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0
+		if (((PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0)
 			// Or if photon mapping is being used for direct lighting.
 			|| PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting)
 			&& PhotonMappingSettings.bUsePhotonDirectLightingInFinalGather)
@@ -1425,17 +1425,17 @@ void FStaticLightingSystem::CalculateIrradiancePhotonsWorkRange(
 
 			// Only add direct contribution if it should be viewed given ViewSingleBounceNumber
 			if (GeneralSettings.ViewSingleBounceNumber < 0
-				|| PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 1
-				|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 0
-				|| PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting && GeneralSettings.ViewSingleBounceNumber == 0)
+				|| (PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 1)
+				|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 0)
+				|| (PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting && GeneralSettings.ViewSingleBounceNumber == 0))
 			{
 				AccumulatedIrradiance = DirectPhotonIrradiance;
 			}
 		}
 
 		// If we are final gathering, first bounce photons are actually the second lighting bounce since the final gather is the first bounce
-		if (PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1
-			|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0)
+		if ((PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1)
+			|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 0))
 		{
 			const FLinearColor FirstBouncePhotonIrradiance = CalculatePhotonIrradiance(
 				FirstBouncePhotonMap, 
@@ -1451,15 +1451,15 @@ void FStaticLightingSystem::CalculateIrradiancePhotonsWorkRange(
 
 			// Only add first bounce contribution if it should be viewed given ViewSingleBounceNumber
 			if (GeneralSettings.ViewSingleBounceNumber < 0 
-				|| PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 2
-				|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 1)
+				|| (PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 2)
+				|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 1))
 			{
 				AccumulatedIrradiance += FirstBouncePhotonIrradiance;
 			}
 
 			// If we are final gathering, second bounce photons are actually the third lighting bounce since the final gather is the first bounce
-			if (PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 2
-				|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1)
+			if ((PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 2)
+				|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.NumIndirectLightingBounces > 1))
 			{
 				const FLinearColor SecondBouncePhotonIrradiance = CalculatePhotonIrradiance(
 					SecondBouncePhotonMap, 
@@ -1475,8 +1475,8 @@ void FStaticLightingSystem::CalculateIrradiancePhotonsWorkRange(
 
 				// Only add second and up bounce contribution if it should be viewed given ViewSingleBounceNumber
 				if (GeneralSettings.ViewSingleBounceNumber < 0 
-					|| PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 3
-					|| !PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 2)
+					|| (PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 3)
+					|| (!PhotonMappingSettings.bUseFinalGathering && GeneralSettings.ViewSingleBounceNumber == 2))
 				{
 					AccumulatedIrradiance += SecondBouncePhotonIrradiance;
 				}
@@ -2038,8 +2038,8 @@ FIrradiancePhoton* FStaticLightingSystem::FindNearestIrradiancePhoton(
 				// Only searching for irradiance photons with normals similar to the search normal
 				if (CosTheta > PhotonMappingSettings.PhotonSearchAngleThreshold
 					// And closer to the search position than the max search distance.
-					&& (CurrentPhoton.HasDirectContribution() && (DistanceSquared < FMath::Square(PhotonMappingSettings.DirectPhotonSearchDistance))
-					|| !CurrentPhoton.HasDirectContribution() && (DistanceSquared < FMath::Square(PhotonMappingSettings.IndirectPhotonSearchDistance))))
+					&& ((CurrentPhoton.HasDirectContribution() && (DistanceSquared < FMath::Square(PhotonMappingSettings.DirectPhotonSearchDistance)))
+					|| (!CurrentPhoton.HasDirectContribution() && (DistanceSquared < FMath::Square(PhotonMappingSettings.IndirectPhotonSearchDistance)))))
 				{
 					// Only accept irradiance photons within an angle of the plane defined by the vertex normal
 					// This avoids expensive visibility traces to photons that are probably not on the same surface

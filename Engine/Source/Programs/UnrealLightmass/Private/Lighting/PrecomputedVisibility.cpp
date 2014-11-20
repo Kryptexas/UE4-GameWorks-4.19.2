@@ -228,7 +228,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 
 					// Only place cells on opaque surfaces if requested, which can save some memory for foliage maps
 					if (!PrecomputedVisibilitySettings.bPlaceCellsOnOpaqueOnly 
-						|| !CurrentMesh->IsMasked(ElementIndex) && !CurrentMesh->IsTranslucent(ElementIndex))
+						|| (!CurrentMesh->IsMasked(ElementIndex) && !CurrentMesh->IsTranslucent(ElementIndex)))
 					{
 						FVector2D XYPositions[3];
 						for (int32 VertIndex = 0; VertIndex < 3; VertIndex++)
@@ -313,9 +313,9 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 					// Place a new cell if this is the highest height
 					if (HeightIndex + 1 == Cell.HitTriangles.Num()
 						// Or if there's a gap above this height of size PlayAreaHeight
-						|| (Cell.HitTriangles[HeightIndex + 1].HeightRange.Y - CurrentMaxHeight) > PrecomputedVisibilitySettings.PlayAreaHeight
+						|| ((Cell.HitTriangles[HeightIndex + 1].HeightRange.Y - CurrentMaxHeight) > PrecomputedVisibilitySettings.PlayAreaHeight
 						// And this height is not within a cell that was just placed
-						&& CurrentMaxHeight - LastSampleHeight > PrecomputedVisibilitySettings.PlayAreaHeight)
+						&& CurrentMaxHeight - LastSampleHeight > PrecomputedVisibilitySettings.PlayAreaHeight))
 					{
 						FPrecomputedVisibilityCell NewCell;
 						NewCell.Bounds = FBox(

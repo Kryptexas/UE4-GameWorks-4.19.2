@@ -779,7 +779,7 @@ public:
 
 						// Refine if the importance cone threshold is exceeded or there was a big enough brightness difference
 						if (MaxRelativeDifference > BrightnessThreshold 
-							|| bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold
+							|| (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold)
 							|| bSuperSampleDueToImportanceCones)
 						{
 							FSimpleQuadTreeNode<FRefinementElement>* Node = &Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode;
@@ -876,7 +876,7 @@ public:
 
 							// Refine if the importance cone threshold is exceeded or there was a big enough brightness difference
 							if (MaxRelativeDifference > BrightnessThreshold 
-								|| bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold
+								|| (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold)
 								|| bSuperSampleDueToImportanceCones)
 							{
 								NextNodesToRefine->Add(FRefinementTraversalContext(
