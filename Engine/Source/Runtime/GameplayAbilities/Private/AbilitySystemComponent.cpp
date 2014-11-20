@@ -580,6 +580,16 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		ABILITY_LOG(Warning, TEXT("%s is periodic but also applies GameplayEffects to its target. GameplayEffects will only be applied once, not every period."), *Spec.Def->GetPathName());
 	}
+
+	// ------------------------------------------------------
+	//	Remove gameplay effects with tags
+	//		Remove any active gameplay effects that match the RemoveGameplayEffectsWithTags in the definition for this spec
+	// ------------------------------------------------------
+	if (IsOwnerActorAuthoritative())
+	{
+		ActiveGameplayEffects.RemoveActiveEffects(FActiveGameplayEffectQuery(&Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags));
+	}
+
 	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?
 	for (const FGameplayEffectSpecHandle TargetSpec: Spec.TargetEffectSpecs)
 	{

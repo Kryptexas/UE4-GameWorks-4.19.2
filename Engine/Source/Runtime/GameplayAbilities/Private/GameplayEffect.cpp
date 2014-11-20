@@ -991,15 +991,8 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	}
 
 	// ------------------------------------------------------
-	//	Remove gameplay effects with tags
-	//		Remove any active gameplay effects that match the RemoveGameplayEffectsWithTags in the definition for this spec
-	// ------------------------------------------------------
-	RemoveActiveEffects(FActiveGameplayEffectQuery(&Spec.Def->RemoveGameplayEffectsWithTags.CombinedTags));
-
-	// ------------------------------------------------------
 	//	Invoke GameplayCue events
 	// ------------------------------------------------------
-
 	
 	// Prune the modified attributes before we replicate
 	Spec.PruneModifiedAttributes();

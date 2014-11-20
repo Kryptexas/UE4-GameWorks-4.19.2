@@ -500,7 +500,7 @@ public:
 	FScalableFloat	ChanceToExecuteOnGameplayEffect;
 
 	/** other gameplay effects that will be applied to the target of this effect if this effect applies */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "LinkedGameplayEffects"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "Linked Gameplay Effects"))
 	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses;
 
 	/** Deprecated. Use TargetEffectClasses instead */
