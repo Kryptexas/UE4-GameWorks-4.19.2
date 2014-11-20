@@ -106,6 +106,9 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("ASTC_8x8"),			8,			8,			1,			16,			4,				0,				0,				PF_ASTC_8x8			},
 	{ TEXT("ASTC_10x10"),		10,			10,			1,			16,			4,				0,				0,				PF_ASTC_10x10		},
 	{ TEXT("ASTC_12x12"),		12,			12,			1,			16,			4,				0,				0,				PF_ASTC_12x12		},
+
+	{ TEXT("BC6H"),				4,			4,			1,			16,			3,				0,				1,				PF_BC6H				},
+	{ TEXT("BC7"),				4,			4,			1,			16,			4,				0,				1,				PF_BC7				},
 };
 
 static struct FValidatePixelFormats

@@ -22,6 +22,8 @@ enum TextureCompressionSettings
 	TC_EditorIcon UMETA(DisplayName="TC_UserInterface2D"),
 	TC_Alpha,
 	TC_DistanceFieldFont,
+	TC_HDR_Compressed,
+	TC_BC7,
 	TC_MAX,
 };
 

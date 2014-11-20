@@ -20,6 +20,14 @@ public class TargetPlatform : ModuleRules
             DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
             DynamicallyLoadedModuleNames.Add("ImageWrapper");
 
+			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+			{
+				if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+				{
+					DynamicallyLoadedModuleNames.Add("TextureFormatIntelISPCTexComp");
+				}
+			}
+
             if (Target.Platform == UnrealTargetPlatform.Win32 ||
                 Target.Platform == UnrealTargetPlatform.Win64 ||
 				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))

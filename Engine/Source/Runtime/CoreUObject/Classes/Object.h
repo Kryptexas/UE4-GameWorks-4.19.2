@@ -152,6 +152,8 @@ enum EPixelFormat
 	PF_ASTC_8x8,	// 2.00 bpp
 	PF_ASTC_10x10,	// 1.28 bpp
 	PF_ASTC_12x12,	// 0.89 bpp
+	PF_BC6H,
+	PF_BC7,
 	PF_MAX,
 };
 
