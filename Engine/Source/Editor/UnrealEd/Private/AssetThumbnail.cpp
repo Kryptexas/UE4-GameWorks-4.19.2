@@ -344,8 +344,8 @@ private:
 
 	FMargin GetAssetColorStripPadding() const
 	{
-		// The strip is 2.5% the height of the thumbnail
-		const float Height = FMath::CeilToFloat(WidthLastFrame*0.025f);
+		// The strip is 2.5% the height of the thumbnail, but at least 3 units tall
+		const float Height = FMath::Max(FMath::CeilToFloat(WidthLastFrame*0.025f), 3.0f);
 		return FMargin(0,Height,0,0);
 	}
 
