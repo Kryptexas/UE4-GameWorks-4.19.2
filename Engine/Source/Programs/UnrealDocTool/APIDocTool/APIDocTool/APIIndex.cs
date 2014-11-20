@@ -138,7 +138,7 @@ namespace APIDocTool
 			RootNodes.Add(new SitemapNode("Getting started", GettingStarted.SitemapLinkPath));
 			foreach (APIModuleIndex ChildModuleIndex in ChildModuleIndexes)
 			{
-				RootNodes.Add(ChildModuleIndex.CreateSitemapNode());
+				RootNodes.AddRange(ChildModuleIndex.CreateSitemapNodes());
 			}
 			RootNodes.Add(new SitemapNode("All constants", ConstantIndex.SitemapLinkPath));
 			RootNodes.Add(new SitemapNode("All functions", FunctionIndex.SitemapLinkPath));

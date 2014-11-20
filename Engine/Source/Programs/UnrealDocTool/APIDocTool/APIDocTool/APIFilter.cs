@@ -26,13 +26,13 @@ namespace APIDocTool
 			Pages.AddRange(Members);
 		}
 
-		public override SitemapNode CreateSitemapNode()
+		public override IEnumerable<SitemapNode> CreateSitemapNodes()
 		{
 			SitemapNode Node = new SitemapNode(Name, SitemapLinkPath);
-			Node.Children.AddRange(Filters.Select(x => x.CreateSitemapNode()));
-			Node.Children.AddRange(Members.OfType<APIRecord>().Select(x => x.CreateSitemapNode()));
+			Node.Children.AddRange(Filters.SelectMany(x => x.CreateSitemapNodes()));
+			Node.Children.AddRange(Members.OfType<APIRecord>().SelectMany(x => x.CreateSitemapNodes()));
 			if (Node.Children.Count == 0) Node.Children.Add(new SitemapNode(Name, SitemapLinkPath));
-			return Node;
+			yield return Node;
 		}
 
 		public override void AddToManifest(UdnManifest Manifest)
