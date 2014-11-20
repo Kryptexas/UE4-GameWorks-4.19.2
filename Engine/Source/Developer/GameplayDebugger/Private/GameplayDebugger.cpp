@@ -189,6 +189,11 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 		return;
 	}
 
+	if (InWorld == NULL || InWorld->IsPendingKill() || InWorld->IsGameWorld() == false)
+	{
+		return;
+	}
+
 	for (auto It = GetAllReplicators(InWorld).CreateConstIterator(); It; ++It)
 	{
 		TWeakObjectPtr<AGameplayDebuggingReplicator> Replicator = *It;
