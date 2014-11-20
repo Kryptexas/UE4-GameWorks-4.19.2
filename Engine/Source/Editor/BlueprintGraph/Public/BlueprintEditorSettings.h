@@ -25,30 +25,34 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=VisualStyle, meta=(DisplayName="Draw midpoint arrows in Blueprints"))
 	bool bDrawMidpointArrowsInBlueprints;
 
-// UX Settings
-public:
 	/** Determines if lightweight tutorial text shows up at the top of empty blueprint graphs */
-	UPROPERTY(EditAnywhere, config, Category=UserExperience)
+	UPROPERTY(EditAnywhere, config, Category = VisualStyle)
 	bool bShowGraphInstructionText;
 
+// Workflow Settings
+public:
 	/** If enabled, will use the blueprint's (or output pin's) class to narrow down context menu results. */
-	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Use Target Context"))
+	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Context Menu: Use Target Context"))
 	bool bUseTargetContextForNodeMenu;
 
 	/** If enabled, then ALL component functions are exposed to the context menu (when the contextual target is a component owner). Ignores "ExposeFunctionCategories" metadata for components. */
-	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Expose All Sub-Component Functions"))
+	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Context Menu: Expose All Sub-Component Functions"))
 	bool bExposeAllMemberComponentFunctions;
 
 	/** If enabled, then a separate section with your Blueprint favorites will be pined to the top of the context menu. */
-	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Show Favorites Section"))
+	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Context Menu: Show Favorites Section"))
 	bool bShowContextualFavorites;
 
 	/** If enabled, then your Blueprint favorites will be uncategorized, leaving you with less nested categories to sort through. */
-	UPROPERTY(EditAnywhere, config, Category=UserExperience)
+	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bFlattenFavoritesMenus;
 
+	/** If enabled, then placed cast nodes will default to their "pure" form (meaning: without execution pins). */
+	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Default to Using Pure Cast Nodes"))
+	bool bFavorPureCastNodes;
+
 	/** If set, then the new refactored menu system will be replaced with the old (legacy) system (as a fallback, in case the new system has unforeseen problems)*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=UserExperience)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Workflow)
 	bool bUseLegacyMenuingSystem;
 
 // Compiler Settings

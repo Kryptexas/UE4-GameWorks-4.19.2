@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "DynamicCastHandler.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_DynamicCast"
 
@@ -11,6 +12,8 @@ UK2Node_DynamicCast::UK2Node_DynamicCast(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 	, bIsPureCast(false)
 {
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	bIsPureCast = BlueprintSettings->bFavorPureCastNodes;
 }
 
 void UK2Node_DynamicCast::AllocateDefaultPins()
