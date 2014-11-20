@@ -517,6 +517,13 @@ class ENGINE_API UEdGraphSchema : public UObject
 	virtual bool DoesSupportPinWatching() const	{ return false; }
 
 	/**
+	 *
+	 *	Determine if this graph supports event dispatcher
+	 * 
+	 *	@return True if this schema supports Event Dispatcher 
+	 */
+	virtual bool DoesSupportEventDispatcher() const	{	return true; }
+	/**
 	 * Checks to see if the specified pin is being watched by the graph's debug system.
 	 * 
 	 * @param  Pin	The pin you want to check for.

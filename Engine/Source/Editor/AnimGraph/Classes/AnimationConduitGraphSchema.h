@@ -14,5 +14,6 @@ class UAnimationConduitGraphSchema : public UEdGraphSchema_K2
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
 	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const override { return false; }
 	virtual void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const override;
+	virtual bool DoesSupportEventDispatcher() const	override {	return false; }
 	// End of UEdGraphSchema interface
 };
