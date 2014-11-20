@@ -18,7 +18,7 @@ class UDemoNetDriver : public UNetDriver
 	/** Handle to the archive that will read/write network packets */
 	FArchive*			FileAr;
 
-	/** @todo document */
+	/** Current record/playback frame number */
 	int32				DemoFrameNum;
 
 	/** Last time (in real seconds) that we recorded a frame */
@@ -27,8 +27,14 @@ class UDemoNetDriver : public UNetDriver
 	/** Time (in game seconds) that have elapsed between recorded frames */
 	float				DemoDeltaTime;
 
-	/** during playback, set to total number of frames recorded in the demo */
-	int32				PlaybackTotalFrames;
+	/** Total time of demo in seconds */
+	float				DemoTotalTime;
+
+	/** Current record/playback position in seconds */
+	float				DemoCurrentTime;
+
+	/** Total number of frames in the demo */
+	int32				DemoTotalFrames;
 
 	/** during playback, set to offset of where the stream ends (we don't want to continue reading into the meta data section) */
 	int32				EndOfStreamOffset;
@@ -74,6 +80,7 @@ class UDemoNetDriver : public UNetDriver
 	bool ReadDemoFrame();
 	void TickDemoPlayback( float DeltaSeconds );
 	void SpawnDemoRecSpectator( UNetConnection* Connection );
+	void ResetDemoState();
 
 	void StopDemo();
 };
