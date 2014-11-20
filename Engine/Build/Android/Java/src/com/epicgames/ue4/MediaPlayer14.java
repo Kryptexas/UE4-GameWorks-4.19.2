@@ -20,8 +20,16 @@ import java.io.RandomAccessFile;
 public class MediaPlayer14
 	extends android.media.MediaPlayer
 {
+	private boolean SwizzlePixels = true;
+
 	public MediaPlayer14()
 	{
+		SwizzlePixels = true;
+	}
+
+	public MediaPlayer14(boolean swizzlePixels)
+	{
+		SwizzlePixels = swizzlePixels;
 	}
 
 	public boolean setDataSource(
@@ -113,6 +121,18 @@ public class MediaPlayer14
 		}
 	}
 
+	public boolean getVideoLastFrame(int destTexture)
+	{
+		if (null != mBitmapRenderer)
+		{
+			return mBitmapRenderer.updateFrameData(destTexture);
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	public void release()
 	{
 		if (null != mBitmapRenderer)
@@ -191,7 +211,8 @@ public class MediaPlayer14
 				release();
 				return;
 			}
-            int mBlitFragmentShaderID = createShader(GLES20.GL_FRAGMENT_SHADER, mBlitFragmentShader);
+            int mBlitFragmentShaderID = createShader(GLES20.GL_FRAGMENT_SHADER,
+				SwizzlePixels ? mBlitFragmentShaderBGRA : mBlitFragmentShaderRGBA);
             if (mBlitFragmentShaderID == 0)
 			{
 				release();
@@ -291,7 +312,7 @@ public class MediaPlayer14
 				{
 					mTextureWidth = width;
 					mTextureHeight = height;
-					mFrameData = java.nio.ByteBuffer.allocateDirect(width*height*4);
+					mFrameData = null;
 				}
 			}
 		}
@@ -322,13 +343,21 @@ public class MediaPlayer14
 		// NOTE: We read the fragment as BGRA so that in the end, when
 		// we glReadPixels out of the FBO, we get them in that order
 		// and avoid having to swizzle the pixels in the CPU.
-		private final String mBlitFragmentShader =
+		private final String mBlitFragmentShaderBGRA =
 			"#extension GL_OES_EGL_image_external : require\n" +
 			"uniform samplerExternalOES VideoTexture;\n" +
 			"varying highp vec2 TexCoord;\n" +
 			"void main()\n" +
 			"{\n" +
 			"	gl_FragColor = texture2D(VideoTexture, TexCoord).bgra;\n" +
+			"}\n";
+		private final String mBlitFragmentShaderRGBA =
+			"#extension GL_OES_EGL_image_external : require\n" +
+			"uniform samplerExternalOES VideoTexture;\n" +
+			"varying highp vec2 TexCoord;\n" +
+			"void main()\n" +
+			"{\n" +
+			"	gl_FragColor = texture2D(VideoTexture, TexCoord).rgba;\n" +
 			"}\n";
 
 		private int mProgram;
@@ -340,139 +369,195 @@ public class MediaPlayer14
 		{
 			synchronized(this)
 			{
-				if (!mFrameAvailable)
+				if (null == mFrameData && mTextureWidth > 0 && mTextureHeight > 0)
 				{
-					// We only return fresh data when we generate it. At other
-					// time we return nothing to indicate that there was nothing
-					// new to return. The media player deals with this by keeping
-					// the last frame around and using that for rendering.
+					mFrameData = java.nio.ByteBuffer.allocateDirect(mTextureWidth*mTextureHeight*4);
+				}
+				if (!updateFrameTexture())
+				{
 					return null;
 				}
-				mFrameAvailable = false;
-				int current_frame_position = getCurrentPosition();
-				mLastFramePosition = current_frame_position;
-
-				// Clear gl errors as they can creap in from the UE4 renderer.
-				GLES20.glGetError();
-
 				if (null != mSurfaceTexture)
 				{
-					mSurfaceTexture.updateTexImage();
-				}
-				if (null != mSurfaceTexture && null != mFrameData)
-				{
-					// Copy surface texture to frame data...
-
-					mFrameData.position(0);
-					int[] glInt = new int[1];
-					boolean[] glBool = new boolean[1];
-
-					// Save and reset state.
-					boolean previousBlend = GLES20.glIsEnabled(GLES20.GL_BLEND);
-					boolean previousCullFace = GLES20.glIsEnabled(GLES20.GL_CULL_FACE);
-					boolean previousScissorTest = GLES20.glIsEnabled(GLES20.GL_SCISSOR_TEST);
-					boolean previousStencilTest = GLES20.glIsEnabled(GLES20.GL_STENCIL_TEST);
-					boolean previousDepthTest = GLES20.glIsEnabled(GLES20.GL_DEPTH_TEST);
-					boolean previousDither = GLES20.glIsEnabled(GLES20.GL_DITHER);
-					GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, glInt, 0);
-					int previousFBO = glInt[0];
-					int[] previousViewport = new int[4];
-					GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, previousViewport, 0);
-
-					glVerify("save state");
-
-					GLES20.glDisable(GLES20.GL_BLEND);
-					GLES20.glDisable(GLES20.GL_CULL_FACE);
-					GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-					GLES20.glDisable(GLES20.GL_STENCIL_TEST);
-					GLES20.glDisable(GLES20.GL_DEPTH_TEST);
-					GLES20.glDisable(GLES20.GL_DITHER);
-					GLES20.glColorMask(true,true,true,true);
-					GLES20.glViewport(0, 0, mTextureWidth, mTextureHeight);
-
-					glVerify("reset state");
-
-					// Create FBO target texture.
-					GLES20.glGenTextures(1,glInt,0);
-					int FBOTextureID = glInt[0];
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-					GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, FBOTextureID);
-					GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-						GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-					GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-						GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-					GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-						GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-					GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-						GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-
-					// Set the FBO to draw into the texture one-to-one.
-					//int w = 1<<(32-Integer.numberOfLeadingZeros(mTextureWidth-1));
-					//int h = 1<<(32-Integer.numberOfLeadingZeros(mTextureHeight-1));
-					GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0,
-						GLES20.GL_RGBA,
-						mTextureWidth, mTextureHeight,
-						0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
-
-					glVerify("create FBO texture");
-
-					// Set to render to the FBO.
-					GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFBO);
-
-					GLES20.glFramebufferTexture2D(
-						GLES20.GL_FRAMEBUFFER,
-						GLES20.GL_COLOR_ATTACHMENT0,
-						GLES20.GL_TEXTURE_2D, FBOTextureID, 0);
-
-					// The special shaders to render from the video texture.
-					GLES20.glUseProgram(mProgram);
-
-					// Set the mesh that renders the video texture.
-					GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mBlitBuffer);
-					GLES20.glEnableVertexAttribArray(mPositionAttrib);
-					GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false,
-						TRIANGLE_VERTICES_DATA_STRIDE_BYTES, 0);
-					GLES20.glEnableVertexAttribArray(mTexCoordsAttrib);
-					GLES20.glVertexAttribPointer(mTexCoordsAttrib, 2, GLES20.GL_FLOAT, false,
-						TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
-						TRIANGLE_VERTICES_DATA_UV_OFFSET*FLOAT_SIZE_BYTES);
-
-					glVerify("setup movie texture read");
-
-					// Draw the video texture mesh.
-					GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-
-					GLES20.glFinish();
-
-					// Read the FBO texture pixels.
-					GLES20.glReadPixels(
-						0, 0, mTextureWidth, mTextureHeight,
-						GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE,
-						mFrameData);
-
-					glVerify("draw & read movie texture");
-
-					// Restore state and cleanup.
-					if (previousFBO > 0)
-					{
-						GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, previousFBO);
-					}
-					if (FBOTextureID > 0)
-					{
-						glInt[0] = FBOTextureID;
-						GLES20.glDeleteTextures(1, glInt, 0);
-					}
-					GLES20.glViewport(previousViewport[0], previousViewport[1],
-						previousViewport[2], previousViewport[3]);
-					if (previousBlend) GLES20.glEnable(GLES20.GL_BLEND);
-					if (previousCullFace) GLES20.glEnable(GLES20.GL_CULL_FACE);
-					if (previousScissorTest) GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
-					if (previousStencilTest) GLES20.glEnable(GLES20.GL_STENCIL_TEST);
-					if (previousDepthTest) GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-					if (previousDither) GLES20.glEnable(GLES20.GL_DITHER);
+					// Copy surface texture to frame data.
+					copyFrameTexture(0, mFrameData);
 				}
 			}
 			return mFrameData;
+		}
+
+		public boolean updateFrameData(int destTexture)
+		{
+			synchronized(this)
+			{
+				if (!updateFrameTexture())
+				{
+					return false;
+				}
+				// Copy surface texture to destination texture.
+				copyFrameTexture(destTexture, null);
+			}
+			return true;
+		}
+
+		private boolean updateFrameTexture()
+		{
+			if (!mFrameAvailable)
+			{
+				// We only return fresh data when we generate it. At other
+				// time we return nothing to indicate that there was nothing
+				// new to return. The media player deals with this by keeping
+				// the last frame around and using that for rendering.
+				return false;
+			}
+			mFrameAvailable = false;
+			int current_frame_position = getCurrentPosition();
+			mLastFramePosition = current_frame_position;
+			if (null == mSurfaceTexture)
+			{
+				// Can't update if there's no surface to update into.
+				return false;
+			}
+
+			// Clear gl errors as they can creap in from the UE4 renderer.
+			GLES20.glGetError();
+			// Get the latest video texture frame.
+			mSurfaceTexture.updateTexImage();
+			return true;
+		}
+
+		// Copy the surface texture to another texture, or to raw data. Note,
+		// copying to raw data creates a temporary FBO texture.
+		private void copyFrameTexture(int destTexture, java.nio.Buffer destData)
+		{
+			int[] glInt = new int[1];
+			boolean[] glBool = new boolean[1];
+
+			if (null != destData)
+			{
+				// Rewind data so that we can write to it.
+				destData.position(0);
+			}
+
+			// Save and reset state.
+			boolean previousBlend = GLES20.glIsEnabled(GLES20.GL_BLEND);
+			boolean previousCullFace = GLES20.glIsEnabled(GLES20.GL_CULL_FACE);
+			boolean previousScissorTest = GLES20.glIsEnabled(GLES20.GL_SCISSOR_TEST);
+			boolean previousStencilTest = GLES20.glIsEnabled(GLES20.GL_STENCIL_TEST);
+			boolean previousDepthTest = GLES20.glIsEnabled(GLES20.GL_DEPTH_TEST);
+			boolean previousDither = GLES20.glIsEnabled(GLES20.GL_DITHER);
+			GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, glInt, 0);
+			int previousFBO = glInt[0];
+			int[] previousViewport = new int[4];
+			GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, previousViewport, 0);
+
+			glVerify("save state");
+
+			GLES20.glDisable(GLES20.GL_BLEND);
+			GLES20.glDisable(GLES20.GL_CULL_FACE);
+			GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+			GLES20.glDisable(GLES20.GL_STENCIL_TEST);
+			GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+			GLES20.glDisable(GLES20.GL_DITHER);
+			GLES20.glColorMask(true,true,true,true);
+			GLES20.glViewport(0, 0, mTextureWidth, mTextureHeight);
+
+			glVerify("reset state");
+
+			// Set-up FBO target texture..
+			int FBOTextureID = 0;
+			if (null != destData)
+			{
+				// Create temporary FBO for data copy.
+				GLES20.glGenTextures(1,glInt,0);
+				FBOTextureID = glInt[0];
+			}
+			else
+			{
+				// Use the given texture as the FBO.
+				FBOTextureID = destTexture;
+			}
+			// Set the FBO to draw into the texture one-to-one.
+			GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, FBOTextureID);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+				GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+				GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+				GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
+				GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+			// Create the temp FBO data if needed.
+			if (null != destData)
+			{
+				//int w = 1<<(32-Integer.numberOfLeadingZeros(mTextureWidth-1));
+				//int h = 1<<(32-Integer.numberOfLeadingZeros(mTextureHeight-1));
+				GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0,
+					GLES20.GL_RGBA,
+					mTextureWidth, mTextureHeight,
+					0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+			}
+
+			glVerify("set-up FBO texture");
+
+			// Set to render to the FBO.
+			GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFBO);
+
+			GLES20.glFramebufferTexture2D(
+				GLES20.GL_FRAMEBUFFER,
+				GLES20.GL_COLOR_ATTACHMENT0,
+				GLES20.GL_TEXTURE_2D, FBOTextureID, 0);
+
+			// The special shaders to render from the video texture.
+			GLES20.glUseProgram(mProgram);
+
+			// Set the mesh that renders the video texture.
+			GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mBlitBuffer);
+			GLES20.glEnableVertexAttribArray(mPositionAttrib);
+			GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false,
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, 0);
+			GLES20.glEnableVertexAttribArray(mTexCoordsAttrib);
+			GLES20.glVertexAttribPointer(mTexCoordsAttrib, 2, GLES20.GL_FLOAT, false,
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+				TRIANGLE_VERTICES_DATA_UV_OFFSET*FLOAT_SIZE_BYTES);
+
+			glVerify("setup movie texture read");
+
+			// Draw the video texture mesh.
+			GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+			GLES20.glFinish();
+
+			// Read the FBO texture pixels into raw data.
+			if (null != destData)
+			{
+				GLES20.glReadPixels(
+					0, 0, mTextureWidth, mTextureHeight,
+					GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE,
+					destData);
+			}
+
+			glVerify("draw & read movie texture");
+
+			// Restore state and cleanup.
+			if (previousFBO > 0)
+			{
+				GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, previousFBO);
+			}
+			if (null != destData && FBOTextureID > 0)
+			{
+				glInt[0] = FBOTextureID;
+				GLES20.glDeleteTextures(1, glInt, 0);
+			}
+			GLES20.glViewport(previousViewport[0], previousViewport[1],
+				previousViewport[2], previousViewport[3]);
+			if (previousBlend) GLES20.glEnable(GLES20.GL_BLEND);
+			if (previousCullFace) GLES20.glEnable(GLES20.GL_CULL_FACE);
+			if (previousScissorTest) GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
+			if (previousStencilTest) GLES20.glEnable(GLES20.GL_STENCIL_TEST);
+			if (previousDepthTest) GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+			if (previousDither) GLES20.glEnable(GLES20.GL_DITHER);
 		}
 
         private void glVerify(String op)
