@@ -2224,11 +2224,15 @@ public:
 	UPROPERTY(Config, transient)
 	TArray<FNetDriverDefinition> NetDriverDefinitions;
 
-	/** @todo document */
+	/** A configurable list of actors that are automatically spawned upon server startup (just prior to InitGame) */
 	UPROPERTY(config)
 	TArray<FString> ServerActors;
 
-	/** Spawns all of the registered server actors	 */
+	/** Runtime-modified list of server actors, allowing plugins to use serveractors, without permanently adding them to config files */
+	UPROPERTY()
+	TArray<FString> RuntimeServerActors;
+
+	/** Spawns all of the registered server actors */
 	virtual void SpawnServerActors(UWorld *World);
 
 	/**

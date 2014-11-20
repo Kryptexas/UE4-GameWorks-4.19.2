@@ -7797,10 +7797,15 @@ void UEngine::HandleTravelFailure_NotifyGameInstance(UWorld *World, ETravelFailu
 
 void UEngine::SpawnServerActors(UWorld *World)
 {
-	for( int32 i=0; i < ServerActors.Num(); i++ )
+	TArray<FString> FullServerActors;
+
+	FullServerActors.Append(ServerActors);
+	FullServerActors.Append(RuntimeServerActors);
+
+	for( int32 i=0; i < FullServerActors.Num(); i++ )
 	{
-		TCHAR Str[240];
-		const TCHAR* Ptr = * ServerActors[i];
+		TCHAR Str[2048];
+		const TCHAR* Ptr = * FullServerActors[i];
 		if( FParse::Token( Ptr, Str, ARRAY_COUNT(Str), 1 ) )
 		{
 			UE_LOG(LogNet, Log, TEXT("Spawning: %s"), Str );
