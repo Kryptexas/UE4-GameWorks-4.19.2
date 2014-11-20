@@ -6,16 +6,7 @@
 
 #pragma once
 
-
-// @hack to make wrapped dynamic delegate work in a non-UClass
-inline void FTimerDynamicDelegate_DelegateWrapper(const FScriptDelegate& FTimerDynamicDelegate)
-{
-	FTimerDynamicDelegate.ProcessDelegate<UObject>(NULL);
-}
-
 DECLARE_DELEGATE(FTimerDelegate);
-DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
-
 
 /** Simple interface to wrap a timer delegate that can be either native or dynamic. */
 struct FTimerUnifiedDelegate

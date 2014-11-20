@@ -276,26 +276,21 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 		}
 	}
 
-	FBlueprintTimerDynamicDelegate Delegate;
+	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, FunctionFName);
 	K2_SetTimerDelegate(Delegate, Time, bLooping);
 }
 
-void UKismetSystemLibrary::K2_SetTimerDelegate(FBlueprintTimerDynamicDelegate Delegate, float Time, bool bLooping)
+void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping)
 {
-	UObject* const Object = Delegate.GetUObject();
-	FName const FunctionName = Delegate.GetFunctionName();
-
-	FTimerDynamicDelegate InnerDelegate;
-	InnerDelegate.BindUFunction(Object, FunctionName);
-	if (InnerDelegate.IsBound())
+	if (Delegate.IsBound())
 	{
-		const UWorld* const World = GEngine->GetWorldFromContextObject(Object);
-		World->GetTimerManager().SetTimer(InnerDelegate, Time, bLooping);
+		const UWorld* const World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		World->GetTimerManager().SetTimer(Delegate, Time, bLooping);
 	}
 	else
 	{
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("SetTimer passed a bad function (%s) or object (%s)"), *FunctionName.ToString(), *GetNameSafe(Object));
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("SetTimer passed a bad function (%s) or object (%s)"), *Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
 }
 

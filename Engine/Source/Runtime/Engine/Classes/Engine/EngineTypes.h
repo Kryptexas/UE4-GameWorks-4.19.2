@@ -2197,6 +2197,8 @@ namespace EEndPlayReason
 
 }
 
+DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
+
 /** Replicated movement data of our RootComponent.
   * Struct used for efficient replication as velocity and location are generally replicated together (this saves a repindex) 
   * and velocity.Z is commonly zero (most position replications are for walking pawns). 
