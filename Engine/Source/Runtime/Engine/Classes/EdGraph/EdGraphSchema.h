@@ -522,7 +522,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * 
 	 *	@return True if this schema supports Event Dispatcher 
 	 */
-	virtual bool DoesSupportEventDispatcher() const	{	return true; }
+	virtual bool DoesSupportEventDispatcher() const	{ return false; }
 	/**
 	 * Checks to see if the specified pin is being watched by the graph's debug system.
 	 * 

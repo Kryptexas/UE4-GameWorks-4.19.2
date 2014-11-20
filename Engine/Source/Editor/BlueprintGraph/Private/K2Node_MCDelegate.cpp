@@ -212,10 +212,10 @@ void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FS
 
 void UK2Node_BaseMCDelegate::AutowireNewNode(UEdGraphPin* FromPin)
 {
-	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
 
 	// Since nodes no longer have a sense of scope when they're placed, look at the connection we're coming from, and use that to coerce the Target pin
-	if (FromPin != nullptr)
+	if (FromPin && K2Schema)
 	{
 		bool bConnected = false;
 

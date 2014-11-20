@@ -414,6 +414,7 @@ public:
 	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const override;
 	virtual void SplitPin(UEdGraphPin* Pin) const override;
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
+	virtual bool DoesSupportEventDispatcher() const	override { return true; }
 	// End EdGraphSchema Interface
 
 	/**

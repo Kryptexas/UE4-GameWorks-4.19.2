@@ -808,7 +808,8 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		check(GraphObj);
-		if (GraphObj->GetSchema()->DoesSupportEventDispatcher())
+		auto Schema = GraphObj->GetSchema();
+		if (Schema && Schema->DoesSupportEventDispatcher())
 		{
 			TSharedPtr<FGraphEditorDragDropAction> DragConn = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 			return DragConn->DroppedOnPanel(SharedThis(this), DragDropEvent.GetScreenSpacePosition(), NodeAddPosition, *GraphObj);
