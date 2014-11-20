@@ -135,4 +135,9 @@ private:
 	 *	@param SegmentIndex - Index of the removed segment
 	 */
 	void OnAnimSegmentRemoved(int32 SegmentIndex, int32 SlotIndex);
+
+	/** Gets the length of the montage we are currently editing
+	 */
+	virtual float GetSequenceLength() const override;
+
 };

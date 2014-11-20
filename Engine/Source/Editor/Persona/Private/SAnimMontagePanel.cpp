@@ -137,7 +137,7 @@ void SAnimMontagePanel::Update()
 					.DraggableBars(Editor, &SMontageEditor::GetSectionStartTimes)
 					.DraggableBarSnapPositions(Editor, &SMontageEditor::GetAnimSegmentStartTimes)
 					.DraggableBarLabels(Editor, &SMontageEditor::GetSectionNames)
-					.TrackMaxValue(Montage->SequenceLength) // FIXME -> Make actual attribute!
+					.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
 					.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
 					.OnTrackRightClickContextMenu( this, &SAnimMontagePanel::SummonTrackContextMenu, static_cast<int>(INDEX_NONE))
 					.ScrubPosition( Editor, &SMontageEditor::GetScrubValue )
@@ -234,7 +234,7 @@ void SAnimMontagePanel::Update()
 					.DraggableBars(Editor, &SMontageEditor::GetSectionStartTimes)
 					.DraggableBarSnapPositions(Editor, &SMontageEditor::GetAnimSegmentStartTimes)
 					.ScrubPosition( Editor, &SMontageEditor::GetScrubValue )
-					.TrackMaxValue(Montage->SequenceLength)
+					.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
 					.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
 
 					.OnAnimSegmentNodeClicked( this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx )
@@ -657,6 +657,15 @@ void SAnimMontagePanel::OnAnimSegmentRemoved(int32 SegmentIndex, int32 SlotIndex
 			}
 		}
 	}
+}
+
+float SAnimMontagePanel::GetSequenceLength() const
+{
+	if(Montage != nullptr)
+	{
+		return Montage->SequenceLength;
+	}
+	return 0.0f;
 }
 
 #undef LOCTEXT_NAMESPACE
