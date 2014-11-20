@@ -1080,7 +1080,7 @@ void APawn::PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseM
 	NoiseMaker->MakeNoise(Loudness, this, bUseNoiseMakerLocation ? NoiseMaker->GetActorLocation() : NoiseLocation);
 }
 
-const struct FNavAgentProperties* APawn::GetNavAgentProperties() const
+const FNavAgentProperties& APawn::GetNavAgentProperties() const
 {
-	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;
+	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : FNavAgentProperties::DefaultProperties;
 }

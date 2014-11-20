@@ -532,9 +532,9 @@ APawn* AController::K2_GetPawn() const
 	return GetPawn();
 }
 
-const FNavAgentProperties* AController::GetNavAgentProperties() const
+const FNavAgentProperties& AController::GetNavAgentProperties() const
 {
-	return Pawn && Pawn->GetMovementComponent() ? Pawn->GetMovementComponent()->GetNavAgentProperties() : NULL;
+	return Pawn && Pawn->GetMovementComponent() ? Pawn->GetMovementComponent()->GetNavAgentProperties() : FNavAgentProperties::DefaultProperties;
 }
 
 FVector AController::GetNavAgentLocation() const

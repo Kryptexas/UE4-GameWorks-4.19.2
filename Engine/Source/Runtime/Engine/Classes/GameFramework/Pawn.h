@@ -19,6 +19,7 @@ class UPawnMovementComponent;
 class UPawnNoiseEmitterComponent;
 class UPlayer;
 class UPrimitiveComponent;
+struct FNavAgentProperties;
 
 /** 
  * Pawn is the base class of all actors that can be possessed by players or AI.
@@ -229,7 +230,7 @@ public:
 	virtual void UpdateNavigationRelevance() {}
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
+	virtual const FNavAgentProperties& GetNavAgentProperties() const override;
 	/** Basically retrieved pawn's location on navmesh */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual FVector GetNavAgentLocation() const override { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }

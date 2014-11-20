@@ -326,7 +326,7 @@ struct FMovementProperties
 
 /** Properties of representation of an 'agent' (or Pawn) used by AI navigation/pathfinding. */
 USTRUCT()
-struct FNavAgentProperties : public FMovementProperties
+struct ENGINE_API FNavAgentProperties : public FMovementProperties
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -349,7 +349,7 @@ struct FNavAgentProperties : public FMovementProperties
 
 	void UpdateWithCollisionComponent(class UShapeComponent* CollisionComponent);
 
-	FORCEINLINE bool IsValid() const { return AgentRadius >= 0 && AgentHeight >= 0; }
+	FORCEINLINE bool IsValid() const { return AgentRadius >= 0.f && AgentHeight >= 0.f; }
 	FORCEINLINE bool HasStepHeightOverride() const { return AgentStepHeight >= 0.0f; }
 
 	FORCEINLINE bool IsEquivalent(const FNavAgentProperties& Other, float Precision = 5.f) const
@@ -368,6 +368,8 @@ struct FNavAgentProperties : public FMovementProperties
 	{
 		return FVector(AgentRadius, AgentRadius, AgentHeight / 2);
 	}
+
+	static const FNavAgentProperties DefaultProperties;
 };
 
 inline uint32 GetTypeHash(const FNavAgentProperties& A)

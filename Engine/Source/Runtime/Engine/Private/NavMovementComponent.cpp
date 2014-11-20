@@ -8,6 +8,8 @@
 //----------------------------------------------------------------------//
 // FNavAgentProperties
 //----------------------------------------------------------------------//
+const FNavAgentProperties FNavAgentProperties::DefaultProperties;
+
 void FNavAgentProperties::UpdateWithCollisionComponent(UShapeComponent* CollisionComponent)
 {
 	check( CollisionComponent != NULL);

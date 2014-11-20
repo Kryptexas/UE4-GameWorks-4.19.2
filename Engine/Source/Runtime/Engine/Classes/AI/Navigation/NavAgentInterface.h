@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "AI/Navigation/NavigationTypes.h"
 #include "NavAgentInterface.generated.h"
 
 class AActor;
@@ -19,7 +21,7 @@ class INavAgentInterface
 	/**
 	 *	Retrieves FNavAgentProperties expressing navigation props and caps of represented agent
 	 */
-	virtual const FNavAgentProperties* GetNavAgentProperties() const { return NULL;} //PURE_VIRTUAL(INavAgentInterface::GetNavAgentProperties,return NULL;);
+	virtual const FNavAgentProperties& GetNavAgentProperties() const { return FNavAgentProperties::DefaultProperties; }
 
 	/**
 	 *	Retrieves Agent's location

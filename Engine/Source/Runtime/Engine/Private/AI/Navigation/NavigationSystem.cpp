@@ -946,12 +946,9 @@ UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* Wor
 			
 			if (NavAgent != NULL)
 			{
-				const FNavAgentProperties* AgentProps = NavAgent->GetNavAgentProperties();
-				if (AgentProps)
-				{
-					NavigationData = NavSys->GetNavDataForProps(*AgentProps);
-					bValidPathContext = true;
-				}
+				const FNavAgentProperties& AgentProps = NavAgent->GetNavAgentProperties();
+				NavigationData = NavSys->GetNavDataForProps(AgentProps);
+				bValidPathContext = true;
 			}
 			else if (Cast<ANavigationData>(PathfindingContext))
 			{
@@ -1005,8 +1002,8 @@ bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVe
 		INavAgentInterface* MyNavAgent = Cast<INavAgentInterface>(Querier);
 		if (MyNavAgent)
 		{
-			const FNavAgentProperties* AgentProps = MyNavAgent->GetNavAgentProperties();
-			NavData = NavSys->GetNavDataForProps(*AgentProps);
+			const FNavAgentProperties& AgentProps = MyNavAgent->GetNavAgentProperties();
+			NavData = NavSys->GetNavDataForProps(AgentProps);
 		}
 		if (NavData == NULL)
 		{

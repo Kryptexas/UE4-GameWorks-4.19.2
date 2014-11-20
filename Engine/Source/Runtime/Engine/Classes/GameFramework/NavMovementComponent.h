@@ -76,9 +76,9 @@ public:
 	virtual bool CanStopPathFollowing() const;
 
 	/** @returns the NavAgentProps(const) */
-	FORCEINLINE const FNavAgentProperties* GetNavAgentProperties() const { return &NavAgentProps; }
+	FORCEINLINE const FNavAgentProperties& GetNavAgentProperties() const { return NavAgentProps; }
 	/** @returns the NavAgentProps */
-	FORCEINLINE FNavAgentProperties* GetNavAgentProperties() { return &NavAgentProps; }
+	FORCEINLINE FNavAgentProperties& GetNavAgentProperties() { return NavAgentProps; }
 
 	/** Resets runtime movement state to character's movement capabilities */
 	void ResetMoveState() { MovementState = NavAgentProps; }

@@ -264,7 +264,7 @@ public:
 	virtual void FailedToSpawnPawn();
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
+	virtual const struct FNavAgentProperties& GetNavAgentProperties() const override;
 	virtual FVector GetNavAgentLocation() const override;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	// End INavAgentInterface Interface

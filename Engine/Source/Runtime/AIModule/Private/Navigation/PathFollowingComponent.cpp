@@ -447,14 +447,13 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 
 	if (MoveComp != NULL)
 	{
-		const FNavAgentProperties* NavAgentProps = MoveComp->GetNavAgentProperties();
-		check(NavAgentProps);
-		MyDefaultAcceptanceRadius = NavAgentProps->AgentRadius;
+		const FNavAgentProperties& NavAgentProps = MoveComp->GetNavAgentProperties();
+		MyDefaultAcceptanceRadius = NavAgentProps.AgentRadius;
 		MoveComp->PathFollowingComp = this;
 
 		if (GetWorld() && GetWorld()->GetNavigationSystem())
 		{	
-			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(*NavAgentProps);
+			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
 		}
 	}
 }

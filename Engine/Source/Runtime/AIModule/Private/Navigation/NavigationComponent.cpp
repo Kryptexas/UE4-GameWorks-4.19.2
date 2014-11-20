@@ -216,36 +216,29 @@ bool UNavigationComponent::AsyncGeneratePath(const FVector& FromLocation, const 
 	// best to do so using a flag while keeping this as the default behavior.  NOTE: If any changes to this behavior
 	// are made, you should search for other places in UNavigationComponent using NavMeshGoalLocation and make sure the
 	// behavior remains consistent.
-	const FNavAgentProperties* NavAgentProps = MyNavAgent->GetNavAgentProperties();
-	if (NavAgentProps != NULL)
+		
+	FVector NavMeshGoalLocation;
+
+	if (ProjectPointToNavigation(GoalLocation, NavMeshGoalLocation) == QuerySuccess)
 	{
-		FVector NavMeshGoalLocation;
+		const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
+		FPathFindingQuery Query(GetOwner(), GetNavData(), FromLocation, NavMeshGoalLocation, QueryFilter);
+		Query.NavDataFlags = NavDataFlags;
 
-		if (ProjectPointToNavigation(GoalLocation, NavMeshGoalLocation) == QuerySuccess)
-		{
-			const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
-			FPathFindingQuery Query(GetOwner(), GetNavData(), FromLocation, NavMeshGoalLocation, QueryFilter);
-			Query.NavDataFlags = NavDataFlags;
-
-			AsynPathQueryID = NavSys->FindPathAsync(*MyNavAgent->GetNavAgentProperties(), Query,
-				FNavPathQueryDelegate::CreateUObject(this, &UNavigationComponent::AsyncGeneratePath_OnCompleteCallback), Mode);
-		}
-		else
-		{
-			// projecting destination point failed
-			AsynPathQueryID = INVALID_NAVQUERYID;
-
-			UE_VLOG(GetOwner(), LogAINavigation, Warning, TEXT("AI trying to generate path to point off of navmesh"));
-			UE_VLOG_LOCATION(GetOwner(), LogAINavigation, Warning, GoalLocation, 30, FColor::Red, TEXT("Invalid pathing GoalLocation"));
-			if (MyNavData != NULL)
-			{
-				UE_VLOG_BOX(GetOwner(), LogAINavigation, Warning, FBox(GoalLocation - GetQueryExtent(), GoalLocation + GetQueryExtent()), FColor::Red, TEXT_EMPTY);
-			}
-		}
+		AsynPathQueryID = NavSys->FindPathAsync(MyNavAgent->GetNavAgentProperties(), Query,
+			FNavPathQueryDelegate::CreateUObject(this, &UNavigationComponent::AsyncGeneratePath_OnCompleteCallback), Mode);
 	}
 	else
 	{
+		// projecting destination point failed
 		AsynPathQueryID = INVALID_NAVQUERYID;
+
+		UE_VLOG(GetOwner(), LogAINavigation, Warning, TEXT("AI trying to generate path to point off of navmesh"));
+		UE_VLOG_LOCATION(GetOwner(), LogAINavigation, Warning, GoalLocation, 30, FColor::Red, TEXT("Invalid pathing GoalLocation"));
+		if (MyNavData != NULL)
+		{
+			UE_VLOG_BOX(GetOwner(), LogAINavigation, Warning, FBox(GoalLocation - GetQueryExtent(), GoalLocation + GetQueryExtent()), FColor::Red, TEXT_EMPTY);
+		}
 	}
 
 	return AsynPathQueryID != INVALID_NAVQUERYID;
@@ -358,85 +351,77 @@ bool UNavigationComponent::GeneratePathTo(const FVector& GoalLocation, TSharedPt
 
 	check(MyNavAgent);
 
-	const FNavAgentProperties* NavAgentProps = MyNavAgent->GetNavAgentProperties();
-	if (NavAgentProps != NULL)
-	{
-		FVector NavMeshGoalLocation;
+	FVector NavMeshGoalLocation;
 
 #if ENABLE_VISUAL_LOG
-		UE_VLOG_LOCATION(GetOwner(), LogAINavigation, Log, GoalLocation, 34, FColor(0, 127, 14), TEXT("GoalLocation"));
-		UE_VLOG_BOX(GetOwner(), LogAINavigation, Log, FBox(GoalLocation - GetQueryExtent(), GoalLocation + GetQueryExtent()), FColor::Green, TEXT_EMPTY);
+	UE_VLOG_LOCATION(GetOwner(), LogAINavigation, Log, GoalLocation, 34, FColor(0, 127, 14), TEXT("GoalLocation"));
+	UE_VLOG_BOX(GetOwner(), LogAINavigation, Log, FBox(GoalLocation - GetQueryExtent(), GoalLocation + GetQueryExtent()), FColor::Green, TEXT_EMPTY);
 #endif
 
-		if (ProjectPointToNavigation(GoalLocation, NavMeshGoalLocation) == QuerySuccess)
-		{
-			UE_VLOG_SEGMENT(GetOwner(), LogAINavigation, Log, GoalLocation, NavMeshGoalLocation, FColor::Blue, TEXT_EMPTY);
-			UE_VLOG_LOCATION(GetOwner(), LogAINavigation, Log, NavMeshGoalLocation, 34, FColor::Blue, TEXT_EMPTY);
+	if (ProjectPointToNavigation(GoalLocation, NavMeshGoalLocation) == QuerySuccess)
+	{
+		UE_VLOG_SEGMENT(GetOwner(), LogAINavigation, Log, GoalLocation, NavMeshGoalLocation, FColor::Blue, TEXT_EMPTY);
+		UE_VLOG_LOCATION(GetOwner(), LogAINavigation, Log, NavMeshGoalLocation, 34, FColor::Blue, TEXT_EMPTY);
 			
-			UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-			FPathFindingQuery Query(GetOwner(), MyNavData, MyNavAgent->GetNavAgentLocation(), NavMeshGoalLocation, QueryFilter);
-			Query.NavDataFlags = NavDataFlags;
+		UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+		FPathFindingQuery Query(GetOwner(), MyNavData, MyNavAgent->GetNavAgentLocation(), NavMeshGoalLocation, QueryFilter);
+		Query.NavDataFlags = NavDataFlags;
 
-			const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
-			FPathFindingResult Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
+		const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
+		FPathFindingResult Result = NavSys->FindPathSync(MyNavAgent->GetNavAgentProperties(), Query, Mode);
 
-			// try reversing direction
-			if (bSearchFromGoalWhenOutOfNodes && !bDoHierarchicalPathfinding &&
-				Result.Path.IsValid() && Result.Path->DidSearchReachedLimit())
+		// try reversing direction
+		if (bSearchFromGoalWhenOutOfNodes && !bDoHierarchicalPathfinding &&
+			Result.Path.IsValid() && Result.Path->DidSearchReachedLimit())
+		{
+			// quick check if path exists
+			bool bPathExists = false;
 			{
-				// quick check if path exists
-				bool bPathExists = false;
-				{
-					DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Pathfinding: HPA* test time"), STAT_Navigation_PathVerifyTime, STATGROUP_Navigation);
-					bPathExists = NavSys->TestPathSync(Query, EPathFindingMode::Hierarchical);
-				}
-
-				UE_VLOG(GetOwner(), LogAINavigation, Log, TEXT("GeneratePathTo: out of nodes, HPA* path: %s"),
-					bPathExists ? TEXT("exists, trying reversed search") : TEXT("doesn't exist"));
-
-				// reverse search
-				if (bPathExists)
-				{
-					DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Pathfinding: reversed test time"), STAT_Navigation_PathReverseTime, STATGROUP_Navigation);
-
-					TSharedPtr<FNavigationQueryFilter> Filter = QueryFilter.IsValid() ? QueryFilter->GetCopy() : MyNavData->GetDefaultQueryFilter()->GetCopy();					
-					Filter->SetBacktrackingEnabled(true);
-
-					FPathFindingQuery ReversedQuery(GetOwner(), MyNavData, Query.EndLocation, Query.StartLocation, Filter);
-					ReversedQuery.NavDataFlags = NavDataFlags;
-
-					Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
-				}
+				DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Pathfinding: HPA* test time"), STAT_Navigation_PathVerifyTime, STATGROUP_Navigation);
+				bPathExists = NavSys->TestPathSync(Query, EPathFindingMode::Hierarchical);
 			}
 
-			if (Result.IsSuccessful() || Result.IsPartial())
-			{
-				CurrentGoal = NavMeshGoalLocation;
-				SetPath(Result.Path);
+			UE_VLOG(GetOwner(), LogAINavigation, Log, TEXT("GeneratePathTo: out of nodes, HPA* path: %s"),
+				bPathExists ? TEXT("exists, trying reversed search") : TEXT("doesn't exist"));
 
-				if (IsFollowing() == true)
-				{
-					// make sure ticking is enabled (and it shouldn't be enabled before _first_ async path finding)
-					//SetComponentTickEnabledAsync(true);
-					Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
-				}
-
-				// NotifyPathUpdate();
-				return true;
-			}
-			else
+			// reverse search
+			if (bPathExists)
 			{
-				UE_VLOG(GetOwner(), LogAINavigation, Display, TEXT("Failed to generate path to destination"));
+				DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Pathfinding: reversed test time"), STAT_Navigation_PathReverseTime, STATGROUP_Navigation);
+
+				TSharedPtr<FNavigationQueryFilter> Filter = QueryFilter.IsValid() ? QueryFilter->GetCopy() : MyNavData->GetDefaultQueryFilter()->GetCopy();					
+				Filter->SetBacktrackingEnabled(true);
+
+				FPathFindingQuery ReversedQuery(GetOwner(), MyNavData, Query.EndLocation, Query.StartLocation, Filter);
+				ReversedQuery.NavDataFlags = NavDataFlags;
+
+				Result = NavSys->FindPathSync(MyNavAgent->GetNavAgentProperties(), Query, Mode);
 			}
+		}
+
+		if (Result.IsSuccessful() || Result.IsPartial())
+		{
+			CurrentGoal = NavMeshGoalLocation;
+			SetPath(Result.Path);
+
+			if (IsFollowing() == true)
+			{
+				// make sure ticking is enabled (and it shouldn't be enabled before _first_ async path finding)
+				//SetComponentTickEnabledAsync(true);
+				Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
+			}
+
+			// NotifyPathUpdate();
+			return true;
 		}
 		else
 		{
-			UE_VLOG(GetOwner(), LogAINavigation, Display, TEXT("Destination not on navmesh (and nowhere near!)"));
+			UE_VLOG(GetOwner(), LogAINavigation, Display, TEXT("Failed to generate path to destination"));
 		}
 	}
 	else
 	{
-		UE_VLOG(GetOwner(), LogAINavigation, Display, TEXT("UNavigationComponent::GeneratePathTo: NavAgentProps == NULL (Probably Pawn died)"));
+		UE_VLOG(GetOwner(), LogAINavigation, Display, TEXT("Destination not on navmesh (and nowhere near!)"));
 	}
 
 	return false;
@@ -455,7 +440,7 @@ bool UNavigationComponent::GeneratePath(const FVector& FromLocation, const FVect
 	FPathFindingQuery Query(GetOwner(), GetNavData(), FromLocation, NavMeshGoalLocation.Location, QueryFilter);
 	Query.NavDataFlags = NavDataFlags;
 
-	FPathFindingResult Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
+	FPathFindingResult Result = NavSys->FindPathSync(MyNavAgent->GetNavAgentProperties(), Query, Mode);
 	if (Result.IsSuccessful() || Result.IsPartial())
 	{
 		CurrentGoal = NavMeshGoalLocation.Location;
@@ -834,16 +819,13 @@ ANavigationData* UNavigationComponent::PickNavData() const
 
 	if (GetWorld() != NULL && GetWorld()->GetNavigationSystem() != NULL && MyNavAgent != NULL)
 	{
-		const FNavAgentProperties* MoveProps = MyNavAgent->GetNavAgentProperties();
+		const FNavAgentProperties& MoveProps = MyNavAgent->GetNavAgentProperties();
 
 		// Make sure any previous registration for the event is cleared.
 		GetWorld()->GetNavigationSystem()->OnNavDataRegisteredEvent.RemoveDynamic(this, &UNavigationComponent::OnNavDataRegistered);
 		
-		if (MoveProps != NULL)
-		{
-			// cache it
-			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(*MoveProps);
-		}
+		// cache it
+		MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(MoveProps);
 
 		if (MyNavData == NULL)
 		{	// Failed to pick it, so register to try again.
@@ -862,11 +844,10 @@ void UNavigationComponent::CacheNavQueryExtent() const
 	NavigationQueryExtent = MyNavData ? MyNavData->GetDefaultQueryExtent() : FVector(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL);
 	if (MyNavAgent)
 	{
-		const FNavAgentProperties* AgentProperties = MyNavAgent->GetNavAgentProperties();
-		check(AgentProperties);
-		NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
-			, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
-			, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
+		const FNavAgentProperties& AgentProperties = MyNavAgent->GetNavAgentProperties();
+		NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties.AgentRadius)
+			, FMath::Max(NavigationQueryExtent.Y, AgentProperties.AgentRadius)
+			, FMath::Max(NavigationQueryExtent.Z, AgentProperties.AgentHeight / 2));
 	}
 }
 
@@ -930,7 +911,7 @@ void UNavigationComponent::OnCustomLinkBroadcast(UNavLinkCustomComponent* Nearby
 	FPathFindingQuery Query(GetOwner(), GetNavData(), MyNavAgent->GetNavAgentLocation(), GoalLocation, StoredQueryFilter);
 	Query.NavDataFlags = NavDataFlags;
 
-	FPathFindingResult Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
+	FPathFindingResult Result = NavSys->FindPathSync(MyNavAgent->GetNavAgentProperties(), Query, Mode);
 	if (Result.IsSuccessful() || Result.IsPartial())
 	{
 		const bool bNewHasLink = Result.Path->ContainsCustomLink(NearbyLink->GetLinkId());
