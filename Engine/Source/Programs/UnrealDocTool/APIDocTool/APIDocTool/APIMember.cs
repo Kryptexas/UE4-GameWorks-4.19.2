@@ -192,6 +192,28 @@ namespace APIDocTool
 			return Markdown.ParseXml(Node, Indent, ResolveDoxygenLink);
 		}
 
+		public static string RemoveElaborations(string Definition)
+		{
+			string Text = Definition;
+			if (Text.StartsWith("class "))
+			{
+				Text = Text.Substring(6);
+			}
+			else if (Text.StartsWith("const class "))
+			{
+				Text = "const " + Text.Substring(12);
+			}
+			else if (Text.StartsWith("struct "))
+			{
+				Text = Text.Substring(7);
+			}
+			else if (Text.StartsWith("const struct "))
+			{
+				Text = "const " + Text.Substring(13);
+			}
+			return Text;
+		}
+
 		public static string ResolveDoxygenLink(string RefId)
 		{
 			APIMember Member = ResolveRefLink(RefId);

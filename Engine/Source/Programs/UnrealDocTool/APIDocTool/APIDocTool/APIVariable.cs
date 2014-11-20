@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.IO;
+using DoxygenLib;
 
 namespace APIDocTool
 {
@@ -15,8 +16,9 @@ namespace APIDocTool
 		public readonly XmlNode Node;
 		public readonly APIProtection Protection;
 
-        public Boolean Mutable;
-        public String Bitfield = "";
+        public bool Mutable;
+        public string Bitfield = "";
+		public string ArgsString = "";
 
 		public string BriefDescription = "";
 		public string FullDescription = "";
@@ -26,6 +28,8 @@ namespace APIDocTool
 		public string Definition = "";
 
 		public string Type = "";
+		public string IsolatedType = "";
+		public string AbbreviatedType = "";
 
 		public bool IsMutable = false;
 		public bool IsStatic = false;
@@ -52,7 +56,13 @@ namespace APIDocTool
 
 			ParseBriefAndFullDescription(Node, out BriefDescription, out FullDescription);
 
-			GetModifiers();
+            XmlNode BitfieldNode = Node.SelectSingleNode("bitfield");
+            if (BitfieldNode != null)
+            {
+                Bitfield = BitfieldNode.InnerText;
+            }
+			IsMutable = Node.Attributes.GetNamedItem("mutable").InnerText == "yes";
+			IsStatic = Node.Attributes.GetNamedItem("static").InnerText == "yes";
 
 			XmlNode DefNode = Node.SelectSingleNode("definition");
 			if (DefNode != null)
@@ -61,7 +71,24 @@ namespace APIDocTool
 			}
 
 			XmlNode type = Node.SelectSingleNode("type");
-			Type = ConvertToMarkdown(type);
+			Type = APIMember.RemoveElaborations(ConvertToMarkdown(type));
+
+			XmlNode ArgsStringNode = Node.SelectSingleNode("argsstring");
+			if(ArgsStringNode != null)
+			{
+				ArgsString = ConvertToMarkdown(ArgsStringNode);
+			}
+
+			IsolatedType = Type;
+			if(!String.IsNullOrEmpty(ArgsString))
+			{
+				IsolatedType += ArgsString;
+			}
+			if(!String.IsNullOrEmpty(Bitfield))
+			{
+				IsolatedType += ": " + Bitfield;
+			}
+			AbbreviatedType = Markdown.Truncate(IsolatedType, 15, "...");
 
 			XmlNodeList SimpleNodes = Node.SelectNodes("detaileddescription/para/simplesect");
 			foreach (XmlNode node in SimpleNodes)
@@ -74,17 +101,6 @@ namespace APIDocTool
 				}
 			}
 		}
-
-        public void GetModifiers()
-        {
-            XmlNode BitfieldNode = Node.SelectSingleNode("bitfield");
-            if (BitfieldNode != null)
-            {
-                Bitfield = BitfieldNode.InnerText;
-            }
-			IsMutable = Node.Attributes.GetNamedItem("mutable").InnerText == "yes";
-			IsStatic = Node.Attributes.GetNamedItem("static").InnerText == "yes";
-        }
 
 		private void WriteDefinition(UdnWriter Writer)
 		{
@@ -100,6 +116,7 @@ namespace APIDocTool
 			if (IsMutable) Definition.Append("mutable ");
 			Definition.Append(Type + " " + Name);
 			if (Bitfield != "") Definition.Append(": " + Bitfield);
+			if (ArgsString != "") Definition.Append(ArgsString);
 			Definition.Append("  ");
 			Lines.Add(Definition.ToString());
 
@@ -139,8 +156,19 @@ namespace APIDocTool
 			}
         }
 
-		public UdnIconListItem GetListItem()
+		public override bool ShouldOutputPage()
 		{
+			return (BriefDescription != FullDescription || IsolatedType != AbbreviatedType);
+		}
+
+		public void WriteListItem(UdnWriter Writer)
+		{
+			bool OutputPage = ShouldOutputPage();
+
+			// Enter the object
+			Writer.EnterObject(OutputPage? "VariableListItem" : "VariableListItemNoLink");
+
+			// Get all the icons
 			List<Icon> Icons = new List<Icon>();
 			Icons.Add(APIDocTool.Icons.Variable[(int)Protection]);
 			if (IsStatic)
@@ -152,7 +180,42 @@ namespace APIDocTool
 				Icons.Add(APIDocTool.Icons.ReflectedVariable);
 				Icons.AddRange(MetadataDirective.Icons);
 			}
-			return new UdnIconListItem(Icons, Name, BriefDescription, LinkPath);
+			Writer.WriteParam("icons", Icons);
+
+			// Write the type
+			Writer.WriteParam("type", AbbreviatedType);
+			Writer.WriteParam("name", Name);
+			if(OutputPage)
+			{
+				Writer.WriteParam("link", "[RELATIVE:" + LinkPath + "]");
+			}
+			Writer.WriteParam("description", BriefDescription);
+
+			// Leave the object
+			Writer.LeaveObject();
+		}
+		
+		public static void WriteList(UdnWriter Writer, IEnumerable<APIVariable> Variables)
+		{
+			Writer.WriteObject("VariableListHead");
+			foreach (APIVariable Variable in Variables)
+			{
+				Variable.WriteListItem(Writer);
+			}
+			Writer.WriteObject("VariableListTail");
+		}
+
+		public static bool WriteListSection(UdnWriter Writer, string SectionId, string SectionTitle, IEnumerable<APIVariable> Variables)
+		{
+			APIVariable[] VariableArray = Variables.ToArray();
+			if (VariableArray.Length > 0)
+			{
+				Writer.EnterSection(SectionId, SectionTitle);
+				WriteList(Writer, Variables);
+				Writer.LeaveSection();
+				return true;
+			}
+			return false;
 		}
 	}
 }

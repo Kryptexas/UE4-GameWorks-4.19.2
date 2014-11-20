@@ -392,10 +392,10 @@ namespace APIDocTool
 				}
 
 				// Write all the variables
-				Writer.WriteListSection("variables", "Variables", "Name", "Description", Children.OfType<APIVariable>().Where(x => x.Protection != APIProtection.Private && !x.IsDeprecated()).OrderBy(x => x.Name).Select(x => x.GetListItem()));
+				APIVariable.WriteListSection(Writer, "variables", "Variables", Children.OfType<APIVariable>().Where(x => x.Protection != APIProtection.Private && !x.IsDeprecated()).OrderBy(x => x.Name));
 
 				// Write all the constructors
-				if (!APIFunction.WriteListSection(Writer, "constructor", "Constructors", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Constructor).OrderBy(x => x.LinkPath)) && HasAnyPrivateFunction(Name))
+				if (!APIFunction.WriteListSection(Writer, "constructor", "Constructors", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Constructor).OrderBy(x => x.LinkPath), false) && HasAnyPrivateFunction(Name))
 				{
 					Writer.EnterSection("constructor", "Constructors");
 					Writer.WriteLine("No constructors are accessible with public or protected access.");
@@ -403,7 +403,7 @@ namespace APIDocTool
 				}
 
 				// Write all the destructors
-				if (!APIFunction.WriteListSection(Writer, "destructor", "Destructors", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Destructor)) && HasAnyPrivateFunction("~" + Name))
+				if (!APIFunction.WriteListSection(Writer, "destructor", "Destructors", AllFunctions.Where(x => x.FunctionType == APIFunctionType.Destructor), false) && HasAnyPrivateFunction("~" + Name))
 				{
 					Writer.EnterSection("destructors", "Destructors");
 					Writer.WriteLine("No destructors are accessible with public or protected access.");
@@ -430,12 +430,12 @@ namespace APIDocTool
 					{
 						string Id = String.Format("functions_{0}", Idx);
 						string Label = (Idx == 0) ? "Functions" : String.Format("Overridden from {0}", AllBaseRecords[Idx].Name);
-						APIFunction.WriteListSection(Writer, Id, Label, AllBaseFunctions[Idx]);
+						APIFunction.WriteListSection(Writer, Id, Label, AllBaseFunctions[Idx], true);
 					}
 				}
 
 				// Write the operator list
-				APIFunction.WriteListSection(Writer, "operators", "Operators", AllFunctions.Where(x => x.FunctionType == APIFunctionType.UnaryOperator || x.FunctionType == APIFunctionType.BinaryOperator));
+				APIFunction.WriteListSection(Writer, "operators", "Operators", AllFunctions.Where(x => x.FunctionType == APIFunctionType.UnaryOperator || x.FunctionType == APIFunctionType.BinaryOperator), true);
 
 				// Write all the inner structures
 				Writer.WriteListSection("classes", "Classes", "Name", "Description", Children.OfType<APIRecord>().Where(x => x.Protection != APIProtection.Private).OrderBy(x => x.Name).Select(x => x.GetListItem()));

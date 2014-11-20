@@ -157,11 +157,11 @@ namespace APIDocTool
 			Pages.AddRange(Children);
 		}
 
-		public override SitemapNode CreateSitemapNode()
+		public override IEnumerable<SitemapNode> CreateSitemapNodes()
 		{
 			SitemapNode Node = new SitemapNode(Name, SitemapLinkPath);
-			Node.Children.AddRange(Children.OrderBy(x => x.Name).Select(x => x.CreateSitemapNode()));
-			return Node;
+			Node.Children.AddRange(Children.OrderBy(x => x.Name).SelectMany(x => x.CreateSitemapNodes()));
+			yield return Node;
 		}
 
 		public override void AddToManifest(UdnManifest Manifest)
