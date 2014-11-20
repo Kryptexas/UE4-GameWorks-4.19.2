@@ -293,22 +293,37 @@ void FAggregatorRef::TakeSnapshotOf(const FAggregatorRef& RefToSnapshot)
 
 int32 FScopedAggregatorOnDirtyBatch::GlobalBatchCount = 0;
 TSet<FAggregator*> FScopedAggregatorOnDirtyBatch::DirtyAggregators;
+bool FScopedAggregatorOnDirtyBatch::GlobalFromNetworkUpdate = false;
+int32 FScopedAggregatorOnDirtyBatch::NetUpdateID = 1;
 
 FScopedAggregatorOnDirtyBatch::FScopedAggregatorOnDirtyBatch()
 {
-	GlobalBatchCount++;
+	BeginLock();
 }
 
 FScopedAggregatorOnDirtyBatch::~FScopedAggregatorOnDirtyBatch()
 {
+	EndLock(false);
+}
+
+void FScopedAggregatorOnDirtyBatch::BeginLock()
+{
+	GlobalBatchCount++;
+}
+void FScopedAggregatorOnDirtyBatch::EndLock(bool FromNetworkUpdate)
+{
 	GlobalBatchCount--;
 	if (GlobalBatchCount == 0)
 	{
+		if (FromNetworkUpdate)
+			NetUpdateID++;
+
+		GlobalFromNetworkUpdate = FromNetworkUpdate;
 		for (FAggregator* Agg : DirtyAggregators)
 		{
 			Agg->BroadcastOnDirty();
-
 		}
 		DirtyAggregators.Empty();
+		GlobalFromNetworkUpdate = false;
 	}
 }

@@ -38,7 +38,7 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 {
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAggregatorDirty, FAggregator*);
 
-	FAggregator(float InBaseValue=0.f) : BaseValue(InBaseValue), IsBroadcastingDirty(false), NumPredictiveMods(0) { }
+	FAggregator(float InBaseValue=0.f) : BaseValue(InBaseValue), NetUpdateID(0), IsBroadcastingDirty(false), NumPredictiveMods(0) { }
 
 	/** Simple accessor to base value */
 	float GetBaseValue() const;
@@ -70,6 +70,9 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	void AddDependant(FActiveGameplayEffectHandle Handle);
 
 	bool HasPredictedMods() const;
+	
+	/** NetworkID that we had our last update from. Will only be set on clients and is only used to ensure we dont recompute server base value twice. */
+	int32 NetUpdateID;
 
 private:
 
@@ -114,6 +117,12 @@ struct GAMEPLAYABILITIES_API FScopedAggregatorOnDirtyBatch
 	FScopedAggregatorOnDirtyBatch();
 	~FScopedAggregatorOnDirtyBatch();
 
+	static void BeginLock();
+	static void EndLock(bool FromNetworkUpdate);
+
 	static int32	GlobalBatchCount;
 	static TSet<FAggregator*>	DirtyAggregators;
+
+	static bool		GlobalFromNetworkUpdate;
+	static int32	NetUpdateID;
 };

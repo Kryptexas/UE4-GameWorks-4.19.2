@@ -131,6 +131,10 @@ public:
 
 	virtual void PrintDebug();
 
+	virtual void PreNetReceive();
+	
+	virtual void PostNetReceive();
+
 protected:
 	/** Is this attribute set safe to ID over the network by name?  */
 	uint32 bNetAddressable : 1;

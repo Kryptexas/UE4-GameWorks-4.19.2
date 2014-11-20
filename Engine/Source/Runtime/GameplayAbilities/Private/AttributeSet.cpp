@@ -104,6 +104,16 @@ void UAttributeSet::PrintDebug()
 	
 }
 
+void UAttributeSet::PreNetReceive()
+{
+	FScopedAggregatorOnDirtyBatch::BeginLock();
+}
+	
+void UAttributeSet::PostNetReceive()
+{
+	FScopedAggregatorOnDirtyBatch::EndLock(true);
+}
+
 FAttributeMetaData::FAttributeMetaData()
 	: MinValue(0.f)
 	, MaxValue(1.f)

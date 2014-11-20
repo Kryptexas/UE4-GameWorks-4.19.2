@@ -1083,7 +1083,6 @@ FAggregatorRef& FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregator
 	return AttributeAggregatorMap.Add(Attribute, FAggregatorRef(NewAttributeAggregator));
 }
 
-// Move this to UAttributeComponent?
 void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute)
 {
 	ABILITY_LOG_SCOPE(TEXT("FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty"));
@@ -1098,18 +1097,37 @@ void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Ag
 
 	if (Owner->IsNetSimulating())
 	{
-		// We are a client. The current value of this attribute is the replicated server's "final" value. We dont actually know what the 
-		// server's base value is. But we can calculate it with ReverseEvaluate(). Then, we can call Evaluate with IncludePredictiveMods=true
-		// to apply our mods and get an accurate predicted value.
-		
-		float FinalValue = Owner->GetNumericAttribute(Attribute);
-		float BaseValue = Aggregator->ReverseEvaluate(FinalValue, EvaluationParameters);
-		Aggregator->SetBaseValue(BaseValue, false);
+		if (FScopedAggregatorOnDirtyBatch::GlobalFromNetworkUpdate && Aggregator->NetUpdateID != FScopedAggregatorOnDirtyBatch::NetUpdateID)
+		{
+			// We are a client. The current value of this attribute is the replicated server's "final" value. We dont actually know what the 
+			// server's base value is. But we can calculate it with ReverseEvaluate(). Then, we can call Evaluate with IncludePredictiveMods=true
+			// to apply our mods and get an accurate predicted value.
+			// 
+			// It is very important that we only do this exactly one time when we get a new value from the server. Once we set the new local value for this
+			// attribute below, recalculating the base would give us the wrong server value. We should only do this when we are coming directly from a network update.
+			// 
+			// Unfortunately there are two ways we could get here from a network update: from the ActiveGameplayEffect container being updated or from a traditional
+			// OnRep on the actual attribute uproperty. Both of these could happen in a single network update, or potentially only one could happen
+			// (and in fact it could be either one! the AGE container could change in a way that doesnt change the final attribute value, or we could have the base value
+			// of the attribute actually be modified (e.g,. losing health or mana which only results in an OnRep and not in a AGE being applied).
+			// 
+			// So both paths need to lead to this function, but we should only do it one time per update. Once we update the base value, we need to make sure we dont do it again
+			// until we get a new network update. GlobalFromNetworkUpdate and NetUpdateID are what do this.
+			// 
+			// GlobalFromNetworkUpdate - only set to true when we are coming from an OnRep or when we are coming from an ActiveGameplayEffect container net update.
+			// NetUpdateID - updated once whenever an AttributeSet is received over the network. It will be incremented one time per actor that gets an update.
+					
+
+			float FinalValue = Owner->GetNumericAttribute(Attribute);
+			float BaseValue = Aggregator->ReverseEvaluate(FinalValue, EvaluationParameters);
+			Aggregator->SetBaseValue(BaseValue, false);
+			Aggregator->NetUpdateID = FScopedAggregatorOnDirtyBatch::NetUpdateID;
+
+			ABILITY_LOG(Log, TEXT("Reverse Evaluated %s. FinalValue: %.2f  BaseValue: %.2f "), *Attribute.GetName(), FinalValue, BaseValue);
+		}
 
 		EvaluationParameters.IncludePredictiveMods = true;
-		ABILITY_LOG(Log, TEXT("Reverse Evaluated %s. FinalValue: %.2f  BaseValue: %.2f "), *Attribute.GetName(), FinalValue, BaseValue);
 	}
-	
 	
 	float NewValue = Aggregator->Evaluate(EvaluationParameters);
 
@@ -1186,10 +1204,10 @@ void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGame
 	if (RefPtr && RefPtr->Get())
 	{
 		FAggregator* Aggregator =  RefPtr->Get();
-		if (Aggregator->HasPredictedMods())
-		{
-			OnAttributeAggregatorDirty(Aggregator, Attribute);
-		}
+		
+		FScopedAggregatorOnDirtyBatch::GlobalFromNetworkUpdate = true;
+		OnAttributeAggregatorDirty(Aggregator, Attribute);
+		FScopedAggregatorOnDirtyBatch::GlobalFromNetworkUpdate = false;
 	}
 }
 
