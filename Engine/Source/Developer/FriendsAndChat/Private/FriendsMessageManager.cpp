@@ -289,20 +289,18 @@ private:
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
 		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
+		// Ignore messages from unknown people
 		if(FoundFriend.IsValid())
 		{
 			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());
 			ChatItem->SenderId = FoundFriend->GetUniqueID();
+			ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
+			ChatItem->MessageType = EChatMessageType::Whisper;
+			ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp());
+			ChatItem->bIsFromSelf = false;
+			ChatItem->MessageRef = ChatMessage;
+			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 		}
-		else
-		{
-			ChatItem->FromName = FText::FromString("Unknown");
-		}
-		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
-		ChatItem->MessageType = EChatMessageType::Whisper;
-		ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp());
-		ChatItem->bIsFromSelf = false;
-		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 	}
 
 	void OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)

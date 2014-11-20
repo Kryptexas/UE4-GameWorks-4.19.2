@@ -68,7 +68,7 @@ public:
 	/**
 	 * Record a game invite event
  	 */
-	void RecordGameInvite(const IFriendItem& Friend, const FString& EventStr) const;
+	void RecordGameInvite(const FUniqueNetId& ToUser, const FString& EventStr) const;
 	/**
 	 * Record a friend action event
 	 */
@@ -257,6 +257,13 @@ public:
 	 * @param FriendItem friend to send game invite to
 	 */
 	void SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
+
+	/**
+	* Send a game invite to a user by id
+	*
+	* @param UserId user to send game invite to
+	*/
+	void SendGameInvite(const FUniqueNetId& ToUser);
 
 	/** Send a game invite notification. */
 	void SendGameInviteNotification(const TSharedPtr<IFriendItem>& FriendItem);

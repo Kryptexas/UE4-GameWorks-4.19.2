@@ -1275,7 +1275,7 @@ void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& Fri
 	// update game invite UI
 	OnGameInvitesUpdated().Broadcast();
 
-	Analytics.RecordGameInvite(*FriendItem, TEXT("Social.GameInvite.Reject"));
+	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Reject"));
 }
 
 void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
@@ -1291,10 +1291,15 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	// notify for further processing of join game request 
 	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), FriendItem->GetGameSessionId());
 
-	Analytics.RecordGameInvite(*FriendItem, TEXT("Social.GameInvite.Accept"));
+	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
 }
 
 void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
+{
+	SendGameInvite(*FriendItem->GetUniqueID());
+}
+
+void FFriendsAndChatManager::SendGameInvite(const FUniqueNetId& ToUser)
 {
 	if (OnlineSubMcp != nullptr &&
 		OnlineIdentity.IsValid() &&
@@ -1304,9 +1309,9 @@ void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& Frien
 		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 		if (UserId.IsValid())
 		{
-			OnlineSubMcp->GetSessionInterface()->SendSessionInviteToFriend(*UserId, GameSessionName, *FriendItem->GetUniqueID());
-			
-			Analytics.RecordGameInvite(*FriendItem, TEXT("Social.GameInvite.Send"));
+			OnlineSubMcp->GetSessionInterface()->SendSessionInviteToFriend(*UserId, GameSessionName, ToUser);
+
+			Analytics.RecordGameInvite(ToUser, TEXT("Social.GameInvite.Send"));
 		}
 	}
 }
@@ -1379,7 +1384,7 @@ void FFriendsAndChatManager::AddFriendsToast(const FText Message)
 
 // Analytics
 
-void FFriendsAndChatAnalytics::RecordGameInvite(const IFriendItem& Friend, const FString& EventStr) const
+void FFriendsAndChatAnalytics::RecordGameInvite(const FUniqueNetId& ToUser, const FString& EventStr) const
 {
 	if (Provider.IsValid())
 	{
@@ -1391,7 +1396,7 @@ void FFriendsAndChatAnalytics::RecordGameInvite(const IFriendItem& Friend, const
 			{
 				TArray<FAnalyticsEventAttribute> Attributes;
 				Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), UserId->ToString()));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), Friend.GetUniqueID()->ToString()));
+				Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), ToUser.ToString()));
 				AddPresenceAttributes(*UserId, Attributes);
 				Provider->RecordEvent(EventStr, Attributes);
 			}
