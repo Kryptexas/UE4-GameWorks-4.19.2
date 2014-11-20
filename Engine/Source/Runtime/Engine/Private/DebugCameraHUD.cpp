@@ -15,7 +15,7 @@ static TAutoConsoleVariable<int32> CVarDebugCameraTraceComplex(
 	TEXT("g.DebugCameraTraceComplex"),
 	1,
 	TEXT("Whether DebugCamera should use complex or simple collision for the line trace.\n")
-	TEXT("1: complex collision, 0: simple collision "),
+	TEXT("1: complex collision, 0: simple collision"),
 	ECVF_Cheat);
 #endif
 // ------------------

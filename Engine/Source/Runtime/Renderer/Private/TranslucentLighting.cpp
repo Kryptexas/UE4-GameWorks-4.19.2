@@ -39,7 +39,7 @@ float GTranslucentVolumeFOVSnapFactor = 10;
 static FAutoConsoleVariableRef CTranslucentVolumeFOVSnapFactor(
 	TEXT("r.TranslucentVolumeFOVSnapFactor"),
 	GTranslucentVolumeFOVSnapFactor,
-	TEXT("FOV will be snapped to a factor of this before computing volume bounds. "),
+	TEXT("FOV will be snapped to a factor of this before computing volume bounds."),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 

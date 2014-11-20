@@ -14,6 +14,31 @@ DEFINE_LOG_CATEGORY_STATIC(LogConsoleManager, Log, All);
 
 static inline bool IsWhiteSpace(TCHAR Value) { return Value == TCHAR(' '); }
 
+// @param In must not be 0
+bool IsGoodHelpString(const TCHAR* In)
+{
+	check(In);
+
+	if(*In == 0)
+	{
+		return false;
+	}
+
+	bool bGoodEndChar = true;
+
+	while(TCHAR c = *In++)
+	{
+		bGoodEndChar = true;
+
+		if(c == L'\n' || c == L'\t' || c == L' ' || c == L'\r')
+		{
+			bGoodEndChar = false;
+		}
+	}
+
+	return bGoodEndChar;
+}
+
 // Get human readable string
 // @return never 0
 static const TCHAR* GetSetByTCHAR(EConsoleVariableFlags InSetBy)
@@ -47,10 +72,9 @@ public:
 	 * @param InHelp must not be 0, must not be empty
 	 */
 	FConsoleVariableBase(const TCHAR* InHelp, EConsoleVariableFlags InFlags)
-		:Help(InHelp), Flags(InFlags), bWarnedAboutThreadSafety(false)
+		:Flags(InFlags), bWarnedAboutThreadSafety(false)
 	{
-		check(InHelp);
-		//check(*Help != 0); for now disabled as there callstack when we crash early during engine init
+		SetHelp(InHelp);
 	}
 
 	// interface IConsoleVariable -----------------------------------
@@ -62,9 +86,11 @@ public:
 	virtual void SetHelp(const TCHAR* Value)
 	{
 		check(Value);
-		//check(*Value != 0);
 
 		Help = Value;
+
+		// for now disabled as there is no good callstack when we crash early during engine init
+//		ensure(IsGoodHelpString(Value));
 	}
 	virtual EConsoleVariableFlags GetFlags() const
 	{
@@ -164,8 +190,6 @@ protected: // -----------------------------------------
 		return 0;
 	}
 };
-
-
 
 class FConsoleCommandBase : public IConsoleCommand
 {
@@ -942,7 +966,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		TArray< FString > Args;
 		FString( It ).ParseIntoArrayWS( &Args );
 
-		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?") ? true : false;
+		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?");
 		if( bShowHelp )
 		{
 			// get help
@@ -959,10 +983,11 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 	{
 		// Process variable
 
+		bool bShowCurrentState = false;
+
 		if(*It == 0)
 		{
-			// get current state
-			Ar.Logf(TEXT("%s = \"%s\"      LastSetBy: %s"), *Param1, *CVar->GetString(), GetSetByTCHAR(CVar->GetFlags()));
+			bShowCurrentState = true;
 		}
 		else
 		{
@@ -982,6 +1007,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 			{
 				// get help
 				Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
+				bShowCurrentState = true;
 			}
 			else
 			{
@@ -999,6 +1025,11 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 					CallAllConsoleVariableSinks();
 				}
 			}
+		}
+
+		if(bShowCurrentState)
+		{
+			Ar.Logf(TEXT("%s = \"%s\"      LastSetBy: %s"), *Param1, *CVar->GetString(), GetSetByTCHAR(CVar->GetFlags()));
 		}
 	}
 

@@ -8,7 +8,7 @@
 
 #include "RenderingCompositionGraph.h"
 
-// ePId_Input0: SceneColor
+// ePId_Input0: SceneColor (not needed for DBuffer decals)
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 class FRCPassPostProcessDeferredDecals : public TRenderingCompositePassBase<1, 1>
 {

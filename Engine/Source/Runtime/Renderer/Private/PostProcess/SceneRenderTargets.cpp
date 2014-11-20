@@ -77,7 +77,7 @@ static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
 	TEXT("1: Use Temporal AA (MSAA disabled)\n")
 	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
-	TEXT("4: Use 4x MSAA (Temporal AA disabled)\n"),
+	TEXT("4: Use 4x MSAA (Temporal AA disabled)"),
 	ECVF_RenderThreadSafe
 	);
 

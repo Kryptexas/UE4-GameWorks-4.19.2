@@ -82,7 +82,7 @@ static TAutoConsoleVariable<int32> CVarLightShaftQuality(
 	1,
 	TEXT("Defines the light shaft quality.\n")
 	TEXT("  0: off\n")
-	TEXT("  1: on (default)\n"),
+	TEXT("  1: on (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
@@ -1176,7 +1176,7 @@ static TAutoConsoleVariable<int32> CVarParallelInitViews(
 #else
 	1,  
 #endif
-	TEXT("Toggles parallel init views.\n"),
+	TEXT("Toggles parallel init views."),
 	ECVF_RenderThreadSafe
 	);
 
@@ -1835,7 +1835,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 static TAutoConsoleVariable<int32> CVarLegacySingleThreadedRelevance(
 	TEXT("r.LegacySingleThreadedRelevance"),
 	0,  
-	TEXT("Toggles the lgacy codepath for view relevance.\n"),
+	TEXT("Toggles the legacy codepath for view relevance."),
 	ECVF_RenderThreadSafe
 	);
 

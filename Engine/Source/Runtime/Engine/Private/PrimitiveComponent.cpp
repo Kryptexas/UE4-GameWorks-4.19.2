@@ -37,8 +37,10 @@
 DEFINE_LOG_CATEGORY_STATIC(LogPrimitiveComponent, Log, All);
 
 static FAutoConsoleVariable CVarAllowCachedOverlaps(
-	TEXT("AllowCachedOverlaps"), 1,
-	TEXT("0: disable cached overlaps, 1: enable\n"));
+	TEXT("p.AllowCachedOverlaps"), 
+	1,
+	TEXT("Primitive Component physics\n")
+	TEXT("0: disable cached overlaps, 1: enable (default)"));
 
 static TAutoConsoleVariable<float> CVarInitialOverlapTolerance(
 	TEXT("p.InitialOverlapTolerance"),

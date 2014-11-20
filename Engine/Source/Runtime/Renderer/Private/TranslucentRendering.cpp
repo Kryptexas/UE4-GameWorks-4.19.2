@@ -887,7 +887,7 @@ public:
 static TAutoConsoleVariable<int32> CVarRHICmdTranslucencyPassDeferredContexts(
 	TEXT("r.RHICmdTranslucencyPassDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize base pass command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize base pass command list execution."));
 
 void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListImmediate& RHICmdList)
 {
@@ -999,7 +999,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 static TAutoConsoleVariable<int32> CVarParallelTranslucency(
 	TEXT("r.ParallelTranslucency"),
 	1,
-	TEXT("Toggles parallel translucency rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	TEXT("Toggles parallel translucency rendering. Parallel rendering must be enabled for this to have an effect."),
 	ECVF_RenderThreadSafe
 	);
 

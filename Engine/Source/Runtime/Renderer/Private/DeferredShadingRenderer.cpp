@@ -28,7 +28,7 @@ TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("  0: off\n")
 	TEXT("  1: only if not masked, and only if large on the screen\n")
 	TEXT("  2: all opaque (including masked)\n")
-	TEXT("  x: use built in heuristic (default is 3)\n"),
+	TEXT("  x: use built in heuristic (default is 3)"),
 	ECVF_Default);
 
 
@@ -532,7 +532,7 @@ public:
 static TAutoConsoleVariable<int32> CVarRHICmdBasePassDeferredContexts(
 	TEXT("r.RHICmdBasePassDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize base pass command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize base pass command list execution."));
 
 void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty)
 {
@@ -1248,7 +1248,7 @@ public:
 static TAutoConsoleVariable<int32> CVarRHICmdPrePassDeferredContexts(
 	TEXT("r.RHICmdPrePassDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize prepass command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize prepass command list execution."));
 
 void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty)
 {

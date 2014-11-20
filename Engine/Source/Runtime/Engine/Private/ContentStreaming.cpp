@@ -150,7 +150,7 @@ static TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize(
 static TAutoConsoleVariable<int32> CVarStreamingPoolSize(
 	TEXT("r.Streaming.PoolSize"),
 	-1,
-	TEXT("-1: Default texture pool size, otherwise the size in MB\n"),
+	TEXT("-1: Default texture pool size, otherwise the size in MB"),
 	ECVF_Scalability);
 
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */

@@ -38,7 +38,7 @@ static TAutoConsoleVariable<int32> CVarRHICmdBypass(
 static TAutoConsoleVariable<int32> CVarRHICmdUseParallelAlgorithms(
 	TEXT("r.RHICmdUseParallelAlgorithms"),
 	1,
-	TEXT("True to use parallel algorithms. Ignored if r.RHICmdBypass is 1.\n"));
+	TEXT("True to use parallel algorithms. Ignored if r.RHICmdBypass is 1."));
 
 TAutoConsoleVariable<int32> CVarRHICmdWidth(
 	TEXT("r.RHICmdWidth"), 
@@ -49,11 +49,11 @@ TAutoConsoleVariable<int32> CVarRHICmdWidth(
 static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
 	TEXT("r.RHICmdUseDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize command list execution."));
 static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
 	TEXT("r.RHIDeferredContextWidth"),
 	99999,
-	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list.\n"));
+	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list."));
 #endif
 
 RHI_API FRHICommandListExecutor GRHICommandList;
