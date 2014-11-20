@@ -21,5 +21,9 @@ public class MikkTSpace : ModuleRules
 			PublicLibraryPaths.Add(MikkTSpacePath + "lib/x86/");
 			PublicAdditionalLibraries.Add("MikkTSpace.lib");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PublicAdditionalLibraries.Add(MikkTSpacePath + "/lib/Linux/" + Target.Architecture + "/libMikkTSpace.a");
+		}
 	}
 }
