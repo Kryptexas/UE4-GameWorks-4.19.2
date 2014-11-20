@@ -427,12 +427,16 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			{
 				DeviceType = IOS_IPadAir;
 			}
-
+		}
+		// iPad Air 2
+		else if (Major == 5)
+		{
+			DeviceType = IOS_IPadAir2;
 		}
 		// Default to highest settings currently available for any future device
-		else if (Major > 4)
+		else if (Major > 5)
 		{
-			DeviceType = IOS_IPadAir;
+			DeviceType = IOS_IPadAir2;
 		}
 	}
 	// iPhones
