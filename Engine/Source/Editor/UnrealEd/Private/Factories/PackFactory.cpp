@@ -145,12 +145,12 @@ namespace PackFactoryHelper
 		UInputSettings* InputSettingsCDO = GetMutableDefault<UInputSettings>();
 		bool bCheckedOut = false;
 
-		TArray<FInputActionKeyMapping> ActionMappingsToAdd;
-		TArray<FInputAxisKeyMapping> AxisMappingsToAdd;
-
 		FConfigSection* InputSettingsSection = PackConfig.Find("InputSettings");
 		if (InputSettingsSection)
 		{
+			TArray<FInputActionKeyMapping> ActionMappingsToAdd;
+			TArray<FInputAxisKeyMapping> AxisMappingsToAdd;
+
 			for (auto SettingPair : *InputSettingsSection)
 			{
 				struct FMatchMappingByName
@@ -193,32 +193,32 @@ namespace PackFactoryHelper
 						AxisMappingsToAdd.Add(AxisKeyMapping);
 					}
 				}
+			}
 
-				if (ActionMappingsToAdd.Num() > 0 || AxisMappingsToAdd.Num() > 0)
+			if (ActionMappingsToAdd.Num() > 0 || AxisMappingsToAdd.Num() > 0)
+			{
+				if (ISourceControlModule::Get().IsEnabled())
 				{
-					if (ISourceControlModule::Get().IsEnabled())
-					{
-						FText ErrorMessage;
+					FText ErrorMessage;
 
-						const FString InputSettingsFilename = FPaths::ConvertRelativePathToFull(InputSettingsCDO->GetDefaultConfigFilename());
-						if (!SourceControlHelpers::CheckoutOrMarkForAdd(InputSettingsFilename, FText::FromString(InputSettingsFilename), NULL, ErrorMessage))
-						{
-							UE_LOG(LogPackFactory, Error, TEXT("%s"), *ErrorMessage.ToString());
-						}
-					}
-
-					for (const FInputActionKeyMapping& ActionKeyMapping : ActionMappingsToAdd)
+					const FString InputSettingsFilename = FPaths::ConvertRelativePathToFull(InputSettingsCDO->GetDefaultConfigFilename());
+					if (!SourceControlHelpers::CheckoutOrMarkForAdd(InputSettingsFilename, FText::FromString(InputSettingsFilename), NULL, ErrorMessage))
 					{
-						InputSettingsCDO->ActionMappings.Add(ActionKeyMapping);
+						UE_LOG(LogPackFactory, Error, TEXT("%s"), *ErrorMessage.ToString());
 					}
-					for (const FInputAxisKeyMapping& AxisKeyMapping : AxisMappingsToAdd)
-					{
-						InputSettingsCDO->AxisMappings.Add(AxisKeyMapping);
-					}
-					
-					InputSettingsCDO->SaveKeyMappings();
-					InputSettingsCDO->UpdateDefaultConfigFile();
 				}
+
+				for (const FInputActionKeyMapping& ActionKeyMapping : ActionMappingsToAdd)
+				{
+					InputSettingsCDO->AddActionMapping(ActionKeyMapping);
+				}
+				for (const FInputAxisKeyMapping& AxisKeyMapping : AxisMappingsToAdd)
+				{
+					InputSettingsCDO->AddxisMapping(AxisKeyMapping);
+				}
+					
+				InputSettingsCDO->SaveKeyMappings();
+				InputSettingsCDO->UpdateDefaultConfigFile();
 			}
 		}
 
