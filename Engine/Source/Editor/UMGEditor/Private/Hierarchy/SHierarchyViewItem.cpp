@@ -698,7 +698,7 @@ bool FHierarchyWidget::OnVerifyNameTextChanged(const FText& InText, FText& OutEr
 	bool bIsSameWidget = false;
 	if ( ExistingTemplate != NULL )
 	{
-		if ( Item.GetTemplate() == ExistingTemplate )
+		if ( Item.GetTemplate() != ExistingTemplate )
 		{
 			OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
 			return false;
