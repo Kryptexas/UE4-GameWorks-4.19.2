@@ -1266,7 +1266,10 @@ void UReflectionCaptureComponent::ReadbackFromGPUAndSaveDerivedData(UWorld* Worl
 
 		if (WorldToUpdate->FeatureLevel == ERHIFeatureLevel::SM4)
 		{
-			ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, NewDerivedData);
+			if (SM4FullHDRCubemapTexture)
+			{
+				ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, NewDerivedData);
+			}
 		}
 		else
 		{
@@ -1279,6 +1282,10 @@ void UReflectionCaptureComponent::ReadbackFromGPUAndSaveDerivedData(UWorld* Worl
 
 			// Update our copy in memory
 			UpdateDerivedData(NewDerivedData);
+		}
+		else
+		{
+			delete NewDerivedData;
 		}
 	}
 }
