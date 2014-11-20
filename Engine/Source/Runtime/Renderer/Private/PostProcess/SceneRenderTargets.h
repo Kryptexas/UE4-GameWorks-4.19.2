@@ -542,7 +542,7 @@ private:
 	void AllocateCommonDepthTargets();
 
 	/** Determine the appropriate render target dimensions. */
-	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily& ViewFamily) const;
+	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily) const;
 
 	void AllocSceneColor();
 
