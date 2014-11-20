@@ -116,7 +116,7 @@ FReply STimelinesContainer::OnMouseMove(const FGeometry& MyGeometry, const FPoin
 
 FReply STimelinesContainer::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseEvent.IsLeftShiftDown())
+	if (MouseEvent.IsLeftControlDown() || MouseEvent.IsLeftShiftDown())
 	{
 		return TimeSliderController->OnMouseWheel(SharedThis(this), MyGeometry, MouseEvent);
 	}

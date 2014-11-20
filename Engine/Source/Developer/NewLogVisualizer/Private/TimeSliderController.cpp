@@ -463,9 +463,9 @@ FReply FSequencerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> WidgetO
 {
 	FReply ReturnValue = FReply::Unhandled();;
 
-	if (MouseEvent.IsLeftControlDown())
+	if (MouseEvent.IsLeftShiftDown())
 	{
-		const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
+		const float ZoomDelta = 0.1f * MouseEvent.GetWheelDelta();
 		TimeSliderArgs.CursorSize.Set(FMath::Clamp(TimeSliderArgs.CursorSize.Get() + ZoomDelta, 0.0f, 1.0f));
 
 		ReturnValue = FReply::Handled();
