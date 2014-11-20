@@ -4,8 +4,7 @@
 
 #include "Media.h"
 #include "Tickable.h"
-
-class FJavaAndroidMediaMediaPlayer;
+#include "AndroidJavaMediaPlayer.h"
 
 /*
 	Implement media playback using the Android MediaPlayer interface.
@@ -91,7 +90,7 @@ private:
 	FOnMediaOpened OpenedEvent;
 
 	// The Java side media interface.
-	TSharedPtr<FJavaAndroidMediaMediaPlayer> JavaMediaPlayer;
+	TSharedPtr<FJavaAndroidMediaPlayer> JavaMediaPlayer;
 
 	// Currently opened media.
 	FString MediaUrl;
