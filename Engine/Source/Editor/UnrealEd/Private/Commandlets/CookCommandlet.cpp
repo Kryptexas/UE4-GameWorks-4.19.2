@@ -23,7 +23,6 @@
 #include "ChunkManifestGenerator.h"
 #include "PhysicsPublic.h"
 #include "CookerSettings.h"
-#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
@@ -173,10 +172,6 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 					FPlatformProcess::Sleep(0.0f);
 				}
 			}
-
-
-			// Shaders need to be updated
-			GShaderCompilingManager->ProcessAsyncResults(true, false);
 
 			ProcessDeferredCommands();
 
@@ -1167,8 +1162,6 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		}
 
 
-		GShaderCompilingManager->ProcessAsyncResults(true, false);
-	
 		if (NonMapPackageCountSinceLastGC > 0)
 		{
 			// We should GC if we have packages to collect and we've been idle for some time.
