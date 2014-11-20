@@ -81,7 +81,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// Show detailed information about a crash.
 		/// </summary>
 		/// <param name="CrashesForm">A form of user data passed up from the client.</param>
-		/// <param name="CrashId">The unique id of the crash we wish to show the details of.</param>
+		/// <param name="id">The unique id of the crash we wish to show the details of.</param>
 		/// <returns>A view to show crash details.</returns>
 		public ActionResult Show( FormCollection CrashesForm, int id )
 		{
