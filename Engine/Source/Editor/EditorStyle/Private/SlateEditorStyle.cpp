@@ -5080,6 +5080,10 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 		// Asset Context Menu
 		Set( "ContentBrowser.AssetActions.Edit", new IMAGE_BRUSH( "Icons/icon_Editor_Modes_16x", Icon16x16 ) );
 		Set( "ContentBrowser.AssetActions.Delete", new IMAGE_BRUSH( "Icons/icon_delete_16px", Icon16x16, FLinearColor( 0.4f, 0.5f, 0.7f, 1.0f ) ) );
+		Set( "ContentBrowser.AssetActions.Rename", new FSlateNoResource(Icon16x16) ); //@TODO: Placeholder to preserve indentation in multibox
+		Set( "ContentBrowser.AssetActions.Duplicate", new FSlateNoResource(Icon16x16) ); //@TODO: Placeholder to preserve indentation in multibox
+		Set( "ContentBrowser.AssetActions.OpenSourceLocation", new FSlateNoResource(Icon16x16) ); //@TODO: Placeholder to preserve indentation in multibox
+		Set( "ContentBrowser.AssetActions.OpenInExternalEditor", new FSlateNoResource(Icon16x16) ); //@TODO: Placeholder to preserve indentation in multibox
 		Set( "ContentBrowser.AssetActions.ReimportAsset", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon16x16 ) );
 		Set( "ContentBrowser.AssetActions", new IMAGE_BRUSH( "Icons/icon_tab_Tools_16x", Icon16x16 ) );
 		Set( "ContentBrowser.AssetActions.GoToCodeForAsset", new IMAGE_BRUSH( "GameProjectDialog/feature_code_32x", Icon16x16 ) );
