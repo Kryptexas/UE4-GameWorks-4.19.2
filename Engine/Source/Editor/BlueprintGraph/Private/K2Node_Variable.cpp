@@ -55,7 +55,7 @@ void UK2Node_Variable::SetFromProperty(const UProperty* Property, bool bSelfCont
 	VariableReference.SetFromField<UProperty>(Property, bSelfContext);
 }
 
-bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
+bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction, FString InPinName/* = FString()*/)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -81,8 +81,9 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction)
 
 	if (VariableProperty != NULL)
 	{
+		const FString PinName = InPinName.IsEmpty()? GetVarNameString() : InPinName;
 		// Create the pin
-		UEdGraphPin* VariablePin = CreatePin(Direction, TEXT(""), TEXT(""), NULL, false, false, GetVarNameString());
+		UEdGraphPin* VariablePin = CreatePin(Direction, TEXT(""), TEXT(""), NULL, false, false, PinName);
 		K2Schema->ConvertPropertyToPinType(VariableProperty, /*out*/ VariablePin->PinType);
 		K2Schema->SetPinDefaultValueBasedOnType(VariablePin);
 	}
@@ -144,14 +145,14 @@ void UK2Node_Variable::CreatePinForSelf()
 	}
 }
 
-bool UK2Node_Variable::RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins)
+bool UK2Node_Variable::RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins, FString InPinName/* = FString()*/)
 {
 	// probably the node was pasted to a blueprint without the variable
 	// we don't want to beak any connection, so the pin will be recreated from old one, but compiler will throw error
 
 	// find old variable pin
 	const UEdGraphPin* OldVariablePin = NULL;
-	const FString PinName = GetVarNameString();
+	const FString PinName = InPinName.IsEmpty()? GetVarNameString() : InPinName;
 	for(auto Iter = OldPins.CreateConstIterator(); Iter; ++Iter)
 	{
 		if(const UEdGraphPin* Pin = *Iter)

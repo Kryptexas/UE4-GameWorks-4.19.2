@@ -93,10 +93,11 @@ public:
 	 * Creates a reader or writer pin for a variable.
 	 *
 	 * @param	Direction	  	The direction of the variable access.
+	 * @param	InPinName		Optional pin name, will default to the variable name if not included.
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	bool CreatePinForVariable(EEdGraphPinDirection Direction);
+	bool CreatePinForVariable(EEdGraphPinDirection Direction, FString InPinName = FString());
 
 	/** Creates 'self' pin */
 	void CreatePinForSelf();
@@ -106,10 +107,11 @@ public:
 	 *
 	 * @param	Direction	  	The direction of the variable access.
 	 * @param	OldPins			Old pins.
+	 * @param	InPinName		Optional pin name, will default to the variable name if not included.
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins);
+	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins, FString InPinName = FString());
 
 	/** Get the class to look for this variable in */
 	UClass* GetVariableSourceClass() const;
