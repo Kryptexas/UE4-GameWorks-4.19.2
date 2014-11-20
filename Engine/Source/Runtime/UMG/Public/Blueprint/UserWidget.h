@@ -513,6 +513,14 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
+	/**
+	 * Called when an animation has either played all the way through or is stopped
+	 *
+	 * @param Animation The animation that has finished playing
+	 */
+	UFUNCTION( BlueprintNativeEvent, BlueprintCosmetic, Category = "Animation" )
+	void OnAnimationFinished( const UWidgetAnimation* Animation );
+
 public:
 
 	/**
@@ -533,12 +541,14 @@ public:
 	void SetForegroundColor(FSlateColor InForegroundColor);
 
 	/**
-	 * Plays an animation in this widget
+	 * Plays an animation in this widget a specified number of times
 	 * 
-	 * @param The name of the animation to play
+	 * @param InAnimation The animation to play
+	 * @param StartAtTime The time in the animation from which to start playing. For looped animations, this will only affect the first playback of the animation.
+	 * @param NumLoopsToPlay The number of times to loop this animation (0 to loop indefinitely)
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
-	void PlayAnimation(const UWidgetAnimation* InAnimation);
+	void PlayAnimation(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, int32 NumLoopsToPlay = 1);
 
 	/**
 	 * Stops an already running animation in this widget

@@ -20,7 +20,7 @@ public:
 	void Tick( float DeltaTime );
 
 	/** Begins playing or restarts an animation */
-	void Play();
+	void Play( float StartAtTime, int32 InNumLoopsToPlay );
 
 	/** Stops a running animation and resets time */
 	void Stop();
@@ -65,4 +65,10 @@ private:
 
 	/** Delegate to call when a sequence has finished playing */
 	FOnSequenceFinishedPlaying OnSequenceFinishedPlayingEvent;
+
+	/** The number of times to loop the animation playback */
+	int32 NumLoopsToPlay;
+
+	/** The number of loops completed since the last call to Play() */
+	int32 NumLoopsCompleted;
 };

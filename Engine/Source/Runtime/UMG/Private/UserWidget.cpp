@@ -342,7 +342,12 @@ FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, F
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation)
+void UUserWidget::OnAnimationFinished_Implementation( const UWidgetAnimation* Animation )
+{
+	
+}
+
+void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops)
 {
 	if( InAnimation )
 	{
@@ -358,11 +363,11 @@ void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation)
 
 			NewPlayer->InitSequencePlayer( *InAnimation, *this );
 
-			NewPlayer->Play();
+			NewPlayer->Play( StartAtTime, NumberOfLoops );
 		}
 		else
 		{
-			(*FoundPlayer)->Play();
+			( *FoundPlayer )->Play( StartAtTime, NumberOfLoops );
 		}
 	}
 }
@@ -383,6 +388,7 @@ void UUserWidget::StopAnimation(const UWidgetAnimation* InAnimation)
 
 void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 {
+	OnAnimationFinished( Player.GetAnimation() );
 	StoppedSequencePlayers.Add( &Player );
 }
 

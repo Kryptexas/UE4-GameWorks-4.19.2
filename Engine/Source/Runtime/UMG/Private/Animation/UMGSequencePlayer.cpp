@@ -63,25 +63,24 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 			RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
 		}
 
-		bool bIsFinished = false;
-
+		// Has a loop been completed?
 		if ( TimeCursorPosition >= TimeRange.GetUpperBoundValue() )
 		{
-			bIsFinished = true;
+			NumLoopsCompleted++;
+			TimeCursorPosition = 0.0;
 		}
-
-		if (bIsFinished)
+		
+		// Have we looped the requested number of times?
+		if (NumLoopsToPlay != 0 && NumLoopsCompleted >= NumLoopsToPlay)
 		{
-
 			PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
 			OnSequenceFinishedPlayingEvent.Broadcast( *this );
-
 		}
 	}
 }
 
-void UUMGSequencePlayer::Play()
+void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay)
 {
 	UMovieScene* MovieScene = Animation->MovieScene;
 
@@ -89,8 +88,9 @@ void UUMGSequencePlayer::Play()
 
 	RootMovieSceneInstance->RefreshInstance( *this );
 
-	// @todo UMG Support user specified start times
-	TimeCursorPosition = 0;
+	TimeCursorPosition = StaticCast<double>(StartAtTime);
+	NumLoopsToPlay = InNumLoopsToPlay;
+	NumLoopsCompleted = 0;
 
 	PlayerStatus = EMovieScenePlayerStatus::Playing;
 }
