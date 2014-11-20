@@ -946,10 +946,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetTickableWhenPaused(bool bTickableWhenPaused);
 
-	/** Disables/Enables ticking for this actor (CanEverTick() has to be true, for tick enabling to work). */
-	UFUNCTION(BlueprintCallable, Category = "Utilities")
-	void SetTickEnabled(bool bEnable = true);
-
 	/** Allocate a MID for a given parent material. */
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage="Use PrimitiveComponent.CreateAndSetMaterialInstanceDynamic instead.", BlueprintProtected = "true"), Category="Rendering|Material")
 	class UMaterialInstanceDynamic* MakeMIDForMaterial(class UMaterialInterface* Parent);
@@ -1489,6 +1485,7 @@ public:
 	 * This only modifies the tick function on actor itself
 	 * @param	bEnabled - Rather it should be enabled or not
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
 	virtual void SetActorTickEnabled(bool bEnabled);
 
 	/**  Returns whether this actor has tick enabled or not	 */
