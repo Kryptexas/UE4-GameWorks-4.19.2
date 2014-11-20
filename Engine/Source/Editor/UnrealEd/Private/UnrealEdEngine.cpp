@@ -114,7 +114,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave;
 	BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 
-	if ( ExperimentalSettings->bEnableCookInEditor)
+	if ( ExperimentalSettings->bDisableCookInEditor)
 	{
 		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
 		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags );
@@ -135,6 +135,26 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 
 bool UUnrealEdEngine::CanCookByTheBookInEditor() const 
 { 
+	////////////////////////////////////////
+	// hack remove this hack when we properly support changing the mobileHDR setting 
+	// check if our mobile hdr setting in memory is different from the one which is saved in the config file
+	bool ConfigSetting = false;
+	if ( !GConfig->GetBool( TEXT("/Script/Engine.RendererSettings"), TEXT("r.MobileHDR"), ConfigSetting, GEngineIni) )
+	{
+		// if we can't get the config setting then don't risk it
+		return false;
+	}
+
+	// this was stolen from void IsMobileHDR()
+	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	const bool CurrentRSetting = MobileHDRCvar->GetValueOnAnyThread() == 1;
+
+	if ( CurrentRSetting != ConfigSetting )
+	{
+		return false;
+	}
+	////////////////////////////////////////
+
 	if ( CookServer )
 	{
 		return CookServer->GetCookMode() == ECookMode::CookByTheBookFromTheEditor; 

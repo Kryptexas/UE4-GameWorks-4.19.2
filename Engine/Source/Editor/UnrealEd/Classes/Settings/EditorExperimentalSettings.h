@@ -70,11 +70,11 @@ public:
 	bool bFeatureLevelPreview;
 
 	/** Disable cook in the editor */
-	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Enable Cook In The Editor feature (cooks from launch on will run in the editor process instead of a seperate one)"))
-	bool bEnableCookInEditor;
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature, requires editor restart (cooks from launch on will run in a seperate UE4Editor process)"))
+	bool bDisableCookInEditor;
 
 	/** Enable cook on the side */
-	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Cook On The Side (Run a cook on the fly server in the background of the editor)"))
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Cook On The Side, requires editor restart (Run a cook on the fly server in the background of the editor)"))
 	bool bCookOnTheSide;
 
 	/** Enable -iterate for launch on */
