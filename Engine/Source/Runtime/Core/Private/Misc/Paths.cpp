@@ -553,14 +553,15 @@ bool FPaths::IsDrive(const FString& InPath)
 
 bool FPaths::IsRelative(const FString& InPath)
 {
-	return
-		InPath.StartsWith( TEXT("./") ) ||
-		InPath.StartsWith( TEXT(".\\") ) || 
-		InPath.StartsWith( TEXT("../") ) ||
-		InPath.StartsWith( TEXT("..\\") ) || 
-		InPath.IsEmpty() ||
-		!(InPath.Contains("/")
-		|| InPath.Contains("\\"));
+	// The previous implementation of this function seemed to handle normalized and unnormalized paths, so this one does too for legacy reasons.
+
+	const bool IsRooted =	InPath.StartsWith(TEXT("\\\\"))	||												// "\\" for UNC or "network" paths.
+							InPath.StartsWith(TEXT("//"))	||												// Equivalent to "\\", considering normalization replaces "\\" with "//".
+							InPath.StartsWith(TEXT("\\"))	||												// Root of the current directory on Windows
+							InPath.StartsWith(TEXT("/"))	||												// Root of the current directory on Windows, root on UNIX-likes.
+							(InPath.Len() >= 2 && FChar::IsAlpha(InPath[0]) && InPath[1] == TEXT(':'));	// Starts with "<DriveLetter>:"
+
+	return !IsRooted;
 }
 
 void FPaths::NormalizeFilename(FString& InPath)

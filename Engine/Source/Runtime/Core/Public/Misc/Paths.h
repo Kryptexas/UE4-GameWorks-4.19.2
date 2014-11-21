@@ -315,7 +315,7 @@ public:
 	/** @return true if this path represents a drive */
 	static bool IsDrive(const FString& InPath);
 
-	/** @return true if this path is relative */
+	/** @return true if this path is relative (not rooted) */
 	static bool IsRelative(const FString& InPath);
 
 	/** Convert all / and \ to TEXT("/") */
