@@ -1456,16 +1456,14 @@ bool UStaticMeshComponent::GetEstimatedLightAndShadowMapMemoryUsage(
 
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
-	if(Materials.Num() > 0)
-	{
-		return Materials.Num();
-	}
-	else if(StaticMesh)
+	if(StaticMesh)
 	{
 		return StaticMesh->Materials.Num();
 	}
-
-	return 0;
+	else
+	{
+		return 0;
+	}
 }
 
 TArray<class UMaterialInterface*> UStaticMeshComponent::GetMaterials() const
@@ -1480,7 +1478,6 @@ TArray<class UMaterialInterface*> UStaticMeshComponent::GetMaterials() const
 
 	return Materials;
 }
-
 
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
