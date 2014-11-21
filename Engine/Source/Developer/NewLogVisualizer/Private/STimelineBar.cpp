@@ -181,6 +181,7 @@ FVector2D STimelineBar::ComputeDesiredSize() const
 
 void STimelineBar::OnSelect()
 {
+	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EFocusCause::Navigation);
 	CurrentItemIndex = INDEX_NONE;
 	SnapScrubPosition(TimeSliderController->GetTimeSliderArgs().ScrubPosition.Get());
 }
