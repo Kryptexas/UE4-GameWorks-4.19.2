@@ -36,12 +36,12 @@ public:
 	/** Initialization constructor. */
 	FWidget3DSceneProxy( UWidgetComponent* InComponent, ISlate3DRenderer& InRenderer )
 		: FPrimitiveSceneProxy( InComponent )
+		, Pivot( InComponent->GetPivot() )
 		, Renderer( InRenderer )
 		, RenderTarget( InComponent->GetRenderTarget() )
 		, MaterialInstance( InComponent->GetMaterialInstance() )
 		, BodySetup( InComponent->GetBodySetup() )
 		, bIsOpaque( InComponent->IsOpaque() )
-		, Pivot( InComponent->GetPivot() )
 	{
 		bWillEverBeLit = false;	
 	}
