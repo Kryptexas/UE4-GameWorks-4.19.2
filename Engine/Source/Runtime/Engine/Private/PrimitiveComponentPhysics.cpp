@@ -827,9 +827,10 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 	if (BodyInstance.GetCollisionEnabled() != NewType)
 	{
 		BodyInstance.SetCollisionEnabled(NewType);
-		OnComponentCollisionSettingsChanged();
 
 		EnsurePhysicsStateCreated();
+		OnComponentCollisionSettingsChanged();
+
 	}
 }
 
