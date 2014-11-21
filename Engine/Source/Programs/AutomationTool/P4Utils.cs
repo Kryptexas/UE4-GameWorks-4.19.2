@@ -1350,7 +1350,7 @@ namespace AutomationTool
 			CheckP4Enabled();
 			var ChangeSpec = "Change: new" + "\n";
 			ChangeSpec += "Client: " + ((Owner != null) ? Owner : "") + "\n";
-			ChangeSpec += "Description: \n " + ((Description != null) ? Description : "(none)") + "\n";
+			ChangeSpec += "Description: " + ((Description != null) ? Description.Replace("\n", "\n\t") : "(none)") + "\n";
 			string CmdOutput;
 			int CL = 0;
 			if(AllowSpew)
