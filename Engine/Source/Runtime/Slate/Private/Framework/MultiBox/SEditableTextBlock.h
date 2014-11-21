@@ -24,6 +24,9 @@ public:
 	 */
 	FEditableTextBlock( const FText& InLabel, const FText& InToolTip, const FSlateIcon& InIcon, const TAttribute< FText >& InTextAttribute, bool bInReadOnly, const FOnTextCommitted& InOnTextCommitted, const FOnTextChanged& InOnTextChanged );
 
+	/** FMultiBlock interface */
+	virtual bool HasIcon() const override;
+
 private:
 
 	/**
@@ -31,7 +34,7 @@ private:
 	 *
 	 * @return  MultiBlock widget object
 	 */
-	virtual TSharedRef<class IMultiBlockBaseWidget> ConstructWidget() const;
+	virtual TSharedRef<class IMultiBlockBaseWidget> ConstructWidget() const override;
 
 private:
 

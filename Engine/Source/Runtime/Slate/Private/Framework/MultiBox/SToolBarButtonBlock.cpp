@@ -46,6 +46,19 @@ void FToolBarButtonBlock::CreateMenuEntry(FMenuBuilder& MenuBuilder) const
 	}
 }
 
+bool FToolBarButtonBlock::HasIcon() const
+{
+	const FSlateIcon ActionIcon = GetAction().IsValid() ? GetAction()->GetIcon() : FSlateIcon();
+	const FSlateIcon& ActualIcon = IconOverride.IsSet() ? IconOverride.Get() : ActionIcon;
+
+	if (ActualIcon.IsSet())
+	{
+		return ActualIcon.GetIcon()->GetResourceName() != NAME_None;
+	}
+
+	return false;
+}
+
 /**
  * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
  *

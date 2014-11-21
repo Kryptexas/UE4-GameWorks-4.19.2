@@ -27,6 +27,7 @@ public:
 
 	/** FMultiBlock interface */
 	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const override;
+	virtual bool HasIcon() const override;
 
 	/** 
 	 * Sets the visibility of the blocks label
@@ -38,6 +39,7 @@ public:
 	/** Set whether this toolbar should always use small icons, regardless of the current settings */
 	void SetForceSmallIcons( const bool InForceSmallIcons ) { bForceSmallIcons = InForceSmallIcons; }
 
+
 private:
 
 	/**
@@ -45,7 +47,7 @@ private:
 	 *
 	 * @return  MultiBlock widget object
 	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 
 
 private:

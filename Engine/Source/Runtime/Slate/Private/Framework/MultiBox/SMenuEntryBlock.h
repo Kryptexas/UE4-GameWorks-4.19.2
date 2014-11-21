@@ -88,17 +88,13 @@ public:
 
 	/** FMultiBlock interface */
 	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const override;
-
+	virtual bool HasIcon() const override;
 
 
 private:
 
-	/**
-	 * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
-	 *
-	 * @return  MultiBlock widget object
-	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	/** FMultiBlock private interface */
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 
 
 private:

@@ -29,6 +29,12 @@ void FToolBarComboButtonBlock::CreateMenuEntry(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.AddWrapperSubMenu(EntryLabel, FText::GetEmpty(), MenuContentGenerator, Icon.Get());
 }
 
+bool FToolBarComboButtonBlock::HasIcon() const
+{
+	const FSlateIcon& ActualIcon = Icon.Get();
+	return ActualIcon.GetIcon()->GetResourceName() != NAME_None;
+}
+
 TSharedRef< class IMultiBlockBaseWidget > FToolBarComboButtonBlock::ConstructWidget() const
 {
 	return SNew( SToolBarComboButtonBlock )

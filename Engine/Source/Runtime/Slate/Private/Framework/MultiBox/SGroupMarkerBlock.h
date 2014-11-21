@@ -11,15 +11,12 @@ class FGroupStartBlock
 public:
 	FGroupStartBlock();
 
-	virtual bool IsGroupStartBlock()	const	{ return true; };
+	/** FMultiBlock interface */
+	virtual bool IsGroupStartBlock() const override { return true; }
 private:
 
-	/**
-	 * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
-	 *
-	 * @return  MultiBlock widget object
-	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	/** FMultiBlock private interface */
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 };
 
 /**
@@ -32,15 +29,12 @@ class FGroupEndBlock
 public:
 	FGroupEndBlock();
 
-	virtual bool IsGroupEndBlock()	const	{ return true; };
+	/** FMultiBlock interface */
+	virtual bool IsGroupEndBlock() const override { return true; };
 private:
 
-	/**
-	 * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
-	 *
-	 * @return  MultiBlock widget object
-	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	/** FMultiBlock private interface */
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 };
 
 /**
@@ -55,9 +49,7 @@ public:
 	SLATE_BEGIN_ARGS( SGroupMarkerBlock ){}
 	SLATE_END_ARGS()
 
-	/**
-	 * Builds this MultiBlock widget up from the MultiBlock associated with it
-	 */
+	/** FMultiBlock interface */
 	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) override;
 
 	/**

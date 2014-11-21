@@ -34,6 +34,9 @@ public:
 	 */
 	FButtonRowBlock( const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType );
 
+	/** FMultiBlock interface */
+	virtual bool HasIcon() const override;
+
 private:
 
 	/**
@@ -41,7 +44,7 @@ private:
 	 *
 	 * @return  MultiBlock widget object
 	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 private:
 
 	// Friend our corresponding widget class

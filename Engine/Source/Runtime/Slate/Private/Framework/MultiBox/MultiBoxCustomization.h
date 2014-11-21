@@ -57,7 +57,10 @@ public:
 
 	/** FMultiBlock interface */
 	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
+	virtual bool HasIcon() const override { return GetActualBlock()->HasIcon(); }
+
 	TSharedRef<const FMultiBlock> GetActualBlock() const { return ActualBlock.ToSharedRef(); }
+
 private:
 	TSharedPtr<const FMultiBlock> ActualBlock;
 	TSharedPtr<IMultiBlockBaseWidget> ActualWidget;

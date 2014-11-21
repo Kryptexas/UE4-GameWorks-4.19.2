@@ -16,6 +16,23 @@ FEditableTextBlock::FEditableTextBlock( const FText& InLabel, const FText& InToo
 { }
 
 
+bool FEditableTextBlock::HasIcon() const
+{
+	const TSharedPtr< const FUICommandInfo >& UICommand = GetAction();
+	const FSlateIcon ActionIcon = UICommand.IsValid() ? UICommand->GetIcon() : FSlateIcon();
+
+	const FSlateIcon& ActualIcon = !IconOverride.IsSet() ? ActionIcon : IconOverride;
+
+	if (ActualIcon.IsSet())
+	{
+		const FSlateBrush* IconBrush = ActualIcon.GetIcon();
+		return (IconBrush->GetResourceName() != NAME_None);
+	}
+
+	return false;
+}
+
+
 TSharedRef<class IMultiBlockBaseWidget> FEditableTextBlock::ConstructWidget() const
 {
 	return SNew( SEditableTextBlock )

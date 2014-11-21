@@ -134,6 +134,21 @@ void FMenuEntryBlock::CreateMenuEntry(FMenuBuilder& InMenuBuilder) const
 }
 
 
+bool FMenuEntryBlock::HasIcon() const
+{
+	const FSlateIcon ActionIcon = GetAction().IsValid() ? GetAction()->GetIcon() : FSlateIcon();
+	const FSlateIcon& ActualIcon = !IconOverride.IsSet() ? ActionIcon : IconOverride;
+
+	if (ActualIcon.IsSet())
+	{
+		const FSlateBrush* IconBrush = ActualIcon.GetIcon();
+		return IconBrush->GetResourceName() != NAME_None;
+	}
+
+	return false;
+}
+
+
 /**
  * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
  *
@@ -304,6 +319,24 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 			IconWidget =
 				SNew( SImage )
 				.Image( IconBrush );
+		}
+	}
+
+	if (bSectionContainsIcons && (IconWidget == SNullWidget::NullWidget))
+	{
+		// Section should have icons but this entry does not, which is inconsistent with our menu policy (either all or none of menu items in a section should have an icon)
+		if (FMultiBoxSettings::DisplayMultiboxHooks.Get())
+		{
+			IconWidget = SNew(SColorBlock)
+				.Color(FColorList::Magenta)
+				.Size(FVector2D(MultiBoxConstants::MenuIconSize, MultiBoxConstants::MenuIconSize))
+				.ToolTipText(NSLOCTEXT("SMenuEntryBlock", "MissingIconInMenu", "This menu entry is missing an icon and should be fixed (consistency within each section is required, either every entry in the section has an icon or no entries have an icon)"));
+		}
+		else
+		{
+			// This will silently pad the offending items
+			// 	IconWidget = SNew(SSpacer)
+			// 		.Size(FVector2D(MultiBoxConstants::MenuIconSize, MultiBoxConstants::MenuIconSize));
 		}
 	}
 

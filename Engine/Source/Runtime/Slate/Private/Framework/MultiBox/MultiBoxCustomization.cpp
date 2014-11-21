@@ -79,7 +79,7 @@ FReply SMultiBlockDragHandle::OnDragDetected( const FGeometry& MyGeometry, const
 	TSharedRef<FUICommandDragDropOp> NewOp = FUICommandDragDropOp::New(
 			Block->GetAction().ToSharedRef(), 
 			MultiBoxCustomizationName, 
-			Block->MakeWidget( BaseWidget.Pin().ToSharedRef(), EMultiBlockLocation::None )->AsWidget(),
+			Block->MakeWidget( BaseWidget.Pin().ToSharedRef(), EMultiBlockLocation::None, Block->HasIcon() )->AsWidget(),
 			MyGeometry.AbsolutePosition-MouseEvent.GetScreenSpacePosition()
 		);
 			

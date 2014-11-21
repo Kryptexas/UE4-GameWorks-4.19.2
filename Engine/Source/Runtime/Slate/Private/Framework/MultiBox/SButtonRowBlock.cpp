@@ -24,6 +24,20 @@ FButtonRowBlock::FButtonRowBlock( const TAttribute<FText>& InLabel, const TAttri
 
 }
 
+bool FButtonRowBlock::HasIcon() const
+{
+	const FSlateIcon& ActualIcon = !IconOverride.IsSet() && GetAction().IsValid() ? GetAction()->GetIcon() : IconOverride;
+
+	if (ActualIcon.IsSet())
+	{
+		const FSlateBrush* IconBrush = ActualIcon.GetIcon();
+
+		return IconBrush->GetResourceName() != NAME_None;
+	}
+
+	return false;
+}
+
 /**
  * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
  *
