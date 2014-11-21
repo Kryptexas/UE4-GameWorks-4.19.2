@@ -62,6 +62,7 @@ public:
 
 		void Initialize();
 		void SetupGeneralStyles();
+		void SetupGeneralIcons();
 		void SetupWindowStyles();
 		void SetupDockingStyles();
 		void SetupTutorialStyles();

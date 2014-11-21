@@ -131,6 +131,7 @@ void FSlateEditorStyle::FStyle::Initialize()
 	SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
 
 	SetupGeneralStyles();
+	SetupGeneralIcons();
 	SetupWindowStyles();
 	SetupDockingStyles();
 	SetupTutorialStyles();
@@ -2232,6 +2233,12 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			);
 	}
 #endif
+}
+
+void FSlateEditorStyle::FStyle::SetupGeneralIcons()
+{
+	Set("Plus", new IMAGE_BRUSH("Icons/PlusSymbol_12x", Icon12x12));
+	Set("Cross", new IMAGE_BRUSH("Icons/Cross_12x", Icon12x12));
 }
 
 void FSlateEditorStyle::FStyle::SetupWindowStyles()
