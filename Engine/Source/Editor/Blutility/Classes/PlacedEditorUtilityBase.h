@@ -36,11 +36,28 @@ class BLUTILITY_API APlacedEditorUtilityBase : public AActor
 	UFUNCTION(BlueprintPure, Category = "Development|Editor")
 	bool GetLevelViewportCameraInfo(FVector& CameraLocation, FRotator& CameraRotation);
 
+	/**
+	* Sets information about the camera position for the primary level editor viewport.
+	*
+	* @param	CameraLocation	Location the camera will be moved to.
+	* @param	CameraRotation	Rotation the camera will be set to.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
+	void SetLevelViewportCameraInfo(FVector CameraLocation, FRotator CameraRotation);
+
 	// Remove all actors from the selection set
 	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
 		void ClearActorSelectionSet();
 
 	// Set the selection state for the selected actor
 	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
-		void SetActorSelectionState(AActor* Actor, bool bShouldBeSelected);
+	void SetActorSelectionState(AActor* Actor, bool bShouldBeSelected);
+
+	/**
+	* Attempts to find the actor specified by PathToActor in the current editor world
+	* @param	PathToActor	The path to the actor (e.g. PersistentLevel.PlayerStart)
+	* @return	A reference to the actor, or none if it wasn't found
+	*/
+	UFUNCTION(BlueprintPure, Category = "Development|Editor")
+	AActor* GetActorReference(FString PathToActor);
 };

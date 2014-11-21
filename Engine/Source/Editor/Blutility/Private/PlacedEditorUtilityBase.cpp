@@ -65,6 +65,26 @@ bool APlacedEditorUtilityBase::GetLevelViewportCameraInfo(FVector& CameraLocatio
 	return RetVal;
 }
 
+
+void APlacedEditorUtilityBase::SetLevelViewportCameraInfo(FVector CameraLocation, FRotator CameraRotation)
+{
+
+#if WITH_EDITOR
+	for (auto LevelVC : GEditor->LevelViewportClients)
+	{
+		if (LevelVC && LevelVC->IsPerspective())
+		{
+			LevelVC->SetViewLocation(CameraLocation);
+			LevelVC->SetViewRotation(CameraRotation);
+
+			break;
+		}
+	}
+#endif //WITH_EDITOR
+}
+
+
+
 void APlacedEditorUtilityBase::ClearActorSelectionSet()
 {
 	//GEditor->GetSelectedActors()->DeselectAll();
@@ -76,6 +96,16 @@ void APlacedEditorUtilityBase::SetActorSelectionState(AActor* Actor, bool bShoul
 {
 	GEditor->SelectActor(Actor, bShouldBeSelected, /*bNotify=*/ false);
 }
+
+AActor* APlacedEditorUtilityBase::GetActorReference(FString PathToActor)
+{
+#if WITH_EDITOR
+	return Cast<AActor>(StaticFindObject(AActor::StaticClass(), GEditor->GetEditorWorldContext().World(), *PathToActor, false));
+#else
+	return nullptr;
+#endif //WITH_EDITOR
+}
+
 
 /*
 
