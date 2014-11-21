@@ -47,7 +47,11 @@ class BLUTILITY_API APlacedEditorUtilityBase : public AActor
 
 	// Remove all actors from the selection set
 	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
-		void ClearActorSelectionSet();
+	void ClearActorSelectionSet();
+
+	// Selects nothing in the editor (another way to clear the selection)
+	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
+	void SelectNothing();
 
 	// Set the selection state for the selected actor
 	UFUNCTION(BlueprintCallable, Category = "Development|Editor")

@@ -74,6 +74,10 @@ class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	void ClearActorSelectionSet();
 
+	// Selects nothing in the editor (another way to clear the selection)
+	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
+	void SelectNothing();
+
 	// Set the selection state for the selected actor
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	void SetActorSelectionState(AActor* Actor, bool bShouldBeSelected);

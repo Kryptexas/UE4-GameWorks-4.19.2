@@ -83,12 +83,14 @@ void APlacedEditorUtilityBase::SetLevelViewportCameraInfo(FVector CameraLocation
 #endif //WITH_EDITOR
 }
 
-
-
 void APlacedEditorUtilityBase::ClearActorSelectionSet()
 {
-	//GEditor->GetSelectedActors()->DeselectAll();
-		
+	GEditor->GetSelectedActors()->DeselectAll();
+	GEditor->NoteSelectionChange();
+}
+
+void APlacedEditorUtilityBase::SelectNothing()
+{
 	GEditor->SelectNone(true, true, false);
 }
 

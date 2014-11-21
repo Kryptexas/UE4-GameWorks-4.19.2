@@ -102,6 +102,12 @@ UEditorUserSettings* UGlobalEditorUtilityBase::GetEditorUserSettings()
 
 void UGlobalEditorUtilityBase::ClearActorSelectionSet()
 {
+	GEditor->GetSelectedActors()->DeselectAll();
+	bDirtiedSelectionSet = true;
+}
+
+void UGlobalEditorUtilityBase::SelectNothing()
+{
 	GEditor->SelectNone(true, true, false);
 	bDirtiedSelectionSet = true;
 }
