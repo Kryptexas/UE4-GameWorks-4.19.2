@@ -2710,18 +2710,32 @@ static int32 CaclulateMaxTilesCount(const TNavStatArray<FBox>& NavigableAreas, f
 //----------------------------------------------------------------------//
 
 FRecastNavMeshGenerator::FRecastNavMeshGenerator(class ARecastNavMesh* InDestNavMesh)
-	: NumActiveTiles(0)
-	, MaxTileGeneratorTasks(1)
-	, AvgLayersPerTile(8.0f)
-	, DestNavMesh(InDestNavMesh)
-	, bInitialized(false)
-	, Version(0)
+	: NumActiveTiles(0),
+	  MaxTileGeneratorTasks(1),
+	  AvgLayersPerTile(8.0f),
+	  DestNavMesh(InDestNavMesh),
+	  bInitialized(false),
+	  Version(0)
 {
-	INC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
+	INC_DWORD_STAT_BY(STAT_NavigationMemory, sizeof(*this));
 
 	check(InDestNavMesh);
 	Init();
-	ConstructTiledNavMesh();
+
+	const bool bUseAutoUpdates = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
+	if (!DestNavMesh->HasValidNavmesh() && !bUseAutoUpdates)
+	{
+		// recreate navmesh from scratch if no data was loaded
+		// use only whe auto rebuilds are disabled (should reuse existing data)
+		ConstructTiledNavMesh();
+	}
+	else
+	{
+		// otherwise just update generator params
+		int32 MaxTiles = 0;
+		CalcNavMeshProperties(MaxTiles, Config.MaxPolysPerTile);
+		NumActiveTiles = GetTilesCountHelper(DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh);
+	}
 }
 
 FRecastNavMeshGenerator::~FRecastNavMeshGenerator()
@@ -2853,38 +2867,9 @@ bool FRecastNavMeshGenerator::ConstructTiledNavMesh()
 		TiledMeshParameters.tileWidth = Config.tileSize * Config.cs;
 		TiledMeshParameters.tileHeight = Config.tileSize * Config.cs;
 
-		// limit max amount of tiles
-#if USE_64BIT_ADDRESS
-		const int32 MaxTileBits = 30;
-#else
-		const int32 MaxTileBits = 14;
-#endif//USE_64BIT_ADDRESS
+		CalcNavMeshProperties(TiledMeshParameters.maxTiles, TiledMeshParameters.maxPolys);
+		Config.MaxPolysPerTile = TiledMeshParameters.maxPolys;
 
-		const int32 MaxTiles = (1 << MaxTileBits);
-		int32 MaxRequestedTiles = 0;
-		if (DestNavMesh->IsResizable())
-		{
-			MaxRequestedTiles = CaclulateMaxTilesCount(InclusionBounds, Config.tileSize * Config.cs, AvgLayersPerTile);
-		}
-		else
-		{
-			MaxRequestedTiles = DestNavMesh->TilePoolSize;
-		}
-		
-		if (MaxRequestedTiles < 0 || MaxRequestedTiles > MaxTiles)
-		{
-			UE_LOG(LogNavigation, Error, TEXT("Navmesh bounds are too large! Limiting requested tiles count (%d) to: (%d)"), MaxRequestedTiles, MaxTiles);
-			MaxRequestedTiles = MaxTiles;
-		}
-
-		// Max tiles and max polys affect how the tile IDs are calculated.
-		// There are (sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) bits available for 
-		// identifying a tile and a polygon.
-		Config.MaxPolysPerTile = 1 << ((sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) - MaxTileBits);
-
-		TiledMeshParameters.maxTiles = MaxRequestedTiles;
-		TiledMeshParameters.maxPolys = Config.MaxPolysPerTile;
-	
 		const dtStatus status = DetourMesh->init(&TiledMeshParameters);
 
 		if (dtStatusFailed(status))
@@ -2906,6 +2891,39 @@ bool FRecastNavMeshGenerator::ConstructTiledNavMesh()
 	}
 	
 	return bSuccess;
+}
+
+void FRecastNavMeshGenerator::CalcNavMeshProperties(int32& MaxTiles, int32& MaxPolys)
+{
+	// limit max amount of tiles
+#if USE_64BIT_ADDRESS
+	const int32 MaxTileBits = 30;
+#else
+	const int32 MaxTileBits = 14;
+#endif//USE_64BIT_ADDRESS
+
+	const int32 MaxTilesFromMask = (1 << MaxTileBits);
+	int32 MaxRequestedTiles = 0;
+	if (DestNavMesh->IsResizable())
+	{
+		MaxRequestedTiles = CaclulateMaxTilesCount(InclusionBounds, Config.tileSize * Config.cs, AvgLayersPerTile);
+	}
+	else
+	{
+		MaxRequestedTiles = DestNavMesh->TilePoolSize;
+	}
+
+	if (MaxRequestedTiles < 0 || MaxRequestedTiles > MaxTilesFromMask)
+	{
+		UE_LOG(LogNavigation, Error, TEXT("Navmesh bounds are too large! Limiting requested tiles count (%d) to: (%d)"), MaxRequestedTiles, MaxTilesFromMask);
+		MaxRequestedTiles = MaxTilesFromMask;
+	}
+
+	// Max tiles and max polys affect how the tile IDs are calculated.
+	// There are (sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) bits available for 
+	// identifying a tile and a polygon.
+	MaxPolys = 1 << ((sizeof(dtPolyRef)* 8 - DT_MIN_SALT_BITS) - MaxTileBits);
+	MaxTiles = MaxRequestedTiles;
 }
 
 bool FRecastNavMeshGenerator::RebuildAll()
