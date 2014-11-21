@@ -15,6 +15,7 @@ public class IOSPlatformEditor : ModuleRules
 				"InputCore",
 				"DesktopPlatform",
 				"Engine",
+				"GameProjectGeneration",
 				"MainFrame",
 				"Slate",
 				"SlateCore",
