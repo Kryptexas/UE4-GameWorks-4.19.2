@@ -18,8 +18,8 @@ UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const FObjectInit
 
 void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority ||
-		ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
+	
+	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
 		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{

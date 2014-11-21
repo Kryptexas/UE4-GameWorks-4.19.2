@@ -162,8 +162,6 @@ void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObjec
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data)
 {
 	check(AbilitySystemComponent.IsValid());
-	
-	FScopedPredictionWindow	ScopedPrediction(Ability.Get());
 
 	/** 
 	 *  Call into the TargetActor to sanitize/verify the data. If this returns false, we are rejecting
@@ -204,11 +202,11 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 {
 	check(AbilitySystemComponent.IsValid());
 
-	FScopedPredictionWindow	ScopedPrediction(Ability.Get(), ShouldReplicateDataToServer());
+	FScopedPredictionWindow	ScopedPrediction(AbilitySystemComponent.Get(), ShouldReplicateDataToServer());
 	
 	if (ShouldReplicateDataToServer())
 	{
-		AbilitySystemComponent->ServerSetReplicatedTargetData(Data, ScopedPrediction.ScopedPredictionKey);
+		AbilitySystemComponent->ServerSetReplicatedTargetData(Data, AbilitySystemComponent->ScopedPredictionKey);
 	}
 
 	ValidData.Broadcast(Data);

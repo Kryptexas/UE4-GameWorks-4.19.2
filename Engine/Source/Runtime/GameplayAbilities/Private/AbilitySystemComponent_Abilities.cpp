@@ -558,7 +558,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	Spec->ActiveCount++;
 
 	// Setup a fresh ActivationInfo for this AbilitySpec.
-	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->OwnerActor.Get(), InPredictionKey);
+	Spec->ActivationInfo = FGameplayAbilityActivationInfo(ActorInfo->OwnerActor.Get());
 	FGameplayAbilityActivationInfo &ActivationInfo = Spec->ActivationInfo;
 
 	UGameplayAbility* InstancedAbility = Ability;
@@ -588,15 +588,15 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
 		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
-		ActivationInfo.GenerateNewPredictionKey();
+		FScopedPredictionWindow ScopedPredictionWindow(this, true);
 
-		FPredictionKey ThisPredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+		ActivationInfo.SetPredicting(ScopedPredictionKey);
 		
 		// This must be called immediately after GeneratePredictionKey to prevent problems with recursively activating abilities
-		ServerTryActivateAbility(Handle, Spec->InputPressed, ThisPredictionKey);
+		ServerTryActivateAbility(Handle, Spec->InputPressed, ScopedPredictionKey);
 
 		// If this PredictionKey is rejected, we will call OnClientActivateAbilityFailed.
-		ThisPredictionKey.NewRejectedDelegate().BindUObject(this, &UAbilitySystemComponent::OnClientActivateAbilityFailed, Handle, ThisPredictionKey.Current);
+		ScopedPredictionKey.NewRejectedDelegate().BindUObject(this, &UAbilitySystemComponent::OnClientActivateAbilityFailed, Handle, ScopedPredictionKey.Current);
 
 		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -623,11 +623,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			Ability->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate);
 		}
 	}
-
-	// Anything after this can no longer be predicted with the prediction key we just generated.
-	// The key we generated and sent in ServerTryActivateAbility will be confirmed/denied after the server run CallActivateAbility.
-	// If game code tries to do something predictively after this (latent call, response to input, etc) it will not be able to use this key.
-	ActivationInfo.SetPredictionStale();
+	
 	InstancedAbility->SetCurrentActivationInfo(ActivationInfo);	// Need to push this to the ability if it was instanced.
 
 	return true;
@@ -650,6 +646,8 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 		// Can potentially happen in race conditions where client tries to activate ability that is removed server side before it is received.
 		return;
 	}
+
+	FScopedPredictionWindow ScopedPredictionWindow(this, PredictionKey);
 
 	UGameplayAbility* AbilityToActivate = Spec->Ability;
 
@@ -713,14 +711,6 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	{
 		ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 	}
-
-	// Update our ReplicatedPredictionKey. When the client gets value, he will know his state (actor+all components/subobjects) are up to do date and he can
-	// remove any necessary predictive work.
-	if (PredictionKey.IsValidKey())
-	{
-		ensure(PredictionKey.Current > ReplicatedPredictionKey.Current);
-		ReplicatedPredictionKey = PredictionKey;
-	}
 }
 
 bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey)
@@ -779,7 +769,7 @@ void UAbilitySystemComponent::OnClientActivateAbilityFailed(FGameplayAbilitySpec
 	TArray<UGameplayAbility*> Instances = Spec->GetAbilityInstances();
 	for (UGameplayAbility* Ability : Instances)
 	{
-		if (Ability->CurrentActivationInfo.GetPredictionKey().Current == PredictionKey)
+		if (ScopedPredictionKey.Current == PredictionKey)
 		{
 			ABILITY_LOG(Warning, TEXT("Ending Ability %s"), *Ability->GetName());
 			Ability->K2_EndAbility();
@@ -821,7 +811,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGamep
 			bool found = false;
 			for (UGameplayAbility* LocalAbility : Spec->NonReplicatedInstances)				// Fixme: this has to be updated once predictive abilities can replicate
 			{
-				if (LocalAbility->GetCurrentActivationInfo().GetPredictionKey().Current == PredictionKey)
+				if (LocalAbility->GetCurrentActivationInfo().GetActivationPredictionKey().Current == PredictionKey)
 				{
 					LocalAbility->ConfirmActivateSucceed();
 					found = true;
@@ -873,17 +863,15 @@ void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 		int32 ExecutingAbilityIndex = -1;
 
 		// if we're the server and this is coming from a predicted event we should check if the client has already predicted it
-		if (Payload->PredictionKey.Current > 0
+		if (ScopedPredictionKey.IsValidKey()
 			&& Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Predictive
 			&& ActorInfo->OwnerActor->Role == ROLE_Authority)
 		{
 			bool bPendingClientAbilityFound = false;
 			for (auto PendingAbilityInfo : Component.PendingClientAbilities)
 			{
-				if (Payload->PredictionKey.Current == PendingAbilityInfo.PredictionKey.Base && Handle == PendingAbilityInfo.Handle) // found a match
+				if (ScopedPredictionKey.Current == PendingAbilityInfo.PredictionKey.Base && Handle == PendingAbilityInfo.Handle) // found a match
 				{
-					Payload->PredictionKey = PendingAbilityInfo.PredictionKey;
-
 					Component.PendingClientAbilities.RemoveSingleSwap(PendingAbilityInfo);
 					bPendingClientAbilityFound = true;
 					break;
@@ -895,14 +883,14 @@ void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 			if (bPendingClientAbilityFound == false)
 			{
 				UAbilitySystemComponent::FExecutingAbilityInfo Info;
-				Info.PredictionKey = Payload->PredictionKey;
+				Info.PredictionKey = ScopedPredictionKey;
 				Info.Handle = Handle;
 
 				ExecutingAbilityIndex = Component.ExecutingServerAbilities.Add(Info);
 			}
 		}
 
-		if (TryActivateAbility(Handle, Payload->PredictionKey))
+		if (TryActivateAbility(Handle, ScopedPredictionKey))
 		{
 			if (ExecutingAbilityIndex >= 0)
 			{
@@ -1055,13 +1043,13 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 							Instance->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
 						}						
 					}
-					FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
-					FScopedPredictionWindow ScopedPrediction(this, NewKey);
+
+					FScopedPredictionWindow ScopedPrediction(this, true);
 					//We don't require (AbilityKeyPressCallbacks.IsBound() || AbilityKeyReleaseCallbacks.IsBound())), because we don't necessarily know now if we'll need this data later.
 					if (GetOwnerRole() != ROLE_Authority)
 					{
 						// Tell the server we pressed input.
-						ServerSetReplicatedAbilityKeyState(InputID, true, NewKey);
+						ServerSetReplicatedAbilityKeyState(InputID, true, ScopedPredictionKey);
 					}
 					AbilityKeyPressCallbacks.Broadcast(InputID);
 				}
@@ -1086,12 +1074,12 @@ void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 			{
 				AbilitySpecInputReleased(Spec);
 				FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
-				FScopedPredictionWindow ScopedPrediction(this, NewKey);
+				FScopedPredictionWindow ScopedPrediction(this, true);
 				//We don't require (AbilityKeyPressCallbacks.IsBound() || AbilityKeyReleaseCallbacks.IsBound())), because we don't necessarily know now if we'll need this data later.
 				if (GetOwnerRole() != ROLE_Authority)
 				{
 					// Tell the server we released input.
-					ServerSetReplicatedAbilityKeyState(InputID, false, NewKey);
+					ServerSetReplicatedAbilityKeyState(InputID, false, ScopedPredictionKey);
 				}
 				AbilityKeyReleaseCallbacks.Broadcast(InputID);
 			}
@@ -1143,13 +1131,12 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 
 void UAbilitySystemComponent::InputConfirm()
 {
-	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
-	FScopedPredictionWindow ScopedPrediction(this, NewKey);
+	FScopedPredictionWindow ScopedPrediction(this, true);
 
 	if (GetOwnerRole() != ROLE_Authority && ConfirmCallbacks.IsBound())
 	{
 		// Tell the server we confirmed input.
-		ServerSetReplicatedConfirm(true, NewKey);
+		ServerSetReplicatedConfirm(true, ScopedPredictionKey);
 	}
 	
 	ConfirmCallbacks.Broadcast();
@@ -1157,13 +1144,12 @@ void UAbilitySystemComponent::InputConfirm()
 
 void UAbilitySystemComponent::InputCancel()
 {
-	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
-	FScopedPredictionWindow ScopedPrediction(this, NewKey);
+	FScopedPredictionWindow ScopedPrediction(this, true);
 
 	if (GetOwnerRole() != ROLE_Authority && CancelCallbacks.IsBound())
 	{
 		// Tell the server we confirmed input.
-		ServerSetReplicatedConfirm(false, NewKey);
+		ServerSetReplicatedConfirm(false, ScopedPredictionKey);
 	}
 
 	CancelCallbacks.Broadcast();
@@ -1275,7 +1261,7 @@ void UAbilitySystemComponent::ServerSetReplicatedAbilityKeyState_Implementation(
 	{
 		AbilityKeyReleaseCallbacks.Broadcast(InputID);
 	}
-}
+} 
 
 bool UAbilitySystemComponent::ServerSetReplicatedAbilityKeyState_Validate(int32 InputID, bool Pressed, FPredictionKey PredictionKey)
 {
@@ -1411,7 +1397,7 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 			else
 			{
 				// If this prediction key is rejected, we need to end the preview
-				FPredictionKey PredictionKey = ActivationInfo.GetPredictionKeyForNewAction();
+				FPredictionKey PredictionKey = GetPredictionKeyForNewAction();
 				if (PredictionKey.IsValidKey())
 				{
 					PredictionKey.NewRejectedDelegate().BindUObject(this, &UAbilitySystemComponent::OnPredictiveMontageRejected, NewAnimMontage);

@@ -118,7 +118,10 @@ struct GAMEPLAYABILITIES_API FScopedAggregatorOnDirtyBatch
 	~FScopedAggregatorOnDirtyBatch();
 
 	static void BeginLock();
-	static void EndLock(bool FromNetworkUpdate);
+	static void EndLock();
+
+	static void BeginNetReceiveLock();
+	static void EndNetReceiveLock();
 
 	static int32	GlobalBatchCount;
 	static TSet<FAggregator*>	DirtyAggregators;

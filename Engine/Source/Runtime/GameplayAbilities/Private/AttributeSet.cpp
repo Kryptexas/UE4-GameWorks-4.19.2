@@ -106,12 +106,15 @@ void UAttributeSet::PrintDebug()
 
 void UAttributeSet::PreNetReceive()
 {
-	FScopedAggregatorOnDirtyBatch::BeginLock();
+	// During the scope of this entire actor's network update, we need to lock our attribute aggregators.
+	FScopedAggregatorOnDirtyBatch::BeginNetReceiveLock();
 }
 	
 void UAttributeSet::PostNetReceive()
 {
-	FScopedAggregatorOnDirtyBatch::EndLock(true);
+	// Once we are done receiving properties, we can unlock the attribute aggregators and flag them that the 
+	// current property values are from the server.
+	FScopedAggregatorOnDirtyBatch::EndNetReceiveLock();
 }
 
 FAttributeMetaData::FAttributeMetaData()

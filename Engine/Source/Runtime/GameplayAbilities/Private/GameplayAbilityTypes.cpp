@@ -93,10 +93,10 @@ bool FGameplayAbilityActorInfo::IsNetAuthority() const
 	return false;
 }
 
-void FGameplayAbilityActivationInfo::GenerateNewPredictionKey() const
-{	
-	PredictionKey.GenerateDependantPredictionKey();
+void FGameplayAbilityActivationInfo::SetPredicting(FPredictionKey PredictionKey)
+{
 	ActivationMode = EGameplayAbilityActivationMode::Predicting;
+	PredictionKeyWhenActivated = PredictionKey;
 }
 
 void FGameplayAbilityActivationInfo::SetActivationConfirmed()
@@ -104,11 +104,6 @@ void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
 	//Remote (server) commands to end the ability that come in after this point are considered for this instance
 	bCanBeEndedByOtherInstance = true;
-}
-
-void FGameplayAbilityActivationInfo::SetPredictionStale()
-{
-	PredictionKey.bIsStale = true;
 }
 
 bool FGameplayAbilitySpec::IsActive() const

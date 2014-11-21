@@ -218,42 +218,19 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	}
 
-	FGameplayAbilityActivationInfo(AActor* InActor, FPredictionKey InPredictionKey)
-		: bCanBeEndedByOtherInstance(false)
-		, PredictionKey(InPredictionKey)
+	FGameplayAbilityActivationInfo(AActor* InActor)
+		: bCanBeEndedByOtherInstance(false)	
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
 		// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
 		ActivationMode = (InActor->Role == ROLE_Authority ? EGameplayAbilityActivationMode::Authority : EGameplayAbilityActivationMode::NonAuthority);
 	}
 
-	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, FPredictionKey InPredictionKey = FPredictionKey())
+	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType)
 		: ActivationMode(InType)
 		, bCanBeEndedByOtherInstance(false)
-		, PredictionKey(InPredictionKey)
 	{
-	}
-
-	void GenerateNewPredictionKey() const;
-
-	void SetActivationConfirmed();
-
-	void SetPredictionStale();
-
-	FPredictionKey GetPredictionKeyForNewAction() const
-	{
-		return PredictionKey.IsValidForMorePrediction() ? PredictionKey : FPredictionKey();
-	}
-
-	FPredictionKey GetPredictionKey() const
-	{
-		return PredictionKey;
-	}
-
-	void SetPredictionKey(FPredictionKey NewKey) const
-	{
-		PredictionKey = NewKey;
-	}
+	}	
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
@@ -262,10 +239,17 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	UPROPERTY()
 	bool bCanBeEndedByOtherInstance;
 
+	void SetActivationConfirmed();
+
+	void SetPredicting(FPredictionKey PredictionKey);
+
+	FPredictionKey GetActivationPredictionKey() { return PredictionKeyWhenActivated; }
+
 private:
 
-	UPROPERTY()
-	mutable FPredictionKey	PredictionKey;
+	// This was the prediction key used to activate this ability. It does not get updated
+	// if new prediction keys are generated over the course of the ability.
+	FPredictionKey PredictionKeyWhenActivated;
 	
 };
 
@@ -434,8 +418,6 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	float Var2;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	float Var3;
-
-	FPredictionKey PredictionKey;
 };
 
 /** 
