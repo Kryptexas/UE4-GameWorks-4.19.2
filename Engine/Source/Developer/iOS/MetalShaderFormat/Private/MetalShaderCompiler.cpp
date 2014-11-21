@@ -841,13 +841,11 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 
 	if (Input.ShaderFormat == NAME_SF_METAL)
 	{
-	AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
-	AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
-		AdditionalDefines.SetDefine(TEXT("SM4_PROFILE"), 1);
 	}
 	else
 	{
