@@ -70,7 +70,7 @@ struct KISMET_API FFindInBlueprintSearchTags
 struct FSearchData
 {
 	/** The Blueprint this search data points to, if available */
-	UBlueprint* Blueprint;
+	TWeakObjectPtr<UBlueprint> Blueprint;
 
 	/** The full Blueprint path this search data is associated with */
 	FString BlueprintPath;
