@@ -375,9 +375,6 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 		{
 			// don't lock navigation building in editor
 			bInitialBuildingLockActive = false;
-
-			// don't mark dirty areas after loading a map when automatic rebuild is disabled
-			bSkipDirtyAreasOnce = !bNavigationAutoUpdateEnabled;
 		}
 		
 		if (bAutoCreateNavigationData == true)
@@ -506,12 +503,6 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 
 		if (DirtyAreas.Num() > 0 && bCanRebuildNow)
 		{
-			if (bSkipDirtyAreasOnce)
-			{
-				bSkipDirtyAreasOnce = false;
-				DirtyAreas.Reset();
-			}
-
 			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 			{
 				ANavigationData* NavData = NavDataSet[NavDataIndex];
@@ -3173,7 +3164,11 @@ void UNavigationSystem::CycleNavigationDataDrawn()
 		if (NavData != NULL)
 		{
 			const bool bNewEnabledDrawing = (CurrentlyDrawnNavDataIndex == INDEX_NONE) || (NavDataIndex == CurrentlyDrawnNavDataIndex);
-			NavData->SetNavRenderingEnabled(bNewEnabledDrawing);
+			if (bNewEnabledDrawing != NavData->bEnableDrawing)
+			{
+				NavData->bEnableDrawing = bNewEnabledDrawing;
+				NavData->MarkComponentsRenderStateDirty();
+			}
 		}
 	}
 }

@@ -435,7 +435,7 @@ public:
 	const FNavDataConfig& GetConfig() const { return NavDataConfig; }
 	virtual void SetConfig(const FNavDataConfig& Src) { NavDataConfig = Src; }
 
-	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; SetNavRenderingEnabled(bIsDefault); }
+	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; bEnableDrawing = bIsDefault; } 
 	bool IsSupportingDefaultAgent() const { return bSupportsDefaultAgent; }
 
 	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const { return false; }
@@ -708,9 +708,6 @@ public:
 	// all the rest                                                                
 	//----------------------------------------------------------------------//
 	virtual UPrimitiveComponent* ConstructRenderingComponent() { return NULL; }
-
-	/** updates state of rendering component */
-	void SetNavRenderingEnabled(bool bEnable);
 
 protected:
 	void InstantiateAndRegisterRenderingComponent();

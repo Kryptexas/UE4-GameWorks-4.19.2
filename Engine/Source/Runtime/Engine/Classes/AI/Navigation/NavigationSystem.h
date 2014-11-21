@@ -678,7 +678,6 @@ protected:
 	uint32 bInitialBuildingLockActive:1;
 	uint32 bInitialSetupHasBeenPerformed:1;
 	uint32 bInitialLevelsAdded:1;
-	uint32 bSkipDirtyAreasOnce:1;
 	uint32 bAsyncBuildPaused:1;
 
 	/** cached navigable world bounding box*/
