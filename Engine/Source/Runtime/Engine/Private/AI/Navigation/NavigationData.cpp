@@ -588,6 +588,15 @@ int32 ANavigationData::GetAreaID(const UClass* AreaClass) const
 	return PtrId ? *PtrId : INDEX_NONE;
 }
 
+void ANavigationData::SetNavRenderingEnabled(bool bEnable)
+{
+	if (bEnableDrawing != bEnable)
+	{
+		bEnableDrawing = bEnable;
+		MarkComponentsRenderStateDirty();
+	}
+}
+
 void ANavigationData::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
 {
 	// no implementation for abstract class
