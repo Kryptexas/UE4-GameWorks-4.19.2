@@ -88,7 +88,7 @@ public:
 				check(Compiler.NewClass);
 			}
 
-			if (GIsEditor)
+			if ( GIsEditor && GEditor )
 			{
 				GEditor->RedrawAllViewports(true);
 			}
