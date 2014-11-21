@@ -354,7 +354,7 @@ FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) c
 	}
 	else
 	{
-		return FBoxSphereBounds(FSphere()).TransformBy(LocalToWorld);
+		return FBoxSphereBounds(ForceInit).TransformBy(LocalToWorld);
 	}
 }
 
