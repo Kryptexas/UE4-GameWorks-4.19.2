@@ -173,8 +173,11 @@ void SAssetSearchBox::HandleTextCommitted(const FText& NewText, ETextCommit::Typ
 	SetText(CommittedText);
 	OnTextCommitted.ExecuteIfBound(CommittedText, CommitType);
 
-	// Always close the suggestion box
-	SuggestionBox->SetIsOpen(false, false);
+	if(CommitType != ETextCommit::Default)
+	{
+		// Clear the suggestion box if the user has navigated away or set their own text.
+		SuggestionBox->SetIsOpen(false, false);
+	}
 }
 
 void SAssetSearchBox::OnSelectionChanged( TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo )
