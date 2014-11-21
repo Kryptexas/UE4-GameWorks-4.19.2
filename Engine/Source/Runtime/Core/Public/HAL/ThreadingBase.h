@@ -767,7 +767,7 @@ private:
 /**
  * Thread safe bool, wraps FThreadSafeCounter
  */
-struct FThreadSafeBool
+class FThreadSafeBool
 	: private FThreadSafeCounter
 {
 public:
@@ -790,10 +790,21 @@ public:
 	/**
 	 * Operator to set the bool value with thread safety
 	 */
-	FORCEINLINE const bool operator=(const bool bNewValue)
+	FORCEINLINE bool operator=(bool bNewValue)
 	{
 		Set(bNewValue ? 1 : 0);
 		return bNewValue;
+	}
+
+	/**
+	 * Sets a new value atomically, and returns the old value.
+	 *
+	 * @param bNewValue   Value to set
+	 * @return The old value
+	 */
+	FORCEINLINE bool AtomicSet(bool bNewValue)
+	{
+		return Set(bNewValue ? 1 : 0) != 0;
 	}
 };
 
