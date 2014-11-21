@@ -328,7 +328,7 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 		const FAttributeDefaultValueList* DefaultDataList = SetDefaults.DataMap.Find(Set->GetClass());
 		if (DefaultDataList)
 		{
-			ABILITY_LOG(Warning, TEXT("Initializing Set %s"), *Set->GetName());
+			ABILITY_LOG(Log, TEXT("Initializing Set %s"), *Set->GetName());
 
 			for (auto& DataPair : DefaultDataList->List)
 			{
