@@ -360,7 +360,7 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		}
 
 		// Process the mouse event
-		if( !ViewportClient->InputKey( this, 0, InMouseEvent.GetEffectingButton(), IE_Pressed ) )
+		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
@@ -417,7 +417,7 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 	bool bReleaseMouse = true;
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
 	{
-		if( !ViewportClient->InputKey(this,0,InMouseEvent.GetEffectingButton(), IE_Released ) )
+		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Released))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
@@ -516,8 +516,8 @@ FReply FSceneViewport::OnMouseWheel( const FGeometry& InGeometry, const FPointer
 		FKey const ViewportClientKey = InMouseEvent.GetWheelDelta() < 0 ? EKeys::MouseScrollDown : EKeys::MouseScrollUp;
 
 		// Pressed and released should be sent
-		ViewportClient->InputKey( this, 0, ViewportClientKey, IE_Pressed );
-		ViewportClient->InputKey( this, 0, ViewportClientKey, IE_Released );
+		ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), ViewportClientKey, IE_Pressed);
+		ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), ViewportClientKey, IE_Released);
 	}
 	return CurrentReplyState;
 }
@@ -541,7 +541,7 @@ FReply FSceneViewport::OnMouseButtonDoubleClick( const FGeometry& InGeometry, co
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey( this, 0, InMouseEvent.GetEffectingButton(), IE_DoubleClick ) )
+		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_DoubleClick))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
@@ -683,7 +683,7 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& 
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey( this, 0, Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed ) )
+		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -704,7 +704,7 @@ FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& In
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey(this, 0, Key, IE_Released) )
+		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, IE_Released))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
