@@ -33,7 +33,7 @@ namespace FBlueprintMenuActionItemImpl
 	 * @param  Bindings			Any bindings you want applied after the node has been spawned.
 	 * @return The spawned node (could be an existing one if the event was already placed).
 	 */
-	static UEdGraphNode* InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings);
+	static UEdGraphNode* InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool& bOutNewNode);
 }
 
 //------------------------------------------------------------------------------
@@ -60,20 +60,21 @@ static void FBlueprintMenuActionItemImpl::DirtyBlueprintFromNewNode(UEdGraphNode
 }
 
 //------------------------------------------------------------------------------
-static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings)
+static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool& bOutNewNode)
 {
 	int32 const PreSpawnNodeCount = ParentGraph->Nodes.Num();
 	// this could return an existing node
 	UEdGraphNode* SpawnedNode = Action->Invoke(ParentGraph, Bindings, Location);
 
 	// if a returned node wasn't one that previously existed in the graph
-	if (PreSpawnNodeCount < ParentGraph->Nodes.Num())
+	const bool bNewNode = PreSpawnNodeCount < ParentGraph->Nodes.Num();
+	bOutNewNode = bNewNode;
+	if (bNewNode)
 	{
 		check(SpawnedNode != nullptr);
 		SpawnedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
 
 		FBlueprintEditorUtils::AnalyticsTrackNewNode(SpawnedNode);
-		DirtyBlueprintFromNewNode(SpawnedNode);
 	}
 	// if this node already existed, then we just want to focus on that node...
 	// some node types are only allowed one instance per blueprint (like events)
@@ -148,16 +149,24 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 			}
 		}
 
-		LastSpawnedNode = InvokeAction(Action, ParentGraph, ModifiedLocation, BindingsSubset);
+		bool bNewNode = false;
+		LastSpawnedNode = InvokeAction(Action, ParentGraph, ModifiedLocation, BindingsSubset, /*out*/ bNewNode);
 		// could already be an existent node, so we have to add here (can't 
 		// catch it as we go through all new nodes)
 		NodesToFocus.Add(LastSpawnedNode);
+
+		//NOTE: Between the new node is spawned and AutowireNewNode is called, the blueprint should not be compiled.
 
 		if (FromPin != nullptr)
 		{
 			// make sure to auto-wire after we position the new node (in case
 			// the auto-wire creates a conversion node to put between them)
 			LastSpawnedNode->AutowireNewNode(FromPin);
+		}
+
+		if (bNewNode)
+		{
+			DirtyBlueprintFromNewNode(LastSpawnedNode);
 		}
 
 		// Increase the node location a safe distance so follow-up nodes are not stacked

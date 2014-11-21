@@ -389,4 +389,17 @@ FName UK2Node_CustomEvent::GetPaletteIcon(FLinearColor& OutColor) const
 	return bCallInEditor ? TEXT("GraphEditor.CallInEditorEvent_16x") : TEXT("GraphEditor.CustomEvent_16x");
 }
 
+void UK2Node_CustomEvent::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	Super::AutowireNewNode(FromPin);
+
+	if (auto DelegateOutPin = FindPin(DelegateOutputName))
+	{
+		if (DelegateOutPin->LinkedTo.Num())
+		{
+			ReconstructNode();
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

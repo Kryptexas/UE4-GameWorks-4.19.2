@@ -26,6 +26,7 @@ class UK2Node_CustomEvent : public UK2Node_Event
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
