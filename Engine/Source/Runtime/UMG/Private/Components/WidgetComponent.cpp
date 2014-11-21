@@ -41,6 +41,7 @@ public:
 		, MaterialInstance( InComponent->GetMaterialInstance() )
 		, BodySetup( InComponent->GetBodySetup() )
 		, bIsOpaque( InComponent->IsOpaque() )
+		, Pivot( InComponent->GetPivot() )
 	{
 		bWillEverBeLit = false;	
 	}
@@ -59,18 +60,18 @@ public:
 		if( RenderTarget )
 		{
 			FTextureResource* TextureResource = RenderTarget->Resource;
-			if(TextureResource)
+			if ( TextureResource )
 			{
-				float U = 0.0f;
-				float V = 0.0f;
-				float UL = RenderTarget->SizeX;
-				float VL = RenderTarget->SizeY;
+				float U = -RenderTarget->SizeX * Pivot.X;
+				float V = -RenderTarget->SizeY * Pivot.Y;
+				float UL = RenderTarget->SizeX * ( 1.0f - Pivot.X );
+				float VL = RenderTarget->SizeY * ( 1.0f - Pivot.Y );
 
 				int32 VertexIndices[4];
 
-				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+				for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 				{
-					if (VisibilityMap & (1 << ViewIndex))
+					if ( VisibilityMap & ( 1 << ViewIndex ) )
 					{
 						VertexIndices[0] = MeshBuilder.AddVertex(FVector(U, V, 0), FVector2D(0, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
 						VertexIndices[1] = MeshBuilder.AddVertex(FVector(U, VL, 0), FVector2D(0, 1), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
@@ -98,15 +99,15 @@ public:
 	 */
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override
 	{
-		if( RenderTarget )
+		if ( RenderTarget )
 		{
 			FTextureResource* TextureResource = RenderTarget->Resource;
-			if(TextureResource)
+			if ( TextureResource )
 			{
-				float U = 0.0f;
-				float V = 0.0f;
-				float UL = RenderTarget->SizeX;
-				float VL = RenderTarget->SizeY;
+				float U = -RenderTarget->SizeX * Pivot.X;
+				float V = -RenderTarget->SizeY * Pivot.Y;
+				float UL = RenderTarget->SizeX * ( 1.0f - Pivot.X );
+				float VL = RenderTarget->SizeY * ( 1.0f - Pivot.Y );
 
 				FDynamicMeshBuilder MeshBuilder;
 
@@ -168,6 +169,7 @@ public:
 
 private:
 	FVector Origin;
+	FVector2D Pivot;
 	ISlate3DRenderer& Renderer;
 	UTextureRenderTarget2D* RenderTarget;
 	UMaterialInstanceDynamic* MaterialInstance;
@@ -325,16 +327,35 @@ UWidgetComponent::UWidgetComponent( const class FObjectInitializer& PCIP )
 	LastLocalHitLocation = FVector2D::ZeroVector;
 	//bGenerateOverlapEvents = false;
 	bUseEditorCompositing = false;
+
+	Space = EWidgetSpace::World;
+	Pivot = FVector2D(0.5, 0.5);
+
+	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 }
 
 FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 {
-	return new FWidget3DSceneProxy(this,*Renderer);
+	if ( Space != EWidgetSpace::Screen )
+	{
+		return new FWidget3DSceneProxy(this, *Renderer);
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	return FBoxSphereBounds( FVector( DrawSize.X/2.0f, DrawSize.Y/2.0f, .5f), FVector(DrawSize.X/2,DrawSize.Y/2,1.0f), DrawSize.Size()/2 ).TransformBy( LocalToWorld );
+	if ( Space != EWidgetSpace::Screen )
+	{
+		return FBoxSphereBounds(FVector(DrawSize.X / 2.0f, DrawSize.Y / 2.0f, .5f), FVector(DrawSize.X / 2, DrawSize.Y / 2, 1.0f), DrawSize.Size() / 2).TransformBy(LocalToWorld);
+	}
+	else
+	{
+		return FBoxSphereBounds(FSphere()).TransformBy(LocalToWorld);
+	}
 }
 
 UBodySetup* UWidgetComponent::GetBodySetup() 
@@ -345,61 +366,76 @@ UBodySetup* UWidgetComponent::GetBodySetup()
 
 FCollisionShape UWidgetComponent::GetCollisionShape(float Inflation) const
 {
-	FVector	Extent = ( FVector( DrawSize.Y, DrawSize.Y, 1.0f ) * ComponentToWorld.GetScale3D() ) + Inflation;
-	if( Inflation < 0.0f )
+	if ( Space != EWidgetSpace::Screen )
 	{
-		// Don't shrink below zero size.
-		Extent = Extent.ComponentMax(FVector::ZeroVector);
-	}
+		FVector	Extent = ( FVector(DrawSize.Y, DrawSize.Y, 1.0f) * ComponentToWorld.GetScale3D() ) + Inflation;
+		if ( Inflation < 0.0f )
+		{
+			// Don't shrink below zero size.
+			Extent = Extent.ComponentMax(FVector::ZeroVector);
+		}
 
-	return FCollisionShape::MakeBox(Extent);
+		return FCollisionShape::MakeBox(Extent);
+	}
+	else
+	{
+		return FCollisionShape::MakeBox(FVector::ZeroVector);
+	}
 }
 
 void UWidgetComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	if( GetWorld()->IsGameWorld() )
-	{
-		TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
-
-		if( GameViewportWidget.IsValid() )
-		{
-			TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
-			if( !CustomHitTestPath.IsValid() )
-			{
-				CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
-				GameViewportWidget->SetCustomHitTestPath( CustomHitTestPath );
-			}
-
-			TSharedPtr<FWidget3DHitTester> WidgetHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-			if( WidgetHitTester->GetWorld() == GetWorld() )
-			{
-				WidgetHitTester->RegisterWidgetComponent( this );
-			}
-		}
-	}
-
 #if !UE_SERVER
 
-	if( !MaterialInstance )
+	if ( Space != EWidgetSpace::Screen )
 	{
-		UMaterialInterface* Parent = nullptr;
-		if (bIsOpaque)
+		if ( GetWorld()->IsGameWorld() )
 		{
-			Parent = bIsTwoSided ? OpaqueMaterial : OpaqueMaterial_OneSided;
-		}
-		else
-		{
-			Parent = bIsTwoSided ? TranslucentMaterial : TranslucentMaterial_OneSided;
+			TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
+
+			if ( GameViewportWidget.IsValid() )
+			{
+				TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
+				if ( !CustomHitTestPath.IsValid() )
+				{
+					CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
+					GameViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+				}
+
+				TSharedPtr<FWidget3DHitTester> WidgetHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+				if ( WidgetHitTester->GetWorld() == GetWorld() )
+				{
+					WidgetHitTester->RegisterWidgetComponent(this);
+				}
+			}
 		}
 
-		MaterialInstance = UMaterialInstanceDynamic::Create(Parent, this);
+		if ( !MaterialInstance )
+		{
+			UMaterialInterface* Parent = nullptr;
+			if ( bIsOpaque )
+			{
+				Parent = bIsTwoSided ? OpaqueMaterial : OpaqueMaterial_OneSided;
+			}
+			else
+			{
+				Parent = bIsTwoSided ? TranslucentMaterial : TranslucentMaterial_OneSided;
+			}
+
+			MaterialInstance = UMaterialInstanceDynamic::Create(Parent, this);
+		}
 	}
 
-	if( !Renderer.IsValid() )
+	InitWidget();
+
+	if ( Space != EWidgetSpace::Screen )
 	{
-		Renderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
+		if ( !Renderer.IsValid() )
+		{
+			Renderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
+		}
 	}
 
 #endif // !UE_SERVER
@@ -427,10 +463,11 @@ void UWidgetComponent::OnUnregister()
 		}
 	}
 
-	if( Widget )
+	if ( Widget )
 	{
+		Widget->RemoveFromParent();
 		Widget->MarkPendingKill();
-		Widget = NULL;
+		Widget = nullptr;
 	}
 
 	SlateWidget.Reset();
@@ -440,65 +477,119 @@ void UWidgetComponent::OnUnregister()
 void UWidgetComponent::DestroyComponent()
 {
 	Super::DestroyComponent();
+
 	Renderer.Reset();
+
+	if ( Widget )
+	{
+		Widget->RemoveFromParent();
+		Widget->MarkPendingKill();
+		Widget = nullptr;
+	}
+
+	SlateWidget.Reset();
 }
 
 void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 #if !UE_SERVER
 
-	const float RenderTimeThreshold = .5f;
+	UpdateWidget();
 
-	if( IsVisible() && GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold ) // Don't bother ticking if it hasn't been rendered recently
+	if ( Widget == nullptr )
 	{
-		UpdateWidget();
+		return;
+	}
 
-		if (!SlateWidget.IsValid())
+	if ( Space != EWidgetSpace::Screen )
+	{
+		if ( SlateWidget.IsValid() )
 		{
 			return;
 		}
 
-		SlateWidget->SlatePrepass();
-
-		FGeometry WindowGeometry = FGeometry::MakeRoot( DrawSize, FSlateLayoutTransform() );
-
-		SlateWidget->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
-
-		// Ticking can cause geometry changes.  Recompute
-		SlateWidget->SlatePrepass();
-
-		// Get the free buffer & add our virtual window
-		FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
-		FSlateWindowElementList& WindowElementList = DrawBuffer.AddWindowElementList(SlateWidget.ToSharedRef());
-
-		int32 MaxLayerId = 0;
+		const float RenderTimeThreshold = .5f;
+		if ( IsVisible() && GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold ) // Don't bother ticking if it hasn't been rendered recently
 		{
-			// Prepare the test grid 
-			HitTestGrid->ClearGridForNewFrame(WindowGeometry.GetClippingRect());
+			SlateWidget->SlatePrepass();
 
-			// Paint the window
-			MaxLayerId = SlateWidget->Paint(
-				FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FSlateApplication::Get().GetCurrentTime(), FSlateApplication::Get().GetDeltaTime()),
-				WindowGeometry, WindowGeometry.GetClippingRect(),
-				WindowElementList,
-				0,
-				FWidgetStyle(),
-				SlateWidget->IsEnabled());
-		}
+			FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize, FSlateLayoutTransform());
 
-		Renderer->DrawWindow_GameThread(DrawBuffer);
+			SlateWidget->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
 
-		UpdateRenderTarget();
+			// Ticking can cause geometry changes.  Recompute
+			SlateWidget->SlatePrepass();
 
-		// Enqueue a command to unlock the draw buffer after all windows have been drawn
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(UWidgetComponentRenderToTexture,
-			FSlateDrawBuffer&, InDrawBuffer, DrawBuffer,
-			UTextureRenderTarget2D*, InRenderTarget, RenderTarget,
-			ISlate3DRenderer*, InRenderer, Renderer.Get(),
+			// Get the free buffer & add our virtual window
+			FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
+			FSlateWindowElementList& WindowElementList = DrawBuffer.AddWindowElementList(SlateWidget.ToSharedRef());
+
+			int32 MaxLayerId = 0;
 			{
-				InRenderer->DrawWindowToTarget_RenderThread( RHICmdList, InRenderTarget, InDrawBuffer );	
-			});
+				// Prepare the test grid 
+				HitTestGrid->ClearGridForNewFrame(WindowGeometry.GetClippingRect());
 
+				// Paint the window
+				MaxLayerId = SlateWidget->Paint(
+					FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FSlateApplication::Get().GetCurrentTime(), FSlateApplication::Get().GetDeltaTime()),
+					WindowGeometry, WindowGeometry.GetClippingRect(),
+					WindowElementList,
+					0,
+					FWidgetStyle(),
+					SlateWidget->IsEnabled());
+			}
+
+			Renderer->DrawWindow_GameThread(DrawBuffer);
+
+			UpdateRenderTarget();
+
+			// Enqueue a command to unlock the draw buffer after all windows have been drawn
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(UWidgetComponentRenderToTexture,
+				FSlateDrawBuffer&, InDrawBuffer, DrawBuffer,
+				UTextureRenderTarget2D*, InRenderTarget, RenderTarget,
+				ISlate3DRenderer*, InRenderer, Renderer.Get(),
+				{
+					InRenderer->DrawWindowToTarget_RenderThread(RHICmdList, InRenderTarget, InDrawBuffer);
+				});
+
+		}
+	}
+	else
+	{
+		if ( Widget && !Widget->IsDesignTime() )
+		{
+			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
+			APlayerController* PlayerController = TargetPlayer->PlayerController;
+
+			if ( TargetPlayer && PlayerController )
+			{
+				if ( !Widget->IsInViewport() )
+				{
+					Widget->AddToViewport();
+				}
+
+				FVector WorldLocation = GetComponentLocation();
+
+				FVector2D ScreenLocation;
+				bool bProjected = PlayerController->ProjectWorldLocationToScreen(WorldLocation, ScreenLocation);
+				if ( bProjected )
+				{
+					Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				}
+				else
+				{
+					Widget->SetVisibility(ESlateVisibility::Hidden);
+				}
+				Widget->SetPositionInViewport(ScreenLocation);
+				Widget->SetAlignmentInViewport(Pivot);
+			}
+
+			// If the component isn't visible, and the widget is on the viewport, remove it.
+			if ( !IsVisible() && Widget->IsInViewport() )
+			{
+				Widget->RemoveFromParent();
+			}
+		}
 	}
 
 #endif // !UE_SERVER
@@ -587,49 +678,55 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 }
 #endif
 
-void UWidgetComponent::UpdateWidget()
+void UWidgetComponent::InitWidget()
 {
 	// Don't do any work if Slate is not initialized
-	if(FSlateApplication::IsInitialized())
-	{		
-		if(WidgetClass && !Widget && GetWorld() )
+	if ( FSlateApplication::IsInitialized() )
+	{
+		if ( WidgetClass && Widget == nullptr && GetWorld() )
 		{
-			Widget = CreateWidget<UUserWidget>( GetWorld(), WidgetClass );
+			Widget = CreateWidget<UUserWidget>(GetWorld(), WidgetClass);
 		}
-		else if( !WidgetClass && Widget )
+		else if ( !WidgetClass && Widget )
 		{
 			Widget = nullptr;
 		}
 
-		if(!SlateWidget.IsValid())
+		if ( Widget && !GetWorld()->IsGameWorld() )
 		{
-			SlateWidget = SNew(SVirtualWindow).Size(DrawSize);
-
+			// Prevent native ticking of editor component previews
+			Widget->SetIsDesignTime(true);
 		}
-	
-		if( !HitTestGrid.IsValid() )
-		{
-			HitTestGrid = MakeShareable( new FHittestGrid );
-		}
+	}
+}
 
+void UWidgetComponent::UpdateWidget()
+{
+	// Don't do any work if Slate is not initialized
+	if ( FSlateApplication::IsInitialized() )
+	{
+		if ( Space != EWidgetSpace::Screen )
 		{
-			SlateWidget->Resize( DrawSize );
-
-			if( Widget )
+			if ( !SlateWidget.IsValid() )
 			{
-				SlateWidget->SetContent( Widget->TakeWidget() );
+				SlateWidget = SNew(SVirtualWindow).Size(DrawSize);
+			}
+
+			if ( !HitTestGrid.IsValid() )
+			{
+				HitTestGrid = MakeShareable(new FHittestGrid);
+			}
+
+			SlateWidget->Resize(DrawSize);
+
+			if ( Widget )
+			{
+				SlateWidget->SetContent(Widget->TakeWidget());
 			}
 			else
 			{
-				SlateWidget->SetContent( SNullWidget::NullWidget );
+				SlateWidget->SetContent(SNullWidget::NullWidget);
 			}
-
-		}
-
-		if( Widget && !GetWorld()->IsGameWorld() )
-		{
-			// Prevent native ticking of editor component previews
-			Widget->SetIsDesignTime( true );
 		}
 	}
 }

@@ -6,6 +6,13 @@
 
 struct FVirtualPointerPosition;
 
+UENUM()
+enum class EWidgetSpace : uint8
+{
+	World,
+	Screen
+};
+
 /**
 * Beware! This feature is experimental and may be substantially changed or removed in future releases.
 * A 3D instance of a Widget Blueprint that can be interacted with in the world.
@@ -34,7 +41,10 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 #endif
 
-	/** Ensures the user widget is initialized and updates its size and content. */
+	/** Ensures the user widget is initialized */
+	void InitWidget();
+
+	/** Ensures the 3d window is created its size and content. */
 	void UpdateWidget();
 
 	/** Ensure the render target is initialized and updates it if needed. */
@@ -73,15 +83,26 @@ public:
 
 	/** @return True if the component is opaque */
 	bool IsOpaque() const { return bIsOpaque; }
+
+	/** @return The pivot point where the UI is rendered about the origin. */
+	FVector2D GetPivot() const { return Pivot; }
 	
 private:
 	/** The class of User Widget to create and display an instance of */
 	UPROPERTY(EditAnywhere, Category=UI)
+	EWidgetSpace Space;
+
+	/** The class of User Widget to create and display an instance of */
+	UPROPERTY(EditAnywhere, Category=UI)
 	TSubclassOf<UUserWidget> WidgetClass;
 	
-	/** The size of the displayed quad */
-	UPROPERTY(EditAnywhere, Category=UI)
+	/** The size of the displayed quad. */
+	UPROPERTY(EditAnywhere, Category="UI")
 	FIntPoint DrawSize;
+
+	/** The Alignment/Pivot point that the widget is placed at relative to the position. */
+	UPROPERTY(EditAnywhere, Category=UI)
+	FVector2D Pivot;
 	
 	/** The maximum distance from which a player can interact with this widget */
 	UPROPERTY(EditAnywhere, Category=UI, meta=(ClampMin="0.0", UIMax="5000.0", ClampMax="100000.0"))
