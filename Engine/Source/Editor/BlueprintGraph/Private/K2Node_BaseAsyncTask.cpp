@@ -105,7 +105,7 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	if (Function)
 	{
 		TSet<FString> PinsToHide;
-		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetBlueprint(), Function, PinsToHide);
+		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetGraph(), Function, PinsToHide);
 		for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 		{
 			UProperty* Param = *PropIt;

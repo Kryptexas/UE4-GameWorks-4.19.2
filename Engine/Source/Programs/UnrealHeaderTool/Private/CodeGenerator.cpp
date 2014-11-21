@@ -1519,7 +1519,8 @@ void FNativeClassHeaderGenerator::ExportInterfaceCallFunctions( const TArray<UFu
 			GeneratedPackageCPP.Logf(TEXT("%sParms.%s=%s;%s"), FCString::Spc(12), *Param->GetName(), *Param->GetName(), LINE_TERMINATOR);
 		}
 
-		GeneratedPackageCPP.Logf(TEXT("%sO->ProcessEvent(Func, %s);%s"), FCString::Spc(12), bHasParms ? TEXT("&Parms") : TEXT("NULL"), LINE_TERMINATOR);
+		const FString ObjectRef = FunctionData.FunctionReference->HasAllFunctionFlags(FUNC_Const) ? FString::Printf(TEXT("const_cast<UObject*>(O)"), *ClassName) : TEXT("O");
+		GeneratedPackageCPP.Logf(TEXT("%s%s->ProcessEvent(Func, %s);%s"), FCString::Spc(12), *ObjectRef, bHasParms ? TEXT("&Parms") : TEXT("NULL"), LINE_TERMINATOR);
 
 		for (auto It = Parameters.Parms.CreateConstIterator(); It; ++It)
 		{

@@ -485,6 +485,23 @@ public:
 	bool IsCompositeGraph(const UEdGraph* TestEdGraph) const;
 
 	/**
+	 * Checks to see if the specified graph is a const function graph
+	 *
+	 * @param	TestEdGraph		Graph to test
+	 * @param	bOutIsEnforcingConstCorrectness (Optional) Whether or not this graph is enforcing const correctness during compilation
+	 * @return	true if this is a const function graph
+	 */
+	bool IsConstFunctionGraph(const UEdGraph* TestEdGraph, bool* bOutIsEnforcingConstCorrectness = nullptr) const;
+
+	/**
+	 * Checks to see if the specified graph is a static function graph
+	 *
+	 * @param	TestEdGraph		Graph to test
+	 * @return	true if this is a const function graph
+	 */
+	bool IsStaticFunctionGraph(const UEdGraph* TestEdGraph) const;
+
+	/**
 	 * Checks to see if a pin is an execution pin.
 	 *
 	 * @param	Pin	The pin to check.
@@ -682,13 +699,13 @@ public:
 	 * Determine if a function has a parameter of a specific type.
 	 *
 	 * @param	InFunction	  	The function to search.
-	 * @param	CallingContext  The blueprint that you're looking to call the function from (some functions hide different pins depending on the blueprint they're in)
+	 * @param	InGraph			The graph that you're looking to call the function from (some functions hide different pins depending on the graph they're in)
 	 * @param	DesiredPinType	The type that at least one function parameter needs to be.
 	 * @param	bWantOutput   	The direction that the parameter needs to be.
 	 *
 	 * @return	true if at least one parameter is of the correct type and direction.
 	 */
-	bool FunctionHasParamOfType(const UFunction* InFunction, UBlueprint const* CallingContext, const FEdGraphPinType& DesiredPinType, bool bWantOutput) const;
+	bool FunctionHasParamOfType(const UFunction* InFunction, UEdGraph const* InGraph, const FEdGraphPinType& DesiredPinType, bool bWantOutput) const;
 
 	/**
 	 * Add the specified flags to the function entry node of the graph, to make sure they get compiled in to the generated function

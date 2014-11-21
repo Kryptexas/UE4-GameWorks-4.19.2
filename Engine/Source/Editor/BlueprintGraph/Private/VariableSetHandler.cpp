@@ -82,7 +82,23 @@ void FKCHandler_VariableSet::InnerAssignment(FKismetFunctionContext& Context, UE
 
 		if (!(*VariableTerm)->IsTermWritable())
 		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("WriteConst_Error", "Cannot write to const @@").ToString(), VariablePin);
+			// If the term is not explicitly marked as read-only, then we're attempting to set a variable on a const target
+			if(!(*VariableTerm)->AssociatedVarProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly))
+			{
+				if(Context.EnforceConstCorrectness())
+				{
+					CompilerContext.MessageLog.Error(*LOCTEXT("WriteToReadOnlyContext_Error", "Variable @@ is read-only within this context and cannot be set to a new value").ToString(), VariablePin);
+				}
+				else
+				{
+					// Warn, but still allow compilation to succeed
+					CompilerContext.MessageLog.Warning(*LOCTEXT("WriteToReadOnlyContext_Warning", "Variable @@ is considered to be read-only within this context and should not be set to a new value").ToString(), VariablePin);
+				}
+			}
+			else
+			{
+				CompilerContext.MessageLog.Error(*LOCTEXT("WriteConst_Error", "Cannot write to const @@").ToString(), VariablePin);
+			}
 		}
 	}
 	else

@@ -3161,7 +3161,7 @@ UEdGraph* FBlueprintEditorUtils::GetDelegateSignatureGraphByName(UBlueprint* Blu
 }
 
 // Gets a list of pins that should hidden for a given function
-void FBlueprintEditorUtils::GetHiddenPinsForFunction(UBlueprint const* CallingContext, UFunction const* Function, TSet<FString>& HiddenPins)
+void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins)
 {
 	check(Function != NULL);
 	TMap<FName, FString>* MetaData = UMetaData::GetMapForObject(Function);	
@@ -3188,18 +3188,23 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UBlueprint const* CallingCo
 			}
 			else if (Key == FBlueprintMetadata::MD_WorldContext)
 			{
-				bool bHasIntrinsicWorldContext = false;
-
-				if (GEngine && CallingContext && CallingContext->ParentClass)
+				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+				if(!K2Schema->IsStaticFunctionGraph(Graph))
 				{
-					bHasIntrinsicWorldContext = CallingContext->ParentClass->GetDefaultObject()->ImplementsGetWorld();
-				}
+					bool bHasIntrinsicWorldContext = false;
 
-				// if the blueprint has world context that we can lookup with "self", 
-				// then we can hide this pin (and default it to self)
-				if (bHasIntrinsicWorldContext)
-				{
-					HiddenPins.Add(It.Value());
+					UBlueprint const* CallingContext = FindBlueprintForGraph(Graph);
+					if (GEngine && CallingContext && CallingContext->ParentClass)
+					{
+						bHasIntrinsicWorldContext = CallingContext->ParentClass->GetDefaultObject()->ImplementsGetWorld();
+					}
+
+					// if the blueprint has world context that we can lookup with "self", 
+					// then we can hide this pin (and default it to self)
+					if (bHasIntrinsicWorldContext)
+					{
+						HiddenPins.Add(It.Value());
+					}
 				}
 			}
 		}

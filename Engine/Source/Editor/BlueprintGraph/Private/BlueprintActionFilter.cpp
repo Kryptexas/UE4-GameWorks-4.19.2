@@ -1049,7 +1049,7 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 				// want to flip the connotation here
 				bool const bWantsOutputConnection = (PinDir == EGPD_Input) ^ bIsEventSpawner;
 
-				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetBlueprint(), PinType, bWantsOutputConnection))
+				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection))
 				{
 					bIsFilteredOut = false;
 				}

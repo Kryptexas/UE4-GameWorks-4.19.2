@@ -1029,43 +1029,47 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
 			{
 				if (const UEdGraphPin* Pin = Node->Pins[PinIndex])
 				{
-					if (Schema->IsSelfPin(*Pin) && (Pin->LinkedTo.Num() == 0))
+					if (Schema->IsSelfPin(*Pin) && (Pin->LinkedTo.Num() == 0) && Pin->DefaultObject == nullptr)
 					{
 						FEdGraphPinType SelfType;
 						SelfType.PinCategory = Schema->PC_Object;
 						SelfType.PinSubCategory = Schema->PSC_Self;
 
-						if (!Schema->ArePinTypesCompatible(SelfType, Pin->PinType, NewClass))
+						FString ErrorMsg;
+						if(Blueprint->BlueprintType != BPTYPE_FunctionLibrary && Schema->IsStaticFunctionGraph(SourceGraph))
 						{
-							if (Pin->DefaultObject == NULL)
+							ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Static_Error", "'@@' must have a connection, because %s is a static function and will not be bound to instances of this blueprint.").ToString(), *SourceGraph->GetName());
+						}
+						else if (!Schema->ArePinTypesCompatible(SelfType, Pin->PinType, NewClass))
+						{
+							FString PinType = Pin->PinType.PinCategory;
+							if ((Pin->PinType.PinCategory == Schema->PC_Object)    || 
+								(Pin->PinType.PinCategory == Schema->PC_Interface) ||
+								(Pin->PinType.PinCategory == Schema->PC_Class))
 							{
-								FString PinType = Pin->PinType.PinCategory;
-								if ((Pin->PinType.PinCategory == Schema->PC_Object)    || 
-									(Pin->PinType.PinCategory == Schema->PC_Interface) ||
-									(Pin->PinType.PinCategory == Schema->PC_Class))
+								if (Pin->PinType.PinSubCategoryObject.IsValid())
 								{
-									if (Pin->PinType.PinSubCategoryObject.IsValid())
-									{
-										PinType = Pin->PinType.PinSubCategoryObject->GetName();
-									}
-									else
-									{
-										PinType = TEXT("");
-									}
-								}
-
-								FString ErrorMsg;
-								if(PinType.IsEmpty())
-								{
-									ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_NoType_Error", "'@@' must have a connection").ToString());
+									PinType = Pin->PinType.PinSubCategoryObject->GetName();
 								}
 								else
 								{
-									ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection").ToString(), *PinType);	
+									PinType = TEXT("");
 								}
-
-								MessageLog.Error(*ErrorMsg, Pin);
 							}
+
+							if(PinType.IsEmpty())
+							{
+								ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_NoType_Error", "'@@' must have a connection.").ToString());
+							}
+							else
+							{
+								ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_WrongClass_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection.").ToString(), *PinType);	
+							}
+						}
+
+						if(!ErrorMsg.IsEmpty())
+						{
+							MessageLog.Error(*ErrorMsg, Pin);
 						}
 					}
 				}
@@ -2467,8 +2471,8 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 // Expands out nodes that need it
 void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraphExpansions)
 {
-	// Node expansion may affect a signature of function in FunctionLibrary
-	if (bIsFullCompile || (EBlueprintType::BPTYPE_FunctionLibrary == Blueprint->BlueprintType))
+	// Node expansion may affect the signature of a static function
+	if (bIsFullCompile || Schema->IsStaticFunctionGraph(Graph))
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_Expansion);
 
@@ -2992,9 +2996,10 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool
 			Context.MarkAsInterfaceStub();
 		}
 
-		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint))
+		bool bEnforceConstCorrectness = true;
+		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
 		{
-			Context.MarkAsConstFunction();
+			Context.MarkAsConstFunction(bEnforceConstCorrectness);
 		}
 
 		if ( bInternalFunction )

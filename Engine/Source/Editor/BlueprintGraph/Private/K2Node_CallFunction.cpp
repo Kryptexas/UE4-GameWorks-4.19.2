@@ -780,11 +780,12 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	const bool bIsProtectedFunc = Function->GetBoolMetaData(FBlueprintMetadata::MD_Protected);
 	const bool bIsStaticFunc = Function->HasAllFunctionFlags(FUNC_Static);
 
-	UBlueprint* BP = GetBlueprint();
+	UEdGraph const* const Graph = GetGraph();
+	UBlueprint* BP = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
 	ensure(BP);
 	if (BP != nullptr)
 	{
-		const bool bIsFunctionCompatibleWithSelf = BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass);
+		const bool bIsFunctionCompatibleWithSelf = !K2Schema->IsStaticFunctionGraph(GetGraph()) && BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass);
 
 		if (bIsStaticFunc)
 		{
@@ -807,7 +808,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 
 	// Build a list of the pins that should be hidden for this function (ones that are automagically filled in by the K2 compiler)
 	TSet<FString> PinsToHide;
-	FBlueprintEditorUtils::GetHiddenPinsForFunction(BP, Function, PinsToHide);
+	FBlueprintEditorUtils::GetHiddenPinsForFunction(Graph, Function, PinsToHide);
 
 	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
@@ -1514,7 +1515,7 @@ void UK2Node_CallFunction::PostPasteNode()
 	{
 		// After pasting we need to go through and ensure the hidden the self pins is correct in case the source blueprint had different metadata
 		TSet<FString> PinsToHide;
-		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetBlueprint(), Function, PinsToHide);
+		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetGraph(), Function, PinsToHide);
 
 		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
 
@@ -1679,8 +1680,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 	UFunction* Function = GetTargetFunction();
 
 	// connect DefaultToSelf and WorldContext inside static functions to proper 'self'  
-	const bool bInsideBpFuncLibrary = CompilerContext.Blueprint && (BPTYPE_FunctionLibrary == CompilerContext.Blueprint->BlueprintType);
-	if (bInsideBpFuncLibrary && SourceGraph && Function)
+	if (SourceGraph && Schema->IsStaticFunctionGraph(SourceGraph) && Function)
 	{
 		TArray<UK2Node_FunctionEntry*> EntryPoints;
 		SourceGraph->GetNodesOfClass(EntryPoints);

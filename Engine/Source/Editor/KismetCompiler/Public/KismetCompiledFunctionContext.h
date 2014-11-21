@@ -77,6 +77,7 @@ public:
 	bool bCannotBeCalledFromOtherKismet;
 	bool bIsInterfaceStub;
 	bool bIsConstFunction;
+	bool bEnforceConstCorrectness;
 	bool bCreateDebugData;
 	bool bIsSimpleStubGraphWithNoParams;
 	uint32 NetFlags;
@@ -130,9 +131,10 @@ public:
 		bIsInterfaceStub = true;
 	}
 
-	void MarkAsConstFunction()
+	void MarkAsConstFunction(bool bInEnforceConstCorrectness)
 	{
 		bIsConstFunction = true;
+		bEnforceConstCorrectness = bInEnforceConstCorrectness;
 	}
 
 	bool IsInterfaceStub() const
@@ -154,6 +156,11 @@ public:
 	bool IsConstFunction() const
 	{
 		return bIsConstFunction;
+	}
+
+	bool EnforceConstCorrectness() const
+	{
+		return bEnforceConstCorrectness;
 	}
 
 	void MarkAsNetFunction(uint32 InFunctionFlags)

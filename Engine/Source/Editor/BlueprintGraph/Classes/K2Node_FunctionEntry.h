@@ -25,6 +25,14 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	UPROPERTY()
 	TArray<struct FBPVariableDescription> LocalVariables;
 
+	/** Whether or not to enforce const-correctness for const function overrides */
+	UPROPERTY()
+	bool bEnforceConstCorrectness;
+
+	// Begin UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

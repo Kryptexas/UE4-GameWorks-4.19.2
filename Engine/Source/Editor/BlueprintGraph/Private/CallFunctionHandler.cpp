@@ -312,18 +312,66 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			TArray<FBPTerminal*> ContextTerms;
 			if (SelfPin != NULL)
 			{
+				const bool bIsConstSelfContext = Context.IsConstFunction();
+				const bool bIsNonConstFunction = !Function->HasAnyFunctionFlags(FUNC_Const|FUNC_Static);
+				const bool bEnforceConstCorrectness = Context.EnforceConstCorrectness();
+				auto CheckAndAddSelfTermLambda = [this, &Node, &ContextTerms, bIsConstSelfContext, bIsNonConstFunction, bEnforceConstCorrectness](FBPTerminal* Target)
+				{
+					bool bIsSelfTerm = true;
+					if(Target != nullptr)
+					{
+						const UEdGraphPin* SourcePin = Cast<UEdGraphPin>(Target->Source);
+						bIsSelfTerm = (SourcePin == nullptr || CompilerContext.GetSchema()->IsSelfPin(*SourcePin));
+					}
+
+					// Ensure const correctness within the context of the function call:
+					//	a) Attempting to call a non-const, non-static function within a const function graph (i.e. 'const self' as context)
+					//	b) Attempting to call a non-const, non-static function with a 'const' term linked to the target pin as the function context
+					if(bIsSelfTerm && bIsConstSelfContext && bIsNonConstFunction)
+					{
+						// If we're not enforcing const correctness in this context, emit a warning here rather than an error, and allow compilation of this statement to proceed
+						if(Target != nullptr)
+						{
+							if(bEnforceConstCorrectness)
+							{
+								CompilerContext.MessageLog.Error(*LOCTEXT("NonConstFunctionCallOnReadOnlyTarget_Error", "Function @@ can modify state and cannot be called on @@ because it is a read-only Target in this context").ToString(), Node, Target->Source);
+							}
+							else
+							{
+								CompilerContext.MessageLog.Warning(*LOCTEXT("NonConstFunctionCallOnReadOnlyTarget_Warning", "Function @@ can modify state and should not be called on @@ because it is considered to be a read-only Target in this context").ToString(), Node, Target->Source);
+							}
+						}
+						else
+						{
+							if(bEnforceConstCorrectness)
+							{
+								CompilerContext.MessageLog.Error(*LOCTEXT("NonConstFunctionCallOnReadOnlySelfScope_Error", "Function @@ can modify state and cannot be called on 'self' because it is a read-only Target in this context").ToString(), Node);
+							}
+							else
+							{
+								CompilerContext.MessageLog.Warning(*LOCTEXT("NonConstFunctionCallOnReadOnlySelfScope_Warning", "Function @@ can modify state and should not be called on 'self' because it is considered to be a read-only Target in this context").ToString(), Node);
+							}
+						}
+					}
+
+					ContextTerms.Add(Target);
+				};
+
 				if( SelfPin->LinkedTo.Num() > 0 )
 				{
 					for(int32 i = 0; i < SelfPin->LinkedTo.Num(); i++)
 					{
 						FBPTerminal** pContextTerm = Context.NetMap.Find(SelfPin->LinkedTo[i]);
-						ContextTerms.Add((pContextTerm != NULL) ? *pContextTerm : NULL);
+						if(ensure(pContextTerm != nullptr))
+						{
+							CheckAndAddSelfTermLambda(*pContextTerm);
+						}
 					}
 				}
 				else
 				{
 					FBPTerminal** pContextTerm = Context.NetMap.Find(SelfPin);
-					ContextTerms.Add((pContextTerm != NULL) ? *pContextTerm : NULL);
+					CheckAndAddSelfTermLambda((pContextTerm != nullptr) ? *pContextTerm : nullptr);
 				}
 			}
 
@@ -507,7 +555,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		}
 		if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 		{
-			const bool bHasIntrinsicWorldContext = Context.Blueprint->ParentClass->GetDefaultObject()->ImplementsGetWorld();
+			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && Context.Blueprint->ParentClass->GetDefaultObject()->ImplementsGetWorld();
 
 			FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 

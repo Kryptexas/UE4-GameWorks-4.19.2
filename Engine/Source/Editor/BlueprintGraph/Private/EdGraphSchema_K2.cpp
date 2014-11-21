@@ -768,8 +768,8 @@ struct FNoOutputParametersHelper
 
 bool UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(const UFunction* InFunction)
 {
-	// First check we are override-able
-	if (!InFunction || !CanKismetOverrideFunction(InFunction))
+	// First check we are override-able, non-static and non-const
+	if (!InFunction || !CanKismetOverrideFunction(InFunction) || InFunction->HasAnyFunctionFlags(FUNC_Static|FUNC_Const))
 	{
 		return false;
 	}
@@ -807,10 +807,10 @@ void UEdGraphSchema_K2::GetAutoEmitTermParameters(const UFunction* Function, TAr
 	}
 }
 
-bool UEdGraphSchema_K2::FunctionHasParamOfType(const UFunction* InFunction, UBlueprint const* CallingContext, const FEdGraphPinType& DesiredPinType, bool bWantOutput) const
+bool UEdGraphSchema_K2::FunctionHasParamOfType(const UFunction* InFunction, UEdGraph const* InGraph, const FEdGraphPinType& DesiredPinType, bool bWantOutput) const
 {
 	TSet<FString> HiddenPins;
-	FBlueprintEditorUtils::GetHiddenPinsForFunction(CallingContext, InFunction, HiddenPins);
+	FBlueprintEditorUtils::GetHiddenPinsForFunction(InGraph, InFunction, HiddenPins);
 
 	// Iterate over all params of function
 	for (TFieldIterator<UProperty> PropIt(InFunction); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
@@ -2855,6 +2855,9 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 	UFunction* InterfaceToImplement = FindField<UFunction>(Class, GraphName);
 	if (InterfaceToImplement)
 	{
+		// Add modifier flags from the declaration
+		EntryNode->ExtraFlags |= InterfaceToImplement->FunctionFlags & (FUNC_Const | FUNC_Static | FUNC_BlueprintPure);
+
 		// See if any function params are marked as out
 		bool bHasOutParam =  false;
 		for( TFieldIterator<UProperty> It(InterfaceToImplement); It && (It->PropertyFlags & CPF_Parm); ++It )
@@ -3995,7 +3998,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 	const UK2Node* Node = Cast<UK2Node>(Pin.GetOwningNode());
 	const UBlueprint* OwningBlueprint = Node->GetBlueprint();
 	
-	if (!OwningBlueprint || (OwningBlueprint->BlueprintType == BPTYPE_MacroLibrary) || (OwningBlueprint->BlueprintType == BPTYPE_FunctionLibrary))
+	if (!OwningBlueprint || (OwningBlueprint->BlueprintType == BPTYPE_MacroLibrary) || (OwningBlueprint->BlueprintType == BPTYPE_FunctionLibrary) || IsStaticFunctionGraph(Node->GetGraph()))
 	{
 		// Never allow promotion in macros, because there's not a scope to define them in
 		bCanPromote = false;
@@ -4134,10 +4137,23 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 		DisplayInfo.DocExcerptName = TEXT("StateMachine");
 	}
 
-	// Add pure to notes if set
-	if (Function && Function->HasAnyFunctionFlags(FUNC_BlueprintPure))
+	// Add pure/static/const to notes if set
+	if (Function)
 	{
-		DisplayInfo.Notes.Add(TEXT("pure"));
+		if(Function->HasAnyFunctionFlags(FUNC_BlueprintPure))
+		{
+			DisplayInfo.Notes.Add(TEXT("pure"));
+		}
+
+		// since 'static' is implied in a function library, not going to display it (to be consistent with previous behavior)
+		if(Function->HasAnyFunctionFlags(FUNC_Static) && Blueprint->BlueprintType != BPTYPE_FunctionLibrary)
+		{
+			DisplayInfo.Notes.Add(TEXT("static"));
+		}
+		else if(Function->HasAnyFunctionFlags(FUNC_Const))
+		{
+			DisplayInfo.Notes.Add(TEXT("const"));
+		}
 	}
 
 	// Mark transient graphs as obviously so
@@ -4214,6 +4230,58 @@ bool UEdGraphSchema_K2::IsCompositeGraph( const UEdGraph* TestEdGraph ) const
 			}
 		}
 	}
+	return false;
+}
+
+bool UEdGraphSchema_K2::IsConstFunctionGraph( const UEdGraph* TestEdGraph, bool* bOutIsEnforcingConstCorrectness ) const
+{
+	check(TestEdGraph);
+
+	const EGraphType GraphType = GetGraphType(TestEdGraph);
+	if(GraphType == GT_Function) 
+	{
+		// Find the entry node for the function graph and see if the 'const' flag is set
+		for(auto I = TestEdGraph->Nodes.CreateConstIterator(); I; ++I)
+		{
+			UEdGraphNode* Node = *I;
+			if(auto EntryNode = Cast<UK2Node_FunctionEntry>(Node))
+			{
+				if(bOutIsEnforcingConstCorrectness != nullptr)
+				{
+					*bOutIsEnforcingConstCorrectness = EntryNode->bEnforceConstCorrectness;
+				}
+
+				return (EntryNode->ExtraFlags & FUNC_Const) != 0;
+			}
+		}
+	}
+
+	if(bOutIsEnforcingConstCorrectness != nullptr)
+	{
+		*bOutIsEnforcingConstCorrectness = false;
+	}
+
+	return false;
+}
+
+bool UEdGraphSchema_K2::IsStaticFunctionGraph( const UEdGraph* TestEdGraph ) const
+{
+	check(TestEdGraph);
+
+	const EGraphType GraphType = GetGraphType(TestEdGraph);
+	if(GraphType == GT_Function) 
+	{
+		// Find the entry node for the function graph and see if the 'static' flag is set
+		for(auto I = TestEdGraph->Nodes.CreateConstIterator(); I; ++I)
+		{
+			UEdGraphNode* Node = *I;
+			if(auto EntryNode = Cast<UK2Node_FunctionEntry>(Node))
+			{
+				return (EntryNode->ExtraFlags & FUNC_Static) != 0;
+			}
+		}
+	}
+
 	return false;
 }
 

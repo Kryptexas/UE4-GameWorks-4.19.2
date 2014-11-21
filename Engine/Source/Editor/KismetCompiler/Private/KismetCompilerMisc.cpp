@@ -833,7 +833,7 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 		{
 			Term->bIsLocal = true;
 		}
-		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
+		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || (Context.IsConstFunction() && Context.NewClass->IsChildOf(SearchScope)))
 		{
 			// Read-only variables and variables in const classes are both const
 			Term->bIsConst = true;
@@ -999,6 +999,7 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bCannotBeCalledFromOtherKismet(false)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
+	, bEnforceConstCorrectness(false)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)

@@ -102,15 +102,30 @@ struct FFunctionEntryHelper
 
 	static bool RequireWorldContextParameter(const UK2Node_FunctionEntry* Node)
 	{
-		auto Blueprint = Node->GetBlueprint();
-		ensure(Blueprint);
-		return Blueprint && (BPTYPE_FunctionLibrary == Blueprint->BlueprintType);
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		return K2Schema->IsStaticFunctionGraph(Node->GetGraph());
 	}
 };
 
 UK2Node_FunctionEntry::UK2Node_FunctionEntry(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	// Enforce const-correctness by default
+	bEnforceConstCorrectness = true;
+}
+
+void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		if (Ar.UE4Ver() < VER_UE4_BLUEPRINT_ENFORCE_CONST_IN_FUNCTION_OVERRIDES)
+		{
+			// Allow legacy implementations to violate const-correctness
+			bEnforceConstCorrectness = false;
+		}
+	}
 }
 
 FText UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const

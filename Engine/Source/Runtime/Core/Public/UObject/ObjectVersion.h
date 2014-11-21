@@ -651,6 +651,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ANIMATION_ADD_TRACKCURVES,
 	// Removed BranchingPoints from AnimMontages and converted them to regular AnimNotifies.
 	VER_UE4_MONTAGE_BRANCHING_POINT_REMOVAL,
+	// Enforce const-correctness in Blueprint implementations of native C++ const class methods
+	VER_UE4_BLUEPRINT_ENFORCE_CONST_IN_FUNCTION_OVERRIDES,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

@@ -2569,7 +2569,7 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 			if (K2Schema->CanUserKismetCallFunction(Function))
 			{
 				if ((false == bPureOnly || Function->HasAnyFunctionFlags(FUNC_BlueprintPure)) && 
-					K2Schema->FunctionHasParamOfType(Function, ClassBlueprint, DesiredPinType, bWantOutput)) 
+					K2Schema->FunctionHasParamOfType(Function, ContextMenuBuilder.CurrentGraph, DesiredPinType, bWantOutput)) 
 				{
 					const bool bShowMakeOnTop = bUseNativeMake && Function->HasMetaData(NativeMakeFunc);
 					const bool bShowBrakeOnTop = bUseNativeBrake && Function->HasMetaData(NativeBrakeFunc);
