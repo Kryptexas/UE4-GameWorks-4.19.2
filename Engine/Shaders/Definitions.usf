@@ -96,6 +96,10 @@
 #define METAL_PROFILE									0
 #endif
 
+#ifndef METAL_MRT_PROFILE
+#define METAL_MRT_PROFILE								0
+#endif
+
 #ifndef IOS
 #define IOS												0
 #endif

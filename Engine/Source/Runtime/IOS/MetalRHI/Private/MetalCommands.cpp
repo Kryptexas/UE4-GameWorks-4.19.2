@@ -6,7 +6,33 @@
 
 #include "MetalRHIPrivate.h"
 
+#include "GlobalShader.h"
+#include "OneColorShader.h"
+#include "RHICommandList.h"
+#include "RHIStaticStates.h"
+#include "ShaderParameterUtils.h"
+#include "SceneUtils.h"
+
 static const bool GUsesInvertedZ = true;
+static FGlobalBoundShaderState GClearMRTBoundShaderState[8];
+
+/** Vertex declaration for just one FVector4 position. */
+class FVector4VertexDeclaration : public FRenderResource
+{
+public:
+	FVertexDeclarationRHIRef VertexDeclarationRHI;
+	virtual void InitRHI() override
+	{
+		FVertexDeclarationElementList Elements;
+		Elements.Add(FVertexElement(0, 0, VET_Float4, 0, sizeof(FVector4)));
+		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
+	}
+	virtual void ReleaseRHI() override
+	{
+		VertexDeclarationRHI.SafeRelease();
+	}
+};
+static TGlobalResource<FVector4VertexDeclaration> GVector4VertexDeclaration;
 
 static MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 {
@@ -642,7 +668,119 @@ void FMetalDynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color, bool
 
 void FMetalDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
-	// this needs to be handled in SetRenderTarget LoadAction 
+	// @todo metalmrt: This is currently only supporting clearing stencil by a shader (because shadows need to clear
+	// stencil in the middle of an encoder, so we can't use LoadAction). This code was adapted from D3D code (would
+	// be nice to share this code!), and parts removed until basically just what was needed for Stencil only is left
+	// If we need other types of clears, diff this against the D3D version to see what it's missing
+	if (bClearStencil && !bClearColor && !bClearDepth)
+	{
+		RHIPushEvent(TEXT("MetalClearStencil"));
+		// we don't support draw call clears before the RHI is initialized, reorder the code or make sure it's not a draw call clear
+		check(GIsRHIInitialized);
+
+ 		// Build new states
+ 		FBlendStateRHIParamRef BlendStateRHI = TStaticBlendState<CW_NONE>::GetRHI();
+
+		FRasterizerStateRHIParamRef RasterizerStateRHI = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		float BF[4] = { 0, 0, 0, 0 };
+
+		const FDepthStencilStateRHIParamRef DepthStencilStateRHI = 
+			(bClearDepth && bClearStencil)
+				? TStaticDepthStencilState<
+					true, CF_Always,
+					true,CF_Always,SO_Replace,SO_Replace,SO_Replace,
+					false,CF_Always,SO_Replace,SO_Replace,SO_Replace,
+					0xff,0xff
+					>::GetRHI()
+			: bClearDepth
+				? TStaticDepthStencilState<true, CF_Always>::GetRHI()
+			: bClearStencil
+				? TStaticDepthStencilState<
+					false, CF_Always,
+					true,CF_Always,SO_Replace,SO_Replace,SO_Replace,
+					true,CF_Always,SO_Replace,SO_Replace,SO_Replace,
+					0xff,0xff
+					>::GetRHI()
+			:     TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+		RHISetBlendState(BlendStateRHI, FLinearColor::Transparent);
+		RHISetDepthStencilState(DepthStencilStateRHI, Stencil);
+		RHISetRasterizerState(RasterizerStateRHI);
+
+		// Set the new shaders
+		auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
+
+		FOneColorPS* PixelShader = NULL;
+
+		TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
+		PixelShader = *MRTPixelShader;
+
+		{
+			FRHICommandList_RecursiveHazardous RHICmdList;
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[0], GVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
+			FMemory::MemZero(ShaderClearColors);
+
+			for (int32 i = 0; i < NumClearColors; i++)
+			{
+				ShaderClearColors[i] = ClearColorArray[i];
+			}
+
+			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumClearColors);
+
+			{
+				// Draw a fullscreen quad
+				if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+				{
+					// with a hole in it (optimization in case the hardware has non constant clear performance)
+					FVector4 OuterVertices[4];
+					OuterVertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+					OuterVertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+					OuterVertices[2].Set(1.0f, -1.0f, Depth, 1.0f);
+					OuterVertices[3].Set(-1.0f, -1.0f, Depth, 1.0f);
+
+					UE_LOG(LogMetal, Fatal, TEXT("ExcludeRect not supported yet in Metal Clear"));
+					float InvViewWidth = 1.0f / 100;//Viewport.Width;
+					float InvViewHeight = 1.0f / 100;//Viewport.Height;
+					FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
+
+					FVector4 InnerVertices[4];
+					InnerVertices[0].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+					InnerVertices[1].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+					InnerVertices[2].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+					InnerVertices[3].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+
+					FVector4 Vertices[10];
+					Vertices[0] = OuterVertices[0];
+					Vertices[1] = InnerVertices[0];
+					Vertices[2] = OuterVertices[1];
+					Vertices[3] = InnerVertices[1];
+					Vertices[4] = OuterVertices[2];
+					Vertices[5] = InnerVertices[2];
+					Vertices[6] = OuterVertices[3];
+					Vertices[7] = InnerVertices[3];
+					Vertices[8] = OuterVertices[0];
+					Vertices[9] = InnerVertices[0];
+
+					DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
+				}
+				else
+				{
+					// without a hole
+					FVector4 Vertices[4];
+					Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+					Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+					Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
+					Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
+					DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+				}
+			}
+			// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
+		}
+
+		RHIPopEvent();
+	}
 }
 
 

@@ -176,7 +176,7 @@ public:
 	/**
 	 * Returns how much memory a single mip uses, and optionally returns the stride
 	 */
-	uint32 GetMipSize(uint32 MipIndex, uint32* Stride);
+	uint32 GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLayer);
 
 	/**
 	 * Returns how much memory is used by the surface

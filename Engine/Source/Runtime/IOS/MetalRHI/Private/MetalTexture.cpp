@@ -100,6 +100,8 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	// set the key
 	FormatKey = *Key;
 
+	FMemory::Memzero(LockedMemory, sizeof(LockedMemory));
+
 
 	// the special back buffer surface will be updated in FMetalManager::BeginFrame - no need to set the texture here
 	if (Flags & TexCreate_Presentable)
@@ -121,12 +123,13 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	{
 		Desc = [MTLTextureDescriptor new];
 		Desc.textureType = MTLTextureType3D;
-		Desc.height = SizeX;
-		Desc.width = SizeY;
+		Desc.width = SizeX;
+		Desc.height = SizeY;
 		Desc.depth = SizeZ;
 		Desc.pixelFormat = MTLFormat;
 		Desc.arrayLength = 1;
 		Desc.mipmapLevelCount = 1;
+		Desc.sampleCount = 1;
 	}
 	else
 	{
@@ -156,16 +159,17 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	if (BulkData)
 	{
 		UE_LOG(LogIOS, Display, TEXT("Got a bulk data texture, with %d mips"), NumMips);
-		// copy over bulk data
-		// Lock
-		// Memcpy
-		// Unlock
+		checkf(NumMips == 1&& ArraySize == 1, TEXT("Only handling bulk data with 1 mip and 1 array length"));
+		uint32 Stride;
+
+		// lock, copy, unlock
+		void* LockedData = Lock(0, 0, RLM_WriteOnly, Stride);
+		FMemory::Memcpy(LockedData, BulkData->GetResourceBulkData(), BulkData->GetResourceBulkDataSize());
+		Unlock(0, 0);
 
 		// bulk data can be unloaded now
 		BulkData->Discard();
 	}
-	
-	FMemory::Memzero(LockedMemory, sizeof(LockedMemory));
 
 	// calculate size of the texture
 	TotalTextureSize = GetMemorySize();
@@ -291,7 +295,7 @@ FMetalSurface::~FMetalSurface()
 void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode LockMode, uint32& DestStride)
 {
 	// get size and stride
-	const uint32 MipBytes = GetMipSize(MipIndex, &DestStride);
+	const uint32 MipBytes = GetMipSize(MipIndex, &DestStride, false);
 	
 	// allocate some temporary memory
 	check(LockedMemory[MipIndex] == NULL);
@@ -307,25 +311,32 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 {
 	uint32 Stride;
-	uint32 MipBytes = GetMipSize(MipIndex, &Stride);
+	uint32 BytesPerImage = GetMipSize(MipIndex, &Stride, true);
 	if (PixelFormat == PF_PVRTC2 || PixelFormat == PF_PVRTC4)
 	{
 		// compressed textures want zero here for whatever reason
-		MipBytes = 0;
+		BytesPerImage = 0;
 		Stride = 0;
 	}
 
-	checkf(SizeZ <= 1 || SizeZ == 6, TEXT("3D textures are not supported yet (SizeZ = %d"), SizeZ);
-
-	// upload the texture to the texture slice
-	MTLRegion Region = MTLRegionMake2D(0, 0, FMath::Max<uint32>(SizeX>>MipIndex, 1), FMath::Max<uint32>(SizeY>>MipIndex, 1));
-	[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:LockedMemory[MipIndex] bytesPerRow:Stride bytesPerImage:MipBytes];
+	if (SizeZ <= 1 || bIsCubemap)
+	{
+		// upload the texture to the texture slice
+		MTLRegion Region = MTLRegionMake2D(0, 0, FMath::Max<uint32>(SizeX >> MipIndex, 1), FMath::Max<uint32>(SizeY >> MipIndex, 1));
+		[Texture replaceRegion : Region mipmapLevel : MipIndex slice : ArrayIndex withBytes : LockedMemory[MipIndex] bytesPerRow:Stride bytesPerImage:0];
+	}
+	else
+	{
+		// upload the texture to the texture slice
+		MTLRegion Region = MTLRegionMake3D(0, 0, 0, FMath::Max<uint32>(SizeX >> MipIndex, 1), FMath::Max<uint32>(SizeY >> MipIndex, 1), FMath::Max<uint32>(SizeZ >> MipIndex, 1));
+		[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:LockedMemory[MipIndex] bytesPerRow:Stride bytesPerImage:BytesPerImage];
+	}
 	
 	FMemory::Free(LockedMemory[MipIndex]);
 	LockedMemory[MipIndex] = NULL;
 }
 
-uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride)
+uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLayer)
 {
 	// Calculate the dimensions of the mip-map.
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
@@ -333,7 +344,7 @@ uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride)
 	const uint32 BlockBytes = GPixelFormats[PixelFormat].BlockBytes;
 	const uint32 MipSizeX = FMath::Max(SizeX >> MipIndex, BlockSizeX);
 	const uint32 MipSizeY = FMath::Max(SizeY >> MipIndex, BlockSizeY);
-	const uint32 MipSizeZ = FMath::Max(SizeZ >> MipIndex, 1u);
+	const uint32 MipSizeZ = bSingleLayer ? 1 : FMath::Max(SizeZ >> MipIndex, 1u);
 	uint32 NumBlocksX = (MipSizeX + BlockSizeX - 1) / BlockSizeX;
 	uint32 NumBlocksY = (MipSizeY + BlockSizeY - 1) / BlockSizeY;
 	if (PixelFormat == PF_PVRTC2 || PixelFormat == PF_PVRTC4)
@@ -369,7 +380,7 @@ uint32 FMetalSurface::GetMemorySize()
 	uint32 TotalSize = 0;
 	for (uint32 MipIndex = 0; MipIndex < [Texture mipmapLevelCount]; MipIndex++)
 	{
-		TotalSize += GetMipSize(MipIndex, NULL);
+		TotalSize += GetMipSize(MipIndex, NULL, false);
 	}
 
 	return TotalSize;

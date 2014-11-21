@@ -91,7 +91,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIShaderPlatform == SP_METAL_MRT) ? SP_METAL_MRT : SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
 
-	// @todo metal mrt:
+	// we cannot render to a volume texture without geometry shader support
 	GSupportsVolumeTextureRendering = false;
 
 // 	GDrawUPVertexCheckCount = MAX_uint16;
