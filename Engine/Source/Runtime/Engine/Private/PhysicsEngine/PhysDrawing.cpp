@@ -925,6 +925,14 @@ void FConstraintInstance::DrawConstraint(	FPrimitiveDrawInterface* PDI,
 											float Scale, float LimitDrawScale, bool bDrawLimits, bool bDrawSelected,
 											const FTransform& Con1Frame, const FTransform& Con2Frame, bool bDrawAsPoint ) const
 {
+	// Do nothing unless we are in the interactive editor, otherwise limit materials are not loaded
+	if (!GIsEditor || IsRunningCommandlet())
+	{
+		return;
+	}
+
+	check((GEngine->ConstraintLimitMaterialX != nullptr) && (GEngine->ConstraintLimitMaterialY != nullptr) && (GEngine->ConstraintLimitMaterialZ != nullptr));
+
 	static UMaterialInterface * LimitMaterialX = GEngine->ConstraintLimitMaterialX;
 	static UMaterialInterface * LimitMaterialY = GEngine->ConstraintLimitMaterialY;
 	static UMaterialInterface * LimitMaterialZ = GEngine->ConstraintLimitMaterialZ;
