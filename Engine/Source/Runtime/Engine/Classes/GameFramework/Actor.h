@@ -155,10 +155,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Input)
 	uint32 bBlockInput:1;
 
-private:
 	/** True if this actor is currently running user construction script (used to defer component registration) */
 	uint32 bRunningUserConstructionScript:1;
 
+private:
 	/** Whether FinishSpawning has been called for this Actor.  If it has not, the Actor is in a mal-formed state */
 	uint32 bHasFinishedSpawning:1;
 

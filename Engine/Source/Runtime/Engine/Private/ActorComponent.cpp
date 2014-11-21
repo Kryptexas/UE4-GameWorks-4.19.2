@@ -1105,6 +1105,12 @@ bool UActorComponent::IsActive() const
 	return bIsActive;
 }
 
+bool UActorComponent::IsRunningUserConstructionScript() const
+{
+	const AActor* Owner = GetOwner();
+	return Owner != nullptr && Owner->bRunningUserConstructionScript;
+}
+
 void UActorComponent::AddAssetUserData(UAssetUserData* InUserData)
 {
 	if (InUserData != NULL)

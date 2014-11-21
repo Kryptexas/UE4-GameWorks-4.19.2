@@ -466,6 +466,9 @@ public:
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	// End IInterface_AssetUserData Interface
 
+	/** See if the owning Actor is currently running the UCS */
+	bool IsRunningUserConstructionScript() const;
+
 	/** See if this component is currently registered */
 	FORCEINLINE bool IsRegistered() const
 	{

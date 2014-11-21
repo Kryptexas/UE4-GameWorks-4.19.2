@@ -2,19 +2,6 @@
 
 #pragma once
 
-
-class FDeferredComponentInfo
-{
-public:
-	USceneComponent* Component;
-	EComponentMobility::Type SavedMobility;
-
-	FDeferredComponentInfo(USceneComponent* InComponent, EComponentMobility::Type OriginalMobility) :
-		Component(InComponent),
-		SavedMobility(OriginalMobility)
-	{}
-};
-
 /**
  * Helper class to store components which registration should be deferred until
  * the construction script has completed... generally, all components get stuck here
@@ -24,7 +11,7 @@ public:
 class FDeferRegisterComponents : public FGCObject
 {
 	/** Map of actors and their components to register. */
-	TMap<AActor*, TArray<FDeferredComponentInfo> > ComponentsToRegister;
+	TMap<AActor*, TArray<UActorComponent*> > ComponentsToRegister;
 
 public:
 
@@ -34,7 +21,7 @@ public:
 	 * @param Actor Actor this component belongs to.
 	 * @param Component Component to register.
 	 */
-	void DeferComponentRegistration(AActor* Actor, USceneComponent* Component, EComponentMobility::Type OriginalMobility);
+	void DeferComponentRegistration(AActor* Actor, UActorComponent* Component);
 
 	/**
 	 * Registers all deferred components that belong to the specified actor.

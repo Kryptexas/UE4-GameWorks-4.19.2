@@ -423,34 +423,26 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	OnConstruction(Transform);
 }
 
-
-void FDeferRegisterComponents::DeferComponentRegistration(AActor* Actor, USceneComponent* Component, EComponentMobility::Type OriginalMobility)
+void FDeferRegisterComponents::DeferComponentRegistration(AActor* Actor, UActorComponent* Component)
 {
-	TArray<FDeferredComponentInfo>* ActorComponentsToRegister = ComponentsToRegister.Find(Actor);
+	TArray<UActorComponent*>* ActorComponentsToRegister = ComponentsToRegister.Find(Actor);
 	if (!ActorComponentsToRegister)
 	{
-		ActorComponentsToRegister = &ComponentsToRegister.Add(Actor, TArray<FDeferredComponentInfo>());
+		ActorComponentsToRegister = &ComponentsToRegister.Add(Actor, TArray<UActorComponent*>());
 	}
-	ActorComponentsToRegister->Add(FDeferredComponentInfo(Component, OriginalMobility));
 	
-	// Components with Mobility set to EComponentMobility::Static or EComponentMobility::Stationary 
-	// can't be properly set up from a construction script (all changes will be rejected due to 
-	// EComponentMobility::Static flag) so we're going to temporarily change the flag and defer 
-	// the registration until the construction-script has finished.
-	Component->Mobility = EComponentMobility::Movable;
+	ActorComponentsToRegister->Add(Component);
 }
 
 void FDeferRegisterComponents::RegisterComponents(AActor* Actor)
 {
-	TArray<FDeferredComponentInfo>* ActorComponentsToRegister = ComponentsToRegister.Find(Actor);
+	TArray<UActorComponent*>* ActorComponentsToRegister = ComponentsToRegister.Find(Actor);
 	if (ActorComponentsToRegister)
 	{
 		for (int32 ComponentIndex = 0; ComponentIndex < ActorComponentsToRegister->Num(); ++ComponentIndex)
 		{
-			const FDeferredComponentInfo& SavedInfo = (*ActorComponentsToRegister)[ComponentIndex];
-			USceneComponent* Component = SavedInfo.Component;
-			// Restore saved mobility just before registering this component.
-			Component->Mobility = SavedInfo.SavedMobility;
+			UActorComponent* Component = (*ActorComponentsToRegister)[ComponentIndex];
+			
 			Component->RegisterComponent();
 		}
 		ComponentsToRegister.Remove(Actor);
@@ -460,13 +452,13 @@ void FDeferRegisterComponents::RegisterComponents(AActor* Actor)
 // FGCObject interface
 void FDeferRegisterComponents::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (TMap<AActor*, TArray<FDeferredComponentInfo> >::TIterator It(ComponentsToRegister); It; ++It)
+	for (TMap<AActor*, TArray<UActorComponent*> >::TIterator It(ComponentsToRegister); It; ++It)
 	{
 		Collector.AddReferencedObject(It.Key());
-		TArray<FDeferredComponentInfo>& Components = It.Value();
+		TArray<UActorComponent*>& Components = It.Value();
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex)
 		{
-			Collector.AddReferencedObject(Components[ComponentIndex].Component);
+			Collector.AddReferencedObject(Components[ComponentIndex]);
 		}
 	}
 }
@@ -484,9 +476,6 @@ void AActor::ProcessUserConstructionScript()
 	bRunningUserConstructionScript = true;
 	UserConstructionScript();
 	bRunningUserConstructionScript = false;
-
-	// Register all deferred components for this actor.
-	FDeferRegisterComponents::Get().RegisterComponents(this);
 }
 
 void AActor::FinishAndRegisterComponent(UActorComponent* Component)
@@ -514,12 +503,12 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 
 UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment, const FTransform& RelativeTransform, const UObject* ComponentTemplateContext)
 {
-	UActorComponent* Template = NULL;
-	UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>((ComponentTemplateContext != NULL) ? ComponentTemplateContext->GetClass() : GetClass());
-	while(BlueprintGeneratedClass != NULL)
+	UActorComponent* Template = nullptr;
+	UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>((ComponentTemplateContext != nullptr) ? ComponentTemplateContext->GetClass() : GetClass());
+	while(BlueprintGeneratedClass != nullptr)
 	{
 		Template = BlueprintGeneratedClass->FindComponentTemplateByName(TemplateName);
-		if(NULL != Template)
+		if(nullptr != Template)
 		{
 			break;
 		}
@@ -527,33 +516,36 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 	}
 
 	UActorComponent* NewActorComp = CreateComponentFromTemplate(Template);
-	if(NewActorComp != NULL)
+	if(NewActorComp != nullptr)
 	{
 		// The user has the option of doing attachment manually where they have complete control or via the automatic rule
 		// that the first component added becomes the root component, with subsequent components attached to the root.
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewActorComp);
-		bool bDeferRegisterStaticComponent = false;
-		EComponentMobility::Type OriginalMobility = EComponentMobility::Movable;
-
-		if(NewSceneComp != NULL)
+		if(NewSceneComp != nullptr)
 		{
-			// Components with Mobility set to EComponentMobility::Static or EComponentMobility::Stationary can't be properly set up in UCS (all changes will be rejected
-			// due to EComponentMobility::Static flag) so we're going to temporarily change the flag and defer the registration until UCS has finished.
-			bDeferRegisterStaticComponent = bRunningUserConstructionScript && NewSceneComp->Mobility != EComponentMobility::Movable;
-			OriginalMobility = NewSceneComp->Mobility;
-			if (bDeferRegisterStaticComponent)
-			{
-				NewSceneComp->Mobility = EComponentMobility::Movable;
-			}
-
 			if (!bManualAttachment)
 			{
-				if (RootComponent == NULL)
+				if (RootComponent == nullptr)
 				{
 					RootComponent = NewSceneComp;
 				}
 				else
 				{
+					// The root component can't be more mobile than its children, so we check for that here and adjust as needed before attaching.
+					if(RootComponent->Mobility > NewSceneComp->Mobility)
+					{
+						if(NewSceneComp->IsA<UStaticMeshComponent>())
+						{
+							// SMCs can't be stationary, so always set them to be movable
+							NewSceneComp->SetMobility(EComponentMobility::Movable);
+						}
+						else
+						{
+							// Set the new component to be at least as mobile as the root
+							NewSceneComp->SetMobility(RootComponent->Mobility);
+						}
+					}
+
 					NewSceneComp->AttachTo(RootComponent);
 				}
 			}
@@ -564,16 +556,8 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 		// Call function to notify component it has been created
 		NewActorComp->OnComponentCreated();
 
-		if (bDeferRegisterStaticComponent)
-		{
-			// Defer registration until after UCS has completed.
-			FDeferRegisterComponents::Get().DeferComponentRegistration(this, NewSceneComp, OriginalMobility);
-		}
-		else
-		{
-			// Register component, which will create physics/rendering state, now component is in correct position
-			NewActorComp->RegisterComponent();
-		}
+		// Register component, which will create physics/rendering state, now component is in correct position
+		NewActorComp->RegisterComponent();
 	}
 
 	return NewActorComp;

@@ -294,6 +294,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 {
 	if(RootNodes.Num() > 0)
 	{
+		TArray<UActorComponent*> InstancedComponents;
 		for(auto NodeIt = RootNodes.CreateIterator(); NodeIt; ++NodeIt)
 		{
 			USCS_Node* RootNode = *NodeIt;
@@ -335,7 +336,29 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 					}
 				}
 
-				RootNode->ExecuteNodeOnActor(Actor, ParentComponent != NULL ? ParentComponent : Actor->GetRootComponent(), &RootTransform, bIsDefaultTransform);
+				// Create the new component instance and any child components it may have
+				UActorComponent* InstancedComponent = RootNode->ExecuteNodeOnActor(Actor, ParentComponent != NULL ? ParentComponent : Actor->GetRootComponent(), &RootTransform, bIsDefaultTransform);
+				if(InstancedComponent != nullptr)
+				{
+					InstancedComponents.Add(InstancedComponent);
+				}
+			}
+		}
+
+		// Register all instanced SCS components once SCS execution has finished; do the scene component hierarchy first, followed by the remaining actor components (in case they happen to depend on something in the scene hierarchy)
+		InstancedComponents.Sort([](const UActorComponent& A, const UActorComponent& B) { return A.IsA<USceneComponent>(); });
+		for(auto InstancedComponent : InstancedComponents)
+		{
+			InstancedComponent->RegisterComponent();
+
+			// If this is a scene component, register any child components as well
+			USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(InstancedComponent);
+			if(InstancedSceneComponent != nullptr)
+			{
+				for(auto InstancedChildComponent : InstancedSceneComponent->AttachChildren)
+				{
+					InstancedChildComponent->RegisterComponent();
+				}
 			}
 		}
 	}
