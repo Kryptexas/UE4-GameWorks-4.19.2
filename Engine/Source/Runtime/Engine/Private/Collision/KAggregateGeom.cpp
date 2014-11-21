@@ -108,6 +108,13 @@ void FKAggregateGeom::CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTrans
 		AABB.GetCenterAndExtents(Output.Origin, Output.BoxExtent);
 		Output.SphereRadius = FMath::Sqrt(RadiusSquared);
 	}
+	else if ((SphereElems.Num() == 1) && (SphylElems.Num() == 0) && (BoxElems.Num() == 0) && (ConvexElems.Num() == 0))
+	{
+		// For bounds that only consist of a single sphere,
+		// we can be certain the box extents are the same as its radius
+		AABB.GetCenterAndExtents(Output.Origin, Output.BoxExtent);
+		Output.SphereRadius = Output.BoxExtent.X;
+	}
 	else
 	{
 		// Just use the loose sphere bounds that totally fit the AABB

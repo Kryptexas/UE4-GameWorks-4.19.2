@@ -30,6 +30,14 @@ public:
 	
 	void SetShowGrid(bool bShowGrid);
 
+	/**
+	* Focuses the viewport to the center of the bounding box/sphere ensuring that the entire bounds are in view
+	*
+	* @param Bounds   The bounds to focus
+	* @param bInstant Whether or not to focus the viewport instantly or over time
+	*/
+	void FocusViewportOnBounds(const FBoxSphereBounds Bounds, bool bInstant = false);
+
 private:
 
 	/** Pointer back to the material editor tool that owns us */
@@ -124,6 +132,48 @@ FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewF
 void FMaterialEditorViewportClient::SetShowGrid(bool bShowGrid)
 {
 	DrawHelper.bDrawGrid = bShowGrid;
+}
+
+void FMaterialEditorViewportClient::FocusViewportOnBounds(const FBoxSphereBounds Bounds, bool bInstant /*= false*/)
+{
+	const FVector Position = Bounds.Origin;
+	float Radius = Bounds.SphereRadius;
+
+	float AspectToUse = AspectRatio;
+	FIntPoint ViewportSize = Viewport->GetSizeXY();
+	if (!bUseControllingActorViewInfo && ViewportSize.X > 0 && ViewportSize.Y > 0)
+	{
+		AspectToUse = Viewport->GetDesiredAspectRatio();
+	}
+
+	const bool bEnable = false;
+	ToggleOrbitCamera(bEnable);
+
+	/**
+	* We need to make sure we are fitting the sphere into the viewport completely, so if the height of the viewport is less
+	* than the width of the viewport, we scale the radius by the aspect ratio in order to compensate for the fact that we have
+	* less visible vertically than horizontally.
+	*/
+	if (AspectToUse > 1.0f)
+	{
+		Radius *= AspectToUse;
+	}
+
+	/**
+	* Now that we have a adjusted radius, we are taking half of the viewport's FOV,
+	* converting it to radians, and then figuring out the camera's distance from the center
+	* of the bounding sphere using some simple trig.  Once we have the distance, we back up
+	* along the camera's forward vector from the center of the sphere, and set our new view location.
+	*/
+	const float HalfFOVRadians = FMath::DegreesToRadians(ViewFOV / 2.0f);
+	const float DistanceFromSphere = Radius / FMath::Sin(HalfFOVRadians);
+	FVector CameraOffsetVector = ViewTransform.GetRotation().Vector() * -DistanceFromSphere;
+
+	ViewTransform.SetLookAt(Position);
+	ViewTransform.TransitionToLocation(Position + CameraOffsetVector, bInstant);
+
+	// Tell the viewport to redraw itself.
+	Invalidate();
 }
 
 void SMaterialEditorViewport::Construct(const FArguments& InArgs)
@@ -352,7 +402,7 @@ void SMaterialEditorViewport::OnFocusViewportToSelection()
 {
 	if( PreviewMeshComponent || PreviewSkeletalMeshComponent )
 	{
-		EditorViewportClient->FocusViewportOnBox( bUseSkeletalMeshAsPreview ? PreviewSkeletalMeshComponent->Bounds.GetBox() : PreviewMeshComponent->Bounds.GetBox() );
+		EditorViewportClient->FocusViewportOnBounds( bUseSkeletalMeshAsPreview ? PreviewSkeletalMeshComponent->Bounds : PreviewMeshComponent->Bounds );
 	}
 }
 

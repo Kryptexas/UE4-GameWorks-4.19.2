@@ -9,5 +9,8 @@ UCLASS()
 class UNREALED_API UMaterialEditorMeshComponent : public UStaticMeshComponent
 {
 	GENERATED_UCLASS_BODY()
+
+	// USceneComponent Interface
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 };
 
