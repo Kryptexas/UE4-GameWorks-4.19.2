@@ -19,7 +19,10 @@ void AActor::PreEditChange(UProperty* PropertyThatWillChange)
 {
 	Super::PreEditChange(PropertyThatWillChange);
 
-	UnregisterAllComponents();
+	if ( ReregisterComponentsWhenModified() )
+	{
+		UnregisterAllComponents();
+	}
 }
 
 static FName Name_RelativeLocation = GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeLocation);
@@ -53,7 +56,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 		}
 	}
 
-	if(!IsTemplate())
+	if ( ReregisterComponentsWhenModified() )
 	{
 		ReregisterAllComponents();
 
@@ -77,7 +80,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 
 void AActor::PostEditMove(bool bFinished)
 {
-	if(!IsTemplate())
+	if ( ReregisterComponentsWhenModified() )
 	{
 		UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
 		if(Blueprint && (Blueprint->bRunConstructionScriptOnDrag || bFinished) && !FLevelUtils::IsMovingLevel() )
@@ -131,6 +134,10 @@ void AActor::PostEditMove(bool bFinished)
 	}
 }
 
+bool AActor::ReregisterComponentsWhenModified() const
+{
+	return !IsTemplate() && ( GetOutermost()->PackageFlags & PKG_PlayInEditor ) == 0;
+}
 
 void AActor::DebugShowComponentHierarchy(  const TCHAR* Info, bool bShowPosition )
 {	

@@ -1165,6 +1165,9 @@ public:
 
 	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const override;
 	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation) override;
+
+	/** @return true if the component is allowed to re-register its components when modified.  False for CDOs or PIE instances. */
+	bool ReregisterComponentsWhenModified() const;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
@@ -1626,7 +1629,7 @@ public:
 	/** Called after the actor is spawned in the world.  Responsible for setting up actor for play. */
 	void PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
 
-    /** Called to finish the spawning process, generally in the case of deferred spawning */
+	/** Called to finish the spawning process, generally in the case of deferred spawning */
 	void FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform = false);
 
 private:
