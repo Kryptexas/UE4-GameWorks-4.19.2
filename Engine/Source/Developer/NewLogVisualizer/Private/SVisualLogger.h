@@ -84,6 +84,7 @@ public:
 
 	bool HandleCameraCommandCanExecute() const;
 	void HandleCameraCommandExecute();
+	bool HandleCameraCommandIsChecked() const;
 
 	TSharedPtr<SVisualLoggerFilters> GetVisualLoggerFilters() { return VisualLoggerFilters; }
 
