@@ -35,31 +35,86 @@ FReply STimelineBar::OnMouseMove(const FGeometry& MyGeometry, const FPointerEven
 
 FReply STimelineBar::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
+	FReply ReturnValue = FReply::Unhandled();
 	if (TimelineOwner.Pin()->IsSelected() == false)
 	{
-		return FReply::Unhandled();
+		return ReturnValue;
 	}
 
 	if (CurrentItemIndex != INDEX_NONE)
 	{
 		TRange<float> LocalViewRange = TimeSliderController->GetTimeSliderArgs().ViewRange.Get();
-		const FKey Key = InKeyEvent.GetKey();
-		if (Key == EKeys::Left || Key == EKeys::Right)
-		{
-			int32 MoveBy = Key == EKeys::Left ? -1 : 1;
-			if (InKeyEvent.IsLeftControlDown())
-			{
-				MoveBy *= 10;
-			}
+		float RangeSize = LocalViewRange.Size<float>();
 
-			auto &Entries = TimelineOwner.Pin()->GetEntries();
-			uint32 NewItemIndex = FMath::Clamp(CurrentItemIndex + MoveBy, 0, Entries.Num() - 1);
-			SnapScrubPosition(Entries[NewItemIndex].Entry.TimeStamp);
-			return FReply::Handled();
+		const FKey Key = InKeyEvent.GetKey();
+		int32 NewItemIndex = CurrentItemIndex;
+		auto &Entries = TimelineOwner.Pin()->GetEntries();
+		if (Key == EKeys::Home)
+		{
+			for (int32 Index = 0; Index < Entries.Num(); Index++)
+			{
+				if (TimelineOwner.Pin()->IsEntryHidden(Entries[Index]) == false)
+				{
+					NewItemIndex = Index;
+					break;
+				}
+			}
+			ReturnValue = FReply::Handled();
+		}
+		else if (Key == EKeys::End)
+		{
+			for (int32 Index = Entries.Num()-1; Index >= 0; Index--)
+			{
+				if (TimelineOwner.Pin()->IsEntryHidden(Entries[Index]) == false)
+				{
+					NewItemIndex = Index;
+					break;
+				}
+			}
+			ReturnValue = FReply::Handled();
+		}
+		else if (Key == EKeys::Left || Key == EKeys::Right)
+		{
+			int32 Direction = Key == EKeys::Left ? -1 : 1;
+			int32 MoveBy = InKeyEvent.IsLeftControlDown() ? InKeyEvent.IsLeftShiftDown() ? 20 : 10 : 1;
+
+			int32 Index = 0;
+			while (true)
+			{
+				NewItemIndex += Direction;
+				if (Entries.IsValidIndex(NewItemIndex))
+				{
+					auto& CurrentEntryItem = Entries[NewItemIndex];
+					if (TimelineOwner.Pin()->IsEntryHidden(CurrentEntryItem) == false && ++Index == MoveBy)
+					{
+						break;
+					}
+				}
+				else
+				{
+					NewItemIndex = FMath::Clamp(NewItemIndex, 0, Entries.Num() - 1);
+					break;
+				}
+			}
+			ReturnValue = FReply::Handled();
+		}
+
+		if (NewItemIndex != CurrentItemIndex)
+		{
+			float NewTimeStamp = Entries[NewItemIndex].Entry.TimeStamp;
+			SnapScrubPosition(NewTimeStamp);
+			if (NewTimeStamp < LocalViewRange.GetLowerBoundValue())
+			{
+				TimeSliderController->GetTimeSliderArgs().ViewRange.Set(TRange<float>(NewTimeStamp, NewTimeStamp + RangeSize));
+			}
+			else if (NewTimeStamp > LocalViewRange.GetUpperBoundValue())
+			{
+				TimeSliderController->GetTimeSliderArgs().ViewRange.Set(TRange<float>(NewTimeStamp - RangeSize, NewTimeStamp));
+			}
 		}
 	}
 
-	return FReply::Unhandled();
+	return ReturnValue;
 }
 
 uint32 STimelineBar::GetClosestItem(float Time) const
@@ -162,13 +217,18 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		TimelineOwner.Pin()->IsSelected() ? FLinearColor(.2f, .2f, .2f, 0.5f) : FLinearColor(.1f, .1f, .1f, 0.5f)
 		);
 
+	const FSlateBrush* FillImage = FLogVisualizerStyle::Get().GetBrush("LogVisualizer.LogBar.EntryDefault");
+	static const FColor CurrentTimeColor(140, 255, 255, 255);
+	static const FColor ErrorTimeColor(255, 0, 0, 255);
+	static const FColor SelectedBarColor(255, 255, 255, 255);
+	const FSlateBrush* SelectedFillImage = FLogVisualizerStyle::Get().GetBrush("LogVisualizer.LogBar.Selected");
+
+	const ESlateDrawEffect::Type DrawEffects = ESlateDrawEffect::None;// bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
+	TArray<float> ErrorTimes;
 	auto &Entries = TimelineOwner.Pin()->GetEntries();
 	for (int32 Index = 0; Index < Entries.Num(); Index++)
 	{
-		const FSlateBrush* FillImage = FLogVisualizerStyle::Get().GetBrush("LogVisualizer.LogBar.EntryDefault");
-
-		static const FColor CurrentTimeColor(140, 255, 255, 255);
-		const ESlateDrawEffect::Type DrawEffects = ESlateDrawEffect::None;// bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 		int32 CurrentIndex = Index;
 		float CurrentTime = Entries[CurrentIndex].Entry.TimeStamp;
 		if (CurrentTime < LocalViewRange.GetLowerBoundValue() || CurrentTime > LocalViewRange.GetUpperBoundValue())
@@ -179,6 +239,16 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		if( TimelineOwner.Pin()->IsEntryHidden(Entries[CurrentIndex]) )
 		{
 			continue;
+		}
+
+		const TArray<FVisualLogLine>& LogLines = Entries[CurrentIndex].Entry.LogLines;
+		for (const FVisualLogLine& CurrentLine : LogLines)
+		{
+			if (CurrentLine.Verbosity <= ELogVerbosity::Error)
+			{
+				ErrorTimes.AddUnique(CurrentTime);
+				break;
+			}
 		}
 
 		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
@@ -196,6 +266,24 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			);
 	}
 
+	float ErrorBoxWidth = BoxWidth+2;
+	for (auto CurrentTime : ErrorTimes)
+	{
+		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			RetLayerId++,
+			AllottedGeometry.ToPaintGeometry(
+			FVector2D(LinePos - ErrorBoxWidth * 0.5f, 0.0f),
+			FVector2D(ErrorBoxWidth, AllottedGeometry.Size.Y)),
+			FillImage,
+			MyClippingRect,
+			DrawEffects,
+			ErrorTimeColor
+			);
+	}
+
 	uint32 BestItemIndex = GetClosestItem(LocalScrubPosition);
 
 	if (BestItemIndex != INDEX_NONE && TimelineOwner.Pin()->IsSelected())
@@ -206,10 +294,6 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(Entries[BestItemIndex]);
 		}
 
-		static const FColor SelectedBarColor(255, 255, 255, 255);
-		static const FColor CurrentTimeColor(140, 255, 255, 255);
-
-		const FSlateBrush* FillImage = FLogVisualizerStyle::Get().GetBrush("LogVisualizer.LogBar.Selected");
 		float CurrentTime = Entries[BestItemIndex].Entry.TimeStamp;
 		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
 
@@ -220,7 +304,7 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			AllottedGeometry.ToPaintGeometry(
 			FVector2D(LinePos - BoxWidth * 0.5f, 0.0f),
 			FVector2D(BoxWidth, AllottedGeometry.Size.Y)),
-			FillImage,
+			SelectedFillImage,
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			SelectedBarColor

@@ -24,6 +24,7 @@ public:
 		UI_COMMAND(StopRecording, "Stop", "Step over the current message", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(Pause, "Pause", "Stop the debugger", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(Resume, "Resume", "Stop the debugger", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(FreeCamera, "FreeCamera", "Enable free camera", EUserInterfaceActionType::ToggleButton, FInputGesture());
 		UI_COMMAND(Load, "Load", "Load external vlogs", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(Save, "Save", "Save selected data to vlog file", EUserInterfaceActionType::Button, FInputGesture());
 	}
@@ -34,6 +35,7 @@ public:
 	TSharedPtr<FUICommandInfo> StopRecording;
 	TSharedPtr<FUICommandInfo> Pause;
 	TSharedPtr<FUICommandInfo> Resume;
+	TSharedPtr<FUICommandInfo> FreeCamera;
 	TSharedPtr<FUICommandInfo> Load;
 	TSharedPtr<FUICommandInfo> Save;
 };

@@ -9,36 +9,6 @@
 
 #define LOCTEXT_NAMESPACE "SVisualLoggerFilters"
 
-//template <typename ItemType>
-//class SLogListView : public SListView<ItemType>
-//{
-//public:
-//	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
-//	{
-//		if (!MouseEvent.IsLeftShiftDown())
-//		{
-//			return SListView<ItemType>::OnMouseWheel(MyGeometry, MouseEvent);
-//		};
-//
-//		return FReply::Unhandled();
-//	}
-//
-//	void RefreshList()
-//	{
-//		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
-//
-//		for (int32 Index = 0; Index < ItemsSourceRef.Num(); ++Index)
-//		{
-//			TSharedPtr< SLogsTableRow > TableRow = StaticCastSharedPtr< SLogsTableRow >(this->WidgetGenerator.GetWidgetForItem(ItemsSourceRef[Index]));
-//			if (TableRow.IsValid())
-//			{
-//				TableRow->UpdateEntries();
-//			}
-//		}
-//
-//	}
-//};
-
 void SVisualLoggerView::GetTimelines(TArray<TSharedPtr<STimeline> >& OutList, bool bOnlySelectedOnes)
 {
 	OutList = bOnlySelectedOnes ? TimelinesContainer->GetSelectedNodes() : TimelinesContainer->GetAllNodes();

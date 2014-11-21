@@ -7,7 +7,7 @@
 #include "VisualLoggerCanvasRenderer.h"
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
-
+#include "VisualLoggerCameraController.h"
 #if WITH_EDITOR
 #	include "Editor/UnrealEd/Public/EditorComponents.h"
 #	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
@@ -182,6 +182,7 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 	ActionList.MapAction(Commands.Resume, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleResumeCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleResumeCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleResumeCommandIsVisible));
 	ActionList.MapAction(Commands.Load, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleLoadCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleLoadCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleLoadCommandCanExecute));
 	ActionList.MapAction(Commands.Save, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute));
+	ActionList.MapAction(Commands.FreeCamera, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleCameraCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleCameraCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleCameraCommandCanExecute));
 
 	// Tab Spawners
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
@@ -391,17 +392,6 @@ void SVisualLogger::HandlePauseCommandExecute()
 	if (World != NULL)
 	{
 		World->bPlayersOnlyPending = true;
-		//// switch debug cam on
-		//CameraController = ALogVisualizerCameraController::EnableCamera(World);
-		//if (CameraController.IsValid())
-		//{
-		//	CameraController->OnActorSelected = ALogVisualizerCameraController::FActorSelectedDelegate::CreateSP(
-		//		this, &SLogVisualizer::CameraActorSelected
-		//		);
-		//	CameraController->OnIterateLogEntries = ALogVisualizerCameraController::FLogEntryIterationDelegate::CreateSP(
-		//		this, &SLogVisualizer::IncrementCurrentLogIndex
-		//		);
-		//}
 	}
 }
 
@@ -423,14 +413,37 @@ void SVisualLogger::HandleResumeCommandExecute()
 	{
 		World->bPlayersOnly = false;
 		World->bPlayersOnlyPending = false;
-
-		//ALogVisualizerCameraController::DisableCamera(World);
 	}
 }
 
 bool SVisualLogger::HandleResumeCommandIsVisible() const
 {
 	return HandleResumeCommandCanExecute();
+}
+
+bool SVisualLogger::HandleCameraCommandCanExecute() const
+{
+	UWorld* World = VisualLoggerInterface->GetWorld();
+	return FVisualLogger::Get().IsRecording() && World && !World->bPlayersOnly && !World->bPlayersOnlyPending;
+}
+
+void SVisualLogger::HandleCameraCommandExecute()
+{
+	UWorld* World = VisualLoggerInterface->GetWorld();
+	if (AVisualLoggerCameraController::IsEnabled(World))
+	{
+		AVisualLoggerCameraController::DisableCamera(World);
+	}
+	else
+	{
+		// switch debug cam on
+		CameraController = AVisualLoggerCameraController::EnableCamera(World);
+		if (CameraController.IsValid())
+		{
+			//CameraController->OnActorSelected = ALogVisualizerCameraController::FActorSelectedDelegate::CreateSP(this, &SVisualLogger::CameraActorSelected);
+			//CameraController->OnIterateLogEntries = ALogVisualizerCameraController::FLogEntryIterationDelegate::CreateSP(this, &SVisualLogger::IncrementCurrentLogIndex);
+		}
+	}
 }
 
 bool SVisualLogger::HandleLoadCommandCanExecute() const

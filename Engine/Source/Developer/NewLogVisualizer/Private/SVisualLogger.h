@@ -82,6 +82,9 @@ public:
 	bool HandleSaveCommandCanExecute() const;
 	void HandleSaveCommandExecute();
 
+	bool HandleCameraCommandCanExecute() const;
+	void HandleCameraCommandExecute();
+
 	TSharedPtr<SVisualLoggerFilters> GetVisualLoggerFilters() { return VisualLoggerFilters; }
 
 protected:
@@ -94,6 +97,7 @@ protected:
 	// Visual Logger device to get and collect logs.
 	TSharedPtr<FVisualLoggerDevice> InternalDevice;
 
+	TWeakObjectPtr<class AVisualLoggerCameraController> CameraController;
 	TSharedPtr<struct FVisualLoggerCanvasRenderer> VisualLoggerCanvasRenderer;
 	TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	mutable TSharedPtr<SVisualLoggerFilters> VisualLoggerFilters;
