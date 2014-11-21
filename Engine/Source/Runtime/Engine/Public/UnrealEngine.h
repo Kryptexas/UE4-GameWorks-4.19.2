@@ -432,6 +432,12 @@ struct ENGINE_API FSystemResolution
 	{
 
 	}
+
+	void ForceRefresh()
+	{
+		RequestResolutionChange(ResX, ResY, WindowMode);
+		bForceRefresh = true;
+	}
 };
 
 ENGINE_API extern FSystemResolution GSystemResolution;
