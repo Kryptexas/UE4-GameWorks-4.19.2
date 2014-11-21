@@ -101,6 +101,21 @@ void FAssetTypeActions_Blueprint::Merge(UObject* InObject)
 	}
 }
 
+void FAssetTypeActions_Blueprint::Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset)
+{
+	UBlueprint* AsBlueprint = CastChecked<UBlueprint>(LocalAsset);
+	check(LocalAsset->GetClass() == BaseAsset->GetClass());
+	check(LocalAsset->GetClass() == RemoteAsset->GetClass());
+	
+	if (FAssetEditorManager::Get().OpenEditorForAsset(AsBlueprint))
+	{
+		FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+
+		FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(AsBlueprint, /*bFocusIfOpen =*/false));
+		BlueprintEditor->CreateMergeToolTab(Cast<UBlueprint>(BaseAsset), Cast<UBlueprint>(RemoteAsset));
+	}
+}
+
 bool FAssetTypeActions_Blueprint::CanCreateNewDerivedBlueprint() const
 {
 	return true;

@@ -80,8 +80,11 @@ public:
 	/** Returns true if this class can be merged (either manually or automatically) */
 	virtual bool CanMerge() const = 0;
 
-	/** Begins a merge operation for InObjects */
+	/** Begins a merge operation for InObject (automatically determines remote/base versions needed to resolve) */
 	virtual void Merge( UObject* InObject ) = 0;
+
+	/** Begins a merge between the specified assets */
+	virtual void Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset) = 0;
 
 	/** Returns the categories that this asset type. The return value is one or more flags from EAssetTypeCategories.  */
 	virtual uint32 GetCategories() = 0;

@@ -115,12 +115,65 @@ static UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName
 	return LoadRevision(AssetName, *Revision);
 }
 
+static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor> Editor,
+                                                    const UBlueprint*    BaseBlueprint,
+                                                    const FRevisionInfo& BaseRevInfo,
+													const UBlueprint*    RemoteBlueprint,
+													const FRevisionInfo& RemoteRevInfo,
+													const UBlueprint&    LocalBlueprint)
+{
+	TSharedPtr<SWidget> TabContent;
+
+	if (RemoteBlueprint && BaseBlueprint)
+	{
+		LocalBlueprint.bDuplicatingReadOnly = true;
+		FBlueprintMergeData Data(Editor
+			, static_cast<const UBlueprint*>(StaticDuplicateObject(&LocalBlueprint, GetTransientPackage(), TEXT("None")))
+			, BaseBlueprint
+			, RemoteRevInfo
+			, RemoteBlueprint
+			, BaseRevInfo);
+		LocalBlueprint.bDuplicatingReadOnly = false;
+
+		TabContent = SNew(SBlueprintMerge, Data);
+	}
+	else
+	{
+		FText MissingFiles;
+		if (!RemoteBlueprint && !BaseBlueprint)
+		{
+			MissingFiles = LOCTEXT("MergeBothRevisionsFailed", "common base, nor conflicting revision");
+		}
+		else if (!RemoteBlueprint)
+		{
+			MissingFiles = LOCTEXT("MergeConflictingRevisionsFailed", "conflicting revision");
+		}
+		else
+		{
+			MissingFiles = LOCTEXT("MergeBaseRevisionsFailed", "common base");
+		}
+
+		DisplayErrorMessage(
+			FText::Format(
+				LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}")
+				, FText::FromString(LocalBlueprint.GetName())
+				, MissingFiles
+			)
+		);
+
+		TabContent = SNew(SHorizontalBox);
+	}
+
+	return TabContent;
+}
+
 class FMerge : public IMerge
 {
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	virtual TSharedRef<SDockTab> GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor) override;
+	virtual TSharedRef<SDockTab> GenerateMergeWidget(const UBlueprint* BaseAsset, const UBlueprint* RemoteAsset, const UBlueprint* LocalAsset, TSharedRef<FBlueprintEditor> Editor) override;
 	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const override;
 
 	// Simplest to only allow one merge operation at a time, we could easily make this a map of Blueprint=>MergeTab
@@ -190,45 +243,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 		FRevisionInfo BaseRevInfo = FRevisionInfo::InvalidRevision();
 		const UBlueprint* BaseBlueprint = Cast< UBlueprint >(LoadBaseRev(PackageName, AssetName, SourceControlStateRef, BaseRevInfo));
 
-		if (RemoteBlueprint && BaseBlueprint)
-		{
-			Object.bDuplicatingReadOnly = true;
-			FBlueprintMergeData Data(Editor 
-									, static_cast<const UBlueprint*>(StaticDuplicateObject(&Object, GetTransientPackage(), TEXT("None")))
-									, BaseBlueprint
-									, CurrentRevInfo
-									, RemoteBlueprint
-									, BaseRevInfo);
-			Object.bDuplicatingReadOnly = false;
-
-			Contents = SNew(SBlueprintMerge, Data);
-		}
-		else
-		{
-			FText MissingFiles;
-			if (!RemoteBlueprint && !BaseBlueprint)
-			{
-				MissingFiles = LOCTEXT("MergeBothRevisionsFailed", "common base, nor conflicting revision");
-			}
-			else if (!RemoteBlueprint)
-			{
-				MissingFiles = LOCTEXT("MergeConflictingRevisionsFailed", "conflicting revision");
-			}
-			else
-			{
-				MissingFiles = LOCTEXT("MergeBaseRevisionsFailed", "common base");
-			}
-
-			DisplayErrorMessage(
-				FText::Format(
-					LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}")
-					, FText::FromString(Object.GetName())
-					, MissingFiles
-				)
-			);
-
-			Contents = SNew(SHorizontalBox);
-		}
+		Contents = GenerateMergeTabContents(Editor, BaseBlueprint, BaseRevInfo, RemoteBlueprint, CurrentRevInfo, Object);
 	}
 
 	TSharedRef<SDockTab> Tab =  FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
@@ -236,6 +251,26 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 	ActiveTab = Tab;
 	return Tab;
 
+}
+
+TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint, const UBlueprint* LocalBlueprint, TSharedRef<FBlueprintEditor> Editor)
+{
+	if (ActiveTab.IsValid())
+	{
+		TSharedPtr<SDockTab> ActiveTabPtr = ActiveTab.Pin();
+		// just bring the tab to the foreground:
+		TSharedRef<SDockTab> CurrentTab = FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
+		check(CurrentTab == ActiveTabPtr);
+		return ActiveTabPtr.ToSharedRef();
+	}
+
+	// @TODO: pipe revision info through
+	TSharedPtr<SWidget> TabContents = GenerateMergeTabContents(Editor, BaseBlueprint, FRevisionInfo::InvalidRevision(), RemoteBlueprint, FRevisionInfo::InvalidRevision(), *LocalBlueprint);
+
+	TSharedRef<SDockTab> Tab = FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
+	Tab->SetContent(TabContents.ToSharedRef());
+	ActiveTab = Tab;
+	return Tab;
 }
 
 bool FMerge::PendingMerge(const UBlueprint& BlueprintObj) const

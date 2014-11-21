@@ -56,6 +56,11 @@ public:
 		check(false); // no generic merge operation exists yet, did you override CanMerge but not Merge?
 	}
 
+	virtual void Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset) override
+	{
+		check(false); // no generic merge operation exists yet, did you override CanMerge but not Merge?
+	}
+
 	virtual bool ShouldForceWorldCentric() override
 	{
 		return false;

@@ -468,6 +468,7 @@ public:
 
 	/** Forces the merge tool to be shown */
 	void CreateMergeToolTab();
+	void CreateMergeToolTab(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint);
 	
 	/** Closes the merge tool, rather than simply hiding it */
 	void CloseMergeTool();

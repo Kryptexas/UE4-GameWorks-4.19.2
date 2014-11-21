@@ -5048,6 +5048,11 @@ void FBlueprintEditor::CreateMergeToolTab()
 	MergeTool = IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this));
 }
 
+void FBlueprintEditor::CreateMergeToolTab(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint)
+{
+	MergeTool = IMerge::Get().GenerateMergeWidget(BaseBlueprint, RemoteBlueprint, GetBlueprintObj(), SharedThis(this));
+}
+
 void FBlueprintEditor::CloseMergeTool()
 {
 	auto MergeToolPtr = MergeTool.Pin();
