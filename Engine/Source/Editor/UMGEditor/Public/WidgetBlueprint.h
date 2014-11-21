@@ -5,11 +5,80 @@
 #include "Engine/Blueprint.h"
 #include "UserWidget.h"
 #include "WidgetAnimation.h"
+#include "DynamicPropertyPath.h"
 
 #include "WidgetBlueprint.generated.h"
 
 class UMovieScene;
 
+/** */
+USTRUCT()
+struct UMGEDITOR_API FEditorPropertyPathSegment
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	FEditorPropertyPathSegment();
+	FEditorPropertyPathSegment(const UProperty* InProperty);
+	FEditorPropertyPathSegment(const UFunction* InFunction);
+	FEditorPropertyPathSegment(const UEdGraph* InFunctionGraph);
+
+	UStruct* GetStruct() const { return Struct; }
+	UField* GetMember() const;
+
+	bool ValidateMember(UDelegateProperty* DelegateProperty, FText& OutError) const;
+
+	FName GetMemberName() const;
+	FText GetMemberDisplayText() const;
+
+private:
+
+	/** The owner of the path segment (ie. What class or structure was this property from) */
+	UPROPERTY()
+	UStruct* Struct;
+
+	/** The member name in the structure this segment represents. */
+	UPROPERTY()
+	FName MemberName;
+
+	/**
+	 * The member guid in this structure this segment represents.  If this is valid it should 
+	 * be used instead of Name to get the true name.
+	 */
+	UPROPERTY()
+	FGuid MemberGuid;
+
+	/** true if property, false if function */
+	UPROPERTY()
+	bool IsProperty;
+};
+
+
+/**  */
+USTRUCT()
+struct UMGEDITOR_API FEditorPropertyPath
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	FEditorPropertyPath();
+	FEditorPropertyPath(const TArray<UField*>& BindingChain);
+
+	bool IsEmpty() const { return Segments.Num() == 0; }
+	bool Validate(UDelegateProperty* Destination, FText& OutError) const;
+
+	FText GetDisplayText() const;
+
+	FDynamicPropertyPath ToPropertyPath() const;
+
+	/** The path of properties. */
+	UPROPERTY()
+	TArray<FEditorPropertyPathSegment> Segments;
+};
+
+
+/** */
 USTRUCT()
 struct UMGEDITOR_API FDelegateEditorBinding
 {
@@ -23,10 +92,6 @@ struct UMGEDITOR_API FDelegateEditorBinding
 	UPROPERTY()
 	FName PropertyName;
 
-	/** The optional source object we are bindings to, this could be a potential model object on the widget. */
-	UPROPERTY()
-	FName DataSource;
-
 	/** The function that was generated to return the SourceProperty */
 	UPROPERTY()
 	FName FunctionName;
@@ -35,12 +100,16 @@ struct UMGEDITOR_API FDelegateEditorBinding
 	UPROPERTY()
 	FName SourceProperty;
 
+	/**  */
+	UPROPERTY()
+	FEditorPropertyPath SourcePath;
+
 	/** If it's an actual Function Graph in the blueprint that we're bound to, there's a GUID we can use to lookup that function, to deal with renames better.  This is that GUID. */
 	UPROPERTY()
 	FGuid MemberGuid;
 
 	UPROPERTY()
-	TEnumAsByte<EBindingKind::Type> Kind;
+	EBindingKind Kind;
 
 	bool operator==( const FDelegateEditorBinding& Other ) const
 	{

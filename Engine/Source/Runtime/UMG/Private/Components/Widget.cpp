@@ -4,8 +4,17 @@
 
 #include "ReflectionMetadata.h"
 
+#include "TextBinding.h"
+#include "FloatBinding.h"
+#include "BoolBinding.h"
+#include "BrushBinding.h"
+#include "ColorBinding.h"
+#include "Int32Binding.h"
+
 /////////////////////////////////////////////////////
 // UWidget
+
+TArray<TSubclassOf<UPropertyBinding>> UWidget::BinderClasses;
 
 UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -614,4 +623,97 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 	}
 
 	return nullptr;
+}
+
+//bool UWidget::BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty)
+//{
+//	UDelegateProperty* DelegateProperty = FindField<UDelegateProperty>(GetClass(), FName(*( DestinationProperty.ToString() + TEXT("Delegate") )));
+//
+//	if ( DelegateProperty )
+//	{
+//		FDynamicPropertyPath BindingPath(SourceProperty.ToString());
+//		return AddBinding(DelegateProperty, SourceObject, BindingPath);
+//	}
+//
+//	return false;
+//}
+
+TSubclassOf<UPropertyBinding> UWidget::FindBinderClassForDestination(UProperty* Property)
+{
+	if ( BinderClasses.Num() == 0 )
+	{
+		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+		{
+			if ( ClassIt->IsChildOf(UPropertyBinding::StaticClass()) )
+			{
+				BinderClasses.Add(*ClassIt);
+			}
+		}
+	}
+
+	for ( int32 ClassIndex = 0; ClassIndex < BinderClasses.Num(); ClassIndex++ )
+	{
+		if ( GetDefault<UPropertyBinding>(BinderClasses[ClassIndex])->IsSupportedDestination(Property))
+		{
+			return BinderClasses[ClassIndex];
+		}
+	}
+
+	return nullptr;
+}
+
+static UPropertyBinding* GenerateBinder(UDelegateProperty* DelegateProperty, UObject* Container, UObject* SourceObject, const FDynamicPropertyPath& BindingPath)
+{
+	FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Container);
+	if ( ScriptDelegate )
+	{
+		if ( UProperty* ReturnProperty = DelegateProperty->SignatureFunction->GetReturnProperty() )
+		{
+			TSubclassOf<UPropertyBinding> BinderClass = UWidget::FindBinderClassForDestination(ReturnProperty);
+			if ( BinderClass != nullptr )
+			{
+				UPropertyBinding* Binder = ConstructObject<UPropertyBinding>(BinderClass, Container);
+				Binder->SourceObject = SourceObject;
+				Binder->SourcePath = BindingPath;
+				Binder->Bind(ReturnProperty, ScriptDelegate);
+
+				return Binder;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool UWidget::AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath)
+{
+	if ( UPropertyBinding* Binder = GenerateBinder(DelegateProperty, this, SourceObject, BindingPath) )
+	{
+		// Remove any existing binding object for this property.
+		for ( int32 BindingIndex = 0; BindingIndex < NativeBindings.Num(); BindingIndex++ )
+		{
+			if ( NativeBindings[BindingIndex]->DestinationProperty == DelegateProperty->GetFName() )
+			{
+				NativeBindings.RemoveAt(BindingIndex);
+				break;
+			}
+		}
+
+		NativeBindings.Add(Binder);
+
+		// Only notify the bindings have changed if we've already create the underlying slate widget.
+		if ( MyWidget.IsValid() )
+		{
+			OnBindingChanged(DelegateProperty->GetFName());
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void UWidget::OnBindingChanged(const FName& Property)
+{
+
 }

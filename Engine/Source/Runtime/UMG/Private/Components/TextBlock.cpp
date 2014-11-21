@@ -64,6 +64,34 @@ TSharedRef<SWidget> UTextBlock::RebuildWidget()
 	return MyTextBlock.ToSharedRef();
 }
 
+void UTextBlock::OnBindingChanged(const FName& Property)
+{
+	Super::OnBindingChanged(Property);
+
+	if ( MyTextBlock.IsValid() )
+	{
+		static const FName TextProperty(TEXT("TextDelegate"));
+		static const FName ColorAndOpacityProperty(TEXT("ColorAndOpacityDelegate"));
+		static const FName ShadowColorAndOpacityProperty(TEXT("ShadowColorAndOpacityDelegate"));
+
+		if ( Property == TextProperty )
+		{
+			TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+			MyTextBlock->SetText(TextBinding);
+		}
+		else if ( Property == ColorAndOpacityProperty )
+		{
+			TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
+			MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
+		}
+		else if ( Property == ShadowColorAndOpacityProperty )
+		{
+			TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
+			MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
+		}
+	}
+}
+
 void UTextBlock::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();

@@ -85,10 +85,20 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 					if ( DelegateProperty )
 					{
-						FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Widget);
-						if ( ScriptDelegate )
+						bool bSourcePathBound = false;
+
+						if ( Binding.SourcePath.IsValid() )
 						{
-							ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+							bSourcePathBound = Widget->AddBinding(DelegateProperty, UserWidget, Binding.SourcePath);
+						}
+
+						if ( bSourcePathBound == false )
+						{
+							FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Widget);
+							if ( ScriptDelegate )
+							{
+								ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+							}
 						}
 					}
 				}

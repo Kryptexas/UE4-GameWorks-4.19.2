@@ -97,6 +97,8 @@ void UUserWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
+	// We get the GCWidget directly because MyWidget could be the fullscreen host widget if we've been added
+	// to the viewport.
 	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
 	if ( SafeGCWidget.IsValid() )
 	{
@@ -745,11 +747,6 @@ void UUserWidget::PreSave()
 			}
 		}
 	}
-}
-
-void UUserWidget::PostLoad()
-{
-	Super::PostLoad();
 }
 
 #if WITH_EDITOR

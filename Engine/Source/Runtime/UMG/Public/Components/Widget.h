@@ -4,6 +4,7 @@
 #include "Components/Visual.h"
 #include "SlateWrapperTypes.h"
 #include "WidgetTransform.h"
+#include "DynamicPropertyPath.h"
 
 #include "Widget.generated.h"
 
@@ -35,15 +36,13 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(float, FGetFloat);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(int32, FGetInt32);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FGetText);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector2D, FGetVector2D);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
-	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector4, FGetVector4);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector2D, FGetVector2D);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateBrush, FGetSlateBrush);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateCheckBoxState::Type, FGetCheckBoxState);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetContent);
@@ -272,7 +271,20 @@ public:
 	 */
 	bool IsChildOf(UWidget* PossibleParent);
 
+	///**
+	// * Allows binding to properties of other objects at runtime.
+	// */
+	//UFUNCTION(BlueprintCallable, Category="Widget")
+	//bool BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty);
+
+	/**  */
+	bool AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath);
+
+	static TSubclassOf<class UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
+
+	// Begin UObject
 	virtual void PostLoad() override;
+	// End UObject
 	
 #if WITH_EDITOR
 	/** Is the label generated or provided by the user? */
@@ -333,6 +345,9 @@ public:
 	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
 
 protected:
+	virtual void OnBindingChanged(const FName& Property);
+
+protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */
 	virtual TSharedRef<SWidget> RebuildWidget();
 	
@@ -369,4 +384,10 @@ protected:
 	/** Is this widget being displayed on a designer surface */
 	UPROPERTY(Transient)
 	bool bDesignTime;
+
+	/** Native property bindings. */
+	UPROPERTY(Transient)
+	TArray<class UPropertyBinding*> NativeBindings;
+
+	static TArray<TSubclassOf<UPropertyBinding>> BinderClasses;
 };

@@ -145,6 +145,7 @@ public:
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void OnBindingChanged(const FName& Property) override;
 	// End of UWidget interface
 
 protected:

@@ -562,11 +562,11 @@ public:
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 
 	/**
-	* Plays a sound through the UI
-	*
-	* @param The sound to play
-	*/
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Sound")
+	 * Plays a sound through the UI
+	 *
+	 * @param The sound to play
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Sound")
 	void PlaySound(class USoundBase* SoundToPlay);
 
 	/** @returns The UObject wrapper for a given SWidget */
@@ -589,7 +589,6 @@ public:
 
 	// Begin UObject interface
 	virtual void PreSave() override;
-	virtual void PostLoad() override;
 	// End UObject interface
 
 #if WITH_EDITOR

@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Engine/BlueprintGeneratedClass.h"
+#include "DynamicPropertyPath.h"
+
 #include "WidgetBlueprintGeneratedClass.generated.h"
 
 class UMovieScene;
@@ -10,14 +13,11 @@ class UUserWidget;
 class UWidgetAnimation;
 
 UENUM()
-namespace EBindingKind
+enum class EBindingKind : uint8
 {
-	enum Type
-	{
-		Function,
-		Property,
-	};
-}
+	Function,
+	Property
+};
 
 USTRUCT()
 struct FDelegateRuntimeBinding
@@ -36,9 +36,13 @@ struct FDelegateRuntimeBinding
 	UPROPERTY()
 	FName FunctionName;
 
+	/**  */
+	UPROPERTY()
+	FDynamicPropertyPath SourcePath;
+
 	/** The kind of binding we're performing, are we binding to a property or a function. */
 	UPROPERTY()
-	TEnumAsByte<EBindingKind::Type> Kind;
+	EBindingKind Kind;
 };
 
 

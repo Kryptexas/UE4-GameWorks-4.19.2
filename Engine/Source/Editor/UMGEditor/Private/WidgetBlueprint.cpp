@@ -1,14 +1,348 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-#include "Blueprint/WidgetTree.h"
+
 #include "Runtime/MovieSceneCore/Classes/MovieScene.h"
-#include "PropertyTag.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+
+#include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "PropertyTag.h"
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintCompiler.h"
+#include "PropertyBinding.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
+
+FEditorPropertyPathSegment::FEditorPropertyPathSegment()
+	: Struct(nullptr)
+	, MemberName(NAME_None)
+	, MemberGuid()
+	, IsProperty(true)
+{
+}
+
+FEditorPropertyPathSegment::FEditorPropertyPathSegment(const UProperty* InProperty)
+{
+	IsProperty = true;
+	MemberName = InProperty->GetFName();
+	if ( InProperty->GetOwnerClass() )
+	{
+		Struct = InProperty->GetOwnerClass();
+		UBlueprint::GetGuidFromClassByFieldName<UProperty>(InProperty->GetOwnerClass(), InProperty->GetFName(), MemberGuid);
+	}
+	else if ( InProperty->GetOwnerStruct() )
+	{
+		Struct = InProperty->GetOwnerStruct();
+		MemberGuid = FStructureEditorUtils::GetGuidForProperty(InProperty);
+	}
+	else
+	{
+		// Should not be possible to hit.
+		check(false);
+	}
+}
+
+FEditorPropertyPathSegment::FEditorPropertyPathSegment(const UFunction* InFunction)
+{
+	IsProperty = false;
+	MemberName = InFunction->GetFName();
+	if ( InFunction->GetOwnerClass() )
+	{
+		Struct = InFunction->GetOwnerClass();
+		UBlueprint::GetGuidFromClassByFieldName<UFunction>(InFunction->GetOwnerClass(), InFunction->GetFName(), MemberGuid);
+	}
+	else
+	{
+		// Should not be possible to hit.
+		check(false);
+	}
+}
+
+FEditorPropertyPathSegment::FEditorPropertyPathSegment(const UEdGraph* InFunctionGraph)
+{
+	IsProperty = false;
+	MemberName = InFunctionGraph->GetFName();
+	UBlueprint* Blueprint = CastChecked<UBlueprint>(InFunctionGraph->GetOuter());
+	Struct = Blueprint->GeneratedClass;
+	check(Struct);
+	MemberGuid = InFunctionGraph->GraphGuid;
+}
+
+bool FEditorPropertyPathSegment::ValidateMember(UDelegateProperty* DelegateProperty, FText& OutError) const
+{
+	if ( DelegateProperty->SignatureFunction->NumParms == 1 )
+	{
+		if ( UProperty* ReturnProperty = DelegateProperty->SignatureFunction->GetReturnProperty() )
+		{
+			// TODO I don't like having the path segment system needing to have knowledge of the binding layer.
+			// think about divorcing the two.
+
+			// Find the binder that can handle the delegate return type.
+			TSubclassOf<UPropertyBinding> Binder = UWidget::FindBinderClassForDestination(ReturnProperty);
+			if ( Binder == nullptr )
+			{
+				OutError = FText::Format(LOCTEXT("Binding_Binder_NotFound", "Member:{0}: No binding exists for {1}."),
+					GetMemberDisplayText(),
+					ReturnProperty->GetClass()->GetDisplayNameText());
+				return false;
+			}
+
+			if ( UField* Field = GetMember() )
+			{
+				if ( UProperty* Property = Cast<UProperty>(Field) )
+				{
+					// Ensure that the binder also can handle binding from the property we care about.
+					if ( Binder->GetDefaultObject<UPropertyBinding>()->IsSupportedSource(Property) )
+					{
+						return true;
+					}
+					else
+					{
+						OutError = FText::Format(LOCTEXT("Binding_UnsupportedType_Property", "Member:{0} Unable to bind {1}, unsupported type."),
+							GetMemberDisplayText(),
+							Property->GetClass()->GetDisplayNameText());
+						return false;
+					}
+				}
+				else if ( UFunction* Function = Cast<UFunction>(Field) )
+				{
+					if ( Function->NumParms == 1 )
+					{
+						if ( Function->HasAnyFunctionFlags(FUNC_Const | FUNC_BlueprintPure) )
+						{
+							if ( UProperty* MemberReturn = Function->GetReturnProperty() )
+							{
+								// Ensure that the binder also can handle binding from the property we care about.
+								if ( Binder->GetDefaultObject<UPropertyBinding>()->IsSupportedSource(MemberReturn) )
+								{
+									return true;
+								}
+								else
+								{
+									OutError = FText::Format(LOCTEXT("Binding_UnsupportedType_Function", "Member:{0} Unable to bind {1}, unsupported type."),
+										GetMemberDisplayText(),
+										MemberReturn->GetClass()->GetDisplayNameText());
+									return false;
+								}
+							}
+							else
+							{
+								OutError = FText::Format(LOCTEXT("Binding_NoReturn", "Member:{0} Has no return value, unable to bind."),
+									GetMemberDisplayText());
+								return false;
+							}
+						}
+						else
+						{
+							OutError = FText::Format(LOCTEXT("Binding_Pure", "Member:{0} Unable to bind, the function is not marked as pure."),
+								GetMemberDisplayText());
+							return false;
+						}
+					}
+					else
+					{
+						OutError = FText::Format(LOCTEXT("Binding_NumArgs", "Member:{0} Has the wrong number of arguments, it needs to return 1 value and take no parameters."),
+							GetMemberDisplayText());
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+UField* FEditorPropertyPathSegment::GetMember() const
+{
+	FName FieldName = GetMemberName();
+	if ( FieldName != NAME_None )
+	{
+		UField* Field = FindField<UField>(Struct, FieldName);
+		//if ( Field == nullptr )
+		//{
+		//	if ( UClass* Class = Cast<UClass>(Struct) )
+		//	{
+		//		if ( UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy) )
+		//		{
+		//			if ( UClass* SkeletonClass = Blueprint->SkeletonGeneratedClass )
+		//			{
+		//				Field = FindField<UField>(SkeletonClass, FieldName);
+		//			}
+		//		}
+		//	}
+		//}
+
+		return Field;
+	}
+
+	return nullptr;
+}
+
+FName FEditorPropertyPathSegment::GetMemberName() const
+{
+	if ( MemberGuid.IsValid() )
+	{
+		FName NameFromGuid = NAME_None;
+
+		if ( UClass* Class = Cast<UClass>(Struct) )
+		{
+			if ( UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy) )
+			{
+				if ( IsProperty )
+				{
+					NameFromGuid = UBlueprint::GetFieldNameFromClassByGuid<UProperty>(Class, MemberGuid);
+				}
+				else
+				{
+					NameFromGuid = UBlueprint::GetFieldNameFromClassByGuid<UFunction>(Class, MemberGuid);
+				}
+			}
+		}
+		else if ( UUserDefinedStruct* UserStruct = Cast<UUserDefinedStruct>(Struct) )
+		{
+			if ( UProperty* Property = FStructureEditorUtils::GetPropertyByGuid(UserStruct, MemberGuid) )
+			{
+				NameFromGuid = Property->GetFName();
+			}
+		}
+
+		//check(NameFromGuid != NAME_None);
+		return NameFromGuid;
+	}
+	
+	//check(MemberName != NAME_None);
+	return MemberName;
+}
+
+FText FEditorPropertyPathSegment::GetMemberDisplayText() const
+{
+	if ( MemberGuid.IsValid() )
+	{
+		if ( UClass* Class = Cast<UClass>(Struct) )
+		{
+			if ( UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy) )
+			{
+				if ( IsProperty )
+				{
+					return FText::FromName(UBlueprint::GetFieldNameFromClassByGuid<UProperty>(Class, MemberGuid));
+				}
+				else
+				{
+					return FText::FromName(UBlueprint::GetFieldNameFromClassByGuid<UFunction>(Class, MemberGuid));
+				}
+			}
+		}
+		else if ( UUserDefinedStruct* UserStruct = Cast<UUserDefinedStruct>(Struct) )
+		{
+			if ( UProperty* Property = FStructureEditorUtils::GetPropertyByGuid(UserStruct, MemberGuid) )
+			{
+				return Property->GetDisplayNameText();
+			}
+		}
+	}
+
+	return FText::FromName(MemberName);
+}
+
+FEditorPropertyPath::FEditorPropertyPath()
+{
+}
+
+FEditorPropertyPath::FEditorPropertyPath(const TArray<UField*>& BindingChain)
+{
+	for ( const UField* Field : BindingChain )
+	{
+		if ( const UProperty* Property = Cast<UProperty>(Field) )
+		{
+			Segments.Add(FEditorPropertyPathSegment(Property));
+		}
+		else if ( const UFunction* Function = Cast<UFunction>(Field) )
+		{
+			Segments.Add(FEditorPropertyPathSegment(Function));
+		}
+		else
+		{
+			// Should never happen
+			check(false);
+		}
+	}
+}
+
+bool FEditorPropertyPath::Validate(UDelegateProperty* Destination, FText& OutError) const
+{
+	if ( IsEmpty() )
+	{
+		OutError = LOCTEXT("Binding_Empty", "The binding is empty.");
+		return false;
+	}
+
+	for ( int32 SegmentIndex = 0; SegmentIndex < Segments.Num(); SegmentIndex++ )
+	{
+		const FEditorPropertyPathSegment& Segment = Segments[SegmentIndex];
+		if ( Segment.GetStruct() == nullptr )
+		{
+			OutError = FText::Format(LOCTEXT("Binding_StructNotFound", "Binding:{0}, Unable to locate owner class."),
+				GetDisplayText());
+
+			return false;
+		}
+
+		if ( Segment.GetMember() == nullptr )
+		{
+			OutError = FText::Format(LOCTEXT("Binding_MemberNotFound", "Binding:{0}, Member:{1}, was not found."),
+				GetDisplayText(),
+				Segment.GetMemberDisplayText());
+
+			return false;
+		}
+
+		// TODO Add additional checks, are non-last fields objects, structs still?
+	}
+
+	// Validate the last member in the segment
+	const FEditorPropertyPathSegment& LastSegment = Segments[Segments.Num() - 1];
+	return LastSegment.ValidateMember(Destination, OutError);
+}
+
+FText FEditorPropertyPath::GetDisplayText() const
+{
+	FString DisplayText;
+
+	for ( int32 SegmentIndex = 0; SegmentIndex < Segments.Num(); SegmentIndex++ )
+	{
+		const FEditorPropertyPathSegment& Segment = Segments[SegmentIndex];
+		DisplayText.Append(Segment.GetMemberDisplayText().ToString());
+		if ( SegmentIndex < ( Segments.Num() - 1 ) )
+		{
+			DisplayText.Append(TEXT("."));
+		}
+	}
+
+	return FText::FromString(DisplayText);
+}
+
+FDynamicPropertyPath FEditorPropertyPath::ToPropertyPath() const
+{
+	TArray<FString> PropertyChain;
+
+	for ( const FEditorPropertyPathSegment& Segment : Segments )
+	{
+		FName SegmentName = Segment.GetMemberName();
+
+		if ( SegmentName != NAME_None )
+		{
+			PropertyChain.Add(SegmentName.ToString());
+		}
+		else
+		{
+			return FDynamicPropertyPath();
+		}
+	}
+
+	return FDynamicPropertyPath(PropertyChain);
+}
 
 bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWidgetBlueprint* Blueprint, FCompilerResultsLog& MessageLog) const
 {
@@ -28,33 +362,49 @@ bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWi
 		// Locate the delegate property on the widget that's a delegate for a property we want to bind.
 		if ( DelegateProperty )
 		{
-			// On our incoming blueprint generated class, try and find the function we claim exists that users
-			// are binding their property too.
-			if ( UFunction* Function = BlueprintGeneratedClass->FindFunctionByName(RuntimeBinding.FunctionName, EIncludeSuperFlag::IncludeSuper) )
+			if ( !SourcePath.IsEmpty() )
 			{
-				// Check the signatures to ensure these functions match.
-				if ( Function->IsSignatureCompatibleWith(DelegateProperty->SignatureFunction, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+				FText ValidationError;
+				if ( SourcePath.Validate(DelegateProperty, ValidationError) == false )
 				{
-					// Only allow binding pure functions to property bindings.
-					if ( bNeedsToBePure && !Function->HasAllFunctionFlags(FUNC_BlueprintPure) )
-					{
-						FText const ErrorFormat = LOCTEXT("BindingNotBoundToPure", "Binding: property '@@' on widget '@@' needs to be bound to a pure function, '@@' is not pure.");
-						MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
+					FText const ErrorFormat = LOCTEXT("BindingError", "Binding: Property '@@' on Widget '@@': %s");
+					MessageLog.Error(*FString::Printf(*ErrorFormat.ToString(), *ValidationError.ToString()), DelegateProperty, TargetWidget);
 
-						return false;
-					}
+					return false;
+				}
 
-					return true;
-				}
-				else
-				{
-					FText const ErrorFormat = LOCTEXT("BindingFunctionSigDontMatch", "Binding: property '@@' on widget '@@' bound to function '@@', but the sigatnures don't match.  The function must return the same type as the property and have no parameters.");
-					MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
-				}
+				return true;
 			}
 			else
 			{
-				//TODO Bindable property removed.
+				// On our incoming blueprint generated class, try and find the function we claim exists that users
+				// are binding their property too.
+				if ( UFunction* Function = BlueprintGeneratedClass->FindFunctionByName(RuntimeBinding.FunctionName, EIncludeSuperFlag::IncludeSuper) )
+				{
+					// Check the signatures to ensure these functions match.
+					if ( Function->IsSignatureCompatibleWith(DelegateProperty->SignatureFunction, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+					{
+						// Only allow binding pure functions to property bindings.
+						if ( bNeedsToBePure && !Function->HasAnyFunctionFlags(FUNC_Const | FUNC_BlueprintPure) )
+						{
+							FText const ErrorFormat = LOCTEXT("BindingNotBoundToPure", "Binding: property '@@' on widget '@@' needs to be bound to a pure function, '@@' is not pure.");
+							MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
+
+							return false;
+						}
+
+						return true;
+					}
+					else
+					{
+						FText const ErrorFormat = LOCTEXT("BindingFunctionSigDontMatch", "Binding: property '@@' on widget '@@' bound to function '@@', but the sigatnures don't match.  The function must return the same type as the property and have no parameters.");
+						MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
+					}
+				}
+				else
+				{
+					//TODO Bindable property removed.
+				}
 			}
 		}
 		else
@@ -84,6 +434,7 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 		Binding.FunctionName = FunctionName;
 	}
 	Binding.Kind = Kind;
+	Binding.SourcePath = SourcePath.ToPropertyPath();
 
 	return Binding;
 }

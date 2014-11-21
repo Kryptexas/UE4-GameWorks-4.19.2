@@ -21,9 +21,14 @@
 /* Public Includes
  *****************************************************************************/
 
-// Components
+// Slate Types
 #include "SlateWrapperTypes.h"
 
+// Binding
+#include "DynamicPropertyPath.h"
+#include "PropertyBinding.h"
+
+// Components
 #include "DragDropOperation.h"
 
 #include "Visual.h"

@@ -18,18 +18,17 @@ public:
 	void Construct(const FArguments& InArgs, TSharedRef<FWidgetBlueprintEditor> InEditor, UDelegateProperty* DelegateProperty, TSharedRef<IPropertyHandle> Property);
 
 protected:
-	struct FunctionInfo
+	struct FFunctionInfo
 	{
 		FText DisplayName;
 		FString Tooltip;
 
 		FName FuncName;
-		UEdGraph* EdGraph;
+		UFunction* Function;
 	};
 
-	void RefreshBlueprintMemberCache(const UFunction* DelegateSignature, bool bIsPure);
-
-	TSharedRef<SWidget> OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure);
+	TSharedRef<SWidget> OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle);
+	void FillPropertyMenu(FMenuBuilder& MenuBuilder, TSharedRef<IPropertyHandle> PropertyHandle, UStruct* OwnerStruct, TArray<UField*> BindingChain);
 
 	const FSlateBrush* GetCurrentBindingImage(TSharedRef<IPropertyHandle> PropertyHandle) const;
 	FText GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const;
@@ -37,10 +36,11 @@ protected:
 	bool CanRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
 	void HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
 
-	void HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction);
-	void HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty);
+	void HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FFunctionInfo> SelectedFunction, TArray<UField*> BindingChain);
+	void HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FFunctionInfo> SelectedFunction, FEditorPropertyPath& BindingPath);
+	void HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty, TArray<UField*> BindingChain);
 
-	void HandleCreateAndAddBinding(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure);
+	void HandleCreateAndAddBinding(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle);
 	void GotoFunction(UEdGraph* FunctionGraph);
 
 	EVisibility GetGotoBindingVisibility(TSharedRef<IPropertyHandle> PropertyHandle) const;
@@ -51,10 +51,16 @@ protected:
 
 private:
 
+	template <typename Predicate>
+	void ForEachBindableProperty(UStruct* InStruct, Predicate Pred) const;
+
+	template <typename Predicate>
+	void ForEachBindableFunction(UClass* FromClass, Predicate Pred) const;
+
 	TWeakPtr<FWidgetBlueprintEditor> Editor;
 
 	UWidgetBlueprint* Blueprint;
 
-	TArray< TSharedPtr<FunctionInfo> > BlueprintFunctionCache;
-	TArray< UProperty* > BlueprintPropertyCache;
+	bool GeneratePureBindings;
+	UFunction* BindableSignature;
 };
