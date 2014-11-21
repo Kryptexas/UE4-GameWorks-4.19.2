@@ -2231,14 +2231,16 @@ namespace UnrealBuildTool
 
 	public class UEBuildBundleResource
 	{
-		public UEBuildBundleResource(string InResourcePath, string InBundleContentsSubdir = "Resources")
+		public UEBuildBundleResource(string InResourcePath, string InBundleContentsSubdir = "Resources", bool bInShouldLog = true)
 		{
 			ResourcePath = InResourcePath;
 			BundleContentsSubdir = InBundleContentsSubdir;
+			bShouldLog = bInShouldLog;
 		}
 
 		public string ResourcePath			= null;
 		public string BundleContentsSubdir	= null;
+		public bool bShouldLog				= true;
 	}
 
 	public class PrecompileHeaderEnvironment

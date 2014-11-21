@@ -340,7 +340,7 @@ void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
 
 void FWebBrowserWindow::SetTitle(const CefString& InTitle)
 {
-	Title = InTitle.c_str();
+	Title = InTitle.ToWString().c_str();
 	OnTitleChangedDelegate.Broadcast(Title);
 }
 

@@ -20,7 +20,13 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 {
 #if WITH_CEF3
 	// Provide CEF with command-line arguments.
+#if PLATFORM_WINDOWS
 	CefMainArgs MainArgs(hInstance);
+#elif PLATFORM_MAC || PLATFORM_LINUX
+    //TArray<FString> Args;
+    //int ArgCount = GSavedCommandLine.ParseIntoArray(&Args, TEXT(" "), true);
+    CefMainArgs MainArgs(0, nullptr);
+#endif
 
 	// WebBrowserApp implements application-level callbacks.
 	WebBrowserApp = new FWebBrowserApp;
@@ -35,13 +41,28 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Specify path to resources
+#if PLATFORM_WINDOWS
 	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Win64/Resources")));
 	FString LocalesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Win64/Resources/locales")));
+#elif PLATFORM_MAC
+	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Mac/Chromium Embedded Framework.framework/Resources")));
+#elif PLATFORM_LINUX // @todo Linux
+	FString ResourcesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Linux/Resources")));
+	FString LocalesPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/CEF3/Linux/Resources/locales")));
+#endif
+#if !PLATFORM_MAC // On Mac Chromium ignores custom locales dir. Files need to be stored in Resources folder in the app bundle
 	CefString(&Settings.locales_dir_path) = *LocalesPath;
+#endif
 	CefString(&Settings.resources_dir_path) = *ResourcesPath;
 
 	// Specify path to sub process exe
+#if PLATFORM_WINDOWS
 	FString SubProcessPath(TEXT("UnrealCEFSubProcess.exe"));
+#elif PLATFORM_MAC
+	FString SubProcessPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/Mac/UnrealCEFSubProcess.app/Contents/MacOS/UnrealCEFSubProcess")));
+#else // @todo Linux
+	FString SubProcessPath(TEXT("UnrealCEFSubProcess"));
+#endif
 	CefString(&Settings.browser_subprocess_path) = *SubProcessPath;
 
 	// Initialize CEF.

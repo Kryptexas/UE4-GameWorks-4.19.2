@@ -17,6 +17,11 @@ public class CEF3 : ModuleRules
 		{
 			CEFPlatform = "windows64";
 		}
+        else if (Target.Platform == UnrealTargetPlatform.Mac)
+        {
+			CEFVersion = "3.1750.1805";
+            CEFPlatform = "macosx64";
+        }
 
 		if (CEFPlatform.Length > 0 && UEBuildConfiguration.bCompileCEF3)
 		{
@@ -55,8 +60,18 @@ public class CEF3 : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				string CEFPath = LibraryPath + "/libplugin_carbon_interpose.dylib";
+                string WrapperPath = LibraryPath + "/libcef_dll_wrapper.a";
+                string FrameworkPath = LibraryPath + "/Chromium Embedded Framework.framework";
 
 				PublicAdditionalLibraries.Add(CEFPath);
+                PublicAdditionalLibraries.Add(WrapperPath);
+                PublicFrameworks.Add(FrameworkPath);
+
+				var LocaleFolders = Directory.GetFileSystemEntries(FrameworkPath + "/Resources", "*.lproj");
+				foreach (var FolderName in LocaleFolders)
+				{
+					AdditionalBundleResources.Add(new UEBuildBundleResource(FolderName, bInShouldLog:false));
+				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{

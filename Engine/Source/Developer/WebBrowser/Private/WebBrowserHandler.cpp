@@ -48,8 +48,8 @@ void FWebBrowserHandler::OnLoadError(CefRefPtr<CefBrowser> Browser,
 
 	// Display a load error message.
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("FailedUrl"), FText::FromString(FailedUrl.c_str()));
-	Args.Add(TEXT("ErrorText"), FText::FromString(ErrorText.c_str()));
+	Args.Add(TEXT("FailedUrl"), FText::FromString(FailedUrl.ToWString().c_str()));
+	Args.Add(TEXT("ErrorText"), FText::FromString(ErrorText.ToWString().c_str()));
 	Args.Add(TEXT("ErrorCode"), FText::AsNumber(InErrorCode));
 	FText ErrorMsg = FText::Format(LOCTEXT("WebBrowserLoadError", "Failed to load URL {FailedUrl} with error {ErrorText} ({ErrorCode})."), Args);
 	FString ErrorHTML = TEXT("<html><body bgcolor=\"white\"><h2>")

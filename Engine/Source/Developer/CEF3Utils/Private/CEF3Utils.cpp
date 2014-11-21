@@ -9,8 +9,8 @@ IMPLEMENT_MODULE(FDefaultModuleImpl, CEF3Utils);
 #if WITH_CEF3
 namespace CEF3Utils
 {
+    void* CEF3DLLHandle = nullptr;
 #if PLATFORM_WINDOWS
-	void* CEF3DLLHandle = nullptr;
 	void* D3DHandle = nullptr;
 	void* MPEGHandle = nullptr;
 	void* ICUDTHandle = nullptr;
@@ -41,15 +41,16 @@ namespace CEF3Utils
 		ICUDTHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(*DllPath, TEXT("icudt.dll")));
 		GLESHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(*DllPath, TEXT("libGLESv2.dll")));
 		EGLHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(*DllPath, TEXT("libEGL.dll")));
+#elif PLATFORM_MAC
+        CEF3DLLHandle = FPlatformProcess::GetDllHandle(TEXT("libplugin_carbon_interpose.dylib"));
 #endif
 	}
 
 	void UnloadCEF3Modules()
 	{
-#if PLATFORM_WINDOWS
 		FPlatformProcess::FreeDllHandle(CEF3DLLHandle);
 		CEF3DLLHandle = nullptr;
-
+#if PLATFORM_WINDOWS
 		FPlatformProcess::FreeDllHandle(D3DHandle);
 		D3DHandle = nullptr;
 		FPlatformProcess::FreeDllHandle(MPEGHandle);

@@ -25,6 +25,7 @@ public class SlateViewer : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			PrivateDependencyModuleNames.Add("XCodeSourceCodeAccess");
+			AddThirdPartyPrivateStaticDependencies(Target, "CEF3");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win64)
 		{

@@ -260,6 +260,18 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+		static string AddFrameworkToLinkCommand(string FrameworkName, string Arg = "-framework")
+		{
+			string Result = "";
+			if (FrameworkName.EndsWith(".framework"))
+			{
+				Result += " -F \"" + Path.GetDirectoryName(FrameworkName) + "\"";
+				FrameworkName = Path.GetFileNameWithoutExtension(FrameworkName);
+			}
+			Result += " " + Arg + " \"" + FrameworkName + "\"";
+			return Result;
+		}
+
 		static string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
 			string Result = "";
@@ -281,15 +293,15 @@ namespace UnrealBuildTool
 
 			foreach (string Framework in LinkEnvironment.Config.Frameworks)
 			{
-				Result += " -framework " + Framework;
+				Result += AddFrameworkToLinkCommand(Framework);
 			}
 			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
 			{
-				Result += " -framework " + Framework.FrameworkName;
+				Result += AddFrameworkToLinkCommand(Framework.FrameworkName);
 			}
 			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
 			{
-				Result += " -weak_framework " + Framework;
+				Result += AddFrameworkToLinkCommand(Framework, "-weak_framework");
 			}
 
 			return Result;
@@ -705,8 +717,8 @@ namespace UnrealBuildTool
 						}
 					}
 					else if (Path.GetDirectoryName(AdditionalLibrary) != "" &&
-						(Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries/Mac") ||
-						Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries\\Mac")))
+					         (Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries/Mac") ||
+					         Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries\\Mac")))
 					{
 						// It's an engine or game dylib. Save it for later
 						EngineAndGameLibraries.Add(ConvertPath(Path.GetFullPath(AdditionalLibrary)));
@@ -725,9 +737,9 @@ namespace UnrealBuildTool
 							LinkAction.PrerequisiteItems.Add(EngineLibDependency);
 						}
 					}
-					else if (AdditionalLibrary.Contains(".framework/Versions"))
+					else if (AdditionalLibrary.Contains(".framework/"))
 					{
-						LinkCommand += string.Format(" " + AdditionalLibrary);
+						LinkCommand += string.Format(" \'{0}\'", AdditionalLibrary);
 					}
 					else
 					{
@@ -1125,6 +1137,7 @@ namespace UnrealBuildTool
 			CopyAction.CommandArguments = string.Format("-c 'cp -f -R \"{0}\" \"{1}\"; touch -c \"{2}\"'", SourcePath, Path.GetDirectoryName(TargetPath) + "/", TargetPath);
 			CopyAction.PrerequisiteItems.Add(Executable);
 			CopyAction.ProducedItems.Add(TargetItem);
+			CopyAction.bShouldOutputStatusDescription = Resource.bShouldLog;
 			CopyAction.StatusDescription = string.Format("Copying {0} to app bundle", Path.GetFileName(Resource.ResourcePath));
 			CopyAction.bCanExecuteRemotely = false;
 

@@ -20,7 +20,8 @@ public class WebBrowser : ModuleRules
 			}
 		);
 
-		if (Target.Platform == UnrealTargetPlatform.Win64)
+		if (Target.Platform == UnrealTargetPlatform.Win64
+        ||  Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"CEF3"
