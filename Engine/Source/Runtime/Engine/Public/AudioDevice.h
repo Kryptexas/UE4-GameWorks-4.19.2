@@ -205,7 +205,6 @@ public:
 	bool HandleDisableRadioCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleEnableRadioCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleResetSoundStateCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleModifySoundClassCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif
 
 	/**
@@ -392,11 +391,6 @@ public:
 	 * @return	sound class properties if it exists
 	 */
 	FSoundClassProperties* GetSoundClassCurrentProperties( class USoundClass* InSoundClass );
-
-	/**
-	 * Updates sound class volumes
-	 */
-	void SetClassVolume( class USoundClass* InSoundClass, const float Volume );
 
 	/**
 	 * Checks to see if a coordinate is within a distance of any listener
