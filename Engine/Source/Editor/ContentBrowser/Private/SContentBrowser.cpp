@@ -427,7 +427,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.SearchContent()
 							[
 								SNew( SVerticalBox )
-								.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSourcesToggle")))
+								.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSourcesToggle1")))
 								+ SVerticalBox::Slot()
 								.FillHeight( 1.0f )
 								.Padding(0,0,2,0)
@@ -486,7 +486,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.Padding( 0, 0, 4, 0 )
 						[
 							SNew( SVerticalBox )
-							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSourcesToggle")))
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserSourcesToggle2")))
 							+ SVerticalBox::Slot()
 							.FillHeight( 1.0f )
 							[
