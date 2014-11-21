@@ -1074,7 +1074,7 @@ void FAnimBlueprintCompiler::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 	}
 }
 
-void FAnimBlueprintCompiler::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
+void FAnimBlueprintCompiler::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction)
 {
 	if (SourceGraph->Schema->IsChildOf(UAnimationGraphSchema::StaticClass()))
 	{
@@ -1092,7 +1092,7 @@ void FAnimBlueprintCompiler::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
 	else
 	{
 		// Let the regular K2 compiler handle this one
-		Super::ProcessOneFunctionGraph(SourceGraph);
+		Super::ProcessOneFunctionGraph(SourceGraph, bInternalFunction);
 	}
 }
 

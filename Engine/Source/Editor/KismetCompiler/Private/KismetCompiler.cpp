@@ -2960,7 +2960,7 @@ void FKismetCompilerContext::ResetErrorFlags(UEdGraph* Graph) const
 /**
  * Merges macros/subgraphs into the graph and validates it, creating a function list entry if it's reasonable.
  */
-void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
+void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ProcessFunctionGraph);
 
@@ -2995,6 +2995,11 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
 		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint))
 		{
 			Context.MarkAsConstFunction();
+		}
+
+		if ( bInternalFunction )
+		{
+			Context.MarkAsInternalOrCppUseOnly();
 		}
 	}
 }
