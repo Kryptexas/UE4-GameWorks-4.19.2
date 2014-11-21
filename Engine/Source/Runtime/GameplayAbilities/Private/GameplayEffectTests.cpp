@@ -92,14 +92,14 @@ bool GameplayEffectsTest_InstantDamage(UWorld *World, FAutomationTestBase * Test
 
 		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("BaseDmgEffect"))));
 		BaseDmgEffect->Modifiers.SetNum(1);
-		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierMagnitude = FScalableFloat(DamageValue);
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
 		
-		Test->TestTrue(SKILL_TEST_TEXT("Basic Instant Damage Applied"), (DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health == (StartHealth + DamageValue)));
+		Test->TestEqual(SKILL_TEST_TEXT("Basic Instant Damage Applied"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartHealth + DamageValue);
 		ABILITY_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health);
 	}
 

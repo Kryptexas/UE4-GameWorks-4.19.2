@@ -178,15 +178,34 @@ struct FGameplayEffectModifierMagnitude
 
 public:
 
-	/** Constructor */
+	/** Default Constructor */
 	FGameplayEffectModifierMagnitude()
 		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::ScalableFloat)
-		, ScalableFloatMagnitude()
-		, AttributeBasedMagnitude()
-		, CustomMagnitude()
 	{
 	}
 
+	/** Constructors for setting value in code (for automation tests) */
+	FGameplayEffectModifierMagnitude(const FScalableFloat& Value)
+		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::ScalableFloat)
+		, ScalableFloatMagnitude(Value)
+	{
+	}
+	FGameplayEffectModifierMagnitude(const FAttributeBasedFloat& Value)
+		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::AttributeBased)
+		, AttributeBasedMagnitude(Value)
+	{
+	}
+	FGameplayEffectModifierMagnitude(const FCustomCalculationBasedFloat& Value)
+		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::CustomCalculationClass)
+		, CustomMagnitude(Value)
+	{
+	}
+	FGameplayEffectModifierMagnitude(const FSetByCallerFloat& Value)
+		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::SetByCaller)
+		, SetByCallerMagnitude(Value)
+	{
+	}
+ 
 	/**
 	 * Determines if the magnitude can be properly calculated with the specified gameplay effect spec (could fail if relying on an attribute not present, etc.)
 	 * 
