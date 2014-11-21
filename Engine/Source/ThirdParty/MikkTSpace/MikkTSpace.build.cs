@@ -25,5 +25,9 @@ public class MikkTSpace : ModuleRules
 		{
 			PublicAdditionalLibraries.Add(MikkTSpacePath + "/lib/Linux/" + Target.Architecture + "/libMikkTSpace.a");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PublicAdditionalLibraries.Add(MikkTSpacePath + "/lib/Mac/libMikkTSpace.a");
+		}
 	}
 }
