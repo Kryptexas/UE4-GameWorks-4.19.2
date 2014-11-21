@@ -40,12 +40,14 @@ private:
 	TSharedPtr< SButton > Button;
 	/** The Image to display on the button */
 	TSharedPtr< SImage > ButtonImage;
-	/** Widget to show the controls in the popup */
-	TSharedPtr< SWidget > ControlsWidget;
 	/** Default Button Image */
 	const FSlateBrush* Default;
 	/** Button Image while hovered */
 	const FSlateBrush* Hovered;
 	/** Button Image when pressed */
 	const FSlateBrush* Pressed;
+	/** Size of the viewport controls popup */
+	FVector2D PopupSize;
+	/** Path to html file for viewport controls */
+	FString PopupPath;
 };

@@ -205,6 +205,7 @@ void SLevelViewport::ConstructViewportOverlayContent()
 	.Padding(5.0f)
 	[
 		SNew(SLevelViewportControlsPopup)
+		.Visibility(this, &SLevelViewport::GetViewportControlsVisibility)
 	];
 
 	ViewportOverlay->AddSlot( SlotIndex )
@@ -3184,6 +3185,13 @@ EVisibility SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility() const
 	{
 		return EVisibility::Collapsed;
 	}
+}
+
+EVisibility SLevelViewport::GetViewportControlsVisibility() const
+{
+	// Do not show the controls if this viewport has a play in editor session
+	// or is not the current viewport
+	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient && !IsPlayInEditorViewportActive()) ? OnGetViewportContentVisibility() : EVisibility::Collapsed;
 }
 
 void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)

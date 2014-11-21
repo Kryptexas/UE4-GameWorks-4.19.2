@@ -7,9 +7,6 @@
 
 void SLevelViewportControlsPopup::Construct(const FArguments& InArgs)
 {
-	FVector2D PopupSize;
-	FString PopupPath;
-
 #if PLATFORM_WINDOWS
 	PopupSize.Set(252, 558);
 	PopupPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/Source/Shared/Editor/Overlays/ViewportControlsWindows.html")));
@@ -17,20 +14,6 @@ void SLevelViewportControlsPopup::Construct(const FArguments& InArgs)
 
 	if (!PopupPath.IsEmpty())
 	{
-		// The size of the web browser is a hack to ensure that the browser shrinks,
-		// otherwise it seems to show a scroll bar if the size never changes.
-		ControlsWidget =
-			SNew(SBox)
-			.WidthOverride(PopupSize.X)
-			.HeightOverride(PopupSize.Y)
-			[
-				SNew(SWebBrowser)
-				.InitialURL(PopupPath)
-				.ShowControls(false)
-				.SupportsTransparency(true)
-				.ViewportSize(PopupSize+1)
-			];
-
 		TAttribute<FText> ToolTipText = NSLOCTEXT("LevelViewportControlsPopup", "ViewportControlsToolTip", "Click to show Viewport Controls");
 		Default = FEditorStyle::GetBrush("HelpIcon");
 		Hovered = FEditorStyle::GetBrush("HelpIcon.Hovered");
@@ -92,5 +75,21 @@ FReply SLevelViewportControlsPopup::OnClicked() const
 
 TSharedRef<SWidget> SLevelViewportControlsPopup::OnGetMenuContent()
 {
-	return ControlsWidget.ToSharedRef();
+	if (!PopupPath.IsEmpty())
+	{
+		// The size of the web browser is a hack to ensure that the browser shrinks,
+		// otherwise it seems to show a scroll bar if the size never changes.
+		return SNew(SBox)
+			.WidthOverride(PopupSize.X)
+			.HeightOverride(PopupSize.Y)
+			[
+				SNew(SWebBrowser)
+				.InitialURL(PopupPath)
+				.ShowControls(false)
+				.SupportsTransparency(true)
+				.ViewportSize(PopupSize + 1)
+			];
+	}
+
+	return SNullWidget::NullWidget;
 }

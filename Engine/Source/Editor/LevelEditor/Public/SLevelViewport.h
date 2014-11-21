@@ -247,6 +247,9 @@ public:
 	/** @return The visibility of the current feature level preview text display */
 	EVisibility GetCurrentFeatureLevelPreviewTextVisibility() const;
 
+	/** @return The visibility of the viewport controls popup */
+	EVisibility GetViewportControlsVisibility() const;
+
 	/**
 	 * Sets the current layout on the parent tab that this viewport belongs to.
 	 * 
