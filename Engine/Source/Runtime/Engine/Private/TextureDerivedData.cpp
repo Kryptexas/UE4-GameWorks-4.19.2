@@ -1454,7 +1454,7 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 		for (int32 SettingsIndex = 0; SettingsIndex < BuildSettingsToCache.Num(); ++SettingsIndex)
 		{
 			FString DerivedDataKey;
-			GetTextureDerivedDataKeySuffix(*this, BuildSettingsToCache[SettingsIndex], DerivedDataKey);
+			GetTextureDerivedDataKey(*this, BuildSettingsToCache[SettingsIndex], DerivedDataKey);
 
 			FTexturePlatformData *PlatformData = CookedPlatformData.FindRef( DerivedDataKey );
 
