@@ -44,6 +44,9 @@ class UK2Node_DynamicCast : public UK2Node
 	/** Get the input object to be casted pin */
 	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetCastSourcePin() const;
 
+	/** Get the boolean output pin that signifies a successful/failed cast. */
+	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetBoolSuccessPin() const;
+
 	/**
 	 * Will change the node's purity, and reallocate pins accordingly (adding/
 	 * removing exec pins).

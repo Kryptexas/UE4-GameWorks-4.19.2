@@ -20,7 +20,9 @@ class UK2Node_ClassDynamicCast : public UK2Node_DynamicCast
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End of UK2Node interface
 
-	/** Get the input object to be casted pin */
+	// UK2Node_DynamicCast interface
 	virtual UEdGraphPin* GetCastSourcePin() const override;
+	virtual UEdGraphPin* GetBoolSuccessPin() const override;
+	// End of UK2Node_DynamicCast interface
 };
 

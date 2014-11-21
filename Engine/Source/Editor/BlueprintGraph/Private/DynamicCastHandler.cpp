@@ -11,13 +11,6 @@
 void FKCHandler_DynamicCast::RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node)
 {
 	FNodeHandlingFunctor::RegisterNets(Context, Node);
-
-	// Create a term to determine if the cast was successful or not
-	FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
-	BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
-	BoolTerm->Source = Node;
-	BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CastSuccess");
-	BoolTermMap.Add(Node, BoolTerm);
 }
 
 void FKCHandler_DynamicCast::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net)
@@ -73,9 +66,6 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	ClassTerm->Source = Node;
 	ClassTerm->ObjectLiteral = DynamicCastNode->TargetType;
 
-	// Find the boolean intermediate result term, so we can track whether the cast was successful
-	FBPTerminal* BoolTerm = *BoolTermMap.Find(DynamicCastNode);
-
 	UClass const* const InputObjClass  = Cast<UClass>((*ObjectToCast)->Type.PinSubCategoryObject.Get());
 	UClass const* const OutputObjClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
 
@@ -116,35 +106,33 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	CastStatement.RHS.Add(ClassTerm);
 	CastStatement.RHS.Add(*ObjectToCast);
 
-	UEdGraphPin* SuccessPin = DynamicCastNode->GetValidCastPin();
-	bool const bIsPureCast = (SuccessPin == nullptr);
+	UEdGraphPin*  BoolSuccessPin  = DynamicCastNode->GetBoolSuccessPin();
+	FBPTerminal** BoolSuccessTerm = Context.NetMap.Find(BoolSuccessPin);
+	check(BoolSuccessTerm != nullptr);
+	// Check result of cast statement
+	FBlueprintCompiledStatement& CheckResultStatement = Context.AppendStatementForNode(Node);
+	CheckResultStatement.Type = KCST_ObjectToBool;
+	CheckResultStatement.LHS  = *BoolSuccessTerm;
+	CheckResultStatement.RHS.Add(*CastResultTerm);
 
+	UEdGraphPin* SuccessExecPin = DynamicCastNode->GetValidCastPin();
+	bool const bIsPureCast = (SuccessExecPin == nullptr);
 	if (!bIsPureCast)
 	{
-		// Check result of cast statement
-		FBlueprintCompiledStatement& CheckResultStatement = Context.AppendStatementForNode(Node);
-		const UClass* SubObjectClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
-		const bool bIsInterfaceCast = (SubObjectClass != NULL && SubObjectClass->HasAnyClassFlags(CLASS_Interface));
-
-		CheckResultStatement.Type = KCST_ObjectToBool;
-		CheckResultStatement.LHS = BoolTerm;
-		CheckResultStatement.RHS.Add(*CastResultTerm);
-	
 		UEdGraphPin* FailurePin = DynamicCastNode->GetInvalidCastPin();
 		check(FailurePin != nullptr);
 		// Failure condition...skip to the failed output
 		FBlueprintCompiledStatement& FailCastGoto = Context.AppendStatementForNode(Node);
 		FailCastGoto.Type = KCST_GotoIfNot;
-		FailCastGoto.LHS = BoolTerm;
+		FailCastGoto.LHS  = *BoolSuccessTerm;
 		Context.GotoFixupRequestMap.Add(&FailCastGoto, FailurePin);
 
 		// Successful cast...hit the success output node
 		FBlueprintCompiledStatement& SuccessCastGoto = Context.AppendStatementForNode(Node);
 		SuccessCastGoto.Type = KCST_UnconditionalGoto;
-		SuccessCastGoto.LHS = BoolTerm;
-		Context.GotoFixupRequestMap.Add(&SuccessCastGoto, SuccessPin);
+		SuccessCastGoto.LHS  = *BoolSuccessTerm;
+		Context.GotoFixupRequestMap.Add(&SuccessCastGoto, SuccessExecPin);
 	}
-	
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -10,12 +10,16 @@
 
 struct FClassDynamicCastHelper
 {
+	static const FString CastSuccessPinName;
+
 	static const FString& GetClassToCastName()
 	{
 		static FString ClassToCastName(TEXT("Class"));
 		return ClassToCastName;
 	}
 };
+
+const FString FClassDynamicCastHelper::CastSuccessPinName = TEXT("bSuccess");
 
 UK2Node_ClassDynamicCast::UK2Node_ClassDynamicCast(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -55,6 +59,9 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 		CreatePin(EGPD_Output, K2Schema->PC_Class, TEXT(""), *TargetType, false, false, CastResultPinName);
 	}
 
+	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, TEXT(""), nullptr, /*bIsArray =*/false, /*bIsReference =*/false, FClassDynamicCastHelper::CastSuccessPinName);
+	BoolSuccessPin->bHidden = !bIsPureCast;
+
 	UK2Node::AllocateDefaultPins();
 }
 
@@ -77,6 +84,14 @@ UEdGraphPin* UK2Node_ClassDynamicCast::GetCastSourcePin() const
 {
 	UEdGraphPin* Pin = FindPinChecked(FClassDynamicCastHelper::GetClassToCastName());
 	check(Pin->Direction == EGPD_Input);
+	return Pin;
+}
+
+UEdGraphPin* UK2Node_ClassDynamicCast::GetBoolSuccessPin() const
+{
+	UEdGraphPin* Pin = FindPin(FClassDynamicCastHelper::CastSuccessPinName);
+	check(Pin != nullptr);
+	check(Pin->Direction == EGPD_Output);
 	return Pin;
 }
 
