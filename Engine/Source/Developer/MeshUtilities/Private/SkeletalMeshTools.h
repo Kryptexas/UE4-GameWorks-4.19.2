@@ -78,6 +78,23 @@ namespace SkeletalMeshTools
 		return 1;
 	}
 
+	/** @return true if V1 and V2 are equal */
+	bool AreSkelMeshVerticesEqual( const FSoftSkinBuildVertex& V1, const FSoftSkinBuildVertex& V2 );
+
+	/**
+	 * Creates chunks and populates the vertex and index arrays inside each chunk
+	 *
+	 * @param Faces						List of raw faces
+	 * @param RawVertices				List of raw created, unordered, unwelded vertices
+	 * @param RawVertIndexAndZ			List of indices into the RawVertices array and each raw vertex Z position.  This is used for fast lookup of overlapping vertices
+	 * @param bKeepOverlappingVertices	Whether or not to do the overlapping vertices or not.  If true each vertex is considered unique
+	 * @param OutChunks					Created array of chunks
+	 */
+	void BuildSkeletalMeshChunks( const TArray<FMeshFace>& Faces, const TArray<FSoftSkinBuildVertex>& RawVertices, TArray<FSkeletalMeshVertIndexAndZ>& RawVertIndexAndZ, bool bKeepOverlappingVertices, TArray<FSkinnedMeshChunk*>& OutChunks, bool& bOutTooManyVerts );
+
+	/**
+	 * Adds a new vertex to the list of vertices.  Note this method is very slow with a lot of vertices as this will amount to n^2 checks that the passed in vertex is not the same as another vertex in the vertices list
+	 */
 	int32 AddSkinVertex(TArray<FSoftSkinBuildVertex>& Vertices,FSoftSkinBuildVertex& Vertex, bool bKeepOverlappingVertices );
 
 	/**

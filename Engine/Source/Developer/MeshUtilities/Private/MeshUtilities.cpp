@@ -44,7 +44,8 @@ static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
 	1,
 	TEXT("Controls the algorithm to use when optimizing the triangle order for the post-transform cache.\n")
 	TEXT("0: Use NVTriStrip (slower)\n")
-	TEXT("1: Use Forsyth algorithm (fastest)(default)"),
+	TEXT("1: Use Forsyth algorithm (fastest)(default)")
+	TEXT("2: No triangle order optimization. (least efficient, debugging purposes only)"),
 	ECVF_ReadOnly);
 
 class FMeshUtilities : public IMeshUtilities
@@ -68,6 +69,8 @@ private:
 	bool bUsingSimplygon;
 	/** True if NvTriStrip is being used for tri order optimization. */
 	bool bUsingNvTriStrip;
+	/** True if we disable triangle order optimization.  For debugging purposes only */
+	bool bDisableTriangleOrderOptimization;
 	// IMeshUtilities interface.
 	virtual const FString& GetVersionString() const override
 	{
@@ -686,7 +689,7 @@ void FMeshUtilities::CacheOptimizeIndexBuffer(TArray<uint16>& Indices)
 	{
 		NvTriStrip::CacheOptimizeIndexBuffer(Indices);
 	}
-	else
+	else if( !bDisableTriangleOrderOptimization )
 	{
 		Forsyth::CacheOptimizeIndexBuffer(Indices);
 	}
@@ -698,7 +701,7 @@ void FMeshUtilities::CacheOptimizeIndexBuffer(TArray<uint32>& Indices)
 	{
 		NvTriStrip::CacheOptimizeIndexBuffer(Indices);
 	}
-	else
+	else if( !bDisableTriangleOrderOptimization )
 	{
 		Forsyth::CacheOptimizeIndexBuffer(Indices);
 	}
@@ -2696,9 +2699,9 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 	// to its overlapping vertices, and a table that maps a vertex to the its influenced faces
 	TMultiMap<int32,int32> Vert2Duplicates;
 	TMultiMap<int32,int32> Vert2Faces;
+	TArray<FSkeletalMeshVertIndexAndZ> VertIndexAndZ;
 	{
 		// Create a list of vertex Z/index pairs
-		TArray<FSkeletalMeshVertIndexAndZ> VertIndexAndZ;
 		VertIndexAndZ.Empty(Points.Num());
 		for (int32 i = 0; i < Points.Num(); i++)
 		{
@@ -2744,7 +2747,7 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 		}
 
 		// we are done with this
-		VertIndexAndZ.Empty();
+		VertIndexAndZ.Reset();
 
 		// now create a map from vert indices to faces
 		for(int32 FaceIndex = 0;FaceIndex < Faces.Num();FaceIndex++)
@@ -2762,11 +2765,17 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 	TArray<int32> DupVerts;
 	TArray<int32> DupFaces;
 
+	// List of raw calculated vertices that will be merged later
+	TArray<FSoftSkinBuildVertex> RawVertices;
+	RawVertices.Reserve( Points.Num() );
+
+	// Create a list of vertex Z/index pairs
+
 	for(int32 FaceIndex = 0;FaceIndex < Faces.Num();FaceIndex++)
 	{
 		// Only update the status progress bar if we are in the gamethread and every thousand faces. 
 		// Updating status is extremely slow
-		if( IsInGameThread() && FaceIndex % 5000 == 0 )
+		if( FaceIndex % 5000 == 0 && IsInGameThread() )
 		{
 			// Only update status if in the game thread.  When importing morph targets, this function can run in another thread
 			GWarn->StatusUpdate( FaceIndex, Faces.Num(), NSLOCTEXT("UnrealEd", "ProcessingSkeletalTriangles", "Processing Mesh Triangles") );
@@ -2851,26 +2860,6 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 				}
 			}
 		}
-
-		// Find a chunk which matches this triangle.
-		FSkinnedMeshChunk* Chunk = NULL;
-		for (int32 i = 0; i < Chunks.Num(); ++i)
-		{
-			if (Chunks[i]->MaterialIndex == Face.MeshMaterialIndex)
-			{
-				Chunk = Chunks[i];
-				break;
-			}
-		}
-		if (Chunk == NULL)
-		{
-			Chunk = new FSkinnedMeshChunk();
-			Chunk->MaterialIndex = Face.MeshMaterialIndex;
-			Chunk->OriginalSectionIndex = Chunks.Num();
-			Chunks.Add(Chunk);
-		}
-
-		uint32 TriangleIndices[3];
 
 		for(int32 VertexIndex = 0;VertexIndex < 3;VertexIndex++)
 		{
@@ -2962,32 +2951,20 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 
 			// Add the vertex as well as its original index in the points array
 			Vertex.PointWedgeIdx = Wedges[Face.iWedge[VertexIndex]].iVertex;
+			
+			int32 RawIndex = RawVertices.Add( Vertex );
 
-			int32	V = SkeletalMeshTools::AddSkinVertex(Chunk->Vertices,Vertex,bKeepOverlappingVertices);
+			// Add an efficient way to find dupes of this vertex later for fast combining of vertices
+			FSkeletalMeshVertIndexAndZ IAndZ;
+			IAndZ.Index = RawIndex;
+			IAndZ.Z = Vertex.Position.Z;
 
-
-			// set the index entry for the newly added vertex
-			// check(V >= 0 && V <= MAX_uint16);
-#if DISALLOW_32BIT_INDICES
-			if (V > MAX_uint16)
-			{
-				bTooManyVerts = true;
-			}
-			TriangleIndices[VertexIndex] = (uint16)V;
-#else
-			// TArray internally has int32 for capacity, so no need to test for uint32 as it's larger than int32
-			TriangleIndices[VertexIndex] = (uint32)V;
-#endif
-		}
-
-		if(TriangleIndices[0] != TriangleIndices[1] && TriangleIndices[0] != TriangleIndices[2] && TriangleIndices[1] != TriangleIndices[2])
-		{
-			for(uint32 VertexIndex = 0;VertexIndex < 3;VertexIndex++)
-			{
-				Chunk->Indices.Add(TriangleIndices[VertexIndex]);
-			}
+			VertIndexAndZ.Add( IAndZ );
 		}
 	}
+
+	// Generate chunks and their vertices and indices
+	SkeletalMeshTools::BuildSkeletalMeshChunks( Faces, RawVertices, VertIndexAndZ, bKeepOverlappingVertices, Chunks, bTooManyVerts );
 
 	// Chunk vertices to satisfy the requested limit.
 	static const auto MaxBonesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.MAX_GPUSKIN_BONES"));
@@ -3751,7 +3728,9 @@ void FMeshUtilities::StartupModule()
 		}
 	}
 
-	bUsingNvTriStrip = (CVarTriangleOrderOptimization.GetValueOnGameThread() == 0);
+	bDisableTriangleOrderOptimization = (CVarTriangleOrderOptimization.GetValueOnGameThread() == 2);
+
+	bUsingNvTriStrip = !bDisableTriangleOrderOptimization && (CVarTriangleOrderOptimization.GetValueOnGameThread() == 0);
 
 	// Construct and cache the version string for the mesh utilities module.
 	VersionString = FString::Printf(

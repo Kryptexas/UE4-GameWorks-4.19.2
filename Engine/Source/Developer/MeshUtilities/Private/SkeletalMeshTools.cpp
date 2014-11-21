@@ -7,6 +7,203 @@
 
 namespace SkeletalMeshTools
 {
+	bool AreSkelMeshVerticesEqual( const FSoftSkinBuildVertex& V1, const FSoftSkinBuildVertex& V2 )
+	{
+		if(!PointsEqual(V1.Position, V2.Position))
+		{
+			return false;
+		}
+
+		bool bUVsEqual = true;
+		for(int32 UVIdx = 0; UVIdx < MAX_TEXCOORDS; ++UVIdx)
+		{
+			if(FMath::Abs(V1.UVs[UVIdx].X - V2.UVs[UVIdx].X) >(1.0f / 1024.0f))
+			{
+				bUVsEqual = false;
+			};
+
+			if(FMath::Abs(V1.UVs[UVIdx].Y - V2.UVs[UVIdx].Y) > (1.0f / 1024.0f))
+			{
+				bUVsEqual = false;
+			}
+		}
+
+		if(!bUVsEqual)
+		{
+			return false;
+		}
+
+		if(!NormalsEqual(V1.TangentX, V2.TangentX))
+		{
+			return false;
+		}
+
+		if(!NormalsEqual(V1.TangentY, V2.TangentY))
+		{
+			return false;
+		}
+
+		if(!NormalsEqual(V1.TangentZ, V2.TangentZ))
+		{
+			return false;
+		}
+
+		bool	InfluencesMatch = 1;
+		for(uint32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; InfluenceIndex++)
+		{
+			if(V1.InfluenceBones[InfluenceIndex] != V2.InfluenceBones[InfluenceIndex] ||
+				V1.InfluenceWeights[InfluenceIndex] != V2.InfluenceWeights[InfluenceIndex])
+			{
+				InfluencesMatch = 0;
+				break;
+			}
+		}
+
+		if(!InfluencesMatch)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	void BuildSkeletalMeshChunks( const TArray<FMeshFace>& Faces, const TArray<FSoftSkinBuildVertex>& RawVertices, TArray<FSkeletalMeshVertIndexAndZ>& RawVertIndexAndZ, bool bKeepOverlappingVertices, TArray<FSkinnedMeshChunk*>& OutChunks, bool& bOutTooManyVerts )
+	{
+		TArray<int32> DupVerts;
+
+		TMultiMap<int32, int32> RawVerts2Dupes;
+		{
+
+			// Sorting function for vertex Z/index pairs
+			struct FCompareFSkeletalMeshVertIndexAndZ
+			{
+				FORCEINLINE bool operator()(const FSkeletalMeshVertIndexAndZ& A, const FSkeletalMeshVertIndexAndZ& B) const
+				{
+					return A.Z < B.Z;
+				}
+			};
+
+			// Sort the vertices by z value
+			RawVertIndexAndZ.Sort(FCompareFSkeletalMeshVertIndexAndZ());
+
+			// Search for duplicates, quickly!
+			for(int32 i = 0; i < RawVertIndexAndZ.Num(); i++)
+			{
+				// only need to search forward, since we add pairs both ways
+				for(int32 j = i + 1; j < RawVertIndexAndZ.Num(); j++)
+				{
+					if(FMath::Abs(RawVertIndexAndZ[j].Z - RawVertIndexAndZ[i].Z) > THRESH_POINTS_ARE_SAME)
+					{
+						// our list is sorted, so there can't be any more dupes
+						break;
+					}
+
+					// check to see if the points are really overlapping
+					if(PointsEqual(
+						RawVertices[RawVertIndexAndZ[i].Index].Position,
+						RawVertices[RawVertIndexAndZ[j].Index].Position))
+					{
+						RawVerts2Dupes.Add(RawVertIndexAndZ[i].Index, RawVertIndexAndZ[j].Index);
+						RawVerts2Dupes.Add(RawVertIndexAndZ[j].Index, RawVertIndexAndZ[i].Index);
+					}
+				}
+			}
+		}
+
+		TMap<FSkinnedMeshChunk* , TMap<int32, int32> > ChunkToFinalVerts;
+
+	
+		uint32 TriangleIndices[3];
+		for(int32 FaceIndex = 0; FaceIndex < Faces.Num(); FaceIndex++)
+		{
+			const FMeshFace& Face = Faces[FaceIndex];
+
+			// Find a chunk which matches this triangle.
+			FSkinnedMeshChunk* Chunk = NULL;
+			for(int32 i = 0; i < OutChunks.Num(); ++i)
+			{
+				if(OutChunks[i]->MaterialIndex == Face.MeshMaterialIndex)
+				{
+					Chunk = OutChunks[i];
+					break;
+				}
+			}
+			if(Chunk == NULL)
+			{
+				Chunk = new FSkinnedMeshChunk();
+				Chunk->MaterialIndex = Face.MeshMaterialIndex;
+				Chunk->OriginalSectionIndex = OutChunks.Num();
+				OutChunks.Add(Chunk);
+			}
+
+			TMap<int32, int32>& FinalVerts = ChunkToFinalVerts.FindOrAdd( Chunk );
+
+			for(int32 VertexIndex = 0; VertexIndex < 3; ++VertexIndex)
+			{
+				int32 WedgeIndex = FaceIndex * 3 + VertexIndex;
+				const FSoftSkinBuildVertex& Vertex = RawVertices[WedgeIndex];
+
+				int32 FinalVertIndex = INDEX_NONE;
+				if(bKeepOverlappingVertices)
+				{
+					FinalVertIndex = Chunk->Vertices.Add(RawVertices[WedgeIndex]);
+				}
+				else
+				{
+					DupVerts.Reset();
+					RawVerts2Dupes.MultiFind(WedgeIndex, DupVerts);
+					DupVerts.Sort();
+
+
+					for(int32 k = 0; k < DupVerts.Num(); k++)
+					{
+						if(DupVerts[k] >= WedgeIndex)
+						{
+							// the verts beyond me haven't been placed yet, so these duplicates are not relevant
+							break;
+						}
+
+						int32 *Location = FinalVerts.Find(DupVerts[k]);
+						if(Location != NULL)
+						{
+							if(SkeletalMeshTools::AreSkelMeshVerticesEqual(Vertex, Chunk->Vertices[*Location]))
+							{
+								FinalVertIndex = *Location;
+								break;
+							}
+						}
+					}
+					if(FinalVertIndex == INDEX_NONE)
+					{
+						FinalVertIndex = Chunk->Vertices.Add(Vertex);
+						FinalVerts.Add(WedgeIndex, FinalVertIndex);
+					}
+
+				}
+
+				// set the index entry for the newly added vertex
+#if DISALLOW_32BIT_INDICES
+				if(FinalVertIndex > MAX_uint16)
+				{
+					bOutTooManyVerts = true;
+				}
+				TriangleIndices[VertexIndex] = (uint16)FinalVertIndex;
+#else
+				// TArray internally has int32 for capacity, so no need to test for uint32 as it's larger than int32
+				TriangleIndices[VertexIndex] = (uint32)FinalVertIndex;
+#endif
+			}
+
+			if(TriangleIndices[0] != TriangleIndices[1] && TriangleIndices[0] != TriangleIndices[2] && TriangleIndices[1] != TriangleIndices[2])
+			{
+				for(uint32 VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+				{
+					Chunk->Indices.Add(TriangleIndices[VertexIndex]);
+				}
+			}
+		}
+	}
+
 	int32 AddSkinVertex(TArray<FSoftSkinBuildVertex>& Vertices,FSoftSkinBuildVertex& Vertex, bool bKeepOverlappingVertices )
 	{
 		if (!bKeepOverlappingVertices)
@@ -15,49 +212,10 @@ namespace SkeletalMeshTools
 			{
 				FSoftSkinBuildVertex&	OtherVertex = Vertices[VertexIndex];
 
-				if(!PointsEqual(OtherVertex.Position,Vertex.Position))
-					continue;
-
-				bool bUVsEqual = true;
-				for( int32 UVIdx = 0; UVIdx < MAX_TEXCOORDS; ++UVIdx )
+				if( AreSkelMeshVerticesEqual( Vertex, OtherVertex ) )
 				{
-					if(FMath::Abs(Vertex.UVs[UVIdx].X - OtherVertex.UVs[UVIdx].X) > (1.0f / 1024.0f))
-					{
-						bUVsEqual = false;
-					};
-
-					if(FMath::Abs(Vertex.UVs[UVIdx].Y - OtherVertex.UVs[UVIdx].Y) > (1.0f / 1024.0f))
-					{
-						bUVsEqual = false;
-					}
+					return VertexIndex; 
 				}
-
-				if( !bUVsEqual )
-					continue;
-
-				if(!NormalsEqual( OtherVertex.TangentX, Vertex.TangentX))
-					continue;
-
-				if(!NormalsEqual(OtherVertex.TangentY, Vertex.TangentY))
-					continue;
-
-				if(!NormalsEqual(OtherVertex.TangentZ, Vertex.TangentZ))
-					continue;
-
-				bool	InfluencesMatch = 1;
-				for(uint32 InfluenceIndex = 0;InfluenceIndex < MAX_TOTAL_INFLUENCES;InfluenceIndex++)
-				{
-					if( Vertex.InfluenceBones[InfluenceIndex] != OtherVertex.InfluenceBones[InfluenceIndex] || 
-						Vertex.InfluenceWeights[InfluenceIndex] != OtherVertex.InfluenceWeights[InfluenceIndex])
-					{
-						InfluencesMatch = 0;
-						break;
-					}
-				}
-				if(!InfluencesMatch)
-					continue;
-
-				return VertexIndex;
 			}
 		}
 
