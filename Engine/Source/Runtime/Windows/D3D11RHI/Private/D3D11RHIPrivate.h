@@ -607,9 +607,6 @@ protected:
 #if PLATFORM_SUPPORTS_RHI_THREAD
 	void SetupRecursiveResources();
 #endif
-#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	void CheckThreadsafeQueries(bool bWait = false);
-#endif
 
 	friend struct FD3DGPUProfiler;
 };

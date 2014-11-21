@@ -1199,14 +1199,6 @@ static int32 PeriodicCheck = 0;
 
 void FD3D11DynamicRHI::CommitGraphicsResourceTables()
 {
-#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	if (GRHIThread && ++PeriodicCheck >= 10)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_CommitGraphicsResourceTables_CheckThreadsafeQueries);
-		PeriodicCheck = 0;
-		CheckThreadsafeQueries();
-	}
-#endif
 	FD3D11BoundShaderState* RESTRICT CurrentBoundShaderState = (FD3D11BoundShaderState*)BoundShaderStateHistory.GetLast();
 	check(CurrentBoundShaderState);
 
