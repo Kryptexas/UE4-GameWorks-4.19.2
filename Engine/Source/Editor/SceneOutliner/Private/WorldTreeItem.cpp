@@ -46,7 +46,7 @@ FString FWorldTreeItem::GetDisplayString() const
 {
 	if (UWorld* WorldPtr = World.Get())
 	{
-		return World->GetName();
+		return World->GetFName().GetPlainNameString();
 	}
 	return FString();
 }

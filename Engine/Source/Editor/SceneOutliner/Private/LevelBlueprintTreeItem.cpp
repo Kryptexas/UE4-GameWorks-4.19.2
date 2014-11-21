@@ -63,7 +63,7 @@ FString FLevelBlueprintTreeItem::GetDisplayString() const
 	FFormatOrderedArguments Args;
 	if (ULevel* LevelPtr = Handle.ParentLevel.Get())
 	{
-		return FPackageName::GetShortName(LevelPtr->GetOutermost());
+		return FPackageName::GetShortName(LevelPtr->GetOutermost()->GetFName().GetPlainNameString());
 	}
 	else
 	{
