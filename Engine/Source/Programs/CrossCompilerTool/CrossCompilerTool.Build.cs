@@ -20,6 +20,10 @@ public class CrossCompilerTool : ModuleRules
 				"ShaderCompilerCommon",
 				"MetalShaderFormat",
 				"ShaderFormatOpenGL",
+				"ShaderPreprocessor",
+
+				//@todo-rco: Remove me!
+				"ShaderCore",
 			});
 
 		AddThirdPartyPrivateStaticDependencies(Target,

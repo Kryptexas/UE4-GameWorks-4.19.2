@@ -8,6 +8,7 @@
 #include "GlslBackend.h"
 #include "HlslLexer.h"
 #include "HlslParser.h"
+#include "ShaderPreprocessor.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -17,6 +18,15 @@ IMPLEMENT_APPLICATION(CrossCompilerTool, "CrossCompilerTool");
 
 namespace CCT
 {
+	static bool Preprocess(const FString& InputFile, FString& Output)
+	{
+		FShaderCompilerInput CompilerInput;
+		CompilerInput.SourceFilename = InputFile;
+		FShaderCompilerOutput CompilerOutput;
+		TArray<FShaderCompilerError> Errors;
+		return PreprocessShaderFile(Output, Errors, InputFile);
+	}
+
 	static int32 Run(const FRunInfo& RunInfo)
 	{
 		ILanguageSpec* Language = nullptr;
@@ -49,21 +59,16 @@ namespace CCT
 		}
 
 		FString HLSLShaderSource;
-		if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
-		{
-			UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
-			return 1;
-		}
-
 		if (RunInfo.bUseNew)
 		{
-
-			// Assume it's preprocessed
-			////Parser.Parse(TEXT("+-1 * 2 + (3 + -4) + F(5) + G(6,7) + A++ - --B"));
-			//Parser.Parse(TEXT("void X() { a += (b ? 1 : 0); }"));
-			//Parser.Parse(TEXT("void X() { return 5 * 3 + 2; }"));
 			if (RunInfo.bList)
 			{
+				if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+				{
+					UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+					return 1;
+				}
+
 				TArray<FString> List;
 
 				if (!FFileHelper::LoadANSITextFileToStrings(*RunInfo.InputFile, &IFileManager::Get(), List))
@@ -91,6 +96,28 @@ namespace CCT
 			}
 			else
 			{
+				if (RunInfo.bRunCPP)
+				{
+					if (!Preprocess(RunInfo.InputFile, HLSLShaderSource))
+					{
+						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error during preprocessor on '%s'!"), *RunInfo.InputFile);
+						return 1;
+					}
+				}
+				else
+				{
+					if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+					{
+						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+						return 1;
+					}
+				}
+
+				if (RunInfo.bPreprocessOnly)
+				{
+					return 0;
+				}
+
 				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile))
 				{
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);

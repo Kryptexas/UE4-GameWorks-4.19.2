@@ -26,7 +26,7 @@ namespace CCT
 		bool bRunCPP;
 		bool bUseNew;
 		bool bList;
-		//bool bCPPOnly;
+		bool bPreprocessOnly;
 
 		FRunInfo();
 		bool Setup(const FString& InOptions, const TArray<FString>& InSwitches);
