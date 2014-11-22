@@ -8,6 +8,8 @@
 #include "WidgetGraphSchema.h"
 #include "BlueprintEditorUtils.h"
 #include "ScopedTransaction.h"
+#include "WidgetComponent.h"
+#include "WidgetAnimation.h"
 #include "PropertyBinding.h"
 
 
