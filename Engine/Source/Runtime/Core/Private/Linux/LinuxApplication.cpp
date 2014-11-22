@@ -314,7 +314,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 			if(bUsingHighPrecisionMouseInput)
 			{
-					LinuxCursor->AddOffset(motionEvent.xrel, motionEvent.yrel);
+					// maintain "shadow" global position
+					if (LinuxCursor->IsHidden())
+					{
+						LinuxCursor->AddOffset(motionEvent.xrel, motionEvent.yrel);
+					}
  					MessageHandler->OnRawMouseMove(motionEvent.xrel, motionEvent.yrel);
 			}
 			else
