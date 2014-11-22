@@ -74,7 +74,7 @@ class ENGINE_API UNavArea : public UObject
 	FORCEINLINE bool IsSupportingAgent(int32 AgentIndex) const { return (AgentIndex >= 0 && AgentIndex < 16) ? !!(SupportedAgentsBits & (1 << AgentIndex)) : false; }
 
 	/** Retrieved color declared for AreaDefinitionClass */
-	static FColor GetColor(class UClass* AreaDefinitionClass);
+	static FColor GetColor(UClass* AreaDefinitionClass);
 
 #if WITH_EDITOR
 	/** setup bSupportsAgentX properties */

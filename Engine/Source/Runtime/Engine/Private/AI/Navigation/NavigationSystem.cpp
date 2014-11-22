@@ -1841,7 +1841,7 @@ int32 GetDirtyFlagHelper(int32 UpdateFlags, int32 DefaultValue)
 		DefaultValue;
 }
 
-FSetElementId UNavigationSystem::RegisterNavOctreeElement(UObject* ElementOwner, class INavRelevantInterface* ElementInterface, int32 UpdateFlags)
+FSetElementId UNavigationSystem::RegisterNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 	FSetElementId SetId;
 
@@ -1983,7 +1983,7 @@ bool UNavigationSystem::GetNavOctreeElementData(UObject* NodeOwner, int32& Dirty
 	return false;
 }
 
-void UNavigationSystem::UnregisterNavOctreeElement(UObject* ElementOwner, class INavRelevantInterface* ElementInterface, int32 UpdateFlags)
+void UNavigationSystem::UnregisterNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 #if WITH_EDITOR
 	if (IsNavigationUnregisterLocked())
@@ -2044,7 +2044,7 @@ void UNavigationSystem::RemoveNavOctreeElementId(const FOctreeElementId& Element
 	}
 }
 
-void UNavigationSystem::UpdateNavOctree(class AActor* Actor)
+void UNavigationSystem::UpdateNavOctree(AActor* Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
@@ -2059,7 +2059,7 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor)
 	}
 }
 
-void UNavigationSystem::UpdateNavOctree(class UActorComponent* Comp)
+void UNavigationSystem::UpdateNavOctree(UActorComponent* Comp)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 
@@ -2092,7 +2092,7 @@ void UNavigationSystem::UpdateNavOctree(class UActorComponent* Comp)
 	}
 }
 
-void UNavigationSystem::UpdateNavOctreeAll(class AActor* Actor)
+void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 {
 	if (Actor)
 	{
@@ -2108,7 +2108,7 @@ void UNavigationSystem::UpdateNavOctreeAll(class AActor* Actor)
 	}
 }
 
-void UNavigationSystem::UpdateNavOctreeBounds(class AActor* Actor)
+void UNavigationSystem::UpdateNavOctreeBounds(AActor* Actor)
 {
 	TArray<UActorComponent*> Components;
 	Actor->GetComponents(Components);
@@ -2123,7 +2123,7 @@ void UNavigationSystem::UpdateNavOctreeBounds(class AActor* Actor)
 	}
 }
 
-void UNavigationSystem::ClearNavOctreeAll(class AActor* Actor)
+void UNavigationSystem::ClearNavOctreeAll(AActor* Actor)
 {
 	if (Actor)
 	{
@@ -2139,7 +2139,7 @@ void UNavigationSystem::ClearNavOctreeAll(class AActor* Actor)
 	}
 }
 
-void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, class INavRelevantInterface* ElementInterface, int32 UpdateFlags)
+void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 	INC_DWORD_STAT(STAT_Navigation_UpdateNavOctree);
 
@@ -2244,7 +2244,7 @@ void UNavigationSystem::OnComponentUnregistered(UActorComponent* Comp)
 	}
 }
 
-void UNavigationSystem::OnActorRegistered(class AActor* Actor)
+void UNavigationSystem::OnActorRegistered(AActor* Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Actor);
@@ -2258,7 +2258,7 @@ void UNavigationSystem::OnActorRegistered(class AActor* Actor)
 	}
 }
 
-void UNavigationSystem::OnActorUnregistered(class AActor* Actor)
+void UNavigationSystem::OnActorUnregistered(AActor* Actor)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DebugNavOctree);
 	INavRelevantInterface* NavInterface = Cast<INavRelevantInterface>(Actor);

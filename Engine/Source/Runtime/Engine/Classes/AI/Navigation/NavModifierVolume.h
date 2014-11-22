@@ -16,7 +16,7 @@ class ANavModifierVolume : public AVolume, public INavRelevantInterface
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Default)
 	TSubclassOf<class UNavArea> AreaClass;
 
-	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const override;
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	virtual FBox GetNavigationBounds() const;
 
 #if WITH_EDITOR

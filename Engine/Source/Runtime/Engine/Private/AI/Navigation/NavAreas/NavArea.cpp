@@ -33,7 +33,7 @@ void UNavArea::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-FColor UNavArea::GetColor(class UClass* AreaDefinitionClass)
+FColor UNavArea::GetColor(UClass* AreaDefinitionClass)
 {
 	return AreaDefinitionClass ? AreaDefinitionClass->GetDefaultObject<UNavArea>()->DrawColor : FColor::Black;
 }

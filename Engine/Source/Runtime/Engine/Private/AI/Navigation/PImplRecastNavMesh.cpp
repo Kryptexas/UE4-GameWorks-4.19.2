@@ -1685,7 +1685,7 @@ void FPImplRecastNavMesh::GetEdgesForPathCorridor(const TArray<NavNodeRef>* Path
 	GetEdgesForPathCorridorImpl(PathCorridor, PathCorridorEdges, NavQuery);
 }
 
-bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const
+bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Owner) const
 {
 	if (Filter == NULL || DetourNavMesh == NULL)
 	{

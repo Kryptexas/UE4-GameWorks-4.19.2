@@ -22,7 +22,7 @@ void UNavModifierComponent::CalcBounds()
 	}
 }
 
-void UNavModifierComponent::GetNavigationData(struct FNavigationRelevantData& Data) const
+void UNavModifierComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	Data.Modifiers.Add(FAreaNavModifier(Bounds, FTransform::Identity, AreaClass));
 }

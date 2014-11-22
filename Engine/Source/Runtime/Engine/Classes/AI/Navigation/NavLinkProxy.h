@@ -7,6 +7,10 @@
 #include "GameFramework/Actor.h"
 #include "NavLinkProxy.generated.h"
 
+class UNavLinkDefinition;
+class UPathFollowingComponent;
+struct FNavigationRelevantData;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FSmartLinkReachedSignature, class AActor*, MovingActor, const FVector&, DestinationPoint );
 
 UCLASS(Blueprintable)
@@ -48,13 +52,13 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 	// BEGIN INavRelevantInterface
-	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const;
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const;
 	virtual FBox GetNavigationBounds() const;
 	virtual bool IsNavigationRelevant() const;
 	// END INavRelevantInterface
 
 	// BEGIN INavLinkHostInterface
-	virtual bool GetNavigationLinksClasses(TArray<TSubclassOf<class UNavLinkDefinition> >& OutClasses) const override;
+	virtual bool GetNavigationLinksClasses(TArray<TSubclassOf<UNavLinkDefinition> >& OutClasses) const override;
 	virtual bool GetNavigationLinksArray(TArray<FNavigationLink>& OutLink, TArray<FNavigationSegmentLink>& OutSegments) const override;
 	// END INavLinkHostInterface
 
@@ -92,7 +96,7 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FSmartLinkReachedSignature OnSmartLinkReached;
 
-	void NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint);
+	void NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, UPathFollowingComponent* PathComp, const FVector& DestPoint);
 
 public:
 	/** Returns SmartLinkComp subobject **/

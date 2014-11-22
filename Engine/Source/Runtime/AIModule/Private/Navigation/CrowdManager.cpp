@@ -313,13 +313,13 @@ void UCrowdManager::UnregisterAgent(const ICrowdAgentInterface* Agent)
 	ActiveAgents.Remove(Agent);
 }
 
-bool UCrowdManager::IsAgentValid(const class UCrowdFollowingComponent* AgentComponent) const
+bool UCrowdManager::IsAgentValid(const UCrowdFollowingComponent* AgentComponent) const
 {
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
 	return AgentData && AgentData->IsValid();
 }
 
-bool UCrowdManager::IsAgentValid(const class ICrowdAgentInterface* Agent) const
+bool UCrowdManager::IsAgentValid(const ICrowdAgentInterface* Agent) const
 {
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
 	return AgentData && AgentData->IsValid();

@@ -8,7 +8,7 @@
 //----------------------------------------------------------------------//
 // FPathFindingQuery
 //----------------------------------------------------------------------//
-FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
+FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
 : NavData(InNavData)
 , Owner(InOwner)
 , StartLocation(Start)
@@ -597,22 +597,22 @@ void ANavigationData::SetNavRenderingEnabled(bool bEnable)
 	}
 }
 
-void ANavigationData::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
+void ANavigationData::UpdateCustomLink(const INavLinkCustomInterface* CustomLink)
 {
 	// no implementation for abstract class
 }
 
-TSharedPtr<const FNavigationQueryFilter> ANavigationData::GetQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass) const
+TSharedPtr<const FNavigationQueryFilter> ANavigationData::GetQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass) const
 {
 	return QueryFilters.FindRef(FilterClass);
 }
 
-void ANavigationData::StoreQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter)
+void ANavigationData::StoreQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter)
 {
 	QueryFilters.Add(FilterClass, NavFilter);
 }
 
-void ANavigationData::RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass)
+void ANavigationData::RemoveQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	QueryFilters.Remove(FilterClass);
 }

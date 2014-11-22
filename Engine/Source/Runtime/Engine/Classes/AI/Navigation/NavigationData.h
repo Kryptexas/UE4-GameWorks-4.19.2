@@ -7,7 +7,9 @@
 #include "UniquePtr.h"
 #include "NavigationData.generated.h"
 
+class UNavigationQueryFilter;
 class FNavDataGenerator; 
+class INavLinkCustomInterface;
 
 USTRUCT()
 struct FSupportedAreaData
@@ -689,20 +691,20 @@ public:
 	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
+	virtual void UpdateCustomLink(const INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Filters
 	//----------------------------------------------------------------------//
 
 	/** get cached query filter */
-	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass) const;
+	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass) const;
 
 	/** store cached query filter */
-	void StoreQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter);
+	void StoreQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter);
 
 	/** removes cached query filter */
-	void RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass);
+	void RemoveQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass);
 
 	//----------------------------------------------------------------------//
 	// all the rest                                                                

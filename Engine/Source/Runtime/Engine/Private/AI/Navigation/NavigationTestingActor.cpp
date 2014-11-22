@@ -316,7 +316,7 @@ void ANavigationTestingActor::UpdatePathfinding()
 	}
 }
 
-void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
+void ANavigationTestingActor::SearchPathTo(ANavigationTestingActor* Goal)
 {
 #if WITH_EDITORONLY_DATA
 	if (EdRenderComp)

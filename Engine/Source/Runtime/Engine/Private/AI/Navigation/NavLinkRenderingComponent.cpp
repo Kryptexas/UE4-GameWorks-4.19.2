@@ -103,7 +103,7 @@ FNavLinkRenderingProxy::FNavLinkRenderingProxy(const UPrimitiveComponent* InComp
 	if (LinkOwnerActor != NULL && LinkOwnerHost != NULL)
 	{
 		const FTransform LocalToWorld = LinkOwnerActor->ActorToWorld();
-		TArray<TSubclassOf<class UNavLinkDefinition> > NavLinkClasses;
+		TArray<TSubclassOf<UNavLinkDefinition> > NavLinkClasses;
 		LinkOwnerHost->GetNavigationLinksClasses(NavLinkClasses);
 
 		for (int32 NavLinkClassIdx = 0; NavLinkClassIdx < NavLinkClasses.Num(); ++NavLinkClassIdx)

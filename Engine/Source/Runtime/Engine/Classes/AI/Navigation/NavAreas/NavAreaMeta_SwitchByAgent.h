@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "NavAreaMeta_SwitchByAgent.generated.h"
 
@@ -58,7 +59,7 @@ class ENGINE_API UNavAreaMeta_SwitchByAgent : public UNavAreaMeta
 	UPROPERTY(EditAnywhere, Category=AgentTypes)
 	TSubclassOf<UNavArea> Agent15Area;
 
-	virtual TSubclassOf<UNavArea> PickAreaClass(const class AActor* Actor, const FNavAgentProperties& NavAgent) const override;
+	virtual TSubclassOf<UNavArea> PickAreaClass(const AActor* Actor, const FNavAgentProperties& NavAgent) const override;
 
 #if WITH_EDITOR
 	/** setup AgentXArea properties */

@@ -116,7 +116,7 @@ UNavigationQueryFilter::UNavigationQueryFilter(const FObjectInitializer& ObjectI
 	ExcludeFlags.Packed = 0;
 }
 
-TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const class ANavigationData* NavData) const
+TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData* NavData) const
 {
 	TSharedPtr<const FNavigationQueryFilter> SharedFilter = NavData->GetQueryFilter(GetClass());
 	if (!SharedFilter.IsValid())
@@ -172,13 +172,13 @@ void UNavigationQueryFilter::InitializeFilter(const ANavigationData* NavData, FN
 	Filter->SetExcludeFlags(ExcludeFlags.Packed);
 }
 
-TSharedPtr<const struct FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const class ANavigationData* NavData, UClass* FilterClass)
+TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass)
 {
 	UNavigationQueryFilter* DefFilterOb = FilterClass ? FilterClass->GetDefaultObject<UNavigationQueryFilter>() : NULL;
 	return NavData && DefFilterOb ? DefFilterOb->GetQueryFilter(NavData) : NULL;
 }
 
-void UNavigationQueryFilter::AddTravelCostOverride(TSubclassOf<class UNavArea> AreaClass, float TravelCost)
+void UNavigationQueryFilter::AddTravelCostOverride(TSubclassOf<UNavArea> AreaClass, float TravelCost)
 {
 	int32 Idx = FindAreaOverride(AreaClass);
 	if (Idx == INDEX_NONE)
@@ -193,7 +193,7 @@ void UNavigationQueryFilter::AddTravelCostOverride(TSubclassOf<class UNavArea> A
 	Areas[Idx].TravelCostOverride = TravelCost;
 }
 
-void UNavigationQueryFilter::AddEnteringCostOverride(TSubclassOf<class UNavArea> AreaClass, float EnteringCost)
+void UNavigationQueryFilter::AddEnteringCostOverride(TSubclassOf<UNavArea> AreaClass, float EnteringCost)
 {
 	int32 Idx = FindAreaOverride(AreaClass);
 	if (Idx == INDEX_NONE)
@@ -208,7 +208,7 @@ void UNavigationQueryFilter::AddEnteringCostOverride(TSubclassOf<class UNavArea>
 	Areas[Idx].EnteringCostOverride = EnteringCost;
 }
 
-void UNavigationQueryFilter::AddExcludedArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavigationQueryFilter::AddExcludedArea(TSubclassOf<UNavArea> AreaClass)
 {
 	int32 Idx = FindAreaOverride(AreaClass);
 	if (Idx == INDEX_NONE)
@@ -222,7 +222,7 @@ void UNavigationQueryFilter::AddExcludedArea(TSubclassOf<class UNavArea> AreaCla
 	Areas[Idx].bIsExcluded = true;
 }
 
-int32 UNavigationQueryFilter::FindAreaOverride(TSubclassOf<class UNavArea> AreaClass) const
+int32 UNavigationQueryFilter::FindAreaOverride(TSubclassOf<UNavArea> AreaClass) const
 {
 	for (int32 i = 0; i < Areas.Num(); i++)
 	{
@@ -236,7 +236,7 @@ int32 UNavigationQueryFilter::FindAreaOverride(TSubclassOf<class UNavArea> AreaC
 }
 
 #if WITH_EDITOR
-void UNavigationQueryFilter::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UNavigationQueryFilter::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 

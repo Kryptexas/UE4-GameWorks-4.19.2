@@ -68,7 +68,7 @@ bool UNavLinkCustomComponent::IsLinkPathfindingAllowed(const UObject* Querier) c
 	return true;
 }
 
-bool UNavLinkCustomComponent::OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint)
+bool UNavLinkCustomComponent::OnLinkMoveStarted(UPathFollowingComponent* PathComp, const FVector& DestPoint)
 {
 	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp = PathComp;
 	MovingAgents.Add(WeakPathComp);
@@ -82,13 +82,13 @@ bool UNavLinkCustomComponent::OnLinkMoveStarted(class UPathFollowingComponent* P
 	return false;
 }
 
-void UNavLinkCustomComponent::OnLinkMoveFinished(class UPathFollowingComponent* PathComp)
+void UNavLinkCustomComponent::OnLinkMoveFinished(UPathFollowingComponent* PathComp)
 {
 	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
 	MovingAgents.Remove(WeakPathComp);
 }
 
-void UNavLinkCustomComponent::GetNavigationData(struct FNavigationRelevantData& Data) const
+void UNavLinkCustomComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	FNavigationLink LinkMod = GetLinkModifier();
 	Data.Modifiers.Add(FSimpleLinkNavModifier(LinkMod, GetOwner()->GetTransform()));
@@ -158,7 +158,7 @@ FNavigationLink UNavLinkCustomComponent::GetLinkModifier() const
 	return INavLinkCustomInterface::GetModifier(this);
 }
 
-void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<UNavArea> AreaClass)
 {
 	EnabledAreaClass = AreaClass;
 	if (IsNavigationRelevant() && bLinkEnabled)
@@ -168,7 +168,7 @@ void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<class UNavArea> AreaCla
 	}
 }
 
-void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<UNavArea> AreaClass)
 {
 	DisabledAreaClass = AreaClass;
 	if (IsNavigationRelevant() && !bLinkEnabled)
@@ -178,7 +178,7 @@ void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<class UNavArea> AreaCl
 	}
 }
 
-void UNavLinkCustomComponent::AddNavigationObstacle(TSubclassOf<class UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset)
+void UNavLinkCustomComponent::AddNavigationObstacle(TSubclassOf<UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset)
 {
 	ObstacleOffset = BoxOffset;
 	ObstacleExtent = BoxExtent;

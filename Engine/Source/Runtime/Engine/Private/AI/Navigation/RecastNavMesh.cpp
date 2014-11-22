@@ -993,7 +993,7 @@ NavNodeRef ARecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Ex
 	return PolyRef;
 }
 
-void ARecastNavMesh::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
+void ARecastNavMesh::UpdateCustomLink(const INavLinkCustomInterface* CustomLink)
 {
 	TSubclassOf<UNavArea> AreaClass = CustomLink->GetLinkAreaClass();
 	const int32 UserId = CustomLink->GetLinkId();
@@ -1007,7 +1007,7 @@ void ARecastNavMesh::UpdateCustomLink(const class INavLinkCustomInterface* Custo
 	}
 }
 
-void ARecastNavMesh::UpdateNavigationLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const
+void ARecastNavMesh::UpdateNavigationLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const
 {
 	int32 AreaId = GetAreaID(AreaClass);
 	if (AreaId >= 0 && RecastNavMeshImpl)
@@ -1018,7 +1018,7 @@ void ARecastNavMesh::UpdateNavigationLinkArea(int32 UserId, TSubclassOf<class UN
 	}
 }
 
-void ARecastNavMesh::UpdateSegmentLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const
+void ARecastNavMesh::UpdateSegmentLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const
 {
 	int32 AreaId = GetAreaID(AreaClass);
 	if (AreaId >= 0 && RecastNavMeshImpl)
@@ -1345,7 +1345,7 @@ void ARecastNavMesh::SetDefaultForbiddenFlags(uint16 ForbiddenAreaFlags)
 	FPImplRecastNavMesh::SetFilterForbiddenFlags((FRecastQueryFilter*)DefaultQueryFilter->GetImplementation(), ForbiddenAreaFlags);
 }
 
-bool ARecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* QueryOwner) const
+bool ARecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* QueryOwner) const
 {
 	bool bSuccess = false;
 	if (RecastNavMeshImpl)
@@ -1676,7 +1676,7 @@ void ARecastNavMesh::UpdateNavVersion()
 
 #if WITH_EDITOR
 
-void ARecastNavMesh::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
+void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_Generation = FName(TEXT("Generation"));
 	static const FName NAME_Display = FName(TEXT("Display"));
@@ -1756,7 +1756,7 @@ bool ARecastNavMesh::IsVoxelCacheEnabled()
 	return DefOb && DefOb->bUseVoxelCache;
 }
 
-const class FRecastQueryFilter* ARecastNavMesh::GetNamedFilter(ERecastNamedFilter::Type FilterType)
+const FRecastQueryFilter* ARecastNavMesh::GetNamedFilter(ERecastNamedFilter::Type FilterType)
 {
 	check(FilterType < ERecastNamedFilter::NamedFiltersCount); 
 	return NamedFilters[FilterType];

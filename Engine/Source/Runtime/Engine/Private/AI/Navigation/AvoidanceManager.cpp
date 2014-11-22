@@ -22,7 +22,7 @@ FNavAvoidanceData::FNavAvoidanceData(UAvoidanceManager* Manager, IRVOAvoidanceIn
 		);
 }
 
-void FNavAvoidanceData::Init(class UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
+void FNavAvoidanceData::Init(UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
 							 const FVector& InVelocity, float InWeight,
 							 int32 InGroupMask, int32 InGroupsToAvoid, int32 InGroupsToIgnore,
 							 float InTestRadius2D)

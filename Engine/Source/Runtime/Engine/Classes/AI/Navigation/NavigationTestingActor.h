@@ -5,9 +5,11 @@
 #include "NavPathObserverInterface.h"
 #include "NavigationTestingActor.generated.h"
 
+class ANavigationTestingActor;
+
 struct FNavTestTickHelper : FTickableGameObject
 {
-	TWeakObjectPtr<class ANavigationTestingActor> Owner;
+	TWeakObjectPtr<ANavigationTestingActor> Owner;
 
 	FNavTestTickHelper() : Owner(NULL) {}
 	virtual void Tick(float DeltaTime);
@@ -162,8 +164,8 @@ public:
 
 	void UpdateNavData();
 	void UpdatePathfinding();
-	void GatherDetailedData(class ANavigationTestingActor* Goal);
-	void SearchPathTo(class ANavigationTestingActor* Goal);
+	void GatherDetailedData(ANavigationTestingActor* Goal);
+	void SearchPathTo(ANavigationTestingActor* Goal);
 
 	/*	Called when given path becomes invalid (via @see PathObserverDelegate)
 	 *	NOTE: InvalidatedPath doesn't have to be instance's current Path

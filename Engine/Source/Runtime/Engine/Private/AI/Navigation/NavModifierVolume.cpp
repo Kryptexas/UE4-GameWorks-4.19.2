@@ -12,7 +12,7 @@ ANavModifierVolume::ANavModifierVolume(const FObjectInitializer& ObjectInitializ
 {
 }
 
-void ANavModifierVolume::GetNavigationData(struct FNavigationRelevantData& Data) const
+void ANavModifierVolume::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	if (Brush && AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 	{
