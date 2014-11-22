@@ -39,7 +39,7 @@ class UNavArea;
 class UNavigationSystem;
 class URecastNavMeshDataChunk;
 struct FAreaNavModifier;
-class FNavigationQueryFilter;
+struct FNavigationQueryFilter;
 
 UENUM()
 namespace ERecastPartitioning
