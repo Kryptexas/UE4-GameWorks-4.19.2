@@ -12,7 +12,7 @@ UAssetUserData::UAssetUserData(const FObjectInitializer& ObjectInitializer)
 
 //////////////////////////////////////////////////////////////////////////
 
-UInterface_AssetUserData::UInterface_AssetUserData(const class FObjectInitializer& ObjectInitializer)
+UInterface_AssetUserData::UInterface_AssetUserData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }

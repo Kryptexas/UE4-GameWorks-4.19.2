@@ -31,7 +31,7 @@ const FColor FColor::Magenta(255,0,255);
 static const float OneOver255 = 1.0f / 255.0f;
 
 //	FColor->FLinearColor conversion.
-FLinearColor::FLinearColor(const class FColor& C)
+FLinearColor::FLinearColor(const FColor& C)
 {
 	R = PowOneOver255Table[C.R];
 	G = PowOneOver255Table[C.G];
@@ -39,14 +39,14 @@ FLinearColor::FLinearColor(const class FColor& C)
 	A =	float(C.A) * OneOver255;
 }
 
-FLinearColor::FLinearColor(const class FVector& Vector) :
+FLinearColor::FLinearColor(const FVector& Vector) :
 	R(Vector.X),
 	G(Vector.Y),
 	B(Vector.Z),
 	A(1.0f)
 {}
 
-FLinearColor::FLinearColor(const class FFloat16Color& C)
+FLinearColor::FLinearColor(const FFloat16Color& C)
 {
 	R = C.R.GetFloat();
 	G = C.G.GetFloat();

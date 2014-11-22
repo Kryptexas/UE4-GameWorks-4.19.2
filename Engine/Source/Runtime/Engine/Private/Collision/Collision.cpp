@@ -181,7 +181,7 @@ void FCollisionQueryParams::AddIgnoredComponents(const TArray<UPrimitiveComponen
 	}
 }
 
-void FCollisionQueryParams::AddIgnoredComponents(const TArray<TWeakObjectPtr<UPrimitiveComponent> >& InIgnoreComponents)
+void FCollisionQueryParams::AddIgnoredComponents(const TArray<TWeakObjectPtr<UPrimitiveComponent>>& InIgnoreComponents)
 {
 	for (TWeakObjectPtr<UPrimitiveComponent> IgnoreComponent : InIgnoreComponents)
 	{

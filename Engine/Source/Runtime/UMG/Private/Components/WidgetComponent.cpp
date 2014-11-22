@@ -295,7 +295,7 @@ private:
 	TWeakObjectPtr<UWorld> World;
 };
 
-UWidgetComponent::UWidgetComponent( const class FObjectInitializer& PCIP )
+UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	: Super( PCIP )
 	, DrawSize( FIntPoint( 500, 500 ) )
 	, MaxInteractionDistance( 1000.f )

@@ -2570,7 +2570,7 @@ UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
 UStaticMeshSocket
 -----------------------------------------------------------------------------*/
 
-UStaticMeshSocket::UStaticMeshSocket(const class FObjectInitializer& ObjectInitializer)
+UStaticMeshSocket::UStaticMeshSocket(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	RelativeScale = FVector(1.0f, 1.0f, 1.0f);

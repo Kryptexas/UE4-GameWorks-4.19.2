@@ -186,7 +186,7 @@ static void PrivateDestroySelectedSets()
 #endif
 }
 
-UEditorEngine::UEditorEngine(const class FObjectInitializer& ObjectInitializer)
+UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 	if (!IsRunningCommandlet())

@@ -502,7 +502,7 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 //
 // Create a new model and allocate all objects needed for it.
 //
-UModel::UModel( const class FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside )
+UModel::UModel( const FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside )
 :	UObject(ObjectInitializer)
 ,	Nodes		( this )
 ,	Verts		( this )

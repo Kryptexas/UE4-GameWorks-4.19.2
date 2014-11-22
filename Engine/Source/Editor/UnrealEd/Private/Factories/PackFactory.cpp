@@ -17,7 +17,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackFactory, Log, All);
 
-UPackFactory::UPackFactory(const class FObjectInitializer& PCIP)
+UPackFactory::UPackFactory(const FObjectInitializer& PCIP)
 	: Super(PCIP)
 {
 	// Since this factory can output multiple and any number of class it doesn't really have a 
