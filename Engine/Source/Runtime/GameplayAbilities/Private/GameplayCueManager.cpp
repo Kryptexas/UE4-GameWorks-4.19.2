@@ -12,7 +12,7 @@
 #endif
 
 
-UGameplayCueManager::UGameplayCueManager(const class FObjectInitializer& PCIP)
+UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 : Super(PCIP)
 {
 #if WITH_EDITOR

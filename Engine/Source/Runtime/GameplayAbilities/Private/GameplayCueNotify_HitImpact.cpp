@@ -3,7 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueNotify_HitImpact.h"
 
-UGameplayCueNotify_HitImpact::UGameplayCueNotify_HitImpact(const class FObjectInitializer& PCIP)
+UGameplayCueNotify_HitImpact::UGameplayCueNotify_HitImpact(const FObjectInitializer& PCIP)
 : Super(PCIP)
 {
 

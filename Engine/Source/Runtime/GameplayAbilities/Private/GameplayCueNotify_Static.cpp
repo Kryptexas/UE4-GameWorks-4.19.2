@@ -6,7 +6,7 @@
 #include "GameplayCueManager.h"
 #include "AbilitySystemComponent.h"
 
-UGameplayCueNotify_Static::UGameplayCueNotify_Static(const class FObjectInitializer& PCIP)
+UGameplayCueNotify_Static::UGameplayCueNotify_Static(const FObjectInitializer& PCIP)
 : Super(PCIP)
 {
 	IsOverride = true;

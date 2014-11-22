@@ -297,7 +297,7 @@ void FGameplayTagCountContainer::UpdateTagMap(const struct FGameplayTag& Tag, in
 	}
 }
 
-void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
+void FGameplayTagCountContainer::UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta)
 {
 	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
 	{
