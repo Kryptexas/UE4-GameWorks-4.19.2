@@ -408,7 +408,7 @@ float CountOverlap( float3 WorldPosition )
 	return Overlap;
 }
 
-void GatherRadiance( inout float4 Color, float3 WorldPosition, float3 RayDirection, float Roughness, float2 ScreenPosition, float IndirectIrradiance )
+void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirection, float Roughness, float2 ScreenPosition, float IndirectIrradiance, uint ShadingModelID)
 {
 	float Mip = ComputeReflectionCaptureMipFromRoughness( Roughness );
 
@@ -552,7 +552,7 @@ void GatherRadiance( inout float4 Color, float3 WorldPosition, float3 RayDirecti
 		}
 
 		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-		float Visibility = GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness);
+		float Visibility = GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE);
 
 		// TODO use Mip
 		Color.rgb += (Color.a * Visibility) * SkyLighting;
@@ -644,7 +644,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 
 		Color.a *= SpecularOcclusion;
 
-		GatherRadiance( Color, WorldPosition, R, GBuffer.Roughness, ScreenPosition, IndirectIrradiance );
+		GatherRadiance(Color, WorldPosition, R, GBuffer.Roughness, ScreenPosition, IndirectIrradiance, GBuffer.ShadingModelID);
 
 		BRANCH
 		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
@@ -671,7 +671,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 			Color.a *= 1 - SSR.a;
 			Color.a *= SpecularOcclusion;
 
-			GatherRadiance( Color, WorldPosition, R, ClearCoatRoughness, ScreenPosition, IndirectIrradiance );
+			GatherRadiance(Color, WorldPosition, R, ClearCoatRoughness, ScreenPosition, IndirectIrradiance, GBuffer.ShadingModelID);
 		}
 		else
 		{
