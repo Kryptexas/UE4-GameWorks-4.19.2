@@ -40,6 +40,126 @@ FAutoConsoleVariableRef CVarShadowWorldTileSize(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+TGlobalResource<FDistanceFieldObjectBufferResource> GShadowCulledObjectBuffers;
+
+class FCullObjectsForShadowCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCullObjectsForShadowCS,Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldShadowing(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("UPDATEOBJECTS_THREADGROUP_SIZE"), UpdateObjectsGroupSize);
+	}
+
+	FCullObjectsForShadowCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		ObjectBufferParameters.Bind(Initializer.ParameterMap);
+		ObjectIndirectArguments.Bind(Initializer.ParameterMap, TEXT("ObjectIndirectArguments"));
+		CulledObjectBounds.Bind(Initializer.ParameterMap, TEXT("CulledObjectBounds"));
+		CulledObjectData.Bind(Initializer.ParameterMap, TEXT("CulledObjectData"));
+		CulledObjectBoxBounds.Bind(Initializer.ParameterMap, TEXT("CulledObjectBoxBounds"));
+		ObjectBoundingGeometryIndexCount.Bind(Initializer.ParameterMap, TEXT("ObjectBoundingGeometryIndexCount"));
+		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
+		NumShadowHullPlanes.Bind(Initializer.ParameterMap, TEXT("NumShadowHullPlanes"));
+		ShadowBoundingSphere.Bind(Initializer.ParameterMap, TEXT("ShadowBoundingSphere"));
+		ShadowConvexHull.Bind(Initializer.ParameterMap, TEXT("ShadowConvexHull"));
+	}
+
+	FCullObjectsForShadowCS()
+	{
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FScene* Scene, const FSceneView& View, const FProjectedShadowInfo* ProjectedShadowInfo)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		ObjectBufferParameters.Set(RHICmdList, ShaderRHI, *(Scene->DistanceFieldSceneData.ObjectBuffers), Scene->DistanceFieldSceneData.NumObjectsInBuffer);
+
+		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments);
+		CulledObjectBounds.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.Bounds);
+		CulledObjectData.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.Data);
+		CulledObjectBoxBounds.SetBuffer(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers.BoxBounds);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ObjectBoundingGeometryIndexCount, StencilingGeometry::GLowPolyStencilSphereIndexBuffer.GetIndexCount());
+		const FMatrix WorldToShadowValue = FTranslationMatrix(ProjectedShadowInfo->PreShadowTranslation) * ProjectedShadowInfo->SubjectAndReceiverMatrix;
+		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowValue);
+
+		int32 NumPlanes = 0;
+		const FPlane* PlaneData = NULL;
+		FVector4 ShadowBoundingSphereValue(0, 0, 0, 0);
+
+		if (ProjectedShadowInfo->bDirectionalLight)
+		{
+			NumPlanes = ProjectedShadowInfo->CascadeSettings.ShadowBoundsAccurate.Planes.Num();
+			PlaneData = ProjectedShadowInfo->CascadeSettings.ShadowBoundsAccurate.Planes.GetData();
+		}
+		else if (ProjectedShadowInfo->bOnePassPointLightShadow)
+		{
+			ShadowBoundingSphereValue = FVector4(ProjectedShadowInfo->ShadowBounds.Center.X, ProjectedShadowInfo->ShadowBounds.Center.Y, ProjectedShadowInfo->ShadowBounds.Center.Z, ProjectedShadowInfo->ShadowBounds.W);
+		}
+		else
+		{
+			NumPlanes = ProjectedShadowInfo->CasterFrustum.Planes.Num();
+			PlaneData = ProjectedShadowInfo->CasterFrustum.Planes.GetData();
+			ShadowBoundingSphereValue = FVector4(ProjectedShadowInfo->PreShadowTranslation, 0);
+		}
+
+		check(NumPlanes < 12);
+		SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, NumPlanes);
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowBoundingSphere, ShadowBoundingSphereValue);
+		SetShaderValueArray(RHICmdList, ShaderRHI, ShadowConvexHull, PlaneData, NumPlanes);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList)
+	{
+		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader());
+		ObjectIndirectArguments.UnsetUAV(RHICmdList, GetComputeShader());
+		CulledObjectBounds.UnsetUAV(RHICmdList, GetComputeShader());
+		CulledObjectData.UnsetUAV(RHICmdList, GetComputeShader());
+		CulledObjectBoxBounds.UnsetUAV(RHICmdList, GetComputeShader());
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{		
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << ObjectBufferParameters;
+		Ar << ObjectIndirectArguments;
+		Ar << CulledObjectBounds;
+		Ar << CulledObjectData;
+		Ar << CulledObjectBoxBounds;
+		Ar << ObjectBoundingGeometryIndexCount;
+		Ar << WorldToShadow;
+		Ar << NumShadowHullPlanes;
+		Ar << ShadowBoundingSphere;
+		Ar << ShadowConvexHull;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FDistanceFieldObjectBufferParameters ObjectBufferParameters;
+	FRWShaderParameter ObjectIndirectArguments;
+	FRWShaderParameter CulledObjectBounds;
+	FRWShaderParameter CulledObjectData;
+	FRWShaderParameter CulledObjectBoxBounds;
+	FShaderParameter ObjectBoundingGeometryIndexCount;
+	FShaderParameter WorldToShadow;
+	FShaderParameter NumShadowHullPlanes;
+	FShaderParameter ShadowBoundingSphere;
+	FShaderParameter ShadowConvexHull;
+};
+
+IMPLEMENT_SHADER_TYPE(,FCullObjectsForShadowCS,TEXT("DistanceFieldShadowing"),TEXT("CullObjectsForShadowCS"),SF_Compute);
+
+
 /**  */
 class FClearTilesCS : public FGlobalShader
 {
@@ -128,12 +248,12 @@ public:
 
 	FShadowObjectCullVS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FVector2D NumGroupsValue, const FProjectedShadowInfo* ProjectedShadowInfo, int32 NumObjects)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FVector2D NumGroupsValue, const FProjectedShadowInfo* ProjectedShadowInfo)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 		
-		ObjectParameters.Set(RHICmdList, ShaderRHI, *ProjectedShadowInfo->LightSceneInfo->DistanceFieldObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers);
 
 		const int32 NumRings = StencilingGeometry::GLowPolyStencilSphereVertexBuffer.GetNumRings();
 		const float RadiansPerRingSegment = PI / (float)NumRings;
@@ -161,7 +281,7 @@ public:
 	}
 
 private:
-	FDistanceFieldObjectBufferParameters ObjectParameters;
+	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
 	FShaderParameter ConservativeRadiusScale;
 	FShaderParameter WorldToShadow;
 	FShaderParameter MinRadius;
@@ -204,14 +324,13 @@ public:
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View, 
 		FVector2D NumGroupsValue, 
-		int32 NumObjects, 
 		const FProjectedShadowInfo* ProjectedShadowInfo,
 		FLightTileIntersectionResources* TileIntersectionResources)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		ObjectParameters.Set(RHICmdList, ShaderRHI, *ProjectedShadowInfo->LightSceneInfo->DistanceFieldObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers);
 		SetShaderValue(RHICmdList, ShaderRHI, NumGroups, NumGroupsValue);
 	}
 
@@ -245,7 +364,7 @@ public:
 	}
 
 private:
-	FDistanceFieldObjectBufferParameters ObjectParameters;
+	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
 	FRWShaderParameter TileHeadDataUnpacked;
 	FRWShaderParameter TileArrayData;
 	FShaderParameter NumGroups;
@@ -310,7 +429,6 @@ public:
 		const FSceneView& View, 
 		const FProjectedShadowInfo* ProjectedShadowInfo,
 		FSceneRenderTargetItem& ShadowFactorsValue, 
-		int32 NumObjects, 
 		FVector2D NumGroupsValue,
 		const FIntRect& ScissorRect,
 		FLightTileIntersectionResources* TileIntersectionResources)
@@ -321,7 +439,7 @@ public:
 
 		ShadowFactors.SetTexture(RHICmdList, ShaderRHI, ShadowFactorsValue.ShaderResourceTexture, ShadowFactorsValue.UAV);
 
-		ObjectParameters.Set(RHICmdList, ShaderRHI, *ProjectedShadowInfo->LightSceneInfo->DistanceFieldObjectBuffers, NumObjects);
+		ObjectParameters.Set(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		SetShaderValue(RHICmdList, ShaderRHI, NumGroups, NumGroupsValue);
@@ -394,7 +512,7 @@ private:
 	FShaderParameter LightSourceRadius;
 	FShaderParameter TanLightAngleAndNormalThreshold;
 	FShaderParameter ScissorRectMinAndSize;
-	FDistanceFieldObjectBufferParameters ObjectParameters;
+	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter TileHeadDataUnpacked;
 	FShaderResourceParameter TileArrayData;
@@ -467,357 +585,249 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FDistanceFieldShadowingUpsamplePS,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingUpsamplePS"),SF_Pixel);
 
-int32 FProjectedShadowInfo::UpdateShadowCastingObjectBuffers() const
+bool SupportsDistanceFieldShadows(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform)
 {
-	int32 NumObjects = 0;
+	return GDistanceFieldShadowing
+		&& FeatureLevel >= ERHIFeatureLevel::SM5
+		&& DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform);
+}
 
-	//@todo - scene rendering allocator
-	TArray<FVector4> ObjectBoundsData;
-	TArray<FVector4> ObjectData;
-	TArray<FVector4> ObjectBoxBounds;
+bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldShadows() const 
+{
+	bool bSceneHasRayTracedDFShadows = false;
 
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_GatherObjectData);
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+		const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 
-		const int32 NumTexelsOneDimX = GDistanceFieldVolumeTextureAtlas.GetSizeX();
-		const int32 NumTexelsOneDimY = GDistanceFieldVolumeTextureAtlas.GetSizeY();
-		const int32 NumTexelsOneDimZ = GDistanceFieldVolumeTextureAtlas.GetSizeZ();
-		const FVector InvTextureDim(1.0f / NumTexelsOneDimX, 1.0f / NumTexelsOneDimY, 1.0f / NumTexelsOneDimZ);
-		const FMatrix WorldToShadow = FTranslationMatrix(PreShadowTranslation) * SubjectAndReceiverMatrix;
-
-		ObjectBoundsData.Empty(SubjectPrimitives.Num());
-		ObjectData.Empty(FDistanceFieldObjectBuffers::ObjectDataStride * SubjectPrimitives.Num());
-		ObjectBoxBounds.Empty(FDistanceFieldObjectBuffers::ObjectBoxBoundsStride * SubjectPrimitives.Num());
-
-		for (int32 PrimitiveIndex = 0; PrimitiveIndex < SubjectPrimitives.Num() && NumObjects < MAX_uint16; PrimitiveIndex++)
+		if (LightSceneInfo->ShouldRenderLightViewIndependent())
 		{
-			const FPrimitiveSceneInfo* PrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
+			const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
-			FBox LocalVolumeBounds;
-			FIntVector BlockMin;
-			FIntVector BlockSize;
-			bool bBuiltAsIfTwoSided;
-			bool bMeshWasPlane;
-			PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane);
-
-			if (BlockMin.X >= 0 && BlockMin.Y >= 0 && BlockMin.Z >= 0)
+			for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
 			{
-				const FMatrix LocalToWorld = PrimitiveSceneInfo->Proxy->GetLocalToWorld();
+				const FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.AllProjectedShadows[ShadowIndex];
 
-				const FMatrix VolumeToWorld = FScaleMatrix(LocalVolumeBounds.GetExtent()) 
-					* FTranslationMatrix(LocalVolumeBounds.GetCenter())
-					* LocalToWorld;
-
-				const FVector4 ObjectBoundingSphere(VolumeToWorld.GetOrigin(), VolumeToWorld.GetScaleVector().Size());
-
-				ObjectBoundsData.Add(ObjectBoundingSphere);
-
-				const float MaxExtent = LocalVolumeBounds.GetExtent().GetMax();
-
-				const FMatrix UniformScaleVolumeToWorld = FScaleMatrix(MaxExtent) 
-					* FTranslationMatrix(LocalVolumeBounds.GetCenter())
-					* LocalToWorld;
-
-				const FVector InvBlockSize(1.0f / BlockSize.X, 1.0f / BlockSize.Y, 1.0f / BlockSize.Z);
-
-				//float3 VolumeUV = (VolumePosition / LocalPositionExtent * .5f * UVScale + .5f * UVScale + UVAdd;
-				const FVector LocalPositionExtent = LocalVolumeBounds.GetExtent() / FVector(MaxExtent);
-				const FVector UVScale = FVector(BlockSize) * InvTextureDim;
-				const float VolumeScale = UniformScaleVolumeToWorld.GetMaximumAxisScale();
-				const FMatrix WorldToVolume = UniformScaleVolumeToWorld.InverseFast();
-				// WorldToVolume
-				ObjectData.Add(*(FVector4*)&WorldToVolume.M[0]);
-				ObjectData.Add(*(FVector4*)&WorldToVolume.M[1]);
-				ObjectData.Add(*(FVector4*)&WorldToVolume.M[2]);
-				ObjectData.Add(*(FVector4*)&WorldToVolume.M[3]);
-
-				// Clamp to texel center by subtracting a half texel in the [-1,1] position space
-				// LocalPositionExtent
-				ObjectData.Add(FVector4(LocalPositionExtent - InvBlockSize, bBuiltAsIfTwoSided ? 1.0f : 0.0f));
-
-				// UVScale
-				ObjectData.Add(FVector4(FVector(BlockSize) * InvTextureDim * .5f / LocalPositionExtent, VolumeScale));
-
-				// UVAdd
-				ObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, 0));
-
-				// Padding
-				ObjectData.Add(FVector4(0, 0, 0, 0));
-
+				if (ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 				{
-					FVector LocalBoundsVertices[8];
-					LocalBoundsVertices[0] = FVector(LocalVolumeBounds.Min.X, LocalVolumeBounds.Min.Y, LocalVolumeBounds.Min.Z);
-					LocalBoundsVertices[1] = FVector(LocalVolumeBounds.Max.X, LocalVolumeBounds.Min.Y, LocalVolumeBounds.Min.Z);
-					LocalBoundsVertices[2] = FVector(LocalVolumeBounds.Min.X, LocalVolumeBounds.Max.Y, LocalVolumeBounds.Min.Z);
-					LocalBoundsVertices[3] = FVector(LocalVolumeBounds.Max.X, LocalVolumeBounds.Max.Y, LocalVolumeBounds.Min.Z);
-					LocalBoundsVertices[4] = FVector(LocalVolumeBounds.Min.X, LocalVolumeBounds.Min.Y, LocalVolumeBounds.Max.Z);
-					LocalBoundsVertices[5] = FVector(LocalVolumeBounds.Max.X, LocalVolumeBounds.Min.Y, LocalVolumeBounds.Max.Z);
-					LocalBoundsVertices[6] = FVector(LocalVolumeBounds.Min.X, LocalVolumeBounds.Max.Y, LocalVolumeBounds.Max.Z);
-					LocalBoundsVertices[7] = FVector(LocalVolumeBounds.Max.X, LocalVolumeBounds.Max.Y, LocalVolumeBounds.Max.Z);
-
-					FVector ViewSpaceBoundsVertices[8];
-					FVector MinViewSpacePosition(WORLD_MAX);
-					FVector MaxViewSpacePosition(-WORLD_MAX);
-
-					for (int32 i = 0; i < ARRAY_COUNT(LocalBoundsVertices); i++)
-					{
-						const FVector ViewSpacePosition = WorldToShadow.TransformPosition(LocalToWorld.TransformPosition(LocalBoundsVertices[i]));
-						MinViewSpacePosition = MinViewSpacePosition.ComponentMin(ViewSpacePosition);
-						MaxViewSpacePosition = MaxViewSpacePosition.ComponentMax(ViewSpacePosition);
-						ViewSpaceBoundsVertices[i] = ViewSpacePosition;
-					}
-
-					FVector ObjectXAxis = (ViewSpaceBoundsVertices[1] - ViewSpaceBoundsVertices[0]) / 2.0f;
-					FVector ObjectYAxis = (ViewSpaceBoundsVertices[2] - ViewSpaceBoundsVertices[0]) / 2.0f;
-					FVector ObjectZAxis = (ViewSpaceBoundsVertices[4] - ViewSpaceBoundsVertices[0]) / 2.0f;
-
-					ObjectBoxBounds.Add(FVector4(MinViewSpacePosition, 0));
-					ObjectBoxBounds.Add(FVector4(MaxViewSpacePosition, 0));
-					ObjectBoxBounds.Add(FVector4(ObjectXAxis / FMath::Max(ObjectXAxis.SizeSquared(), KINDA_SMALL_NUMBER), 0));
-					ObjectBoxBounds.Add(FVector4(ObjectYAxis / FMath::Max(ObjectYAxis.SizeSquared(), KINDA_SMALL_NUMBER), 0));
-					ObjectBoxBounds.Add(FVector4(ObjectZAxis / FMath::Max(ObjectZAxis.SizeSquared(), KINDA_SMALL_NUMBER), 0));
+					bSceneHasRayTracedDFShadows = true;
+					break;
 				}
-
-				checkSlow(ObjectData.Num() % FDistanceFieldObjectBuffers::ObjectDataStride == 0);
-				checkSlow(ObjectBoxBounds.Num() % FDistanceFieldObjectBuffers::ObjectBoxBoundsStride == 0);
-
-				NumObjects++;
 			}
 		}
 	}
 
-	if (NumObjects > 0)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateObjectBuffers);
-
-		if (!LightSceneInfo->DistanceFieldObjectBuffers)
-		{
-			LightSceneInfo->DistanceFieldObjectBuffers = new FDistanceFieldObjectBuffers;
-		}
-
-		FDistanceFieldObjectBuffers& ObjectBuffers = *LightSceneInfo->DistanceFieldObjectBuffers;
-
-		if (NumObjects > ObjectBuffers.MaxObjects)
-		{
-			// Allocate with slack
-			ObjectBuffers.bWantBoxBounds = true;
-			ObjectBuffers.bWantVolumeToWorld = false;
-			ObjectBuffers.MaxObjects = NumObjects * 5 / 4;
-			ObjectBuffers.Release();
-			ObjectBuffers.Initialize();
-		}
-
-		checkSlow(NumObjects < MAX_uint16);
-
-		void* LockedBuffer = RHILockVertexBuffer(ObjectBuffers.ObjectData.Bounds, 0, ObjectBuffers.ObjectData.Bounds->GetSize(), RLM_WriteOnly);
-		FPlatformMemory::Memcpy(LockedBuffer, ObjectBoundsData.GetData(), ObjectBoundsData.GetTypeSize() * ObjectBoundsData.Num());
-		RHIUnlockVertexBuffer(ObjectBuffers.ObjectData.Bounds);
-
-		LockedBuffer = RHILockVertexBuffer(ObjectBuffers.ObjectData.Data, 0, ObjectBuffers.ObjectData.Data->GetSize(), RLM_WriteOnly);
-		FPlatformMemory::Memcpy(LockedBuffer, ObjectData.GetData(), ObjectData.GetTypeSize() * ObjectData.Num());
-		RHIUnlockVertexBuffer(ObjectBuffers.ObjectData.Data);
-
-		LockedBuffer = RHILockVertexBuffer(ObjectBuffers.ObjectData.BoxBounds, 0, ObjectBuffers.ObjectData.BoxBounds->GetSize(), RLM_WriteOnly);
-		FPlatformMemory::Memcpy(LockedBuffer, ObjectBoxBounds.GetData(), ObjectBoxBounds.GetTypeSize() * ObjectBoxBounds.Num());
-		RHIUnlockVertexBuffer(ObjectBuffers.ObjectData.BoxBounds);
-	}
-
-	return NumObjects;
+	return ViewFamily.EngineShowFlags.DynamicShadows 
+		&& bSceneHasRayTracedDFShadows
+		&& SupportsDistanceFieldShadows(Scene->GetFeatureLevel(), Scene->GetShaderPlatform());
 }
 
 void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View) const
 {
-	if (GDistanceFieldShadowing
-		&& View.GetFeatureLevel() >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportDistanceFieldShadowing(View.GetShaderPlatform()))
+	if (SupportsDistanceFieldShadows(View.GetFeatureLevel(), View.GetShaderPlatform()))
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderRayTracedDistanceFieldShadows);
 		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow);
 
-		// Update the global distance field atlas
-		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
+		const FScene* Scene = (const FScene*)(View.Family->Scene);
 
-		if (GDistanceFieldVolumeTextureAtlas.VolumeTextureRHI)
+		if (GDistanceFieldVolumeTextureAtlas.VolumeTextureRHI && Scene->DistanceFieldSceneData.NumObjectsInBuffer > 0)
 		{
-			const int32 NumObjects = UpdateShadowCastingObjectBuffers();
+			check(!Scene->DistanceFieldSceneData.HasPendingOperations());
 
-			if (NumObjects > 0)
 			{
-				// Allocate tile resolution based on world space size
-				//@todo - light space perspective shadow maps would make much better use of the resolution
-				const float LightTiles = FMath::Min(ShadowBounds.W / GShadowWorldTileSize + 1, 256.0f);
-				FIntPoint LightTileDimensions(LightTiles, LightTiles);
+				SCOPED_DRAW_EVENT(RHICmdList, ObjectFrustumCulling);
 
-				FLightTileIntersectionResources* TileIntersectionResources = NULL;
-
-				GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
-				SetRenderTarget(RHICmdList, NULL, NULL);
-
-				if (bDirectionalLight && GShadowScatterTileCulling)
+				if (GShadowCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
+					|| GShadowCulledObjectBuffers.Buffers.MaxObjects > 3 * Scene->DistanceFieldSceneData.NumObjectsInBuffer)
 				{
-					if (!LightSceneInfo->TileIntersectionResources || LightSceneInfo->TileIntersectionResources->TileDimensions != LightTileDimensions)
-					{
-						if (LightSceneInfo->TileIntersectionResources)
-						{
-							LightSceneInfo->TileIntersectionResources->Release();
-						}
-						else
-						{
-							LightSceneInfo->TileIntersectionResources = new FLightTileIntersectionResources();
-						}
-
-						LightSceneInfo->TileIntersectionResources->TileDimensions = LightTileDimensions;
-
-						LightSceneInfo->TileIntersectionResources->Initialize();
-					}
-
-					TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
-
-					{
-						SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
-						TShaderMapRef<FClearTilesCS> ComputeShader(View.ShaderMap);
-
-						uint32 GroupSizeX = FMath::DivideAndRoundUp(LightTileDimensions.X, GDistanceFieldAOTileSizeX);
-						uint32 GroupSizeY = FMath::DivideAndRoundUp(LightTileDimensions.Y, GDistanceFieldAOTileSizeY);
-
-						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-						ComputeShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), TileIntersectionResources);
-						DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-
-						ComputeShader->UnsetParameters(RHICmdList);
-					}
-
-					{
-						SCOPED_DRAW_EVENT(RHICmdList, CullObjects);
-
-						TShaderMapRef<FShadowObjectCullVS> VertexShader(View.ShaderMap);
-						TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
-
-						TArray<FUnorderedAccessViewRHIParamRef> UAVs;
-						PixelShader->GetUAVs(View, TileIntersectionResources, UAVs);
-						RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView *)NULL, NULL, UAVs.Num(), UAVs.GetData());
-
-						RHICmdList.SetViewport(0, 0, 0.0f, LightTileDimensions.X, LightTileDimensions.Y, 1.0f);
-
-						// Render backfaces since camera may intersect
-						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-						RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-
-						static FGlobalBoundShaderState BoundShaderState;
-
-						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
-
-						VertexShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), this, NumObjects);
-						PixelShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), NumObjects, this, TileIntersectionResources);
-
-						RHICmdList.SetStreamSource(0, StencilingGeometry::GLowPolyStencilSphereVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
-
-						RHICmdList.DrawIndexedPrimitive(
-							StencilingGeometry::GLowPolyStencilSphereIndexBuffer.IndexBufferRHI, 
-							PT_TriangleList, 
-							0,
-							0, 
-							StencilingGeometry::GLowPolyStencilSphereVertexBuffer.GetVertexCount(), 
-							0, 
-							StencilingGeometry::GLowPolyStencilSphereIndexBuffer.GetIndexCount() / 3, 
-							NumObjects);
-					}
-				}
-
-				TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
-
-				{
-					const FIntPoint BufferSize = GetBufferSizeForAO();
-					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-					GRenderTargetPool.FindFreeElement(Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
-				}
-
-				FIntRect ScissorRect;
-
-				{
-					if (!LightSceneInfo->Proxy->GetScissorRect(ScissorRect, View))
-					{
-						ScissorRect = View.ViewRect;
-					}
-
-					uint32 GroupSizeX = FMath::DivideAndRoundUp(ScissorRect.Size().X / GAODownsampleFactor, GDistanceFieldAOTileSizeX);
-					uint32 GroupSizeY = FMath::DivideAndRoundUp(ScissorRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
-
-					{
-						SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
-						SetRenderTarget(RHICmdList, NULL, NULL);
-
-						if (bDirectionalLight && GShadowScatterTileCulling)
-						{
-							TShaderMapRef<TDistanceFieldShadowingCS<DFS_DirectionalLightScatterTileCulling> > ComputeShader(View.ShaderMap);
-							RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-							ComputeShader->SetParameters(RHICmdList, View, this, RayTracedShadowsRT->GetRenderTargetItem(), NumObjects, FVector2D(GroupSizeX, GroupSizeY), ScissorRect, TileIntersectionResources);
-							DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-							ComputeShader->UnsetParameters(RHICmdList);
-						}
-						else if (bDirectionalLight)
-						{
-							TShaderMapRef<TDistanceFieldShadowingCS<DFS_DirectionalLightTiledCulling> > ComputeShader(View.ShaderMap);
-							RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-							ComputeShader->SetParameters(RHICmdList, View, this, RayTracedShadowsRT->GetRenderTargetItem(), NumObjects, FVector2D(GroupSizeX, GroupSizeY), ScissorRect, TileIntersectionResources);
-							DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-							ComputeShader->UnsetParameters(RHICmdList);
-						}
-						else
-						{
-							TShaderMapRef<TDistanceFieldShadowingCS<DFS_PointLightTiledCulling> > ComputeShader(View.ShaderMap);
-							RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-							ComputeShader->SetParameters(RHICmdList, View, this, RayTracedShadowsRT->GetRenderTargetItem(), NumObjects, FVector2D(GroupSizeX, GroupSizeY), ScissorRect, TileIntersectionResources);
-							DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
-							ComputeShader->UnsetParameters(RHICmdList);
-						}
-					}
+					GShadowCulledObjectBuffers.Buffers.bWantBoxBounds = true;
+					GShadowCulledObjectBuffers.Buffers.MaxObjects = Scene->DistanceFieldSceneData.NumObjectsInBuffer * 5 / 4;
+					GShadowCulledObjectBuffers.Buffers.Release();
+					GShadowCulledObjectBuffers.Buffers.Initialize();
 				}
 
 				{
-					GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
+					TShaderMapRef<FCullObjectsForShadowCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
+					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+					ComputeShader->SetParameters(RHICmdList, Scene, View, this);
 
-					SCOPED_DRAW_EVENT(RHICmdList, Upsample);
+					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(Scene->DistanceFieldSceneData.NumObjectsInBuffer, UpdateObjectsGroupSize), 1, 1);
+					ComputeShader->UnsetParameters(RHICmdList);
+				}
+			}
 
-					RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-					
-					if (bDirectionalLight)
+			// Allocate tile resolution based on world space size
+			//@todo - light space perspective shadow maps would make much better use of the resolution
+			const float LightTiles = FMath::Min(ShadowBounds.W / GShadowWorldTileSize + 1, 256.0f);
+			FIntPoint LightTileDimensions(LightTiles, LightTiles);
+
+			FLightTileIntersectionResources* TileIntersectionResources = NULL;
+
+			GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
+			SetRenderTarget(RHICmdList, NULL, NULL);
+
+			if (bDirectionalLight && GShadowScatterTileCulling)
+			{
+				if (!LightSceneInfo->TileIntersectionResources || LightSceneInfo->TileIntersectionResources->TileDimensions != LightTileDimensions)
+				{
+					if (LightSceneInfo->TileIntersectionResources)
 					{
-						check(CascadeSettings.FadePlaneLength == 0);
-						// first cascade rendered or old method doesn't require fading (CO_Min is needed to combine multiple shadow passes)
-						// The ray traced cascade should always be first
-						RHICmdList.SetBlendState(TStaticBlendState<CW_RG, BO_Min, BF_One, BF_One>::GetRHI());
+						LightSceneInfo->TileIntersectionResources->Release();
 					}
 					else
 					{
-						// use B and A in Light Attenuation
-						// (CO_Min is needed to combine multiple shadow passes)
-						RHICmdList.SetBlendState(TStaticBlendState<CW_BA, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI());
+						LightSceneInfo->TileIntersectionResources = new FLightTileIntersectionResources();
 					}
 
-					TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
-					TShaderMapRef<FDistanceFieldShadowingUpsamplePS> PixelShader(View.ShaderMap);
+					LightSceneInfo->TileIntersectionResources->TileDimensions = LightTileDimensions;
+
+					LightSceneInfo->TileIntersectionResources->Initialize();
+				}
+
+				TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
+
+				{
+					SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
+					TShaderMapRef<FClearTilesCS> ComputeShader(View.ShaderMap);
+
+					uint32 GroupSizeX = FMath::DivideAndRoundUp(LightTileDimensions.X, GDistanceFieldAOTileSizeX);
+					uint32 GroupSizeY = FMath::DivideAndRoundUp(LightTileDimensions.Y, GDistanceFieldAOTileSizeY);
+
+					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+					ComputeShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), TileIntersectionResources);
+					DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
+
+					ComputeShader->UnsetParameters(RHICmdList);
+				}
+
+				{
+					SCOPED_DRAW_EVENT(RHICmdList, CullObjects);
+
+					TShaderMapRef<FShadowObjectCullVS> VertexShader(View.ShaderMap);
+					TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
+
+					TArray<FUnorderedAccessViewRHIParamRef> UAVs;
+					PixelShader->GetUAVs(View, TileIntersectionResources, UAVs);
+					RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView *)NULL, NULL, UAVs.Num(), UAVs.GetData());
+
+					RHICmdList.SetViewport(0, 0, 0.0f, LightTileDimensions.X, LightTileDimensions.Y, 1.0f);
+
+					// Render backfaces since camera may intersect
+					RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
+					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+					RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 					static FGlobalBoundShaderState BoundShaderState;
 
-					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 
-					VertexShader->SetParameters(RHICmdList, View);
-					PixelShader->SetParameters(RHICmdList, View, this, ScissorRect, RayTracedShadowsRT);
+					VertexShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), this);
+					PixelShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), this, TileIntersectionResources);
 
-					DrawRectangle( 
-						RHICmdList,
-						0, 0, 
-						ScissorRect.Width(), ScissorRect.Height(),
-						ScissorRect.Min.X / GAODownsampleFactor, ScissorRect.Min.Y / GAODownsampleFactor, 
-						ScissorRect.Width() / GAODownsampleFactor, ScissorRect.Height() / GAODownsampleFactor,
-						FIntPoint(ScissorRect.Width(), ScissorRect.Height()),
-						GetBufferSizeForAO(),
-						*VertexShader);
+					RHICmdList.SetStreamSource(0, StencilingGeometry::GLowPolyStencilSphereVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
+
+					RHICmdList.DrawIndexedPrimitiveIndirect(
+						PT_TriangleList,
+						StencilingGeometry::GLowPolyStencilSphereIndexBuffer.IndexBufferRHI, 
+						GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments.Buffer,
+						0);
 				}
+			}
+
+			TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
+
+			{
+				const FIntPoint BufferSize = GetBufferSizeForAO();
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G16R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+				GRenderTargetPool.FindFreeElement(Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
+			}
+
+			FIntRect ScissorRect;
+
+			{
+				if (!LightSceneInfo->Proxy->GetScissorRect(ScissorRect, View))
+				{
+					ScissorRect = View.ViewRect;
+				}
+
+				uint32 GroupSizeX = FMath::DivideAndRoundUp(ScissorRect.Size().X / GAODownsampleFactor, GDistanceFieldAOTileSizeX);
+				uint32 GroupSizeY = FMath::DivideAndRoundUp(ScissorRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
+
+				{
+					SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
+					SetRenderTarget(RHICmdList, NULL, NULL);
+
+					if (bDirectionalLight && GShadowScatterTileCulling)
+					{
+						TShaderMapRef<TDistanceFieldShadowingCS<DFS_DirectionalLightScatterTileCulling> > ComputeShader(View.ShaderMap);
+						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+						ComputeShader->SetParameters(RHICmdList, View, this, RayTracedShadowsRT->GetRenderTargetItem(), FVector2D(GroupSizeX, GroupSizeY), ScissorRect, TileIntersectionResources);
+						DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
+						ComputeShader->UnsetParameters(RHICmdList);
+					}
+					else if (bDirectionalLight)
+					{
+						TShaderMapRef<TDistanceFieldShadowingCS<DFS_DirectionalLightTiledCulling> > ComputeShader(View.ShaderMap);
+						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+						ComputeShader->SetParameters(RHICmdList, View, this, RayTracedShadowsRT->GetRenderTargetItem(), FVector2D(GroupSizeX, GroupSizeY), ScissorRect, TileIntersectionResources);
+						DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
+						ComputeShader->UnsetParameters(RHICmdList);
+					}
+					else
+					{
+						TShaderMapRef<TDistanceFieldShadowingCS<DFS_PointLightTiledCulling> > ComputeShader(View.ShaderMap);
+						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+						ComputeShader->SetParameters(RHICmdList, View, this, RayTracedShadowsRT->GetRenderTargetItem(), FVector2D(GroupSizeX, GroupSizeY), ScissorRect, TileIntersectionResources);
+						DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
+						ComputeShader->UnsetParameters(RHICmdList);
+					}
+				}
+			}
+
+			{
+				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
+
+				SCOPED_DRAW_EVENT(RHICmdList, Upsample);
+
+				RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
+				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+					
+				if (bDirectionalLight)
+				{
+					check(CascadeSettings.FadePlaneLength == 0);
+					// first cascade rendered or old method doesn't require fading (CO_Min is needed to combine multiple shadow passes)
+					// The ray traced cascade should always be first
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RG, BO_Min, BF_One, BF_One>::GetRHI());
+				}
+				else
+				{
+					// use B and A in Light Attenuation
+					// (CO_Min is needed to combine multiple shadow passes)
+					RHICmdList.SetBlendState(TStaticBlendState<CW_BA, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI());
+				}
+
+				TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+				TShaderMapRef<FDistanceFieldShadowingUpsamplePS> PixelShader(View.ShaderMap);
+
+				static FGlobalBoundShaderState BoundShaderState;
+
+				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+				VertexShader->SetParameters(RHICmdList, View);
+				PixelShader->SetParameters(RHICmdList, View, this, ScissorRect, RayTracedShadowsRT);
+
+				DrawRectangle( 
+					RHICmdList,
+					0, 0, 
+					ScissorRect.Width(), ScissorRect.Height(),
+					ScissorRect.Min.X / GAODownsampleFactor, ScissorRect.Min.Y / GAODownsampleFactor, 
+					ScissorRect.Width() / GAODownsampleFactor, ScissorRect.Height() / GAODownsampleFactor,
+					FIntPoint(ScissorRect.Width(), ScissorRect.Height()),
+					GetBufferSizeForAO(),
+					*VertexShader);
 			}
 		}
 	}

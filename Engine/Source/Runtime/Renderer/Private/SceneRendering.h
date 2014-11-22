@@ -602,7 +602,11 @@ protected:
 	// Shared functionality between all scene renderers
 
 	/** Generates FProjectedShadowInfos for all wholesceneshadows on the given light.*/
-	void AddViewDependentWholeSceneShadowsForView(TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, FVisibleLightInfo& VisibleLightInfo, FLightSceneInfo& LightSceneInfo);
+	void AddViewDependentWholeSceneShadowsForView(
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, 
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfosThatNeedCulling, 
+		FVisibleLightInfo& VisibleLightInfo, 
+		FLightSceneInfo& LightSceneInfo);
 
 	/**
 	* Used by RenderLights to figure out if projected shadows need to be rendered to the attenuation buffer.

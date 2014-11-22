@@ -102,94 +102,6 @@ void ObjectCullPS(
 	}
 }
 
-void ComputeDistanceFieldNormal(uint2 TileCoordinate, float2 ScreenUV, float SceneDepth, uint HasDistanceFieldRepresentation, inout float3 WorldNormal)
-{
-	uint4 TileHead = GetTileHead(TileCoordinate);
-
-	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
-
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
-	float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-
-	int ClosestDistanceFieldObject = -1;
-	float ClosestDistanceFieldSurface = 10000;
-	
-	LOOP 
-	// Iterate over objects whose surface we might be on
-	for (uint ListObjectIndex = 0; ListObjectIndex < TileHead.y; ListObjectIndex += 1)
-	{
-#if COHERENT_OBJECT_LIST_WRITES
-		uint ListIndex = 0;
-		uint ObjectIndex = TileArrayData.Load((ListObjectIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
-#else
-		uint ObjectIndex = TileArrayData.Load(TileHead.x + ListObjectIndex);
-#endif
-		float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
-		float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-		float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-		float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
-		float3 VolumeShadingPosition = mul(float4(OpaqueWorldPosition, 1), WorldToVolume).xyz;
-
-		BRANCH
-		if (all(VolumeShadingPosition > -LocalPositionExtent) && all(VolumeShadingPosition < LocalPositionExtent))
-		{
-			float3 LocalShadingUV = DistanceFieldVolumePositionToUV(VolumeShadingPosition, UVScaleAndVolumeScale.xyz, UVAdd);
-			float DistanceFromSurface = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, LocalShadingUV, 0).x;
-			float WorldSpaceDistanceFromSurface = DistanceFromSurface * UVScaleAndVolumeScale.w;
-
-			if (WorldSpaceDistanceFromSurface < ClosestDistanceFieldSurface)
-			{
-				ClosestDistanceFieldSurface = WorldSpaceDistanceFromSurface;
-				ClosestDistanceFieldObject = ObjectIndex;
-			}
-		}
-	}
-
-	BRANCH
-	if (HasDistanceFieldRepresentation > 0 && ClosestDistanceFieldObject >= 0)
-	{
-		uint ObjectIndex = ClosestDistanceFieldObject;
-
-		float4 LocalPositionExtentAndTwoSided = LoadObjectLocalPositionExtentAndTwoSided(ObjectIndex);
-
-		// Can't compute a distance field normal if all faces were treated as frontfaces, 
-		// Because that creates a non-linearity in the distance field at surface intersections, which does not interpolate properly
-		// Fall back to GBuffer normal, which may have normalmap information or just bogus imported normals that cause surface cache artifacts
-		BRANCH
-		if (LocalPositionExtentAndTwoSided.w == 0)
-		{
-			float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-			float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
-
-			float4x4 VolumeToWorld = LoadObjectVolumeToWorld(ObjectIndex);
-
-			float3 VolumeShadingPosition = mul(float4(OpaqueWorldPosition, 1), WorldToVolume).xyz;
-			float3 LocalShadingUV = DistanceFieldVolumePositionToUV(VolumeShadingPosition, UVScaleAndVolumeScale.xyz, UVAdd);
-
-			// Used to clamp UVs inside valid space of this object's distance field
-			float3 UVMin = DistanceFieldVolumePositionToUV(-LocalPositionExtentAndTwoSided.xyz, UVScaleAndVolumeScale.xyz, UVAdd);
-			float3 UVMax = DistanceFieldVolumePositionToUV(LocalPositionExtentAndTwoSided.xyz, UVScaleAndVolumeScale.xyz, UVAdd);
-		
-			float R = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(min(LocalShadingUV.x + DistanceFieldAtlasTexelSize.x, UVMax.x), LocalShadingUV.y, LocalShadingUV.z), 0).x;
-			float L = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(max(LocalShadingUV.x - DistanceFieldAtlasTexelSize.x, UVMin.x), LocalShadingUV.y, LocalShadingUV.z), 0).x;
-			float F = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, min(LocalShadingUV.y + DistanceFieldAtlasTexelSize.y, UVMax.y), LocalShadingUV.z), 0).x;
-			float B = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, max(LocalShadingUV.y - DistanceFieldAtlasTexelSize.y, UVMin.y), LocalShadingUV.z), 0).x;
-			float U = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, LocalShadingUV.y, min(LocalShadingUV.z + DistanceFieldAtlasTexelSize.z, UVMax.z)), 0).x;
-			float D = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, LocalShadingUV.y, max(LocalShadingUV.z - DistanceFieldAtlasTexelSize.z, UVMin.z)), 0).x;
-		
-			float3 Gradient = .5f * float3(R - L, F - B, U - D);
-			float3 LocalNormal = normalize(Gradient);
-			WorldNormal = normalize(mul(LocalNormal, (float3x3)VolumeToWorld));
-			float DistanceAlpha = saturate(abs(ClosestDistanceFieldSurface) / 2);
-			//WorldNormal = normalize(lerp(WorldNormal, GBufferData.WorldNormal, .5f * DistanceAlpha));
-		}
-	}
-}
-
-// Using the distance field normal prevents incorrect self-intersection but adds seams between modular objects and has a high cost
-#define USE_DISTANCE_FIELD_NORMAL 0
-
 /** Computes the distance field normal, using a search through all the nearby objects to find the closest one, whose normal is used. */
 void ComputeDistanceFieldNormalPS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
@@ -202,14 +114,6 @@ void ComputeDistanceFieldNormalPS(
 	FGBufferData GBufferData = GetGBufferData(ScreenUV);
 
 	float3 WorldNormal = GBufferData.WorldNormal;
-
-#if USE_DISTANCE_FIELD_NORMAL
-
-	uint2 TileCoordinate = (uint2)(SVPos) / uint2(THREADGROUP_SIZEX, THREADGROUP_SIZEY);
-	ComputeDistanceFieldNormal(TileCoordinate, ScreenUV, SceneDepth, GBufferData.HasDistanceFieldRepresentation, WorldNormal);
-
-#endif
-
 	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
 	// Note: Encoding whether the pixel has a distance field representation in the sign bit of the alpha
 	OutColor = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
@@ -228,14 +132,6 @@ void ComputeDistanceFieldNormalCS(
 	FGBufferData GBufferData = GetGBufferData(ScreenUV);
 
 	float3 WorldNormal = GBufferData.WorldNormal;
-
-#if USE_DISTANCE_FIELD_NORMAL
-
-	uint2 TileCoordinate = DispatchThreadId.xy / uint2(THREADGROUP_SIZEX, THREADGROUP_SIZEY);
-	ComputeDistanceFieldNormal(TileCoordinate, ScreenUV, SceneDepth, GBufferData.HasDistanceFieldRepresentation, WorldNormal);
-
-#endif
-	
 	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
 	float4 OutValue = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
 	RWDistanceFieldNormal[DispatchThreadId.xy] = OutValue;
@@ -1087,7 +983,7 @@ bool RayHitSphere( float3 RayOrigin, float3 UnitRayDirection, float3 SphereCente
 	return dot( CenterToRay, CenterToRay ) <= Square( SphereRadius );
 }
 
-#define MAX_INTERSECTING_OBJECTS 256
+#define MAX_INTERSECTING_OBJECTS 512
 groupshared uint IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS];
 
 groupshared uint NumIntersectingObjects;
@@ -1188,8 +1084,10 @@ void VisualizeMeshDistanceFieldCS(
 
 	GroupMemoryBarrierWithGroupSync();
 
+	uint NumCulledObjects = GetCulledNumObjects();
+
 	LOOP
-	for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
+	for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumCulledObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
 	{
 		float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
 

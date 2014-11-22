@@ -8,6 +8,153 @@
 #include "DeferredShadingCommon.usf"
 #include "DistanceFieldLightingShared.usf"
 
+RWBuffer<float4> RWCulledObjectBounds;
+RWBuffer<float4> RWCulledObjectData;
+RWBuffer<float4> RWCulledObjectBoxBounds;
+uint ObjectBoundingGeometryIndexCount;
+
+float4 FetchObjectDataFloat4(uint SourceIndex)
+{
+	return float4(ObjectData[4 * SourceIndex + 0], ObjectData[4 * SourceIndex + 1], ObjectData[4 * SourceIndex + 2], ObjectData[4 * SourceIndex + 3]);
+}
+
+float4x4 WorldToShadow;
+
+void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
+{
+	RWCulledObjectBounds[DestIndex] = float4(ObjectBounds[4 * SourceIndex + 0], ObjectBounds[4 * SourceIndex + 1], ObjectBounds[4 * SourceIndex + 2], ObjectBounds[4 * SourceIndex + 3]);
+
+	UNROLL
+	for (uint VectorIndex = 0; VectorIndex < CULLED_OBJECT_DATA_STRIDE; VectorIndex++)
+	{
+		RWCulledObjectData[DestIndex * CULLED_OBJECT_DATA_STRIDE + VectorIndex] = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + VectorIndex);
+	}
+
+	float3 LocalVolumeBoundsMin = float3(ObjectData[4 * (SourceIndex * OBJECT_DATA_STRIDE + 4) + 3], ObjectData[4 * (SourceIndex * OBJECT_DATA_STRIDE + 6) + 3], ObjectData[4 * (SourceIndex * OBJECT_DATA_STRIDE + 7) + 3]);
+	uint FinalDataVectorIndex = 4 * (SourceIndex * OBJECT_DATA_STRIDE + 7);
+	float3 LocalVolumeBoundsMax = float3(ObjectData[FinalDataVectorIndex + 0], ObjectData[FinalDataVectorIndex + 1], ObjectData[FinalDataVectorIndex + 2]);
+
+	float3 LocalBoundsVertices[8];
+	LocalBoundsVertices[0] = float3(LocalVolumeBoundsMin.x, LocalVolumeBoundsMin.y, LocalVolumeBoundsMin.z);
+	LocalBoundsVertices[1] = float3(LocalVolumeBoundsMax.x, LocalVolumeBoundsMin.y, LocalVolumeBoundsMin.z);
+	LocalBoundsVertices[2] = float3(LocalVolumeBoundsMin.x, LocalVolumeBoundsMax.y, LocalVolumeBoundsMin.z);
+	LocalBoundsVertices[3] = float3(LocalVolumeBoundsMax.x, LocalVolumeBoundsMax.y, LocalVolumeBoundsMin.z);
+	LocalBoundsVertices[4] = float3(LocalVolumeBoundsMin.x, LocalVolumeBoundsMin.y, LocalVolumeBoundsMax.z);
+	LocalBoundsVertices[5] = float3(LocalVolumeBoundsMax.x, LocalVolumeBoundsMin.y, LocalVolumeBoundsMax.z);
+	LocalBoundsVertices[6] = float3(LocalVolumeBoundsMin.x, LocalVolumeBoundsMax.y, LocalVolumeBoundsMax.z);
+	LocalBoundsVertices[7] = float3(LocalVolumeBoundsMax.x, LocalVolumeBoundsMax.y, LocalVolumeBoundsMax.z);
+
+	float3 MinViewSpacePosition = float3(2000000, 2000000, 2000000);
+	float3 MaxViewSpacePosition = float3(-2000000, -2000000, -2000000);
+
+	float4 M0 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 8);
+	float4 M1 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 9);
+	float4 M2 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 10);
+	float4 M3 = FetchObjectDataFloat4(SourceIndex * OBJECT_DATA_STRIDE + 11);
+
+	float4x4 LocalToWorld = float4x4(M0, M1, M2, M3);
+
+	float3 ViewSpaceBoundsVertices[8];
+
+	for (uint i = 0; i < 8; i++)
+	{
+		float3 WorldBoundsPosition = mul(float4(LocalBoundsVertices[i], 1), LocalToWorld).xyz;
+		float3 ViewSpacePosition = mul(float4(WorldBoundsPosition, 1), WorldToShadow).xyz;
+		MinViewSpacePosition = min(MinViewSpacePosition, ViewSpacePosition);
+		MaxViewSpacePosition = max(MaxViewSpacePosition, ViewSpacePosition);
+		ViewSpaceBoundsVertices[i] = ViewSpacePosition;
+	}
+
+	float3 ObjectXAxis = (ViewSpaceBoundsVertices[1] - ViewSpaceBoundsVertices[0]) / 2.0f;
+	float3 ObjectYAxis = (ViewSpaceBoundsVertices[2] - ViewSpaceBoundsVertices[0]) / 2.0f;
+	float3 ObjectZAxis = (ViewSpaceBoundsVertices[4] - ViewSpaceBoundsVertices[0]) / 2.0f;
+
+	RWCulledObjectBoxBounds[DestIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 0] = float4(MinViewSpacePosition, 0);
+	RWCulledObjectBoxBounds[DestIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 1] = float4(MaxViewSpacePosition, 0);
+	RWCulledObjectBoxBounds[DestIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 2] = float4(ObjectXAxis / max(dot(ObjectXAxis, ObjectXAxis), .0001f), 0);
+	RWCulledObjectBoxBounds[DestIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 3] = float4(ObjectYAxis / max(dot(ObjectYAxis, ObjectYAxis), .0001f), 0);
+	RWCulledObjectBoxBounds[DestIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 4] = float4(ObjectZAxis / max(dot(ObjectZAxis, ObjectZAxis), .0001f), 0);
+}
+
+float4 ShadowConvexHull[12];
+float4 ShadowBoundingSphere;
+uint NumShadowHullPlanes;
+
+bool ShadowConvexHullIntersectSphere(float3 SphereOrigin, float SphereRadius)
+{
+	float3 TranslatedSphereOrigin = SphereOrigin + ShadowBoundingSphere.xyz;
+
+	for (uint PlaneIndex = 0; PlaneIndex < NumShadowHullPlanes; PlaneIndex++)
+	{
+		float4 PlaneData = ShadowConvexHull[PlaneIndex];
+		float PlaneDistance = dot(PlaneData.xyz, TranslatedSphereOrigin) - PlaneData.w;
+
+		if (PlaneDistance > SphereRadius)
+		{
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+[numthreads(UPDATEOBJECTS_THREADGROUP_SIZE, 1, 1)]
+void CullObjectsForShadowCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint ObjectIndex = DispatchThreadId.x;
+
+#define USE_FRUSTUM_CULLING 1
+#if USE_FRUSTUM_CULLING
+
+	if (DispatchThreadId.x == 0)
+	{
+		// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
+		RWObjectIndirectArguments[0] = ObjectBoundingGeometryIndexCount;
+		RWObjectIndirectArguments[1] = 0;
+		RWObjectIndirectArguments[2] = 0;
+		RWObjectIndirectArguments[3] = 0;
+		RWObjectIndirectArguments[4] = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	uint SourceIndex = ObjectIndex;
+
+	if (ObjectIndex < NumSceneObjects)
+	{
+		float4 ObjectBoundingSphere = float4(ObjectBounds[4 * SourceIndex + 0], ObjectBounds[4 * SourceIndex + 1], ObjectBounds[4 * SourceIndex + 2], ObjectBounds[4 * SourceIndex + 3]);
+	
+		if (ShadowBoundingSphere.w == 0 && ShadowConvexHullIntersectSphere(ObjectBoundingSphere.xyz, ObjectBoundingSphere.w)
+			|| ShadowBoundingSphere.w > 0 && dot(ShadowBoundingSphere.xyz - ObjectBoundingSphere.xyz, ShadowBoundingSphere.xyz - ObjectBoundingSphere.xyz) < Square(ShadowBoundingSphere.w + ObjectBoundingSphere.w))
+		{
+			uint DestIndex;
+			InterlockedAdd(RWObjectIndirectArguments[1], 1, DestIndex);
+			CopyCulledObjectData(DestIndex, SourceIndex);
+		}
+	}
+
+#else
+
+	if (DispatchThreadId.x == 0)
+	{
+		// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
+		RWObjectIndirectArguments[0] = ObjectBoundingGeometryIndexCount;
+		RWObjectIndirectArguments[1] = NumSceneObjects;
+		RWObjectIndirectArguments[2] = 0;
+		RWObjectIndirectArguments[3] = 0;
+		RWObjectIndirectArguments[4] = 0;
+	}
+
+	uint SourceIndex = ObjectIndex;
+	uint DestIndex = ObjectIndex;
+
+	CopyCulledObjectData(DestIndex, SourceIndex);
+#endif
+}
+
 bool RayHitSphere(float3 RayOrigin, float3 UnitRayDirection, float RayLength, float3 SphereCenter, float SphereRadius)
 {
 	float DistanceAlongRay = dot(SphereCenter - RayOrigin, UnitRayDirection);
@@ -42,7 +189,6 @@ struct FShadowObjectCullVertexOutput
 
 float ConservativeRadiusScale;
 float MinRadius;
-float4x4 WorldToShadow;
 
 /** Used when culling objects into screenspace tile lists */
 void ShadowObjectCullVS(
@@ -218,7 +364,7 @@ void DistanceFieldShadowingCS(
 	//@todo - handle invalid tile depth ranges due to MinDepth
 	float MinDepth = 0;
 
-	uint NumIntersectingObjects = NumObjects;
+	uint NumIntersectingObjects = GetCulledNumObjects();
 	bool bTileShouldComputeShadowing = SceneDepth > MinDepth;
 
 #define USE_CULLING 1
@@ -343,10 +489,12 @@ void DistanceFieldShadowingCS(
 	BRANCH
 	if (bCullTile)
 	{
+		uint NumCulledObjects = GetCulledNumObjects();
+
 		// Compute per-tile lists of affecting objects through bounds culling
 		// Each thread now operates on a sample instead of a pixel
 		LOOP
-		for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
+		for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumCulledObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
 		{
 			float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
 
@@ -500,6 +648,9 @@ void DistanceFieldShadowingCS(
 						MinConeVisibility = 0;
 						MinRayTime = min(MinRayTime, SampleRayTime * UVScaleAndVolumeScale.w);
 					}
+
+					// Force to shadowed as we approach max steps
+					MinConeVisibility = min(MinConeVisibility, (1 - StepIndex / (float)MaxSteps));
 				}
 			}
 
@@ -509,7 +660,7 @@ void DistanceFieldShadowingCS(
 
 #else
 	//Result = .0001f * NumIntersectingObjects;
-	Result = NumIntersectingObjects / 30.0f;
+	Result = GetCulledNumObjects() / 20.0f;
 #endif
 
 	RWShadowFactors[DispatchThreadId.xy] = float2(Result, SceneDepth);

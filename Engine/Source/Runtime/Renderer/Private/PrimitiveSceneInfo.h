@@ -195,6 +195,9 @@ public:
 	 */
 	const FReflectionCaptureProxy* CachedReflectionCaptureProxy;
 
+	/** Mapping from instance index in this primitive to index in the global distance field object buffers. */
+	TArray<int32, TInlineAllocator<1>> DistanceFieldInstanceIndices;
+
 	/** Whether the primitive is newly registered or moved and CachedReflectionCaptureProxy needs to be updated on the next render. */
 	uint32 bNeedsCachedReflectionCaptureUpdate : 1;
 

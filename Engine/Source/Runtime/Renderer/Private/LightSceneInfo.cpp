@@ -31,7 +31,6 @@ FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy, bool InbVisible)
 	, DynamicPrimitiveList(NULL)
 	, Id(INDEX_NONE)
 	, TileIntersectionResources(NULL)
-	, DistanceFieldObjectBuffers(NULL)
 	, bPrecomputedLightingIsValid(InProxy->GetLightComponent()->bPrecomputedLightingIsValid)
 	, bVisible(InbVisible)
 	, bEnableLightShaftBloom(InProxy->GetLightComponent()->bEnableLightShaftBloom)
@@ -197,11 +196,6 @@ void FLightSceneInfo::ReleaseRHI()
 	if (TileIntersectionResources)
 	{
 		TileIntersectionResources->Release();
-	}
-
-	if (DistanceFieldObjectBuffers)
-	{
-		DistanceFieldObjectBuffers->Release();
 	}
 }
 

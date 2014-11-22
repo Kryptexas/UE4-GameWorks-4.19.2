@@ -22,6 +22,10 @@
 #define DOWNSAMPLE_FACTOR 1
 #endif
 
+#ifndef UPDATEOBJECTS_THREADGROUP_SIZE
+#define UPDATEOBJECTS_THREADGROUP_SIZE 1
+#endif
+
 float3 DistanceFieldVolumePositionToUV(float3 VolumePosition, float3 UVScale, float3 UVAdd)
 {
 	float3 VolumeUV = VolumePosition * UVScale + UVAdd;
@@ -32,72 +36,75 @@ Texture3D DistanceFieldTexture;
 SamplerState DistanceFieldSampler;
 float3 DistanceFieldAtlasTexelSize;
 
-uint NumObjects;
+RWBuffer<uint> RWObjectIndirectArguments;
+Buffer<uint> ObjectIndirectArguments;
+
+uint GetCulledNumObjects()
+{
+	// IndexCount, NumInstances, StartIndex, BaseVertexIndex, FirstInstance
+	return ObjectIndirectArguments[1];
+}
 
 // In float4's.  Must match equivalent C++ variables.
-#define OBJECT_DATA_STRIDE 8
-#define OBJECT_DATA2_STRIDE 4
-#define OBJECT_BOX_BOUNDS_STRIDE 5
+#define OBJECT_DATA_STRIDE 12
 
-Buffer<float4> ObjectBounds;
-Buffer<float4> ObjectData;
-Buffer<float4> ObjectData2;
-Buffer<float4> ObjectBoxBounds;
+uint NumSceneObjects;
+
+// Have to make these R32F with 4x the reads and writes because of the horrible D3D11 limitation
+// "error X3676: typed UAV loads are only allowed for single-component 32-bit element types"
+Buffer<float> ObjectBounds;
+Buffer<float> ObjectData;
+
+RWBuffer<float> RWObjectBounds;
+RWBuffer<float> RWObjectData;
+
+// In float4's.  Must match equivalent C++ variables.
+#define CULLED_OBJECT_DATA_STRIDE 8
+#define CULLED_OBJECT_BOX_BOUNDS_STRIDE 5
+
+Buffer<float4> CulledObjectBounds;
+Buffer<float4> CulledObjectData;
+Buffer<float4> CulledObjectBoxBounds;
 
 float4 LoadObjectPositionAndRadius(uint ObjectIndex)
 {
-	return ObjectBounds.Load(ObjectIndex);
+	return CulledObjectBounds.Load(ObjectIndex);
 }
 
 float4x4 LoadObjectWorldToVolume(uint ObjectIndex)
 {
-	float4 M0 = ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 0);
-	float4 M1 = ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 1);
-	float4 M2 = ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 2);
-	float4 M3 = ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 3);
+	float4 M0 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 0);
+	float4 M1 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 1);
+	float4 M2 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 2);
+	float4 M3 = CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 3);
 
 	return float4x4(M0, M1, M2, M3);
 }
 
 float3 LoadObjectLocalPositionExtent(uint ObjectIndex)
 {
-	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 4).xyz;
-}
-
-float4 LoadObjectLocalPositionExtentAndTwoSided(uint ObjectIndex)
-{
-	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 4).xyzw;
+	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 4).xyz;
 }
 
 float4 LoadObjectUVScale(uint ObjectIndex)
 {
-	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 5).xyzw;
+	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 5).xyzw;
 }
 
 float3 LoadObjectUVAdd(uint ObjectIndex)
 {
-	return ObjectData.Load(ObjectIndex * OBJECT_DATA_STRIDE + 6).xyz;
-}
-
-float4x4 LoadObjectVolumeToWorld(uint ObjectIndex)
-{
-	float4 M0 = ObjectData2.Load(ObjectIndex * OBJECT_DATA2_STRIDE + 0);
-	float4 M1 = ObjectData2.Load(ObjectIndex * OBJECT_DATA2_STRIDE + 1);
-	float4 M2 = ObjectData2.Load(ObjectIndex * OBJECT_DATA2_STRIDE + 2);
-	float4 M3 = ObjectData2.Load(ObjectIndex * OBJECT_DATA2_STRIDE + 3);
-
-	return float4x4(M0, M1, M2, M3);
+	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6).xyz;
 }
 
 void LoadObjectViewSpaceBox(uint ObjectIndex, out float3 ObjectViewSpaceMin, out float3 ObjectViewSpaceMax)
 {
-	ObjectViewSpaceMin = ObjectBoxBounds.Load(ObjectIndex * OBJECT_BOX_BOUNDS_STRIDE + 0).xyz;
-	ObjectViewSpaceMax = ObjectBoxBounds.Load(ObjectIndex * OBJECT_BOX_BOUNDS_STRIDE + 1).xyz;
+	ObjectViewSpaceMin = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 0).xyz;
+	ObjectViewSpaceMax = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 1).xyz;
 }
 
 void LoadObjectAxes(uint ObjectIndex, out float3 ObjectAxisX, out float3 ObjectAxisY, out float3 ObjectAxisZ)
 {
-	ObjectAxisX = ObjectBoxBounds.Load(ObjectIndex * OBJECT_BOX_BOUNDS_STRIDE + 2).xyz;
-	ObjectAxisY = ObjectBoxBounds.Load(ObjectIndex * OBJECT_BOX_BOUNDS_STRIDE + 3).xyz;
-	ObjectAxisZ = ObjectBoxBounds.Load(ObjectIndex * OBJECT_BOX_BOUNDS_STRIDE + 4).xyz;
+	ObjectAxisX = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 2).xyz;
+	ObjectAxisY = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 3).xyz;
+	ObjectAxisZ = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 4).xyz;
 }

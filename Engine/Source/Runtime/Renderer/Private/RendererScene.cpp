@@ -13,6 +13,7 @@
 #include "EngineModule.h"
 #include "PrecomputedLightVolume.h"
 #include "FXSystem.h"
+#include "DistanceFieldLightingShared.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -73,6 +74,96 @@ FSceneViewState::FSceneViewState()
 	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
 	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
 #endif
+}
+
+FDistanceFieldSceneData::FDistanceFieldSceneData() 
+	: NumObjectsInBuffer(0)
+	, ObjectBuffers(NULL)
+{
+
+}
+
+FDistanceFieldSceneData::~FDistanceFieldSceneData() 
+{
+	delete ObjectBuffers;
+}
+
+void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
+{
+	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
+
+	if (Proxy->SupportsDistanceFieldRepresentation()
+		&& Proxy->CastsDynamicShadow()
+		&& Proxy->AffectsDistanceFieldLighting())
+	{
+		checkSlow(!PendingAddOperations.Contains(InPrimitive));
+		checkSlow(!PendingUpdateOperations.Contains(InPrimitive));
+		PendingAddOperations.Add(InPrimitive);
+	}
+}
+
+void FDistanceFieldSceneData::UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive)
+{
+	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
+
+	if (Proxy->SupportsDistanceFieldRepresentation() 
+		&& Proxy->CastsDynamicShadow() 
+		&& Proxy->AffectsDistanceFieldLighting()
+		&& !PendingAddOperations.Contains(InPrimitive))
+	{
+		check(InPrimitive->DistanceFieldInstanceIndices.Num() > 0);
+		PendingUpdateOperations.Add(InPrimitive);
+	}
+}
+
+void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
+{
+	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
+
+	if (Proxy->SupportsDistanceFieldRepresentation() && Proxy->AffectsDistanceFieldLighting())
+	{
+		PendingAddOperations.Remove(InPrimitive);
+		PendingUpdateOperations.Remove(InPrimitive);
+
+		for (int32 InstanceIndex = 0; InstanceIndex < InPrimitive->DistanceFieldInstanceIndices.Num(); InstanceIndex++)
+		{
+			int32 RemoveIndex = InPrimitive->DistanceFieldInstanceIndices[InstanceIndex];
+
+			// Sanity check that scales poorly
+			if (PendingRemoveOperations.Num() < 1000)
+			{
+				checkSlow(!PendingRemoveOperations.Contains(RemoveIndex));
+			}
+			
+			PendingRemoveOperations.Add(RemoveIndex);
+		}
+
+		InPrimitive->DistanceFieldInstanceIndices.Empty();
+	}
+}
+
+void FDistanceFieldSceneData::Release()
+{
+	if (ObjectBuffers)
+	{
+		ObjectBuffers->Release();
+	}
+}
+
+void FDistanceFieldSceneData::VerifyIntegrity()
+{
+	check(NumObjectsInBuffer == PrimitiveInstanceMapping.Num());
+
+	for (int32 PrimitiveInstanceIndex = 0; PrimitiveInstanceIndex < PrimitiveInstanceMapping.Num(); PrimitiveInstanceIndex++)
+	{
+		const FPrimitiveAndInstance& PrimitiveAndInstance = PrimitiveInstanceMapping[PrimitiveInstanceIndex];
+
+		check(PrimitiveAndInstance.Primitive && PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices.Num() > 0);
+		check(PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices.IsValidIndex(PrimitiveAndInstance.InstanceIndex));
+
+		const int32 InstanceIndex = PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstance.InstanceIndex];
+		check(InstanceIndex == PrimitiveInstanceIndex);
+	}
 }
 
 /**
@@ -172,6 +263,8 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 
 	// Add the primitive to the scene.
 	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
+
+	DistanceFieldSceneData.AddPrimitive(PrimitiveSceneInfo);
 }
 
 /**
@@ -264,6 +357,7 @@ FScene::~FScene()
 
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
+	DistanceFieldSceneData.Release();
 
 	if (SurfaceCacheResources)
 	{
@@ -389,6 +483,8 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
+
+	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 
 	// If the primitive has static mesh elements, it should have returned true from ShouldRecreateProxyOnUpdateTransform!
 	check(!(bUpdateStaticDrawLists && PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes.Num()));
@@ -578,6 +674,8 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 
 	// Remove the primitive from the scene.
 	PrimitiveSceneInfo->RemoveFromScene(true);
+
+	DistanceFieldSceneData.RemovePrimitive(PrimitiveSceneInfo);
 
 	// free the primitive scene proxy.
 	delete PrimitiveSceneInfo->Proxy;

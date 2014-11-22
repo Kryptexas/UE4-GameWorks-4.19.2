@@ -41,6 +41,11 @@ public:
 
 	FIntVector GetAllocationSize() const;
 
+	int32 GetAllocationVolume() const
+	{
+		return GetAllocationSize().X * GetAllocationSize().Y * GetAllocationSize().Z;
+	}
+
 	bool IsValidDistanceFieldVolume() const;
 
 private:
@@ -73,7 +78,7 @@ public:
 	void RemoveAllocation(FDistanceFieldVolumeTexture* Texture);
 
 	/** Reallocates the volume texture if necessary and uploads new allocations. */
-	ENGINE_API void UpdateAllocations();
+	ENGINE_API bool UpdateAllocations();
 
 	EPixelFormat Format;
 	FTexture3DRHIRef VolumeTextureRHI;

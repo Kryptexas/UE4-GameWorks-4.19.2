@@ -879,6 +879,50 @@ public:
 	{}
 };
 
+class FPrimitiveAndInstance
+{
+public:
+
+	FPrimitiveAndInstance(FPrimitiveSceneInfo* InPrimitive, int32 InInstanceIndex) :
+		Primitive(InPrimitive),
+		InstanceIndex(InInstanceIndex)
+	{}
+
+	FPrimitiveSceneInfo* Primitive;
+	int32 InstanceIndex;
+};
+
+/** Scene data used to manage distance field object buffers on the GPU. */
+class FDistanceFieldSceneData
+{
+public:
+
+	FDistanceFieldSceneData();
+	~FDistanceFieldSceneData();
+
+	void AddPrimitive(FPrimitiveSceneInfo* InPrimitive);
+	void UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive);
+	void RemovePrimitive(FPrimitiveSceneInfo* InPrimitive);
+	void Release();
+	void VerifyIntegrity();
+
+	bool HasPendingOperations() const
+	{
+		return PendingAddOperations.Num() > 0 || PendingUpdateOperations.Num() > 0 || PendingRemoveOperations.Num() > 0;
+	}
+
+	int32 NumObjectsInBuffer;
+	class FDistanceFieldObjectBuffers* ObjectBuffers;
+
+	/** Stores the primitive and instance index of every entry in the object buffer. */
+	TArray<FPrimitiveAndInstance> PrimitiveInstanceMapping;
+
+	/** Pending operations on the object buffers to be processed next frame. */
+	TArray<FPrimitiveSceneInfo*> PendingAddOperations;
+	TArray<FPrimitiveSceneInfo*> PendingUpdateOperations;
+	TArray<int32> PendingRemoveOperations;
+};
+
 /** Stores data for an allocation in the FIndirectLightingCache. */
 class FIndirectLightingCacheBlock
 {
@@ -1271,6 +1315,9 @@ public:
 
 	/** Scene state of distance field AO.  NULL if the scene doesn't use the feature. */
 	class FSurfaceCacheResources* SurfaceCacheResources;
+
+	/** Distance field object scene data. */
+	FDistanceFieldSceneData DistanceFieldSceneData;
 
 	/** Preshadows that are currently cached in the PreshadowCache render target. */
 	TArray<TRefCountPtr<FProjectedShadowInfo> > CachedPreshadows;
