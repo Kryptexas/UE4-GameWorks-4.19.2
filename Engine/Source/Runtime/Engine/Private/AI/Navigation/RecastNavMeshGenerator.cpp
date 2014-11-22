@@ -2722,7 +2722,7 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(class ARecastNavMesh* InDestNav
 	check(InDestNavMesh);
 	Init();
 
-	if (!DestNavMesh->HasValidNavmesh())
+	if (DestNavMesh->HasValidNavmesh() == false)
 	{
 		// recreate navmesh from scratch if no data was loaded
 		ConstructTiledNavMesh();
@@ -2808,6 +2808,7 @@ void FRecastNavMeshGenerator::Init()
 	/** setup maximum number of active tile generator*/
 	const int32 NumberOfWorkerThreads = FTaskGraphInterface::Get().GetNumWorkerThreads();
 	MaxTileGeneratorTasks = FMath::Max(NumberOfWorkerThreads*2, 1);
+	UE_LOG(LogNavigation, Log, TEXT("Using max of %d workers to build navigation."), MaxTileGeneratorTasks);
 	NumActiveTiles = 0;
 
 	// prepare voxel cache if needed
@@ -3087,7 +3088,9 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 {
 	TArray<uint32> ResultTileIndices;
 	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
-	const int32 NumLayers = DetourMesh ? DetourMesh->getTileCountAt(TileX, TileY) : 0;
+	
+	check(DetourMesh == nullptr || DetourMesh->isEmpty() == false);
+	const int32 NumLayers = DetourMesh != nullptr ? DetourMesh->getTileCountAt(TileX, TileY) : 0;
 	
 	if (NumLayers > 0)
 	{

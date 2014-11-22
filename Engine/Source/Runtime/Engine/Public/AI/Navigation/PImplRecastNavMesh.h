@@ -186,13 +186,11 @@ public:
 	class dtNavMesh* GetRecastMesh() { return DetourNavMesh; };
 	void ReleaseDetourNavMesh();
 
-	bool GetOwnsNavMeshData() const { return bOwnsNavMeshData; }
-
 	/** Assigns recast generated navmesh to this instance.
 	 *	@param bOwnData if true from now on this FPImplRecastNavMesh instance will be responsible for this piece 
 	 *		of memory
 	 */
-	void SetRecastMesh(class dtNavMesh* NavMesh, bool bOwnData = false);
+	void SetRecastMesh(class dtNavMesh* NavMesh);
 
 	float GetTotalDataSize() const;
 
@@ -205,10 +203,7 @@ public:
 	float CalcSegmentCostOnPoly(NavNodeRef PolyID, const dtQueryFilter* Filter, const FVector& StartLoc, const FVector& EndLoc) const;
 
 	class ARecastNavMesh* NavMeshOwner;
-
-	/** if true instance is responsible for deallocation of recast navmesh */
-	bool bOwnsNavMeshData;
-
+	
 	/** Recast's runtime navmesh data that we can query against */
 	class dtNavMesh* DetourNavMesh;
 

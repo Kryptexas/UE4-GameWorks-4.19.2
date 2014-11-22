@@ -238,12 +238,9 @@ bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 
 FPImplRecastNavMesh::FPImplRecastNavMesh(ARecastNavMesh* Owner)
 	: NavMeshOwner(Owner)
-	, bOwnsNavMeshData(false)
 	, DetourNavMesh(NULL)
 {
 	check(Owner && "Owner must never be NULL");
-
-	DetourNavMesh = dtAllocNavMesh();
 
 	INC_DWORD_STAT_BY( STAT_NavigationMemory
 		, Owner->HasAnyFlags(RF_ClassDefaultObject) == false ? sizeof(*this) : 0 );
@@ -286,14 +283,12 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	if (Ar.IsLoading())
 	{
 		// allocate the navmesh object
+		ReleaseDetourNavMesh();
 		DetourNavMesh = dtAllocNavMesh();
+
 		if (DetourNavMesh == NULL)
 		{
 			UE_VLOG(NavMeshOwner, LogNavigation, Error, TEXT("Failed to allocate Recast navmesh"));
-		}
-		else
-		{
-			bOwnsNavMeshData = true;
 		}
 	}
 
@@ -346,8 +341,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 		if (ActorsTileSize != Params.tileWidth)
 		{
 			// just move archive position
-			dtFreeNavMesh(DetourNavMesh);
-			DetourNavMesh = NULL;
+			ReleaseDetourNavMesh();
 
 			for (int i = 0; i < NumTiles; ++i)
 			{
@@ -630,21 +624,14 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 	}
 }
 
-void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh, bool bOwnData)
+void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh)
 {
 	if (NavMesh == DetourNavMesh)
 	{
 		return;
 	}
 
-	if (DetourNavMesh != NULL && !!bOwnsNavMeshData)
-	{
-		// if there's already some recast navmesh, and it's owned by this instance then release it
-		dtFreeNavMesh(DetourNavMesh);
-		DetourNavMesh = NULL;
-	}
-
-	bOwnsNavMeshData = bOwnData;
+	ReleaseDetourNavMesh();
 	DetourNavMesh = NavMesh;
 
 	if (NavMeshOwner)
