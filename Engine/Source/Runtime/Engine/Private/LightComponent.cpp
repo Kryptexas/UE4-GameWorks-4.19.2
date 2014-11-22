@@ -70,7 +70,7 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
 
 void ULightComponentBase::SetCastShadows(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& CastShadows != bNewValue)
 	{
 		CastShadows = bNewValue;
@@ -669,7 +669,7 @@ void ULightComponent::DestroyRenderState_Concurrent()
 void ULightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& Intensity != NewIntensity)
 	{
 		Intensity = NewIntensity;
@@ -689,7 +689,7 @@ void ULightComponent::SetLightColor(FLinearColor NewLightColor)
 	FColor NewColor(NewLightColor);
 
 	// Can't set color on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& LightColor != NewColor)
 	{
 		LightColor	= NewColor;
@@ -706,7 +706,7 @@ void ULightComponent::SetLightColor(FLinearColor NewLightColor)
 void ULightComponent::SetLightFunctionMaterial(UMaterialInterface* NewLightFunctionMaterial)
 {
 	// Can't set light function on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFunctionMaterial != LightFunctionMaterial)
 	{
 		LightFunctionMaterial = NewLightFunctionMaterial;
@@ -716,7 +716,7 @@ void ULightComponent::SetLightFunctionMaterial(UMaterialInterface* NewLightFunct
 
 void ULightComponent::SetLightFunctionScale(FVector NewLightFunctionScale)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFunctionScale != LightFunctionScale)
 	{
 		LightFunctionScale = NewLightFunctionScale;
@@ -726,7 +726,7 @@ void ULightComponent::SetLightFunctionScale(FVector NewLightFunctionScale)
 
 void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDistance)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFunctionFadeDistance != LightFunctionFadeDistance)
 	{
 		LightFunctionFadeDistance = NewLightFunctionFadeDistance;
@@ -736,7 +736,7 @@ void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDis
 
 void ULightComponent::SetAffectDynamicIndirectLighting(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& bAffectDynamicIndirectLighting != bNewValue)
 	{
 		bAffectDynamicIndirectLighting = bNewValue;
@@ -746,7 +746,7 @@ void ULightComponent::SetAffectDynamicIndirectLighting(bool bNewValue)
 
 void ULightComponent::SetAffectTranslucentLighting(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& bAffectTranslucentLighting != bNewValue)
 	{
 		bAffectTranslucentLighting = bNewValue;
@@ -756,7 +756,7 @@ void ULightComponent::SetAffectTranslucentLighting(bool bNewValue)
 
 void ULightComponent::SetEnableLightShaftBloom(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& bEnableLightShaftBloom != bNewValue)
 	{
 		bEnableLightShaftBloom = bNewValue;
@@ -766,7 +766,7 @@ void ULightComponent::SetEnableLightShaftBloom(bool bNewValue)
 
 void ULightComponent::SetBloomScale(float NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& BloomScale != NewValue)
 	{
 		BloomScale = NewValue;
@@ -776,7 +776,7 @@ void ULightComponent::SetBloomScale(float NewValue)
 
 void ULightComponent::SetBloomThreshold(float NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& BloomThreshold != NewValue)
 	{
 		BloomThreshold = NewValue;
@@ -786,7 +786,7 @@ void ULightComponent::SetBloomThreshold(float NewValue)
 
 void ULightComponent::SetBloomTint(FColor NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& BloomTint != NewValue)
 	{
 		BloomTint = NewValue;
@@ -796,7 +796,7 @@ void ULightComponent::SetBloomTint(FColor NewValue)
 
 void ULightComponent::SetIESTexture(UTextureLightProfile* NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& IESTexture != NewValue)
 	{
 		IESTexture = NewValue;

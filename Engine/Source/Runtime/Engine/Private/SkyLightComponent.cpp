@@ -433,7 +433,7 @@ void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& 
 void USkyLightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& Intensity != NewIntensity)
 	{
 		Intensity = NewIntensity;
@@ -447,7 +447,7 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 	FColor NewColor(NewLightColor);
 
 	// Can't set color on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& LightColor != NewColor)
 	{
 		LightColor = NewColor;
@@ -458,7 +458,7 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 {
 	// Can't set color on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& Cubemap != NewCubemap)
 	{
 		Cubemap = NewCubemap;
@@ -470,7 +470,7 @@ void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 {
 	// Can't set on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& OcclusionTint != InTint)
 	{
 		OcclusionTint = InTint;
@@ -481,7 +481,7 @@ void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
 {
 	// Can't set on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static && !IsRunningUserConstructionScript())
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& MinOcclusion != InMinOcclusion)
 	{
 		MinOcclusion = InMinOcclusion;
