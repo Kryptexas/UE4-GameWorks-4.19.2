@@ -439,7 +439,7 @@ MaterialFloat4 EncodeLightAttenuation(MaterialFloat4 InColor)
 /** return the scene lighting texture */
 MaterialFloat3 CalcSceneColor(MaterialFloat2 ScreenUV)
 {
-	return Texture2DSample(SceneColorTexture, SceneColorTextureSampler,ScreenUV).rgb;
+	return Texture2DSampleLevel(SceneColorTexture, SceneColorTextureSampler, ScreenUV, 0).rgb;
 }
 
 /** return all channels of the scene lighting texture */

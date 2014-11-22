@@ -44,6 +44,7 @@ public:
 			OccluderRadius.Initialize(sizeof(float), MaxIrradianceCacheSamples, PF_R32_FLOAT, BUF_Static);
 			Normal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 			BentNormal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
+			Irradiance.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 			ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
 			TileCoordinate.Initialize(sizeof(uint16)* 2, MaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
@@ -56,6 +57,7 @@ public:
 		OccluderRadius.Release();
 		Normal.Release();
 		BentNormal.Release();
+		Irradiance.Release();
 		ScatterDrawParameters.Release();
 		SavedStartIndex.Release();
 		TileCoordinate.Release();
@@ -67,6 +69,7 @@ public:
 	FRWBuffer OccluderRadius;
 	FRWBuffer Normal;
 	FRWBuffer BentNormal;
+	FRWBuffer Irradiance;
 	FRWBuffer ScatterDrawParameters;
 	FRWBuffer SavedStartIndex;
 	FRWBuffer TileCoordinate;

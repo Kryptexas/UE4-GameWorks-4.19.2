@@ -65,6 +65,13 @@ float4 UniformSampleHemisphere( float2 E )
 	return float4( H, PDF );
 }
 
+float2 UniformSampleDisk(float2 Random)
+{
+	const float Theta = 2.0f * (float)PI * Random.x;
+	const float Radius = sqrt(Random.y);
+	return float2(Radius * cos(Theta), Radius * sin(Theta));
+}
+
 float4 CosineSampleHemisphere( float2 E )
 {
 	float Phi = 2 * PI * E.x;
