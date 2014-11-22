@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "EngineDefines.h"
+
 #if WITH_VEHICLE
 
 #include "../PhysicsEngine/PhysXSupport.h"

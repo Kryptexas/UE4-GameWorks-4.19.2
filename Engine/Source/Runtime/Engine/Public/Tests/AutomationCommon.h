@@ -3,6 +3,7 @@
 #pragma once
 
 #include "HardwareInfo.h"
+#include "AutomationTest.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SlateBasics.h"
 
 /**
  * Delegate type for getting a page's enabled state.

@@ -2504,7 +2504,7 @@ static FSCSEditorTreeNode* FindRecursive( FSCSEditorTreeNode* Node, FName Name )
 	return nullptr;
 }
 
-void SSCSEditor::HighlightTreeNode(FName TreeNodeName, const FPropertyPath& Property)
+void SSCSEditor::HighlightTreeNode(FName TreeNodeName, const class FPropertyPath& Property)
 {
 	for( const auto& Node : RootNodes )
 	{
