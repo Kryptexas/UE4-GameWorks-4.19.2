@@ -5,6 +5,7 @@
 #include "EnvQueryGenerator_ActorsOfClass.generated.h"
 
 class AActor;
+class UEnvQueryContext;
 
 UCLASS()	
 class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
@@ -20,7 +21,7 @@ class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
-	TSubclassOf<class UEnvQueryContext> SearchCenter;
+	TSubclassOf<UEnvQueryContext> SearchCenter;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 

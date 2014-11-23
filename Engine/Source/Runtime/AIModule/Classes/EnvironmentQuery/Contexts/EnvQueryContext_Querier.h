@@ -4,10 +4,13 @@
 #include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvQueryContext_Querier.generated.h"
 
+struct FEnvQueryInstance;
+struct FEnvQueryContextData;
+
 UCLASS(MinimalAPI)
 class UEnvQueryContext_Querier : public UEnvQueryContext
 {
 	GENERATED_UCLASS_BODY()
  
-	virtual void ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const override;
+	virtual void ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const override;
 };

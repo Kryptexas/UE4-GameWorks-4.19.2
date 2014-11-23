@@ -6,8 +6,12 @@
 #include "VisualLoggerExtension.h"
 #include "EnvQueryDebugHelpers.generated.h"
 
+struct FEnvQueryInstance;
 
 #if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+
+struct FLogCategoryBase;
+
 namespace EQSDebug
 {
 	struct FItemData
@@ -143,28 +147,27 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 #	define UE_VLOG_EQS(Query, CategoryName, Verbosity)
 #endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 
-UCLASS(Abstract, CustomConstructor)
+UCLASS(Abstract)
 class AIMODULE_API UEnvQueryDebugHelpers : public UObject
 {
-	GENERATED_UCLASS_BODY()
-
-	UEnvQueryDebugHelpers(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+	GENERATED_BODY()
+public:
 #if USE_EQS_DEBUGGER
-	static void QueryToDebugData(struct FEnvQueryInstance& Query, EQSDebug::FQueryData& EQSLocalData);
-	static void QueryToBlobArray(struct FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
+	static void QueryToDebugData(FEnvQueryInstance& Query, EQSDebug::FQueryData& EQSLocalData);
+	static void QueryToBlobArray(FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
 	static void BlobArrayToDebugData(const TArray<uint8>& BlobArray, EQSDebug::FQueryData& EQSLocalData, bool bUseCompression = false);
 #endif
 
 #if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
-	static void LogQuery(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity);
+	static void LogQuery(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity);
 
 private:
-	static void LogQueryInternal(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry);
+	static void LogQueryInternal(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry);
 #endif
 };
 
 #if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
-FORCEINLINE void UEnvQueryDebugHelpers::LogQuery(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity)
+FORCEINLINE void UEnvQueryDebugHelpers::LogQuery(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity)
 {
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;

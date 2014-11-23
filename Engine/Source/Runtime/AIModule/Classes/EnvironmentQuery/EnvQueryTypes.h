@@ -5,11 +5,16 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvQueryTypes.generated.h"
 
+class ARecastNavMesh;
+class UNavigationQueryFilter;
 class UEnvQueryTest;
 class UEnvQueryGenerator;
 class UEnvQueryItemType_VectorBase;
 class UEnvQueryItemType_ActorBase;
+class UEnvQueryContext;
 struct FEnvQueryInstance;
+struct FEnvQueryOptionInstance;
+struct FEnvQueryItemDetails;
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Warning, All);
 
@@ -27,8 +32,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EQS_TestTime,STATGROUP_AI_EQ
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EQS_NumInstances,STATGROUP_AI_EQS, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EQS_NumItems,STATGROUP_AI_EQS, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EQS_InstanceMemory,STATGROUP_AI_EQS, AIMODULE_API);
-
-class ARecastNavMesh;
 
 UENUM()
 namespace EEnvTestPurpose
@@ -274,9 +277,6 @@ struct AIMODULE_API FEnvNamedValue
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
 	float Value;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
-	class UAISenseConfig* SenseConfig;
 };
 
 USTRUCT()
@@ -286,15 +286,15 @@ struct AIMODULE_API FEnvDirection
 
 	/** line A: start context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> LineFrom;
+	TSubclassOf<UEnvQueryContext> LineFrom;
 
 	/** line A: finish context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> LineTo;
+	TSubclassOf<UEnvQueryContext> LineTo;
 
 	/** line A: direction context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> Rotation;
+	TSubclassOf<UEnvQueryContext> Rotation;
 
 	/** defines direction of second line used by test */
 	UPROPERTY(EditDefaultsOnly, Category=Direction, meta=(DisplayName="Mode"))
@@ -322,7 +322,7 @@ struct AIMODULE_API FEnvTraceData
 
 	/** navigation filter for tracing */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TSubclassOf<class UNavigationQueryFilter> NavigationFilter;
+	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
 
 	/** search height: below point */
 	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
@@ -468,7 +468,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // Runtime processing structures
 
-DECLARE_DELEGATE_OneParam(FQueryFinishedSignature, TSharedPtr<struct FEnvQueryResult>);
+DECLARE_DELEGATE_OneParam(FQueryFinishedSignature, TSharedPtr<FEnvQueryResult>);
 
 struct AIMODULE_API FEnvQuerySpatialData
 {
@@ -593,7 +593,7 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	TMap<UClass*, FEnvQueryContextData> ContextCache;
 
 	/** list of options */
-	TArray<struct FEnvQueryOptionInstance> Options;
+	TArray<FEnvQueryOptionInstance> Options;
 
 	/** currently processed test (-1 = generator) */
 	int32 CurrentTest;
@@ -603,7 +603,7 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	int32 CurrentTestStartingItem;
 
 	/** list of item details */
-	TArray<struct FEnvQueryItemDetails> ItemDetails;
+	TArray<FEnvQueryItemDetails> ItemDetails;
 
 	/** number of valid items on list */
 	int32 NumValidItems;
@@ -966,22 +966,22 @@ public:
 namespace FEQSHelpers
 {
 #if WITH_RECAST
-	const ARecastNavMesh* FindNavMeshForQuery(struct FEnvQueryInstance& QueryInstance);
+	const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }
 
-UCLASS(Abstract, CustomConstructor)
+UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
+public:
 	/** special test value assigned to items skipped by condition check */
 	static float SkippedItemValue;
 
-	UEnvQueryTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 	static FText GetShortTypeName(const UObject* Ob);
 
-	static FText DescribeContext(TSubclassOf<class UEnvQueryContext> ContextClass);
+	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
 	static FString DescribeIntParam(const FEnvIntParam& Param);
 	static FString DescribeFloatParam(const FEnvFloatParam& Param);
 	static FString DescribeBoolParam(const FEnvBoolParam& Param);

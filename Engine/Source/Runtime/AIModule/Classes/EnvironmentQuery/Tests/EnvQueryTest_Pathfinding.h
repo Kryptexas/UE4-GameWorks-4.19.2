@@ -4,6 +4,8 @@
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvQueryTest_Pathfinding.generated.h"
 
+class UEnvQueryContext;
+
 UENUM()
 namespace EEnvTestPathfinding
 {
@@ -26,7 +28,7 @@ class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 
 	/** context: other end of pathfinding test */
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding)
-	TSubclassOf<class UEnvQueryContext> Context;
+	TSubclassOf<UEnvQueryContext> Context;
 
 	/** pathfinding direction */
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding)

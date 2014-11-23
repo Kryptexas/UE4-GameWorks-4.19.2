@@ -4,6 +4,8 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_ProjectedPoints.h"
 #include "EnvQueryGenerator_SimpleGrid.generated.h"
 
+class UEnvQueryContext;
+
 /**
  *  Simple grid, generates points in 2D square around context
  */
@@ -23,7 +25,7 @@ class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 
 	/** context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	TSubclassOf<class UEnvQueryContext> GenerateAround;
+	TSubclassOf<UEnvQueryContext> GenerateAround;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 

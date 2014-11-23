@@ -4,6 +4,13 @@
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvQueryGenerator_PathingGrid.generated.h"
 
+class UEnvQueryContext;
+class UNavigationQueryFilter;
+struct FNavLocation;
+#if WITH_RECAST
+class ARecastNavMesh;
+#endif // WITH_RECAST
+
 /**
  *  Navigation grid, generates points on navmesh
  *  with paths to/from context no further than given limit
@@ -28,7 +35,7 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
-	TSubclassOf<class UEnvQueryContext> GenerateAround;
+	TSubclassOf<UEnvQueryContext> GenerateAround;
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
@@ -36,7 +43,7 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 
 	/** navigation filter for tracing */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	TSubclassOf<class UNavigationQueryFilter> NavigationFilter;
+	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 
@@ -45,11 +52,10 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 
 protected:
 #if WITH_RECAST
-
 	/** find all navmesh node refs in pathing distance */
-	void FindNodeRefsInPathDistance(const class ARecastNavMesh* NavMesh, const FVector& ContextLocation, float MaxPathDistance, bool bPathFromContext, TArray<NavNodeRef>& NodeRefs, FBox& NodeRefsBounds) const;
+	void FindNodeRefsInPathDistance(const ARecastNavMesh* NavMesh, const FVector& ContextLocation, float MaxPathDistance, bool bPathFromContext, TArray<NavNodeRef>& NodeRefs, FBox& NodeRefsBounds) const;
 
 	/** check if nav location is in allowed set */
-	bool IsNavLocationInPathDistance(const class ARecastNavMesh* NavMesh, const struct FNavLocation& NavLocation, const TArray<NavNodeRef>& NodeRefs) const;
+	bool IsNavLocationInPathDistance(const ARecastNavMesh* NavMesh, const FNavLocation& NavLocation, const TArray<NavNodeRef>& NodeRefs) const;
 #endif
 };

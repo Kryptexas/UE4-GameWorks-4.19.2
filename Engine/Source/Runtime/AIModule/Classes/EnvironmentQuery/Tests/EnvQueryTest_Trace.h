@@ -4,6 +4,8 @@
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvQueryTest_Trace.generated.h"
 
+class UEnvQueryContext;
+
 UCLASS(MinimalAPI)
 class UEnvQueryTest_Trace : public UEnvQueryTest
 {
@@ -27,7 +29,7 @@ class UEnvQueryTest_Trace : public UEnvQueryTest
 
 	/** context: other end of trace test */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TSubclassOf<class UEnvQueryContext> Context;
+	TSubclassOf<UEnvQueryContext> Context;
 
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 

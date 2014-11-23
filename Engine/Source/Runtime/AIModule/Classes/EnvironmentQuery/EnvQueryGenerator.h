@@ -4,6 +4,8 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvQueryGenerator.generated.h"
 
+class UEnvQueryItemType;
+
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryGenerator : public UObject
 {
@@ -14,7 +16,7 @@ class AIMODULE_API UEnvQueryGenerator : public UObject
 
 	/** type of generated items */
 	UPROPERTY()
-	TSubclassOf<class UEnvQueryItemType> ItemType;
+	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
 

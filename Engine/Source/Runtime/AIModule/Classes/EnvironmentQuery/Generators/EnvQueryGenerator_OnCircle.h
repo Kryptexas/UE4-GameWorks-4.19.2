@@ -4,6 +4,8 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_ProjectedPoints.h"
 #include "EnvQueryGenerator_OnCircle.generated.h"
 
+struct FEnvQueryInstance;
+
 class FVectorAndDataContainer
 {
 public:
@@ -73,7 +75,7 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 #endif // WITH_EDITOR
 
 protected:
-	FVector CalcDirection(struct FEnvQueryInstance& QueryInstance) const;
+	FVector CalcDirection(FEnvQueryInstance& QueryInstance) const;
 
 	// For derived classes that need to store additional data associated with the FVector, override these two functions:
 	virtual void PrepareGeneratorContext(FEnvQueryInstance& QueryInstance,

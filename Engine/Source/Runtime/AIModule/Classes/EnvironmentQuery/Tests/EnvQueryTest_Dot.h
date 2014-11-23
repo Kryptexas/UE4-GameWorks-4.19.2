@@ -4,6 +4,9 @@
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvQueryTest_Dot.generated.h"
 
+class UEnvQueryContext;
+struct FEnvQueryInstance;
+
 UENUM(BlueprintType)
 enum class EEnvTestDot : uint8
 {
@@ -42,18 +45,18 @@ protected:
 	virtual FText GetDescriptionDetails() const override;
 
 	/** helper function: gather directions from context pairs */
-	void GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FVector& ItemLocation,
-		TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo) const;
+	void GatherLineDirections(TArray<FVector>& Directions, FEnvQueryInstance& QueryInstance, const FVector& ItemLocation,
+		TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo) const;
 
 	/** helper function: gather directions from context */
-	void GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation,
-		TSubclassOf<class UEnvQueryContext> LineDirection) const;
+	void GatherLineDirections(TArray<FVector>& Directions, FEnvQueryInstance& QueryInstance, const FRotator& ItemRotation,
+		TSubclassOf<UEnvQueryContext> LineDirection) const;
 
 	/** helper function: gather directions from proper contexts */
-	void GatherLineDirections(TArray<FVector>& Directions, struct FEnvQueryInstance& QueryInstance,
-		TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext,
+	void GatherLineDirections(TArray<FVector>& Directions, FEnvQueryInstance& QueryInstance,
+		TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo, TSubclassOf<UEnvQueryContext> LineDirection, bool bUseDirectionContext,
 		const FVector& ItemLocation = FVector::ZeroVector, const FRotator& ItemRotation = FRotator::ZeroRotator) const;
 
 	/** helper function: check if contexts are updated per item */
-	bool RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContext> LineFrom, TSubclassOf<class UEnvQueryContext> LineTo, TSubclassOf<class UEnvQueryContext> LineDirection, bool bUseDirectionContext) const;
+	bool RequiresPerItemUpdates(TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo, TSubclassOf<UEnvQueryContext> LineDirection, bool bUseDirectionContext) const;
 };

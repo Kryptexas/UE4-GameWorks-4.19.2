@@ -3,6 +3,9 @@
 #pragma once
 #include "EnvQueryItemType.generated.h"
 
+class UBlackboardComponent;
+struct FBlackboardKeySelector;
+
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryItemType : public UObject
 {
@@ -12,10 +15,10 @@ class AIMODULE_API UEnvQueryItemType : public UObject
 	FORCEINLINE uint16 GetValueSize() const { return ValueSize; }
 
 	/** add filters for blackboard key selector */
-	virtual void AddBlackboardFilters(struct FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const;
+	virtual void AddBlackboardFilters(FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const;
 
 	/** store value in blackboard entry */
-	virtual bool StoreInBlackboard(struct FBlackboardKeySelector& KeySelector, class UBlackboardComponent* Blackboard, const uint8* RawData) const;
+	virtual bool StoreInBlackboard(FBlackboardKeySelector& KeySelector, UBlackboardComponent* Blackboard, const uint8* RawData) const;
 
 	/** unregister from known types in EnvQueryManager */
 	virtual void FinishDestroy() override;

@@ -19,6 +19,13 @@ class UAIPerceptionComponent;
 struct FBasedPosition;
 class UPawnAction;
 class UPawnActionsComponent;
+class UNavigationQueryFilter;
+class UBehaviorTree;
+class UBlackboardData;
+class UCanvas;
+#if ENABLE_VISUAL_LOG
+struct FVisualLogEntry;
+#endif // ENABLE_VISUAL_LOG
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
@@ -51,7 +58,7 @@ struct FFocusKnowledge
 	{
 		Priorities.Reserve(6);
 	}
-	TArray<struct FFocusItem> Priorities;
+	TArray<FFocusItem> Priorities;
 };
 
 //=============================================================================
@@ -128,7 +135,7 @@ public:
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 	// @todo: above should be: 
 	// EPathFollowingRequestResult::Type MoveToActor(AActor* Goal, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
 	// but parser doesn't like this (it's a bug, when fixed this will be changed)
@@ -141,7 +148,7 @@ public:
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bProjectDestinationToNavigation = false, bool bCanStrafe = true, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = -1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bProjectDestinationToNavigation = false, bool bCanStrafe = true, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 	// @todo: above should be: 
 	// EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
 	// but parser doesn't like this (it's a bug, when fixed this will be changed)
@@ -201,11 +208,11 @@ public:
 
 	/** Starts executing behavior tree. */
 	UFUNCTION(BlueprintCallable, Category="AI")
-	virtual bool RunBehaviorTree(class UBehaviorTree* BTAsset);
+	virtual bool RunBehaviorTree(UBehaviorTree* BTAsset);
 
 	/** makes AI use specified BB asset */
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	virtual bool UseBlackboard(class UBlackboardData* BlackboardAsset);
+	virtual bool UseBlackboard(UBlackboardData* BlackboardAsset);
 
 	/** Retrieve the final position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI")
@@ -254,12 +261,12 @@ public:
 	// End AActor Interface
 
 	// Begin AController Interface
-	virtual void Possess(class APawn* InPawn) override;
+	virtual void Possess(APawn* InPawn) override;
 	virtual void UnPossess() override;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot) const override;
+	virtual void GrabDebugSnapshot(FVisualLogEntry* Snapshot) const override;
 #endif
 
 	virtual void Reset() override;
@@ -294,7 +301,7 @@ public:
 	//----------------------------------------------------------------------//
 	// IAIPerceptionListenerInterface
 	//----------------------------------------------------------------------//
-	virtual class UAIPerceptionComponent* GetPerceptionComponent() override { return PerceptionComponent; }
+	virtual UAIPerceptionComponent* GetPerceptionComponent() override { return PerceptionComponent; }
 
 	//----------------------------------------------------------------------//
 	// Actions
