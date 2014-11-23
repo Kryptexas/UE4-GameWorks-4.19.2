@@ -4,6 +4,9 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_ConeCheck.generated.h"
 
+class UBlackboardComponent;
+struct FBlackboardKeySelector;
+
 struct FBTConeCheckDecoratorMemory
 {
 	bool bLastRawResult;
@@ -26,21 +29,21 @@ class AIMODULE_API UBTDecorator_ConeCheck : public UBTDecorator
 	
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector ConeOrigin;
+	FBlackboardKeySelector ConeOrigin;
 
 	/** "None" means "use ConeOrigin's direction" */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector ConeDirection;
+	FBlackboardKeySelector ConeDirection;
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector Observed;
+	FBlackboardKeySelector Observed;
 	
 	float ConeHalfAngleDot;
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual uint16 GetInstanceMemorySize() const override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR
@@ -49,14 +52,14 @@ class AIMODULE_API UBTDecorator_ConeCheck : public UBTDecorator
 
 protected:
 
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	void OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
+	void OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
 
 	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	
 	bool CalculateDirection(const UBlackboardComponent* BlackboardComp, const FBlackboardKeySelector& Origin, const FBlackboardKeySelector& End, FVector& Direction) const;
 
 private:
-	bool CalcConditionImpl(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	bool CalcConditionImpl(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
 };

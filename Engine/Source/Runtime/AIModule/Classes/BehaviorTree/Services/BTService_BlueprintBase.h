@@ -4,6 +4,8 @@
 #include "BehaviorTree/BTService.h"
 #include "BTService_BlueprintBase.generated.h"
 
+class FBehaviorBlueprintDetails;
+
 /**
  *  Base class for blueprint based service nodes. Do NOT use it for creating native c++ classes!
  *
@@ -19,8 +21,8 @@ class AIMODULE_API UBTService_BlueprintBase : public UBTService
 
 	virtual void PostInitProperties() override;
 
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
-	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp) override;
 
 	virtual void SetOwner(AActor* ActorOwner) override;
 
@@ -59,10 +61,10 @@ protected:
 	/** set if ReceiveSearchStart is implemented by blueprint */
 	uint32 ReceiveSearchStartImplementations : 2;
 
-	virtual void OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-	virtual void OnSearchStart(struct FBehaviorTreeSearchData& SearchData) override;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void OnSearchStart(FBehaviorTreeSearchData& SearchData) override;
 
 	/** tick function
 	 *	@Note that if both generic and AI event versions are implemented only the more
@@ -120,5 +122,5 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsServiceActive() const;
 
-	friend class FBehaviorBlueprintDetails;
+	friend FBehaviorBlueprintDetails;
 };

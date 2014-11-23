@@ -26,11 +26,11 @@ class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 	
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector ConeOrigin;
+	FBlackboardKeySelector ConeOrigin;
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector Observed;
+	FBlackboardKeySelector Observed;
 
 	// deprecated, set value of ConeOrigin on initialization
 	UPROPERTY()
@@ -44,7 +44,7 @@ class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual uint16 GetInstanceMemorySize() const override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR

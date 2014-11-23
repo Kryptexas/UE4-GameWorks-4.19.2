@@ -6,10 +6,12 @@
 #include "AIResourceInterface.h"
 #include "BrainComponent.generated.h"
 
+class AController;
 class AAIController;
 class UBlackboardComponent;
 class UBrainComponent;
 struct FAIMessage;
+class APawn;
 
 DECLARE_DELEGATE_TwoParams(FOnAIMessage, UBrainComponent*, const FAIMessage&);
 
@@ -50,11 +52,11 @@ struct AIMODULE_API FAIMessage
 	void ClearFlag(uint8 Flag) { MessageFlags &= ~Flag; }
 	bool HasFlag(uint8 Flag) const { return (MessageFlags & Flag) != 0; }
 
-	static void Send(class AController* Controller, const FAIMessage& Message);
-	static void Send(class APawn* Pawn, const FAIMessage& Message);
-	static void Send(class UBrainComponent* BrainComp, const FAIMessage& Message);
+	static void Send(AController* Controller, const FAIMessage& Message);
+	static void Send(APawn* Pawn, const FAIMessage& Message);
+	static void Send(UBrainComponent* BrainComp, const FAIMessage& Message);
 
-	static void Broadcast(class UObject* WorldContextObject, const FAIMessage& Message);
+	static void Broadcast(UObject* WorldContextObject, const FAIMessage& Message);
 };
 
 typedef TSharedPtr<struct FAIMessageObserver, ESPMode::Fast> FAIMessageObserverHandle;
@@ -63,8 +65,8 @@ struct AIMODULE_API FAIMessageObserver : public TSharedFromThis<FAIMessageObserv
 {
 public:
 
-	static FAIMessageObserverHandle Create(class AController* Controller, FName MessageType, FOnAIMessage const& Delegate);
-	static FAIMessageObserverHandle Create(class AController* Controller, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
+	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, FOnAIMessage const& Delegate);
+	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
 
 	static FAIMessageObserverHandle Create(APawn* Pawn, FName MessageType, FOnAIMessage const& Delegate);
 	static FAIMessageObserverHandle Create(APawn* Pawn, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
@@ -83,7 +85,7 @@ public:
 
 private:
 
-	void Register(class UBrainComponent* OwnerComp);
+	void Register(UBrainComponent* OwnerComp);
 	void Unregister();
 
 	/** observed message type */

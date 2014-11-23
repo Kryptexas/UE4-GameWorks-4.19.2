@@ -4,6 +4,11 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_BlueprintBase.generated.h"
 
+class UBlackboardComponent;
+class UBehaviorTreeComponent;
+class FBehaviorBlueprintDetails;
+struct FBehaviorTreeSearchData;
+
 /**
  *  Base class for blueprint based decorator nodes. Do NOT use it for creating native c++ classes!
  *
@@ -30,12 +35,12 @@ class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 	virtual void PostInitProperties() override;
 
 	/** notify about changes in blackboard */
-	void OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
+	void OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
 
 	virtual FString GetStaticDescription() const override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
-	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual void OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp) override;
 
 	virtual void SetOwner(AActor* ActorOwner) override;
 
@@ -88,8 +93,8 @@ protected:
 	
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) override;
-	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) override;
+	virtual void OnNodeActivation(FBehaviorTreeSearchData& SearchData) override;
+	virtual void OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) override;
 	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 	/** tick function
@@ -182,5 +187,5 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsDecoratorObserverActive() const;
 
-	friend class FBehaviorBlueprintDetails;
+	friend FBehaviorBlueprintDetails;
 };

@@ -9,6 +9,11 @@
 
 class AActor;
 class AController;
+class ANavigationData;
+class INavAgentInterface;
+class UNavLinkCustomComponent;
+class UCanvas;
+class UPathFollowingComponent;
 
 UCLASS(config=Engine)
 class AIMODULE_API UNavigationComponent : public UActorComponent, public INavigationPathGenerator
@@ -34,7 +39,7 @@ public:
 	// End UActorComponent Interface
 
 	// Begin INavigationPathGenerator Interface
-	virtual FNavPathSharedPtr GetGeneratedPath(class INavAgentInterface* Agent) override { return Path; }
+	virtual FNavPathSharedPtr GetGeneratedPath(INavAgentInterface* Agent) override { return Path; }
 	// End INavigationPathGenerator Interface
 
 	/** updates cached pointers to relevant owner's components */
@@ -48,10 +53,10 @@ public:
 	//----------------------------------------------------------------------//
 	
 	/** Retrieves ANavigationData instance being a context to this NavigationComponent. */
-	FORCEINLINE const class ANavigationData* GetNavData() const { return MyNavData ? MyNavData : PickNavData(); }
+	FORCEINLINE const ANavigationData* GetNavData() const { return MyNavData ? MyNavData : PickNavData(); }
 	
 	/** Retrieves ANavigationData instance being a context to this NavigationComponent. */
-	FORCEINLINE class ANavigationData* GetNavData() { return MyNavData ? MyNavData : PickNavData(); }
+	FORCEINLINE ANavigationData* GetNavData() { return MyNavData ? MyNavData : PickNavData(); }
 
 	/** Returns a random location on the navmesh. */
 	FNavLocation GetRandomPointOnNavMesh() const;
@@ -157,7 +162,7 @@ public:
 	void SetRepathWhenInvalid(bool bEnabled);
 
 	UFUNCTION()
-	virtual void OnNavDataRegistered(class ANavigationData* NavData);
+	virtual void OnNavDataRegistered(ANavigationData* NavData);
 
 	/** 
 	 *	Called when given path becomes invalid (via @see PathObserverDelegate)
@@ -166,7 +171,7 @@ public:
 	virtual void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
 
 	/** Called when nearby custom link changes its state */
-	virtual void OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink);
+	virtual void OnCustomLinkBroadcast(UNavLinkCustomComponent* NearbyLink);
 
 	/** set whether this component should receive update broadcasts from nearby smart links or not */
 	void SetReceiveSmartLinkUpdates(bool bEnabled);
@@ -194,14 +199,14 @@ public:
 #endif // ENABLE_VISUAL_LOG
 
 	/** quick and dirty debug render. If Canvas not NULL additional data (if present) will be drawn */
-	void DrawDebugCurrentPath(class UCanvas* Canvas = NULL, FColor PathColor = FColor::White, const uint32 NextPathPointIndex = 0);
+	void DrawDebugCurrentPath(UCanvas* Canvas = NULL, FColor PathColor = FColor::White, const uint32 NextPathPointIndex = 0);
 
 
 protected:
 
 	/** associated path following component */
 	UPROPERTY(transient)
-	class UPathFollowingComponent* PathFollowComp;
+	UPathFollowingComponent* PathFollowComp;
 
 	/** default query extent to use. It's a sum of navigation data's default query extent and nav agent's size */
 	mutable FVector NavigationQueryExtent;
@@ -283,7 +288,7 @@ protected:
 	FDeferredRepath RepathData;
 
 	/** asks NavigationSystem for NavigationData appropriate for self and caches it in MyNavData */
-	class ANavigationData* PickNavData() const;
+	ANavigationData* PickNavData() const;
 
 	/** called as part of PickNavData to update NavigationQueryExtent */
 	virtual void CacheNavQueryExtent() const;

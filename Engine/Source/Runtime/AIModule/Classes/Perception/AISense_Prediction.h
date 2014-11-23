@@ -6,24 +6,26 @@
 #include "Perception/AISense.h"
 #include "AISense_Prediction.generated.h"
 
+class UAISense_Prediction;
+
 USTRUCT()
 struct AIMODULE_API FAIPredictionEvent
 {	
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISense_Prediction FSenseClass;
+	typedef UAISense_Prediction FSenseClass;
 	
 	UPROPERTY()
-	class AActor* Requestor;
+	AActor* Requestor;
 
 	UPROPERTY()
-	class AActor* PredictedActor;
+	AActor* PredictedActor;
 
 	float TimeToPredict;
 		
 	FAIPredictionEvent(){}
 	
-	FAIPredictionEvent(class AActor* InRequestor, class AActor* InPredictedActor, float PredictionTime)
+	FAIPredictionEvent(AActor* InRequestor, AActor* InPredictedActor, float PredictionTime)
 		: Requestor(InRequestor), PredictedActor(InPredictedActor), TimeToPredict(PredictionTime)
 	{
 	}

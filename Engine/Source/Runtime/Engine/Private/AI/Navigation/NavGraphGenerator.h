@@ -4,13 +4,15 @@
 
 #include "AI/NavDataGenerator.h"
 
+class ANavigationGraph;
+
 /**
  * Class that handles generation of the ANavigationGraph data
  */
 class FNavGraphGenerator : public FNavDataGenerator
 {
 public:
-	FNavGraphGenerator(class ANavigationGraph* InDestNavGraph);
+	FNavGraphGenerator(ANavigationGraph* InDestNavGraph);
 	virtual ~FNavGraphGenerator();
 
 private:
@@ -36,7 +38,7 @@ private:
 
 	FCriticalSection GraphChangingLock;
 
-	class ANavigationGraph* DestNavGraph;
+	ANavigationGraph* DestNavGraph;
 
 	uint32 bInitialized:1;
 };

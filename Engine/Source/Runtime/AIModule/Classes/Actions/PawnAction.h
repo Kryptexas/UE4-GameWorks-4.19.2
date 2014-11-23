@@ -5,9 +5,13 @@
 #include "BrainComponent.h"
 #include "PawnAction.generated.h"
 
+class APawn;
+class AController;
 class UPawnAction;
 class UPawnActionsComponent;
 class UBrainComponent;
+struct FPawnActionStack;
+struct FAIMessage;
 
 UENUM()
 namespace EPawnSubActionTriggeringPolicy
@@ -42,7 +46,7 @@ class AIMODULE_API UPawnAction : public UObject
 	GENERATED_UCLASS_BODY()
 
 	friend UPawnActionsComponent;
-	friend struct FPawnActionStack;
+	friend FPawnActionStack;
 
 private:
 	/** Current child node executing on top of this Action */
@@ -159,8 +163,8 @@ public:
 	FORCEINLINE EPawnActionAbortState::Type GetAbortState() const { return AbortState; }
 	FORCEINLINE UPawnActionsComponent* GetOwnerComponent() const { return OwnerComponent; }
 	FORCEINLINE UObject* GetInstigator() const { return Instigator; }
-	class APawn* GetPawn();
-	class AController* GetController();
+	APawn* GetPawn();
+	AController* GetController();
 
 	template<class TActionClass>
 	static TActionClass* CreateActionInstance(UWorld& World)
@@ -174,7 +178,7 @@ public:
 	//----------------------------------------------------------------------//
 	void WaitForMessage(FName MessageType, FAIRequestID RequestID = FAIRequestID::AnyRequest);
 	// @note this function will change its signature once AI messaging is rewritten @todo
-	virtual void HandleAIMessage(UBrainComponent*, const struct FAIMessage&){};
+	virtual void HandleAIMessage(UBrainComponent*, const FAIMessage&){};
 
 	void SetActionObserver(const FPawnActionEventDelegate& ActionObserver) { this->ActionObserver = ActionObserver; }
 

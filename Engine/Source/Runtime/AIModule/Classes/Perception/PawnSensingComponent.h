@@ -6,6 +6,8 @@
 #include "PawnSensingComponent.generated.h"
 
 class UPawnNoiseEmitterComponent;
+class AActor;
+class APawn;
 
 /**
  * SensingComponent encapsulates sensory (ie sight and hearing) settings and functionality for an Actor,
@@ -83,23 +85,23 @@ public:
 	uint32 bHearNoises:1;
 
 	/** Is the given actor our owner? Used to ensure that we are not trying to sense our self / our owner. */
-	virtual bool IsSensorActor(const class AActor* Actor) const;
+	virtual bool IsSensorActor(const AActor* Actor) const;
 
 	/** Are we capable of sensing anything (and do we have any callbacks that care about sensing)? If so UpdateAISensing() will be called every sensing interval. */
 	virtual bool CanSenseAnything() const;
 
 	/** Returns true if we should check whether the given Pawn is visible (because we can see things, the Pawn is not hidden, and if the Pawn is a player and we only see players) */
-	virtual bool ShouldCheckVisibilityOf(class APawn* Pawn) const;
+	virtual bool ShouldCheckVisibilityOf(APawn* Pawn) const;
 
 	/** 
 	 * Chance of seeing other pawn decreases with increasing distance or angle in peripheral vision
 	 * @param bMaySkipChecks if true allows checks to be sometimes skipped if target is far away (used by periodic automatic visibility checks)
 	 * @return true if the specified pawn Other is potentially visible (within peripheral vision, etc.) - still need to do LineOfSightTo() check to see if actually visible.  
 	 */
-	virtual bool CouldSeePawn(const class APawn* Other, bool bMaySkipChecks = false) const;
+	virtual bool CouldSeePawn(const APawn* Other, bool bMaySkipChecks = false) const;
 
 	/** Returns true if we should check whether we can hear the given Pawn (because we are able to hear, and the Pawn has the correct team relationship to us) */
-	virtual bool ShouldCheckAudibilityOf(class APawn* Pawn) const;
+	virtual bool ShouldCheckAudibilityOf(APawn* Pawn) const;
 
 	/**
 	 * Check line to other actor.
@@ -107,7 +109,7 @@ public:
 	 * @param ViewPoint is eye position visibility is being checked from.
 	 * @return true if controller's pawn can see Other actor.
 	 */
-	virtual bool HasLineOfSightTo(const class AActor* Other) const;
+	virtual bool HasLineOfSightTo(const AActor* Other) const;
 
 	/** Test whether the noise is loud enough and recent enough to care about.  bSourceWithinNoiseEmitter is true iff the 
 	 * noise was made by the pawn itself or within close proximity (its collision volume).  Otherwise the noise was made

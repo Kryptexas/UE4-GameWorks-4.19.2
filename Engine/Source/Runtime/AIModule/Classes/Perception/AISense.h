@@ -5,6 +5,7 @@
 #include "AIPerceptionTypes.h"
 #include "AISense.generated.h"
 
+class AActor;
 class UAIPerceptionSystem;
 
 DECLARE_DELEGATE_OneParam(FOnPerceptionListenerUpdateDelegate, const FPerceptionListener&);

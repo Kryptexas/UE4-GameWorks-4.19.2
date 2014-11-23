@@ -7,6 +7,9 @@
 #include "EnvQueryDebugHelpers.h"
 #include "EQSRenderingComponent.generated.h"
 
+class IEQSQueryResultSourceInterface;
+struct FEnvQueryInstance;
+
 class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
 {
 public:
@@ -18,14 +21,14 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 
 #if  USE_EQS_DEBUGGER 
-	static void CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* QueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, TArray<EQSDebug::FDebugHelper>& DebugItems);
-	static void CollectEQSData(const FEnvQueryResult* ResultItems, const struct FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems, TArray<EQSDebug::FDebugHelper>& DebugItems);
+	static void CollectEQSData(const UPrimitiveComponent* InComponent, const IEQSQueryResultSourceInterface* QueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, TArray<EQSDebug::FDebugHelper>& DebugItems);
+	static void CollectEQSData(const FEnvQueryResult* ResultItems, const FEnvQueryInstance* QueryInstance, TArray<FSphere>& Spheres, TArray<FText3d>& Texts, bool ShouldDrawFailedItems, TArray<EQSDebug::FDebugHelper>& DebugItems);
 #endif
 private:
 	FEnvQueryResult QueryResult;	
 	// can be 0
 	AActor* ActorOwner;
-	const class IEQSQueryResultSourceInterface* QueryDataSource;
+	const IEQSQueryResultSourceInterface* QueryDataSource;
 	bool bDrawOnlyWhenSelected;
 
 	static const FVector ItemDrawRadius;

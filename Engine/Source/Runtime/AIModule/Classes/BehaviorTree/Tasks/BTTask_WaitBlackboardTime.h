@@ -14,7 +14,7 @@ class AIMODULE_API UBTTask_WaitBlackboardTime : public UBTTask_Wait
 	GENERATED_UCLASS_BODY()
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual FString GetStaticDescription() const override;
 
 	/** get name of selected blackboard key */

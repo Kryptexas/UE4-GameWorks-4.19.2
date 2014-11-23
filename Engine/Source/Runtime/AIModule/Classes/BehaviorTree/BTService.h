@@ -37,7 +37,7 @@ class AIMODULE_API UBTService : public UBTAuxiliaryNode
 
 	virtual FString GetStaticDescription() const override;
 
-	void NotifyParentActivation(struct FBehaviorTreeSearchData& SearchData);
+	void NotifyParentActivation(FBehaviorTreeSearchData& SearchData);
 
 protected:
 
@@ -63,7 +63,7 @@ protected:
 	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 	/** called when search enters underlying branch */
-	virtual void OnSearchStart(struct FBehaviorTreeSearchData& SearchData);
+	virtual void OnSearchStart(FBehaviorTreeSearchData& SearchData);
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

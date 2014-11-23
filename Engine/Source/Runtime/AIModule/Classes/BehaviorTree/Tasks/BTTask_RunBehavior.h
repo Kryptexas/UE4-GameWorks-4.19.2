@@ -25,7 +25,7 @@ class AIMODULE_API UBTTask_RunBehavior : public UBTTaskNode
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual uint16 GetInstanceMemorySize() const override;
-	virtual void CleanupMemory(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const override;
+	virtual void CleanupMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const override;
 	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR
@@ -39,19 +39,19 @@ class AIMODULE_API UBTTask_RunBehavior : public UBTTaskNode
 	int32 GetInjectedNodesCount() const;
 
 	/** @returns subtree asset */
-	class UBehaviorTree* GetSubtreeAsset() const;
+	UBehaviorTree* GetSubtreeAsset() const;
 
 protected:
 
 	/** behavior to run */
 	UPROPERTY(Category = Node, EditAnywhere)
-	class UBehaviorTree* BehaviorAsset;
+	UBehaviorTree* BehaviorAsset;
 };
 
 //////////////////////////////////////////////////////////////////////////
 // Inlines
 
-FORCEINLINE class UBehaviorTree* UBTTask_RunBehavior::GetSubtreeAsset() const
+FORCEINLINE UBehaviorTree* UBTTask_RunBehavior::GetSubtreeAsset() const
 {
 	return BehaviorAsset;
 }

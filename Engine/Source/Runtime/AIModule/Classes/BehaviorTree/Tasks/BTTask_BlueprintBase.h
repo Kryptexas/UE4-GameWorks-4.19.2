@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "BehaviorTree/BTTaskNode.h"
 #include "BTTask_BlueprintBase.generated.h"
+
+class FBehaviorBlueprintDetails;
 
 /**
  *  Base class for blueprint based task nodes. Do NOT use it for creating native c++ classes!
@@ -19,12 +23,12 @@ class AIMODULE_API UBTTask_BlueprintBase : public UBTTaskNode
 	/** setup node name */
 	virtual void PostInitProperties() override;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual EBTNodeResult::Type AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 
 	virtual FString GetStaticDescription() const override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
-	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp) override;
 
 	virtual void SetOwner(AActor* ActorOwner) override;
 
@@ -124,7 +128,7 @@ protected:
 	bool IsTaskExecuting() const;
 	
 	/** ticks this task */
-	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
-	friend class FBehaviorBlueprintDetails;
+	friend FBehaviorBlueprintDetails;
 };

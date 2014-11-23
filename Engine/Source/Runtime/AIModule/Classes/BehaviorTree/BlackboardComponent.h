@@ -19,6 +19,7 @@
 
 class UBlackboardData;
 class UBrainComponent;
+class UBlackboardKeyType;
 
 namespace EBlackboardDescription
 {
@@ -68,7 +69,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	void ResumeUpdates();
 
 	/** @return associated behavior tree component */
-	class UBrainComponent* GetBrainComponent() const;
+	UBrainComponent* GetBrainComponent() const;
 
 	/** @return blackboard data asset */
 	UBlackboardData* GetBlackboardAsset() const;
@@ -199,7 +200,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	FORCEINLINE bool IsValidKey(FBlackboard::FKey KeyID) const { check(BlackboardAsset); return KeyID != FBlackboard::InvalidKey && BlackboardAsset->Keys.IsValidIndex(KeyID); }
 
 	/** compares blackboard's values under specified keys */
-	EBlackboardCompare::Type CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const;
+	EBlackboardCompare::Type CompareKeyValues(TSubclassOf<UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const;
 
 	FString GetDebugInfoString(EBlackboardDescription::Type Mode) const;
 

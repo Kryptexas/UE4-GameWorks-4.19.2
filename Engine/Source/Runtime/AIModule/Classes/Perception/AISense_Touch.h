@@ -6,24 +6,26 @@
 #include "Perception/AISense.h"
 #include "AISense_Touch.generated.h"
 
+class UAISense_Touch;
+
 USTRUCT()
 struct AIMODULE_API FAITouchEvent
 {	
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISense_Touch FSenseClass;
+	typedef UAISense_Touch FSenseClass;
 
 	FVector Location;
 	
 	UPROPERTY()
-	class AActor* TouchReceiver;
+	AActor* TouchReceiver;
 
 	UPROPERTY()
-	class AActor* OtherActor;
+	AActor* OtherActor;
 		
 	FAITouchEvent(){}
 	
-	FAITouchEvent(class AActor* InTouchReceiver, class AActor* InOtherActor, const FVector& EventLocation)
+	FAITouchEvent(AActor* InTouchReceiver, AActor* InOtherActor, const FVector& EventLocation)
 		: Location(EventLocation), TouchReceiver(InTouchReceiver), OtherActor(InOtherActor)
 	{
 	}

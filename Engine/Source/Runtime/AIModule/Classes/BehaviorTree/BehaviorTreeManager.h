@@ -4,6 +4,9 @@
 #include "BehaviorTreeManager.generated.h"
 
 class UBehaviorTreeComponent;
+class UBTCompositeNode;
+class UBTDecorator;
+class UBehaviorTree;
 
 USTRUCT()
 struct FBehaviorTreeTemplateInfo
@@ -12,11 +15,11 @@ struct FBehaviorTreeTemplateInfo
 
 	/** behavior tree asset */
 	UPROPERTY()
-	class UBehaviorTree* Asset;
+	UBehaviorTree* Asset;
 
 	/** initialized template */
 	UPROPERTY(transient)
-	class UBTCompositeNode* Template;
+	UBTCompositeNode* Template;
 
 	/** size required for instance memory */
 	uint16 InstanceMemorySize;
@@ -32,13 +35,13 @@ class AIMODULE_API UBehaviorTreeManager : public UObject
 	int32 MaxDebuggerSteps;
 
 	/** get behavior tree template for given blueprint */
-	bool LoadTree(UBehaviorTree& Asset, class UBTCompositeNode*& Root, uint16& InstanceMemorySize);
+	bool LoadTree(UBehaviorTree& Asset, UBTCompositeNode*& Root, uint16& InstanceMemorySize);
 
 	/** get aligned memory size */
 	static int32 GetAlignedDataSize(int32 Size);
 
 	/** helper function for sorting and aligning node memory */
-	static void InitializeMemoryHelper(const TArray<class UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize);
+	static void InitializeMemoryHelper(const TArray<UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize);
 
 	/** cleanup hooks for map loading */
 	virtual void FinishDestroy() override;

@@ -8,6 +8,7 @@
 
 class IAISightTargetInterface;
 class UAISenseConfig_Sight;
+class UAISense_Sight;
 
 namespace ESightPerceptionEventName
 {
@@ -24,20 +25,20 @@ struct AIMODULE_API FAISightEvent
 {
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISense_Sight FSenseClass;
+	typedef UAISense_Sight FSenseClass;
 
 	float Age;
 	ESightPerceptionEventName::Type EventType;	
 
 	UPROPERTY()
-	class AActor* SeenActor;
+	AActor* SeenActor;
 
 	UPROPERTY()
-	class AActor* Observer;
+	AActor* Observer;
 
 	FAISightEvent(){}
 
-	FAISightEvent(class AActor* InSeenActor, class AActor* InObserver, ESightPerceptionEventName::Type InEventType)
+	FAISightEvent(AActor* InSeenActor, AActor* InObserver, ESightPerceptionEventName::Type InEventType)
 		: Age(0.f), EventType(InEventType), SeenActor(InSeenActor), Observer(InObserver)
 	{
 	}
@@ -53,7 +54,7 @@ struct FAISightTarget
 	FGenericTeamId TeamId;
 	FTargetId TargetId;
 
-	FAISightTarget(class AActor* InTarget = NULL, FGenericTeamId InTeamId = FGenericTeamId::NoTeam);
+	FAISightTarget(AActor* InTarget = NULL, FGenericTeamId InTeamId = FGenericTeamId::NoTeam);
 
 	FORCEINLINE FVector GetLocationSimple() const
 	{

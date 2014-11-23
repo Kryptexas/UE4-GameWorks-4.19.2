@@ -29,7 +29,7 @@ class AIMODULE_API UPawnAction_Repeat : public UPawnAction
 	EPawnSubActionTriggeringPolicy::Type SubActionTriggeringPolicy;
 
 	/** @param NumberOfRepeats number of times to repeat action. UPawnAction_Repeat::LoopForever loops forever */
-	static UPawnAction_Repeat* CreateAction(UWorld& World, class UPawnAction* ActionToRepeat, int32 NumberOfRepeats, EPawnSubActionTriggeringPolicy::Type InSubActionTriggeringPolicy = EPawnSubActionTriggeringPolicy::CopyBeforeTriggering);
+	static UPawnAction_Repeat* CreateAction(UWorld& World, UPawnAction* ActionToRepeat, int32 NumberOfRepeats, EPawnSubActionTriggeringPolicy::Type InSubActionTriggeringPolicy = EPawnSubActionTriggeringPolicy::CopyBeforeTriggering);
 
 protected:
 	virtual bool Start() override;
