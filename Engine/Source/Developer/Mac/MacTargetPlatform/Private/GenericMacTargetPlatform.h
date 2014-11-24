@@ -122,12 +122,6 @@ return TSuper::SupportsFeature(Feature);
 			// no textures needed for dedicated server target
 			OutFormats.Add(NAME_None);
 		}
-		else if ( InTexture->CompressionSettings == TC_Alpha)
-		{
-			// no BC4 texture compression on OS X
-			static FName NameG8(TEXT("G8"));
-			OutFormats.Add(NameG8);
-		}
 		else
 		{
 			// just use the standard texture format name for this texture
