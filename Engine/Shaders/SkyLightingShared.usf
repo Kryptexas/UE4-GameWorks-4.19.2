@@ -20,6 +20,7 @@ Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
 float ApplyBentNormalAO;
+float InvSkySpecularOcclusionStrength;
 
 float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness, bool bTwoSidedFoliage)
 {
@@ -29,17 +30,17 @@ float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVect
 	if (ApplyBentNormalAO > 0)
 	{
 		float3 BentNormalAO = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz;
+		float BentNormalLength = length(BentNormalAO);
 
 		BRANCH
 		if (bTwoSidedFoliage)
 		{
-			Visibility = length(BentNormalAO);
+			Visibility = BentNormalLength;
 		}
 		else
 		{
 			float ReflectionConeAngle = Roughness * PI;
-			float BentNormalLength = length(BentNormalAO);
-			float UnoccludedAngle = BentNormalLength * PI;
+			float UnoccludedAngle = BentNormalLength * PI * InvSkySpecularOcclusionStrength;
 			float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
 			Visibility = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
 
