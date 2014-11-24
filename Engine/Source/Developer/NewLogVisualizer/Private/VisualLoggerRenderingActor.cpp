@@ -53,14 +53,7 @@ FPrimitiveSceneProxy* UVisualLoggerRenderingComponent::CreateSceneProxy()
 	}
 
 	FVisualLoggerSceneProxy *SceneProxy = new FVisualLoggerSceneProxy(this);
-	for (FVector& Point : RenderingActor->Points)
-	{
-		FDebugRenderSceneProxy::FSphere Sphere;
-		Sphere.Location = Point;
-		Sphere.Radius = 15;
-		Sphere.Color = FColor::White;
-		SceneProxy->Spheres.Add(Sphere);
-	}
+	SceneProxy->Spheres = RenderingActor->Points;
 	SceneProxy->Lines = RenderingActor->Lines;
 	SceneProxy->Cones = RenderingActor->Cones;
 	SceneProxy->Boxes = RenderingActor->Boxes;
@@ -154,7 +147,7 @@ void AVisualLoggerRenderingActor::AddDebugRendering()
 	}
 	{
 		const float Radius = 50;
-		Points.Add(FVector(1300,0,128));
+		Points.Add(FDebugRenderSceneProxy::FSphere(10, FVector(1300, 0, 128), FColor::White));
 	}
 }
 
@@ -250,7 +243,20 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 		{
 			const float Radius = float(ElementToDraw->Radius);
 			const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
-			Points.Append(ElementToDraw->Points);
+			for (int32 Index=0; Index < ElementToDraw->Points.Num(); ++Index)
+			{
+				const FVector& Point = ElementToDraw->Points[Index];
+				FDebugRenderSceneProxy::FSphere Sphere;
+				Sphere.Location = Point;
+				Sphere.Radius = Radius;
+				Sphere.Color = Color;
+				Points.Add(Sphere);
+				if (bDrawLabel)
+				{
+					const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
+					Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, Point, Color));
+				}
+			}
 		}
 		break;
 		case EVisualLoggerShapeElement::Polygon:

@@ -28,7 +28,7 @@ public:
 	TArray<FDebugRenderSceneProxy::FDebugLine> Lines;
 	TArray<FDebugRenderSceneProxy::FCone> Cones;
 	TArray<FDebugRenderSceneProxy::FDebugBox> Boxes;
-	TArray<FVector> Points;
+	TArray<FDebugRenderSceneProxy::FSphere> Points;
 	TArray<FDebugRenderSceneProxy::FMesh> Meshes;
 	TArray<FDebugRenderSceneProxy::FText3d> Texts;
 	TArray<FDebugRenderSceneProxy::FWireCylinder> Cylinders;

@@ -113,12 +113,13 @@ void AVisualLoggerCameraController::DisableCamera(UWorld* InWorld)
 {
 	check(InWorld);
 	for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
-{
+	{
 		AVisualLoggerCameraController* VLogCam = Cast<AVisualLoggerCameraController>(*Iterator);
 		if (VLogCam && VLogCam->OriginalPlayer)
-	{
-		VLogCam->OriginalPlayer->SwitchController(VLogCam->OriginalControllerRef);
-		VLogCam->OnDeactivate(VLogCam->OriginalControllerRef);
+		{
+			VLogCam->OriginalPlayer->SwitchController(VLogCam->OriginalControllerRef);
+			VLogCam->OnDeactivate(VLogCam->OriginalControllerRef);
+			InWorld->DestroyActor(VLogCam, false, false);
 			break;
 		}
 	}

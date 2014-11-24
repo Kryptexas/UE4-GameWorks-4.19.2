@@ -440,7 +440,7 @@ bool SVisualLogger::HandleCameraCommandIsChecked() const
 bool SVisualLogger::HandleCameraCommandCanExecute() const
 {
 	UWorld* World = VisualLoggerInterface->GetWorld();
-	return FVisualLogger::Get().IsRecording() && World && !World->bPlayersOnly && !World->bPlayersOnlyPending && World->IsPlayInEditor();
+	return FVisualLogger::Get().IsRecording() && World && (World->bPlayersOnly || World->bPlayersOnlyPending) && World->IsPlayInEditor() && (GEditor && !GEditor->bIsSimulatingInEditor);
 }
 
 void SVisualLogger::HandleCameraCommandExecute()
