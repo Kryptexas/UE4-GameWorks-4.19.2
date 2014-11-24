@@ -5,6 +5,8 @@
 #include "FriendsViewModel.h"
 #include "FriendListViewModel.h"
 
+#define LOCTEXT_NAMESPACE "FriendsAndChat"
+
 class FFriendListViewModelImpl
 	: public FFriendListViewModel
 {
@@ -28,6 +30,19 @@ public:
 	virtual int32 GetListCount() const override
 	{
 		return FriendsList.Num();
+	}
+
+	virtual FText GetOnlineCountText() const override
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("ListCount"), FText::AsNumber(OnlineCount));
+		const FText ListCount = FText::Format(LOCTEXT("FFriendListViewModelImpl_ListCount", "{ListCount} / "), Arguments);
+		return ListCount;
+	}
+
+	virtual EVisibility GetOnlineCountVisibility() const
+	{
+		return ListType == EFriendsDisplayLists::DefaultDisplay ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	virtual const FText GetListName() const override
@@ -75,6 +90,7 @@ private:
 		TArray< TSharedPtr< IFriendItem > > OnlineFriendsList;
 		TArray< TSharedPtr< IFriendItem > > OfflineFriendsList;
 		TArray< TSharedPtr< IFriendItem > > FriendItemList;
+		OnlineCount = 0;
 
 		if(ListType == EFriendsDisplayLists::GameInviteDisplay)
 		{
@@ -98,6 +114,7 @@ private:
 							if(FriendItem->IsOnline())
 							{
 								OnlineFriendsList.Add(FriendItem);
+								OnlineCount++;
 							}
 							else
 							{
@@ -168,6 +185,7 @@ private:
 	/** Holds the list of friends. */
 	TArray< TSharedPtr< FFriendViewModel > > FriendsList;
 	FFriendsListUpdated FriendsListUpdatedEvent;
+	int32 OnlineCount;
 
 	friend FFriendListViewModelFactory;
 };
@@ -181,3 +199,5 @@ TSharedRef< FFriendListViewModel > FFriendListViewModelFactory::Create(
 	ViewModel->Initialize();
 	return ViewModel;
 }
+
+#undef LOCTEXT_NAMESPACE

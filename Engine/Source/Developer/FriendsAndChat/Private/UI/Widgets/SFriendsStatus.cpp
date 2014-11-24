@@ -6,10 +6,6 @@
 
 #define LOCTEXT_NAMESPACE "SFriendsStatus"
 
-// Style values that shouldn't change
-#define DROPDOWN_MAX_HEIGHT 36
-#define DROPDOWN_MAX_WIDTH 150
-
 /**
  * Declares the Friends Status display widget
 */
@@ -46,8 +42,8 @@ public:
 					.Cursor(EMouseCursor::Hand)
 					[
 						SNew(SBox)
-						.WidthOverride(DROPDOWN_MAX_WIDTH)
-						.HeightOverride(DROPDOWN_MAX_HEIGHT)
+						.WidthOverride(FriendStyle.ButtonPadding.X)
+						.HeightOverride(FriendStyle.ButtonPadding.Y)
 						.VAlign(VAlign_Center)
 						[
 							SNew(SHorizontalBox)

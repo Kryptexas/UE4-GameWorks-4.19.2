@@ -79,6 +79,17 @@ public:
 							SNew(SSpacer)
 						]
 						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Right)
+						[
+							SNew(STextBlock)
+							.Visibility(ViewModel->GetOnlineCountVisibility())
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.Text(ViewModelPtr, &FFriendListViewModel::GetOnlineCountText)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
 						.HAlign(HAlign_Right)
 						[
 							SNew(STextBlock)

@@ -112,47 +112,33 @@ public:
 					SNew(SScrollBox)
 					+SScrollBox::Slot()
 					[
-						SNew(SVerticalBox)
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.VAlign(VAlign_Top)
-						[
-							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.VAlign(VAlign_Top)
-						[
-							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::FriendRequestsDisplay))
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.VAlign(VAlign_Top)
-						[
-							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.VAlign(VAlign_Top)
-						[
-							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::RecentPlayersDisplay))
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.VAlign(VAlign_Top)
-						[
-							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::OutgoingFriendInvitesDisplay))
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
+						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::FriendRequestsDisplay))
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::RecentPlayersDisplay))
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::OutgoingFriendInvitesDisplay))
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
 					]
 				]
 			]

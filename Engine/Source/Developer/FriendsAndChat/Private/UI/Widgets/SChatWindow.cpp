@@ -84,24 +84,12 @@ public:
 							.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
 							.ContentPadding(FMargin(2, 2.5))
 							.OnClicked(this, &SChatWindowImpl::HandleActionDropDownClicked)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
 							.Cursor(EMouseCursor::Hand)
 							[
-								SNew(SVerticalBox)
-								+SVerticalBox::Slot()
-								.VAlign(VAlign_Top)
-								.HAlign(HAlign_Center)
-								[
-									SNew(SImage)
-									.Image(&FriendStyle.FriendsCalloutBrush)
-								]
-								+SVerticalBox::Slot()
-								.VAlign(VAlign_Top)
-								.HAlign(HAlign_Center)
-								.Padding(FMargin(0,-1,0,1))
-								[
-									SNew(SImage)
-									.Image(this, &SChatWindowImpl::GetChatChannelIcon)
-								]
+								SNew(SImage)
+								.Image(this, &SChatWindowImpl::GetChatChannelIcon)
 							]
 						]
 					]
@@ -206,7 +194,7 @@ public:
 							+SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Center)
-								.Padding(0, 0, 5, 0)
+							.Padding(0, 0, 5, 0)
 							[
 								SNew(SButton)
 								.Visibility(ViewModelPtr, &FChatViewModel::GetInviteToGameVisibility)
@@ -225,7 +213,7 @@ public:
 							+ SHorizontalBox::Slot()
 							.HAlign(HAlign_Right)
 							.VAlign(VAlign_Center)
-								.Padding(0, 0, 5, 0)
+							.Padding(0, 0, 5, 0)
 							.AutoWidth()
 							[
 								SNew(SButton)

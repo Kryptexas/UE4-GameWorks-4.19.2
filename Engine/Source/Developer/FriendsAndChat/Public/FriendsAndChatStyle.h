@@ -88,6 +88,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle AddFriendCloseButtonStyle;
 	FFriendsAndChatStyle& SetAddFriendCloseButtonStyle(const FButtonStyle& ButtonStyle);
 
+	/** Add Friend button style */
+	UPROPERTY()
+	FButtonStyle AddFriendButtonStyle;
+	FFriendsAndChatStyle& SetAddFriendButtonStyle(const FButtonStyle& ButtonStyle);
+
 	/** Title Bar brush style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush TitleBarBrush;
@@ -242,4 +247,9 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FCheckBoxStyle FriendCheckboxStyle;
 	FFriendsAndChatStyle& SetFriendCheckboxStyle(const FCheckBoxStyle& InFriendCheckboxStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FVector2D ButtonPadding;
+	FFriendsAndChatStyle& SetButtonPadding(const FVector2D& ButtonPadding);
+
 };

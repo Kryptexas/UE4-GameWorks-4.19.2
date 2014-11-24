@@ -30,6 +30,11 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendCloseButtonStyle(const F
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonStyle(const FButtonStyle& InButtonStyle)
+{
+	AddFriendButtonStyle = InButtonStyle;
+	return *this;
+}
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle)
 {
@@ -264,6 +269,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatEditableTextStyle(const FEdit
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendCheckboxStyle(const FCheckBoxStyle& InFriendCheckboxStyle)
 {
 	FriendCheckboxStyle = InFriendCheckboxStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetButtonPadding(const FVector2D& Padding)
+{
+	ButtonPadding = Padding;
 	return *this;
 }
 
