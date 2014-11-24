@@ -189,11 +189,6 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 			[View setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
 			
 			[SuperView addSubview:View];
-			
-			NSRect NewRect = [Window frame];
-			NewRect.size.height -= 22;
-			
-			[Window setFrame:NewRect display:YES];
 		}
 		else
 		{
