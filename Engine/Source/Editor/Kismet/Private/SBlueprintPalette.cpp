@@ -689,10 +689,11 @@ public:
 	 * @param  ActionPtrIn		The FEdGraphSchemaAction that the parent item represents.
 	 * @param  BlueprintEdPtrIn	A pointer to the blueprint editor that the palette belongs to.
 	 */
-	void Construct(const FArguments& InArgs, TWeakPtr<FEdGraphSchemaAction> ActionPtrIn, TWeakPtr<FBlueprintEditor> BlueprintEdPtrIn)
+	void Construct(const FArguments& InArgs, TWeakPtr<FEdGraphSchemaAction> ActionPtrIn, TWeakPtr<FBlueprintEditor> InBlueprintEditor, UBlueprint* InBlueprint)
 	{
 		ActionPtr = ActionPtrIn;
-		BlueprintEditorPtr = BlueprintEdPtrIn;
+		BlueprintEditorPtr = InBlueprintEditor;
+		BlueprintObj = InBlueprint;
 		TSharedPtr<FEdGraphSchemaAction> PaletteAction = ActionPtrIn.Pin();
 
 		bool bShouldHaveAVisibilityToggle = false;
@@ -702,7 +703,7 @@ public:
 			UObjectProperty* VariableObjProp = Cast<UObjectProperty>(VariableProp);
 
 			UStruct* VarSourceScope = (VariableProp != NULL) ? CastChecked<UStruct>(VariableProp->GetOuter()) : NULL;
-			const bool bIsBlueprintVariable = (VarSourceScope == BlueprintEditorPtr.Pin()->GetBlueprintObj()->SkeletonGeneratedClass);
+			const bool bIsBlueprintVariable = (VarSourceScope == BlueprintObj->SkeletonGeneratedClass);
 			const bool bIsComponentVar = (VariableObjProp != NULL) && (VariableObjProp->PropertyClass != NULL) && (VariableObjProp->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
 			bShouldHaveAVisibilityToggle = bIsBlueprintVariable && !bIsComponentVar;
 		}
@@ -766,13 +767,17 @@ private:
 	 */
 	void OnVisibilityToggleFlipped(ESlateCheckBoxState::Type InNewState)
 	{
+		if( !BlueprintEditorPtr.IsValid() )
+		{
+			return;
+		}
+
 		TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 		// Toggle the flag on the blueprint's version of the variable description, based on state
 		const bool bVariableIsExposed = (InNewState == ESlateCheckBoxState::Checked);
 
-		UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-		FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(Blueprint, VarAction->GetVariableName(), !bVariableIsExposed);
+		FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(BlueprintObj, VarAction->GetVariableName(), !bVariableIsExposed);
 	}
 
 	/**
@@ -806,7 +811,7 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
 
 			if(!Result.IsEmpty())
 			{
@@ -838,7 +843,7 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
 			if(!Result.IsEmpty())
 			{
 				ToolTip = LOCTEXT("VariablePrivacy_is_public_Tooltip", "Variable is public and is editable on each instance of this Blueprint.").ToString();
@@ -855,8 +860,11 @@ private:
 	/** The action that the owning palette entry represents */
 	TWeakPtr<FEdGraphSchemaAction> ActionPtr;
 
-	/** Pointer back to the blueprint editor that owns this */
+	/** Pointer back to the blueprint editor that owns this, optional because of diff and merge views: */
 	TWeakPtr<FBlueprintEditor>     BlueprintEditorPtr;
+
+	/** Pointer back to the blueprint that is being diplayed: */
+	UBlueprint* BlueprintObj;
 };
 
 /*******************************************************************************
@@ -867,8 +875,20 @@ private:
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
 {
+	Construct(InArgs, InCreateData, InBlueprintEditor.Pin()->GetBlueprintObj(), InBlueprintEditor);
+}
+
+void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData, UBlueprint* InBlueprint)
+{
+	Construct( InArgs, InCreateData, InBlueprint, TWeakPtr<FBlueprintEditor>() );
+}
+
+void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData, UBlueprint* InBlueprint, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
+{
 	check(InCreateData->Action.IsValid());
-	check(InBlueprintEditor.IsValid());
+	check(InBlueprint);
+
+	Blueprint = InBlueprint;
 
 	bShowClassInTooltip = InArgs._ShowClassInTooltip;	
 
@@ -881,7 +901,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FSlateColor        IconColor   = FSlateColor::UseForeground();
 	FString            IconToolTip = GraphAction->TooltipDescription;
 	FString			   IconDocLink, IconDocExcerpt;
-	GetPaletteItemIcon(GraphAction, InBlueprintEditor.Pin()->GetBlueprintObj(), IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt);
+	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(IconToolTip, IconBrush, IconColor, IconDocLink, IconDocExcerpt);
 
 	// Setup a meta tag for this node
@@ -893,7 +913,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	}
 	// construct the text widget
 	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
-	bool bIsReadOnly = FBlueprintEditorUtils::IsPaletteActionReadOnly(GraphAction, InBlueprintEditor.Pin());
+	bool bIsReadOnly = InBlueprintEditor.IsValid() ? FBlueprintEditorUtils::IsPaletteActionReadOnly(GraphAction, InBlueprintEditor.Pin()) : true;
 	TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, bIsReadOnly );
 	
 	// now, create the actual widget
@@ -921,7 +941,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			.Padding(FMargin(3,0))
 			.VAlign(VAlign_Center)
 		[
-			SNew(SPaletteItemVisibilityToggle, ActionPtr, BlueprintEditorPtr)
+			SNew(SPaletteItemVisibilityToggle, ActionPtr, InBlueprintEditor, InBlueprint)
 		]
 	];
 }
@@ -1345,7 +1365,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			}
 			else
 			{
-				FString Result = GetVarTooltip(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarClass, VarAction->GetVariableName());
+				FString Result = GetVarTooltip(Blueprint, VarClass, VarAction->GetVariableName());
 				// Only use the variable tooltip if it has been filled out.
 				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(VarClass, VarAction->GetVariableName(), true, true);
 			}
@@ -1362,7 +1382,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			else
 			{
 				FString Result;
-				FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableName(), LocalVarAction->GetVariableScope(), TEXT("tooltip"), Result);
+				FBlueprintEditorUtils::GetBlueprintVariableMetaData(Blueprint, LocalVarAction->GetVariableName(), LocalVarAction->GetVariableScope(), TEXT("tooltip"), Result);
 				// Only use the variable tooltip if it has been filled out.
 				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), true, true);
 			}
@@ -1371,7 +1391,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 		{
 			FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)PaletteAction.Get();
 			
-			FString Result = GetVarTooltip(BlueprintEditorPtr.Pin()->GetBlueprintObj(), DelegateAction->GetDelegateClass(), DelegateAction->GetDelegateName());
+			FString Result = GetVarTooltip(Blueprint, DelegateAction->GetDelegateClass(), DelegateAction->GetDelegateName());
 			ToolTipText = !Result.IsEmpty() ? Result : DelegateAction->GetDelegateName().ToString();
 		}
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())

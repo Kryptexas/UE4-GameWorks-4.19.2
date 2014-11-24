@@ -47,19 +47,19 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 		}
 	};
 
-	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
+	// EMergeParticipant::Remote
 	{
 		DetailsViews.Add(
 			FDetailsDiff(RemoteCDO, DiffUtils::ResolveAll( RemoteCDO, RemoteDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged() )
 		);
 	}
-	// EMergeParticipant::MERGE_PARTICIPANT_BASE
+	// EMergeParticipant::Base
 	{
 		DetailsViews.Add(
 			FDetailsDiff(BaseCDO, DiffUtils::ResolveAll( BaseCDO, BaseDifferingPropertiesSet.Array()), FDetailsDiff::FOnDisplayedPropertiesChanged())
 		);
 	}
-	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
+	// EMergeParticipant::Local
 	{
 		DetailsViews.Add(
 			FDetailsDiff(LocalCDO, DiffUtils::ResolveAll( LocalCDO, LocalDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged())
@@ -195,16 +195,16 @@ bool SMergeDetailsView::HasPrevConflict() const
 
 FDetailsDiff& SMergeDetailsView::GetRemoteDetails()
 {
-	return DetailsViews[EMergeParticipant::MERGE_PARTICIPANT_REMOTE];
+	return DetailsViews[EMergeParticipant::Remote];
 }
 
 FDetailsDiff& SMergeDetailsView::GetBaseDetails()
 {
-	return DetailsViews[EMergeParticipant::MERGE_PARTICIPANT_BASE];
+	return DetailsViews[EMergeParticipant::Base];
 }
 
 FDetailsDiff& SMergeDetailsView::GetLocalDetails()
 {
-	return DetailsViews[EMergeParticipant::MERGE_PARTICIPANT_LOCAL];
+	return DetailsViews[EMergeParticipant::Local];
 }
 

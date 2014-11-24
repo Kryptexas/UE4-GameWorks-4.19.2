@@ -30,6 +30,8 @@ struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
 	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
 };
 
+DECLARE_DELEGATE_OneParam(FOnMyBlueprintActionSelected, UObject*);
+
 namespace DiffWidgetUtils
 {
 	KISMET_API void SelectNextRow(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource );
@@ -43,8 +45,14 @@ struct KISMET_API FDiffPanel
 {
 	FDiffPanel();
 
-	/*Generate this panel based on the specified graph*/
-	void	GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
+	/** Initializes the panel, can be moved into constructor if diff and merge clients are made more uniform: */
+	TSharedRef<SWidget> InitializeDiffPanel();
+
+	/* Generate this panel based on the specified graph */
+	void GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
+
+	/* Generate the 'MyBlueprint' widget, which is private to this module */
+	TSharedRef<SWidget> GenerateMyBlueprintPanel();
 
 	/*Get the title to show at the top of the panel*/
 	FString GetTitle() const;
@@ -66,7 +74,13 @@ struct KISMET_API FDiffPanel
 	const class UBlueprint*				Blueprint;
 
 	/*The border around the graph editor, used to change the content when new graphs are set */
-	TSharedPtr<SBorder>				GraphEditorBorder;
+	TSharedPtr<SBox>				GraphEditorBorder;
+
+	/* The border around the my blueprint panel, used to regenerate the panel when the new graphs are set */
+	TSharedPtr<class SMyBlueprint>	MyBlueprint;
+
+	/*The box around the the details view associated with the graph editor */
+	TSharedPtr<class SKismetInspector>	DetailsView;
 
 	/*The graph editor which does the work of displaying the graph*/
 	TWeakPtr<class SGraphEditor>	GraphEditor;
@@ -87,7 +101,6 @@ private:
 /* Visual Diff between two Blueprints*/
 class  KISMET_API SBlueprintDiff: public SCompoundWidget
 {
-
 public:
 	DECLARE_DELEGATE_TwoParams( FOpenInDefaults, const class UBlueprint* , const class UBlueprint* );
 
@@ -118,6 +131,10 @@ protected:
 	bool HasNextDiff() const;
 	bool HasPrevDiff() const;
 
+	/** Spawns the tabs that contain the Graph views and blueprints views respectively: */
+	TSharedRef<SDockTab> CreateGraphDiffViews( const FSpawnTabArgs& Args );
+	TSharedRef<SDockTab> CreateMyBlueprintsViews( const FSpawnTabArgs& Args );
+
 	/* Need to process keys for shortcuts to buttons */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
@@ -137,6 +154,7 @@ protected:
 	/*Called when user clicks on a new graph list item */
 	void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
 
+	/** Called when user clicks on an entry in the listview of differences */
 	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, struct FListItemGraphToDiff* GraphDiffer);
 		
 	/** Disable the focus on a particular pin */
@@ -192,6 +210,9 @@ protected:
 
 	/** Helper class for highlighting diffs in different types of controls (graph view, details view, etc) */
 	TSharedPtr< class IDiffControl > DiffControl;
+
+	/** We can't use the global tab manager because we need to instance the diff control, so we have our own tab manager: */
+	TSharedPtr<FTabManager> TabManager;
 };
 
 

@@ -48,9 +48,11 @@ namespace EMergeParticipant
 {
 	enum Type
 	{
-		MERGE_PARTICIPANT_REMOTE,
-		MERGE_PARTICIPANT_BASE,
-		MERGE_PARTICIPANT_LOCAL,
+		Remote,
+		Base,
+		Local,
+
+		Max_None,
 	};
 }
 

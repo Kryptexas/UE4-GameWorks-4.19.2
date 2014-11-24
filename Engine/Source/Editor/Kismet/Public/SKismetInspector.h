@@ -22,7 +22,8 @@ public:
 		, _ShowTitleArea(false)
 		{}
 
-		SLATE_ARGUMENT( TWeakPtr<FBlueprintEditor>, Kismet2 )
+		SLATE_ARGUMENT(TWeakPtr<FBlueprintEditor>, Kismet2)
+		SLATE_ARGUMENT(TWeakPtr<SMyBlueprint>, MyBlueprintWidget)
 		SLATE_ARGUMENT( bool, ShowPublicViewControl )
 		SLATE_ARGUMENT( bool, HideNameArea )
 		SLATE_ARGUMENT( FIsPropertyEditingEnabled, IsPropertyEditingEnabledDelegate )

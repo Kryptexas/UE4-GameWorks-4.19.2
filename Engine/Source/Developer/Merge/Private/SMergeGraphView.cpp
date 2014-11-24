@@ -3,9 +3,14 @@
 #include "MergePrivatePCH.h"
 #include "DiffResults.h"
 #include "GraphDiffControl.h"
+#include "SDockTab.h"
 #include "SMergeGraphView.h"
+#include "SKismetInspector.h"
 
 #define LOCTEXT_NAMESPACE "SMergeGraphView"
+
+const FName MergeMyBluerpintTabId = FName(TEXT("MergeMyBluerpintTab"));
+const FName MergeGraphTabId = FName(TEXT("MergeGraphTab"));
 
 struct FGraphMergeConflict
 {
@@ -85,20 +90,6 @@ static const UEdGraphNode* FindNodeInUnrelatedGraph(UEdGraph* Graph, UEdGraphNod
 	TArray< FGraphDiffControl::FNodeMatch > PriorMatches;
 	FGraphDiffControl::FNodeMatch NodeMatch = FGraphDiffControl::FindNodeMatch(Graph, TargetNode, PriorMatches);
 	return NodeMatch.NewNode;
-}
-
-static FDiffPanel InitializePanel(const FBlueprintRevPair& BlueprintRevPair)
-{
-	FDiffPanel Ret;
-	Ret.Blueprint = BlueprintRevPair.Blueprint;
-	SAssignNew(Ret.GraphEditorBorder, SBorder)
-		.VAlign(VAlign_Fill)
-		[
-			SBlueprintDiff::DefaultEmptyPanel()
-		];
-	Ret.RevisionInfo = BlueprintRevPair.RevData;
-	Ret.bShowAssetName = false;
-	return Ret;
 }
 
 static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBlueprintRevPair& RemoteBlueprint, const FBlueprintRevPair& BaseBlueprint, const FBlueprintRevPair& LocalBlueprint,  TArray< TSharedPtr<FGraphMergeConflict> >& OutMergeConflicts )
@@ -279,6 +270,21 @@ const FLinearColor MergeWhite = FLinearColor::White;
 
 void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData )
 {
+	const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
+		.TabRole(ETabRole::MajorTab);
+
+	TabManager = FGlobalTabmanager::Get()->NewTabManager(MajorTab);
+
+	TabManager->RegisterTabSpawner(MergeGraphTabId,
+		FOnSpawnTab::CreateRaw(this, &SMergeGraphView::CreateGraphDiffViews))
+		.SetDisplayName(LOCTEXT("MergeGraphsTabTitle", "Graphs"))
+		.SetTooltipText(LOCTEXT("MergeGraphsTooltipText", "Differences in the various graphs present in the blueprint"));
+
+	TabManager->RegisterTabSpawner(MergeMyBluerpintTabId,
+		FOnSpawnTab::CreateRaw(this, &SMergeGraphView::CreateMyBlueprintsViews))
+		.SetDisplayName(LOCTEXT("MergeMyBlueprintTabTitle", "My Blueprint"))
+		.SetTooltipText(LOCTEXT("MergeMyBlueprintTooltipText", "Differences in the 'My Blueprints' attributes of the blueprint"));
+
 	CurrentMergeConflict = INDEX_NONE;
 
 	Data = InData;
@@ -287,27 +293,53 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	LocalDiffResultsListData = nullptr;
 
 	TArray<FBlueprintRevPair> BlueprintsForDisplay;
-	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
+	// EMergeParticipant::Remote
 	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintRemote, InData.RevisionRemote));
-	// EMergeParticipant::MERGE_PARTICIPANT_BASE
+	// EMergeParticipant::Base
 	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintBase, InData.RevisionBase));
-	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
+	// EMergeParticipant::Local
 	BlueprintsForDisplay.Add(FBlueprintRevPair(InData.BlueprintLocal, FRevisionInfo()));
+	
+	const TSharedRef<FTabManager::FLayout> DefaultLayout = FTabManager::NewLayout("BlueprintMerge_Layout_v1")
+	->AddArea
+	(
+		FTabManager::NewPrimaryArea()
+		->Split
+		(
+			FTabManager::NewStack()
+			->AddTab(MergeMyBluerpintTabId, ETabState::OpenedTab)
+			->AddTab(MergeGraphTabId, ETabState::OpenedTab)
+		)
+	);
 
-	for (const auto& BlueprintRevPair : BlueprintsForDisplay)
+	for (int32 i = 0; i < EMergeParticipant::Max_None; ++i)
 	{
-		DiffPanels.Add(InitializePanel(BlueprintRevPair));
+		DiffPanels.Add(FDiffPanel());
+		FDiffPanel& NewPanel = DiffPanels[i];
+		NewPanel.Blueprint = BlueprintsForDisplay[i].Blueprint;
+		NewPanel.RevisionInfo = BlueprintsForDisplay[i].RevData;
+		NewPanel.bShowAssetName = false;
 	}
 
-	TSharedRef<SSplitter> PanelContainer = SNew(SSplitter);
-	for (const auto& Panel : DiffPanels)
+	auto GraphPanelContainer = TabManager->RestoreFrom(DefaultLayout, TSharedPtr<SWindow>()).ToSharedRef();
+
+	for (auto& Panel : DiffPanels )
 	{
-		PanelContainer->AddSlot()[Panel.GraphEditorBorder.ToSharedRef()];
+		Panel.InitializeDiffPanel();
 	}
 
-	DifferencesFromBase = GenerateDiffListItems(BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_REMOTE]
-												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_BASE]
-												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]
+	auto DetailsPanelContainer = SNew(SSplitter);
+	for( auto& Panel : DiffPanels )
+	{
+		DetailsPanelContainer->AddSlot()
+		[
+			Panel.DetailsView.ToSharedRef()
+		];
+	}
+
+	DifferencesFromBase = GenerateDiffListItems(BlueprintsForDisplay[EMergeParticipant::Remote]
+												, BlueprintsForDisplay[EMergeParticipant::Base]
+												, BlueprintsForDisplay[EMergeParticipant::Local]
 												, MergeConflicts);
 
 	// This is the function we'll use to generate a row in the control that lists all the available graphs:
@@ -465,7 +497,18 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 			+ SSplitter::Slot()
 				.Value(0.9f)
 				[
-					PanelContainer
+					SNew(SSplitter)
+					.Orientation(Orient_Vertical)
+					+ SSplitter::Slot()
+					.Value(.8f)
+					[
+						GraphPanelContainer
+					]
+					+ SSplitter::Slot()
+					.Value(.2f)
+					[
+						DetailsPanelContainer
+					]
 				]
 		];
 }
@@ -612,9 +655,9 @@ void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry
 	UEdGraph* GraphBase = FindGraphByName(*GetBasePanel().Blueprint, GraphName);
 	UEdGraph* GraphLocal = FindGraphByName(*GetLocalPanel().Blueprint, GraphName);
 
-	GetBasePanel().GeneratePanel(GraphBase, nullptr);
-	GetRemotePanel().GeneratePanel(GraphRemote, GraphBase);
-	GetLocalPanel().GeneratePanel(GraphLocal, GraphBase);
+	GetBasePanel().GeneratePanel(GraphBase, nullptr );
+	GetRemotePanel().GeneratePanel(GraphRemote, GraphBase );
+	GetLocalPanel().GeneratePanel(GraphLocal, GraphBase );
 
 	LockViews(DiffPanels, bViewsAreLocked);
 
@@ -686,6 +729,44 @@ void SMergeGraphView::OnDiffListSelectionChanged(TSharedPtr<FDiffSingleResult> I
 			GetDiffPanelForNode(*Item->Node2, DiffPanels).FocusDiff(*Item->Node2);
 		}
 	}
+}
+
+TSharedRef<SDockTab> SMergeGraphView::CreateGraphDiffViews(const FSpawnTabArgs& Args)
+{
+	auto PanelContainer = SNew(SSplitter);
+	for (auto& Panel : DiffPanels)
+	{
+		PanelContainer->AddSlot()
+		[
+			SAssignNew(Panel.GraphEditorBorder, SBox)
+			.VAlign(VAlign_Fill)
+			[
+				SBlueprintDiff::DefaultEmptyPanel()
+			]
+		];
+	}
+
+	return SNew(SDockTab)
+	[
+		PanelContainer
+	];
+}
+
+TSharedRef<SDockTab> SMergeGraphView::CreateMyBlueprintsViews(const FSpawnTabArgs& Args)
+{
+	auto PanelContainer = SNew(SSplitter);
+	for (auto& Panel : DiffPanels)
+	{
+		PanelContainer->AddSlot()
+		[
+			Panel.GenerateMyBlueprintPanel()
+		];
+	}
+
+	return SNew(SDockTab)
+	[
+		PanelContainer
+	];
 }
 
 FReply SMergeGraphView::OnToggleLockView()

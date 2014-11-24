@@ -127,64 +127,85 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
-void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
+void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint )
 {
 	BlueprintEditorPtr = InBlueprintEditor;
-	TSharedPtr<FUICommandList> ToolKitCommandList = InBlueprintEditor.Pin()->GetToolkitCommands();
-
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().OpenGraph,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnOpenGraph),
-		FCanExecuteAction(), FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanOpenGraph) );
+	EdGraph = nullptr;
 	
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().OpenGraphInNewTab,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnOpenGraphInNewTab),
-		FCanExecuteAction(), FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanOpenGraph) );
+	TSharedPtr<SWidget> ToolbarBuilderWidget = TSharedPtr<SWidget>();
 
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FocusNode,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFocusNode),
-		FCanExecuteAction(), FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFocusOnNode) );
+	if( InBlueprintEditor.IsValid() )
+	{
+		Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
 
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FocusNodeInNewTab,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFocusNodeInNewTab),
-		FCanExecuteAction(), FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFocusOnNode) );
+		TSharedPtr<FUICommandList> ToolKitCommandList = InBlueprintEditor.Pin()->GetToolkitCommands();
 
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().ImplementFunction,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnImplementFunction),
-		FCanExecuteAction(), FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanImplementFunction) );
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().OpenGraph,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnOpenGraph),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanOpenGraph) );
 	
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FindEntry,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindEntry),
-		FCanExecuteAction(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindEntry) );
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().OpenGraphInNewTab,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnOpenGraphInNewTab),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanOpenGraph) );
+
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FocusNode,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFocusNode),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFocusOnNode) );
+
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FocusNodeInNewTab,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFocusNodeInNewTab),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFocusOnNode) );
+
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().ImplementFunction,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnImplementFunction),
+			FCanExecuteAction(), FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanImplementFunction) );
 	
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
-		FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDeleteEntry) );
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FindEntry,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindEntry),
+			FCanExecuteAction(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindEntry) );
+	
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
+			FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDeleteEntry) );
 
-	ToolKitCommandList->MapAction( FGenericCommands::Get().Duplicate,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnDuplicateAction),
-		FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDuplicateAction),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsDuplicateActionVisible) );
+		ToolKitCommandList->MapAction( FGenericCommands::Get().Duplicate,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnDuplicateAction),
+			FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDuplicateAction),
+			FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsDuplicateActionVisible) );
 
-	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().GotoNativeVarDefinition,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::GotoNativeCodeVarDefinition),
-		FCanExecuteAction(),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsNativeVariable) );
+		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().GotoNativeVarDefinition,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::GotoNativeCodeVarDefinition),
+			FCanExecuteAction(),
+			FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsNativeVariable) );
 
-	TSharedPtr<FBlueprintEditorToolbar> Toolbar = MakeShareable(new FBlueprintEditorToolbar(InBlueprintEditor.Pin()));
-	TSharedPtr<FExtender> Extender = MakeShareable(new FExtender);
-	Toolbar->AddNewToolbar(Extender);
+		TSharedPtr<FBlueprintEditorToolbar> Toolbar = MakeShareable(new FBlueprintEditorToolbar(InBlueprintEditor.Pin()));
+		TSharedPtr<FExtender> Extender = MakeShareable(new FExtender);
+		Toolbar->AddNewToolbar(Extender);
 
-	FToolBarBuilder ToolbarBuilder(ToolKitCommandList, FMultiBoxCustomization::None, Extender);
-	ToolbarBuilder.BeginSection("MyBlueprint");
-	ToolbarBuilder.EndSection();
+		FToolBarBuilder ToolbarBuilder(ToolKitCommandList, FMultiBoxCustomization::None, Extender);
+		ToolbarBuilder.BeginSection("MyBlueprint");
+		ToolbarBuilder.EndSection();
+		ToolbarBuilderWidget = ToolbarBuilder.MakeWidget();
+
+		ToolKitCommandList->MapAction(FGenericCommands::Get().Rename,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnRequestRenameOnActionNode),
+			FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanRequestRenameOnActionNode));
+	}
+	else
+	{
+		// we're in read only mode when there's no blueprint editor:
+		Blueprint = const_cast<UBlueprint*>(InBlueprint);
+		check(Blueprint);
+		ToolbarBuilderWidget = SNew(SBox);
+	}
 
 	SAssignNew(FilterBox, SSearchBox)
 		.OnTextChanged( this, &SMyBlueprint::OnFilterTextChanged );
@@ -217,7 +238,7 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				ToolbarBuilder.MakeWidget()
+				ToolbarBuilderWidget.ToSharedRef()
 			]
 				
 			+ SVerticalBox::Slot()
@@ -267,11 +288,12 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		];
 	}
 	
-	ToolKitCommandList->MapAction( FGenericCommands::Get().Rename,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnRequestRenameOnActionNode),
-		FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanRequestRenameOnActionNode) );
-
 	ResetLastPinType();
+
+	if( !BlueprintEditorPtr.IsValid() )
+	{
+		Refresh();
+	}
 }
 
 void SMyBlueprint::OnCategoryNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit, TWeakPtr< FGraphActionNode > InAction )
@@ -491,9 +513,7 @@ void SMyBlueprint::Refresh()
 
 TSharedRef<SWidget> SMyBlueprint::OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData)
 {
-	TSharedRef<SBlueprintPaletteItem> BlueprintPaletteItem = SNew(SBlueprintPaletteItem, InCreateData, BlueprintEditorPtr.Pin());
-
-	return BlueprintPaletteItem;
+	return BlueprintEditorPtr.IsValid() ? SNew(SBlueprintPaletteItem, InCreateData, BlueprintEditorPtr.Pin()) : SNew(SBlueprintPaletteItem, InCreateData, GetBlueprintObj());
 }
 
 TSharedRef<SWidget> SMyBlueprint::ConstructLocalActionPanel()
@@ -622,7 +642,7 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const
 {
 	// We want to pull local variables from the top level function graphs
-	UEdGraph* EdGraph = FBlueprintEditorUtils::GetTopLevelGraph(BlueprintEditorPtr.Pin()->GetFocusedGraph());
+	UEdGraph* EdGraph = FBlueprintEditorUtils::GetTopLevelGraph(GetFocusedGraph());
 	if( EdGraph )
 	{
 		// grab the parent graph's name
@@ -647,7 +667,7 @@ void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions)
 				}
 
 				TSharedPtr<FEdGraphSchemaAction_K2LocalVar> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2LocalVar(Category, FText::FromName(Variable.VarName), TEXT(""), 0));
-				UFunction* Func = FindField<UFunction>(BlueprintEditorPtr.Pin()->GetBlueprintObj()->SkeletonGeneratedClass, EdGraph->GetFName());
+				UFunction* Func = FindField<UFunction>(GetBlueprintObj()->SkeletonGeneratedClass, EdGraph->GetFName());
 				NewVarAction->SetVariableInfo(Variable.VarName, Func);
 				OutAllActions.AddAction(NewVarAction);
 			}
@@ -657,6 +677,11 @@ void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions)
 
 EVisibility SMyBlueprint::GetLocalActionsListVisibility() const
 {
+	if( !BlueprintEditorPtr.IsValid())
+	{
+		return EVisibility::Visible;
+	}
+
 	if( BlueprintEditorPtr.IsValid() && BlueprintEditorPtr.Pin()->NewDocument_IsVisibleForType(FBlueprintEditor::CGT_NewLocalVariable))
 	{
 		return EVisibility::Visible;
@@ -668,9 +693,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if (!BlueprintEditorPtr.IsValid()) {return;}
-
-	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
+	UBlueprint* Blueprint = GetBlueprintObj();
 	check(Blueprint);
 
 	EFieldIteratorFlags::SuperClassFlags FieldIteratorSuperFlag = EFieldIteratorFlags::IncludeSuper;
@@ -1161,17 +1184,27 @@ void SMyBlueprint::OnLocalActionSelected(const TArray< TSharedPtr<FEdGraphSchema
 
 void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions )
 {
-	TSharedPtr<FEdGraphSchemaAction> InAction( InActions.Num() > 0 ? InActions[0] : NULL );
+	TSharedPtr<FEdGraphSchemaAction> InAction(InActions.Num() > 0 ? InActions[0] : NULL);
+	UBlueprint* CurrentBlueprint = Blueprint;
+	TSharedPtr<SKismetInspector> CurrentInspector = Inspector.Pin();
 
-	if (BlueprintEditorPtr.Pin()->GetUISelectionState() == FBlueprintEditor::GraphPanel)
+	if( BlueprintEditorPtr.IsValid() )
 	{
-		// clear graph panel selection
-		BlueprintEditorPtr.Pin()->ClearSelectionInAllEditors();
+		if (BlueprintEditorPtr.Pin()->GetUISelectionState() == FBlueprintEditor::GraphPanel)
+		{
+			// clear graph panel selection
+			BlueprintEditorPtr.Pin()->ClearSelectionInAllEditors();
+		}
+		BlueprintEditorPtr.Pin()->GetUISelectionState() = InAction.IsValid() ? FBlueprintEditor::MyBlueprint : FBlueprintEditor::NoSelection;
+		CurrentBlueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
+		CurrentInspector = BlueprintEditorPtr.Pin()->GetInspector();
 	}
-	BlueprintEditorPtr.Pin()->GetUISelectionState() = InAction.IsValid() ? FBlueprintEditor::MyBlueprint : FBlueprintEditor::NoSelection;
-	
-	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-	TSharedRef<SKismetInspector> Inspector = BlueprintEditorPtr.Pin()->GetInspector();
+
+	OnActionSelectedHelper( InAction, Blueprint, CurrentInspector.ToSharedRef() );
+}
+
+void SMyBlueprint::OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector)
+{
 	if(InAction.IsValid())
 	{
 		if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
@@ -1248,6 +1281,11 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 
 void SMyBlueprint::OnActionDoubleClicked( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions )
 {
+	if( !BlueprintEditorPtr.IsValid() )
+	{
+		return;
+	}
+
 	TSharedPtr<FEdGraphSchemaAction> InAction( InActions.Num() > 0 ? InActions[0] : NULL );
 
 	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
@@ -1432,6 +1470,11 @@ void SMyBlueprint::GetSelectedItemsForContextMenu(TArray<FComponentEventConstruc
 
 TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 {
+	if( !BlueprintEditorPtr.IsValid() )
+	{
+		return TSharedPtr<SWidget>();
+	}
+
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection,BlueprintEditorPtr.Pin()->GetToolkitCommands());
 	
@@ -1499,7 +1542,7 @@ bool SMyBlueprint::CanOpenGraph() const
 	const bool bGraph = GraphAction && GraphAction->EdGraph;
 	const FEdGraphSchemaAction_K2Delegate* DelegateAction = SelectionAsDelegate();
 	const bool bDelegate = DelegateAction && DelegateAction->EdGraph;
-	return bGraph || bDelegate;
+	return (bGraph || bDelegate) && BlueprintEditorPtr.IsValid();
 }
 
 void SMyBlueprint::OpenGraph(FDocumentTracker::EOpenDocumentCause InCause)
@@ -1688,6 +1731,17 @@ void SMyBlueprint::OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph
 	}
 }
 
+UEdGraph* SMyBlueprint::GetFocusedGraph() const
+{
+	auto BlueprintEditorPtrPinned = BlueprintEditorPtr.Pin();
+	if( BlueprintEditorPtrPinned.IsValid() )
+	{
+		return BlueprintEditorPtrPinned->GetFocusedGraph();
+	}
+
+	return EdGraph;
+}
+
 void SMyBlueprint::OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateAction)
 {
 	UEdGraph* EdGraph = InDelegateAction->EdGraph;
@@ -1769,7 +1823,7 @@ void SMyBlueprint::OnDeleteEntry()
 
 		GetBlueprintObj()->Modify();
 
-		UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(BlueprintEditorPtr.Pin()->GetFocusedGraph());
+		UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(GetFocusedGraph());
 		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
 		FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
 		check(FunctionEntryNodes.Num() == 1);

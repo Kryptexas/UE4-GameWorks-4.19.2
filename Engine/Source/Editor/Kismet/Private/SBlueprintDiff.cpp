@@ -17,7 +17,9 @@
 #include "IDiffControl.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "SBlueprintDiff.h"
+#include "SDockTab.h"
 #include "SGraphTitleBar.h"
+#include "SMyBlueprint.h"
 #include "SSCSEditor.h"
 #include "SCSDiff.h"
 #include "WorkflowOrientedApp/SModeWidget.h"
@@ -26,6 +28,9 @@
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 
 typedef TMap< FName, const UProperty* > FNamePropertyMap;
+
+const FName DiffMyBluerpintTabId = FName(TEXT("DiffMyBluerpintTab"));
+const FName DiffGraphTabId = FName(TEXT("DiffGraphTab"));
 
 // Each difference in the tree will either be a tree node that is added in one Blueprint 
 // or a tree node and an FName of a property that has been added or edited in one Blueprint
@@ -623,6 +628,34 @@ FDiffPanel::FDiffPanel()
 	LastFocusedPin = NULL;
 }
 
+TSharedRef<SWidget> FDiffPanel::InitializeDiffPanel()
+{
+	TSharedRef< SKismetInspector > Inspector = SNew(SKismetInspector)
+		.HideNameArea(true)
+		.ViewIdentifier(FName("BlueprintInspector"))
+		.MyBlueprintWidget(MyBlueprint)
+		.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
+	DetailsView = Inspector;
+	MyBlueprint->SetInspector(DetailsView);
+
+	return SNew(SSplitter)
+		.Orientation(Orient_Vertical)
+		+ SSplitter::Slot()
+		.Value(0.8f)
+		[
+			SAssignNew(GraphEditorBorder, SBox)
+			.VAlign(VAlign_Fill)
+			[
+				SBlueprintDiff::DefaultEmptyPanel()
+			]
+		]
+	+ SSplitter::Slot()
+		.Value(0.2f)
+		[
+			Inspector
+		];
+}
+
 int32 GetCurrentIndex( SListView< TSharedPtr< struct FDiffSingleResult> > const& ListView, const TArray< TSharedPtr< FDiffSingleResult > >& ListViewSource )
 {
 	const auto& Selected = ListView.GetSelectedItems();
@@ -680,6 +713,20 @@ bool DiffWidgetUtils::HasPrevDifference(SListView< TSharedPtr< struct FDiffSingl
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SBlueprintDiff::Construct( const FArguments& InArgs)
 {
+	const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
+		.TabRole(ETabRole::MajorTab);
+	TabManager = FGlobalTabmanager::Get()->NewTabManager(MajorTab);
+
+	TabManager->RegisterTabSpawner(DiffGraphTabId,
+		FOnSpawnTab::CreateRaw(this, &SBlueprintDiff::CreateGraphDiffViews ))
+		.SetDisplayName(NSLOCTEXT("SBlueprintDiff", "GraphsTabTitle", "Graphs"))
+		.SetTooltipText(NSLOCTEXT("SBlueprintDiff", "GraphsTooltipText", "Differences in the various graphs present in the blueprint"));
+
+	TabManager->RegisterTabSpawner(DiffMyBluerpintTabId,
+		FOnSpawnTab::CreateRaw(this, &SBlueprintDiff::CreateMyBlueprintsViews))
+		.SetDisplayName(NSLOCTEXT("SBlueprintDiff", "MyBlueprintTabTitle", "My Blueprint"))
+		.SetTooltipText(NSLOCTEXT("SBlueprintDiff", "MyBlueprintTooltipText", "Differences in the 'My Blueprints' attributes of the blueprint"));
+
 	FDiffListCommands::Register();
 	check(InArgs._BlueprintOld && InArgs._BlueprintNew);
 	PanelOld.Blueprint = InArgs._BlueprintOld;
@@ -876,6 +923,46 @@ bool SBlueprintDiff::HasPrevDiff() const
 	return DiffControl.IsValid() && DiffControl->HasPrevDifference();
 }
 
+TSharedRef<SDockTab> SBlueprintDiff::CreateGraphDiffViews(const FSpawnTabArgs& Args)
+{
+	return SNew(SDockTab)
+	[
+		SNew(SSplitter) 
+		+ SSplitter::Slot()
+		[
+			SAssignNew(PanelOld.GraphEditorBorder, SBox)
+			.VAlign(VAlign_Fill)
+			[
+				DefaultEmptyPanel()
+			]
+		]
+		+ SSplitter::Slot()
+		[
+			SAssignNew(PanelNew.GraphEditorBorder, SBox)
+			.VAlign(VAlign_Fill)
+			[
+				DefaultEmptyPanel()
+			]
+		]
+	];
+}
+
+TSharedRef<SDockTab> SBlueprintDiff::CreateMyBlueprintsViews(const FSpawnTabArgs& Args)
+{
+	return SNew(SDockTab)
+	[
+		SNew(SSplitter)
+		+ SSplitter::Slot()
+		[
+			PanelOld.GenerateMyBlueprintPanel()
+		]
+		+ SSplitter::Slot()
+		[
+			PanelNew.GenerateMyBlueprintPanel()
+		]
+	];
+}
+
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
 	HandleGraphChanged( GraphOld ? GraphOld->GetFName() : GraphNew->GetFName() );
@@ -950,7 +1037,7 @@ void SBlueprintDiff::ResetGraphEditors()
 	}
 }
 
-void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
+void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff )
 {
 	if( LastFocusedPin )
 	{
@@ -964,9 +1051,17 @@ void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
 								[
 									SNew(STextBlock).Text( LOCTEXT("BPDifPanelNoGraphTip", "Graph does not exist in this revision"))
 								];
+
 	if(Graph)
 	{
 		SGraphEditor::FGraphEditorEvents InEvents;
+		{
+			const auto SelectionChangedHandler = [](const FGraphPanelSelectionSet& SelectionSet, TSharedPtr<SKismetInspector> Container)
+			{
+				Container->ShowDetailsForObjects(SelectionSet.Array());
+			};
+			InEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateStatic(SelectionChangedHandler, DetailsView);
+		}
 
 		FGraphAppearanceInfo AppearanceInfo;
 		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_BlueprintDif", "DIFF").ToString();
@@ -980,6 +1075,9 @@ void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
 				FCanExecuteAction::CreateRaw( this, &FDiffPanel::CanCopyNodes )
 				);
 		}
+
+		MyBlueprint->SetFocusedGraph(Graph);
+		MyBlueprint->Refresh();
 
 		auto Editor = SNew(SGraphEditor)
 			.AdditionalCommands(GraphEditorCommands)
@@ -999,6 +1097,11 @@ void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff)
 	}
 
 	GraphEditorBorder->SetContent(Widget.ToSharedRef());
+}
+
+TSharedRef<SWidget> FDiffPanel::GenerateMyBlueprintPanel()
+{
+	return SAssignNew(MyBlueprint, SMyBlueprint, TWeakPtr<FBlueprintEditor>(), Blueprint);
 }
 
 FGraphPanelSelectionSet FDiffPanel::GetSelectedNodes() const
@@ -1133,6 +1236,35 @@ void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
 
 TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 {
+	const TSharedRef<FTabManager::FLayout> DefaultLayout = FTabManager::NewLayout("BlueprintDiff_Layout_v1")
+	->AddArea
+	(
+		FTabManager::NewPrimaryArea()
+		->Split
+		(
+			FTabManager::NewStack()
+			->AddTab(DiffMyBluerpintTabId, ETabState::OpenedTab)
+			->AddTab(DiffGraphTabId, ETabState::OpenedTab)
+		)
+	);
+
+	// SMyBlueprint needs to be created *before* the KismetInspector, because the KismetInspector's customizations
+	// need a reference to the SMyBlueprint widget that is controlling them...
+	TSharedRef<SWidget> TabControl = TabManager->RestoreFrom(DefaultLayout, TSharedPtr<SWindow>()).ToSharedRef();
+
+	const auto CreateInspector = [](TSharedPtr<SMyBlueprint> InMyBlueprint) {
+		return SNew( SKismetInspector)
+			.HideNameArea(true)
+			.ViewIdentifier(FName("BlueprintInspector"))
+			.MyBlueprintWidget(InMyBlueprint)
+			.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
+	};
+
+	PanelOld.DetailsView = CreateInspector(PanelOld.MyBlueprint);
+	PanelOld.MyBlueprint->SetInspector(PanelOld.DetailsView);
+	PanelNew.DetailsView = CreateInspector(PanelNew.MyBlueprint);
+	PanelNew.MyBlueprint->SetInspector(PanelNew.DetailsView);
+
 	return SNew(SBorder)
 	.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 	.Content()
@@ -1224,24 +1356,24 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 					[
 						//diff window
 						SNew(SSplitter)
-						+ SSplitter::Slot()
-						.Value(0.5f)
+						.Orientation(Orient_Vertical)
+						+SSplitter::Slot()
+						.Value(.8f)
 						[
-							//left blueprint
-							SAssignNew(PanelOld.GraphEditorBorder, SBorder)
-							.VAlign(VAlign_Fill)
-							[
-								DefaultEmptyPanel()
-							]
+							// graph and my blueprint views:
+							TabControl
 						]
 						+ SSplitter::Slot()
-						.Value(0.5f)
+						.Value(.2f)
 						[
-							//right blueprint
-							SAssignNew(PanelNew.GraphEditorBorder, SBorder)
-							.VAlign(VAlign_Fill)
+							SNew( SSplitter )
+							+SSplitter::Slot()
 							[
-								DefaultEmptyPanel()
+								PanelOld.DetailsView.ToSharedRef()
+							]
+							+ SSplitter::Slot()
+							[
+								PanelNew.DetailsView.ToSharedRef()
 							]
 						]
 					]

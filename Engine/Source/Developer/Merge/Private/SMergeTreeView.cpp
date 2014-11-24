@@ -11,19 +11,19 @@ void SMergeTreeView::Construct(const FArguments InArgs, const FBlueprintMergeDat
 	CurrentMergeConflict = -1;
 
 	// generate controls:
-	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
+	// EMergeParticipant::Remote
 	{
 		SCSViews.Push(
 			FSCSDiff(InData.BlueprintRemote)
 			);
 	}
-	// EMergeParticipant::MERGE_PARTICIPANT_BASE
+	// EMergeParticipant::Base
 	{
 		SCSViews.Push(
 			FSCSDiff(InData.BlueprintBase)
 			);
 	}
-	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
+	// EMergeParticipant::Local
 	{
 		SCSViews.Push(
 			FSCSDiff(InData.BlueprintLocal)
@@ -213,16 +213,16 @@ void SMergeTreeView::HighlightCurrentDifference()
 
 FSCSDiff& SMergeTreeView::GetRemoteView()
 {
-	return SCSViews[EMergeParticipant::MERGE_PARTICIPANT_REMOTE];
+	return SCSViews[EMergeParticipant::Remote];
 }
 
 FSCSDiff& SMergeTreeView::GetBaseView()
 {
-	return SCSViews[EMergeParticipant::MERGE_PARTICIPANT_BASE];
+	return SCSViews[EMergeParticipant::Base];
 }
 
 FSCSDiff& SMergeTreeView::GetLocalView()
 {
-	return SCSViews[EMergeParticipant::MERGE_PARTICIPANT_LOCAL];
+	return SCSViews[EMergeParticipant::Local];
 }
 

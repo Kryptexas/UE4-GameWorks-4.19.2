@@ -31,8 +31,11 @@ public:
 	 * @param  InBlueprintEditor	A pointer to the blueprint editor that the palette belongs to.
 	 */
 	void Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData, TWeakPtr<FBlueprintEditor> InBlueprintEditor);
+	void Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData, UBlueprint* InBlueprint);
 
 private:
+	void Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData, UBlueprint* InBlueprint, TWeakPtr<FBlueprintEditor> InBlueprintEditor);
+
 	// SGraphPaletteItem Interface
 	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont,  FCreateWidgetForActionData* const InCreateData, bool bIsReadOnly ) override;
 	virtual FText GetDisplayText() const override;
@@ -53,6 +56,8 @@ private:
 private:
 	/** True if the class should be displayed in the tooltip */
 	bool bShowClassInTooltip;
+
+	UBlueprint* Blueprint;
 
 	/** Pointer back to the blueprint editor that owns this */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;

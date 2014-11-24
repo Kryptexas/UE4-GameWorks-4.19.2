@@ -10,8 +10,7 @@ class SMergeGraphView : public SCompoundWidget
 						, public IMergeControl
 {
 public:
-	SLATE_BEGIN_ARGS(SMergeGraphView)
-	{}
+	SLATE_BEGIN_ARGS(SMergeGraphView){}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData );
@@ -33,10 +32,12 @@ private:
 	bool HasNoDifferences() const;
 	void OnGraphListSelectionChanged(TSharedPtr<struct FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType);
 	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
+	TSharedRef<SDockTab> CreateGraphDiffViews(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> CreateMyBlueprintsViews(const FSpawnTabArgs& Args);
 
-	FDiffPanel& GetRemotePanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_REMOTE]; }
-	FDiffPanel& GetBasePanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_BASE]; }
-	FDiffPanel& GetLocalPanel() { return DiffPanels[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]; }
+	FDiffPanel& GetRemotePanel() { return DiffPanels[EMergeParticipant::Remote]; }
+	FDiffPanel& GetBasePanel() { return DiffPanels[EMergeParticipant::Base]; }
+	FDiffPanel& GetLocalPanel() { return DiffPanels[EMergeParticipant::Local]; }
 
 	FReply OnToggleLockView();
 	const FSlateBrush*  GetLockViewImage() const;
@@ -73,4 +74,7 @@ private:
 	TArray< TSharedPtr< struct FDiffSingleResult> > const* LocalDiffResultsListData;
 
 	bool bViewsAreLocked;
+
+	/** We can't use the global tab manager because we need to instance the merge control, so we have our own tab manager: */
+	TSharedPtr<FTabManager> TabManager;
 };

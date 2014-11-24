@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "DiffUtils.h"
+
 /* Enums to use when grouping the blueprint members in the list panel. The order here will determine the order in the list */
 namespace NodeSectionID
 {
@@ -46,21 +48,21 @@ public:
 	virtual void RegisterCommands() override;
 };
 
-
-
 class SMyBlueprint : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SMyBlueprint ) {};
+	SLATE_BEGIN_ARGS( SMyBlueprint ) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor);
+	void Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint = nullptr);
+	void SetInspector( TSharedPtr<SKismetInspector> InInspector ) { Inspector = InInspector ; }
 
 	/* Reset the last pin type settings to default. */
 	void ResetLastPinType();
 
 	/** Refreshes the graph action menu */
 	void Refresh();
+	void SetFocusedGraph(UEdGraph* InEdGraph) { EdGraph = InEdGraph; }
 	
 	/** Accessor for getting the current selection as a K2 graph */
 	FEdGraphSchemaAction_K2Graph* SelectionAsGraph() const;
@@ -93,7 +95,7 @@ public:
 	FEdGraphPinType& GetLastFunctionPinTypeUsed() {EnsureLastPinTypeValid(); return LastFunctionPinType;}
 
 	/** Accessor the blueprint object from the main editor */
-	UBlueprint* GetBlueprintObj() const {return BlueprintEditorPtr.Pin()->GetBlueprintObj();}
+	UBlueprint* GetBlueprintObj() const {return Blueprint;}
 
 	/** Gets whether we are showing user variables only or not */
 	bool ShowUserVarsOnly() const {return bShowUserVarsOnly;}
@@ -124,7 +126,6 @@ public:
 
 	/** Move the category before the target category */
 	bool MoveCategoryBeforeCategory( const FString& CategoryToMove, const FString& TargetCategory );
-
 private:
 	/** Creates widgets for the graph schema actions */
 	TSharedRef<SWidget> OnCreateWidgetForAction(struct FCreateWidgetForActionData* const InCreateData);
@@ -145,6 +146,7 @@ private:
 	FReply OnActionDragged(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent);
 	FReply OnCategoryDragged(const FString& InCategory, const FPointerEvent& MouseEvent);
 	void OnActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
+	static void OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector);
 	void OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	void OnLocalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	void OnActionDoubleClicked(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
@@ -202,6 +204,8 @@ private:
 
 	/** Helper function to delete a delegate in the MyBlueprint window */
 	void OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateAction);
+
+	UEdGraph* GetFocusedGraph() const;
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
@@ -230,4 +234,13 @@ private:
 
 	/** Enums created from 'blueprint' level */
 	TArray<TWeakObjectPtr<UUserDefinedStruct>> StructsAddedToBlueprint;
+
+	/** The blueprint being displayed: */
+	UBlueprint* Blueprint;
+
+	/** The Ed Graph being displayed: */
+	UEdGraph* EdGraph;
+
+	/** The Kismet Inspector used to display properties: */
+	TWeakPtr<SKismetInspector> Inspector;
 };
