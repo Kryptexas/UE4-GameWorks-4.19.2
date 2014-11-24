@@ -1850,7 +1850,7 @@ UObject::UObject(const FObjectInitializer& ObjectInitializer)
 }
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
-static int32 GIsInConstructor = 0;
+int32 GIsInConstructor = 0;
 /* Object that is currently being constructed with ObjectInitializer */
 static UObject* GConstructedObject = NULL;
 
