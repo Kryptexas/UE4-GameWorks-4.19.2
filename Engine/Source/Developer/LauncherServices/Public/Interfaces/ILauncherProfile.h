@@ -555,6 +555,14 @@ public:
 	 * @see SetBuildGame
 	 */
 	virtual bool IsBuilding() const = 0;
+    
+	/**
+	 * Checks whether UAT should be built.
+	 *
+	 * @return true if building UAT, false otherwise.
+	 * @see SetBuildGame
+	 */
+	virtual bool IsBuildingUAT() const = 0;
 
 	/**
 	 * Checks whether incremental cooking is enabled.
@@ -714,6 +722,14 @@ public:
 	 * @see IsBuilding
 	 */
 	virtual void SetBuildGame( bool Build ) = 0;
+
+	/**
+	 * Sets whether to build UAT.
+	 *
+	 * @param Build Whether UAT should be built.
+	 * @see IsBuilding
+	 */
+	virtual void SetBuildUAT( bool Build ) = 0;
 
 	/**
 	 * Sets the build configuration.

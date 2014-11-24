@@ -115,6 +115,12 @@ private:
 	/** Callback for updating any settings after the selected project has changed in the profile. */
 	void HandleProfileProjectChanged();
 
+	// Callback for check state changes of the 'UnrealPak' check box.
+	void HandleUnrealPakCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+
+	// Callback for determining the checked state of the 'UnrealPak' check box.
+	ESlateCheckBoxState::Type HandleUnrealPakCheckBoxIsChecked( ) const;
+
 	/** creates the complex widget. */
 	TSharedRef<SWidget> MakeComplexWidget();
 

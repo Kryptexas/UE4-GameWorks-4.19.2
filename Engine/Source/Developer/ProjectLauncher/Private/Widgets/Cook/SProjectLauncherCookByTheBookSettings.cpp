@@ -367,6 +367,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 
 				+ SVerticalBox::Slot()
 					.AutoHeight()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						// unreal pak check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
+						]
+					]
+
+				+ SVerticalBox::Slot()
+					.AutoHeight()
 					.Padding(0.0f, 12.0f, 0.0f, 0.0f)
 					[
 						SNew(SProjectLauncherFormLabel)
@@ -630,6 +647,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeSimpleWidget()
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("UnversionedCheckBoxText", "Save packages without versions"))
+						]
+					]
+
+				+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						// unreal pak check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
 						]
 					]
 
@@ -1009,6 +1043,32 @@ void SProjectLauncherCookByTheBookSettings::HandleCookerOptionsCommitted(const F
 		}
 		SelectedProfile->SetCookOptions(useOptions);
 	}
+}
+
+void SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetDeployWithUnrealPak(NewState == ESlateCheckBoxState::Checked);
+	}
+}
+
+
+ESlateCheckBoxState::Type SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxIsChecked( ) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsPackingWithUnrealPak())
+		{
+			return ESlateCheckBoxState::Checked;
+		}
+	}
+
+	return ESlateCheckBoxState::Unchecked;
 }
 
 #undef LOCTEXT_NAMESPACE

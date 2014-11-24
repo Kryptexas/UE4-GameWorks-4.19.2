@@ -30,7 +30,7 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 					]
 			]
 
-		+ SVerticalBox::Slot()
+/*		+ SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
@@ -46,58 +46,15 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 							.Padding(8.0f)
 							.BodyContent()
 							[
-								SNew(SVerticalBox)
-
-								+ SVerticalBox::Slot()
-									.AutoHeight()
-									[
-										// unreal pak check box
-										SNew(SCheckBox)
-											.IsChecked(this, &SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxIsChecked)
-											.OnCheckStateChanged(this, &SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxCheckStateChanged)
-											.Padding(FMargin(4.0f, 0.0f))
-											.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
-											.Content()
-											[
-												SNew(STextBlock)
-													.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
-											]
-									]
 							]
 					]
-			]
+			]*/
 	];
 }
 
 
 /* SProjectLauncherDeployToDeviceSettings callbacks
  *****************************************************************************/
-
-void SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
-{
-	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
-
-	if (SelectedProfile.IsValid())
-	{
-		SelectedProfile->SetDeployWithUnrealPak(NewState == ESlateCheckBoxState::Checked);
-	}
-}
-
-
-ESlateCheckBoxState::Type SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxIsChecked( ) const
-{
-	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
-
-	if (SelectedProfile.IsValid())
-	{
-		if (SelectedProfile->IsPackingWithUnrealPak())
-		{
-			return ESlateCheckBoxState::Checked;
-		}
-	}
-
-	return ESlateCheckBoxState::Unchecked;
-}
 
 
 #undef LOCTEXT_NAMESPACE

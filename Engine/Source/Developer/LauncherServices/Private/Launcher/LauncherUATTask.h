@@ -41,7 +41,7 @@ protected:
 	{
 		if (FirstTimeCompile)
 		{
-			NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
+			NoCompile = (!FParse::Param( FCommandLine::Get(), TEXT("development") ) && !ChainState.Profile->IsBuildingUAT()) ? TEXT(" -nocompile") : TEXT("");
 			FirstTimeCompile = false;
 		}
 

@@ -105,7 +105,22 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
                         .IsEnabled( this, &SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled )
                         .OnClicked( this, &SProjectLauncherBuildPage::HandleGenDSYMClicked )
                     ]
-                ]
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						// build mode check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherBuildPage::HandleUATIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherBuildPage::HandleUATCheckedStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("UATCheckBoxTooltip", "If checked, UAT will be built as part of the build."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UATCheckBoxText", "Build UAT"))
+						]
+					]
+               ]
             ]
 
 		+ SVerticalBox::Slot()
@@ -288,6 +303,33 @@ EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELaun
 
 	return EVisibility::Hidden;
 }
+
+void SProjectLauncherBuildPage::HandleUATCheckedStateChanged( ESlateCheckBoxState::Type CheckState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetBuildUAT(CheckState == ESlateCheckBoxState::Checked);
+	}
+}
+
+
+ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleUATIsChecked() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsBuildingUAT())
+		{
+			return ESlateCheckBoxState::Checked;
+		}
+	}
+
+	return ESlateCheckBoxState::Unchecked;
+}
+
 
 
 #undef LOCTEXT_NAMESPACE

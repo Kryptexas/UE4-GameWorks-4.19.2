@@ -398,6 +398,11 @@ public:
 		return BuildGame;
 	}
 
+	virtual bool IsBuildingUAT() const override
+	{
+		return BuildUAT;
+	}
+
 	virtual bool IsCookingIncrementally( ) const override
 	{
 		return CookIncremental;
@@ -575,6 +580,7 @@ public:
 
 		// default build settings
 		BuildGame = false;
+		BuildUAT = false;
 
 		// default cook settings
 		CookConfiguration = FApp::GetBuildConfiguration();
@@ -626,6 +632,16 @@ public:
 		if (BuildGame != Build)
 		{
 			BuildGame = Build;
+
+			Validate();
+		}
+	}
+
+	virtual void SetBuildUAT(bool Build) override
+	{
+		if (BuildUAT != Build)
+		{
+			BuildUAT = Build;
 
 			Validate();
 		}
@@ -1073,6 +1089,9 @@ private:
 
 	// Holds a flag indicating whether the game should be built
 	bool BuildGame;
+
+	// Holds a flag indicating whether UAT should be built
+	bool BuildUAT;
 
 	// Holds a flag indicating whether only modified content should be cooked.
 	bool CookIncremental;

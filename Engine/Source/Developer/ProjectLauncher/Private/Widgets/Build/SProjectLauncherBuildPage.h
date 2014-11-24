@@ -72,6 +72,12 @@ private:
 	/** Callback for determining the visibility of a validation error icon. */
 	EVisibility HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const;
 
+	/** Callback for changing the checked state of a platform menu check box. */
+	void HandleUATCheckedStateChanged( ESlateCheckBoxState::Type CheckState );
+
+	/** Callback for determining whether a platform menu entry is checked. */
+	ESlateCheckBoxState::Type HandleUATIsChecked() const;
+
 private:
 
 	/** Holds a pointer to the data model. */
