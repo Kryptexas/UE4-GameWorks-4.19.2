@@ -9,7 +9,7 @@ class UWorld;
 struct FEnvQueryInstance;
 struct FEnvQueryContextData;
 
-UCLASS(MinimalAPI, Blueprintable)
+UCLASS(MinimalAPI, Abstract, Blueprintable)
 class UEnvQueryContext_BlueprintBase : public UEnvQueryContext
 {
 	GENERATED_UCLASS_BODY()
