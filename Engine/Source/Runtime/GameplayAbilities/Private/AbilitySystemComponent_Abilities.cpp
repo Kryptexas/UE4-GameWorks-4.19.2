@@ -842,6 +842,11 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGamep
 	}
 }
 
+void UAbilitySystemComponent::ClientAbilityNotifyRejected_Implementation(int32 InputID)
+{
+	TargetingRejectedConfirmationDelegate.Broadcast(InputID);
+}
+
 void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActorInfo* ActorInfo, FGameplayTag EventTag, FGameplayEventData* Payload, UAbilitySystemComponent& Component)
 {
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);

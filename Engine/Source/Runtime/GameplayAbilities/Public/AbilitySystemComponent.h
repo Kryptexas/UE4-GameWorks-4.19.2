@@ -39,6 +39,8 @@
  */
 
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FTargetingRejectedConfirmation, int32);
+
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
  */
@@ -512,7 +514,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate,int16 PredictionKey);
-	
+
+	/** Attempted to confirm targeting, but the targeting actor rejected it. */
+	UFUNCTION(Client, Unreliable)
+	void	ClientAbilityNotifyRejected(int32 InputID);
+
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -737,6 +743,9 @@ public:
 
 	/** ReplicatedTargetData was 'cancelled' for this activation */
 	FAbilityConfirmOrCancel	ReplicatedTargetDataCancelledDelegate;
+
+	/** Targeting actor rejected a confirmation attempt */
+	FTargetingRejectedConfirmation TargetingRejectedConfirmationDelegate;
 
 	/** Tasks that run on simulated proxies */
 	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTasks)

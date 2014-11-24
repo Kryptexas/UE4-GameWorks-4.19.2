@@ -648,10 +648,6 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientIgnoreMoveInput(bool bIgnore);
 
-	/** Informs the client of a rejected attempt to confirm an ability. */
-	UFUNCTION(Unreliable, Client)
-	void ClientNotifyRejectedAbilityConfirmation(int32 InputID);
-
 	/**
 	 * Outputs a message to HUD
 	 * @param S - message to display

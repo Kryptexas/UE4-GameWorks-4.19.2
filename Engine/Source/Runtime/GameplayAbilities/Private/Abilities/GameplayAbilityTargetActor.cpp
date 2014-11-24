@@ -71,13 +71,13 @@ void AGameplayAbilityTargetActor::ConfirmTargeting()
 
 void AGameplayAbilityTargetActor::NotifyPlayerControllerOfRejectedConfirmation()
 {
-	if (OwningAbility && OwningAbility->IsInstantiated())
+	if (OwningAbility && OwningAbility->IsInstantiated() && OwningAbility->GetCurrentActorInfo())
 	{
-		if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
+		if (UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get())
 		{
 			if (FGameplayAbilitySpec* AbilitySpec = OwningAbility->GetCurrentAbilitySpec())
 			{
-				PC->ClientNotifyRejectedAbilityConfirmation(AbilitySpec->InputID);
+				ASC->ClientAbilityNotifyRejected(AbilitySpec->InputID);
 			}
 		}
 	}
