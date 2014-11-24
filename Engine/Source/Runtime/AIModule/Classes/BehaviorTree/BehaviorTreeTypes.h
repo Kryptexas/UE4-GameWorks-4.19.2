@@ -45,7 +45,7 @@ namespace FBlackboard
 }
 
 // delegate defines
-DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const UBlackboardComponent*, FBlackboard::FKey /*key ID*/);
+DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const UBlackboardComponent&, FBlackboard::FKey /*key ID*/);
 
 namespace BTSpecialChild
 {

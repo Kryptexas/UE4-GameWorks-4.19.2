@@ -200,7 +200,7 @@ void UBlackboardComponent::NotifyObservers(FBlackboard::FKey KeyID) const
 		for (TMultiMap<uint8, FOnBlackboardChange>::TConstKeyIterator KeyIt(Observers, KeyID); KeyIt; ++KeyIt)
 		{
 			const FOnBlackboardChange& ObserverDelegate = KeyIt.Value();
-			ObserverDelegate.ExecuteIfBound(this, KeyID);
+			ObserverDelegate.ExecuteIfBound(*this, KeyID);
 		}
 	}
 }

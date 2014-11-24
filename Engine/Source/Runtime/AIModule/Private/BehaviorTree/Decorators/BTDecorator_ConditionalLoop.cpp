@@ -20,7 +20,7 @@ bool UBTDecorator_ConditionalLoop::CalculateRawConditionValue(UBehaviorTreeCompo
 	return true;
 }
 
-void UBTDecorator_ConditionalLoop::OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
+void UBTDecorator_ConditionalLoop::OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	// empty, don't react to blackboard value changes
 }
@@ -29,7 +29,8 @@ void UBTDecorator_ConditionalLoop::OnNodeDeactivation(FBehaviorTreeSearchData& S
 {
 	if (NodeResult != EBTNodeResult::Aborted && SearchData.OwnerComp)
 	{
-		const bool bEvalResult = EvaluateOnBlackboard(SearchData.OwnerComp->GetBlackboardComponent());
+		const UBlackboardComponent* BlackboardComp = SearchData.OwnerComp->GetBlackboardComponent();
+		const bool bEvalResult = BlackboardComp && EvaluateOnBlackboard(*BlackboardComp);
 		UE_VLOG(SearchData.OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Loop condition: %s -> %s"),
 			bEvalResult ? TEXT("true") : TEXT("false"), (bEvalResult != IsInversed()) ? TEXT("run again!") : TEXT("break"));
 
