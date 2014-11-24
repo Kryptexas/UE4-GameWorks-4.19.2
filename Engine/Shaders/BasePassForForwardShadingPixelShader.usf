@@ -187,7 +187,7 @@ void Main(
 			Settings.ProjectionDepthBiasParameters = 0;
 						
 			float4 ShadowPosition;	
-#if MAX_FORWARD_SHADOWCASCADES == 2			
+	#if MAX_FORWARD_SHADOWCASCADES == 2			
 			{				
 				if (MaterialParameters.ScreenPosition.w >= View.DirectionalLightShadowDistances.x)
 				{
@@ -198,23 +198,23 @@ void Main(
 					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[0]);
 				}
 			}
-#else			
+	#else			
 			{
 				ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[0]);				
 			}
-#endif
+	#endif
 
 			// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
 			// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
 			float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
 			Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 
-#if 0
+	#if 0
 			half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
-#else
+	#else
 			half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
-#endif
-			Shadow = min(Shadow, ShadowMap);
+	#endif
+			Shadow = ShadowMap;
 		}
 #endif
 
