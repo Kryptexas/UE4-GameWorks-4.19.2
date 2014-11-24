@@ -33,7 +33,7 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(FMargin(5))
+			.Padding(FMargin(5,1))
 			[
 				SNew(SImage)
 				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
@@ -54,7 +54,7 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(FMargin(5, 1))
+			.Padding(FMargin(5, 1, 2, 1))
 			.MaxWidth(150)
 			[
 				SNew(SButton)
@@ -70,7 +70,7 @@ public:
 				]
 			]
 			+SHorizontalBox::Slot()
-			.Padding(FMargin(5,1))
+			.Padding(FMargin(2, 1, 5, 1))
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)

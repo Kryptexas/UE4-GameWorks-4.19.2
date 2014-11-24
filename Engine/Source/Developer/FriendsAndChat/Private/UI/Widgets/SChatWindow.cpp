@@ -64,7 +64,7 @@ public:
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(FMargin(0,5))
+				.Padding(5)
 				.VAlign(VAlign_Bottom)
 				.HAlign(HAlign_Fill)
 				[
@@ -73,8 +73,7 @@ public:
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.Padding(5)
+					.VAlign(VAlign_Fill)
 					[
 						SAssignNew(ActionMenu, SMenuAnchor)
 						.Placement(EMenuPlacement::MenuPlacement_AboveAnchor)
@@ -83,7 +82,7 @@ public:
 						[
 							SNew(SButton)
 							.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-							.ContentPadding(FMargin(5, 0))
+							.ContentPadding(FMargin(2, 2.5))
 							.OnClicked(this, &SChatWindowImpl::HandleActionDropDownClicked)
 							.Cursor(EMouseCursor::Hand)
 							[
@@ -98,6 +97,7 @@ public:
 								+SVerticalBox::Slot()
 								.VAlign(VAlign_Top)
 								.HAlign(HAlign_Center)
+								.Padding(FMargin(0,-1,0,1))
 								[
 									SNew(SImage)
 									.Image(this, &SChatWindowImpl::GetChatChannelIcon)
@@ -107,20 +107,24 @@ public:
 					]
 					+SHorizontalBox::Slot()
 					[
-						SNew(SVerticalBox)
-						+SVerticalBox::Slot()
+						SNew(SOverlay)
+						+ SOverlay::Slot()
 						[
 							SNew(SHorizontalBox)
 							.Visibility(this, &SChatWindowImpl::GetChatEntryVisibility)
 							+SHorizontalBox::Slot()
 							.HAlign(HAlign_Left)
-							.VAlign(VAlign_Center)
+							.VAlign(VAlign_Fill)
 							.AutoWidth()
-							.Padding(5)
+							[
+								SNew(SBorder)
+								.BorderImage(&FriendStyle.FriendContainerBackground)
+								.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
 							[
 								SNew(SHorizontalBox)
 								.Visibility(this, &SChatWindowImpl::GetFriendNameVisibility)
 								+SHorizontalBox::Slot()
+									.Padding(5,0)
 								.AutoWidth()
 								.VAlign(VAlign_Center)
 								[
@@ -129,13 +133,14 @@ public:
 									.Text(ViewModelPtr, &FChatViewModel::GetChatGroupText)
 								]
 								+SHorizontalBox::Slot()
-								.Padding(5)
+									.Padding(0, 0, 5, 0)
 								.AutoWidth()
 								.VAlign(VAlign_Center)
 								[
 									SNew(SButton)
 									.Visibility(this, &SChatWindowImpl::GetFriendActionVisibility)
 									.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+									.ContentPadding(FMargin(-2,3))
 									.OnClicked(this, &SChatWindowImpl::HandleFriendActionDropDownClicked)
 									[
 										SAssignNew(ChatItemActionMenu, SMenuAnchor)
@@ -149,29 +154,29 @@ public:
 									]
 								]
 							]
+							]
 							+SHorizontalBox::Slot()
 							.HAlign(HAlign_Fill)
-							.VAlign(VAlign_Center)
-							.Padding(5)
+							.VAlign(VAlign_Fill)
 							[
 								SAssignNew(ChatTextBox, SEditableTextBox)
+								.Style(&FriendStyle.ChatEditableTextStyle)
 								.ClearKeyboardFocusOnCommit(false)
 								.OnTextCommitted(this, &SChatWindowImpl::HandleChatEntered)
 								.HintText(LOCTEXT("FriendsListSearch", "Enter to chat"))
-								.Font(FriendStyle.FriendsFontStyle)
 								.OnTextChanged(this, &SChatWindowImpl::OnChatTextChanged)
 							]
 						]
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(FMargin(0,5))
-						.VAlign(VAlign_Bottom)
-						.HAlign(HAlign_Fill)
+						+SOverlay::Slot()
+						[
+							SNew(SBorder)
+							.Visibility(this, &SChatWindowImpl::GetConfirmationVisibility)
+							.BorderImage(&FriendStyle.FriendContainerBackground)
+							.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
 						[
 							SNew(SHorizontalBox)
-							.Visibility(this, &SChatWindowImpl::GetConfirmationVisibility)
 							+SHorizontalBox::Slot()
-							.Padding(5)
+								.Padding(5, 0)
 							.AutoWidth()
 							.VAlign(VAlign_Center)
 							.MaxWidth(200)
@@ -183,7 +188,7 @@ public:
 							+SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Center)
-							.Padding(5)
+								.Padding(0, 0, 5, 0)
 							[
 								SNew(SButton)
 								.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
@@ -201,7 +206,7 @@ public:
 							+SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Center)
-							.Padding(5)
+								.Padding(0, 0, 5, 0)
 							[
 								SNew(SButton)
 								.Visibility(ViewModelPtr, &FChatViewModel::GetInviteToGameVisibility)
@@ -220,6 +225,7 @@ public:
 							+ SHorizontalBox::Slot()
 							.HAlign(HAlign_Right)
 							.VAlign(VAlign_Center)
+								.Padding(0, 0, 5, 0)
 							.AutoWidth()
 							[
 								SNew(SButton)
@@ -229,6 +235,7 @@ public:
 						]
 					]
 				]
+			]
 			]
 		]);
 
@@ -355,10 +362,12 @@ private:
 		for( const auto& RecentFriend : ViewModel->GetRecentOptions())
 		{
 			ChannelSelection->AddSlot()
+			.AutoHeight()
 			[
 				SNew(SButton)
 				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 				.OnClicked(this, &SChatWindowImpl::HandleChannelWhisperChanged, RecentFriend)
+				.ContentPadding(2)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Left)
 				[

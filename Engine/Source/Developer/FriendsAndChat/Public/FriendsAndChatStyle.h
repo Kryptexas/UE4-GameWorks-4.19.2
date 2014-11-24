@@ -188,10 +188,15 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FSlateFontInfo FriendsFontStyleSmall;
 	FFriendsAndChatStyle& SetFontStyleSmall(const FSlateFontInfo& InFontStyle);
 
-		/** Font Style */
+	/** Font Style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateFontInfo FriendsFontStyleSmallBold;
 	FFriendsAndChatStyle& SetFontStyleSmallBold(const FSlateFontInfo& InFontStyle);
+
+	/** Font Style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateFontInfo ChatFontStyleEntry;
+	FFriendsAndChatStyle& SetChatFontStyleEntry(const FSlateFontInfo& InFontStyle);
 
 	/** Default Font Color */
 	UPROPERTY(EditAnywhere, Category=Appearance)
@@ -229,6 +234,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FEditableTextBoxStyle AddFriendEditableTextStyle;
 	FFriendsAndChatStyle& SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FEditableTextBoxStyle ChatEditableTextStyle;
+	FFriendsAndChatStyle& SetChatEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FCheckBoxStyle FriendCheckboxStyle;

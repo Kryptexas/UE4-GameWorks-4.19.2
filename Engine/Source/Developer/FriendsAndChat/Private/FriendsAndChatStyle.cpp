@@ -195,6 +195,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleSmallBold(const FSlateFo
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatFontStyleEntry(const FSlateFontInfo& InFontStyle)
+{
+	ChatFontStyleEntry = InFontStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetDefaultFontColor(const FLinearColor& InFontColor)
 {
 	DefaultFontColor = InFontColor;
@@ -246,6 +252,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWhisperBrush(const FSlateBrus
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle)
 {
 	AddFriendEditableTextStyle = InEditableTextStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle)
+{
+	ChatEditableTextStyle = InEditableTextStyle;
 	return *this;
 }
 
