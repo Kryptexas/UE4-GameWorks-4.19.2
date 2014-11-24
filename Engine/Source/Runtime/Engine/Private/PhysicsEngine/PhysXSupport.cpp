@@ -713,7 +713,7 @@ SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection)
 	PxCollection* Collection = PxCreateCollection();
 
 	Collection->add(*Obj);
-	PxSerialization::complete(*Collection, *Sr, SharedCollection, true);	// chase all other stuff (shared shaps, materials, etc) needed to serialize this collection
+	PxSerialization::complete(*Collection, *Sr, SharedCollection);	// chase all other stuff (shared shaps, materials, etc) needed to serialize this collection
 
 	FPhysXCountMemoryStream Out;
 	PxSerialization::serializeCollectionToBinary(Out, *Collection, *Sr, SharedCollection);
