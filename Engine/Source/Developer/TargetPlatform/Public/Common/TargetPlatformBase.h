@@ -161,7 +161,10 @@ public:
 	}
 #else //TEXTURERESOURCE_H_INCLUDED
 
-	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const;
+	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
+	{
+		return NAME_None;
+	}
 
 #endif //TEXTURERESOURCE_H_INCLUDED
 #endif //WITH_ENGINE

@@ -37,7 +37,7 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 
 	// Ensure that at least one API is supported
-	if (!bSupportsMetal && !bSupportsOpenGLES2)
+	if (!bSupportsMetal && !bSupportsOpenGLES2 && !bSupportsMetalMRT)
 	{
 		bSupportsOpenGLES2 = true;
 	}

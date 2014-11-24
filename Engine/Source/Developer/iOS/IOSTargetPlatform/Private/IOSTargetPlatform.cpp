@@ -290,28 +290,49 @@ bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
 
 #if WITH_ENGINE
 
+static bool SupportsES2()
+{
+	// default to supporting ES2
+	bool bSupportsOpenGLES2 = true;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsOpenGLES2"), bSupportsOpenGLES2, GEngineIni);
+	return bSupportsOpenGLES2;
+}
+
+static bool SupportsMetal()
+{
+	// default to NOT supporting metal
+	bool bSupportsMetal = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
+	return bSupportsMetal;
+}
+
+static bool SupportsMetalMRT()
+{
+	// default to NOT supporting metal MRT
+	bool bSupportsMetalMRT = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetalMRT"), bSupportsMetalMRT, GEngineIni);
+	return bSupportsMetalMRT;
+}
+
 void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 
-	// default to supporting ES2
-	bool bSupportsOpenGLES2 = true;
-	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsOpenGLES2"), bSupportsOpenGLES2, GEngineIni);
-	if (bSupportsOpenGLES2)
+	if (SupportsES2())
 	{
 		OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
 	}
 
-	// default to NOT supporting metal
-	bool bSupportsMetal = false;
-	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
-	if (bSupportsMetal)
+	if (SupportsMetal())
 	{
 		OutFormats.AddUnique(NAME_SF_METAL);
-		// @todo metal mrt: Add a project setting to support MetalMRT mode
-		// OutFormats.AddUnique(NAME_SF_METAL_MRT);
+	}
+
+	if (SupportsMetalMRT())
+	{
+		OutFormats.AddUnique(NAME_SF_METAL_MRT);
 	}
 }
 
@@ -321,111 +342,41 @@ void FIOSTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats 
 	GetAllPossibleShaderFormats(OutFormats);
 }
 
-
 void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const
 {
 	check(Texture);
 
+	// we remap some of the defaults
+	static FName FormatRemap[] = 
+	{
+		FName(TEXT("DXT1")), FName(TEXT("PVRTC2")),
+		FName(TEXT("DXT5")), FName(TEXT("PVRTC4")),
+		FName(TEXT("DXT5n")), FName(TEXT("PVRTCN")),
+		FName(TEXT("BC5")), FName(TEXT("PVRTCN")),
+		FName(TEXT("AutoDXT")), FName(TEXT("AutoPVRTC")),
+	};
+
 	FName TextureFormatName = NAME_None;
 
-	//// Supported texture format names.
-
-	// Compressed Texture Formats
-	static FName NamePVRTC2(TEXT("PVRTC2"));
-	static FName NamePVRTC4(TEXT("PVRTC4"));
-
-	// Same as PVRTC4, but derives Z from X and Y
-	static FName NamePVRTCN(TEXT("PVRTCN"));
-	static FName NameAutoPVRTC(TEXT("AutoPVRTC"));
-
-	// Uncompressed Texture Formats
-	static FName NameBGRA8(TEXT("BGRA8"));
-	static FName NameG8(TEXT("G8"));
-	static FName NameVU8(TEXT("VU8"));
-	static FName NameRGBA16F(TEXT("RGBA16F"));
-	bool bIsCubemap = Texture->IsA(UTextureCube::StaticClass());
-
-	bool bNoCompression = Texture->CompressionNone				// Code wants the texture uncompressed.
-		|| (Texture->LODGroup == TEXTUREGROUP_ColorLookupTable)	// Textures in certain LOD groups should remain uncompressed.
-		|| (Texture->LODGroup == TEXTUREGROUP_Bokeh)
-		|| (Texture->CompressionSettings == TC_EditorIcon)
-		|| (Texture->Source.GetSizeX() < 4)						// Don't compress textures smaller than the DXT block size.
-		|| (Texture->Source.GetSizeY() < 4)
-		|| (Texture->Source.GetSizeX() % 4 != 0)
-		|| (Texture->Source.GetSizeY() % 4 != 0);
-
-	ETextureSourceFormat SourceFormat = Texture->Source.GetFormat();
-
-	// Determine the pixel format of the compressed texture.
-	if (bNoCompression)
+	// forward rendering only needs one channel for shadow maps
+	if (Texture->LODGroup == TEXTUREGROUP_Shadowmap && !SupportsMetalMRT())
 	{
-		if (Texture->HasHDRSource())
+		TextureFormatName = FName(TEXT("G8"));
+	}
+
+	// if we didn't assign anything specially, then use the defaults
+	if (TextureFormatName == NAME_None)
+	{
+		TextureFormatName = GetDefaultTextureFormatName(Texture, EngineSettings);
+	}
+
+	// perform any remapping away from defaults
+	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 2)
+	{
+		if (TextureFormatName == FormatRemap[RemapIndex])
 		{
-			TextureFormatName = NameRGBA16F;
+			TextureFormatName = FormatRemap[RemapIndex + 1];
 		}
-		else if (SourceFormat == TSF_G8 || Texture->CompressionSettings == TC_Grayscale)
-		{
-			TextureFormatName = NameG8;
-		}
-		else if (Texture->LODGroup == TEXTUREGROUP_Shadowmap)
-		{
-			TextureFormatName = NameG8;
-		}
-		else
-		{
-			TextureFormatName = NameBGRA8;
-		}
-	}
-	else if (Texture->CompressionSettings == TC_HDR)
-	{
-		TextureFormatName = NameRGBA16F;
-	}
-	else if (Texture->CompressionSettings == TC_Normalmap)
-	{
-		TextureFormatName = NamePVRTCN;
-	}
-	else if (Texture->CompressionSettings == TC_Displacementmap)
-	{
-		TextureFormatName = NameG8;
-	}
-	else if (Texture->CompressionSettings == TC_VectorDisplacementmap)
-	{
-		TextureFormatName = NameBGRA8;
-	}
-	else if (Texture->CompressionSettings == TC_Grayscale)
-	{
-		TextureFormatName = NameG8;
-	}
-	else if (Texture->CompressionSettings == TC_Alpha)
-	{
-		TextureFormatName = NameG8;
-	}
-	else if (Texture->CompressionSettings == TC_DistanceFieldFont)
-	{
-		TextureFormatName = NameG8;
-	}
-	else if (Texture->bForcePVRTC4)
-	{
-		TextureFormatName = NamePVRTC4;
-	}
-	else if (Texture->CompressionNoAlpha)
-	{
-		TextureFormatName = NamePVRTC2;
-	}
-	else if (Texture->bDitherMipMapAlpha)
-	{
-		TextureFormatName = NamePVRTC4;
-	}
-	else
-	{
-		TextureFormatName = NameAutoPVRTC;
-	}
-
-	// Some PC GPUs don't support sRGB read from G8 textures (e.g. AMD DX10 cards on ShaderModel3.0)
-	// This solution requires 4x more memory but a lot of PC HW emulate the format anyway
-	if ((TextureFormatName == NameG8) && Texture->SRGB)
-	{
-		TextureFormatName = NameG8;
 	}
 
 	OutFormats.Add(TextureFormatName);

@@ -16,14 +16,14 @@
 #include "LaunchDaemonMessages.h"
 #include "Messaging.h"
 #include "TargetDeviceServices.h"
-#include "TargetPlatform.h"
-#include "TargetPlatformBase.h"
 #include "IOSPlatformProperties.h"
 
 #if WITH_ENGINE
 	#include "Engine.h"
-	//#include "TextureCompressorModule.h"
 #endif
+
+#include "TargetPlatform.h"
+#include "TargetPlatformBase.h"
 
 
 /* Private includes
