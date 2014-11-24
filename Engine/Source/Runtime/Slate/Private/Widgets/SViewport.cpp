@@ -289,7 +289,7 @@ FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEv
 
 TOptional<EPopupMethod> SViewport::OnQueryPopupMethod() const
 {
-	return EPopupMethod::UseCurrentWindow;
+	return EPopupMethod::CreateNewWindow;
 }
 
 void SViewport::OnFinishedPointerInput()
