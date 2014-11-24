@@ -12,6 +12,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SBlueprintMerge)
 	{}
+		SLATE_EVENT(FOnMergeResolved, OnMergeResolved)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
@@ -57,6 +58,8 @@ private:
 	FMergeControl GraphControl;
 	FMergeControl TreeControl;
 	FMergeControl DetailsControl;
+	
+	FOnMergeResolved OnMergeResolved;
 
 	class IDiffControl* CurrentDiffControl;
 	class IMergeControl* CurrentMergeControl;

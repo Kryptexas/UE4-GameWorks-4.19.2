@@ -41,6 +41,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	check( InData.OwningEditor.Pin().IsValid() );
 
 	Data = InData;
+	OnMergeResolved = InArgs._OnMergeResolved;
 
 	BackupSubDir = FPaths::GameSavedDir() / TEXT("Backup") / TEXT("Resolve_Backup[") + FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S")) + TEXT("]");
 
@@ -201,12 +202,30 @@ void SBlueprintMerge::OnFinishMerge()
 		FSlateNotificationManager::Get().AddNotification( ErrorNotification );
 	}
 
-	Data.OwningEditor.Pin()->CloseMergeTool();
+	// should come before CloseMergeTool(), because CloseMergeTool() makes its
+	// own call to OnMergeResolved (with an "Unknown" state).
+	OnMergeResolved.ExecuteIfBound(Package, EMergeResult::Completed);
+
+	// if we're using the merge command-line, it might close everything once
+	// a resolution is found (so the editor may be invalid now)
+	if (Data.OwningEditor.IsValid())
+	{
+		Data.OwningEditor.Pin()->CloseMergeTool();
+	}
 }
 
 void SBlueprintMerge::OnCancelClicked()
 {
-	Data.OwningEditor.Pin()->CloseMergeTool();
+	// should come before CloseMergeTool(), because CloseMergeTool() makes its
+	// own call to OnMergeResolved (with an "Unknown" state).
+	OnMergeResolved.ExecuteIfBound(GetTargetBlueprint()->GetOutermost(), EMergeResult::Cancelled);
+
+	// if we're using the merge command-line, it might close everything once
+	// a resolution is found (so the editor may be invalid now)
+	if (Data.OwningEditor.IsValid())
+	{
+		Data.OwningEditor.Pin()->CloseMergeTool();
+	}
 }
 
 void SBlueprintMerge::OnModeChanged(FName NewMode)

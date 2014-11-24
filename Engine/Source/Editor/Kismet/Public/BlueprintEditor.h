@@ -10,6 +10,7 @@
 #include "GraphEditor.h"
 #include "EditorUndoClient.h"
 #include "Engine/UserDefinedEnum.h"
+#include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
 
 class USCS_Node;
 
@@ -468,7 +469,7 @@ public:
 
 	/** Forces the merge tool to be shown */
 	void CreateMergeToolTab();
-	void CreateMergeToolTab(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint);
+	void CreateMergeToolTab(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint, const FOnMergeResolved& ResolutionCallback);
 	
 	/** Closes the merge tool, rather than simply hiding it */
 	void CloseMergeTool();
@@ -959,6 +960,8 @@ protected:
 
 	/** Merge tool - WeakPtr because it's owned by the GlobalTabManager */
 	TWeakPtr<class SDockTab> MergeTool;
+	/** Merge tool - Delegate to call when the merge tool is closed. */
+	FOnMergeResolved OnMergeResolved;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> NameEntryPopupWindow;

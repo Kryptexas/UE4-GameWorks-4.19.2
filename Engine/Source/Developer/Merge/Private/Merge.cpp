@@ -116,11 +116,12 @@ static UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName
 }
 
 static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor> Editor,
-                                                    const UBlueprint*    BaseBlueprint,
-                                                    const FRevisionInfo& BaseRevInfo,
-													const UBlueprint*    RemoteBlueprint,
-													const FRevisionInfo& RemoteRevInfo,
-													const UBlueprint&    LocalBlueprint)
+                                                    const UBlueprint*       BaseBlueprint,
+                                                    const FRevisionInfo&    BaseRevInfo,
+													const UBlueprint*       RemoteBlueprint,
+													const FRevisionInfo&    RemoteRevInfo,
+													const UBlueprint&       LocalBlueprint,
+													const FOnMergeResolved& MereResolutionCallback)
 {
 	TSharedPtr<SWidget> TabContent;
 
@@ -135,7 +136,8 @@ static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor>
 			, BaseRevInfo);
 		LocalBlueprint.bDuplicatingReadOnly = false;
 
-		TabContent = SNew(SBlueprintMerge, Data);
+		TabContent = SNew(SBlueprintMerge, Data)
+			.OnMergeResolved(MereResolutionCallback);
 	}
 	else
 	{
@@ -173,8 +175,9 @@ class FMerge : public IMerge
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	virtual TSharedRef<SDockTab> GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor) override;
-	virtual TSharedRef<SDockTab> GenerateMergeWidget(const UBlueprint* BaseAsset, const UBlueprint* RemoteAsset, const UBlueprint* LocalAsset, TSharedRef<FBlueprintEditor> Editor) override;
+	virtual TSharedRef<SDockTab> GenerateMergeWidget(const UBlueprint* BaseAsset, const UBlueprint* RemoteAsset, const UBlueprint* LocalAsset, const FOnMergeResolved& MergeResolutionCallback, TSharedRef<FBlueprintEditor> Editor) override;
 	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const override;
+	//virtual FOnMergeResolved& OnMergeResolved() const override;
 
 	// Simplest to only allow one merge operation at a time, we could easily make this a map of Blueprint=>MergeTab
 	// but doing so will complicate the tab management
@@ -243,7 +246,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 		FRevisionInfo BaseRevInfo = FRevisionInfo::InvalidRevision();
 		const UBlueprint* BaseBlueprint = Cast< UBlueprint >(LoadBaseRev(PackageName, AssetName, SourceControlStateRef, BaseRevInfo));
 
-		Contents = GenerateMergeTabContents(Editor, BaseBlueprint, BaseRevInfo, RemoteBlueprint, CurrentRevInfo, Object);
+		Contents = GenerateMergeTabContents(Editor, BaseBlueprint, BaseRevInfo, RemoteBlueprint, CurrentRevInfo, Object, FOnMergeResolved());
 	}
 
 	TSharedRef<SDockTab> Tab =  FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
@@ -253,7 +256,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 
 }
 
-TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint, const UBlueprint* LocalBlueprint, TSharedRef<FBlueprintEditor> Editor)
+TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint, const UBlueprint* LocalBlueprint, const FOnMergeResolved& MergeResolutionCallback, TSharedRef<FBlueprintEditor> Editor)
 {
 	if (ActiveTab.IsValid())
 	{
@@ -265,7 +268,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint* BaseBlueprint
 	}
 
 	// @TODO: pipe revision info through
-	TSharedPtr<SWidget> TabContents = GenerateMergeTabContents(Editor, BaseBlueprint, FRevisionInfo::InvalidRevision(), RemoteBlueprint, FRevisionInfo::InvalidRevision(), *LocalBlueprint);
+	TSharedPtr<SWidget> TabContents = GenerateMergeTabContents(Editor, BaseBlueprint, FRevisionInfo::InvalidRevision(), RemoteBlueprint, FRevisionInfo::InvalidRevision(), *LocalBlueprint, MergeResolutionCallback);
 
 	TSharedRef<SDockTab> Tab = FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
 	Tab->SetContent(TabContents.ToSharedRef());

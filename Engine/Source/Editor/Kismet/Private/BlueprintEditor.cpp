@@ -5048,9 +5048,10 @@ void FBlueprintEditor::CreateMergeToolTab()
 	MergeTool = IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this));
 }
 
-void FBlueprintEditor::CreateMergeToolTab(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint)
+void FBlueprintEditor::CreateMergeToolTab(const UBlueprint* BaseBlueprint, const UBlueprint* RemoteBlueprint, const FOnMergeResolved& ResolutionCallback)
 {
-	MergeTool = IMerge::Get().GenerateMergeWidget(BaseBlueprint, RemoteBlueprint, GetBlueprintObj(), SharedThis(this));
+	OnMergeResolved = ResolutionCallback;
+	MergeTool = IMerge::Get().GenerateMergeWidget(BaseBlueprint, RemoteBlueprint, GetBlueprintObj(), ResolutionCallback, SharedThis(this));
 }
 
 void FBlueprintEditor::CloseMergeTool()
@@ -5058,6 +5059,12 @@ void FBlueprintEditor::CloseMergeTool()
 	auto MergeToolPtr = MergeTool.Pin();
 	if( MergeToolPtr.IsValid() )
 	{
+		UBlueprint* Blueprint = GetBlueprintObj();
+		UPackage* BpPackage = (Blueprint == nullptr) ? nullptr : Blueprint->GetOutermost();
+		// @TODO: right now crashes the editor on closing of the BP editor
+		//OnMergeResolved.ExecuteIfBound(BpPackage, EMergeResult::Unknown);
+		OnMergeResolved.Unbind();
+
 		MergeToolPtr->RequestCloseTab();
 	}
 }

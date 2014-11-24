@@ -598,28 +598,87 @@ static void EditorCommandLineUtilsImpl::RunAssetDiffCommand(TSharedPtr<SWindow> 
 //------------------------------------------------------------------------------
 static void EditorCommandLineUtilsImpl::RunAssetMerge(FMergeAsset const& Base, FMergeAsset const& Remote, FMergeAsset const& Local, FMergeAsset const& Result)
 {
-	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	class FMergeResolutionHandler : public TSharedFromThis<FMergeResolutionHandler>
+	{
+	public:
+		FMergeResolutionHandler(UPackage* MergingPkgIn, const FString& DstFilePathIn)
+			: MergingPackage(MergingPkgIn)
+			, Resolution(EMergeResult::Unknown)
+			, DstFilePath(DstFilePathIn)
+		{
+			// force the user to save the result file (so we know if they "accepted" the merge)
+			MergingPkgIn->SetDirtyFlag(true);
+		}
 
-	UClass* AssetClass = Local.GetClass();
-	check(AssetClass != nullptr);
-	TWeakPtr<IAssetTypeActions> AssetActions = AssetTools.GetAssetTypeActionsForClass(AssetClass);
-	check(AssetActions.IsValid());
+		/** Records the user's selected resolution, and closes the editor. */
+		void HandleMergeResolution(UPackage* MergedPackageIn, EMergeResult::Type ResolutionIn)
+		{
+			if (MergedPackageIn == MergingPackage)
+			{
+				if (ResolutionIn == EMergeResult::Cancelled)
+				{
+					// they don't want to save any changes, so clear the flag
+					MergingPackage->SetDirtyFlag(false);
+				}
+				
+				if (Resolution == EMergeResult::Unknown)
+				{
+					Resolution = ResolutionIn;
+					EditorCommandLineUtilsImpl::ForceCloseEditor();
+				}
+			}
+		}
+
+		/** Copies the modified file if the user saved changes (and didn't cancel). */
+		void HandleEditorClose()
+		{
+			if ((Resolution != EMergeResult::Cancelled) && !MergingPackage->IsDirty())
+			{
+				FString SrcFilePath = MergingPackage->FileName.ToString();
+				IFileManager::Get().Copy(*DstFilePath, *SrcFilePath);
+			}
+		}
+
+	private:
+		UPackage* MergingPackage;
+		EMergeResult::Type Resolution;
+		FString DstFilePath;
+	};
+	
+	UPackage* MergeResultPkg = Local.GetAssetObj()->GetOutermost();
+	const FString& ResultFilePath = (!Result.GetSourceFilePath().IsEmpty()) ? Result.GetSourceFilePath() : Local.GetSourceFilePath();
+	TSharedRef<FMergeResolutionHandler> MergeHandler = MakeShareable(new FMergeResolutionHandler(MergeResultPkg, ResultFilePath));
+
+	// we use a lambda delegate to route the call into MergeHandler (we require 
+	// this intermediate to hold onto a MergeHandler ref, so it doesn't get 
+	// prematurely destroyed at the end of this function)
+	auto HandleMergeResolution = [MergeHandler](UPackage* MergedPackageIn, EMergeResult::Type ResolutionIn)
+	{
+		MergeHandler->HandleMergeResolution(MergedPackageIn, ResolutionIn);
+	};
+	const FOnMergeResolved MergeResolutionDelegate = FOnMergeResolved::CreateLambda(HandleMergeResolution);
 
 	// have to mount the save directory so that the BP-editor can save
 	// the merged asset packages
 	FPackageName::RegisterMountPoint(TEXT("/Temp/"), FPaths::GameSavedDir());
+	
+	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	UClass* AssetClass = Local.GetClass();
+	check(AssetClass != nullptr);
+	TWeakPtr<IAssetTypeActions> AssetActions = AssetTools.GetAssetTypeActionsForClass(AssetClass);
+	check(AssetActions.IsValid());
 	// bring up the merge tool...
-	AssetActions.Pin()->Merge(Base.GetAssetObj(), Remote.GetAssetObj(), Local.GetAssetObj());
+	AssetActions.Pin()->Merge(Base.GetAssetObj(), Remote.GetAssetObj(), Local.GetAssetObj(), MergeResolutionDelegate);
 
-	auto CopyFilesLambda = [](FString SrcFilePath, FString DstFilePath)
+	// we use a lambda delegate to route the call into MergeHandler (we require 
+	// this intermediate to hold onto a MergeHandler ref, so it doesn't get 
+	// prematurely destroyed at the end of this function)
+	auto HandleEditorClose = [](TSharedRef<FMergeResolutionHandler> MergeHandler)
 	{
-		IFileManager::Get().Copy(*DstFilePath, *SrcFilePath);
-	};
-
-	const FString& ModifiedFilePath = Local.GetAssetFilePath();
-	const FString& ResultFilePath   = (!Result.GetSourceFilePath().IsEmpty()) ? Result.GetSourceFilePath() : Local.GetSourceFilePath();
+		MergeHandler->HandleEditorClose();
+	};	
 	// have to copy the file into the expected result file when we're done
-	FEditorDelegates::OnShutdownPostPackagesSaved.AddStatic(CopyFilesLambda, ModifiedFilePath, ResultFilePath);
+	FEditorDelegates::OnShutdownPostPackagesSaved.AddStatic(HandleEditorClose, MergeHandler);
 }
 
 //------------------------------------------------------------------------------

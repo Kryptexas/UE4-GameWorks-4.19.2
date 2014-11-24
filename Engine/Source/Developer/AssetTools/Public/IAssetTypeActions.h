@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
+
 namespace EAssetTypeCategories
 {
 	enum Type
@@ -84,7 +86,7 @@ public:
 	virtual void Merge( UObject* InObject ) = 0;
 
 	/** Begins a merge between the specified assets */
-	virtual void Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset) = 0;
+	virtual void Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset, const FOnMergeResolved& ResolutionCallback) = 0;
 
 	/** Returns the categories that this asset type. The return value is one or more flags from EAssetTypeCategories.  */
 	virtual uint32 GetCategories() = 0;

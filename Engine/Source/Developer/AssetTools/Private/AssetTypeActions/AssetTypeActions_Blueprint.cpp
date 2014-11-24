@@ -101,7 +101,7 @@ void FAssetTypeActions_Blueprint::Merge(UObject* InObject)
 	}
 }
 
-void FAssetTypeActions_Blueprint::Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset)
+void FAssetTypeActions_Blueprint::Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset, const FOnMergeResolved& ResolutionCallback)
 {
 	UBlueprint* AsBlueprint = CastChecked<UBlueprint>(LocalAsset);
 	check(LocalAsset->GetClass() == BaseAsset->GetClass());
@@ -112,7 +112,7 @@ void FAssetTypeActions_Blueprint::Merge(UObject* BaseAsset, UObject* RemoteAsset
 		FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
 
 		FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(AsBlueprint, /*bFocusIfOpen =*/false));
-		BlueprintEditor->CreateMergeToolTab(Cast<UBlueprint>(BaseAsset), Cast<UBlueprint>(RemoteAsset));
+		BlueprintEditor->CreateMergeToolTab(Cast<UBlueprint>(BaseAsset), Cast<UBlueprint>(RemoteAsset), ResolutionCallback);
 	}
 }
 
