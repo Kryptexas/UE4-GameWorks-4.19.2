@@ -1088,10 +1088,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to check the files out.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public void Reconcile(int CL, string CommandLine)
+		public void Reconcile(int CL, string CommandLine, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
-			LogP4("reconcile " + String.Format("-c {0} -ead -f ", CL) + CommandLine);
+			LogP4("reconcile " + String.Format("-c {0} -ead -f ", CL) + CommandLine, AllowSpew: AllowSpew);
 		}
 
         /// <summary>
