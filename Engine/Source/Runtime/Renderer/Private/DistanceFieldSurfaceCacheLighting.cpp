@@ -2217,12 +2217,18 @@ class FDebugBuffer : public FRenderResource
 public:
 	virtual void InitDynamicRHI() override
 	{
-		DebugData.Initialize(sizeof(float)* 4, 50, PF_A32B32G32R32F, BUF_Static);
+        if(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+        {
+            DebugData.Initialize(sizeof(float)* 4, 50, PF_A32B32G32R32F, BUF_Static);
+        }
 	}
 
 	virtual void ReleaseDynamicRHI() override
 	{
-		DebugData.Release();
+        if(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+        {
+            DebugData.Release();
+        }
 	}
 
 	FRWBuffer DebugData;
