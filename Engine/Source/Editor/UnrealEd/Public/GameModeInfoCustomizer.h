@@ -65,12 +65,16 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew(SClassPropertyEntryBox)
-				.AllowNone(bAllowNone)
-				.MetaClass(MetaClass)
-				.IsEnabled(this, &FGameModeInfoCustomizer::AllowModifyGameMode)
-				.SelectedClass(this, &FGameModeInfoCustomizer::OnGetDefaultClass, DefaultClassPropertyName)
-				.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::OnSetDefaultClass, DefaultClassPropertyName))
+				SNew(SBox)
+				.WidthOverride(125)
+				[
+					SNew(SClassPropertyEntryBox)
+					.AllowNone(bAllowNone)
+					.MetaClass(MetaClass)
+					.IsEnabled(this, &FGameModeInfoCustomizer::AllowModifyGameMode)
+					.SelectedClass(this, &FGameModeInfoCustomizer::OnGetDefaultClass, DefaultClassPropertyName)
+					.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::OnSetDefaultClass, DefaultClassPropertyName))
+				]
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -118,11 +122,15 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew(SClassPropertyEntryBox)
-				.AllowNone(bAllowNone)
-				.MetaClass(AGameMode::StaticClass())
-				.SelectedClass(this, &FGameModeInfoCustomizer::GetCurrentGameModeClass)
-				.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::SetCurrentGameModeClass))
+				SNew(SBox)
+				.WidthOverride(125)
+				[
+					SNew(SClassPropertyEntryBox)
+					.AllowNone(bAllowNone)
+					.MetaClass(AGameMode::StaticClass())
+					.SelectedClass(this, &FGameModeInfoCustomizer::GetCurrentGameModeClass)
+					.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::SetCurrentGameModeClass))
+				]
 			]
 
 			+SHorizontalBox::Slot()

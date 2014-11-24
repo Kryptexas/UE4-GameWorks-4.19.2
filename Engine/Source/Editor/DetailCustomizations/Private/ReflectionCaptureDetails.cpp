@@ -30,20 +30,27 @@ void FReflectionCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLa
 		}
 	}
 
-	DetailLayout.EditCategory( "ReflectionCapture" )
-	.AddCustomRow( NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures").ToString() )
+	DetailLayout.EditCategory("ReflectionCapture")
+	.AddCustomRow(NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures").ToString())
+	.NameContent()
 	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.FillWidth(1.f)
-		.Padding(0, 5, 10, 5)
+		SNullWidget::NullWidget
+	]
+	.ValueContent()
+	[
+		SNew(SBox)
+		.WidthOverride(125)
 		[
 			SNew(SButton)
 			.ContentPadding(3)
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
-			.OnClicked( this, &FReflectionCaptureDetails::OnUpdateReflectionCaptures )
-			.Text( NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures").ToString() )
+			.OnClicked(this, &FReflectionCaptureDetails::OnUpdateReflectionCaptures)
+			[
+				SNew(STextBlock)
+				.Text(NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures").ToString())
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
 		]
 	];
 }
