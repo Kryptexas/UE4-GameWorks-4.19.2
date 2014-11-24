@@ -141,13 +141,13 @@ void RemoveObjectsFromBufferCS(
 RWBuffer<float4> RWCulledObjectBounds;
 RWBuffer<float4> RWCulledObjectData;
 RWBuffer<float4> RWCulledObjectBoxBounds;
-float4 ViewFrustumConvexHull[5];
+uint NumConvexHullPlanes;
+float4 ViewFrustumConvexHull[6];
 uint ObjectBoundingGeometryIndexCount;
 
 bool ViewFrustumIntersectSphere(float3 SphereOrigin, float SphereRadius)
 {
-	UNROLL
-	for (uint PlaneIndex = 0; PlaneIndex < 5; PlaneIndex++)
+	for (uint PlaneIndex = 0; PlaneIndex < NumConvexHullPlanes; PlaneIndex++)
 	{
 		float4 PlaneData = ViewFrustumConvexHull[PlaneIndex];
 		float PlaneDistance = dot(PlaneData.xyz, SphereOrigin) - PlaneData.w;
