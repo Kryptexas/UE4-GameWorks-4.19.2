@@ -167,6 +167,7 @@ void FMaterialEditorViewportClient::FocusViewportOnBounds(const FBoxSphereBounds
 	*/
 	const float HalfFOVRadians = FMath::DegreesToRadians(ViewFOV / 2.0f);
 	const float DistanceFromSphere = Radius / FMath::Sin(HalfFOVRadians);
+	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	FVector CameraOffsetVector = ViewTransform.GetRotation().Vector() * -DistanceFromSphere;
 
 	ViewTransform.SetLookAt(Position);
