@@ -136,6 +136,7 @@ namespace APIDocTool
 
 			// Slate declarative syntax
 			"SLATE_BEGIN_ARGS(WidgetType)=public: struct FArguments : public TSlateBaseNamedArgs<WidgetType> { typedef FArguments WidgetArgsType; FArguments()",
+			"SLATE_USER_ARGS(WidgetType)=public: static TSharedRef<WidgetType> New(); struct FArguments; struct FArguments : public TSlateBaseNamedArgs<WidgetType>{ typedef FArguments WidgetArgsType; FArguments()",
 			"HACK_SLATE_SLOT_ARGS(WidgetType)=public: struct FArguments : public TSlateBaseNamedArgs<WidgetType>{ typedef FArguments WidgetArgsType; FArguments()",
 			"SLATE_ATTRIBUTE(AttrType, AttrName)=WidgetArgsType &AttrName( const TAttribute<AttrType>& InAttribute );",
 			"SLATE_TEXT_ATTRIBUTE(AttrName)=WidgetArgsType &AttrName( const TAttribute<FText>& InAttribute ); WidgetArgsType &AttrName( const TAttribute<FString>& InAttribute );",

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "DragAndDrop.h"
 
 /**
  * A drag drop operation for UI Commands

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "DragAndDrop.h"
+
 class FDragConnection : public FGraphEditorDragDropAction
 {
 public:

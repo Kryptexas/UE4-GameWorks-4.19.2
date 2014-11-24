@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "ObjectBase.h"
 #include "LocalVertexFactory.h"
 #include "SceneTypes.h"
 #include "RawIndexBuffer.h"

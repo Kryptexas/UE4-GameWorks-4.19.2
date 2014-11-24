@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "DragAndDrop.h"
+
 // Base class for drag-drop actions that pass into the graph editor and perform an action when dropped
 class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
 {
