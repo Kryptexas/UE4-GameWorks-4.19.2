@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
+
 DECLARE_DELEGATE(FTimerDelegate);
 
 /** Simple interface to wrap a timer delegate that can be either native or dynamic. */
