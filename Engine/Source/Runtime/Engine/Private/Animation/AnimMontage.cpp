@@ -969,7 +969,7 @@ void FAnimMontageInstance::RefreshNextPrevSections()
 
 void FAnimMontageInstance::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	if (Montage && Montage->GetOuter() == GetTransientPackage())
+	if (Montage)
 	{
 		Collector.AddReferencedObject(Montage);
 	}
