@@ -259,6 +259,7 @@ static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUs
 			if ( PlacedActor != NULL )
 			{
 				PlacedActors.Add(PlacedActor);
+				PlacedActor->PostEditMove(true);
 			}
 		}
 	}
@@ -1070,6 +1071,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 
 		Actor->SetActorTransform(ActorTransform);
 		Actor->SetIsTemporarilyHiddenInEditor(false);
+		Actor->PostEditMove(false);
 	}
 
 	return true;
