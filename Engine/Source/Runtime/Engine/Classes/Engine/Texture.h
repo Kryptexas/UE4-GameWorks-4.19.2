@@ -548,6 +548,11 @@ public:
 	ENGINE_API int32 GetCachedLODBias() const;
 
 	/**
+	 * Cache the combined LOD bias based on texture LOD group and LOD bias.
+	 */
+	ENGINE_API void UpdateCachedLODBias( bool bIncTextureMips = true );
+
+	/**
 	 * @return The material value type of this texture.
 	 */
 	virtual EMaterialValueType GetMaterialType() PURE_VIRTUAL(UTexture::GetMaterialType,return MCT_Texture;);
@@ -623,8 +628,6 @@ public:
 	 * Forces platform data to be rebuilt.
 	 */
 	ENGINE_API void ForceRebuildPlatformData();
-
-	ENGINE_API void UpdateCachedLODBias( bool bIncTextureMips = true );
 
 	/**
 	 * Marks platform data as transient. This optionally removes persistent or cached data associated with the platform.

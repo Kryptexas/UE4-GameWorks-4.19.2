@@ -1217,7 +1217,7 @@ static void SerializePlatformData(
 			const int32 NumCinematicMipLevels = Texture->NumCinematicMipLevels;
 			const TextureMipGenSettings MipGenSetting = Texture->MipGenSettings;
 
-			FirstMipToSerialize = Ar.CookingTarget()->GetTextureLODSettings().CalculateLODBias(Width, Height, LODGroup, LODBias, NumCinematicMipLevels, MipGenSetting);
+			FirstMipToSerialize = Ar.CookingTarget()->GetTextureLODSettings().CalculateLODBias(Width, Height, LODGroup, LODBias, 0, MipGenSetting);
 			FirstMipToSerialize = FMath::Clamp(FirstMipToSerialize, 0, FMath::Max(NumMips-1,0));
 			NumMips -= FirstMipToSerialize;
 		}
@@ -1348,6 +1348,11 @@ void UTexture::CleanupCachedCookedPlatformData()
 	}
 }
 
+void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
+{
+	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this, bIncTextureMips );
+}
+
 #if WITH_EDITOR
 void UTexture::CachePlatformData(bool bAsyncCache)
 {
@@ -1385,11 +1390,6 @@ void UTexture::CachePlatformData(bool bAsyncCache)
 		
 		UpdateCachedLODBias();
 	}
-}
-
-void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
-{
-	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(this, bIncTextureMips);
 }
 
 void UTexture::BeginCachePlatformData()
