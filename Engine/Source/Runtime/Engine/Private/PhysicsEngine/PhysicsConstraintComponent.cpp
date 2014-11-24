@@ -538,4 +538,22 @@ void UPhysicsConstraintComponent::SetAngularTwistLimit(EAngularConstraintMotion 
 	ConstraintInstance.SetAngularTwistLimit(Motion, TwistLimitAngle);
 }
 
+float UPhysicsConstraintComponent::GetCurrentTwist() const
+{
+	const float CurrentTwistRads = ConstraintInstance.GetCurrentTwist();
+	return FMath::RadiansToDegrees(CurrentTwistRads);
+}
+
+float UPhysicsConstraintComponent::GetCurrentSwing1() const
+{
+	const float CurrentSwing1Rads = ConstraintInstance.GetCurrentSwing1();
+	return FMath::RadiansToDegrees(CurrentSwing1Rads);
+}
+
+float UPhysicsConstraintComponent::GetCurrentSwing2() const
+{
+	const float CurrentSwing2Rads = ConstraintInstance.GetCurrentSwing2();
+	return FMath::RadiansToDegrees(CurrentSwing2Rads);
+}
+
 #undef LOCTEXT_NAMESPACE

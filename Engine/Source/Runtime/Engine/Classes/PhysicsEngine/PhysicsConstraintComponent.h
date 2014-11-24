@@ -218,6 +218,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
 	ENGINE_API void	SetAngularTwistLimit(EAngularConstraintMotion ConstraintType, float TwistLimitAngle);
 
+
+	/** Gets the current Angular Twist of the constraint */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API float GetCurrentTwist() const;
+
+	/** Gets the current Swing1 of the constraint */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API float GetCurrentSwing1() const;
+
+	/** Gets the current Swing2 of the constraint */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API float GetCurrentSwing2() const;
+
 	/** 
 	 *	Update the reference frames held inside the constraint that indicate the joint location in the reference frame 
 	 *	of the two connected bodies. You should call this whenever the constraint or either Component moves, or if you change

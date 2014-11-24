@@ -897,6 +897,48 @@ void FConstraintInstance::SetAngularOrientationTarget(const FQuat& InPosTarget)
 	AngularOrientationTarget = OrientationTargetRot;
 }
 
+float FConstraintInstance::GetCurrentSwing1() const
+{
+	float Swing1 = 0.f;
+#if WITH_PHYSX
+	PxD6Joint* Joint = (PxD6Joint*)ConstraintData;
+	if (Joint)
+	{
+		Swing1 = Joint->getSwingZAngle();
+	}
+#endif
+
+	return Swing1;
+}
+
+float FConstraintInstance::GetCurrentSwing2() const
+{
+	float Swing2 = 0.f;
+#if WITH_PHYSX
+	PxD6Joint* Joint = (PxD6Joint*)ConstraintData;
+	if (Joint)
+	{
+		Swing2 = Joint->getSwingYAngle();
+	}
+#endif
+
+	return Swing2;
+}
+
+float FConstraintInstance::GetCurrentTwist() const
+{
+	float Twist = 0.f;
+#if WITH_PHYSX
+	PxD6Joint* Joint = (PxD6Joint*)ConstraintData;
+	if (Joint)
+	{
+		Twist = Joint->getTwist();
+	}
+#endif
+
+	return Twist;
+}
+
 
 /** Function for setting target angular velocity. */
 void FConstraintInstance::SetAngularVelocityTarget(const FVector& InVelTarget)

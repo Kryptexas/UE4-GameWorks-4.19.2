@@ -419,6 +419,14 @@ public:
 	// Pass in reference orientation in (maintains reference position). If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint.
 	void SetRefOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis);
 	
+	// The current twist of the constraint
+	float GetCurrentTwist() const;
+
+	// The current swing1 of the constraint
+	float GetCurrentSwing1() const;
+
+	// The current swing2 of the constraint
+	float GetCurrentSwing2() const;
 
 	// Get component ref frame
 	FTransform GetRefFrame(EConstraintFrame::Type Frame) const;
