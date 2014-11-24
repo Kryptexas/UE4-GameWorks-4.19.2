@@ -908,7 +908,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 	FString NextMap;
 	if (URL.ToUpper().Contains(TEXT("?RESTART")))
 	{
-		NextMap = GetOutermost()->GetName();
+		NextMap = UWorld::RemovePIEPrefix(GetOutermost()->GetName());
 	}
 	else
 	{
