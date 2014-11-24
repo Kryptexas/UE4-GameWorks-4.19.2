@@ -1093,7 +1093,7 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 	const bool bWasOrbit = bUsingOrbitCamera;
 	ToggleOrbitCamera(true);
 
-	const FVector OrbitPoint = ViewTransform.GetLookAt();
+	const FVector OrbitPoint = GetLookAtLocation();
 	const FVector OrbitZoom = GetViewLocation() - OrbitPoint;
 	StaticMesh->EditorCameraPosition = FAssetEditorOrbitCameraPosition(
 		OrbitPoint,

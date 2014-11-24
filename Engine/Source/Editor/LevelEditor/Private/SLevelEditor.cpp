@@ -880,15 +880,28 @@ void SLevelEditor::RestoreViewportTabInfo(TSharedRef<FLevelViewportTabContent> V
 		for(const auto& Viewport : *Viewports)
 		{
 			FLevelEditorViewportClient& LevelViewportClient = Viewport->GetLevelViewportClient();
-			const FString Key = FString::Printf(TEXT("%s[%d]"), *LayoutId, static_cast<int32>(LevelViewportClient.ViewportType));
-			const FLevelViewportInfo* const TransientEditorView = TransientEditorViews.Find(Key);
-			if(TransientEditorView)
+			bool bInitializedOrthoViewport = false;
+			for (int32 ViewportType = 0; ViewportType < LVT_MAX; ViewportType++)
 			{
-				LevelViewportClient.SetInitialViewTransform(
-					TransientEditorView->CamPosition,
-					TransientEditorView->CamRotation,
-					TransientEditorView->CamOrthoZoom
-					);
+				if (ViewportType == LVT_Perspective || !bInitializedOrthoViewport)
+				{
+					const FString Key = FString::Printf(TEXT("%s[%d]"), *LayoutId, ViewportType);
+					const FLevelViewportInfo* const TransientEditorView = TransientEditorViews.Find(Key);
+					if (TransientEditorView)
+					{
+						LevelViewportClient.SetInitialViewTransform(
+							static_cast<ELevelViewportType>(ViewportType),
+							TransientEditorView->CamPosition,
+							TransientEditorView->CamRotation,
+							TransientEditorView->CamOrthoZoom
+							);
+
+						if (ViewportType != LVT_Perspective)
+						{
+							bInitializedOrthoViewport = true;
+						}
+					}
+				}
 			}
 		}
 	}

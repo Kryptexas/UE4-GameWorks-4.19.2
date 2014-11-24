@@ -197,7 +197,6 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	, ImmersiveDelegate()
 	, VisibilityDelegate()
 	, Viewport(NULL)
-	, ViewTransform()
 	, ViewportType(LVT_Perspective)
 	, ViewState()
 	, EngineShowFlags(ESFIM_Editor)
@@ -363,23 +362,29 @@ void FEditorViewportClient::SetViewLocationForOrbiting(const FVector& LookAtPoin
 	SetLookAtLocation( LookAtPoint );
 }
 
-void FEditorViewportClient::SetInitialViewTransform( const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom )
+void FEditorViewportClient::SetInitialViewTransform(ELevelViewportType ViewportType, const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom )
 {
-	SetViewLocation( ViewLocation );
-	SetViewRotation( ViewRotation );
+	check(ViewportType < LVT_MAX);
+
+	FViewportCameraTransform& ViewTransform = (ViewportType == LVT_Perspective) ? ViewTransformPerspective : ViewTransformOrthographic;
+
+	ViewTransform.SetLocation(ViewLocation);
+	ViewTransform.SetRotation(ViewRotation);
 
 	// Make a look at location in front of the camera
-	const FQuat CameraOrientation = FQuat::MakeFromEuler( GetViewRotation().Euler() );
+	const FQuat CameraOrientation = FQuat::MakeFromEuler(ViewRotation.Euler());
 	FVector Direction = CameraOrientation.RotateVector( FVector(1,0,0) );
 
-	SetLookAtLocation( ViewLocation + Direction * OrbitConstants::IntialLookAtDistance );
-	SetOrthoZoom( InOrthoZoom );
+	ViewTransform.SetLookAt(ViewLocation + Direction * OrbitConstants::IntialLookAtDistance);
+	ViewTransform.SetOrthoZoom(InOrthoZoom);
 }
 
 void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 {
 	if( bUsingOrbitCamera != bEnableOrbitCamera )
 	{
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
 		bUsingOrbitCamera = bEnableOrbitCamera;
 
 		// Convert orbit view to regular view
@@ -389,36 +394,38 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 		if( !bUsingOrbitCamera )
 		{
 			// Ensure that the view location and rotation is up to date to ensure smooth transition in and out of orbit mode
-			SetViewRotation( OrbitMatrix.Rotator() );
+			ViewTransform.SetRotation(OrbitMatrix.Rotator());
 		}
 		else
 		{
-			bool bUpsideDown = (GetViewRotation().Pitch < -90.0f || GetViewRotation().Pitch > 90.0f || !FMath::IsNearlyZero( GetViewRotation().Roll, KINDA_SMALL_NUMBER ) );
+			FRotator ViewRotation = ViewTransform.GetRotation();
+
+			bool bUpsideDown = (ViewRotation.Pitch < -90.0f || ViewRotation.Pitch > 90.0f || !FMath::IsNearlyZero(ViewRotation.Roll, KINDA_SMALL_NUMBER));
 
 			// if the camera is upside down compute the rotation differently to preserve pitch
 			// otherwise the view will pop to right side up when transferring to orbit controls
 			if( bUpsideDown )
 			{
-				FMatrix OrbitViewMatrix = FTranslationMatrix(-GetViewLocation());
-				OrbitViewMatrix *= FInverseRotationMatrix(GetViewRotation());
+				FMatrix OrbitViewMatrix = FTranslationMatrix(-ViewTransform.GetLocation());
+				OrbitViewMatrix *= FInverseRotationMatrix(ViewRotation);
 				OrbitViewMatrix *= FRotationMatrix( FRotator(0,90.f,0) );
 
-				FMatrix RotMat = FTranslationMatrix( -ViewTransform.GetLookAt() ) * OrbitViewMatrix;
+				FMatrix RotMat = FTranslationMatrix(-ViewTransform.GetLookAt()) * OrbitViewMatrix;
 				FMatrix RotMatInv = RotMat.InverseFast();
 				FRotator RollVec = RotMatInv.Rotator();
 				FMatrix YawMat = RotMatInv * FInverseRotationMatrix( FRotator(0, 0, -RollVec.Roll));
 				FMatrix YawMatInv = YawMat.InverseFast();
 				FRotator YawVec = YawMat.Rotator();
 				FRotator rotYawInv = YawMatInv.Rotator();
-				SetViewRotation( FRotator(-RollVec.Roll,YawVec.Yaw,0) );
+				ViewTransform.SetRotation(FRotator(-RollVec.Roll, YawVec.Yaw, 0));
 			}
 			else
 			{
-				SetViewRotation( OrbitMatrix.Rotator() );
+				ViewTransform.SetRotation(OrbitMatrix.Rotator());
 			}
 		}
 		
-		SetViewLocation( OrbitMatrix.GetOrigin() );
+		ViewTransform.SetLocation(OrbitMatrix.GetOrigin());
 	}
 }
 
@@ -438,6 +445,8 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 	ToggleOrbitCamera(bEnable);
 
 	{
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
 		if(!IsOrtho())
 		{
 		   /** 
@@ -461,15 +470,15 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 			const float DistanceFromSphere = Radius / FMath::Tan( HalfFOVRadians );
 			FVector CameraOffsetVector = ViewTransform.GetRotation().Vector() * -DistanceFromSphere;
 
-			ViewTransform.SetLookAt(Position);		
-			ViewTransform.TransitionToLocation( Position + CameraOffsetVector, bInstant );
+			ViewTransform.SetLookAt(Position);
+			ViewTransform.TransitionToLocation(Position + CameraOffsetVector, bInstant);
 
 		}
 		else
 		{
 			// For ortho viewports just set the camera position to the center of the bounding volume.
 			//SetViewLocation( Position );
-			ViewTransform.TransitionToLocation( Position, bInstant );
+			ViewTransform.TransitionToLocation(Position, bInstant);
 
 			if( !(Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl)) )
 			{
@@ -484,7 +493,7 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 
 				NewOrthoZoom = Zoom * (Viewport->GetSizeXY().X*15.0f);
 				NewOrthoZoom = FMath::Clamp<float>( NewOrthoZoom, MIN_ORTHOZOOM, MAX_ORTHOZOOM );
-				ViewTransform.SetOrthoZoom( NewOrthoZoom );
+				ViewTransform.SetOrthoZoom(NewOrthoZoom);
 			}
 		}
 	}
@@ -501,8 +510,11 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 {
 	FSceneViewInitOptions ViewInitOptions;
 
-	const FVector& ViewLocation = GetViewLocation();
-	const FRotator& ViewRotation = GetViewRotation();
+	FViewportCameraTransform& ViewTransform = GetViewTransform();
+	const ELevelViewportType EffectiveViewportType = GetViewportType();
+
+	const FVector& ViewLocation = ViewTransform.GetLocation();
+	const FRotator& ViewRotation = ViewTransform.GetRotation();
 
 	const FIntPoint ViewportSizeXY = Viewport->GetSizeXY();
 
@@ -512,10 +524,9 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	// no matter how we are drawn (forced or otherwise), reset our time here
 	TimeForForceRedraw = 0.0;
 
-	const ELevelViewportType EffectiveViewportType = GetViewportType();
 	const bool bConstrainAspectRatio = bUseControllingActorViewInfo && ControllingActorViewInfo.bConstrainAspectRatio;
 
-	ViewInitOptions.ViewMatrix = FTranslationMatrix(-GetViewLocation());	
+	ViewInitOptions.ViewMatrix = FTranslationMatrix(-ViewLocation);
 	if (EffectiveViewportType == LVT_Perspective)
 	{
 		if (bUsingOrbitCamera)
@@ -750,6 +761,7 @@ void FEditorViewportClient::Tick(float DeltaTime)
 {
 	ConditionalCheckHoveredHitProxy();
 
+	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const bool bIsAnimating = ViewTransform.UpdateTransition();
 
 	if ( bIsTracking )
@@ -1672,6 +1684,8 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 
 	Drag.X = DragDelta.X;
 
+	FViewportCameraTransform& ViewTransform = GetViewTransform();
+
 	if ( IsOrbitRotationMode( InViewport ) )
 	{
 		SetViewRotation( GetViewRotation() + FRotator( Rot.Pitch, -Rot.Yaw, Rot.Roll ) );
@@ -2180,7 +2194,8 @@ void FEditorViewportClient::DrawAxes(FViewport* InViewport, FCanvas* Canvas, con
 	FMatrix ViewTM = FMatrix::Identity;
 	if ( bUsingOrbitCamera)
 	{
-		ViewTM = FRotationMatrix( ViewTransform.ComputeOrbitMatrix().InverseFast().Rotator() );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		ViewTM = FRotationMatrix(ViewTransform.ComputeOrbitMatrix().InverseFast().Rotator());
 	}
 	else
 	{

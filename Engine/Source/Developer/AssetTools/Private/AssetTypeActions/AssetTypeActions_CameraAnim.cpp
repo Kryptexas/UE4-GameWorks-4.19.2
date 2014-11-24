@@ -41,8 +41,8 @@ void FAssetTypeActions_CameraAnim::CreateCameraActorForCameraAnim(UCameraAnim* I
 		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewportIndex];
 		if(ViewportClient != NULL && ViewportClient->ViewportType == LVT_Perspective)
 		{
-			ViewportCamLocation = ViewportClient->ViewTransform.GetLocation();
-			ViewportCamRotation = ViewportClient->ViewTransform.GetRotation();
+			ViewportCamLocation = ViewportClient->ViewTransformPerspective.GetLocation();
+			ViewportCamRotation = ViewportClient->ViewTransformPerspective.GetRotation();
 			break;
 		}
 	}

@@ -1624,22 +1624,25 @@ void FLevelEditorViewportClient::PerspectiveCameraMoved()
  */
 void FLevelEditorViewportClient::ResetCamera()
 {
-	if(IsPerspective())
-	{
-		SetViewLocation( EditorViewportDefs::DefaultPerspectiveViewLocation );
-		SetViewRotation( EditorViewportDefs::DefaultPerspectiveViewRotation );
+	// Initialize perspective view transform
+	ViewTransformPerspective.SetLocation(EditorViewportDefs::DefaultPerspectiveViewLocation);
+	ViewTransformPerspective.SetRotation(EditorViewportDefs::DefaultPerspectiveViewRotation);
+	ViewTransformPerspective.SetLookAt(FVector::ZeroVector);
 
-		bool bRecalculateView = true;
-		SetLookAtLocation( FVector::ZeroVector, bRecalculateView );
-	}
-	else
-	{
-		SetViewLocation( FVector::ZeroVector );
-		SetViewRotation( FRotator::ZeroRotator );
-	}
+	FMatrix OrbitMatrix = ViewTransformPerspective.ComputeOrbitMatrix();
+	OrbitMatrix = OrbitMatrix.InverseFast();
+
+	ViewTransformPerspective.SetRotation(OrbitMatrix.Rotator());
+	ViewTransformPerspective.SetLocation(OrbitMatrix.GetOrigin());
+
+	ViewTransformPerspective.SetOrthoZoom(DEFAULT_ORTHOZOOM);
+
+	// Initialize orthographic view transform
+	ViewTransformOrthographic.SetLocation(FVector::ZeroVector);
+	ViewTransformOrthographic.SetRotation(FRotator::ZeroRotator);
+	ViewTransformOrthographic.SetOrthoZoom(DEFAULT_ORTHOZOOM);
+
 	ViewFOV = FOVAngle;
-
-	ViewTransform.SetOrthoZoom( DEFAULT_ORTHOZOOM );
 
 	// If interp mode is active, tell it about the camera movement.
 	FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);

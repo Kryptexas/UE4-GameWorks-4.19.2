@@ -1384,7 +1384,7 @@ void SAnimationEditorViewportTabBody::SaveData(class SAnimationEditorViewportTab
 		SharedData.ViewLocation = OldAnimViewportClient.Get().GetViewLocation();
 		SharedData.ViewRotation = OldAnimViewportClient.Get().GetViewRotation();
 		SharedData.LookAtLocation = OldAnimViewportClient.Get().GetLookAtLocation();
-		SharedData.OrthoZoom = OldAnimViewportClient.Get().ViewTransform.GetOrthoZoom();
+		SharedData.OrthoZoom = OldAnimViewportClient.Get().GetOrthoZoom();
 		SharedData.bCameraLock = OldAnimViewportClient.Get().IsCameraLocked();
 		SharedData.bCameraFollow = OldAnimViewportClient.Get().IsSetCameraFollowChecked();
 		SharedData.bShowBound = OldAnimViewportClient.Get().IsSetShowBoundsChecked();
@@ -1407,7 +1407,7 @@ void SAnimationEditorViewportTabBody::RestoreData()
 		AnimViewportClient.Get().SetViewRotation( SharedData.ViewRotation );
 		AnimViewportClient.Get().SetShowBounds(SharedData.bShowBound);
 		AnimViewportClient.Get().SetLocalAxesMode((ELocalAxesMode::Type)SharedData.LocalAxesMode);
-		AnimViewportClient.Get().ViewTransform.SetOrthoZoom(SharedData.OrthoZoom);
+		AnimViewportClient.Get().SetOrthoZoom(SharedData.OrthoZoom);
 
 		OnSetPlaybackSpeed(SharedData.PlaybackSpeedMode);
 

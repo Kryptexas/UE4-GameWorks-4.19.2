@@ -332,16 +332,29 @@ public:
 	/** Callback for toggling the realtime preview flag. */
 	void SetRealtimePreview();
 
+	/** Gets ViewportCameraTransform object for the current viewport type */
+	FViewportCameraTransform& GetViewTransform()
+	{
+		return IsPerspective() ? ViewTransformPerspective : ViewTransformOrthographic;
+	}
+
+	const FViewportCameraTransform& GetViewTransform() const
+	{
+		return IsPerspective() ? ViewTransformPerspective : ViewTransformOrthographic;
+	}
+
 	/** Sets the location of the viewport's camera */
 	void SetViewLocation( const FVector& NewLocation )
 	{
-		ViewTransform.SetLocation( NewLocation );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		ViewTransform.SetLocation(NewLocation);
 	}
 
 	/** Sets the location of the viewport's camera */
 	void SetViewRotation( const FRotator& NewRotation )
 	{
-		ViewTransform.SetRotation( NewRotation );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		ViewTransform.SetRotation(NewRotation);
 	}
 
 	/** 
@@ -352,47 +365,55 @@ public:
 	 */
 	void SetLookAtLocation( const FVector& LookAt, bool bRecalculateView = false )
 	{
-		ViewTransform.SetLookAt( LookAt );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
+		ViewTransform.SetLookAt(LookAt);
 
 		if( bRecalculateView )
 		{
 			FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
 			OrbitMatrix = OrbitMatrix.InverseFast();
 
-			ViewTransform.SetRotation( OrbitMatrix.Rotator() );
-			ViewTransform.SetLocation( OrbitMatrix.GetOrigin() );
+			ViewTransform.SetRotation(OrbitMatrix.Rotator());
+			ViewTransform.SetLocation(OrbitMatrix.GetOrigin());
 		}
 	}
 
 	/** Sets ortho zoom amount */
 	void SetOrthoZoom( float InOrthoZoom ) 
 	{
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
 		// A zero ortho zoom is not supported and causes NaN/div0 errors
 		check(InOrthoZoom != 0);
-		ViewTransform.SetOrthoZoom( InOrthoZoom );
+		ViewTransform.SetOrthoZoom(InOrthoZoom);
 	}
 
 	/** @return the current viewport camera location */
 	const FVector& GetViewLocation() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetLocation();
 	}
 
 	/** @return the current viewport camera rotation */
 	const FRotator& GetViewRotation() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetRotation();
 	}
 
 	/** @return the current look at location */
 	const FVector& GetLookAtLocation() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetLookAt();
 	}
 
 	/** @return the current ortho zoom amount */
 	float GetOrthoZoom() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetOrthoZoom();
 	}
 
@@ -409,7 +430,7 @@ public:
 		SetViewRotation( Rotation );
 	}
 
-	void SetInitialViewTransform( const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
+	void SetInitialViewTransform(ELevelViewportType ViewportType, const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
 
 	void TakeHighResScreenShot();
 
@@ -1198,8 +1219,11 @@ public:
 
 	FViewport*				Viewport;
 
-	/** Viewport camera transform data */
-	FViewportCameraTransform		ViewTransform;
+	/** Viewport camera transform data for perspective viewports */
+	FViewportCameraTransform		ViewTransformPerspective;
+
+	/** Viewport camera transform data for orthographic viewports */
+	FViewportCameraTransform		ViewTransformOrthographic;
 
 	/** The viewport type. */
 	ELevelViewportType		ViewportType;
