@@ -1456,6 +1456,8 @@ bool UStaticMeshComponent::GetEstimatedLightAndShadowMapMemoryUsage(
 
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
+	// @note : you don't have to consider Materials.Num()
+	// that only counts if overriden and it can't be more than StaticMesh->Materials. 
 	if(StaticMesh)
 	{
 		return StaticMesh->Materials.Num();
