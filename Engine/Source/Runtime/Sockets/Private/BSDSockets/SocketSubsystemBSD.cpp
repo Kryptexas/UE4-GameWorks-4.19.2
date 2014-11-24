@@ -65,7 +65,7 @@ ESocketErrors FSocketSubsystemBSD::GetHostByName(const ANSICHAR* HostName, FInte
 	HintAddrInfo.ai_family = AF_INET;
 
 	int32 ErrorCode = getaddrinfo(HostName, nullptr, &HintAddrInfo, &AddrInfo);
-	ESocketErrors SocketError = TranslateErrorCode(ErrorCode);
+	ESocketErrors SocketError = TranslateGAIErrorCode(ErrorCode);
 	if (SocketError == SE_NO_ERROR)
 	{
 		for (; AddrInfo != nullptr; AddrInfo = AddrInfo->ai_next)
@@ -197,16 +197,6 @@ ESocketErrors FSocketSubsystemBSD::TranslateErrorCode(int32 Code)
 	case HOST_NOT_FOUND: return SE_HOST_NOT_FOUND;
 	case TRY_AGAIN: return SE_TRY_AGAIN;
 	case NO_RECOVERY: return SE_NO_RECOVERY;
-
-	// getaddrinfo() has its own error codes
-	case EAI_AGAIN: return SE_TRY_AGAIN;
-	case EAI_BADFLAGS: return  SE_EINVAL;
-	case EAI_FAIL: return SE_NO_RECOVERY;
-	case EAI_FAMILY: return SE_EAFNOSUPPORT;
-	case EAI_MEMORY: return SE_ENOBUFS;
-	case EAI_NONAME: return SE_HOST_NOT_FOUND;
-	case EAI_SERVICE: return SE_EPFNOSUPPORT;
-	case EAI_SOCKTYPE: return SE_ESOCKTNOSUPPORT;
 #endif
 
 //	case NO_DATA: return SE_NO_DATA;

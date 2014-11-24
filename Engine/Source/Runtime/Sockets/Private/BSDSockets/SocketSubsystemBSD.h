@@ -16,7 +16,7 @@
  * Standard BSD specific socket subsystem implementation
  */
 class FSocketSubsystemBSD
-	: public ISocketSubsystem
+	: public FSocketSubsystemBSDCommon
 {
 public:
 

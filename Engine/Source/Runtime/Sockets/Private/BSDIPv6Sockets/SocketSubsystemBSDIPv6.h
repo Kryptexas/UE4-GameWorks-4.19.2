@@ -15,7 +15,7 @@
  * Standard BSD specific IPv6 socket subsystem implementation
  */
 class FSocketSubsystemBSDIPv6
-	: public ISocketSubsystem
+	: public FSocketSubsystemBSDCommon
 {
 public:
 
