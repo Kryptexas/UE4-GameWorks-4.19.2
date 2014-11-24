@@ -2722,14 +2722,32 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh* InDestNavMesh)
 	check(InDestNavMesh);
 	Init();
 
-	if (DestNavMesh->HasValidNavmesh() == false)
+	// recreate navmesh if no data was loaded, or when loaded data doesn't match current grid layout
+	bool bRecreateNavmesh = true;
+	if (DestNavMesh->HasValidNavmesh())
 	{
-		// recreate navmesh from scratch if no data was loaded
+		const dtNavMeshParams* SavedNavParams = DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh->getParams();
+		if (SavedNavParams)
+		{
+			const float TileDim = Config.tileSize * Config.cs;
+			if (SavedNavParams->tileHeight == TileDim && SavedNavParams->tileWidth == TileDim)
+			{
+				const FVector Orig = Recast2UnrealPoint(SavedNavParams->orig);
+				const FVector OrigError(FMath::Fmod(Orig.X, TileDim), FMath::Fmod(Orig.X, TileDim), FMath::Fmod(Orig.X, TileDim));
+				if (OrigError.IsNearlyZero())
+				{
+					bRecreateNavmesh = false;
+				}
+			}
+		};
+	}
+
+	if (bRecreateNavmesh)
+	{
 		ConstructTiledNavMesh();
 	}
 	else
 	{
-		// otherwise just update generator params
 		int32 MaxTiles = 0;
 		CalcNavMeshProperties(MaxTiles, Config.MaxPolysPerTile);
 		NumActiveTiles = GetTilesCountHelper(DestNavMesh->GetRecastNavMeshImpl()->DetourNavMesh);
