@@ -48,7 +48,7 @@ void FVisualLoggerBinaryFileDevice::StopRecordingToFile(float TimeStamp)
 	const int32 NumEntries = FrameCache.Num();
 	if (NumEntries> 0)
 	{
-		*FileArchive << FrameCache;
+		FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
 		FrameCache.Reset();
 	}
 
