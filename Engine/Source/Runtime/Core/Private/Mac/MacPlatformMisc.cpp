@@ -1065,6 +1065,34 @@ bool FMacPlatformMisc::IsRunningOnMavericks()
 	return GMacAppInfo.RunningOnMavericks;
 }
 
+int32 FMacPlatformMisc::MacOSXVersionCompare(uint8 Major, uint8 Minor, uint8 Revision)
+{
+	TArray<FString> Components;
+	GMacAppInfo.OSVersion.ParseIntoArray(&Components, TEXT("."), true);
+	
+	uint8 TargetValues[3] = {Major, Minor, Revision};
+	uint8 ComponentValues[3] = {0, 0, 0};
+	
+	for(uint32 i = 0; i < Components.Num(); i++)
+	{
+		TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
+	}
+	
+	for(uint32 i = 0; i < 3; i++)
+	{
+		if(ComponentValues[i] < TargetValues[i])
+		{
+			return -1;
+		}
+		else if(ComponentValues[i] > TargetValues[i])
+		{
+			return 1;
+		}
+	}
+	
+	return 0;
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 FMacMallocCrashHandler* GCrashMalloc = nullptr;

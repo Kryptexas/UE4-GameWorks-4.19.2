@@ -27,6 +27,7 @@ static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
 
 // @todo: remove once Apple fixes radr://15553950, TTP# 315197
 static int32 GMacFlushTexStorage = true;
+static int32 GMacMustFlushTexStorage = false;
 static FAutoConsoleVariableRef CVarMacFlushTexStorage(
 	TEXT("r.Mac.FlushTexStorage"),
 	GMacFlushTexStorage,
@@ -680,6 +681,10 @@ EOpenGLCurrentContext PlatformOpenGLCurrentContext(FPlatformOpenGLDevice* Device
 
 void PlatformFlushIfNeeded()
 {
+	if([NSOpenGLContext currentContext])
+	{
+		FMacOpenGL::Flush();
+	}
 }
 
 void PlatformRebindResources(FPlatformOpenGLDevice* Device)
@@ -1207,6 +1212,11 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glDrawArraysIndirect = (PFNGLDRAWARRAYSINDIRECTPROC)dlsym(RTLD_SELF, "glDrawArraysIndirect");
 		glDrawElementsIndirect = (PFNGLDRAWELEMENTSINDIRECTPROC)dlsym(RTLD_SELF, "glDrawElementsIndirect");
 	}
+	
+	if(FMacPlatformMisc::MacOSXVersionCompare(10,10,1) < 0)
+	{
+		GMacMustFlushTexStorage = ((FPlatformMisc::IsRunningOnMavericks() && IsRHIDeviceNVIDIA()) || GMacUseMTGL);
+	}
 }
 
 void FMacOpenGL::MacQueryTimestampCounter(GLuint QueryID)
@@ -1325,8 +1335,9 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 {
 	// @todo There is a bug in Apple's GL with TexStorage calls when using MTGL that can see the texture never be created, which then subsequently causes crashes
 	// @todo This bug also affects Nvidia cards under Mavericks without MTGL.
+	// @todo Fixed in 10.10.1.
 	FPlatformOpenGLContext::VerifyCurrentContext();
-	return GMacFlushTexStorage && ((FPlatformMisc::IsRunningOnMavericks() && IsRHIDeviceNVIDIA()) || GMacUseMTGL);
+	return GMacFlushTexStorage || GMacMustFlushTexStorage;
 }
 
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
