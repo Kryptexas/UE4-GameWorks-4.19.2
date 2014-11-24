@@ -36,11 +36,7 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TSubclassOf<UEnvQueryContext> GenerateAround;
-
-	/** context */
-	UPROPERTY(EditAnywhere, Category=Generator)
-	TEnumAsByte<EEnvQueryTrace::Type> TraceType;
-
+	
 	/** navigation filter for tracing */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
 	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
