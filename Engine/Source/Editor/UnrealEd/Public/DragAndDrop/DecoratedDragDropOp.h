@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "DragAndDrop.h"
+
 #define LOCTEXT_NAMESPACE "DecoratedDragDrop"
 
 class FDecoratedDragDropOp : public FDragDropOperation

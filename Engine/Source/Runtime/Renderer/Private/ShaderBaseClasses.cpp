@@ -204,6 +204,9 @@ void FMaterialShader::SetParameters(
 	}
 }
 
+// Doxygen struggles to parse these explicit specializations. Just ignore them for now.
+#if !UE_BUILD_DOCS
+
 #define IMPLEMENT_MATERIAL_SHADER_SetParameters( ShaderRHIParamRef ) \
 	template RENDERER_API void FMaterialShader::SetParameters< ShaderRHIParamRef >( \
 		FRHICommandList& RHICmdList,					\
@@ -221,6 +224,8 @@ IMPLEMENT_MATERIAL_SHADER_SetParameters( FDomainShaderRHIParamRef );
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FGeometryShaderRHIParamRef );
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FPixelShaderRHIParamRef );
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FComputeShaderRHIParamRef );
+
+#endif
 
 bool FMaterialShader::Serialize(FArchive& Ar)
 {

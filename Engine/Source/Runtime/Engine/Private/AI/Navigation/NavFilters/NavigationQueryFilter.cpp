@@ -116,7 +116,7 @@ UNavigationQueryFilter::UNavigationQueryFilter(const FObjectInitializer& ObjectI
 	ExcludeFlags.Packed = 0;
 }
 
-TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData* NavData) const
+TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const class ANavigationData* NavData) const
 {
 	TSharedPtr<const FNavigationQueryFilter> SharedFilter = NavData->GetQueryFilter(GetClass());
 	if (!SharedFilter.IsValid())
@@ -133,7 +133,7 @@ TSharedPtr<const FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(
 	return SharedFilter;
 }
 
-void UNavigationQueryFilter::InitializeFilter(const ANavigationData* NavData, FNavigationQueryFilter* Filter) const
+void UNavigationQueryFilter::InitializeFilter(const class ANavigationData* NavData, FNavigationQueryFilter* Filter) const
 {
 	// apply overrides
 	for (int32 i = 0; i < Areas.Num(); i++)
