@@ -532,7 +532,7 @@ private:
 			{
 				ChatTextBox->SetText(FText::GetEmpty());
 			}
-			else
+			else if(!CurrentText.IsEmpty())
 			{
 				ChatTextBox->SetError(LOCTEXT("CouldNotSend", "Unable to send chat message"));
 			}
