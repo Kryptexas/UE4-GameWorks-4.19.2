@@ -306,7 +306,9 @@ TSharedRef<FInternetAddr> ISocketSubsystem::GetLocalHostAddr(FOutputDevice& Out,
 	}
 	else
 	{
-		if (GetHostByName(TCHAR_TO_ANSI(*HostName), *HostAddr) == SE_NO_ERROR)
+		// Failing to find the host is not considered an error and we just bind to any address
+		ESocketErrors FindHostResult = GetHostByName(TCHAR_TO_ANSI(*HostName), *HostAddr);
+		if (FindHostResult == SE_NO_ERROR || FindHostResult == SE_HOST_NOT_FOUND)
 		{
 			if( !FParse::Param(FCommandLine::Get(),TEXT("PRIMARYNET")) )
 			{
