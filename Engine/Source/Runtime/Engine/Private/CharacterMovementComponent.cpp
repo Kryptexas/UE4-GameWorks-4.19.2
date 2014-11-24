@@ -2141,7 +2141,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	float RequestedSpeed = 0.0f;
 	if (ApplyRequestedMove(DeltaTime, MaxAccel, MaxSpeed, Friction, BrakingDeceleration, RequestedAcceleration, RequestedSpeed))
 	{
-		RequestedAcceleration.ClampMaxSize(MaxAccel);
+		RequestedAcceleration = RequestedAcceleration.ClampMaxSize(MaxAccel);
 		bZeroRequestedAcceleration = false;
 	}
 
