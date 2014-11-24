@@ -22,31 +22,7 @@ void AGameplayCueNotify_Actor::PostEditChangeProperty(FPropertyChangedEvent& Pro
 
 void AGameplayCueNotify_Actor::DeriveGameplayCueTagFromAssetName()
 {
-	// In the editor, attempt to infer GameplayCueTag from our asset name (if there is no valid GameplayCueTag already).
-	#if WITH_EDITOR
-	if (GIsEditor)
-	{
-		if (GameplayCueTag.IsValid() == false)
-		{
-			FString MyName = GetName();
-
-			MyName.RemoveFromStart(TEXT("Default__"));
-			MyName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
-			MyName.RemoveFromEnd(TEXT("_c"));
-
-			MyName.ReplaceInline(TEXT("_"), TEXT("."));
-
-			if (!MyName.Contains(TEXT("GameplayCue")))
-			{
-				MyName = FString(TEXT("GameplayCue.")) + MyName;
-			}
-
-			IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-			GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(*MyName), false);
-		}
-		GameplayCueName = GameplayCueTag.GetTagName();
-	}
-	#endif
+	UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(GetName(), GameplayCueTag, GameplayCueName);
 }
 
 void AGameplayCueNotify_Actor::Serialize(FArchive& Ar)

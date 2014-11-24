@@ -64,5 +64,5 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	bool IsOverride;
 
 private:
-	void	DeriveGameplayCueTagFromAssetName();
+	FORCEINLINE void DeriveGameplayCueTagFromAssetName();
 };

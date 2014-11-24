@@ -63,6 +63,33 @@ T* UAbilitySystemGlobals::InternalGetLoadTable(T*& Table, FString TableName)
 	return Table;
 }
 
+void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName)
+{
+	// In the editor, attempt to infer GameplayCueTag from our asset name (if there is no valid GameplayCueTag already).
+	#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		if (GameplayCueTag.IsValid() == false)
+		{
+			AssetName.RemoveFromStart(TEXT("Default__"));
+			AssetName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
+			AssetName.RemoveFromEnd(TEXT("_c"));
+
+			AssetName.ReplaceInline(TEXT("_"), TEXT("."));
+
+			if (!AssetName.Contains(TEXT("GameplayCue")))
+			{
+				AssetName = FString(TEXT("GameplayCue.")) + AssetName;
+			}
+
+			IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+			GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(*AssetName), false);
+		}
+		GameplayCueName = GameplayCueTag.GetTagName();
+	}
+	#endif
+}
+
 
 #if WITH_EDITOR
 

@@ -56,6 +56,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	UDataTable* GetGlobalAttributeMetaDataTable();
 
+	static void DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName);
+
 	bool IsAbilitySystemGlobalsInitialized()
 	{
 		return GlobalAttributeSetInitter.IsValid();

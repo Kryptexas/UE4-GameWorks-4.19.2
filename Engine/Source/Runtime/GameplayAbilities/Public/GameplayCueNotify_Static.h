@@ -64,5 +64,5 @@ class GAMEPLAYABILITIES_API UGameplayCueNotify_Static : public UObject
 	bool IsOverride;
 
 private:
-	void	DeriveGameplayCueTagFromAssetName();
+	FORCEINLINE void DeriveGameplayCueTagFromAssetName();
 };
