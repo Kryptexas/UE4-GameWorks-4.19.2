@@ -761,17 +761,25 @@ struct FRegenerationHelper
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		TSet<UStruct*> Dependencies;
 		ProcessHierarchy(Blueprint->ParentClass, Dependencies);
-
+		
 		for (const auto& NewVar : Blueprint->NewVariables)
 		{
 			if (UObject* TypeObject = NewVar.VarType.PinSubCategoryObject.Get())
 			{
-				ForcedLoad(TypeObject);
+				auto Linker = TypeObject->GetLinker();
+				if (Linker && TypeObject->HasAnyFlags(RF_NeedLoad))
+				{
+					Linker->Preload(TypeObject);
+				}
 			}
 
 			if (UClass* TypeClass = NewVar.VarType.PinSubCategoryMemberReference.MemberParentClass)
 			{
-				ForcedLoad(TypeClass);
+				auto Linker = TypeClass->GetLinker();
+				if (Linker && TypeClass->HasAnyFlags(RF_NeedLoad))
+				{
+					Linker->Preload(TypeClass);
+				}
 			}
 		}
 
