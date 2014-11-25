@@ -184,7 +184,7 @@ static const char * const MetalExpressionTable[ir_opcode_count][4] =
 
 	{ "mix(", ",", ",", ")" }, // ir_ternop_lerp,
 	{ "smoothstep(", ",", ",", ")" }, // ir_ternop_smoothstep,
-	{ "precise::clamp(", ",", ",", ")" }, // ir_ternop_clamp,
+	{ "clamp(", ",", ",", ")" }, // ir_ternop_clamp,
 
 	{ "ERROR_QUADOP_VECTOR(", ",", ")" }, // ir_quadop_vector,
 };
