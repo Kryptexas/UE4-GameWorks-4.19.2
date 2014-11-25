@@ -32,7 +32,7 @@ public:
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendItemSelected)
+			.BorderImage(&FriendStyle.ChatBackgroundBrush)
 			.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
 			[
 				SNew(SVerticalBox)

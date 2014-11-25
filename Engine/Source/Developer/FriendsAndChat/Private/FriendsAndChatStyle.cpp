@@ -278,8 +278,15 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetButtonPadding(const FVector2D& Pa
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush)
+{
+	ChatBackgroundBrush = InChatBackgroundBrush;
+	return *this;
+}
+
 const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 {
 	static FFriendsAndChatStyle Default;
 	return Default;
 }
+

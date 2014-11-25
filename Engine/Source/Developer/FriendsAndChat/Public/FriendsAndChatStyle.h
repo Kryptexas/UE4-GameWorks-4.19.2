@@ -252,4 +252,7 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FVector2D ButtonPadding;
 	FFriendsAndChatStyle& SetButtonPadding(const FVector2D& ButtonPadding);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatBackgroundBrush;
+	FFriendsAndChatStyle& SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
 };
