@@ -3361,9 +3361,9 @@ bool FMaterialEditor::CanDuplicateNodes() const
 	return CanCopyNodes();
 }
 
-FString FMaterialEditor::GetOriginalObjectName() const
+FText FMaterialEditor::GetOriginalObjectName() const
 {
-	return GetEditingObjects()[0]->GetName();
+	return FText::FromString(GetEditingObjects()[0]->GetName());
 }
 
 void FMaterialEditor::UpdateMaterialAfterGraphChange()

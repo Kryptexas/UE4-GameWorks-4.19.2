@@ -94,7 +94,7 @@ private:
 	 *
 	 * @return	Label to use for this Menu
 	 */
-	FString GetPlaybackMenuLabel() const;
+	FText GetPlaybackMenuLabel() const;
 
 	/**
 	 * Returns the label for the Viewport type tool bar menu, which changes depending on the current selected type

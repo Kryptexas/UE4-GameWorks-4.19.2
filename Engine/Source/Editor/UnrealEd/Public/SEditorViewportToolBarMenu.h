@@ -24,7 +24,7 @@ public:
 		/** We need to know about the toolbar we are in */
 		SLATE_ARGUMENT( TSharedPtr<class SViewportToolBar>, ParentToolBar );
 		/** The label to show in the menu */
-		SLATE_TEXT_ATTRIBUTE( Label )
+		SLATE_ATTRIBUTE( FText, Label )
 		/** Optional icon to display next to the label */
 		SLATE_ATTRIBUTE( const FSlateBrush*, LabelIcon )
 		/** The image to show in the menu.  If both the label and image are valid, the button image is used.  Note that if this image is used, the label icon will not be displayed. */

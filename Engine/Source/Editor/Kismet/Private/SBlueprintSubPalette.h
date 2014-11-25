@@ -17,7 +17,7 @@ public:
 		, _ShowFavoriteToggles(false)
 		{}
 
-		SLATE_TEXT_ATTRIBUTE(Title)
+		SLATE_ATTRIBUTE(FText, Title)
 		SLATE_ATTRIBUTE(FSlateBrush const*, Icon)
 		SLATE_ATTRIBUTE(bool, ShowFavoriteToggles)
 	SLATE_END_ARGS()

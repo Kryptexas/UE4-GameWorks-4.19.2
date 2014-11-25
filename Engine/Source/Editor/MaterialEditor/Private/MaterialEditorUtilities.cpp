@@ -73,14 +73,14 @@ void FMaterialEditorUtilities::DeleteSelectedNodes(const class UEdGraph* Graph)
 	}
 }
 
-FString FMaterialEditorUtilities::GetOriginalObjectName(const class UEdGraph* Graph)
+FText FMaterialEditorUtilities::GetOriginalObjectName(const class UEdGraph* Graph)
 {
 	TSharedPtr<class IMaterialEditor> MaterialEditor = GetIMaterialEditorForObject(Graph);
 	if (MaterialEditor.IsValid())
 	{
 		return MaterialEditor->GetOriginalObjectName();
 	}
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void FMaterialEditorUtilities::UpdateMaterialAfterGraphChange(const class UEdGraph* Graph)

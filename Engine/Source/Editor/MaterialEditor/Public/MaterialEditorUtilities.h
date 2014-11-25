@@ -73,7 +73,7 @@ public:
 	 *
 	 * @param	Graph	Graph representing a material or material function.
 	 */
-	static FString GetOriginalObjectName(const class UEdGraph* Graph);
+	static FText GetOriginalObjectName(const class UEdGraph* Graph);
 
 	/**
 	 * Re-links the material and updates its representation in the editor

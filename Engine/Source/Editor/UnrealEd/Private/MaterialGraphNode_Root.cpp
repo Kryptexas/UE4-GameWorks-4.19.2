@@ -21,7 +21,7 @@ UMaterialGraphNode_Root::UMaterialGraphNode_Root(const FObjectInitializer& Objec
 
 FText UMaterialGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText::FromString(FMaterialEditorUtilities::GetOriginalObjectName(this->GetGraph()));
+	return FMaterialEditorUtilities::GetOriginalObjectName(this->GetGraph());
 }
 
 FLinearColor UMaterialGraphNode_Root::GetNodeTitleColor() const

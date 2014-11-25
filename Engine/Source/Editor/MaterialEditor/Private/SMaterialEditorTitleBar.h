@@ -13,7 +13,7 @@ public:
 		, _MaterialInfoList(NULL)
 	{}
 
-		SLATE_TEXT_ATTRIBUTE( TitleText )
+		SLATE_ATTRIBUTE( FText, TitleText )
 
 		SLATE_ARGUMENT( const TArray<TSharedPtr<FMaterialInfo>>*, MaterialInfoList )
 	SLATE_END_ARGS()

@@ -783,18 +783,19 @@ FSlateColor SAnimViewportToolBar::GetFontColor() const
 	return FontColor;
 }
 
-FString SAnimViewportToolBar::GetPlaybackMenuLabel() const
+FText SAnimViewportToolBar::GetPlaybackMenuLabel() const
 {
-	FString Label = TEXT("Error");
+	FText Label = LOCTEXT("PlaybackError", "Error");
 	if (Viewport.IsValid())
 	{
 		for(int i = 0; i < EAnimationPlaybackSpeeds::NumPlaybackSpeeds; ++i)
 		{
 			if (Viewport.Pin()->IsPlaybackSpeedSelected(i))
 			{
-				Label = FString::Printf( (i == EAnimationPlaybackSpeeds::Quarter) ? 
-										 TEXT("x%.2f") : TEXT("x%.1f"), 
-										 EAnimationPlaybackSpeeds::Values[i]);
+				Label = FText::FromString(FString::Printf(
+					(i == EAnimationPlaybackSpeeds::Quarter) ? TEXT("x%.2f") : TEXT("x%.1f"), 
+					EAnimationPlaybackSpeeds::Values[i]
+					));
 				break;
 			}
 		}
