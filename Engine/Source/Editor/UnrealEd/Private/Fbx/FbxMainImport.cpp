@@ -1495,8 +1495,8 @@ void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<Fbx
 	SkeletonArray.Empty();
 	// b) find rigid mesh
 	
-	// for rigid meshes, we don't convert to bone
-	if (ImportOptions->bImportRigidMesh)
+	// If we are attempting to import a skeletal mesh but we have no hierarchy attempt to find a rigid mesh.
+	if (outSkelMeshArray.Num() == 0)
 	{
 		RecursiveFindRigidMesh(Node, outSkelMeshArray, SkeletonArray, ExpandLOD);
 	}
