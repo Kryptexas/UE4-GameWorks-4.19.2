@@ -76,6 +76,12 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(Replicated)
 	TArray<FVector> PathPoints;
 
+	/** Begin path replication data */
+	UPROPERTY(ReplicatedUsing = OnRep_PathCorridorData)
+	TArray<uint8> PathCorridorData;
+	
+	TArray<TArray<FVector> > PathCorridorPolygons;
+
 	UPROPERTY(Replicated)
 	FString PathErrorString;
 	/** End path replication data*/
@@ -124,6 +130,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	void ServerDiscardNavmeshData();
 
 	void PrepareNavMeshData(struct FNavMeshSceneProxyData*) const;
+
+	UFUNCTION()
+	virtual void OnRep_PathCorridorData();
 
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
