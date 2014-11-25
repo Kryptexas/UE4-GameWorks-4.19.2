@@ -4731,29 +4731,29 @@ namespace
 	FShear2D Shear;
 	FQuat2D Rot;
 	FVector2D Offset(0,0);
-
-	class SRenderTransformManipulatorWidgetImpl : public SRenderTransformManipulatorWidget
-	{
-	public:
-		virtual void Construct(const FArguments& InArgs) override;
-
-		TSharedPtr<SImage> ImageWidget;
-	private:
-		static const ISlateStyle& GetStyle()
-		{
-			static FSlateStyleSet Style("RenderTransformManipulatorStyle");
-			static bool IsInit = false;
-			if (!IsInit)
-			{
-				check(IsInGameThread());
-				Style.SetContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
-				Style.Set("UE4Icon", new FSlateImageBrush(Style.RootToContentDir(TEXT("Testing/UE4Icon.png")), FVector2D(50, 50)));
-				IsInit = true;
-			}
-			return Style;
-		}
-	};
 }
+
+class SRenderTransformManipulatorWidgetImpl : public SRenderTransformManipulatorWidget
+{
+public:
+	virtual void Construct(const FArguments& InArgs) override;
+
+	TSharedPtr<SImage> ImageWidget;
+private:
+	static const ISlateStyle& GetStyle()
+	{
+		static FSlateStyleSet Style("RenderTransformManipulatorStyle");
+		static bool IsInit = false;
+		if (!IsInit)
+		{
+			check(IsInGameThread());
+			Style.SetContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+			Style.Set("UE4Icon", new FSlateImageBrush(Style.RootToContentDir(TEXT("Testing/UE4Icon.png")), FVector2D(50, 50)));
+			IsInit = true;
+		}
+		return Style;
+	}
+};
 
 /**
  * Global access here because we need other translation units to access this function.
