@@ -95,12 +95,12 @@ void FKBoxElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& Ele
 
 void FKBoxElem::DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const
 {
-	DrawBox(PDI, ElemTM.ToMatrixWithScale(), 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World );
+	DrawBox(PDI, ElemTM.ToMatrixWithScale(), Scale * 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World );
 }
 
 void FKBoxElem::GetElemSolid(const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy, int32 ViewIndex, FMeshElementCollector& Collector) const
 {
-	GetBoxMesh(ElemTM.ToMatrixWithScale(), 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World, ViewIndex, Collector);
+	GetBoxMesh(ElemTM.ToMatrixWithScale(), Scale * 0.5f * FVector(X, Y, Z), MaterialRenderProxy, SDPG_World, ViewIndex, Collector);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
