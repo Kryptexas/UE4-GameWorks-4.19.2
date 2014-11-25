@@ -516,8 +516,9 @@ bool FAndroidMediaPlayer::Open(const FString& Url)
 		if (Extension.Equals(TEXT("3gpp"), ESearchCase::IgnoreCase) ||
 			Extension.Equals(TEXT("mp4"), ESearchCase::IgnoreCase))
 		{
-			// For video we assume both a video and audio track.
-			Tracks.Add(MakeShareable(new AudioTrack(*this, Tracks.Num())));
+			// For video we add video track and disable audio
+			JavaMediaPlayer->SetAudioEnabled(false);
+//			Tracks.Add(MakeShareable(new AudioTrack(*this, Tracks.Num())));
 			Tracks.Add(MakeShareable(new VideoTrack(*this, Tracks.Num())));
 		}
 		else if (Extension.Equals(TEXT("aac"), ESearchCase::IgnoreCase))

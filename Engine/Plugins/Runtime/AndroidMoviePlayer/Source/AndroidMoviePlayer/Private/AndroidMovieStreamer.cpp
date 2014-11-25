@@ -89,7 +89,7 @@ bool FAndroidMediaPlayerStreamer::Tick(float DeltaTime)
 	{
 		// Current movie finished playing. Clean up current movie and move on to
 		// the next movie, if any.
-		JavaMediaPlayer->Reset();
+		CloseMovie();
 		if (!StartNextMovie())
 		{
 			// Failed to start the next movie, need to indicate that
@@ -195,6 +195,7 @@ bool FAndroidMediaPlayerStreamer::StartNextMovie()
 
 void FAndroidMediaPlayerStreamer::CloseMovie()
 {
+	JavaMediaPlayer->Stop();
 	JavaMediaPlayer->Reset();
 
 	if (Texture.IsValid())

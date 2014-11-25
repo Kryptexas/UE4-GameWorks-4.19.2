@@ -21,15 +21,18 @@ public class MediaPlayer14
 	extends android.media.MediaPlayer
 {
 	private boolean SwizzlePixels = true;
+	private volatile boolean WaitOnBitmapRender = false;
 
 	public MediaPlayer14()
 	{
 		SwizzlePixels = true;
+		WaitOnBitmapRender = false;
 	}
 
 	public MediaPlayer14(boolean swizzlePixels)
 	{
 		SwizzlePixels = swizzlePixels;
+		WaitOnBitmapRender = false;
 	}
 
 	public boolean setDataSource(
@@ -86,6 +89,8 @@ public class MediaPlayer14
 	
 	public void setVideoEnabled(boolean enabled)
 	{
+		WaitOnBitmapRender = true;
+
 		mVideoEnabled = enabled;
 		if (mVideoEnabled && null != mBitmapRenderer.getSurface())
 		{
@@ -95,6 +100,8 @@ public class MediaPlayer14
 		{
 			setSurface(null);
 		}
+
+		WaitOnBitmapRender = false;
 	}
 	
 	public void setAudioEnabled(boolean enabled)
@@ -111,9 +118,13 @@ public class MediaPlayer14
 	
 	public java.nio.Buffer getVideoLastFrameData()
 	{
+
 		if (null != mBitmapRenderer)
 		{
-			return mBitmapRenderer.updateFrameData();
+			WaitOnBitmapRender = true;
+			java.nio.Buffer data = mBitmapRenderer.updateFrameData();
+			WaitOnBitmapRender = false;
+			return data;
 		}
 		else
 		{
@@ -125,7 +136,10 @@ public class MediaPlayer14
 	{
 		if (null != mBitmapRenderer)
 		{
-			return mBitmapRenderer.updateFrameData(destTexture);
+			WaitOnBitmapRender = true;
+			boolean result = mBitmapRenderer.updateFrameData(destTexture);
+			WaitOnBitmapRender = false;
+			return result;
 		}
 		else
 		{
@@ -137,6 +151,7 @@ public class MediaPlayer14
 	{
 		if (null != mBitmapRenderer)
 		{
+			while (WaitOnBitmapRender) ;
 			mBitmapRenderer.release();
 			mBitmapRenderer = null;
 		}
@@ -147,6 +162,7 @@ public class MediaPlayer14
 	{
 		if (null != mBitmapRenderer)
 		{
+			while (WaitOnBitmapRender) ;
 			mBitmapRenderer.release();
 			mBitmapRenderer = null;
 		}
