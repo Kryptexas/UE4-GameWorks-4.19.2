@@ -394,18 +394,30 @@ bool SWidget::SupportsKeyboardFocus() const
 	return false;
 }
 
-
 bool SWidget::HasKeyboardFocus() const
 {
 	return (FSlateApplicationBase::Get().GetKeyboardFocusedWidget().Get() == this);
 }
 
+TOptional<EFocusCause> SWidget::HasUserFocus(int32 UserIndex) const
+{
+	return FSlateApplicationBase::Get().HasUserFocus(SharedThis(this), UserIndex);
+}
+
+TOptional<EFocusCause> SWidget::HasAnyUserFocus() const
+{
+	return FSlateApplicationBase::Get().HasAnyUserFocus(SharedThis(this));
+}
 
 bool SWidget::HasFocusedDescendants() const
 {
 	return FSlateApplicationBase::Get().HasFocusedDescendants(SharedThis(this));
 }
 
+void SWidget::SetFocusBrush(TOptional<FSlateBrush*> InFocusBrush)
+{
+	FocusBrush = InFocusBrush;
+}
 
 bool SWidget::HasMouseCapture() const
 {
@@ -614,7 +626,31 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 
 	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
-	return OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if (SupportsKeyboardFocus())
+	{
+		TOptional<EFocusCause> FocusCause = HasAnyUserFocus();
+		if (FocusCause.IsSet() && FocusCause.GetValue() != EFocusCause::Mouse)
+		{
+			const FSlateBrush* BrushResource = FocusBrush.IsSet() ? FocusBrush.GetValue() : FCoreStyle::Get().GetBrush("FocusRectangle");
+
+			if (BrushResource != nullptr)
+			{
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					NewLayerID,
+					AllottedGeometry.ToPaintGeometry(),
+					BrushResource,
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					FColor(255, 255, 255, 128)
+					);
+			}
+		}
+	}
+
+	return NewLayerID;
 }
 
 void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const

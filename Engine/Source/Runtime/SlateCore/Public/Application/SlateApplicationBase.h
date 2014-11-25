@@ -320,11 +320,25 @@ public:
 protected:
 
 	/**
-	* Gets whether or not a particular widget has mouse capture.
-	*
-	* @return True if the widget has mouse capture, otherwise false.
-	*/
+	 * Gets whether or not a particular widget has mouse capture.
+	 *
+	 * @return True if the widget has mouse capture, otherwise false.
+	 */
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const = 0;
+
+	/**
+	 * Gets whether or not a particular widget has the specified users focus, and if so the type of focus.
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const = 0;
+
+	/**
+	 * Gets whether or not a particular widget has any users focus, and if so the type of focus (first one found).
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
 
 protected:
 

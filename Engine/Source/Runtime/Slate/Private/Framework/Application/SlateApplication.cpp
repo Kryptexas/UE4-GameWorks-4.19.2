@@ -915,17 +915,6 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 				WindowToDraw->IsEnabled() );
 		}
 
-
-		for (int32 UserIndex = 0; UserIndex < ARRAY_COUNT(UserFocusedWidgetPaths); UserIndex++)
-		{
-			FWidgetPath ControllerFocusPath = UserFocusedWidgetPaths[UserIndex].ToWidgetPath();
-
-			if (ControllerFocusPath.IsValid() && ControllerFocusPath.GetWindow() == WindowToDraw && FocusCause == EFocusCause::Navigation)
-			{
-				MaxLayerId = DrawFocus(ControllerFocusPath, WindowElementList, MaxLayerId);
-			}
-		}
-
 		// The widget reflector may want to paint some additional stuff as part of the Widget introspection that it performs.
 		// For example: it may draw layout rectangles for hovered widgets.
 		const bool bVisualizeLayoutUnderCursor = DrawWindowArgs.WidgetsUnderCursor.IsValid();
@@ -2011,8 +2000,8 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 
 	// Store a weak widget path to the widget that's taking focus
 	UserFocusedWidgetPaths[InUserIndex] = FWeakWidgetPath(NewFocusedWidgetPath);
-	//@Todo Slate: Refactor focus cause to be stored for all users!
-	FocusCause = InCause;
+	// Store the cause of the focus
+	UserFocusCause[InUserIndex] = InCause;
 
 	// Let the old widget know that it lost keyboard focus
 	if(OldFocusedWidget.IsValid())
@@ -2775,33 +2764,6 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	}
 }
 
-int32 FSlateApplication::DrawFocus( const FWidgetPath& FocusPath, FSlateWindowElementList& WindowElementList, int32 InLayerId ) const
-{
-	// Widgets where being focused matters draw themselves differently when focused.
-	// When the user navigates focus, we draw focus for everything, so the user can see what they are doing.
-	const FArrangedWidget& FocusedWidgetGeomertry = FocusPath.Widgets.Last();
-
-	// The FGeometry we get is from a WidgetPath, so it's rooted in desktop space.
-	// We need to APPEND a transform to the Geometry to essentially undo this root transform
-	// and get us back into Window Space.
-	// This is nonstandard so we have to go through some hoops and a specially exposed method 
-	// in FPaintGeometry to allow appending layout transforms.
-	FPaintGeometry WindowSpaceGeometry = FocusedWidgetGeomertry.Geometry.ToPaintGeometry();
-	WindowSpaceGeometry.AppendTransform(TransformCast<FSlateLayoutTransform>(Inverse(FocusPath.GetWindow()->GetPositionInScreen())));
-
-	FSlateDrawElement::MakeBox(
-		WindowElementList,
-		InLayerId++,
-		WindowSpaceGeometry,
-		FCoreStyle::Get().GetBrush("FocusRectangle"),
-		FocusPath.GetWindow()->GetClippingRectangleInWindow(),
-		ESlateDrawEffect::None,
-		FColor(255,255,255,128)
-	);
-
-	return InLayerId;
-}
-
 TArray< TSharedRef<SWindow> > FSlateApplication::GetInteractiveTopLevelWindows()
 {
 	if (ActiveModalWindows.Num() > 0)
@@ -3366,6 +3328,31 @@ bool FSlateApplication::HasMouseCapture(const TSharedPtr<const SWidget> Widget) 
 		}
 	}
 	return false;
+}
+
+TOptional<EFocusCause> FSlateApplication::HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const
+{
+	const FWeakWidgetPath & FocusedWidgetPath = UserFocusedWidgetPaths[UserIndex];
+	if (FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() == Widget)
+	{
+		TOptional<EFocusCause> FocusReason(UserFocusCause[UserIndex]);
+		return FocusReason;
+	}
+	return TOptional<EFocusCause>();
+}
+
+TOptional<EFocusCause> FSlateApplication::HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const
+{
+	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
+	{
+		const FWeakWidgetPath & FocusedWidgetPath = UserFocusedWidgetPaths[UserIndex];
+		if (FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() == Widget)
+		{
+			TOptional<EFocusCause> FocusReason(UserFocusCause[UserIndex]);
+			return FocusReason;
+		}
+	}
+	return TOptional<EFocusCause>();
 }
 
 bool FSlateApplication::HasFocusedDescendants( const TSharedRef< const SWidget >& Widget ) const

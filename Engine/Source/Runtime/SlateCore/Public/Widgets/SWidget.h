@@ -533,9 +533,26 @@ public:
 	virtual bool HasKeyboardFocus() const;
 
 	/**
+	 * Gets whether or not the specified users has this widget focused, and if so the type of focus.
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	TOptional<EFocusCause> HasUserFocus(int32 UserIndex) const;
+
+	/**
+	 * Gets whether or not any users users has this widget focused, and if so the type of focus (first one found).
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	TOptional<EFocusCause> HasAnyUserFocus() const;
+
+	/**
 	 * @return Whether this widget has any descendants with keyboard focus
 	 */
 	bool HasFocusedDescendants() const;
+
+	/** @param InFocusBrush Sets the brush used to render focus. */
+	void SetFocusBrush(TOptional<FSlateBrush*> InFocusBrush);
 
 	/**
 	 * Checks to see if this widget is the current mouse captor
@@ -852,6 +869,9 @@ protected:
 
 	/** Render transform pivot of this widget (in normalized local space) */
 	TAttribute< FVector2D > RenderTransformPivot;
+
+	/** The brush used to draw focus, if unset it will use system default. */
+	TOptional<FSlateBrush*> FocusBrush;
 
 	/** Is this widget hovered? */
 	bool bIsHovered;

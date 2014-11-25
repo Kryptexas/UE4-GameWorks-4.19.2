@@ -673,6 +673,10 @@ protected:
 
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
 
+	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const override;
+
+	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
+
 	/** 
 	 * Ticks a slate window and all of its children
 	 *
@@ -903,17 +907,6 @@ public:
 	 * sure that widgets that appear (or vanish from) underneath the cursor have hover state set appropriately.
 	 */
 	virtual void SynthesizeMouseMove();
-
-	/**
-	 * Draw the keyboard focus rectangle over the currently focused widget
-	 *
-	 * @param FocusPath             Path to the focused widget.
-	 * @param WindowElementList     List of draw elements to which we will add our focus rectangle
-	 * @param InLayerId             Layer onto which we should paint the rectangle
-	 *
-	 * @return New maximum layer id
-	 */
-	int32 DrawFocus( const FWidgetPath& FocusPath, class FSlateWindowElementList& WindowElementList, int32 InLayerId ) const;
 
 	/** @return an array of top-level windows that can be interacted with. e.g. when a modal window is up, only return the modal window */
 	TArray< TSharedRef<SWindow> > GetInteractiveTopLevelWindows();
@@ -1268,8 +1261,11 @@ private:
 
 	TSharedPtr<FAnalogCursor> AnalogCursor;
 
-	/** A weak path to the widget currently focued by a user, if any. */
+	/** A weak path to the widget currently focused by a user, if any. */
 	FWeakWidgetPath UserFocusedWidgetPaths[SlateApplicationDefs::MaxUsers];
+	
+	/** Reason a widget was focused by a user, if any. */
+	EFocusCause UserFocusCause[SlateApplicationDefs::MaxUsers];
 
 	/**
 	 * Application throttling
@@ -1305,9 +1301,6 @@ private:
 
 	/** Support for auto-dismissing popups */
 	FPopupSupport PopupSupport;
-
-	/** The way in which the last focus was set. */
-	EFocusCause FocusCause;
 	
 	/** Pointer to the currently registered game viewport widget if any */
 	TWeakPtr<SViewport> GameViewportWidget;
