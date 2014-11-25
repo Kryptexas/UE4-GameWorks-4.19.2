@@ -18,4 +18,5 @@ public:
 
 private:
 	TSharedRef<SDockTab> SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs);
+	void OnTabClosed(TSharedRef<SDockTab>);
 };
