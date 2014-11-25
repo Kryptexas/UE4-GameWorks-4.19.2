@@ -322,6 +322,11 @@
 	#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL
 #endif
 
+// Disable optimization of a specific function
+#ifndef DISABLE_FUNCTION_OPTIMIZATION
+	#define DISABLE_FUNCTION_OPTIMIZATION
+#endif
+
 #ifndef FORCEINLINE_DEBUGGABLE_ACTUAL
 	#define FORCEINLINE_DEBUGGABLE_ACTUAL inline
 #endif
