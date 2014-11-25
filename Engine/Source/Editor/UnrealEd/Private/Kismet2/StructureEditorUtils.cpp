@@ -305,8 +305,10 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 	if (Struct)
 	{
 		auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
-		if (VarDesc && FName(*NewDisplayNameStr).IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
-			IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
+		if (VarDesc 
+			&& !NewDisplayNameStr.IsEmpty()
+			&& FName(*NewDisplayNameStr).IsValidXName(INVALID_OBJECTNAME_CHARACTERS) 
+			&& IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
 		{
 			const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));
 			ModifyStructData(Struct);
