@@ -288,6 +288,10 @@ public:
 	/** @return Desired translation offset of mesh. */
 	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
 
+	// Begin INavAgentInterface Interface
+	virtual FVector GetNavAgentLocation() const override;
+	// End INavAgentInterface Interface
+
 	/** Default crouched eye height */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float CrouchedEyeHeight;

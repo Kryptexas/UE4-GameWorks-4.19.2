@@ -640,6 +640,22 @@ void ACharacter::SaveRelativeBasedMovement(const FVector& NewRelativeLocation, c
 	BasedMovement.bRelativeRotation = bRelativeRotation;
 }
 
+FVector ACharacter::GetNavAgentLocation() const
+{
+	FVector AgentLocation = FNavigationSystem::InvalidLocation;
+
+	if (GetCharacterMovement() != nullptr)
+	{
+		AgentLocation = GetCharacterMovement()->GetActorFeetLocation();
+	}
+
+	if (FNavigationSystem::IsValidLocation(AgentLocation) == false && CapsuleComponent != nullptr)
+	{
+		AgentLocation = GetActorLocation() - FVector(0, 0, CapsuleComponent->GetScaledCapsuleHalfHeight());
+	}
+
+	return AgentLocation;
+}
 
 void ACharacter::TurnOff()
 {
