@@ -771,6 +771,10 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
 		bDisableDetachmentUpdateOverlaps = true;
 
+		// Find out if we're already attached, and save off our position in the array if we are
+		int32 LastAttachIndex = INDEX_NONE;
+		Parent->AttachChildren.Find(this, LastAttachIndex);
+
 		// Make sure we are detached
 		const bool bMaintainWorldPosition = (AttachType == EAttachLocation::KeepWorldPosition);
 		DetachFromParent(bMaintainWorldPosition);
@@ -811,7 +815,15 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		OnAttachmentChanged();
 
-		Parent->AttachChildren.Add(this);
+		// Preserve order of previous attachment if valid (in case we're doing a reattach operation inside a loop that might assume the AttachChildren order won't change)
+		if(LastAttachIndex != INDEX_NONE)
+		{
+			Parent->AttachChildren.Insert(this, LastAttachIndex);
+		}
+		else
+		{
+			Parent->AttachChildren.Add(this);
+		}
 
 		switch ( AttachType )
 		{

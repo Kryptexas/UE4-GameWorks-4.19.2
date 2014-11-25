@@ -17,6 +17,25 @@
 const FName USimpleConstructionScript::DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
 #endif
 
+namespace
+{
+	// Helper method to register instanced components post-construction
+	void RegisterInstancedComponent(UActorComponent* InstancedComponent)
+	{
+		InstancedComponent->RegisterComponent();
+
+		// If this is a scene component, recursively register any child components as well
+		USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(InstancedComponent);
+		if(InstancedSceneComponent != nullptr)
+		{
+			for(auto InstancedChildComponent : InstancedSceneComponent->AttachChildren)
+			{
+				RegisterInstancedComponent(InstancedChildComponent);
+			}
+		}
+	}
+}
+
 USimpleConstructionScript::USimpleConstructionScript(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -345,21 +364,11 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 			}
 		}
 
-		// Register all instanced SCS components once SCS execution has finished; do the scene component hierarchy first, followed by the remaining actor components (in case they happen to depend on something in the scene hierarchy)
+		// Register all instanced SCS components once SCS execution has finished; sorted in order to register the scene component hierarchy first, followed by the remaining actor components (in case they happen to depend on something in the scene hierarchy)
 		InstancedComponents.Sort([](const UActorComponent& A, const UActorComponent& B) { return A.IsA<USceneComponent>(); });
 		for(auto InstancedComponent : InstancedComponents)
 		{
-			InstancedComponent->RegisterComponent();
-
-			// If this is a scene component, register any child components as well
-			USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(InstancedComponent);
-			if(InstancedSceneComponent != nullptr)
-			{
-				for(auto InstancedChildComponent : InstancedSceneComponent->AttachChildren)
-				{
-					InstancedChildComponent->RegisterComponent();
-				}
-			}
+			RegisterInstancedComponent(InstancedComponent);
 		}
 	}
 	else if(Actor->GetRootComponent() == NULL) // Must have a root component at the end of SCS, so if we don't have one already (from base class), create a SceneComponent now
