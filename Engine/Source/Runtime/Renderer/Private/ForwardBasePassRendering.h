@@ -514,27 +514,76 @@ void ProcessBasePassMeshForForwardShading(
 {
 	// Check for a cached light-map.
 	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
-
-	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-		? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
-		: FLightMapInteraction();
-
 	if (bIsLitMaterial)
 	{
+		const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
+			? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
+			: FLightMapInteraction();
+
 		const FLightSceneInfo* SimpleDirectionalLight = Action.GetSimpleDirectionalLight();
 		const bool bUseMovableLight = SimpleDirectionalLight && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 
-		if (bUseMovableLight && LightMapInteraction.GetType() == LMIT_Texture)
+		if (LightMapInteraction.GetType() == LMIT_Texture)
 		{
-			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
-			if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+			// Lightmap path
+			if (bUseMovableLight)
 			{
-				Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+				// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
+				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				{
+					Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+				}
+				else
+				{
+					Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+				}
 			}
 			else
 			{
-				Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+				const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
+					? Parameters.Mesh.LCI->GetShadowMapInteraction()
+					: FShadowMapInteraction();
+
+				if (ShadowMapInteraction.GetType() == SMIT_Texture)
+				{
+					Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
+						RHICmdList,
+						Parameters,
+						TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
+						TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
+				}
+				else
+				{
+					Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction);
+				}
 			}
+
+			// Exit to avoid NoLightmapPolicy
+			return;
+		}
+		else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
+			&& Parameters.PrimitiveSceneProxy
+			// Movable objects need to get their GI from the indirect lighting cache
+			&& Parameters.PrimitiveSceneProxy->IsMovable())
+		{
+			if (bUseMovableLight)
+			{
+				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				{
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+				}
+				else
+				{
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+				}
+			}
+			else
+			{
+				Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHIndirectPolicy(), FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+			}
+
+			// Exit to avoid NoLightmapPolicy
+			return;
 		}
 		else if (bUseMovableLight)
 		{
@@ -546,41 +595,13 @@ void ProcessBasePassMeshForForwardShading(
 			else
 			{
 				Action.template Process<FMovableDirectionalLightLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
-			}		
-		}
-		else if (LightMapInteraction.GetType() == LMIT_Texture)
-		{
-			const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-				? Parameters.Mesh.LCI->GetShadowMapInteraction() 
-				: FShadowMapInteraction();
+			}
 
-			if (ShadowMapInteraction.GetType() == SMIT_Texture)
-			{
-				Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
-					RHICmdList, 
-					Parameters,
-					TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
-					TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
-			}
-			else
-			{
-				Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
-			}
-		}
-		else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
-			&& Parameters.PrimitiveSceneProxy
-			// Movable objects need to get their GI from the indirect lighting cache
-			&& Parameters.PrimitiveSceneProxy->IsMovable())
-		{
-			Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters,FSimpleDirectionalLightAndSHIndirectPolicy(),FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH())); 
-		}
-		else
-		{
-			Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+			// Exit to avoid NoLightmapPolicy
+			return;
 		}
 	}
-	else
-	{
-		Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
-	}
+
+	// Default to NoLightmapPolicy
+	Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 }

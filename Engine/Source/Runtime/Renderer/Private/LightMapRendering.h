@@ -969,6 +969,49 @@ private:
 	FCachedPointIndirectLightingPolicy CachedPointIndirectLightingPolicy;
 };
 
+/** Combines a directional light with indirect lighting from a single SH sample. */
+class FSimpleDirectionalLightAndSHDirectionalIndirectPolicy : public FSimpleDirectionalLightAndSHIndirectPolicy
+{
+public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("MAX_FORWARD_SHADOWCASCADES"), TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)));
+		FSimpleDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	friend bool operator==(const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy A, const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy B)
+	{
+		return true;
+	}
+
+	friend int32 CompareDrawingPolicy(const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy&, const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy&)
+	{
+		return 0;
+	}
+};
+
+/** Combines a directional light with CSM with indirect lighting from a single SH sample. */
+class FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy : public FSimpleDirectionalLightAndSHDirectionalIndirectPolicy
+{
+public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	friend bool operator==(const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy A, const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy B)
+	{
+		return true;
+	}
+
+	friend int32 CompareDrawingPolicy(const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy&, const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy&)
+	{
+		return 0;
+	}
+};
+
 class FMovableDirectionalLightLightingPolicy : public FNoLightMapPolicy
 {
 public:

@@ -2409,6 +2409,18 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLi
 }
 
 template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[DrawType];
+}
+
+template<>
 TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType];
