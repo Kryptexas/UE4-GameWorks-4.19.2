@@ -180,33 +180,7 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			// dump information about screens for debug
 			FDisplayMetrics DisplayMetrics;
 			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
-			
-			UE_LOG(LogInit, Log, TEXT("Display metrics:"));
-			UE_LOG(LogInit, Log, TEXT("  PrimaryDisplayWidth: %d"), DisplayMetrics.PrimaryDisplayWidth);
-			UE_LOG(LogInit, Log, TEXT("  PrimaryDisplayHeight: %d"), DisplayMetrics.PrimaryDisplayHeight);
-			UE_LOG(LogInit, Log, TEXT("  PrimaryDisplayWorkAreaRect:"));
-			UE_LOG(LogInit, Log, TEXT("    Left=%d, Top=%d, Right=%d, Bottom=%d"), 
-				DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top, 
-				DisplayMetrics.PrimaryDisplayWorkAreaRect.Right, DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom);
-			UE_LOG(LogInit, Log, TEXT("  VirtualDisplayRect:"));
-			UE_LOG(LogInit, Log, TEXT("    Left=%d, Top=%d, Right=%d, Bottom=%d"), 
-				DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top, 
-				DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
-			UE_LOG(LogInit, Log, TEXT("  TitleSafePaddingSize: %s"), *DisplayMetrics.TitleSafePaddingSize.ToString());
-			UE_LOG(LogInit, Log, TEXT("  ActionSafePaddingSize: %s"), *DisplayMetrics.ActionSafePaddingSize.ToString());
-
-			const int NumMonitors = DisplayMetrics.MonitorInfo.Num();
-			UE_LOG(LogInit, Log, TEXT("  Number of monitors: %d"), NumMonitors);
-			for (int MonitorIdx = 0; MonitorIdx < NumMonitors; ++MonitorIdx)
-			{
-				const FMonitorInfo & MonitorInfo = DisplayMetrics.MonitorInfo[MonitorIdx];
-				UE_LOG(LogInit, Log, TEXT("    Monitor %d"), MonitorIdx);
-				UE_LOG(LogInit, Log, TEXT("      Name: %s"), *MonitorInfo.Name);
-				UE_LOG(LogInit, Log, TEXT("      ID: %s"), *MonitorInfo.ID);
-				UE_LOG(LogInit, Log, TEXT("      NativeWidth: %d"), MonitorInfo.NativeWidth);
-				UE_LOG(LogInit, Log, TEXT("      NativeHeight: %d"), MonitorInfo.NativeHeight);
-				UE_LOG(LogInit, Log, TEXT("      bIsPrimary: %s"), MonitorInfo.bIsPrimary ? TEXT("true") : TEXT("false"));
-			}
+			DisplayMetrics.PrintToLog();
 		}
 	}
 

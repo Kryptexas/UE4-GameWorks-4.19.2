@@ -340,6 +340,9 @@ struct FDisplayMetrics
 	FVector2D ActionSafePaddingSize;
 
 	CORE_API static void GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics);
+
+	/** Logs out display metrics */
+	CORE_API void PrintToLog() const;
 };
 
 
