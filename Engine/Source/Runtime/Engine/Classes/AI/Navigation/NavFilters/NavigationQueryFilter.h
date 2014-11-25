@@ -4,6 +4,7 @@
 #include "NavigationQueryFilter.generated.h"
 
 class UNavArea;
+class ANavigationData;
 struct FNavigationQueryFilter;
 
 USTRUCT()
@@ -109,7 +110,7 @@ public:
 	virtual void SetExcludeFlags(uint16 Flags) = 0;
 	virtual uint16 GetExcludeFlags() const = 0;
 
-	virtual class INavigationQueryFilterInterface* CreateCopy() const = 0;
+	virtual INavigationQueryFilterInterface* CreateCopy() const = 0;
 };
 
 struct ENGINE_API FNavigationQueryFilter : public TSharedFromThis<FNavigationQueryFilter>
@@ -169,7 +170,7 @@ public:
 		QueryFilterImpl = MakeShareable(new FilterType());
 	}
 
-	FORCEINLINE_DEBUGGABLE void SetFilterImplementation(const class INavigationQueryFilterInterface* InQueryFilterImpl)
+	FORCEINLINE_DEBUGGABLE void SetFilterImplementation(const INavigationQueryFilterInterface* InQueryFilterImpl)
 	{
 		QueryFilterImpl = MakeShareable(InQueryFilterImpl->CreateCopy());
 	}
@@ -215,13 +216,13 @@ class ENGINE_API UNavigationQueryFilter : public UObject
 	FNavigationFilterFlags ExcludeFlags;
 
 	/** get filter for given navigation data and initialize on first access */
-	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData) const;
+	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const ANavigationData* NavData) const;
 	
 	/** helper functions for accessing filter */
-	static TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData, UClass* FilterClass);
+	static TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass);
 
 	template<class T>
-	static TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData, UClass* FilterClass = T::StaticClass())
+	static TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass = T::StaticClass())
 	{
 		return GetQueryFilter(NavData, FilterClass);
 	}
@@ -241,5 +242,5 @@ protected:
 	int32 FindAreaOverride(TSubclassOf<UNavArea> AreaClass) const;
 
 	/** setup filter for given navigation data, use to create custom filters */
-	virtual void InitializeFilter(const class ANavigationData* NavData, FNavigationQueryFilter* Filter) const;
+	virtual void InitializeFilter(const ANavigationData* NavData, FNavigationQueryFilter* Filter) const;
 };

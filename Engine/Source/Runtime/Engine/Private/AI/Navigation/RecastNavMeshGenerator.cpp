@@ -40,6 +40,8 @@
 #define RECAST_STAT(...) 
 #endif
 
+struct dtTileCacheAlloc;
+
 FORCEINLINE bool DoesBoxContainOrOverlapVector(const FBox& BigBox, const FVector& In)
 {
 	return (In.X >= BigBox.Min.X) && (In.X <= BigBox.Max.X) 
@@ -1554,7 +1556,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator* ParentG
 	}
 }
 
-void FRecastTileGenerator::ApplyVoxelFilter(struct rcHeightfield* HF, float WalkableRadius)
+void FRecastTileGenerator::ApplyVoxelFilter(rcHeightfield* HF, float WalkableRadius)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_TileVoxelFilteringAsync);
 
@@ -2238,7 +2240,7 @@ void FRecastTileGenerator::MarkStaticAreas(FNavMeshBuildContext& BuildContext, r
 
 struct FTileGenerationContext
 {
-	FTileGenerationContext(struct dtTileCacheAlloc* MyAllocator) :
+	FTileGenerationContext(dtTileCacheAlloc* MyAllocator) :
 		Allocator(MyAllocator), Layer(0), DistanceField(0), ContourSet(0), ClusterSet(0), PolyMesh(0), DetailMesh(0)
 	{
 	}
