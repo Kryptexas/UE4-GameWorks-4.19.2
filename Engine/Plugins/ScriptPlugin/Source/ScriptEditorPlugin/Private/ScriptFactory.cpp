@@ -69,7 +69,7 @@ UObject* UScriptFactory::FactoryCreateText(UClass* InClass, UObject* InParent, F
 
 /** UReimportScriptFactory */
 
-UReimportScriptFactory::UReimportScriptFactory(const class FObjectInitializer& ObjectInitializer)
+UReimportScriptFactory::UReimportScriptFactory(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 }

@@ -148,6 +148,7 @@ namespace APIDocTool
 			"SLATE_NAMED_SLOT(DeclarationType, SlotName)=NamedSlotProperty<DeclarationType> SlotName();",
 			"SLATE_EVENT(DelegateName,EventName)=WidgetArgsType& EventName( const DelegateName& InDelegate );",
 			"SLATE_END_ARGS()=};",
+			"DRAG_DROP_OPERATOR_TYPE(TYPE, BASE)=static const FString& GetTypeId(); virtual bool IsOfTypeImpl(const FString& Type) const;",
 
 			// Rendering macros
 			"IMPLEMENT_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency)= ",

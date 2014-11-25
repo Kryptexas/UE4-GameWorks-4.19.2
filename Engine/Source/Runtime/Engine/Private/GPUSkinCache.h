@@ -10,6 +10,7 @@
 #include "Array.h"
 #include "RHIResources.h"
 #include "RenderResource.h"
+#include "UniformBuffer.h"
 
 class FSkeletalMeshObjectGPUSkin;
 

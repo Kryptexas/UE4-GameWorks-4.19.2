@@ -4378,17 +4378,14 @@ public:
 
 };
 
-namespace
+class SResponsiveGridPanelTestWidgetImpl : public SResponsiveGridPanelTestWidget
 {
-	class SResponsiveGridPanelTestWidgetImpl : public SResponsiveGridPanelTestWidget
-	{
-	public:
-		virtual void Construct(const FArguments& InArgs) override;
+public:
+	virtual void Construct(const FArguments& InArgs) override;
 
-	private:
-		TSharedRef<SWidget> ConstructBox(const FString& Text) const;
-	};
-}
+private:
+	TSharedRef<SWidget> ConstructBox(const FString& Text) const;
+};
 
 TSharedRef<SWidget> SResponsiveGridPanelTestWidgetImpl::ConstructBox(const FString& Text) const
 {
