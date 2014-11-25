@@ -74,7 +74,7 @@ public:
 struct MOVIEPLAYER_API FLoadingScreenAttributes
 {
 	FLoadingScreenAttributes()
-		: MinimumLoadingScreenDisplayTime(0.0f)
+		: MinimumLoadingScreenDisplayTime(-1.0f)
 		, bAutoCompleteWhenLoadingCompletes(true)
 		, bMoviesAreSkippable(true) {}
 
