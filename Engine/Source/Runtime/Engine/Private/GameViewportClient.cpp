@@ -2545,7 +2545,9 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 	if(Viewport)
 	{
 		const bool bShowUI = FParse::Command(&Cmd, TEXT("SHOWUI"));
-		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
+		//		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
+		// PNG is disabled for now as it breaks "shot" command in game, see UE-5780 
+		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("bmp") );
 
 		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
