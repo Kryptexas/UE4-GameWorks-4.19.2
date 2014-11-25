@@ -9,8 +9,6 @@
 static void SetDeprecatedControllerViewRotation(USpringArmComponent& Component, bool bValue);
 const FName USpringArmComponent::SocketName(TEXT("SpringEndpoint"));
 
-extern float GAverageMS;
-
 USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -35,6 +33,9 @@ USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitial
 
 	RelativeSocketRotation = FQuat::Identity;
 
+	bUseCameraLagSubstepping = true;
+	CameraLagMaxTimeStep = 1.f / 60.f;
+	
 	// Init deprecated var, for old code that may refer to it.
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
@@ -62,21 +63,60 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 		}
 	}
 
+	const float InverseCameraLagMaxTimeStep = (1.f / CameraLagMaxTimeStep);
+
 	// Apply 'lag' to rotation if desired
 	if(bDoRotationLag)
 	{
-		DesiredRot = FMath::RInterpTo(PreviousDesiredRot, DesiredRot, DeltaTime, CameraRotationLagSpeed);
+		if (bUseCameraLagSubstepping && DeltaTime > CameraLagMaxTimeStep && CameraRotationLagSpeed > 0.f)
+		{
+			const FRotator ArmRotStep = (DesiredRot - PreviousDesiredRot).GetNormalized() * (CameraLagMaxTimeStep / DeltaTime);
+			FRotator LerpTarget = PreviousDesiredRot;
+			float RemainingTime = DeltaTime;
+			while (RemainingTime > KINDA_SMALL_NUMBER)
+			{
+				const float LerpAmount = FMath::Min(CameraLagMaxTimeStep, RemainingTime);
+				LerpTarget += ArmRotStep * (LerpAmount * InverseCameraLagMaxTimeStep);
+				RemainingTime -= LerpAmount;
+
+				DesiredRot = FMath::RInterpTo(PreviousDesiredRot, LerpTarget, LerpAmount, CameraRotationLagSpeed);
+				PreviousDesiredRot = DesiredRot;
+			}
+		}
+		else
+		{
+			DesiredRot = FMath::RInterpTo(PreviousDesiredRot, DesiredRot, DeltaTime, CameraRotationLagSpeed);
+		}
 	}
 	PreviousDesiredRot = DesiredRot;
 
 	// Get the spring arm 'origin', the target we want to look at
 	FVector ArmOrigin = GetComponentLocation() + TargetOffset;
-	// We lag the target, not the actuall camera position, so rotating the camera around does not hav lag
+	// We lag the target, not the actual camera position, so rotating the camera around does not have lag
 	FVector DesiredLoc = ArmOrigin;
 	if (bDoLocationLag)
 	{
-		DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, DesiredLoc, DeltaTime, CameraLagSpeed);
+		if (bUseCameraLagSubstepping && DeltaTime > CameraLagMaxTimeStep && CameraLagSpeed > 0.f)
+		{
+			const FVector ArmMovementStep = (ArmOrigin - PreviousArmOrigin) * (CameraLagMaxTimeStep / DeltaTime);			
+			FVector LerpTarget = PreviousArmOrigin;
+			float RemainingTime = DeltaTime;
+			while (RemainingTime > KINDA_SMALL_NUMBER)
+			{
+				const float LerpAmount = FMath::Min(CameraLagMaxTimeStep, RemainingTime);
+				LerpTarget += ArmMovementStep * (LerpAmount * InverseCameraLagMaxTimeStep);
+				RemainingTime -= LerpAmount;
+
+				DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, LerpTarget, LerpAmount, CameraLagSpeed);
+				PreviousDesiredLoc = DesiredLoc;
+			}
+		}
+		else
+		{
+			DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, DesiredLoc, DeltaTime, CameraLagSpeed);
+		}
 	}
+	PreviousArmOrigin = ArmOrigin;
 	PreviousDesiredLoc = DesiredLoc;
 
 	// Now offset camera position back along our rotation
@@ -121,6 +161,12 @@ FVector USpringArmComponent::BlendLocations(const FVector& DesiredArmLocation, c
 void USpringArmComponent::OnRegister()
 {
 	Super::OnRegister();
+
+	// enforce reasonable limits to avoid potential div-by-zero
+	CameraLagMaxTimeStep = FMath::Max(CameraLagMaxTimeStep, 1.f / 200.f);
+	CameraLagSpeed = FMath::Max(CameraLagSpeed, 0.f);
+
+	// Set initial location (without lag).
 	UpdateDesiredArmLocation(false, false, false, 0.f);
 
 	// Init deprecated var, for old code that may refer to it.
