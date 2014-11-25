@@ -311,68 +311,21 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FR
 	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(ShaderPlatform);
 	FTexture2DRHIRef SceneDepth = GSceneRenderTargets.GetSceneDepthTexture();
 
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+	FBasePassOpaqueDrawingPolicyFactory::ContextType Context(true, ESceneRenderTargetsMode::SetTextures);
 
-	if (bUseGetMeshElements)
+	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
 	{
-		FBasePassOpaqueDrawingPolicyFactory::ContextType Context(true, ESceneRenderTargetsMode::SetTextures);
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicEditorMeshElements[MeshBatchIndex];
 
-		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
+		if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || View.Family->EngineShowFlags.Wireframe)
 		{
-			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicEditorMeshElements[MeshBatchIndex];
-
-			if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || View.Family->EngineShowFlags.Wireframe)
-			{
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-			}
-		}
-
-		View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, GSceneRenderTargets.GetSceneDepthTexture(), EBlendModeFilter::OpaqueAndMasked);
-	}
-	else if( View.VisibleEditorPrimitives.Num() > 0 )
-	{
-		// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> DepthTestDrawer(
-			RHICmdList, &View, FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), true, false, bDepthTest);
-
-		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> NoDepthTestDrawer(
-			RHICmdList, &View, FBasePassOpaqueDrawingPolicyFactory::ContextType(!bDepthTest, ESceneRenderTargetsMode::SetTextures), true, false, !bDepthTest);
-
-		for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleEditorPrimitives.Num();PrimitiveIndex++)
-		{
-			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleEditorPrimitives[PrimitiveIndex];
-			int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-			const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-
-			const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
-
-			// Only draw the primitive if it's visible
-			if( bVisible && 
-				// only draw opaque and masked primitives if wireframe is disabled
-				(PrimitiveViewRelevance.bOpaqueRelevance || View.Family->EngineShowFlags.Wireframe))
-			{
-				// Distinguish between depth tested & non-depth tested primitives
-				if(PrimitiveViewRelevance.bEditorNoDepthTestPrimitiveRelevance)
-				{
-					NoDepthTestDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-						&NoDepthTestDrawer,
-						&View			
-						);
-				}
-				else
-				{
-					DepthTestDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-						&DepthTestDrawer,
-						&View			
-						);
-				}
-			}
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 		}
 	}
 
+	View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, GSceneRenderTargets.GetSceneDepthTexture(), EBlendModeFilter::OpaqueAndMasked);
+	
 	// Draw the base pass for the view's batched mesh elements.
 	DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_World, false);
 

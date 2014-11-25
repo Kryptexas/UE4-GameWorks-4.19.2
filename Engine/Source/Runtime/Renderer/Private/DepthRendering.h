@@ -165,8 +165,6 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel);
-
 private:
 	/**
 	* Render a dynamic or static mesh using a depth draw policy

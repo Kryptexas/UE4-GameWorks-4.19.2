@@ -113,15 +113,6 @@ FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 			}
 		}
 
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-		{
-			QUICK_SCOPE_CYCLE_COUNTER( STAT_BoxSceneProxy_DrawDynamicElements );
-
-			const FMatrix& LocalToWorld = GetLocalToWorld();
-			const FColor DrawColor = GetSelectionColor(BoxColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
-			DrawOrientedWireBox(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), BoxExtents, DrawColor, SDPG_World);
-		}
-
 		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 		{
 			const bool bVisible = !bDrawOnlyIfSelected || IsSelected();

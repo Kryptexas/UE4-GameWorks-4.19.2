@@ -103,19 +103,6 @@ void DrawVectorFieldBounds(
 	const FSceneView* View,
 	FVectorFieldInstance* VectorFieldInstance );
 
-/**
- * Draw the vector field for a vector field instance.
- * @param PDI - The primitive drawing interface with which to draw.
- * @param View - The view in which to draw.
- * @param VertexFactory - The vertex factory with which to draw.
- * @param VectorFieldInstance - The vector field instance to draw.
- */
-void DrawVectorField(
-	FPrimitiveDrawInterface* PDI,
-	const FSceneView* View,
-	FVectorFieldVisualizationVertexFactory* VertexFactory,
-	FVectorFieldInstance* VectorFieldInstance );
-
 void GetVectorFieldMesh(
 	FVectorFieldVisualizationVertexFactory* VertexFactory,
 	FVectorFieldInstance* VectorFieldInstance,

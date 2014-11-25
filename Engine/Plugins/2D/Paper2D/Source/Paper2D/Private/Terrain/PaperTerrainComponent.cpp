@@ -28,15 +28,10 @@ class FPaperTerrainSceneProxy : public FPaperRenderSceneProxy
 public:
 	FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FPaperTerrainMaterialPair>& InDrawingData);
 
-	// FPrimitiveSceneProxy interface.
-	//virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
-	// End of FPrimitiveSceneProxy interface.
-
 protected:
 	TArray<FPaperTerrainMaterialPair> DrawingData;
 protected:
 	// FPaperRenderSceneProxy interface
-	virtual void DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor) override;
 	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const override;
 	// End of FPaperRenderSceneProxy interface
 };
@@ -51,17 +46,6 @@ FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* I
 	{
 		const UMaterialInterface* MaterialInterface = (Batch.Material != nullptr) ? Batch.Material : UMaterial::GetDefaultMaterial(MD_Surface);
 		MaterialRelevance |= MaterialInterface->GetRelevance_Concurrent(GetScene().GetFeatureLevel());
-	}
-}
-
-void FPaperTerrainSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
-{
-	for (const FPaperTerrainMaterialPair& Batch : DrawingData)
-	{
-		if (Batch.Material != nullptr)
-		{
-			DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Batch.Material, Batch.Records);
-		}
 	}
 }
 

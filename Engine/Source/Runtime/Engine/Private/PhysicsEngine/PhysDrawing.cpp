@@ -529,121 +529,6 @@ void FConvexCollisionVertexFactory::InitConvexVertexFactory(const FConvexCollisi
 	}
 }
 
-void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest)
-{
-	const FVector Scale3D = Transform.GetScale3D();
-	FTransform ParentTM = Transform;
-	ParentTM.RemoveScaling();
-
-	if( Scale3D.GetAbs().IsUniform() )
-	{
-		for(int32 i=0; i<SphereElems.Num(); i++)
-		{
-			FTransform ElemTM = SphereElems[i].GetTransform();
-			ElemTM.ScaleTranslation(Scale3D);
-			ElemTM *= ParentTM;
-
-			if(bDrawSolid)
-				SphereElems[i].DrawElemSolid(PDI, ElemTM, Scale3D.X, MatInst);
-			else
-				SphereElems[i].DrawElemWire(PDI, ElemTM, Scale3D.X, Color);
-		}
-
-		for(int32 i=0; i<BoxElems.Num(); i++)
-		{
-			FTransform ElemTM = BoxElems[i].GetTransform();
-			ElemTM.ScaleTranslation(Scale3D);
-			ElemTM *= ParentTM;
-
-			if(bDrawSolid)
-				BoxElems[i].DrawElemSolid(PDI, ElemTM, Scale3D.X, MatInst);
-			else
-				BoxElems[i].DrawElemWire(PDI, ElemTM, Scale3D.X, Color);
-		}
-
-		for(int32 i=0; i<SphylElems.Num(); i++)
-		{
-			FTransform ElemTM = SphylElems[i].GetTransform();
-			ElemTM.ScaleTranslation(Scale3D);
-			ElemTM *= ParentTM;
-
-			if(bDrawSolid)
-				SphylElems[i].DrawElemSolid(PDI, ElemTM, Scale3D.X, MatInst);
-			else
-				SphylElems[i].DrawElemWire(PDI, ElemTM, Scale3D.X, Color);
-		}
-	}
-
-	if(ConvexElems.Num() > 0)
-	{
-		if(bDrawSolid)
-		{
-			// Cache collision vertex/index buffer
-			if(!RenderInfo)
-			{
-				RenderInfo = new FKConvexGeomRenderInfo();
-				RenderInfo->VertexBuffer = new FConvexCollisionVertexBuffer();
-				RenderInfo->IndexBuffer = new FConvexCollisionIndexBuffer();
-
-				for(int32 i=0; i<ConvexElems.Num(); i++)
-				{
-					// Get vertices/triangles from this hull.
-					ConvexElems[i].AddCachedSolidConvexGeom(RenderInfo->VertexBuffer->Vertices, RenderInfo->IndexBuffer->Indices, FColor(255,255,255));
-				}
-
-				// Only continue if we actuall got some valid geometry
-				// Will crash if we try to init buffers with no data
-				if(RenderInfo->HasValidGeometry())
-				{
-					RenderInfo->VertexBuffer->InitResource();
-					RenderInfo->IndexBuffer->InitResource();
-
-					RenderInfo->CollisionVertexFactory = new FConvexCollisionVertexFactory(RenderInfo->VertexBuffer);
-					RenderInfo->CollisionVertexFactory->InitResource();
-				}
-			}
-
-			// If we have geometry to draw, do so
-			if(RenderInfo->HasValidGeometry())
-			{
-				// Calculate transform
-				FTransform LocalToWorld = FTransform( FQuat::Identity, FVector::ZeroVector, Scale3D ) * ParentTM;
-
-				// Draw the mesh.
-				FMeshBatch Mesh;
-				FMeshBatchElement& BatchElement = Mesh.Elements[0];
-				BatchElement.IndexBuffer = RenderInfo->IndexBuffer;
-				Mesh.VertexFactory = RenderInfo->CollisionVertexFactory;
-				Mesh.MaterialRenderProxy = MatInst;
-				FBoxSphereBounds WorldBounds, LocalBounds;
-				CalcBoxSphereBounds(WorldBounds, LocalToWorld);
-				CalcBoxSphereBounds(LocalBounds, FTransform::Identity);
-				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(LocalToWorld.ToMatrixWithScale(), WorldBounds, LocalBounds, true, bUseEditorDepthTest);
-				// previous l2w not used so treat as static
-				BatchElement.FirstIndex = 0;
-				BatchElement.NumPrimitives = RenderInfo->IndexBuffer->Indices.Num() / 3;
-				BatchElement.MinVertexIndex = 0;
-				BatchElement.MaxVertexIndex = RenderInfo->VertexBuffer->Vertices.Num() - 1;
-				Mesh.ReverseCulling = LocalToWorld.GetDeterminant() < 0.0f ? true : false;
-				Mesh.Type = PT_TriangleList;
-				Mesh.DepthPriorityGroup = SDPG_World;
-				PDI->DrawMesh(Mesh);
-			}
-		}
-		else
-		{
-			for(int32 i=0; i<ConvexElems.Num(); i++)
-			{
-				FColor ConvexColor = bPerHullColor ? DebugUtilColor[i%NUM_DEBUG_UTIL_COLORS] : Color;
-				FTransform ElemTM = ConvexElems[i].GetTransform();
-				ElemTM *= Transform;
-				ConvexElems[i].DrawElemWire(PDI, ElemTM, ConvexColor);
-			}
-		}
-	}
-}
-
-
 void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest, int32 ViewIndex, FMeshElementCollector& Collector) const
 {
 	const FVector Scale3D = Transform.GetScale3D();
@@ -816,7 +701,7 @@ FTransform GetSkelBoneTransform(int32 BoneIndex, const TArray<FTransform>& Space
 	}
 }
 
-void UPhysicsAsset::DrawCollision(FPrimitiveDrawInterface* PDI, const USkeletalMesh* SkelMesh, const TArray<FTransform>& SpaceBases, const FTransform& LocalToWorld, float Scale)
+void UPhysicsAsset::GetCollisionMesh(int32 ViewIndex, FMeshElementCollector& Collector, const USkeletalMesh* SkelMesh, const TArray<FTransform>& SpaceBases, const FTransform& LocalToWorld, float Scale)
 {
 	for( int32 i=0; i<BodySetup.Num(); i++)
 	{
@@ -827,7 +712,7 @@ void UPhysicsAsset::DrawCollision(FPrimitiveDrawInterface* PDI, const USkeletalM
 		FTransform BoneTransform = GetSkelBoneTransform(BoneIndex, SpaceBases, LocalToWorld);
 		BoneTransform.SetScale3D(FVector(Scale));
 		BodySetup[i]->CreatePhysicsMeshes();
-		BodySetup[i]->AggGeom.DrawAggGeom( PDI, BoneTransform, *BoneColor, NULL, false, false, false );
+		BodySetup[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
 	}
 }
 

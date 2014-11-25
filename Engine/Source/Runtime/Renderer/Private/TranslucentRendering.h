@@ -57,12 +57,6 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		// Note: blend mode does not depend on the feature level.
-		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-	}
-
 	/**
 	* Resolves the scene color target and copies it for use as a source texture.
 	*/
@@ -128,12 +122,6 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		// Note: blend mode does not depend on the feature level.
-		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-	}
 };
 
 /** Represents a subregion of a volume texture. */

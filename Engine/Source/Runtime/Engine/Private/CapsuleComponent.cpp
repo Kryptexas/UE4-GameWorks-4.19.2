@@ -51,22 +51,6 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 			}
 		}
 
-		/** 
-		* Draw the scene proxy as a dynamic element
-		*
-		* @param	PDI - draw interface to render to
-		* @param	View - current view
-		*/
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-		{
-			QUICK_SCOPE_CYCLE_COUNTER( STAT_DrawCylinderSceneProxy_DrawDynamicElements );
-
-			const FLinearColor DrawCapsuleColor = GetSelectionColor(ShapeColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
-			const FMatrix& LocalToWorld = GetLocalToWorld();
-			const int32 CapsuleSides =  FMath::Clamp<int32>(CapsuleRadius/4.f, 16, 64);
-			DrawWireCapsule( PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), DrawCapsuleColor, CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World );
-		}
-
 		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 		{
 			const bool bVisible = !bDrawOnlyIfSelected || IsSelected();

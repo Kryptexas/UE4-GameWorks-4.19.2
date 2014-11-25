@@ -1200,10 +1200,3 @@ bool IsMobileHDR32bpp()
 	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
 	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppCvar->GetValueOnRenderThread() == 1);
 }
-
-bool ShouldUseGetDynamicMeshElements()
-{
-	static const auto CVarUseGetMeshElements = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseGetMeshElements"));
-	const bool bUseGetMeshElements = !GRHICommandList.Bypass() ||  CVarUseGetMeshElements->GetValueOnRenderThread() != 0;
-	return bUseGetMeshElements;
-}

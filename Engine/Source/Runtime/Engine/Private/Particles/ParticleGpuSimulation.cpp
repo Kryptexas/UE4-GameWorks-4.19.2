@@ -2255,8 +2255,6 @@ public:
 
 	/** The vertex buffer used to access particles in the simulation. */
 	FGPUParticleVertexBuffer VertexBuffer;
-	/** The vertex factories used to render these particles (one per view). */
-	TIndirectArray<FGPUSpriteVertexFactory, TInlineAllocator<2> > VertexFactories;
 	/** The vertex factory for visualizing the local vector field. */
 	FVectorFieldVisualizationVertexFactory* VectorFieldVisualizationVertexFactory;
 
@@ -2321,10 +2319,6 @@ public:
 
 			// Store simulation resources for this emitter.
 			Simulation->EmitterSimulationResources = InEmitterSimulationResources;
-
-			// Create the vertex factory with which this simulation can be rendered.
-			FGPUSpriteVertexFactory* VertexFactory = new(Simulation->VertexFactories) FGPUSpriteVertexFactory();
-			VertexFactory->InitResource();
 
 			// If a visualization vertex factory has been created, initialize it.
 			if (Simulation->VectorFieldVisualizationVertexFactory)
@@ -2398,11 +2392,6 @@ private:
 		check( IsInRenderingThread() );
 		VertexBuffer.ReleaseResource();
 		TileVertexBuffer.ReleaseResource();
-		for ( int32 VertexFactoryIndex = 0; VertexFactoryIndex < VertexFactories.Num(); ++VertexFactoryIndex )
-		{
-			VertexFactories[VertexFactoryIndex].ReleaseResource();
-		}
-		VertexFactories.Reset();
 		if ( VectorFieldVisualizationVertexFactory )
 		{
 			VectorFieldVisualizationVertexFactory->ReleaseResource();
@@ -2496,8 +2485,6 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	FParticlePerFrameSimulationParameters PerFrameSimulationParameters;
 	/** Per-emitter parameters that may change*/
 	FGPUSpriteEmitterDynamicUniformParameters EmitterDynamicParameters;
-	/** Emitter uniform buffer for parameters that may change. Used for rendering. */
-	FGPUSpriteEmitterDynamicUniformBufferRef DynamicUniformBuffer;
 	/** How the particles should be sorted, if at all. */
 	EParticleSortMode SortMode;
 	/** Whether to render particles in local space or world space. */
@@ -2580,81 +2567,6 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	 */
 	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
 	{		
-	}
-
-	/**
-	 * Called once the emitter has been determined to be visible. The emitter
-	 * will generate per-view render data.
-	 */
-	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
-	{
-		auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
-
-		if (RHISupportsGPUParticles(FeatureLevel))
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GPUSpritePreRenderTime);
-
-			check(Simulation);
-
-			// Do not render orphaned emitters. This can happen if the emitter
-			// instance has been destroyed but we are rendering before the
-			// scene proxy has received the update to clear dynamic data.
-			if (Simulation->SimulationIndex != INDEX_NONE
-				&& Simulation->VertexBuffer.ParticleCount > 0)
-			{
-				// Create view agnostic render data.  Do here rather than in CreateRenderThreadResources because in some cases Render can be called before CreateRenderThreadResources
-				{
-					// Create per-emitter uniform buffer for dynamic parameters
-					DynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(EmitterDynamicParameters, UniformBuffer_SingleFrame);
-				}
-
-				const bool bTranslucent = RendersWithTranslucentMaterial();
-				const bool bAllowSorting = FXConsoleVariables::bAllowGPUSorting
-					&& FeatureLevel == ERHIFeatureLevel::SM5
-					&& bTranslucent;
-
-				// Create vertex factories for any new views.
-				// TODO: We shouldn't modify the Simulation object here. This is just an optimization to cache vertex factories.
-				//       We should just create a temporary one here that lives for the duration of the frame.
-				const int32 ViewCount = ViewFamily->Views.Num();
-				while (Simulation->VertexFactories.Num() < ViewCount)
-				{
-					FGPUSpriteVertexFactory* VertexFactory = new(Simulation->VertexFactories) FGPUSpriteVertexFactory();
-					VertexFactory->InitResource();
-				}
-		
-				// Iterate over views and assign parameters for each.
-				FParticleSimulationResources* SimulationResources = FXSystem->GetParticleSimulationResources();
-				int32 ViewBit = 1;
-				for (int32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex, ViewBit <<= 1)
-				{
-					if (VisibilityMap & ViewBit)
-					{
-						FGPUSpriteVertexFactory& VertexFactory = Simulation->VertexFactories[ViewIndex];
-						if (bAllowSorting && SortMode == PSORTMODE_DistanceToView)
-						{
-							// Extensibility TODO: This call to AddSortedGPUSimulation is very awkward. When rendering a frame we need to
-							// accumulate all GPU particle emitters that need to be sorted. That is so they can be sorted in one big radix
-							// sort for efficiency. Ideally that state is per-scene renderer but the renderer doesn't know anything about particles.
-							const FSceneView* View = ViewFamily->Views[ViewIndex];
-							const int32 SortedBufferOffset = FXSystem->AddSortedGPUSimulation(Simulation, View->ViewMatrices.ViewOrigin);
-							check(SimulationResources->SortedVertexBuffer.IsInitialized());
-							VertexFactory.SetVertexBuffer(&SimulationResources->SortedVertexBuffer, SortedBufferOffset);
-						}
-						else
-						{
-							check(Simulation->VertexBuffer.IsInitialized());
-							VertexFactory.SetVertexBuffer(&Simulation->VertexBuffer, 0);
-						}
-					}
-				}
-
-				if (bUseLocalSpace == false)
-				{
-					Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
-				}
-			}
-		}
 	}
 
 	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override
@@ -2768,87 +2680,6 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 				}
 			}
 		}
-	}
-
-	/**
-	 * Called to render the sprites for this emitter.
-	 */
-	virtual int32 RenderEmitter(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		if (RHISupportsGPUParticles(View->GetFeatureLevel()))
-		{
-			check(Simulation);
-
-			if (Simulation->SimulationIndex != INDEX_NONE)
-			{
-				int32 DrawCalls = 0;
-				const int32 ParticleCount = Simulation->VertexBuffer.ParticleCount;
-				const int32 ViewIndex = View->Family->Views.Find(View);
-				const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-				if (ParticleCount > 0 && Simulation->VertexFactories.IsValidIndex(ViewIndex))
-				{
-					SCOPE_CYCLE_COUNTER(STAT_GPUSpriteRenderingTime);
-
-					FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
-					FParticleStateTextures& StateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-					FGPUSpriteVertexFactory& VertexFactory = Simulation->VertexFactories[ViewIndex];
-					VertexFactory.EmitterUniformBuffer = Resources->UniformBuffer;
-					VertexFactory.EmitterDynamicUniformBuffer = DynamicUniformBuffer;
-					VertexFactory.PositionTextureRHI = StateTextures.PositionTextureRHI;
-					VertexFactory.VelocityTextureRHI = StateTextures.VelocityTextureRHI;
-					VertexFactory.AttributesTextureRHI = ParticleSimulationResources->RenderAttributesTexture.TextureRHI;
-
-					FMeshBatch Mesh;
-					FMeshBatchElement& BatchElement = Mesh.Elements[0];
-					BatchElement.IndexBuffer = &GParticleIndexBuffer;
-					BatchElement.NumPrimitives = MAX_PARTICLES_PER_INSTANCE * 2;
-					BatchElement.NumInstances = ParticleCount / MAX_PARTICLES_PER_INSTANCE;
-					BatchElement.FirstIndex = 0;
-					Mesh.VertexFactory = &VertexFactory;
-					Mesh.LCI = NULL;
-					if ( bUseLocalSpace )
-					{
-						BatchElement.PrimitiveUniformBufferResource = &Proxy->GetUniformBuffer();
-					}
-					else
-					{
-						BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
-					}
-					BatchElement.MinVertexIndex = 0;
-					BatchElement.MaxVertexIndex = 3;
-					Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
-					Mesh.CastShadow = Proxy->GetCastShadow();
-					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
-					const bool bUseSelectedMaterial = GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : 0;
-					Mesh.MaterialRenderProxy = Material->GetRenderProxy(bUseSelectedMaterial);
-					Mesh.Type = PT_TriangleList;
-
-					DrawCalls += DrawRichMesh(
-						PDI, 
-						Mesh, 
-						FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-						FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-						FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-						Proxy,
-						GIsEditor && (View->Family->EngineShowFlags.Selection) ? Proxy->IsSelected() : false,
-						bIsWireframe
-						);
-				}
-
-				const bool bHaveLocalVectorField = Simulation && Simulation->LocalVectorField.Resource;
-				if (bHaveLocalVectorField && View->Family->EngineShowFlags.VectorFields)
-				{
-					// Create a vertex factory for visualization if needed.
-					Simulation->CreateVectorFieldVisualizationVertexFactory();
-					check(Simulation->VectorFieldVisualizationVertexFactory);
-					DrawVectorFieldBounds(PDI, View, &Simulation->LocalVectorField);
-					DrawVectorField(PDI, View, Simulation->VectorFieldVisualizationVertexFactory, &Simulation->LocalVectorField);
-				}
-
-				return DrawCalls;
-			}
-		}
-		return 0;
 	}
 
 	/**

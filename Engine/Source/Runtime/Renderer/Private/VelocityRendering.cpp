@@ -451,28 +451,6 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& !(View.Family->Views.Num() > 1);
 }
 
-void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
-{
-	// Draw velocities for movable dynamic meshes.
-	TDynamicPrimitiveDrawer<FVelocityDrawingPolicyFactory> Drawer(
-		RHICmdList, &View, FVelocityDrawingPolicyFactory::ContextType(DDM_AllOccluders), true, false, true
-		);
-	for (int32 PrimitiveIndex = FirstIndex; PrimitiveIndex <= LastIndex; PrimitiveIndex++)
-	{
-		const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-
-		if (!PrimitiveSceneInfo->ShouldRenderVelocity(View))
-		{
-			continue;
-		}
-
-		FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-
-		Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-		PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
-	}
-}
-
 void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
 {
 	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
@@ -619,8 +597,6 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 
 void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
 	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
@@ -629,14 +605,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 		// Draw velocities for movable static meshes.
 		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
 
-		if (bUseGetMeshElements)
-		{
-			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
-		}
-		else
-		{
-			RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
-		}
+		RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
 	}
 }
 

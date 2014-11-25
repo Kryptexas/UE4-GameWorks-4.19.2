@@ -11,7 +11,6 @@ public:
 	FPaperBatchSceneProxy(const UPrimitiveComponent* InComponent);
 
  	// FPrimitiveSceneProxy interface.
- 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
  	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
  	virtual uint32 GetMemoryFootprint() const override;
  	virtual bool CanBeOccluded() const override;

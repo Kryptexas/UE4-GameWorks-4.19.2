@@ -271,20 +271,9 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 
 	LandscapeVertexFactory->InitResource();
 	VertexFactory = LandscapeVertexFactory;
-	DynamicMesh.VertexFactory = VertexFactory;
-#if WITH_EDITOR
-	DynamicMeshTools.VertexFactory = VertexFactory;
-#endif
 
 	// Assign LandscapeUniformShaderParameters
 	LandscapeUniformShaderParameters.InitResource();
-
-	for( int32 ElementIdx=0;ElementIdx<DynamicMesh.Elements.Num();ElementIdx++ )
-	{
-		FMeshBatchElement& BatchElement = DynamicMesh.Elements[ElementIdx];
-		FLandscapeBatchElementParams* BatchElementParams = (FLandscapeBatchElementParams*)BatchElement.UserData;
-		BatchElementParams->LandscapeUniformShaderParametersResource = &LandscapeUniformShaderParameters;
-	}
 
 	PlatformData.Empty();
 }

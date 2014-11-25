@@ -191,45 +191,6 @@ public:
 		}
 	}
 
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_CustomMeshSceneProxy_DrawDynamicElements );
-
-		const bool bWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
-
-		FColoredMaterialRenderProxy WireframeMaterialInstance(
-			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : NULL,
-			FLinearColor(0, 0.5f, 1.f)
-			);
-
-		FMaterialRenderProxy* MaterialProxy = NULL;
-		if(bWireframe)
-		{
-			MaterialProxy = &WireframeMaterialInstance;
-		}
-		else
-		{
-			MaterialProxy = Material->GetRenderProxy(IsSelected());
-		}
-
-		// Draw the mesh.
-		FMeshBatch Mesh;
-		FMeshBatchElement& BatchElement = Mesh.Elements[0];
-		BatchElement.IndexBuffer = &IndexBuffer;
-		Mesh.bWireframe = bWireframe;
-		Mesh.VertexFactory = &VertexFactory;
-		Mesh.MaterialRenderProxy = MaterialProxy;
-		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
-		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
-		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
-		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-		Mesh.Type = PT_TriangleList;
-		Mesh.DepthPriorityGroup = SDPG_World;
-		PDI->DrawMesh(Mesh);
-	}
-
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
 	{
 		FPrimitiveViewRelevance Result;

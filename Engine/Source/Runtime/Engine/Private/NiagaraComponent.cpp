@@ -90,30 +90,6 @@ void FNiagaraSceneProxy::OnTransformChanged()
 	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 }
 
-void FNiagaraSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
-{
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
-	{
-		if (Renderer)
-		{
-			Renderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber, this);
-		}
-	}
-	return;
-}
-		  
-void FNiagaraSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) 
-{
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
-	{
-		if (Renderer)
-		{
-			Renderer->DrawDynamicElements(PDI, View, this);
-		}
-	}
-	return;
-}
-
 FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	FPrimitiveViewRelevance Relevance;

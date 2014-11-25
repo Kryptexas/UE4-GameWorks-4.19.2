@@ -33,9 +33,7 @@ class NiagaraEffectRenderer
 public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const = 0;
 
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber, const FNiagaraSceneProxy *SceneProxy) = 0;
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) = 0;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, const FNiagaraSceneProxy *SceneProxy) = 0;
 	virtual void CreateRenderThreadResources() = 0;
 	virtual void ReleaseRenderThreadResources() = 0;
 	virtual FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data) = 0;
@@ -51,7 +49,6 @@ public:
 		Result.bDrawRelevance = bHasDynamicData && SceneProxy->IsShown(View) && View->Family->EngineShowFlags.Particles;
 		Result.bShadowRelevance = bHasDynamicData && SceneProxy->IsShadowCast(View);
 		Result.bDynamicRelevance = bHasDynamicData;
-		Result.bNeedsPreRenderView = Result.bDrawRelevance || Result.bShadowRelevance;
 		if (bHasDynamicData && View->Family->EngineShowFlags.Bounds)
 		{
 			Result.bOpaqueRelevance = true;
@@ -108,8 +105,6 @@ public:
 	// FPrimitiveSceneProxy interface.
 	virtual void CreateRenderThreadResources() override;
 
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber, const FNiagaraSceneProxy *SceneProxy) override;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, const FNiagaraSceneProxy *SceneProxy) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 
 
@@ -125,12 +120,9 @@ public:
 	bool HasDynamicData();
 
 private:
-	struct FNiagaraDynamicDataSprites *DynamicDataRender;
+	struct FNiagaraDynamicDataSprites* DynamicDataRender;
 	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-	class FParticleSpriteVertexFactory *VertexFactory;
-	//FParticleSpriteUniformParameters UniformParameters;
-	TArray<FParticleSpriteUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
-	FGlobalDynamicVertexBuffer::FAllocation DynamicVertexAllocation;
+	class FParticleSpriteVertexFactory* VertexFactory;
 };
 
 
@@ -161,9 +153,6 @@ public:
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber, const FNiagaraSceneProxy *SceneProxy) override;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, const FNiagaraSceneProxy *SceneProxy) override;
-
 	/** Update render data buffer from attributes */
 	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraEmitterParticleData &Data);
 
@@ -193,12 +182,9 @@ public:
 
 
 private:
-	struct FNiagaraDynamicDataRibbon *DynamicDataRender;
+	struct FNiagaraDynamicDataRibbon* DynamicDataRender;
 	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-	class FParticleBeamTrailVertexFactory *VertexFactory;
-	//FParticleBeamTrailUniformParameters UniformParameters;
-	TArray<	FParticleBeamTrailUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
-	FGlobalDynamicVertexBuffer::FAllocation DynamicVertexAllocation;
+	class FParticleBeamTrailVertexFactory* VertexFactory;
 };
 
 

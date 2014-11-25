@@ -58,48 +58,17 @@ bool FDeferredShadingSceneRenderer::RenderLightMapDensities(FRHICommandListImmed
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
-				const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+				FLightMapDensityDrawingPolicyFactory::ContextType Context;
 
-				if (bUseGetMeshElements)
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 				{
-					FLightMapDensityDrawingPolicyFactory::ContextType Context;
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
-					for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+					if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
 					{
-						const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-						if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
-						{
-							const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-							FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-						}
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 					}
-				}
-				else if( View.VisibleDynamicPrimitives.Num() > 0 )
-				{
-					// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-					TDynamicPrimitiveDrawer<FLightMapDensityDrawingPolicyFactory> Drawer(
-						RHICmdList, &View, FLightMapDensityDrawingPolicyFactory::ContextType(), true);
-					for (int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
-					{
-						const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-						int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-						const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-						const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
-
-						// Only draw the primitive if it's visible
-						if( bVisible && 
-							// only draw opaque and masked primitives if wireframe is disabled
-							(PrimitiveViewRelevance.bOpaqueRelevance || ViewFamily.EngineShowFlags.Wireframe) )
-						{
-							Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-							PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-								&Drawer,
-								&View		
-								);
-						}
-					}
-					bDirty |= Drawer.IsDirty(); 
 				}
 			}
 		}

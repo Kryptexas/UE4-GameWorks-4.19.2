@@ -62,14 +62,6 @@ public:
 		}
 	}
 
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override
-	{
-		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
-		{
-			ChildProxies[Index]->DrawDynamicElements(PDI, View);
-		}
-	}
-
 	virtual void RegisterDebugDrawDelgate() override
 	{
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)

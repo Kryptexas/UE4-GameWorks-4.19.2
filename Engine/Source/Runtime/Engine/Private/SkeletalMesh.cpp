@@ -4113,30 +4113,6 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 
 // FPrimitiveSceneProxy interface.
 
-/**
- *	Called during InitViews for view processing on scene proxies before rendering them
- *  Only called for primitives that are visible and have bDynamicRelevance
- *
- *	@param	ViewFamily		The ViewFamily to pre-render for
- *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
- *	@param	FrameNumber		The frame number of this pre-render
- */
-void FSkeletalMeshSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
-{
-	/** Update the LOD level we want for this skeletal mesh (back on the game thread). */
-	if (MeshObject)
-	{
-		for (int32 ViewIndex = 0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
-		{
-			if (VisibilityMap & (1<<ViewIndex))
-			{
-				const FSceneView* View = ViewFamily->Views[ViewIndex];
-				MeshObject->UpdateMinDesiredLODLevel(View, GetBounds(), FrameNumber);
-			}
-		}
-	}
-}
-
 /** 
  * Iterates over sections,chunks,elements based on current instance weight usage 
  */
@@ -4328,7 +4304,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 			if( PhysicsAssetForDebug )
 			{
-				DebugDrawPhysicsAsset(Collector.GetPDI(ViewIndex),ViewFamily.EngineShowFlags);
+				DebugDrawPhysicsAsset(ViewIndex, Collector, ViewFamily.EngineShowFlags);
 			}
 
 			if (ViewFamily.EngineShowFlags.SkeletalMeshes)
@@ -4336,81 +4312,6 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
 			}
 		}
-	}
-#endif
-}
-
-/** 
-* Draw the scene proxy as a dynamic element
-*
-* @param	PDI - draw interface to render to
-* @param	View - current view
-*/
-void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_SkeletalMeshSceneProxy_DrawDynamicElements );
-
-	if( !MeshObject )
-	{
-		return;
-	}		  
-
-	const int32 LODIndex = MeshObject->GetLOD();
-	check(LODIndex < SkelMeshResource->LODModels.Num());
-	const FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
-
-	if( LODSections.Num() > 0 )
-	{
-		const FLODSectionElements& LODSection = LODSections[LODIndex];
-
-		check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
-
-		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
-		{
-			FSkelMeshSection Section = Iter.GetSection();
-			const FSkelMeshChunk& Chunk = Iter.GetChunk();
-			const FSectionElementInfo& SectionElementInfo = Iter.GetSectionElementInfo();
-			const FTwoVectors& CustomLeftRightVectors = Iter.GetCustomLeftRightVectors();
-
-#if WITH_EDITORONLY_DATA
-			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
-			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionElementInfo.UseMaterialIndex);
-#endif
-			// If hidden skip the draw
-			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
-			{
-				continue;
-			}
-
-			// If disabled, then skip the draw
-			if(Section.bDisabled)
-			{
-				continue;
-			}
-
-#if WITH_EDITOR
-			if ( GIsEditor && PDI->IsHitTesting() )
-			{
-				PDI->SetHitProxy(SectionElementInfo.HitProxy);
-			}
-#endif
-
-			DrawDynamicElementsSection(PDI, View, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors );
-		}
-	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// debug drawing
-	TArray<FTransform>* BoneSpaceBases = MeshObject->GetSpaceBases();
-
-	if( PhysicsAssetForDebug )
-	{
-		DebugDrawPhysicsAsset(PDI,View->Family->EngineShowFlags);
-	}
-
-	if (View->Family->EngineShowFlags.SkeletalMeshes)
-	{
-		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
 	}
 #endif
 }
@@ -4550,149 +4451,6 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	}
 }
 
-void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface* PDI,const FSceneView* View,
-														const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, 
-														const FSkelMeshChunk& Chunk, const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors )
-{
-#if !WITH_EDITOR
-	const bool bIsSelected = false;
-#else // #if !WITH_EDITOR
-	bool bIsSelected = IsSelected();
-
-	// if the mesh isn't selected but the mesh section is selected in the AnimSetViewer, find the mesh component and make sure that it can be highlighted (ie. are we rendering for the AnimSetViewer or not?)
-	if( !bIsSelected && Section.bSelected && bCanHighlightSelectedSections )
-	{
-		bIsSelected = true;
-	}
-#endif // #if WITH_EDITOR
-
-	const auto FeatureLevel = View->GetFeatureLevel();
-
-	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-
-	if(Section.bDisabled)
-		return;
-
-	// If hidden skip the draw
-	if (MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
-	{
-		return;
-	}
-
-	FMeshBatch Mesh;
-	FMeshBatchElement& BatchElement = Mesh.Elements[0];
-	Mesh.DynamicVertexData = NULL;
-	Mesh.UseDynamicData = false;
-	Mesh.LCI = NULL;
-	Mesh.bWireframe |= bForceWireframe;
-	Mesh.Type = PT_TriangleList;
-	Mesh.VertexFactory = MeshObject->GetVertexFactory(LODIndex,Section.ChunkIndex);
-	BatchElement.FirstIndex = Section.BaseIndex;
-
-	BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
-	BatchElement.MaxVertexIndex = LODModel.NumVertices - 1;
-
-	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
-
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), FeatureLevel);
-	if ( bRequiresAdjacencyInformation )
-	{
-		check( LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
-		BatchElement.IndexBuffer = LODModel.AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
-		Mesh.Type = PT_12_ControlPointPatchList;
-		BatchElement.FirstIndex *= 4;
-	}
-
-#if WITH_EDITOR
-	const FOverrideSelectionColorMaterialRenderProxy SelectionOverrideProxy(
-		SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
-		GetSelectionColor(GEngine->GetSelectedMaterialColor(), bIsSelected, IsHovered())
-		);
-	if (Section.bSelected)
-	{
-		Mesh.MaterialRenderProxy = &SelectionOverrideProxy;
-	}
-	else
-	{
-		Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
-	}
-#else
-	Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
-#endif
-
-	BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
-	
-	// Select which indices to use if TRISORT_CustomLeftRight
-	if( Section.TriangleSorting == TRISORT_CustomLeftRight )
-	{
-		switch( MeshObject->CustomSortAlternateIndexMode )
-		{
-		case CSAIM_Left:
-			// Left view - use second set of indices.
-			BatchElement.FirstIndex += Section.NumTriangles * 3;
-			break;
-		case  CSAIM_Right:
-			// Right view - use first set of indices.
-			break;
-		default:
-			// Calculate the viewing direction
-			FVector SortWorldOrigin = GetLocalToWorld().TransformPosition(CustomLeftRightVectors.v1);
-			FVector SortWorldDirection = GetLocalToWorld().TransformVector(CustomLeftRightVectors.v2);
-
-			if( (SortWorldDirection | (SortWorldOrigin - View->ViewMatrices.ViewOrigin)) < 0.f )
-			{
-				BatchElement.FirstIndex += Section.NumTriangles * 3;
-			}
-			break;
-		}
-	}
-
-	BatchElement.NumPrimitives = Section.NumTriangles;
-	if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
-	{
-		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode() == BLEND_Translucent)
-		{
-			BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
-			if( BatchElement.NumPrimitives == 0 )
-			{
-				return;
-			}
-		}
-	}
-	BatchElement.MinVertexIndex = Chunk.BaseVertexIndex;
-	Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-	Mesh.CastShadow = SectionElementInfo.bEnableShadowCasting;
-
-	// if not using dynamic index buffer nor tesselation, check that we're still within bounds
-	const int32 kIndicesPerPrimitive = 3;
-#if 0 //@todo UE4 merge, graphics,
-#if WITH_D3D11_TESSELLATION
-	check(DynamicIndexBuffer != NULL || 
-		PT_12_ControlPointPatchList == Mesh.Type ||
-		BatchElement.FirstIndex + kIndicesPerPrimitive * Mesh.NumPrimitives <= static_cast< uint32 >( LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Num() ));
-#else
-	check(DynamicIndexBuffer != NULL || 
-		BatchElement.FirstIndex + kIndicesPerPrimitive * Mesh.NumPrimitives <= static_cast< uint32 >( LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Num() ));
-#endif // WITH_D3D11_TESSELLATION
-#endif
-
-	const int32 NumPasses = DrawRichMesh(
-		PDI,
-		Mesh,
-		WireframeColor,
-		LevelColor,
-		PropertyColor,
-		this,
-		bIsSelected,
-		bIsWireframe
-		);
-
-	const int32 NumVertices = Chunk.NumRigidVertices + Chunk.NumSoftVertices;
-	INC_DWORD_STAT_BY(STAT_GPUSkinVertices,(uint32)(bIsCPUSkinned ? 0 : NumVertices * NumPasses));
-	INC_DWORD_STAT_BY(STAT_SkelMeshTriangles,Mesh.GetNumPrimitives() * NumPasses);
-	INC_DWORD_STAT(STAT_SkelMeshDrawCalls);
-}
-
 /**
  * Returns the world transform to use for drawing.
  * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.
@@ -4712,7 +4470,6 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.SkeletalMeshes;
 	Result.bShadowRelevance = IsShadowCast(View);
-	Result.bNeedsPreRenderView = Result.bDrawRelevance || Result.bShadowRelevance;
 	Result.bDynamicRelevance = true;
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
@@ -4742,7 +4499,7 @@ int32 FSkeletalMeshSceneProxy::GetCurrentLODIndex()
 /** 
  * Render physics asset for debug display
  */
-void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags) const
+void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const
 {
 	FMatrix LocalToWorld, WorldToLocal;
 	GetWorldMatrices( LocalToWorld, WorldToLocal );
@@ -4761,11 +4518,11 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI
 			check(PhysicsAssetForDebug);
 			if( EngineShowFlags.Collision && IsCollisionEnabled() )
 			{
-				PhysicsAssetForDebug->DrawCollision(PDI, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+				PhysicsAssetForDebug->GetCollisionMesh(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
 			}
 			if( EngineShowFlags.Constraints )
 			{
-				PhysicsAssetForDebug->DrawConstraints(PDI, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+				PhysicsAssetForDebug->DrawConstraints(Collector.GetPDI(ViewIndex), SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
 			}
 		}
 	}

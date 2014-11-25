@@ -396,22 +396,6 @@ public:
 	}
 
 	/**
-	 * Draws the bounding box for the vector field.
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-	{	
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_VectorFieldSceneProxy_DrawDynamicElements );
-
-		DrawVectorFieldBounds(PDI, View, VectorFieldInstance);
-
-		// Draw a visualization of the vectors contained in the field when selected.
-		if (IsSelected() || View->Family->EngineShowFlags.VectorFields)
-		{
-			DrawVectorField(PDI, View, &VisualizationVertexFactory, VectorFieldInstance);
-		}
-	}
-
-	/**
 	 * Computes view relevance for this scene proxy.
 	 */
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override

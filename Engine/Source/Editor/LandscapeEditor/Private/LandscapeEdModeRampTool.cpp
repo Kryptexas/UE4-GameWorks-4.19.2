@@ -310,7 +310,7 @@ public:
 			const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
 			const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
 
-			const FLinearColor SelectedSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensity * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
+			const FLinearColor SelectedSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensity * 10);
 
 			FVector WorldPoints[2];
 			for (int32 i = 0; i < NumPoints; i++)

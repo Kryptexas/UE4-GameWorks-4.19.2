@@ -16,10 +16,6 @@ public:
 	{
 	}
 
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-	}
-
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
 	{
 		FPrimitiveViewRelevance Result;

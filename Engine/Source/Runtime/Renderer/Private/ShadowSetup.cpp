@@ -666,7 +666,6 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 		bool bOpaqueRelevance = false;
 		bool bTranslucentRelevance = false;
 		bool bShadowRelevance = false;
-		bool bNeedsPreRenderView = false;
 		uint32 ViewMask = 0;
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const auto FeatureLevel = PrimitiveSceneInfo->Scene->GetFeatureLevel();
@@ -701,7 +700,6 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 				// Update the main view's PrimitiveViewRelevanceMap
 				ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(&CurrentView);
 
-				bNeedsPreRenderView |= ViewRelevance.bNeedsPreRenderView;
 				ViewMask |= (1 << ViewIndex);
 			}
 
@@ -715,14 +713,6 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 			// Update the primitive component's last render time. Allows the component to update when using bCastWhenHidden.
 			const float CurrentWorldTime = Views[0]->Family->CurrentWorldTime;
 			*(PrimitiveSceneInfo->ComponentLastRenderTime) = CurrentWorldTime;
-		}
-
-		const bool bUseGetDynamicMeshElements = ShouldUseGetDynamicMeshElements();
-
-		if (!bUseGetDynamicMeshElements && bNeedsPreRenderView)
-		{
-			// Call PreRenderView on primitives that weren't visible in any of the main views, but need to be rendered in this shadow's depth pass
-			PrimitiveSceneInfo->Proxy->PreRenderView(Views[0]->Family, ViewMask, Views[0]->FrameNumber);
 		}
 
 		if (bOpaqueRelevance && bShadowRelevance)
@@ -1807,21 +1797,18 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 
 void FSceneRenderer::GatherShadowDynamicMeshElements()
 {
-	if (ShouldUseGetDynamicMeshElements())
+	TArray<const FSceneView*> ReusedViewsArray;
+	ReusedViewsArray.AddZeroed(1);
+
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
 	{
-		TArray<const FSceneView*> ReusedViewsArray;
-		ReusedViewsArray.AddZeroed(1);
+		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
 
-		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+		for (int32 ShadowIndex = 0; ShadowIndex<VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
 		{
-			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
+			FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.AllProjectedShadows[ShadowIndex];
 
-			for (int32 ShadowIndex = 0; ShadowIndex<VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
-			{
-				FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.AllProjectedShadows[ShadowIndex];
-
-				ProjectedShadowInfo.GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
-			}
+			ProjectedShadowInfo.GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
 		}
 	}
 }

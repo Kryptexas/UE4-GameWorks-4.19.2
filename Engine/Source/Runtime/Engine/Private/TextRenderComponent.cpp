@@ -357,7 +357,6 @@ public:
 	virtual ~FTextRenderSceneProxy();
 
 	// Begin FPrimitiveSceneProxy interface
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
@@ -495,57 +494,6 @@ void FTextRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 #endif
 			}
 		}
-	}
-}
-
-void FTextRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_TextRenderSceneProxy_DrawDynamicElements );
-
-	// Vertex factory will not been initialized when the text string is empty or font is invalid.
-	if(VertexFactory.IsInitialized())
-	{
-		// Draw the mesh.
-		FMeshBatch Mesh;
-		FMeshBatchElement& BatchElement = Mesh.Elements[0];
-		BatchElement.IndexBuffer = &IndexBuffer;
-		Mesh.VertexFactory = &VertexFactory;
-		BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
-		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
-		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
-		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-		Mesh.bDisableBackfaceCulling = false;
-		Mesh.Type = PT_TriangleList;
-		Mesh.DepthPriorityGroup = SDPG_World;
-		const bool bUseSelectedMaterial = GIsEditor && (View->Family->EngineShowFlags.Selection) ? IsSelected() : false;
-		Mesh.MaterialRenderProxy = TextMaterial->GetRenderProxy(bUseSelectedMaterial);
-
-		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-
-		if (bAlwaysRenderAsText)
-		{ 
-			// Render text unmodified
-			PDI->DrawMesh(Mesh);
-		}
-		else
-		{
-			uint32 NumPasses = DrawRichMesh(
-				PDI,
-				Mesh,
-				FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-				FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-				FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-				this,
-				bUseSelectedMaterial,
-				bIsWireframe
-				);
-		}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
-#endif
 	}
 }
 

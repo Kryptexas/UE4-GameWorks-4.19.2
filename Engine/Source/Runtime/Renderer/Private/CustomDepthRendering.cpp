@@ -25,10 +25,6 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth);
 
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
-		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, &View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
-
 		for (int32 PrimIdx = 0; PrimIdx < Prims.Num(); PrimIdx++)
 		{
 			FPrimitiveSceneProxy* PrimitiveSceneProxy = Prims[PrimIdx];
@@ -38,25 +34,17 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 			{
 				const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
 
-				if (bUseGetMeshElements)
-				{
-					FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+				FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
 
-					for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+				{
+					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
 					{
-						const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-						if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
-						{
-							const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-							FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-						}
+						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+						FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 					}
-				}
-				else if (ViewRelevance.bDynamicRelevance)
-				{
-					Drawer.SetPrimitive(PrimitiveSceneProxy);
-					PrimitiveSceneProxy->DrawDynamicElements(&Drawer, &View);
 				}
 
 				if (ViewRelevance.bStaticRelevance)
@@ -82,9 +70,6 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 				}
 			}
 		}
-
-		// Mark dirty if dynamic drawer rendered
-		bDirty |= Drawer.IsDirty();
 	}
 
 	return bDirty;

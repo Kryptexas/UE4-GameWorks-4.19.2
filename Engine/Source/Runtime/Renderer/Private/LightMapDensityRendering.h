@@ -439,14 +439,4 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		// Note: MaterialModifiesMeshPosition may depend on feature level!
-		const FMaterial* Material = MaterialRenderProxy ? MaterialRenderProxy->GetMaterial(InFeatureLevel) : NULL;
-		return (Material && 
-				!(	Material->IsSpecialEngineMaterial() || 
-					Material->IsMasked() ||
-					Material->MaterialModifiesMeshPosition_RenderThread()
-				));
-	}
 };

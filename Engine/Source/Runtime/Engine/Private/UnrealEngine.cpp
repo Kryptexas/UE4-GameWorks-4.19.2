@@ -2421,14 +2421,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleTrackParticleRenderingStatsCommand( Cmd, Ar );
 	}
-	else if( FParse::Command(&Cmd,TEXT("DUMPPARTICLERENDERINGSTATS")) )
-	{
-		return HandleDumpParticleRenderingStatsCommand( Cmd, Ar );
-	}
-	else if( FParse::Command(&Cmd,TEXT("DUMPPARTICLEFRAMERENDERINGSTATS")) )
-	{
-		return HandleDumpParticleFrameRenderingStatsCommand( Cmd, Ar );
-	}
 	else if ( FParse::Command(&Cmd,TEXT("DUMPALLOCS")) )
 	{
 		return HandleDumpAllocatorStats( Cmd, Ar );
@@ -5219,21 +5211,6 @@ bool UEngine::HandleTrackParticleRenderingStatsCommand( const TCHAR* Cmd, FOutpu
 	{
 		Ar.Logf(TEXT("Disabled particle render stat tracking."));
 	}
-	return 1;
-}
-
-bool UEngine::HandleDumpParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	extern void DumpParticleRenderingStats(FOutputDevice& Ar);
-	DumpParticleRenderingStats(Ar);
-	return 1;
-}
-
-bool UEngine::HandleDumpParticleFrameRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	extern bool GWantsParticleStatsNextFrame;
-	GWantsParticleStatsNextFrame = true;
-	UE_LOG(LogEngine, Warning, TEXT("DUMPPARTICLEFRAMERENDERINGSTATS triggered"));
 	return 1;
 }
 

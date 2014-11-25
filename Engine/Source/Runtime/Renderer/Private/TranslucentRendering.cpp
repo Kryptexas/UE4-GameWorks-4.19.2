@@ -642,12 +642,7 @@ void FTranslucentPrimSet::DrawPrimitives(
 		}
 	}
 
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
-	if (bUseGetMeshElements)
-	{
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
-	}
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
 }
 
 void FTranslucentPrimSet::RenderPrimitive(
@@ -663,39 +658,18 @@ void FTranslucentPrimSet::RenderPrimitive(
 
 	if(ViewRelevance.bDrawRelevance)
 	{
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-		
-		if (bUseGetMeshElements)
-		{
-			FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, bSeparateTranslucencyPass);
+		FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, bSeparateTranslucencyPass);
 
-			//@todo parallelrendering - come up with a better way to filter these by primitive
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+		//@todo parallelrendering - come up with a better way to filter these by primitive
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+		{
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+			if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
 			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-				if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
-				{
-					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-					FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-				}
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
-		}
-		// Render dynamic scene prim
-		else if( ViewRelevance.bDynamicRelevance )
-		{
-			TDynamicPrimitiveDrawer<FTranslucencyDrawingPolicyFactory> TranslucencyDrawer(
-				RHICmdList,
-				&View,
-				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, bSeparateTranslucencyPass),
-				false
-				);
-
-			TranslucencyDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-			PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-				&TranslucencyDrawer,
-				&View
-				);
 		}
 
 		// Render static scene prim

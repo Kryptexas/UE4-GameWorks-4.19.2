@@ -1803,11 +1803,9 @@ public:
 #if WITH_EDITOR
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
 	
 	/**
 	 * Returns the world transform to use for drawing.
@@ -1829,7 +1827,7 @@ public:
 	/** 
 	 * Render physics asset for debug display
 	 */
-	void DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags) const;
+	void DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const;
 
 	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODSections.GetAllocatedSize() ); }
@@ -1897,20 +1895,6 @@ protected:
 	TSet<UMaterialInterface*> MaterialsInUse_GameThread;
 	bool bMaterialsNeedMorphUsage_GameThread;
 	
-	/**
-	* Draw only the section of the scene proxy as a dynamic element
-	* 
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	* @param	const FStaticLODModel& LODModel - LODModel 
-	* @param	const FSkelMeshSection& Section - Section
-	* @param	const FSkelMeshChunk& Chunk - Chunk
-	* @param	const FSectionElementInfo& SectionElementInfo - SectionElementInfo - material ID
-	*/
-	void DrawDynamicElementsSection(FPrimitiveDrawInterface* PDI,const FSceneView* View,
-		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, 
-		const FSkelMeshChunk& Chunk, const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors );
-
 	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
 		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
 		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bSelectable, FMeshElementCollector& Collector ) const;

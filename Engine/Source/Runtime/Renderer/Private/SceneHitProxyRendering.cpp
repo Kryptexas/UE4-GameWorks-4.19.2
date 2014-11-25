@@ -407,63 +407,36 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 		const bool bPreFog = true;
 		const bool bHitTesting = true;
 
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+		FHitProxyDrawingPolicyFactory::ContextType DrawingContext;
 
-		if (bUseGetMeshElements)
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
-			FHitProxyDrawingPolicyFactory::ContextType DrawingContext;
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+			if (MeshBatch.bSelectable)
 			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				
-				if (MeshBatch.bSelectable)
-				{
-					const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
-					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
-				}
+				const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
 			}
-
-			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
-
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
-			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicEditorMeshElements[MeshBatchIndex];
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-
-				if (MeshBatch.bSelectable)
-				{
-					const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
-					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
-				}
-			}
-
-			View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
-		}
-		else 
-		{
-			// Draw all dynamic primitives using the hit proxy drawing policy.
-			DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
-				RHICmdList,
-				View,
-				View.VisibleDynamicPrimitives,
-				FHitProxyDrawingPolicyFactory::ContextType(),
-				bPreFog,
-				bHitTesting
-				);
-
-			// Draw all visible editor primitives using the hit proxy drawing policy
-			DrawDynamicPrimitiveSet<FHitProxyDrawingPolicyFactory>(
-				RHICmdList,
-				View,
-				View.VisibleEditorPrimitives,
-				FHitProxyDrawingPolicyFactory::ContextType(),
-				bPreFog,
-				bHitTesting
-				);
 		}
 
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
+		{
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicEditorMeshElements[MeshBatchIndex];
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+
+			if (MeshBatch.bSelectable)
+			{
+				const FHitProxyId EffectiveHitProxyId = MeshBatch.BatchHitProxyId == FHitProxyId() ? MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->DefaultDynamicHitProxyId : MeshBatch.BatchHitProxyId;
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, DrawingContext, MeshBatch, false, bPreFog, MeshBatchAndRelevance.PrimitiveSceneProxy, EffectiveHitProxyId);
+			}
+		}
+
+		View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::All);
+		
 		// Draw the view's elements.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_World, bPreFog);
 

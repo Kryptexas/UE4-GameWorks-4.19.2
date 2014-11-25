@@ -92,64 +92,6 @@ public:
 		}
 	}
 
-	/** 
-	* Draw the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	*/
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_DrawFrustumSceneProxy_DrawDynamicElements );
-
-		FVector Direction(1,0,0);
-		FVector LeftVector(0,1,0);
-		FVector UpVector(0,0,1);
-
-		FVector Verts[8];
-
-		// FOVAngle controls the horizontal angle.
-		float HozHalfAngle = (FrustumAngle) * ((float)PI/360.f);
-		float HozLength = FrustumStartDist * FMath::Tan(HozHalfAngle);
-		float VertLength = HozLength/FrustumAspectRatio;
-
-		// near plane verts
-		Verts[0] = (Direction * FrustumStartDist) + (UpVector * VertLength) + (LeftVector * HozLength);
-		Verts[1] = (Direction * FrustumStartDist) + (UpVector * VertLength) - (LeftVector * HozLength);
-		Verts[2] = (Direction * FrustumStartDist) - (UpVector * VertLength) - (LeftVector * HozLength);
-		Verts[3] = (Direction * FrustumStartDist) - (UpVector * VertLength) + (LeftVector * HozLength);
-
-		HozLength = FrustumEndDist * FMath::Tan(HozHalfAngle);
-		VertLength = HozLength/FrustumAspectRatio;
-
-		// far plane verts
-		Verts[4] = (Direction * FrustumEndDist) + (UpVector * VertLength) + (LeftVector * HozLength);
-		Verts[5] = (Direction * FrustumEndDist) + (UpVector * VertLength) - (LeftVector * HozLength);
-		Verts[6] = (Direction * FrustumEndDist) - (UpVector * VertLength) - (LeftVector * HozLength);
-		Verts[7] = (Direction * FrustumEndDist) - (UpVector * VertLength) + (LeftVector * HozLength);
-
-		for( int32 x = 0 ; x < 8 ; ++x )
-		{
-			Verts[x] = GetLocalToWorld().TransformPosition( Verts[x] );
-		}
-
-		const uint8 DepthPriorityGroup = GetDepthPriorityGroup(View);
-		PDI->DrawLine( Verts[0], Verts[1], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[1], Verts[2], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[2], Verts[3], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[3], Verts[0], FrustumColor, DepthPriorityGroup );
-
-		PDI->DrawLine( Verts[4], Verts[5], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[5], Verts[6], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[6], Verts[7], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[7], Verts[4], FrustumColor, DepthPriorityGroup );
-
-		PDI->DrawLine( Verts[0], Verts[4], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[1], Verts[5], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[2], Verts[6], FrustumColor, DepthPriorityGroup );
-		PDI->DrawLine( Verts[3], Verts[7], FrustumColor, DepthPriorityGroup );
-	}
-
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
 	{
 		FPrimitiveViewRelevance Result;

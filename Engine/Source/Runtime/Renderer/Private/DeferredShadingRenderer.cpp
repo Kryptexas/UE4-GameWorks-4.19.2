@@ -54,14 +54,6 @@ static TAutoConsoleVariable<int32> CVarVisualizeTexturePool(
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif
 
-/**  */
-static TAutoConsoleVariable<int32> CVarUseGetMeshElements(
-	TEXT("r.UseGetMeshElements"),
-	1,
-	TEXT("Whether to use the GetMeshElements path or the legacy DrawDynamicElements"),
-	ECVF_RenderThreadSafe
-	);
-
 /*-----------------------------------------------------------------------------
 	FDeferredShadingSceneRenderer
 -----------------------------------------------------------------------------*/
@@ -363,56 +355,21 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& R
 	SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
 	SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+	FBasePassOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::DontSet);
 
-	if (bUseGetMeshElements)
+	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 	{
-		FBasePassOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::DontSet);
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
-		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+		if ((MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
+			&& MeshBatchAndRelevance.bRenderInMainPass)
 		{
-			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-			if ((MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
-				&& MeshBatchAndRelevance.bRenderInMainPass)
-			{
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-			}
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 		}
-
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
 	}
-	else if (View.VisibleDynamicPrimitives.Num() > 0)
-	{
-		// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
-			RHICmdList, &View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), true);
-		for (int32 PrimitiveIndex = 0, Num = View.VisibleDynamicPrimitives.Num(); PrimitiveIndex < Num; PrimitiveIndex++)
-		{
-			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-			int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-			const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
-			const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
-
-			// Only draw the primitive if it's visible
-			if (bVisible &&
-				// only draw opaque and masked primitives if wireframe is disabled
-				(PrimitiveViewRelevance.bOpaqueRelevance || ViewFamily.EngineShowFlags.Wireframe) &&
-				PrimitiveViewRelevance.bRenderInMainPass
-				)
-			{
-				FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-				Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-					&Drawer,
-					&View
-					);
-			}
-		}
-		bDirty |= Drawer.IsDirty();
-	}
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
 
 	if( !View.Family->EngineShowFlags.CompositeEditorPrimitives )
 	{
@@ -1071,78 +1028,34 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+	FDepthDrawingPolicyFactory::ContextType Context(EarlyZPassMode);
 
-	if (bUseGetMeshElements)
+	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 	{
-		FDepthDrawingPolicyFactory::ContextType Context(EarlyZPassMode);
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
-		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+		if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial && MeshBatchAndRelevance.bRenderInMainPass)
 		{
-			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
+			bool bShouldUseAsOccluder = true;
 
-			if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial && MeshBatchAndRelevance.bRenderInMainPass)
+			if (EarlyZPassMode != DDM_AllOccluders)
 			{
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
-				bool bShouldUseAsOccluder = true;
+				extern float GMinScreenRadiusForDepthPrepass;
+				//@todo - move these proxy properties into FMeshBatchAndRelevance so we don't have to dereference the proxy in order to reject a mesh
+				const float LODFactorDistanceSquared = (PrimitiveSceneProxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
 
-				if (EarlyZPassMode != DDM_AllOccluders)
-				{
-					extern float GMinScreenRadiusForDepthPrepass;
-					//@todo - move these proxy properties into FMeshBatchAndRelevance so we don't have to dereference the proxy in order to reject a mesh
-					const float LODFactorDistanceSquared = (PrimitiveSceneProxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
-
-					// Only render primitives marked as occluders
-					bShouldUseAsOccluder = PrimitiveSceneProxy->ShouldUseAsOccluder()
-						// Only render static objects unless movable are requested
-						&& (!PrimitiveSceneProxy->IsMovable() || GEarlyZPassMovable)
-						&& (FMath::Square(PrimitiveSceneProxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
-				}
-
-				if (bShouldUseAsOccluder)
-				{
-					FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-				}
+				// Only render primitives marked as occluders
+				bShouldUseAsOccluder = PrimitiveSceneProxy->ShouldUseAsOccluder()
+					// Only render static objects unless movable are requested
+					&& (!PrimitiveSceneProxy->IsMovable() || GEarlyZPassMovable)
+					&& (FMath::Square(PrimitiveSceneProxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
 			}
-		}
-	}
-	else if (View.VisibleDynamicPrimitives.Num() > 0)
-	{
-		// Draw the dynamic occluder primitives using a depth drawing policy.
-		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, &View, FDepthDrawingPolicyFactory::ContextType(EarlyZPassMode), true);
-		{
-			SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
-			for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
+
+			if (bShouldUseAsOccluder)
 			{
-				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-				int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-				const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-
-				bool bShouldUseAsOccluder = true;
-
-				if(EarlyZPassMode != DDM_AllOccluders)
-				{
-					extern float GMinScreenRadiusForDepthPrepass;
-					const float LODFactorDistanceSquared = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
-
-					// Only render primitives marked as occluders
-					bShouldUseAsOccluder = PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder()
-						// Only render static objects unless movable are requested
-						&& (!PrimitiveSceneInfo->Proxy->IsMovable() || GEarlyZPassMovable)
-						&& (FMath::Square(PrimitiveSceneInfo->Proxy->GetBounds().SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared);
-				}
-
-				// Only render opaque primitives marked as occluders
-				if (bShouldUseAsOccluder && PrimitiveViewRelevance.bOpaqueRelevance && PrimitiveViewRelevance.bRenderInMainPass)
-				{
-					FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-					Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-						&Drawer,
-						&View
-						);
-				}
+				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
 		}
 	}

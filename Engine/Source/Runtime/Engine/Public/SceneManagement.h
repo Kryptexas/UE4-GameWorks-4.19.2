@@ -1064,25 +1064,6 @@ public:
 		) = 0;
 
 	/**
-	 * Determines whether a particular material will be ignored in this context.
-	 * @param MaterialRenderProxy - The render proxy of the material to check.
-	 * @param InFeatureLevel - The feature level we are currently rendering at
-	 * @return true if meshes using the material will be ignored in this context.
-	 */
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
-	{
-		return false;
-	}
-
-	/**
-	 * @returns true if this PDI is rendering for the selection outline post process.
-	 */
-	virtual bool IsRenderingSelectionOutline() const
-	{
-		return false;
-	}
-
-	/**
 	 * Draw a mesh element.
 	 * This should only be called through the DrawMesh function.
 	 *
@@ -1190,34 +1171,6 @@ public:
 		}
 
 		return 0;
-	}
-
-	// Legacy, should not be used
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
-	{
-		static bool bTriggered = false;
-
-		if (!bTriggered)
-		{
-			bTriggered = true;
-			ensureMsg(false, TEXT("FSimpleElementCollector::IsMaterialIgnored called"));
-		}
-
-		return false;
-	}
-
-	// Legacy, should not be used
-	virtual bool IsRenderingSelectionOutline() const
-	{
-		static bool bTriggered = false;
-
-		if (!bTriggered)
-		{
-			bTriggered = true;
-			ensureMsg(false, TEXT("FSimpleElementCollector::IsRenderingSelectionOutline called"));
-		}
-
-		return false;
 	}
 
 	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
@@ -1744,8 +1697,7 @@ namespace EVertexColorViewMode
 extern ENGINE_API EVertexColorViewMode::Type GVertexColorViewMode;
 
 /**
- * Returns true if the given view is "rich".  Rich means that calling DrawRichMesh for the view will result in a modified draw call
- * being made.
+ * Returns true if the given view is "rich", and all primitives should be forced down the dynamic drawing path so that ApplyViewModeOverrides can implement the rich view feature.
  * A view is rich if is missing the EngineShowFlags.Materials showflag, or has any of the render mode affecting showflags.
  */
 extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
@@ -1769,31 +1721,6 @@ FORCEINLINE void EmitMeshDrawEvents(FRHICommandList& RHICmdList, const class FPr
 	}
 #endif
 }
-
-/**
- * Draws a mesh, modifying the material which is used depending on the view's show flags.
- * Meshes with materials irrelevant to the pass which the mesh is being drawn for may be entirely ignored.
- *
- * @param PDI - The primitive draw interface to draw the mesh on.
- * @param Mesh - The mesh to draw.
- * @param WireframeColor - The color which is used when rendering the mesh with EngineShowFlags.Wireframe.
- * @param LevelColor - The color which is used when rendering the mesh with EngineShowFlags.LevelColoration.
- * @param PropertyColor - The color to use when rendering the mesh with EngineShowFlags.PropertyColoration.
- * @param PrimitiveInfo - The FScene information about the UPrimitiveComponent.
- * @param bSelected - True if the primitive is selected.
- * @param ExtraDrawFlags - optional flags to override the view family show flags when rendering
- * @return Number of passes rendered for the mesh
- */
-extern ENGINE_API int32 DrawRichMesh(
-	FPrimitiveDrawInterface* PDI,
-	const struct FMeshBatch& Mesh,
-	const FLinearColor& WireframeColor,
-	const FLinearColor& LevelColor,
-	const FLinearColor& PropertyColor,
-	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	bool bSelected,
-	bool bDrawInWireframe = false
-	);
 
 extern ENGINE_API void ApplyViewModeOverrides(
 	int32 ViewIndex,

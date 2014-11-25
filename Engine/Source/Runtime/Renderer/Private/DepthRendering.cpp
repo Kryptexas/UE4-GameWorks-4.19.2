@@ -525,8 +525,3 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 
 	return bDirty;
 }
-
-bool FDepthDrawingPolicyFactory::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-{
-	return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-}

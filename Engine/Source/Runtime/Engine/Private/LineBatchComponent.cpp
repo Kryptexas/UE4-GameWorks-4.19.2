@@ -74,53 +74,6 @@ public:
 		}
 	}
 
-	/** 
-	* Draw the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	*/
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_DrawDynamicElements );
-
-		for (int32 i = 0; i < Lines.Num(); i++)
-		{
-			PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, Lines[i].DepthPriority, Lines[i].Thickness);
-		}
-
-		for (int32 i = 0; i < Points.Num(); i++)
-		{
-			PDI->DrawPoint(Points[i].Position, Points[i].Color, Points[i].PointSize, Points[i].DepthPriority);
-		}
-
-		for (int32 i = 0; i < Meshes.Num(); i++)
-		{
-			static FVector const PosX(1.f,0,0);
-			static FVector const PosY(0,1.f,0);
-			static FVector const PosZ(0,0,1.f);
-
-			FBatchedMesh const& M = Meshes[i];
-
-			// this seems far from optimal in terms of perf, but it's for debugging
-			FDynamicMeshBuilder MeshBuilder;
-
-			// set up geometry
-			for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)
-			{
-				MeshBuilder.AddVertex( M.MeshVerts[VertIdx], FVector2D::ZeroVector, PosX, PosY, PosZ, FColor::White );
-			}
-			//MeshBuilder.AddTriangles(M.MeshIndices);
-			for (int32 Idx=0; Idx < M.MeshIndices.Num(); Idx+=3)
-			{
-				MeshBuilder.AddTriangle( M.MeshIndices[Idx], M.MeshIndices[Idx+1], M.MeshIndices[Idx+2] );
-			}
-
-			FMaterialRenderProxy* const MaterialRenderProxy = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), M.Color);
-			MeshBuilder.Draw(PDI, FMatrix::Identity, MaterialRenderProxy, M.DepthPriority);
-		}
-	}
-
 	/**
 	*  Returns a struct that describes to the renderer when to draw this proxy.
 	*	@param		Scene view to use to determine our relevence.

@@ -770,8 +770,6 @@ public:
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override { DrawDynamicElements( PDI, View, 0 ); }
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags ) override;
 	virtual void OnTransformChanged() override;
 	virtual int32 GetLOD(const FSceneView* View) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;

@@ -942,9 +942,6 @@ public:
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
-	/** Draw the scene proxy as a dynamic element */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
-
 	virtual int32 GetNumMeshBatches() const override;
 
 	/** Sets up a shadow FMeshBatch for a specific LOD. */
@@ -1060,72 +1057,6 @@ void FInstancedStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const F
 							Collector.AddMesh(ViewIndex, MeshElement);
 							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshElement.GetNumPrimitives());
 						}
-					}
-				}
-			}
-		}
-	}
-#endif
-}
-
-void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_InstancedStaticMeshSceneProxy_DrawDynamicElements );
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	const bool bSelectionRenderEnabled = GIsEditor && View->Family->EngineShowFlags.Selection;
-
-	// If the first pass rendered selected instances only, we need to render the deselected instances in a second pass
-	const int32 NumPasses = (bSelectionRenderEnabled && bHasSelectedInstances && !PDI->IsRenderingSelectionOutline()) ? 2 : 1;
-
-	FInstancingUserData* PassUserData[2] =
-	{
-		bHasSelectedInstances && bSelectionRenderEnabled ? &UserData_SelectedInstances : &UserData_AllInstances,
-		&UserData_DeselectedInstances
-	};
-
-	bool PassRenderSelection[2] = 
-	{
-		bSelectionRenderEnabled && IsSelected(),
-		false
-	};
-
-	const FLinearColor UtilColor( LevelColor );
-	const int32 LODsToDraw[] = { GetLOD(View) };
-	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-	int32 NumLODs = StaticMesh->GetNumLODs();
-
-	for( int32 Pass=0;Pass < NumPasses; Pass++ )
-	{
-		for (int32 LODLoopIndex = 0; LODLoopIndex < ARRAY_COUNT(LODsToDraw) && LODsToDraw[LODLoopIndex] != INDEX_NONE && LODsToDraw[LODLoopIndex] < NumLODs; LODLoopIndex++)
-		{
-			const int32 LODIndex = LODsToDraw[LODLoopIndex];
-
-			const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[LODIndex];
-
-			for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
-			{
-				const int32 NumBatches = GetNumMeshBatches();
-
-				for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
-				{
-					FMeshBatch MeshBatch;
-
-					if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, GetDepthPriorityGroup(View), PassRenderSelection[Pass], IsHovered(), MeshBatch))
-					{
-						MeshBatch.Elements[0].UserData = PassUserData[Pass];
-
-						const int32 NumCalls = DrawRichMesh(
-							PDI,
-							MeshBatch,
-							WireframeColor,
-							UtilColor,
-							PropertyColor,
-							this,
-							PassRenderSelection[Pass],
-							bIsWireframe
-							);
-						INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatch.GetNumPrimitives() * NumCalls);
 					}
 				}
 			}

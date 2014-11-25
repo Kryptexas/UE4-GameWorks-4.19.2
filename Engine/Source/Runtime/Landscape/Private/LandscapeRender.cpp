@@ -662,40 +662,6 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 
 	bRequiresAdjacencyInformation = RequiresAdjacencyInformation(MaterialInterface, XYOffsetmapTexture == NULL ? &FLandscapeVertexFactory::StaticType : &FLandscapeXYOffsetVertexFactory::StaticType, InComponent->GetWorld()->FeatureLevel);
 	SharedBuffersKey = (SubsectionSizeQuads & 0xffff) | ((NumSubsections & 0xf) << 16) | (FeatureLevel <= ERHIFeatureLevel::ES3_1 ? 0 : 1<<20) | (XYOffsetmapTexture == NULL ? 0 : 1 << 31);
-
-	DynamicMesh.LCI = ComponentLightInfo; 
-	DynamicMesh.CastShadow = true;
-	DynamicMesh.Type = PT_TriangleList;
-	DynamicMeshBatchParamArray.Empty(NumSubsections*NumSubsections);
-
-#if WITH_EDITOR
-	DynamicMeshTools = DynamicMesh;
-	DynamicMeshTools.Type = PT_TriangleList;
-	DynamicMeshTools.CastShadow = false;
-#endif
-
-	for( int32 SubY=0;SubY<NumSubsections;SubY++ )
-	{
-		for( int32 SubX=0;SubX<NumSubsections;SubX++ )
-		{
-			FMeshBatchElement* BatchElement = (SubX==0 && SubY==0) ? DynamicMesh.Elements.GetData() : new(DynamicMesh.Elements) FMeshBatchElement;
-			BatchElement->PrimitiveUniformBufferResource = &GetUniformBuffer();
-			FLandscapeBatchElementParams* BatchElementParams = new(DynamicMeshBatchParamArray) FLandscapeBatchElementParams;
-			BatchElementParams->LocalToWorldNoScalingPtr = &LocalToWorldNoScaling;
-			BatchElement->UserData = BatchElementParams;
-
-			int32 SubSectionIdx = SubX + SubY*NumSubsections;
-
-			BatchElementParams->SceneProxy = this;
-			BatchElementParams->SubX = SubX;
-			BatchElementParams->SubY = SubY;
-
-#if WITH_EDITOR
-			FMeshBatchElement* ToolBatchElement = (SubX==0 && SubY==0) ? DynamicMeshTools.Elements.GetData() : new(DynamicMeshTools.Elements) FMeshBatchElement;
-			*ToolBatchElement = *BatchElement;
-#endif
-		}
-	}
 }
 
 void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
@@ -760,20 +726,9 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 
 	// Assign vertex factory
 	VertexFactory = SharedBuffers->VertexFactory;
-	DynamicMesh.VertexFactory = VertexFactory;
-#if WITH_EDITOR
-	DynamicMeshTools.VertexFactory = VertexFactory;
-#endif
 	
 	// Assign LandscapeUniformShaderParameters
 	LandscapeUniformShaderParameters.InitResource();
-
-	for( int32 ElementIdx=0;ElementIdx<DynamicMesh.Elements.Num();ElementIdx++ )
-	{
-		FMeshBatchElement& BatchElement = DynamicMesh.Elements[ElementIdx];
-		FLandscapeBatchElementParams* BatchElementParams = (FLandscapeBatchElementParams*)BatchElement.UserData;
-		BatchElementParams->LandscapeUniformShaderParametersResource = &LandscapeUniformShaderParameters;
-	}
 }
 
 FLandscapeComponentSceneProxy::~FLandscapeComponentSceneProxy()
@@ -1043,8 +998,6 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 		);
 
 	LandscapeUniformShaderParameters.SetContents(LandscapeParams);
-
-	DynamicMesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
 }
 
 namespace
@@ -1683,231 +1636,6 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 			RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
 		}
 	}
-
-	INC_DWORD_STAT_BY(STAT_LandscapeComponents, NumPasses);
-	INC_DWORD_STAT_BY(STAT_LandscapeDrawCalls, NumDrawCalls);
-	INC_DWORD_STAT_BY(STAT_LandscapeTriangles, NumTriangles * NumPasses);
-}
-
-void FLandscapeComponentSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-{
-	SCOPE_CYCLE_COUNTER(STAT_LandscapeDynamicDrawTime);
-
-	int32 NumPasses=0;
-	int32 NumTriangles=0;
-	int32 NumDrawCalls=0;
-	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-
-	FVector CameraLocalPos3D = WorldToLocal.TransformPosition(View->ViewMatrices.ViewOrigin); 
-	FVector2D CameraLocalPos(CameraLocalPos3D.X, CameraLocalPos3D.Y);
-
-	// Could be different from bRequiresAdjacencyInformation during shader compilation
-	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
-	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, View->GetFeatureLevel() );
-	DynamicMesh.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
-
-	// Setup the LOD parameters in DynamicMesh.
-	for( int32 SubY=0;SubY<NumSubsections;SubY++ )
-	{
-		for( int32 SubX=0;SubX<NumSubsections;SubX++ )
-		{
-			int32 SubSectionIdx = SubX + SubY*NumSubsections;
-			int32 CurrentLOD = CalcLODForSubsection(*View, SubX, SubY, CameraLocalPos);
-
-			FMeshBatchElement& BatchElement = DynamicMesh.Elements[SubSectionIdx];
-			((FLandscapeBatchElementParams*)BatchElement.UserData)->CurrentLOD = CurrentLOD;
-
-			if (bCurrentRequiresAdjacencyInformation)
-			{
-				check(SharedBuffers->AdjacencyIndexBuffers);
-				BatchElement.IndexBuffer = SharedBuffers->AdjacencyIndexBuffers->IndexBuffers[CurrentLOD];
-			}
-			else
-			{
-				BatchElement.IndexBuffer = SharedBuffers->IndexBuffers[CurrentLOD];
-			}
-
-			int32 LodSubsectionSizeVerts = (SubsectionSizeVerts >> CurrentLOD);
-
-			int32 NumPrimitives = FMath::Square((LodSubsectionSizeVerts - 1)) * 2;
-			BatchElement.NumPrimitives = NumPrimitives;
-			BatchElement.FirstIndex = (SubX + SubY * NumSubsections) * NumPrimitives * 3;
-			BatchElement.MinVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MinIndex[SubX][SubY];
-			BatchElement.MaxVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MaxIndex[SubX][SubY];
-
-#if WITH_EDITOR
-			// Tools never use tessellation
-			FMeshBatchElement& BatchElementTools = DynamicMeshTools.Elements[SubSectionIdx];
-			((FLandscapeBatchElementParams*)BatchElementTools.UserData)->CurrentLOD = CurrentLOD;
-			BatchElementTools.IndexBuffer = SharedBuffers->IndexBuffers[CurrentLOD];
-			BatchElementTools.NumPrimitives = NumPrimitives;
-			BatchElementTools.FirstIndex = BatchElement.FirstIndex;
-			BatchElementTools.MinVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MinIndex[SubX][SubY];
-			BatchElementTools.MaxVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MaxIndex[SubX][SubY];
-#endif
-		}
-	}
-
-	// Render the landscape component
-#if WITH_EDITOR
-	switch(GLandscapeViewMode)
-	{
-	case ELandscapeViewMode::DebugLayer:
-		if( GLayerDebugColorMaterial && EditToolRenderData )
-		{
-			const FLandscapeDebugMaterialRenderProxy DebugColorMaterialInstance(GLayerDebugColorMaterial->GetRenderProxy(false), 
-				(EditToolRenderData->DebugChannelR >= 0 ? WeightmapTextures[EditToolRenderData->DebugChannelR/4] : NULL),
-				(EditToolRenderData->DebugChannelG >= 0 ? WeightmapTextures[EditToolRenderData->DebugChannelG/4] : NULL),
-				(EditToolRenderData->DebugChannelB >= 0 ? WeightmapTextures[EditToolRenderData->DebugChannelB/4] : NULL),	
-				(EditToolRenderData->DebugChannelR >= 0 ? DebugColorMask::Masks[EditToolRenderData->DebugChannelR%4] : DebugColorMask::Masks[4]),
-				(EditToolRenderData->DebugChannelG >= 0 ? DebugColorMask::Masks[EditToolRenderData->DebugChannelG%4] : DebugColorMask::Masks[4]),
-				(EditToolRenderData->DebugChannelB >= 0 ? DebugColorMask::Masks[EditToolRenderData->DebugChannelB%4] : DebugColorMask::Masks[4])
-				);
-
-			DynamicMeshTools.MaterialRenderProxy = &DebugColorMaterialInstance;
-			NumPasses += DrawRichMesh(PDI, DynamicMeshTools, FLinearColor(1,1,1,1), LevelColor, FLinearColor(1.0f,1.0f,1.0f), this, IsSelected(), bIsWireframe);
-			NumTriangles += DynamicMeshTools.GetNumPrimitives();
-			NumDrawCalls += DynamicMeshTools.Elements.Num();
-		}
-		break;
-
-	case ELandscapeViewMode::LayerDensity:
-		if( EditToolRenderData )
-		{
-			int32 ColorIndex = FMath::Min<int32>(NumWeightmapLayerAllocations, GEngine->ShaderComplexityColors.Num());
-			const FColoredMaterialRenderProxy LayerDensityMaterialInstance(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), ColorIndex ? GEngine->ShaderComplexityColors[ColorIndex-1] : FLinearColor::Black);
-
-			DynamicMeshTools.MaterialRenderProxy = &LayerDensityMaterialInstance;
-
-			NumPasses += DrawRichMesh(PDI, DynamicMeshTools, FLinearColor(1,1,1,1), LevelColor, FLinearColor(1.0f,1.0f,1.0f), this, IsSelected(), bIsWireframe);
-			NumTriangles += DynamicMeshTools.GetNumPrimitives();
-			NumDrawCalls += DynamicMeshTools.Elements.Num();
-		}
-		break;
-
-	case ELandscapeViewMode::LOD:
-		{
-			FLinearColor WireColors[7];
-			WireColors[0] = FLinearColor(1,1,1,1);
-			WireColors[1] = FLinearColor(1,0,0,1);
-			WireColors[2] = FLinearColor(0,1,0,1);
-			WireColors[3] = FLinearColor(0,0,1,1);
-			WireColors[4] = FLinearColor(1,1,0,1);
-			WireColors[5] = FLinearColor(1,0,1,1);
-			WireColors[6] = FLinearColor(0,1,1,1);
-
-			for( int32 i=0;i<DynamicMeshTools.Elements.Num();i++ )
-			{
-				FMeshBatch TempMesh = DynamicMeshTools;
-				TempMesh.Elements.Empty(1);
-				TempMesh.Elements.Add(DynamicMeshTools.Elements[i]);
-				int32 ColorIndex = ((FLandscapeBatchElementParams*)DynamicMeshTools.Elements[i].UserData)->CurrentLOD;
-				FLinearColor Color = ForcedLOD >= 0 ? WireColors[ColorIndex] : WireColors[ColorIndex]*0.2f;
-				const FColoredMaterialRenderProxy LODMaterialInstance(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), Color);
-				TempMesh.MaterialRenderProxy = &LODMaterialInstance;
-				NumPasses += DrawRichMesh(PDI, TempMesh, Color, LevelColor, FLinearColor(1.0f,1.0f,1.0f), this, IsSelected());
-				NumTriangles += DynamicMeshTools.Elements[i].NumPrimitives;
-				NumDrawCalls++;
-			}
-		}
-		break;
-
-	default:
-#else
-	{
-#endif // WITH_EDITOR
-		// Regular Landscape rendering. Only use the dynamic path if we're rendering a rich view or we've disabled the static path for debugging.
-		if( IsRichView(*View->Family) || 
-			GLandscapeDebugOptions.bDisableStatic || 
-			bIsWireframe ||
-#if WITH_EDITOR
-			(IsSelected() && !GLandscapeEditModeActive)
-#else
-			IsSelected()
-#endif
-			)
-		{
-			DynamicMesh.MaterialRenderProxy = MaterialInterface->GetRenderProxy(false);
-			NumPasses += DrawRichMesh(PDI, DynamicMesh, FLinearColor(1,1,1,1), LevelColor, FLinearColor(1.0f,1.0f,1.0f), this, IsSelected(), bIsWireframe);
-			NumTriangles += DynamicMesh.GetNumPrimitives();
-			NumDrawCalls += DynamicMesh.Elements.Num();
-		}
-	}
-
-#if WITH_EDITOR
-	// Extra render passes for landscape tools
-	if( GLandscapeEditModeActive )
-	{
-		// Region selection
-		if ( EditToolRenderData && EditToolRenderData->SelectedType )
-		{
-			if ((GLandscapeEditRenderMode & ELandscapeEditRenderMode::SelectRegion) && (EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_REGION)
-				&& !(GLandscapeEditRenderMode & ELandscapeEditRenderMode::Mask))
-			{
-				const FLandscapeSelectMaterialRenderProxy SelectMaterialInstance(GSelectionRegionMaterial->GetRenderProxy(false), EditToolRenderData->DataTexture ? EditToolRenderData->DataTexture : GLandscapeBlackTexture);
-				DynamicMeshTools.MaterialRenderProxy = &SelectMaterialInstance;
-				NumPasses += PDI->DrawMesh(DynamicMeshTools);
-				NumTriangles += DynamicMeshTools.GetNumPrimitives();
-				NumDrawCalls += DynamicMeshTools.Elements.Num();
-			}
-			if ((GLandscapeEditRenderMode & ELandscapeEditRenderMode::SelectComponent) && (EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT))
-			{
-				DynamicMeshTools.MaterialRenderProxy = GSelectionColorMaterial->GetRenderProxy(0);
-				NumPasses += PDI->DrawMesh(DynamicMeshTools);
-				NumTriangles += DynamicMeshTools.GetNumPrimitives();
-				NumDrawCalls += DynamicMeshTools.Elements.Num();
-			}
-		}
-
-		// Mask
-		if ((GLandscapeEditRenderMode & ELandscapeEditRenderMode::SelectRegion) && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Mask))
-		{
-			if (EditToolRenderData && (EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_REGION) )
-			{
-				const FLandscapeMaskMaterialRenderProxy MaskMaterialInstance(GMaskRegionMaterial->GetRenderProxy(false), EditToolRenderData->DataTexture ? EditToolRenderData->DataTexture : GLandscapeBlackTexture, !!(GLandscapeEditRenderMode & ELandscapeEditRenderMode::InvertedMask) );
-				DynamicMeshTools.MaterialRenderProxy = &MaskMaterialInstance;
-				NumPasses += PDI->DrawMesh(DynamicMeshTools);
-				NumTriangles += DynamicMeshTools.GetNumPrimitives();
-				NumDrawCalls += DynamicMeshTools.Elements.Num();
-			}
-			else if (!(GLandscapeEditRenderMode & ELandscapeEditRenderMode::InvertedMask))
-			{
-				const FLandscapeMaskMaterialRenderProxy MaskMaterialInstance(GMaskRegionMaterial->GetRenderProxy(false), GLandscapeBlackTexture, false );
-				DynamicMeshTools.MaterialRenderProxy = &MaskMaterialInstance;
-				NumPasses += PDI->DrawMesh(DynamicMeshTools);
-				NumTriangles += DynamicMeshTools.GetNumPrimitives();
-				NumDrawCalls += DynamicMeshTools.Elements.Num();
-			}
-		}
-
-		// Edit mode tools
-		if( EditToolRenderData )
-		{
-			if (EditToolRenderData->ToolMaterial)
-			{
-				DynamicMeshTools.MaterialRenderProxy = EditToolRenderData->ToolMaterial->GetRenderProxy(0);		
-				NumPasses += PDI->DrawMesh(DynamicMeshTools);
-				NumTriangles += DynamicMeshTools.GetNumPrimitives();
-				NumDrawCalls += DynamicMeshTools.Elements.Num();
-			}
-
-			if (EditToolRenderData->GizmoMaterial && GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo)
-			{
-				DynamicMeshTools.MaterialRenderProxy = EditToolRenderData->GizmoMaterial->GetRenderProxy(0);
-				NumPasses += PDI->DrawMesh(DynamicMeshTools);
-				NumTriangles += DynamicMeshTools.GetNumPrimitives();
-				NumDrawCalls += DynamicMeshTools.Elements.Num();
-			}
-		}
-	}
-#endif // WITH_EDITOR
-
-	if ( GLandscapeDebugOptions.bShowPatches )
-	{
-		DrawWireBox(PDI, GetBounds().GetBox(), FColor(255, 255, 0), SDPG_World);
-	}
-
-	RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
 
 	INC_DWORD_STAT_BY(STAT_LandscapeComponents, NumPasses);
 	INC_DWORD_STAT_BY(STAT_LandscapeDrawCalls, NumDrawCalls);

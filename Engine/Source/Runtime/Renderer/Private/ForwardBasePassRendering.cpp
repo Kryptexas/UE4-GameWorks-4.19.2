@@ -388,49 +388,20 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 			SCOPE_CYCLE_COUNTER(STAT_DynamicPrimitiveDrawTime);
 			SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
-			const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+			FBasePassForwardOpaqueDrawingPolicyFactory::ContextType Context(ESceneRenderTargetsMode::DontSet);
 
-			if (bUseGetMeshElements)
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 			{
-				FBasePassForwardOpaqueDrawingPolicyFactory::ContextType Context(ESceneRenderTargetsMode::DontSet);
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
-				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+				if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
 				{
-					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-					if (MeshBatchAndRelevance.bHasOpaqueOrMaskedMaterial || ViewFamily.EngineShowFlags.Wireframe)
-					{
-						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-						FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-					}
-				}
-
-				View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, NULL, EBlendModeFilter::OpaqueAndMasked);
-			}
-			else if (View.VisibleDynamicPrimitives.Num() > 0)
-			{
-				// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-				TDynamicPrimitiveDrawer<FBasePassForwardOpaqueDrawingPolicyFactory> Drawer(RHICmdList, &View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::DontSet), true);
-
-				for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num(); PrimitiveIndex++)
-				{
-					const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-					int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
-					const FPrimitiveViewRelevance& PrimitiveViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
-
-					const bool bVisible = View.PrimitiveVisibilityMap[PrimitiveId];
-
-					// Only draw the primitive if it's visible
-					if (bVisible && 
-						// only draw opaque and masked primitives if wireframe is disabled
-						(PrimitiveViewRelevance.bOpaqueRelevance || ViewFamily.EngineShowFlags.Wireframe))
-					{
-						FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-						Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-						PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
-					}
+					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 				}
 			}
+
+			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, NULL, EBlendModeFilter::OpaqueAndMasked);
 
 			const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[FeatureLevel]);
 

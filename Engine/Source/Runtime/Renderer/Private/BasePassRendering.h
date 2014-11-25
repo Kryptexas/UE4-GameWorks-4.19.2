@@ -767,12 +767,6 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		// Ignore non-opaque materials in the opaque base pass.
-		// Note: blend mode does not depend on the feature level.
-		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-	}
 };
 
 /** The parameters used to process a base pass mesh. */

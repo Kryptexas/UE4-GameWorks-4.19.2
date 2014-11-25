@@ -60,33 +60,6 @@ public:
 		}
 	}
 
-	/** 
-	* Draw the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	*/
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		// We don't want to draw the mesh geometry to the hit testing render target
-		// so that we can get to triangle strips that are partially obscured by other
-		// triangle strips easier.
-		if (!PDI->IsHitTesting())
-		{
-			if (SkeletalMeshComponent->bDrawMesh)
-			{
-				// Draw the mesh
-				FSkeletalMeshSceneProxy::DrawDynamicElements(PDI, View);
-			}
-			
-		}
-
-		if( SkeletalMeshComponent->MeshObject && (SkeletalMeshComponent->bDrawNormals || SkeletalMeshComponent->bDrawTangents || SkeletalMeshComponent->bDrawBinormals) )
-		{
-			SkeletalMeshComponent->MeshObject->DrawVertexElements(PDI, SkeletalMeshComponent->ComponentToWorld, SkeletalMeshComponent->bDrawNormals, SkeletalMeshComponent->bDrawTangents, SkeletalMeshComponent->bDrawBinormals);
-		}
-	}
-
 	uint32 GetAllocatedSize() const
 	{
 		return FSkeletalMeshSceneProxy::GetAllocatedSize();

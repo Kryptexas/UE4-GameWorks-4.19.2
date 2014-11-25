@@ -2173,9 +2173,6 @@ void FEngineLoop::Tick()
 
 	{ 
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );
-		
-		STAT(extern ENGINE_API void BeginOneFrameParticleStats());
-		STAT(BeginOneFrameParticleStats());
 
 		// Calculates average FPS/MS (outside STATS on purpose)
 		CalculateFPSTimings();
@@ -2319,11 +2316,6 @@ void FEngineLoop::Tick()
 
 			GEngine->TickDeferredCommands();		
 		}
-
-		{
-			STAT(extern ENGINE_API void FinishOneFrameParticleStats());
-			STAT(FinishOneFrameParticleStats());
-		} 
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			EndFrame,

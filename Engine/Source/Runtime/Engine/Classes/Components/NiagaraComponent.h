@@ -153,8 +153,6 @@ private:
 	virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
 
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override;

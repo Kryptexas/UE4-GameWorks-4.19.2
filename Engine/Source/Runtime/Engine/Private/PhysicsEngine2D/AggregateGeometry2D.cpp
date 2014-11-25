@@ -118,11 +118,6 @@ void FAggregateGeometry2D::EmptyElements()
 	ConvexElements.Empty();
 }
 
-void FAggregateGeometry2D::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest) const
-{
-	//@TODO: PAPER2D: Implement this method
-}
-
 float FAggregateGeometry2D::GetArea(const FVector& Scale) const
 {
 	float SumArea = 0.0f;

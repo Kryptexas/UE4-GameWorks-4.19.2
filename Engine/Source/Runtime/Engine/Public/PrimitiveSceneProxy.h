@@ -154,25 +154,6 @@ public:
 	 */
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) {}
 
-	/**
-	 * Draws the primitive's dynamic elements.  This is called from the rendering thread for each frame of each view.
-	 * The dynamic elements will only be rendered if GetViewRelevance declares dynamic relevance.
-	 * Called in the rendering thread.
-	 * @param PDI - The interface which receives the primitive elements.
-	 * @param View - The view which is being rendered.
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) {}
-
-	/**
-	 * Draws the primitive's dynamic elements.  This is called from the rendering thread for each frame of each view.
-	 * The dynamic elements will only be rendered if GetViewRelevance declares dynamic relevance.
-	 * Called in the rendering thread.
-	 * @param PDI - The interface which receives the primitive elements.
-	 * @param View - The view which is being rendered.
-	 * @param Flags - Optional flags
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, uint32 DrawDynamicFlags ) { DrawDynamicElements( PDI, View ); }
-
 	/** 
 	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.
 	 * This is called from the rendering thread for each set of views that might be rendered.  
@@ -194,16 +175,6 @@ public:
 	 * @return The relevance of the primitive's elements to the view.
 	 */
 	ENGINE_API virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View);
-
-	/**
-	 *	Called during InitViews for view processing on scene proxies before rendering them
-	 *  Only called for primitives that are visible and have bDynamicRelevance
-	 *
-	 *	@param	ViewFamily		The ViewFamily to pre-render for
-	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
-	 *	@param	FrameNumber		The frame number of this pre-render
-	 */
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) {}
 
 	/** Callback from the renderer to gather simple lights that this proxy wants renderered. */
 	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}
