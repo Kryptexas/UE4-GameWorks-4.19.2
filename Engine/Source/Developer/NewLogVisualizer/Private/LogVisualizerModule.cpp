@@ -5,6 +5,7 @@
 #include "LogVisualizerStyle.h"
 #include "SDockTab.h"
 #include "VisualLoggerRenderingActor.h"
+#include "Editor/EditorEngine.h"
 
 #define LOCTEXT_NAMESPACE "FLogVisualizerModule"
 
