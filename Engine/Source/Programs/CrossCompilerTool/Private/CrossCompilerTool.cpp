@@ -127,6 +127,14 @@ namespace CCT
 			//Scanner.Dump();
 			return 0;
 		}
+		else
+		{
+			if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+				return 1;
+			}
+		}
 
 		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;

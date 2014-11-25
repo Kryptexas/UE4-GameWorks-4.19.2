@@ -990,6 +990,15 @@ protected:
 			ralloc_asprintf_append(buffer, "ERRROR_MulMatrix()");
 			check(0);
 		}
+		else if (op == ir_ternop_clamp && expr->type->base_type == GLSL_TYPE_FLOAT)
+		{
+			ralloc_asprintf_append(buffer, "precise::%s", MetalExpressionTable[op][0]);
+			for (int i = 0; i < numOps; ++i)
+			{
+				expr->operands[i]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][i+1]);
+			}
+		}
 		else if (numOps < 4)
 		{
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);

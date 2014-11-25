@@ -867,37 +867,38 @@ void FMetalCodeBackend::PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* Inst
 			{
 			case ir_var_in:
 			{
-							  auto* NewVar = new(State)ir_variable(NewType, Variable->name, ir_var_in);
-							  NewVar->semantic = Variable->semantic;
-							  Variable->insert_before(NewVar);
-							  Variable->name = nullptr;
-							  Variable->semantic = nullptr;
-							  Variable->mode = ir_var_temporary;
-							  Variable->remove();
-							  exec_list Assignments;
-							  Assignments.push_head(Variable);
-							  CreateNewAssignmentsFloat2Half(State, Assignments, Variable, new(State)ir_dereference_variable(NewVar));
-							  EntryPointSig->body.get_head()->insert_before(&Assignments);
-							  break;
+				auto* NewVar = new(State)ir_variable(NewType, Variable->name, ir_var_in);
+				NewVar->semantic = Variable->semantic;
+				Variable->insert_before(NewVar);
+				Variable->name = nullptr;
+				Variable->semantic = nullptr;
+				Variable->mode = ir_var_temporary;
+				Variable->remove();
+				exec_list Assignments;
+				Assignments.push_head(Variable);
+				CreateNewAssignmentsFloat2Half(State, Assignments, Variable, new(State)ir_dereference_variable(NewVar));
+				EntryPointSig->body.get_head()->insert_before(&Assignments);
 			}
+				break;
+
 			case ir_var_out:
 			{
-							   if (Frequency != HSF_PixelShader)
-							   {
-								   auto* NewVar = new(State)ir_variable(NewType, Variable->name, ir_var_out);
-								   NewVar->semantic = Variable->semantic;
-								   Variable->insert_before(NewVar);
-								   Variable->name = nullptr;
-								   Variable->semantic = nullptr;
-								   Variable->mode = ir_var_temporary;
-								   Variable->remove();
-								   exec_list Assignments;
-								   CreateNewAssignmentsHalf2Float(State, Assignments, NewVar, new(State)ir_dereference_variable(Variable));
-								   EntryPointSig->body.push_head(Variable);
-								   EntryPointSig->body.append_list(&Assignments);
-								   break;
-							   }
+				if (Frequency != HSF_PixelShader)
+				{
+				   auto* NewVar = new(State)ir_variable(NewType, Variable->name, ir_var_out);
+				   NewVar->semantic = Variable->semantic;
+				   Variable->insert_before(NewVar);
+				   Variable->name = nullptr;
+				   Variable->semantic = nullptr;
+				   Variable->mode = ir_var_temporary;
+				   Variable->remove();
+				   exec_list Assignments;
+				   CreateNewAssignmentsHalf2Float(State, Assignments, NewVar, new(State)ir_dereference_variable(Variable));
+				   EntryPointSig->body.push_head(Variable);
+				   EntryPointSig->body.append_list(&Assignments);
+				}
 			}
+			   break;
 			}
 		}
 	}
