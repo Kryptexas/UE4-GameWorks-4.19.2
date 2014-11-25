@@ -28,13 +28,13 @@ USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitial
 	ProbeSize = 12.0f;
 	ProbeChannel = ECC_Camera;
 
-	CameraLagSpeed = 10.f;
-	CameraRotationLagSpeed = 10.f;
-
 	RelativeSocketRotation = FQuat::Identity;
 
 	bUseCameraLagSubstepping = true;
+	CameraLagSpeed = 10.f;
+	CameraRotationLagSpeed = 10.f;
 	CameraLagMaxTimeStep = 1.f / 60.f;
+	CameraLagMaxDistance = 0.f;
 	
 	// Init deprecated var, for old code that may refer to it.
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
@@ -115,7 +115,32 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 		{
 			DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, DesiredLoc, DeltaTime, CameraLagSpeed);
 		}
+
+		// Clamp distance if requested
+		bool bClampedDist = false;
+		if (CameraLagMaxDistance > 0.f)
+		{
+			const FVector FromOrigin = DesiredLoc - ArmOrigin;
+			if (FromOrigin.SizeSquared() > FMath::Square(CameraLagMaxDistance))
+			{
+				DesiredLoc = ArmOrigin + FromOrigin.ClampMaxSize(CameraLagMaxDistance);
+				bClampedDist = true;
+			}
+		}		
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (bDrawDebugLagMarkers)
+		{
+			DrawDebugSphere(GetWorld(), ArmOrigin, 5.f, 8, FColor::Green);
+			DrawDebugSphere(GetWorld(), DesiredLoc, 5.f, 8, FColor::Yellow);
+
+			const FVector ToOrigin = ArmOrigin - DesiredLoc;
+			DrawDebugDirectionalArrow(GetWorld(), DesiredLoc, DesiredLoc + ToOrigin * 0.5f, 7.5f, bClampedDist ? FColor::Red : FColor::Green);
+			DrawDebugDirectionalArrow(GetWorld(), DesiredLoc + ToOrigin * 0.5f, ArmOrigin,  7.5f, bClampedDist ? FColor::Red : FColor::Green);
+		}
+#endif
 	}
+
 	PreviousArmOrigin = ArmOrigin;
 	PreviousDesiredLoc = DesiredLoc;
 

@@ -73,6 +73,20 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag)
 	uint32 bEnableCameraRotationLag : 1;
 
+	/**
+	 * If bUseCameraLagSubstepping is true, sub-step camera damping so that it handles fluctuating frame rates well (though this comes at a cost).
+	 * @see CameraLagMaxTimeStep
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Lag, AdvancedDisplay)
+	uint32 bUseCameraLagSubstepping : 1;
+
+	/**
+	 * If true and camera location lag is enabled, draws markers at the camera target (in green) and the lagged position (in yellow).
+	 * A line is drawn between the two locations, in green normally but in red if the distance to the lag target has been clamped (by CameraLagMaxDistance).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag)
+	uint32 bDrawDebugLagMarkers : 1;
+
 	/** If bEnableCameraLag is true, controls how quickly camera reaches target position. Low values are slower (more lag), high values are faster (less lag), while zero is instant (no lag). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition="bEnableCameraLag", ClampMin="0.0", ClampMax="1000.0", UIMin = "0.0", UIMax = "1000.0"))
 	float CameraLagSpeed;
@@ -80,17 +94,14 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	/** If bEnableCameraRotationLag is true, controls how quickly camera reaches target position. Low values are slower (more lag), high values are faster (less lag), while zero is instant (no lag). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition = "bEnableCameraRotationLag", ClampMin="0.0", ClampMax="1000.0", UIMin = "0.0", UIMax = "1000.0"))
 	float CameraRotationLagSpeed;
-
-	/**
-	 * If bUseCameraLagSubstepping is true, sub-step camera damping so that it handles fluctuating frame rates well (though this comes at a cost).
-	 * @see CameraLagMaxTimeStep
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Lag, AdvancedDisplay)
-	bool bUseCameraLagSubstepping;
 	
 	/** Max time step used when sub-stepping camera lag. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Lag, AdvancedDisplay, meta=(editcondition = "bUseCameraLagSubstepping", ClampMin="0.005", ClampMax="0.5", UIMin = "0.005", UIMax = "0.5"))
 	float CameraLagMaxTimeStep;
+
+	/** Max distance the camera target may lag behind the current location. If set to zero, no max distance is enforced. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition="bEnableCameraLag", ClampMin="0.0", UIMin = "0.0"))
+	float CameraLagMaxDistance;
 
 	/** Temporary variables when using camera lag, to record previous camera position */
 	FVector PreviousDesiredLoc;
