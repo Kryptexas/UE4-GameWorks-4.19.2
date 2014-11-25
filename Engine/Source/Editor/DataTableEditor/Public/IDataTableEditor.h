@@ -13,10 +13,6 @@ class IDataTableEditor : public FAssetEditorToolkit
 public:
 
 	// ...
-
-	/** Called after a data table was reloaded */
-	virtual void OnDataTableReloaded(){}
-
 };
 
 

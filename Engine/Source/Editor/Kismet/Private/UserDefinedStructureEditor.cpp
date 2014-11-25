@@ -21,7 +21,6 @@ public:
 	FStructureDefaultValueView(UUserDefinedStruct* EditedStruct) 
 		: UserDefinedStruct(EditedStruct)
 	{
-		FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
 	}
 
 	void Initialize()
@@ -41,7 +40,6 @@ public:
 
 	virtual ~FStructureDefaultValueView()
 	{
-		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
 	}
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
@@ -83,7 +81,7 @@ public:
 		return StructureDetailsView.IsValid() ? StructureDetailsView->GetWidget() : NULL;
 	}
 
-	virtual void PreChange(const class UUserDefinedStruct* Struct) override
+	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
 		if (Struct && (GetUserDefinedStruct() == Struct))
 		{
@@ -99,7 +97,7 @@ public:
 		}
 	}
 
-	virtual void PostChange(const class UUserDefinedStruct* Struct) override
+	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
 		if (Struct && (GetUserDefinedStruct() == Struct))
 		{
@@ -132,7 +130,6 @@ public:
 
 	~FUserDefinedStructureDetails()
 	{
-		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
 	}
 
 	UUserDefinedStruct* GetUserDefinedStruct()
@@ -153,8 +150,8 @@ public:
 	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) override;
 
 	/** FStructureEditorUtils::INotifyOnStructChanged */
-	virtual void PreChange(const class UUserDefinedStruct* Struct) override {}
-	virtual void PostChange(const class UUserDefinedStruct* Struct) override;
+	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override {}
+	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
 
 private:
 	TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
@@ -935,12 +932,10 @@ void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& 
 		Layout = MakeShareable(new FUserDefinedStructureLayout(SharedThis(this)));
 		StructureCategory.AddCustomBuilder(Layout.ToSharedRef());
 	}
-
-	FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
 }
 
 /** FStructureEditorUtils::INotifyOnStructChanged */
-void FUserDefinedStructureDetails::PostChange(const class UUserDefinedStruct* Struct)
+void FUserDefinedStructureDetails::PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
 {
 	if (Struct && (GetUserDefinedStruct() == Struct))
 	{

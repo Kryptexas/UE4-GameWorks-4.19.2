@@ -21,22 +21,6 @@ protected:
 	 */
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 
-private:
-
-	/**
-	 *	Function to get current string associated with the combo box selection
-	 *
-	 *	@return currently selected string
-	 */
-	FString OnGetText() const;
-
-	/**
-	 *	Function to generate the list of indexes from the enum object
-	 *
-	 *	@param OutComboBoxIndexes - Int array reference to store the list of indexes
-	 */
-	void GenerateComboBoxIndexes( TArray< TSharedPtr<int32> >& OutComboBoxIndexes );
-
 	/**
 	 *	Function to set the newly selected index
 	 *
@@ -44,13 +28,6 @@ private:
 	 * @param SelectInfo Provides context on how the selection changed
 	 */
 	void ComboBoxSelectionChanged(TSharedPtr<FName> StringItem, ESelectInfo::Type SelectInfo);
-
-	/**
-	 * Returns the friendly name of the enum at index EnumIndex
-	 *
-	 * @param EnumIndex	- The index of the enum to return the friendly name for
-	 */
-	FString OnGetFriendlyName(int32 EnumIndex);
 
 	TSharedPtr<class SNameComboBox>	ComboBox;
 

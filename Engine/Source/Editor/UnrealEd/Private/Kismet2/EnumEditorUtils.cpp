@@ -17,9 +17,6 @@ struct FEnumEditorUtilsHelper
 
 //////////////////////////////////////////////////////////////////////////
 // FEnumEditorManager
-FEnumEditorUtils::FEnumEditorManager::FEnumEditorManager() : FListenerManager<UUserDefinedEnum>()
-{}
-
 FEnumEditorUtils::FEnumEditorManager& FEnumEditorUtils::FEnumEditorManager::Get()
 {
 	static TSharedRef< FEnumEditorManager > EnumEditorManager( new FEnumEditorManager() );
@@ -199,7 +196,7 @@ public:
 
 void FEnumEditorUtils::PrepareForChange(const UUserDefinedEnum* Enum)
 {
-	FEnumEditorManager::Get().PreChange(Enum);
+	FEnumEditorManager::Get().PreChange(Enum, EEnumEditorChangeInfo::Changed);
 }
 
 void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<FName>& OldNames, bool bResolveData)
@@ -304,7 +301,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 		(*It)->BroadcastChanged();
 	}
 
-	FEnumEditorManager::Get().PostChange(Enum);
+	FEnumEditorManager::Get().PostChange(Enum, EEnumEditorChangeInfo::Changed);
 }
 
 int32 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorIndex)

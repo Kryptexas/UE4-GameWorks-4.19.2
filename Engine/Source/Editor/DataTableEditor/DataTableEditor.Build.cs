@@ -13,9 +13,11 @@ public class DataTableEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+                "InputCore",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
+                "PropertyEditor",
 				"UnrealEd"
 			}
 			);

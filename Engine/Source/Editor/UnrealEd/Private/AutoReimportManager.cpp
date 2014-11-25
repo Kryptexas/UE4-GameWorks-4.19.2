@@ -4,7 +4,6 @@
 #include "AssetToolsModule.h"
 
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
-#include "Editor/DataTableEditor/Public/IDataTableEditor.h"
 #include "Engine/CurveTable.h"
 #include "Engine/DataTable.h"
 
@@ -353,13 +352,7 @@ bool UAutoReimportManager::AutoReimportDataTable( UObject* Object, const FString
 			if (JustFileNameMatches(DataTable->ImportPath, FileName))
 			{
 				DataTable->ImportPath = FReimportManager::SanitizeImportFilename(FileName, DataTable);
-				if (ReimportFile(DataTable, FileName))
-				{
-					if (IDataTableEditor* Editor =  static_cast<IDataTableEditor*>(FAssetEditorManager::Get().FindEditorForAsset(DataTable, false)))
-					{
-						Editor->OnDataTableReloaded();
-					}
-				}
+				ReimportFile(DataTable, FileName);
 
 				return true;
 			}

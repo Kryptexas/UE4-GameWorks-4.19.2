@@ -23,6 +23,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
         OutColor = GetNodeTitleColor();
         return TEXT("Kismet.AllClasses.FunctionIcon");
     }
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
@@ -53,9 +54,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	/** Get the type of the TableRow to return */
 	UScriptStruct* GetDataTableRowStructType(const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
 
-	/** Get the list of possible RowNames */
-	void GetDataTableRowNameList(TArray<TSharedPtr<FName>>& OutList, const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
-
+	void OnDataTableRowListChanged(const UDataTable* DataTable);
 private:
 	/**
 	 * Takes the specified "MutatablePin" and sets its 'PinToolTip' field (according

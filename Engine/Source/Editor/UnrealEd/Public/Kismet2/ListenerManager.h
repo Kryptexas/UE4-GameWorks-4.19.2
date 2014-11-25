@@ -2,25 +2,39 @@
 
 #pragma once
 
-template<typename TType>
+template<typename TType, typename TChangeInfo>
 class INotifyOnChanged
 {
 public:
-	virtual void PreChange(const TType* Changed) = 0;
-	virtual void PostChange(const TType* Changed) = 0;
+	virtual void PreChange(const TType* Changed, TChangeInfo ChangedType) = 0;
+	virtual void PostChange(const TType* Changed, TChangeInfo ChangedType) = 0;
 };
 
-template<typename TType>
+template<typename TType, typename TChangeInfo>
 class FListenerManager
 {
 public:
-	typedef INotifyOnChanged<TType> ListenerType;
+	typedef INotifyOnChanged<TType, TChangeInfo> BaseNotifyOnChanged;
+
+	template<typename TManagerType>
+	class InnerListenerType : public BaseNotifyOnChanged
+	{
+	public:
+		InnerListenerType()
+		{
+			TManagerType::Get().AddListener(this);
+		}
+		virtual ~InnerListenerType()
+		{
+			TManagerType::Get().RemoveListener(this);
+		}
+	};
 
 private:
-	TSet<ListenerType*> Listeners;
+	TSet<BaseNotifyOnChanged*> Listeners;
 
 public:
-	void AddListener(ListenerType* Listener)
+	void AddListener(BaseNotifyOnChanged* Listener)
 	{
 		if (Listener)
 		{
@@ -28,24 +42,24 @@ public:
 		}
 	}
 
-	void RemoveListener(ListenerType* Listener)
+	void RemoveListener(BaseNotifyOnChanged* Listener)
 	{
 		Listeners.Remove(Listener);
 	}
 
-	void PreChange(const TType* Changed)
+	void PreChange(const TType* Changed, TChangeInfo Info)
 	{
 		for (auto Listener : Listeners)
 		{
-			Listener->PreChange(Changed);
+			Listener->PreChange(Changed, Info);
 		}
 	}
 
-	void PostChange(const TType* Changed)
+	void PostChange(const TType* Changed, TChangeInfo Info)
 	{
 		for (auto Listener : Listeners)
 		{
-			Listener->PostChange(Changed);
+			Listener->PostChange(Changed, Info);
 		}
 	}
 };

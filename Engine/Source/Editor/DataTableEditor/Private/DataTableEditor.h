@@ -5,11 +5,15 @@
 #include "IDataTableEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
 
+#include "Kismet2/StructureEditorUtils.h"
+#include "DataTableEditorUtils.h"
+
 class UDataTable;
 
 /** Viewer/editor for a DataTable */
-class FDataTableEditor :
-	public IDataTableEditor
+class FDataTableEditor : public IDataTableEditor
+	, public FStructureEditorUtils::INotifyOnStructChanged
+	, public FDataTableEditorUtils::INotifyOnDataTableChanged
 {
 
 public:
@@ -41,14 +45,15 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
-	/* Called when DataTable was reloaded */
-	virtual void OnDataTableReloaded() override;
+	// INotifyOnStructChanged
+	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
+	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
 
+	// INotifyOnDataTableChanged
+	virtual void PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
+	virtual void PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 
 private:
-
-	/** Called when an object is reimported */
-	void OnPostReimport(UObject* InObject, bool bSuccess);
 
 	void ReloadVisibleData();
 
@@ -56,8 +61,13 @@ private:
 
 	TSharedRef<SVerticalBox> CreateContentBox();
 
+	TSharedRef<SWidget> CreateRowEditorBox();
+
 	/**	Spawns the tab with the data table inside */
 	TSharedRef<SDockTab> SpawnTab_DataTable( const FSpawnTabArgs& Args );
+
+	/**	Spawns the tab with the Row Editor inside */
+	TSharedRef<SDockTab> SpawnTab_RowEditor(const FSpawnTabArgs& Args);
 
 private:
 
@@ -77,8 +87,11 @@ private:
 	TSharedPtr<SBorder>	 GridPanelOwner;
 
 	/* The DataTable that is active in the editor */
-	UDataTable*	DataTable;
+	TAssetPtr<UDataTable> DataTable;
 
 	/**	The tab id for the data table tab */
 	static const FName DataTableTabId;
+
+	/**	The tab id for the row editor tab */
+	static const FName RowEditorTabId;
 };

@@ -7,12 +7,20 @@
 class UNREALED_API FStructureEditorUtils
 {
 public:
-
-	class FStructEditorManager : public FListenerManager<UUserDefinedStruct>
+	enum EStructureEditorChangeInfo
 	{
-		FStructEditorManager();
+		Changed,
+	};
+
+	class FStructEditorManager : public FListenerManager<UUserDefinedStruct, EStructureEditorChangeInfo>
+	{
+		FStructEditorManager() {}
 	public:
 		UNREALED_API static FStructEditorManager& Get();
+
+		class UNREALED_API ListenerType : public InnerListenerType<FStructEditorManager>
+		{
+		};
 	};
 
 	typedef FStructEditorManager::ListenerType INotifyOnStructChanged;
