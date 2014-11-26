@@ -6,6 +6,16 @@
 
 class FDebugDisplayInfo;
 
+/**
+ * WheeledVehicle is the base wheeled vehicle pawn actor.
+ * By default it uses UWheeledVehicleMovementComponent4W for its simulation, but this can be overridden by inheriting from the class and modifying its constructor like so:
+ * Super(ObjectInitializer.SetDefautSubobjectClass<UMyMovement>(VehicleMovementComponentName))
+ * Where UMyMovement is the new movement type that inherits from UWheeledVehicleMovementComponent
+ * 
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Physics/Vehicles/VehicleUserGuide/
+ * @see UWheeledVehicleMovementComponent4W
+ */
+
 UCLASS(abstract, config=Game, BlueprintType)
 class ENGINE_API AWheeledVehicle : public APawn
 {
