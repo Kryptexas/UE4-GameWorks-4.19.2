@@ -100,6 +100,7 @@
 #include "Engine/SubsurfaceProfile.h"
 #include "Camera/CameraAnim.h"
 #include "GameFramework/TouchInterface.h"
+#include "Engine/DataTable.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -7128,6 +7129,150 @@ UObject* UCameraAnimFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FN
 	NewCamAnim->CameraInterpGroup->GroupName = Name;
 	return NewCamAnim;
 }
+
+/*------------------------------------------------------------------------------
+UDataTableFactory implementation.
+------------------------------------------------------------------------------*/
+UDataTableFactory::UDataTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UDataTable::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+bool UDataTableFactory::ConfigureProperties()
+{
+	class FDataTableFactoryUI : public TSharedFromThis < FDataTableFactoryUI >
+	{
+		TSharedPtr<SWindow> PickerWindow;
+		TSharedPtr<SComboBox<UScriptStruct*>> RowStructCombo;
+		TSharedPtr<SButton> OkButton;
+		UScriptStruct* ResultStruct;
+	public:
+		FDataTableFactoryUI() : ResultStruct(NULL) {}
+
+		TSharedRef<SWidget> MakeRowStructItemWidget(class UScriptStruct* Struct) const
+		{
+			return SNew(STextBlock).Text(Struct ? Struct->GetDisplayNameText().ToString() : FString());
+		}
+
+		FString GetSelectedRowOptionText() const
+		{
+			UScriptStruct* Struct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
+			return Struct ? Struct->GetDisplayNameText().ToString() : FString();
+		}
+
+		FReply OnCreate()
+		{
+			ResultStruct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
+			if (PickerWindow.IsValid())
+			{
+				PickerWindow->RequestDestroyWindow();
+			}
+			return FReply::Handled();
+		}
+
+		FReply OnCancel()
+		{
+			ResultStruct = NULL;
+			if (PickerWindow.IsValid())
+			{
+				PickerWindow->RequestDestroyWindow();
+			}
+			return FReply::Handled();
+		}
+
+		bool IsAnyRowSelected() const
+		{
+			return  RowStructCombo.IsValid() && RowStructCombo->GetSelectedItem();
+		}
+
+		UScriptStruct* OpenStructSelector()
+		{
+			ResultStruct = NULL;
+			auto RowStructs = FDataTableEditorUtils::GetPossibleStructs();
+
+			RowStructCombo = SNew(SComboBox<UScriptStruct*>)
+			.OptionsSource(&RowStructs)
+			.OnGenerateWidget(this, &FDataTableFactoryUI::MakeRowStructItemWidget)
+			[
+				SNew(STextBlock)
+				.Text(this, &FDataTableFactoryUI::GetSelectedRowOptionText)
+			];
+
+			PickerWindow = SNew(SWindow)
+			.Title(LOCTEXT("DataTableFactoryOptions", "Pick Structure"))
+			.ClientSize(FVector2D(350, 100))
+			.SupportsMinimize(false).SupportsMaximize(false)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+				.Padding(10)
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						RowStructCombo.ToSharedRef()
+					]
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Right)
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SAssignNew(OkButton, SButton)
+							.Text(LOCTEXT("OK", "OK"))
+							.OnClicked(this, &FDataTableFactoryUI::OnCreate)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("Cancel", "Cancel"))
+							.OnClicked(this, &FDataTableFactoryUI::OnCancel)
+						]
+					]
+				]
+			];
+
+			OkButton->SetEnabled(
+				TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FDataTableFactoryUI::IsAnyRowSelected)));
+
+			GEditor->EditorAddModalWindow(PickerWindow.ToSharedRef());
+
+			PickerWindow.Reset();
+			RowStructCombo.Reset();
+
+			return ResultStruct;
+		}
+	};
+
+
+	TSharedRef<FDataTableFactoryUI> StructSelector = MakeShareable(new FDataTableFactoryUI());
+	Struct = StructSelector->OpenStructSelector();
+
+	return Struct != NULL;
+}
+
+UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	UDataTable* DataTable = NULL;
+	if (Struct && ensure(UDataTable::StaticClass() == Class))
+	{
+		ensure(0 != (RF_Public & Flags));
+		DataTable = NewNamedObject<UDataTable>(InParent, Name, Flags);
+		if (DataTable)
+		{
+			DataTable->RowStruct = Struct;
+		}
+	}
+	return DataTable;
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

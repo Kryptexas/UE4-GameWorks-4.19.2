@@ -91,3 +91,26 @@ void FDataTableEditorUtils::BroadcastPostChange(UDataTable* DataTable, EDataTabl
 	}
 	FDataTableEditorManager::Get().PostChange(DataTable, Info);
 }
+
+TArray<UScriptStruct*> FDataTableEditorUtils::GetPossibleStructs()
+{
+	TArray< UScriptStruct* > RowStructs;
+	UScriptStruct* TableRowStruct = FindObjectChecked<UScriptStruct>(ANY_PACKAGE, TEXT("TableRowBase"));
+	if (TableRowStruct != NULL)
+	{
+		// Make combo of table rowstruct options
+		for (TObjectIterator<UScriptStruct> It; It; ++It)
+		{
+			UScriptStruct* Struct = *It;
+			// If a child of the table row struct base, but not itself
+			const bool bBasedOnTableRowBase = Struct->IsChildOf(TableRowStruct) && (Struct != TableRowStruct);
+			const bool bUDStruct = Struct->IsA<UUserDefinedStruct>();
+			const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
+			if ((bBasedOnTableRowBase || bUDStruct) && bValidStruct)
+			{
+				RowStructs.Add(Struct);
+			}
+		}
+	}
+	return RowStructs;
+}

@@ -31,4 +31,6 @@ struct UNREALED_API FDataTableEditorUtils
 
 	static void BroadcastPreChange(UDataTable* DataTable, EDataTableChangeInfo Info);
 	static void BroadcastPostChange(UDataTable* DataTable, EDataTableChangeInfo Info);
+
+	static TArray<UScriptStruct*> GetPossibleStructs();
 };
