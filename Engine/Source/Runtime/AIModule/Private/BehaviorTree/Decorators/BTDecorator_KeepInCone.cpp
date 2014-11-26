@@ -64,7 +64,7 @@ bool UBTDecorator_KeepInCone::CalculateCurrentDirection(const UBehaviorTreeCompo
 
 	if (bHasPointA && bHasPointB)
 	{
-		Direction = (PointB - PointA).SafeNormal();
+		Direction = (PointB - PointA).GetSafeNormal();
 		return true;
 	}
 

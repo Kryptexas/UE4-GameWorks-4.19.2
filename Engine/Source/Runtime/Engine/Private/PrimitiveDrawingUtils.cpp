@@ -425,14 +425,14 @@ void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, int3
 		V1.TextureCoordinate.X = 1.0f;
 		V1.TextureCoordinate.Y = (float)i / NumSides;
 		FVector TriTangentZPrev = ConeVerts[i] ^ ConeVerts[i == 0 ? NumSides - 1 : i - 1]; // Normal of the previous face connected to this face
-		V1.SetTangents(TriTangentX, TriTangentY, (TriTangentZPrev + TriTangentZ).SafeNormal());
+		V1.SetTangents(TriTangentX, TriTangentY, (TriTangentZPrev + TriTangentZ).GetSafeNormal());
 		int32 I1 = OutVerts.Add(V1);
 
 		V2.Position = ConeVerts[(i + 1) % NumSides];
 		V2.TextureCoordinate.X = 1.0f;
 		V2.TextureCoordinate.Y = (float)((i + 1) % NumSides) / NumSides;
 		FVector TriTangentZNext = ConeVerts[(i + 2) % NumSides] ^ ConeVerts[(i + 1) % NumSides]; // Normal of the next face connected to this face
-		V2.SetTangents(TriTangentX, TriTangentY, (TriTangentZNext + TriTangentZ).SafeNormal());
+		V2.SetTangents(TriTangentX, TriTangentY, (TriTangentZNext + TriTangentZ).GetSafeNormal());
 		int32 I2 = OutVerts.Add(V2);
 
 		// Flip winding for negative scale
@@ -1004,9 +1004,9 @@ static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, co
 void DrawWireCapsule(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	const FVector Origin = Base;
-	const FVector XAxis = X.SafeNormal();
-	const FVector YAxis = Y.SafeNormal();
-	const FVector ZAxis = Z.SafeNormal();
+	const FVector XAxis = X.GetSafeNormal();
+	const FVector YAxis = Y.GetSafeNormal();
+	const FVector ZAxis = Z.GetSafeNormal();
 
 	// because we are drawing a capsule we have to have room for the "domed caps"
 	const float XScale = X.Size();

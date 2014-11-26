@@ -1560,12 +1560,12 @@ void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)
 	const FVector4 PlaneNormal = InTransform.TransformVector(ForwardVector);
 
 	// Normalize the plane
-	ReflectionPlane = FPlane(Position, FVector(PlaneNormal).SafeNormal());
+	ReflectionPlane = FPlane(Position, FVector(PlaneNormal).GetSafeNormal());
 	const FVector ReflectionXAxis = InTransform.TransformVector(RightVector);
 	const FVector ScaleVector = InTransform.GetScaleVector();
 	BoxScales = ScaleVector;
 	// Include the owner's draw scale in the axes
-	ReflectionXAxisAndYScale = ReflectionXAxis.SafeNormal() * ScaleVector.Y;
+	ReflectionXAxisAndYScale = ReflectionXAxis.GetSafeNormal() * ScaleVector.Y;
 	ReflectionXAxisAndYScale.W = ScaleVector.Y / ScaleVector.Z;
 }
 

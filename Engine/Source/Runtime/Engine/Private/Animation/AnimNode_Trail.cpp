@@ -173,10 +173,10 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 
 		// Calculate the direction that parent bone is currently pointing.
 		FVector CurrentBoneDir = OutBoneTransforms[i-1].Transform.TransformVector( GetAlignVector(ChainBoneAxis, bInvertChainBoneAxis) );
-		CurrentBoneDir = CurrentBoneDir.SafeNormal(SMALL_NUMBER);
+		CurrentBoneDir = CurrentBoneDir.GetSafeNormal(SMALL_NUMBER);
 
 		// Calculate vector from parent to child.
-		FVector NewBoneDir = FVector(OutBoneTransforms[i].Transform.GetTranslation() - OutBoneTransforms[i - 1].Transform.GetTranslation()).SafeNormal(SMALL_NUMBER);
+		FVector NewBoneDir = FVector(OutBoneTransforms[i].Transform.GetTranslation() - OutBoneTransforms[i - 1].Transform.GetTranslation()).GetSafeNormal(SMALL_NUMBER);
 
 		// Calculate a quaternion that gets us from our current rotation to the desired one.
 		FQuat DeltaLookQuat = FQuat::FindBetween(CurrentBoneDir, NewBoneDir);

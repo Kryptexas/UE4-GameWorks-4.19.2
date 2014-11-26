@@ -690,7 +690,7 @@ FVector UKismetMathLibrary::GreaterGreater_VectorRotator(FVector A, FRotator B)
 
 FVector  UKismetMathLibrary::RotateAngleAxis(FVector InVect, float AngleDeg, FVector Axis)
 {
-	return InVect.RotateAngleAxis(AngleDeg, Axis.SafeNormal());
+	return InVect.RotateAngleAxis(AngleDeg, Axis.GetSafeNormal());
 }
 
 bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
@@ -735,12 +735,12 @@ float UKismetMathLibrary::VSize2DSquared(FVector2D A)
 
 FVector UKismetMathLibrary::Normal(FVector A)
 {
-	return A.SafeNormal();
+	return A.GetSafeNormal();
 }
 
 FVector2D UKismetMathLibrary::Normal2D(FVector2D A)
 {
-	return A.SafeNormal();
+	return A.GetSafeNormal();
 }
 
 FVector UKismetMathLibrary::VLerp(FVector A, FVector B, float V)
@@ -833,7 +833,7 @@ FVector UKismetMathLibrary::NegateVector(FVector A)
 
 FVector UKismetMathLibrary::ClampVectorSize(FVector A, float Min, float Max)
 {
-	return A.ClampSize(Min, Max);
+	return A.GetClampedToSize(Min, Max);
 }
 
 float UKismetMathLibrary::GetMinElement(FVector A)
@@ -867,7 +867,7 @@ FVector UKismetMathLibrary::GetVectorArrayAverage(const TArray<FVector>& Vectors
 /** Find the unit direction vector from one position to another. */
 FVector UKismetMathLibrary::GetDirectionVector(FVector From, FVector To)
 {
-	return (To - From).SafeNormal();
+	return (To - From).GetSafeNormal();
 }
 
 
@@ -939,7 +939,7 @@ FRotator UKismetMathLibrary::NormalizedDeltaRotator(FRotator A, FRotator B)
 
 FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 {
-	FVector SafeAxis = Axis.SafeNormal(); // Make sure axis is unit length
+	FVector SafeAxis = Axis.GetSafeNormal(); // Make sure axis is unit length
 	return FQuat(SafeAxis, FMath::DegreesToRadians(Angle)).Rotator();
 }
 
@@ -1880,7 +1880,7 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	// Minimum area rectangle as computed by http://www.geometrictools.com/Documentation/MinimumAreaRectangle.pdf
 	for( int32 Idx = 1; Idx < PolyVertIndices.Num() - 1; ++Idx )
 	{
-		SupportVectorA = (TransformedVerts[PolyVertIndices[Idx]] - TransformedVerts[PolyVertIndices[Idx-1]]).SafeNormal();
+		SupportVectorA = (TransformedVerts[PolyVertIndices[Idx]] - TransformedVerts[PolyVertIndices[Idx-1]]).GetSafeNormal();
 		SupportVectorA.Z = 0.f;
 		SupportVectorB.X = -SupportVectorA.Y;
 		SupportVectorB.Y = SupportVectorA.X;

@@ -968,7 +968,7 @@ void UDestructibleComponent::ApplyDamage(float DamageAmount, const FVector& HitL
 #if WITH_APEX
 	if (ApexDestructibleActor != NULL)
 	{
-		const FVector& NormalizedImpactDir = ImpulseDir.SafeNormal();
+		const FVector& NormalizedImpactDir = ImpulseDir.GetSafeNormal();
 
 		// Transfer damage information to the APEX NxDestructibleActor interface
 		ApexDestructibleActor->applyDamage(DamageAmount, ImpulseStrength, U2PVector( HitLocation ), U2PVector( ImpulseDir ));

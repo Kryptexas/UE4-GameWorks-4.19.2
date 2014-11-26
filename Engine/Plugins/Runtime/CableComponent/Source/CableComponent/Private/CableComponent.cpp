@@ -164,14 +164,14 @@ public:
 			// Find direction of cable at this point, by averaging previous and next points
 			const int32 PrevIndex = FMath::Max(0, PointIdx-1);
 			const int32 NextIndex = FMath::Min(PointIdx+1, NumPoints-1);
-			const FVector ForwardDir = (InPoints[NextIndex] - InPoints[PrevIndex]).SafeNormal();
+			const FVector ForwardDir = (InPoints[NextIndex] - InPoints[PrevIndex]).GetSafeNormal();
 
 			// Find a side vector at this point
 			const FVector WorldUp(0,0,1);
-			const FVector RightDir = (WorldUp ^ ForwardDir).SafeNormal();
+			const FVector RightDir = (WorldUp ^ ForwardDir).GetSafeNormal();
 
 			// Find an up vector
-			const FVector UpDir = (ForwardDir ^ RightDir).SafeNormal();
+			const FVector UpDir = (ForwardDir ^ RightDir).GetSafeNormal();
 
 			// Generate a ring of verts
 			for(int32 VertIdx = 0; VertIdx<NumRingVerts; VertIdx++)

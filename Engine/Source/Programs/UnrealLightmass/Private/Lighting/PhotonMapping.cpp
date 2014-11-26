@@ -2043,7 +2043,7 @@ FIrradiancePhoton* FStaticLightingSystem::FindNearestIrradiancePhoton(
 				{
 					// Only accept irradiance photons within an angle of the plane defined by the vertex normal
 					// This avoids expensive visibility traces to photons that are probably not on the same surface
-					const float DirectionDotNormal = Dot3(CurrentPhoton.GetSurfaceNormal(), PhotonToVertexVector.SafeNormal());
+					const float DirectionDotNormal = Dot3(CurrentPhoton.GetSurfaceNormal(), PhotonToVertexVector.GetSafeNormal());
 					if (FMath::Abs(DirectionDotNormal) < PhotonMappingSettings.MinCosIrradiancePhotonSearchCone)
 					{
 						if (bVisibleOnly)
@@ -2075,7 +2075,7 @@ FIrradiancePhoton* FStaticLightingSystem::FindNearestIrradiancePhoton(
 			FIrradiancePhoton* CurrentPhoton = TempIrradiancePhotons[PhotonIndex];
 			const FVector4 VertexToPhoton = CurrentPhoton->GetPosition() - Vertex.WorldPosition;
 			const FLightRay VertexToPhotonRay(
-				Vertex.WorldPosition + VertexToPhoton.SafeNormal() * SceneConstants.VisibilityRayOffsetDistance + Vertex.WorldTangentZ * SceneConstants.VisibilityNormalOffsetDistance,
+				Vertex.WorldPosition + VertexToPhoton.GetSafeNormal() * SceneConstants.VisibilityRayOffsetDistance + Vertex.WorldTangentZ * SceneConstants.VisibilityNormalOffsetDistance,
 				CurrentPhoton->GetPosition() + CurrentPhoton->GetSurfaceNormal() * SceneConstants.VisibilityNormalOffsetDistance,
 				NULL,
 				NULL

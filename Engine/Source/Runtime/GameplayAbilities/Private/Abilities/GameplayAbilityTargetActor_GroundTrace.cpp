@@ -49,7 +49,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	UWorld *ThisWorld = GetWorld();
 	//Pull back toward player to find a better spot, accounting for the width of our object
 	FVector Movement = (OriginalEndPoint - OriginalStartPoint);
-	FVector MovementDirection = Movement.SafeNormal();
+	FVector MovementDirection = Movement.GetSafeNormal();
 	float MovementMagnitude2D = Movement.Size2D();
 
 	if (bDebug)
@@ -158,7 +158,7 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 	}
 
 	//Second trace, straight down. Consider using InSourceActor->GetWorld()->NavigationSystem->ProjectPointToNavigation() instead of just going straight down in the case of movement abilities (flag/bool).
-	TraceStart = ReturnHitResult.Location - (TraceEnd - TraceStart).SafeNormal();		//Pull back very slightly to avoid scraping down walls
+	TraceStart = ReturnHitResult.Location - (TraceEnd - TraceStart).GetSafeNormal();		//Pull back very slightly to avoid scraping down walls
 	TraceEnd = TraceStart;
 	TraceStart.Z += CollisionHeightOffset;
 	TraceEnd.Z -= 99999.0f;

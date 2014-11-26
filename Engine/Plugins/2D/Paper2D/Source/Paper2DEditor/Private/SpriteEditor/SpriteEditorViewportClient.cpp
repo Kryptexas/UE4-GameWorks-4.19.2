@@ -391,7 +391,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 			// Draw the normal tick
 			if (bShowNormals)
 			{
-				const FVector2D Direction = (NextScreenPos - ScreenPos).SafeNormal();
+				const FVector2D Direction = (NextScreenPos - ScreenPos).GetSafeNormal();
 				const FVector2D Normal = FVector2D(-Direction.Y, Direction.X);
 
 				const FVector2D Midpoint = (ScreenPos + NextScreenPos) * 0.5f;

@@ -678,9 +678,9 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 	if( HasPrimsToDraw() )
 	{
 		FMatrix InvTransform = Transform.Inverse();
-		FVector CameraX = InvTransform.TransformVector(FVector(1,0,0)).SafeNormal();
-		FVector CameraY = InvTransform.TransformVector(FVector(0,1,0)).SafeNormal();
-		FVector CameraZ = InvTransform.TransformVector(FVector(0,0,1)).SafeNormal();
+		FVector CameraX = InvTransform.TransformVector(FVector(1,0,0)).GetSafeNormal();
+		FVector CameraY = InvTransform.TransformVector(FVector(0,1,0)).GetSafeNormal();
+		FVector CameraZ = InvTransform.TransformVector(FVector(0,0,1)).GetSafeNormal();
 
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 

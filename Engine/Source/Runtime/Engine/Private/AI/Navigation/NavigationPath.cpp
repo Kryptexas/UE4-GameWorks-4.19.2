@@ -298,18 +298,18 @@ FVector FNavigationPath::GetSegmentDirection(uint32 SegmentEndIndex) const
 		{
 			if (SegmentEndIndex > 0)
 			{
-				Result = (PathPoints[SegmentEndIndex].Location - PathPoints[SegmentEndIndex - 1].Location).SafeNormal();
+				Result = (PathPoints[SegmentEndIndex].Location - PathPoints[SegmentEndIndex - 1].Location).GetSafeNormal();
 			}
 			else
 			{
 				// for '0'-th segment returns same as for 1st segment 
-				Result = (PathPoints[1].Location - PathPoints[0].Location).SafeNormal();
+				Result = (PathPoints[1].Location - PathPoints[0].Location).GetSafeNormal();
 			}
 		}
 		else if (SegmentEndIndex >= uint32(GetPathPoints().Num()))
 		{
 			// in this special case return direction of last segment
-			Result = (PathPoints[PathPoints.Num() - 1].Location - PathPoints[PathPoints.Num() - 2].Location).SafeNormal();
+			Result = (PathPoints[PathPoints.Num() - 1].Location - PathPoints[PathPoints.Num() - 2].Location).GetSafeNormal();
 		}
 	}
 
@@ -542,7 +542,7 @@ namespace
 			return true;
 		}
 
-		const FVector RayNormal = (StartTrace-EndTrace) .SafeNormal() * OffsetDistannce;
+		const FVector RayNormal = (StartTrace-EndTrace) .GetSafeNormal() * OffsetDistannce;
 		StartTrace = StartTrace + RayNormal;
 		EndTrace = EndTrace - RayNormal;
 
@@ -564,8 +564,8 @@ namespace
 			{
 				const float EdgeHalfLength = (CurrentEdge->Left - CurrentEdge->Right).Size() * 0.5;
 				const float Distance = FMath::Min(OffsetDistannce, EdgeHalfLength) *  0.1;
-				Left = CurrentEdge->Left + Distance * (CurrentEdge->Right - CurrentEdge->Left).SafeNormal();
-				Right = CurrentEdge->Right + Distance * (CurrentEdge->Left - CurrentEdge->Right).SafeNormal();
+				Left = CurrentEdge->Left + Distance * (CurrentEdge->Right - CurrentEdge->Left).GetSafeNormal();
+				Right = CurrentEdge->Right + Distance * (CurrentEdge->Left - CurrentEdge->Right).GetSafeNormal();
 				FVector ClosestPointOnRay, ClosestPointOnEdge;
 				FMath::SegmentDistToSegment(StartTrace, EndTrace, Right, Left, ClosestPointOnRay, ClosestPointOnEdge);
 #if DEBUG_DRAW_OFFSET
@@ -689,7 +689,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 			const FVector EdgePt0 = Edge->GetPoint(CloserPoint);
 			const FVector EdgePt1 = Edge->GetPoint((CloserPoint+1)%2);
 			const FVector EdgeDir = EdgePt1 - EdgePt0;
-			const FVector EdgeOffset = EdgeDir.SafeNormal() * ActualOffset;
+			const FVector EdgeOffset = EdgeDir.GetSafeNormal() * ActualOffset;
 			NewPathPoint.Location = EdgePt0 + EdgeOffset;
 			// update NodeRef (could be different if this is n-th pass on the same PathPoint
 			NewPathPoint.NodeRef = Edge->ToRef;
@@ -1005,17 +1005,17 @@ FVector FNavMeshPath::GetSegmentDirection(uint32 SegmentEndIndex) const
 		{
 			if (SegmentEndIndex > 0)
 			{
-				Result = (Corridor[SegmentEndIndex].GetMiddlePoint() - Corridor[SegmentEndIndex - 1].GetMiddlePoint()).SafeNormal();
+				Result = (Corridor[SegmentEndIndex].GetMiddlePoint() - Corridor[SegmentEndIndex - 1].GetMiddlePoint()).GetSafeNormal();
 			}
 			else
 			{
-				Result = (Corridor[0].GetMiddlePoint() - GetPathPoints()[0].Location).SafeNormal();
+				Result = (Corridor[0].GetMiddlePoint() - GetPathPoints()[0].Location).GetSafeNormal();
 			}
 		}
 		else if (SegmentEndIndex >= uint32(Corridor.Num()))
 		{
 			// in this special case return direction of last segment
-			Result = (Corridor[Corridor.Num() - 1].GetMiddlePoint() - GetPathPoints()[0].Location).SafeNormal();
+			Result = (Corridor[Corridor.Num() - 1].GetMiddlePoint() - GetPathPoints()[0].Location).GetSafeNormal();
 		}
 	}
 

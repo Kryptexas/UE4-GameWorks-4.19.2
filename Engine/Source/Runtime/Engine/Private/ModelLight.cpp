@@ -70,7 +70,7 @@ static bool SphereOnNode(UModel* Model,uint32 NodeIndex,FVector Point,float Radi
 			continue;
 
 		// If point is not behind all the planes created by this polys edges, it's outside the poly.
-		if(FVector::PointPlaneDist(Point,Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex],EdgeNormal.SafeNormal()) > Radius)
+		if(FVector::PointPlaneDist(Point,Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex],EdgeNormal.GetSafeNormal()) > Radius)
 			return 0;
 	}
 

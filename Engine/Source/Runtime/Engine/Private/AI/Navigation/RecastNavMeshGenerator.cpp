@@ -1038,8 +1038,8 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 		const FVector& V2 = AllVerts[Index + 1];
 		const FVector& V3 = AllVerts[Index + 2];
 
-		const FVector V01 = (V1 - V2).SafeNormal();
-		const FVector V12 = (V2 - V3).SafeNormal();
+		const FVector V01 = (V1 - V2).GetSafeNormal();
+		const FVector V12 = (V2 - V3).GetSafeNormal();
 		const FVector NV1 = Rotation90.RotateVector(V01);
 		const float d = FVector::DotProduct(NV1, V12);
 
@@ -1081,14 +1081,14 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 		}
 		else
 		{
-			const FVector V01 = (V1 - V2).SafeNormal();
-			const FVector N1 = Rotation.RotateVector(V01).SafeNormal();
+			const FVector V01 = (V1 - V2).GetSafeNormal();
+			const FVector N1 = Rotation.RotateVector(V01).GetSafeNormal();
 			const FVector MoveDir1 = N1 * ExpandBy;
 			Line1 = FSimpleLine(V1 + MoveDir1, V2 + MoveDir1);
 		}
 
-		const FVector V12 = (V2 - V3).SafeNormal();
-		const FVector N2 = Rotation.RotateVector(V12).SafeNormal();
+		const FVector V12 = (V2 - V3).GetSafeNormal();
+		const FVector N2 = Rotation.RotateVector(V12).GetSafeNormal();
 		const FVector MoveDir2 = N2 * ExpandBy;
 		const FSimpleLine Line2(V2 + MoveDir2, V3 + MoveDir2);
 
@@ -1105,7 +1105,7 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 			if (DistToNewVector > ExpansionThresholdSQ)
 			{
 				//clamp our point to not move to far from original location
-				const FVector HelpPos = V2 + VectorToNewPoint.SafeNormal2D() * ExpandBy * 1.4142;
+				const FVector HelpPos = V2 + VectorToNewPoint.GetSafeNormal2D() * ExpandBy * 1.4142;
 				OutResult.Add(HelpPos);
 			}
 			else

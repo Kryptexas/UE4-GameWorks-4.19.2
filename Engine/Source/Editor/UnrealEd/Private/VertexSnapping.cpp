@@ -708,7 +708,7 @@ bool FVertexSnappingImpl::SnapDraggedActorsToNearestVertex( FVector& DragDelta, 
 		// Are there selected actors?
 		USelection* Selection = GEditor->GetSelectedActors();
 
-		FVector Direction = DragDelta.SafeNormal();
+		FVector Direction = DragDelta.GetSafeNormal();
 
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 			ViewportClient->Viewport, 
@@ -860,7 +860,7 @@ bool FVertexSnappingImpl::SnapDragLocationToNearestVertex( const FVector& BaseLo
 	bool bSnapped = false;
 	if( !DragDelta.IsNearlyZero() )
 	{
-		FVector Direction = DragDelta.SafeNormal();
+		FVector Direction = DragDelta.GetSafeNormal();
 
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 			ViewportClient->Viewport, 

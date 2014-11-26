@@ -235,7 +235,7 @@ FTransform UAbilitySystemBlueprintLibrary::GetTargetDataOrigin(FGameplayAbilityT
 			const FHitResult* HitResultPtr = Data->GetHitResult();
 			FTransform ReturnTransform;
 			ReturnTransform.SetLocation(HitResultPtr->TraceStart);
-			ReturnTransform.SetRotation((HitResultPtr->Location - HitResultPtr->TraceStart).SafeNormal().Rotation().Quaternion());
+			ReturnTransform.SetRotation((HitResultPtr->Location - HitResultPtr->TraceStart).GetSafeNormal().Rotation().Quaternion());
 			return ReturnTransform;
 		}
 	}

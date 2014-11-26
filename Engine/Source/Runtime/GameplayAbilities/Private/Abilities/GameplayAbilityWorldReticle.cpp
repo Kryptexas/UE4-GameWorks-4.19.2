@@ -69,10 +69,10 @@ void AGameplayAbilityWorldReticle::FaceTowardSource(bool bFaceIn2D)
 	{
 		if (bFaceIn2D)
 		{
-			FVector FacingVector = (TargetingActor->StartLocation.GetTargetingTransform().GetLocation() - GetActorLocation()).SafeNormal2D();
+			FVector FacingVector = (TargetingActor->StartLocation.GetTargetingTransform().GetLocation() - GetActorLocation()).GetSafeNormal2D();
 			if (FacingVector.IsZero())
 			{
-				FacingVector = -GetActorForwardVector().SafeNormal2D();
+				FacingVector = -GetActorForwardVector().GetSafeNormal2D();
 			}
 			if (!FacingVector.IsZero())
 			{
@@ -81,10 +81,10 @@ void AGameplayAbilityWorldReticle::FaceTowardSource(bool bFaceIn2D)
 		}
 		else
 		{
-			FVector FacingVector = (TargetingActor->StartLocation.GetTargetingTransform().GetLocation() - GetActorLocation()).SafeNormal();
+			FVector FacingVector = (TargetingActor->StartLocation.GetTargetingTransform().GetLocation() - GetActorLocation()).GetSafeNormal();
 			if (FacingVector.IsZero())
 			{
-				FacingVector = -GetActorForwardVector().SafeNormal();
+				FacingVector = -GetActorForwardVector().GetSafeNormal();
 			}
 			SetActorRotation(FacingVector.Rotation());
 		}

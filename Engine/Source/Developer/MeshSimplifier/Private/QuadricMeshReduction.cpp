@@ -556,7 +556,7 @@ private:
 				Normals->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentZ[WedgeIndex]);
 				if (!bReverseWinding)
 				{
-					RawMesh.WedgeTangentZ[WedgeIndex] = (-RawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
+					RawMesh.WedgeTangentZ[WedgeIndex] = (-RawMesh.WedgeTangentZ[WedgeIndex]).GetSafeNormal();
 				}
 			}
 		}

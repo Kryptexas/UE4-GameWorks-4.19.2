@@ -85,7 +85,7 @@ static PxVec3 TransformNormalToShapeSpace(const PxMeshScale& meshScale, const Px
 static bool FindSimpleOpposingNormal(const PxLocationHit& PHit, const FVector& TraceDirectionDenorm, FVector& OutNormal)
 {
 	const bool bNormalData = PHit.flags & PxHitFlag::eNORMAL;
-	OutNormal = bNormalData ? P2UVector(PHit.normal) : -TraceDirectionDenorm.SafeNormal();
+	OutNormal = bNormalData ? P2UVector(PHit.normal) : -TraceDirectionDenorm.GetSafeNormal();
 	return true;
 }
 
@@ -352,7 +352,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 	// Other info
 	OutResult.Location = SafeLocationToFitShape;
 	OutResult.ImpactPoint = (PHit.flags & PxHitFlag::ePOSITION) ? P2UVector(PHit.position) : StartLoc;
-	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceStartToEnd.SafeNormal();
+	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceStartToEnd.GetSafeNormal();
 	OutResult.ImpactNormal = OutResult.Normal;
 
 	OutResult.TraceStart = StartLoc;
@@ -680,7 +680,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 					PClosestPoint = PxShapeExt::getWorldBounds(*PShape, *PActor).getCenter(); 
 				}
 
-				OutResult.ImpactNormal = (OutResult.Location - P2UVector(PClosestPoint)).SafeNormal();
+				OutResult.ImpactNormal = (OutResult.Location - P2UVector(PClosestPoint)).GetSafeNormal();
 			}
 		}
 	}

@@ -4620,7 +4620,7 @@ FRotator UInterpTrackMove::GetLookAtRotation(UInterpTrackInst* TrInst)
 			}
 
 			// Find Rotator that points at LookAtActor
-			FVector LookDir = (LookAtActor->GetActorLocation() - Actor->GetActorLocation()).SafeNormal();
+			FVector LookDir = (LookAtActor->GetActorLocation() - Actor->GetActorLocation()).GetSafeNormal();
 			LookAtRot = LookDir.Rotation();
 		}
 	}

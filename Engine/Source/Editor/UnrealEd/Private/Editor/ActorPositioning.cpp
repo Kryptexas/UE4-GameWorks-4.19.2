@@ -119,7 +119,7 @@ FActorPositionTraceResult FActorPositioning::TraceWorldForPosition(const UWorld&
 			{
 				ClosestHitDistance = DistanceToHit;
 				Results.Location = Hit.Location;
-				Results.SurfaceNormal = Hit.Normal.SafeNormal();
+				Results.SurfaceNormal = Hit.Normal.GetSafeNormal();
 				Results.State = FActorPositionTraceResult::HitSuccess;
 				Results.HitActor = Hit.Actor;
 			}

@@ -681,7 +681,7 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	{
 		// start location is not on navmesh, treat it as a blocked raycast
 		RaycastResult.HitTime = 0.f;
-		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
+		RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
 	}
 }
 
@@ -720,7 +720,7 @@ void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLo
 	{
 		// start location is not on navmesh, treat it as a blocked raycast
 		RaycastResult.HitTime = 0.f;
-		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
+		RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
 	}
 }
 
@@ -2107,7 +2107,7 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 						if (linkedIdx > i || TileIdx > (int32)ConstNavMesh->decodeClusterIdTile(link.ref))
 						{
 							FVector UpDir(0,0,1.0f);
-							FVector LinkDir = (LinkGeom.ToCluster - LinkGeom.FromCluster).SafeNormal();
+							FVector LinkDir = (LinkGeom.ToCluster - LinkGeom.FromCluster).GetSafeNormal();
 							FVector SideDir = FVector::CrossProduct(LinkDir, UpDir);
 							LinkGeom.FromCluster += SideDir * 40.0f;
 							LinkGeom.ToCluster += SideDir * 40.0f;

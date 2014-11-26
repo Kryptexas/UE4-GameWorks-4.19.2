@@ -355,11 +355,11 @@ void SGraphNodeAnimTransition::PositionBetweenTwoNodesWithOffset(const FGeometry
 		DeltaPos = FVector2D(10.0f, 0.0f);
 	}
 
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).SafeNormal();
+	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	const FVector2D NewCenter = StartAnchorPoint + (0.5f * DeltaPos) + (Height * Normal);
 
-	FVector2D DeltaNormal = DeltaPos.SafeNormal();
+	FVector2D DeltaNormal = DeltaPos.GetSafeNormal();
 	
 	// Calculate node offset in the case of multiple transitions between the same two nodes
 	// MultiNodeOffset: the offset where 0 is the centre of the transition, -1 is 1 <size of node>

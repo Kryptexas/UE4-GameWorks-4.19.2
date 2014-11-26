@@ -351,8 +351,8 @@ bool FSplineComponentVisualizer::GetCustomInputCoordinateSystem(const FEditorVie
 			if (SelectedKeyIndex < SplineComp->SplineInfo.Points.Num())
 			{
 				const auto& Point = SplineComp->SplineInfo.Points[SelectedKeyIndex];
-				const FVector Tangent = Point.ArriveTangent.IsNearlyZero() ? FVector(1.0f, 0.0f, 0.0f) : Point.ArriveTangent.SafeNormal();
-				const FVector Bitangent = (Tangent.Z == 1.0f) ? FVector(1.0f, 0.0f, 0.0f) : FVector(-Tangent.Y, Tangent.X, 0.0f).SafeNormal();
+				const FVector Tangent = Point.ArriveTangent.IsNearlyZero() ? FVector(1.0f, 0.0f, 0.0f) : Point.ArriveTangent.GetSafeNormal();
+				const FVector Bitangent = (Tangent.Z == 1.0f) ? FVector(1.0f, 0.0f, 0.0f) : FVector(-Tangent.Y, Tangent.X, 0.0f).GetSafeNormal();
 				const FVector Normal = FVector::CrossProduct(Tangent, Bitangent);
 
 				OutMatrix = FMatrix(Tangent, Bitangent, Normal, FVector::ZeroVector) * FQuatRotationTranslationMatrix(SplineComp->ComponentToWorld.GetRotation(), FVector::ZeroVector);

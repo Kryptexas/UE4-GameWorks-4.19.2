@@ -922,7 +922,7 @@ static int HandleSensorEvents(int fd, int events, void* data)
 
 		// Calc the tilt from the accelerometer as it's not
 		// available directly.
-		FVector accelerometer_dir = -current_accelerometer.SafeNormal();
+		FVector accelerometer_dir = -current_accelerometer.GetSafeNormal();
 		float current_pitch
 			= FMath::Atan2(accelerometer_dir.Y, accelerometer_dir.Z);
 		float current_roll

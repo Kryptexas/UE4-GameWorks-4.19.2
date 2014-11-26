@@ -111,7 +111,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 		{
 			FABRIKChainLink const & ParentLink = Chain[LinkIndex - 1];
 			FABRIKChainLink & CurrentLink = Chain[LinkIndex];
-			CurrentLink.Position = ParentLink.Position + (CSEffectorLocation - ParentLink.Position).UnsafeNormal() * CurrentLink.Length;
+			CurrentLink.Position = ParentLink.Position + (CSEffectorLocation - ParentLink.Position).GetUnsafeNormal() * CurrentLink.Length;
 		}
 		bBoneLocationUpdated = true;
 	}
@@ -135,7 +135,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 					FABRIKChainLink & CurrentLink = Chain[LinkIndex];
 					FABRIKChainLink const & ChildLink = Chain[LinkIndex + 1];
 
-					CurrentLink.Position = ChildLink.Position + (CurrentLink.Position - ChildLink.Position).UnsafeNormal() * ChildLink.Length;
+					CurrentLink.Position = ChildLink.Position + (CurrentLink.Position - ChildLink.Position).GetUnsafeNormal() * ChildLink.Length;
 				}
 
 				// "Backward Reaching" stage - adjust bones from root.
@@ -144,7 +144,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 					FABRIKChainLink const & ParentLink = Chain[LinkIndex - 1];
 					FABRIKChainLink & CurrentLink = Chain[LinkIndex];
 
-					CurrentLink.Position = ParentLink.Position + (CurrentLink.Position - ParentLink.Position).UnsafeNormal() * CurrentLink.Length;
+					CurrentLink.Position = ParentLink.Position + (CurrentLink.Position - ParentLink.Position).GetUnsafeNormal() * CurrentLink.Length;
 				}
 
 				// Re-check distance between tip location and effector location
@@ -157,7 +157,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 				FABRIKChainLink const & ParentLink = Chain[TipBoneLinkIndex - 1];
 				FABRIKChainLink & CurrentLink = Chain[TipBoneLinkIndex];
 
-				CurrentLink.Position = ParentLink.Position + (CurrentLink.Position - ParentLink.Position).UnsafeNormal() * CurrentLink.Length;
+				CurrentLink.Position = ParentLink.Position + (CurrentLink.Position - ParentLink.Position).GetUnsafeNormal() * CurrentLink.Length;
 			}
 
 			bBoneLocationUpdated = true;
@@ -188,13 +188,13 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 			FABRIKChainLink const & ChildLink = Chain[LinkIndex + 1];
 
 			// Calculate pre-translation vector between this bone and child
-			FVector const OldDir = (GetCurrentLocation(MeshBases, ChildLink.BoneIndex) - GetCurrentLocation(MeshBases, CurrentLink.BoneIndex)).UnsafeNormal();
+			FVector const OldDir = (GetCurrentLocation(MeshBases, ChildLink.BoneIndex) - GetCurrentLocation(MeshBases, CurrentLink.BoneIndex)).GetUnsafeNormal();
 
 			// Get vector from the post-translation bone to it's child
-			FVector const NewDir = (ChildLink.Position - CurrentLink.Position).UnsafeNormal();
+			FVector const NewDir = (ChildLink.Position - CurrentLink.Position).GetUnsafeNormal();
 
 			// Calculate axis of rotation from pre-translation vector to post-translation vector
-			FVector const RotationAxis = FVector::CrossProduct(OldDir, NewDir).SafeNormal();
+			FVector const RotationAxis = FVector::CrossProduct(OldDir, NewDir).GetSafeNormal();
 			float const RotationAngle = FMath::Acos(FVector::DotProduct(OldDir, NewDir));
 			FQuat const DeltaRotation = FQuat(RotationAxis, RotationAngle);
 			// We're going to multiply it, in order to not have to re-normalize the final quaternion, it has to be a unit quaternion.

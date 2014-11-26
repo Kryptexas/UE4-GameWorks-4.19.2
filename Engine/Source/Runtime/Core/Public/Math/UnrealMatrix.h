@@ -546,7 +546,7 @@ inline void FMatrix::GetScaledAxes(FVector &X, FVector &Y, FVector &Z) const
 
 inline FVector FMatrix::GetUnitAxis( EAxis::Type InAxis ) const
 {
-	return GetScaledAxis( InAxis ).SafeNormal();
+	return GetScaledAxis( InAxis ).GetSafeNormal();
 }
 
 inline void FMatrix::GetUnitAxes(FVector &X, FVector &Y, FVector &Z) const

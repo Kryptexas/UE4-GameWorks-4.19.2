@@ -379,13 +379,16 @@ public:
 	 * @param Tolerance Minimum squared length of vector for normalization.
 	 * @return A normalized copy of the vector if safe, (0,0) otherwise.
 	 */
-	FVector2D SafeNormal( float Tolerance=SMALL_NUMBER ) const;
+	FVector2D GetSafeNormal( float Tolerance=SMALL_NUMBER ) const;
+
+	DEPRECATED(4.7, "Deprecated due to unclear name, use GetSafeNormal instead.")
+	FVector2D SafeNormal(float Tolerance = SMALL_NUMBER) const;
 
 	/**
 	 * Normalize this vector in-place if it is large enough, set it to (0,0) otherwise.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
-	 * @see SafeNormal()
+	 * @see GetSafeNormal()
 	 */
 	void Normalize( float Tolerance=SMALL_NUMBER );
 
@@ -742,7 +745,7 @@ FORCEINLINE float FVector2D::SizeSquared() const
 }
 
 
-FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
+FORCEINLINE FVector2D FVector2D::GetSafeNormal(float Tolerance) const
 {	
 	const float SquareSum = X*X + Y*Y;
 	if( SquareSum > Tolerance )
@@ -751,6 +754,12 @@ FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
 		return FVector2D(X*Scale, Y*Scale);
 	}
 	return FVector2D(0.f, 0.f);
+}
+
+
+FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
+{
+	return GetSafeNormal(Tolerance);
 }
 
 

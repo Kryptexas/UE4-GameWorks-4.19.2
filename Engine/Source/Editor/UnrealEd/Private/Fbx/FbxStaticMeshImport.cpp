@@ -550,7 +550,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 					FbxVector4 TempValue = LayerElementTangent->GetDirectArray().GetAt(TangentValueIndex);
 					TempValue = TotalMatrixForNormal.MultT(TempValue);
 					FVector TangentX = Converter.ConvertDir(TempValue);
-					RawMesh.WedgeTangentX[WedgeIndex] = TangentX.SafeNormal();
+					RawMesh.WedgeTangentX[WedgeIndex] = TangentX.GetSafeNormal();
 
 					int BinormalMapIndex = (BinormalMappingMode == FbxLayerElement::eByControlPoint) ? 
 						ControlPointIndex : TriangleCornerIndex;
@@ -560,13 +560,13 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 					TempValue = LayerElementBinormal->GetDirectArray().GetAt(BinormalValueIndex);
 					TempValue = TotalMatrixForNormal.MultT(TempValue);
 					FVector TangentY = -Converter.ConvertDir(TempValue);
-					RawMesh.WedgeTangentY[WedgeIndex] = TangentY.SafeNormal();
+					RawMesh.WedgeTangentY[WedgeIndex] = TangentY.GetSafeNormal();
 				}
 
 				FbxVector4 TempValue = LayerElementNormal->GetDirectArray().GetAt(NormalValueIndex);
 				TempValue = TotalMatrixForNormal.MultT(TempValue);
 				FVector TangentZ = Converter.ConvertDir(TempValue);
-				RawMesh.WedgeTangentZ[WedgeIndex] = TangentZ.SafeNormal();
+				RawMesh.WedgeTangentZ[WedgeIndex] = TangentZ.GetSafeNormal();
 			}
 
 			//

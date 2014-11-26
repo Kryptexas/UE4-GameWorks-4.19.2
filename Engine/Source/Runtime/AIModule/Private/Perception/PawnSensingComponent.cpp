@@ -334,7 +334,7 @@ bool UPawnSensingComponent::CouldSeePawn(const APawn *Other, bool bMaySkipChecks
 // 	UE_LOG(LogPath, Warning, TEXT("DistanceToOtherSquared = %f, SightRadiusSquared: %f"), SelfToOtherDistSquared, FMath::Square(SightRadius));
 
 	// check field of view
-	FVector const SelfToOtherDir = SelfToOther.SafeNormal();
+	FVector const SelfToOtherDir = SelfToOther.GetSafeNormal();
 	FVector const MyFacingDir = Owner->GetActorRotation().Vector();
 
 // 	UE_LOG(LogPath, Warning, TEXT("DotProductFacing: %f, PeripheralVisionCosine: %f"), SelfToOtherDir | MyFacingDir, PeripheralVisionCosine);

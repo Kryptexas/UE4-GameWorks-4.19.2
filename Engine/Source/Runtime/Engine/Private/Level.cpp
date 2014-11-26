@@ -995,9 +995,9 @@ void ULevel::CreateModelComponents()
 					const FVector& TextureY = Model->Vectors[NodeSurf.vTextureV];
 					const int32 BaseVertexIndex = NodeGroup->Vertices.Num();
 					// Compute the surface's tangent basis.
-					FVector NodeTangentX = Model->Vectors[NodeSurf.vTextureU].SafeNormal();
-					FVector NodeTangentY = Model->Vectors[NodeSurf.vTextureV].SafeNormal();
-					FVector NodeTangentZ = Model->Vectors[NodeSurf.vNormal].SafeNormal();
+					FVector NodeTangentX = Model->Vectors[NodeSurf.vTextureU].GetSafeNormal();
+					FVector NodeTangentY = Model->Vectors[NodeSurf.vTextureV].GetSafeNormal();
+					FVector NodeTangentZ = Model->Vectors[NodeSurf.vNormal].GetSafeNormal();
 
 					// Generate the node's vertices.
 					for(uint32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)

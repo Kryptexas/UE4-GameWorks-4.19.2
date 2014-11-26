@@ -417,7 +417,7 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 			if( WaveInstance->bUseSpatialization )
 			{
 				FVector UnnormalizedDirection = AudioDevice->InverseTransform.TransformPosition( WaveInstance->Location );
-				Direction = UnnormalizedDirection.SafeNormal();
+				Direction = UnnormalizedDirection.GetSafeNormal();
 				float Distance = UnnormalizedDirection.Size();
 				NormalizedOmniRadius = (Distance > 0) ? (WaveInstance->OmniRadius / Distance) : FLT_MAX;
 			}

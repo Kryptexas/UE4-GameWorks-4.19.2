@@ -107,7 +107,7 @@ public:
 
 					//DrawWireBox(PDI, FBox(ProjectedLocation-BoxExtent, ProjectedLocation+BoxExtent), ProjectedColor, false);
 					DrawWireBox(PDI, FBox(ActorLocation - BoxExtent, ActorLocation + BoxExtent), FColor::White, false);
-					const FVector LineEnd = ProjectedLocation - (ProjectedLocation - ActorLocation).SafeNormal()*BoxExtent.X;
+					const FVector LineEnd = ProjectedLocation - (ProjectedLocation - ActorLocation).GetSafeNormal()*BoxExtent.X;
 					PDI->DrawLine(LineEnd, ActorLocation, ProjectedColor, SDPG_World, 2.5);
 					DrawArrowHead(PDI, LineEnd, ActorLocation, 20.f, ProjectedColor, SDPG_World, 2.5f);
 

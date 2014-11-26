@@ -704,7 +704,7 @@ static inline void FTexCoordsToVectors(const FVector& V0, const FVector& UV0,
 {
 	// Create polygon normal.
 	FVector PN = FVector((V0-V1) ^ (V2-V0));
-	PN = PN.SafeNormal();
+	PN = PN.GetSafeNormal();
 
 	FVector UV1( InUV1 );
 	FVector UV2( InUV2 );

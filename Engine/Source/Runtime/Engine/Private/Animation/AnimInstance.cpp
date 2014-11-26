@@ -2252,7 +2252,7 @@ float UAnimInstance::CalculateDirection(const FVector& Velocity, const FRotator&
 	FMatrix RotMatrix = FRotationMatrix(BaseRotation);
 	FVector ForwardVector = RotMatrix.GetScaledAxis(EAxis::X);
 	FVector RightVector = RotMatrix.GetScaledAxis(EAxis::Y);
-	FVector NormalizedVel = Velocity.SafeNormal();
+	FVector NormalizedVel = Velocity.GetSafeNormal();
 	ForwardVector.Z = RightVector.Z = NormalizedVel.Z = 0.f;
 
 	// get a cos(alpha) of forward vector vs velocity

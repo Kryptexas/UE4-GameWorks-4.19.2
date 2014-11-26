@@ -740,7 +740,7 @@ void UAnimCompress_RemoveLinearKeys::ProcessAnimationTracks(
 							// if these are valid, we can continue
 							if (!CurrentHeading.IsNearlyZero() && !DesiredHeading.IsNearlyZero())
 							{
-								const float DotResult = CurrentHeading.SafeNormal() | DesiredHeading.SafeNormal();
+								const float DotResult = CurrentHeading.GetSafeNormal() | DesiredHeading.GetSafeNormal();
 
 								// limit the range we will retarget to something reasonable (~60 degrees)
 								if (DotResult < 1.0f && DotResult > 0.5f)

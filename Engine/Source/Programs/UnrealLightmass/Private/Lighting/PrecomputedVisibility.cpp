@@ -914,7 +914,7 @@ bool ComputeBoxVisibility(
 				const int32 SampleIndex = FMath::TruncToInt(RandomStream.GetFraction() * FurthestSamples.Num());
 				const FVisibilityQuerySample& CurrentSample = *FurthestSamples[SampleIndex];
 				const float VectorLength = (CurrentSample.CellPosition - CurrentSample.MeshPosition).Size3();
-				const FVector4 CurrentDirection = (CurrentSample.MeshPosition - CurrentSample.CellPosition).SafeNormal();
+				const FVector4 CurrentDirection = (CurrentSample.MeshPosition - CurrentSample.CellPosition).GetSafeNormal();
 
 				FVector4 XAxis;
 				FVector4 YAxis;

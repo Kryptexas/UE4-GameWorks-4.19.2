@@ -93,7 +93,7 @@ void UParticleModuleVelocity::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 	SPAWN_INIT;
 	{
 		FVector Vel = StartVelocity.GetValue(Owner->EmitterTime, Owner->Component, 0, InRandomStream);
-		FVector FromOrigin = (Particle.Location - Owner->EmitterToSimulation.GetOrigin()).SafeNormal();
+		FVector FromOrigin = (Particle.Location - Owner->EmitterToSimulation.GetOrigin()).GetSafeNormal();
 
 		FVector OwnerScale(1.0f);
 		if ((bApplyOwnerScale == true) && Owner && Owner->Component)
@@ -476,7 +476,7 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 		const FVector DefaultSpawnDirection = DefaultDirectionRotation.TransformVector(DefaultDirection);
 
 		// Orientate the cone along the direction vector		
-		const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.SafeNormal(): DefaultDirection;
+		const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.GetSafeNormal(): DefaultDirection;
 		FVector UpDirection(0.0f, 0.0f, 1.0f);
 		FVector RightDirection(1.0f, 0.0f, 0.0f);
 
@@ -493,8 +493,8 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 
 		FMatrix DirectionRotation;
 		DirectionRotation.SetIdentity();
-		DirectionRotation.SetAxis(0, RightDirection.SafeNormal());
-		DirectionRotation.SetAxis(1, UpDirection.SafeNormal());
+		DirectionRotation.SetAxis(0, RightDirection.GetSafeNormal());
+		DirectionRotation.SetAxis(1, UpDirection.GetSafeNormal());
 		DirectionRotation.SetAxis(2, ForwardDirection);
 		FVector SpawnDirection = DirectionRotation.TransformVector(DefaultSpawnDirection);
 	
@@ -543,7 +543,7 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 
 	// Calculate direction transform
 	const FVector DefaultDirection(0.0f, 0.0f, 1.0f);
-	const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.SafeNormal(): DefaultDirection;
+	const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.GetSafeNormal(): DefaultDirection;
 	FVector UpDirection(0.0f, 0.0f, 1.0f);
 	FVector RightDirection(1.0f, 0.0f, 0.0f);
 
@@ -560,8 +560,8 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 
 	FMatrix DirectionRotation;
 	DirectionRotation.SetIdentity();
-	DirectionRotation.SetAxis(0, RightDirection.SafeNormal());
-	DirectionRotation.SetAxis(1, UpDirection.SafeNormal());
+	DirectionRotation.SetAxis(0, RightDirection.GetSafeNormal());
+	DirectionRotation.SetAxis(1, UpDirection.GetSafeNormal());
 	DirectionRotation.SetAxis(2, ForwardDirection);
 
 	// Calculate the owning actor's scale and rotation

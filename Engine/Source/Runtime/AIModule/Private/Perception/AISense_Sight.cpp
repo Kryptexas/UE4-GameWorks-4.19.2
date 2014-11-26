@@ -17,7 +17,7 @@ FORCEINLINE_DEBUGGABLE bool CheckIsTargetInSightPie(const FPerceptionListener& L
 {
 	if (FVector::DistSquared(Listener.CachedLocation, TargetLocation) <= SightRadiusSq) 
 	{
-		const FVector DirectionToTarget = (TargetLocation - Listener.CachedLocation).UnsafeNormal();
+		const FVector DirectionToTarget = (TargetLocation - Listener.CachedLocation).GetUnsafeNormal();
 		return FVector::DotProduct(DirectionToTarget, Listener.CachedDirection) > DigestedProps.PeripheralVisionAngleCos;
 	}
 

@@ -336,7 +336,7 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 							float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
 
 							FVector L(SinTheta * FMath::Cos(Phi), SinTheta * FMath::Sin(Phi), CosTheta);
-							FVector H = ( V + L ).UnsafeNormal();
+							FVector H = (V + L).GetUnsafeNormal();
 
 							float NoL = FMath::Max(L.Z, 0.0f);
 							float NoH = FMath::Max(H.Z, 0.0f);

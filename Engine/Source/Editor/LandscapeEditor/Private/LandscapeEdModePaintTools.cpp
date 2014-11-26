@@ -174,8 +174,8 @@ public:
 					FVector Vert10 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 0.f, DATA_AT(*SourceDataArrayPtr, X + 1, Y + 0)));
 					FVector Vert11 = ToWorld.TransformPosition(FVector((float)X + 1.f, (float)Y + 1.f, DATA_AT(*SourceDataArrayPtr, X + 1, Y + 1)));
 
-					FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).SafeNormal();
-					FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).SafeNormal();
+					FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).GetSafeNormal();
+					FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).GetSafeNormal();
 
 					// contribute to the vertex normals.
 					DATA_AT(Normals, X + 1, Y + 0) += FaceNormal1;
@@ -188,7 +188,7 @@ public:
 			{
 				for (int32 X = X1; X <= X2; X++)
 				{
-					DATA_AT(Normals, X, Y) = DATA_AT(Normals, X, Y).SafeNormal();
+					DATA_AT(Normals, X, Y) = DATA_AT(Normals, X, Y).GetSafeNormal();
 				}
 			}
 
@@ -213,7 +213,7 @@ public:
 			if (TotalWeight > 0.f)
 			{
 				AveragePoint /= TotalWeight;
-				AverageNormal = AverageNormal.SafeNormal();
+				AverageNormal = AverageNormal.GetSafeNormal();
 			}
 
 			// Convert to world space

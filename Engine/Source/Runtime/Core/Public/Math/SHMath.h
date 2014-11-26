@@ -249,7 +249,7 @@ public:
 	FVector GetMaximumDirection() const
 	{
 		// This is an approximation which only takes into account first and second order spherical harmonics.
-		return FVector(-V[3], -V[1], V[2]).SafeNormal();
+		return FVector(-V[3], -V[1], V[2]).GetSafeNormal();
 	}
 
 	static TSHVector CalcDiffuseTransfer(const FVector& Normal)

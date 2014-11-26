@@ -107,7 +107,7 @@ void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(AActor* InSource
 		}
 
 		//Readjust so we have a full-length line going through the predicted target point.
-		FVector AimDirection = (TraceEnd - TraceStart).SafeNormal();
+		FVector AimDirection = (TraceEnd - TraceStart).GetSafeNormal();
 		if (AimDirection.SizeSquared() > 0.0f)
 		{
 			TraceEnd = TraceStart + (AimDirection * MaxRange);

@@ -1914,7 +1914,7 @@ FPoly* CreateHugeTrianglePolygonOnPlane( const FPlane* InPlane )
 	// Using the plane normal, get 2 good axis vectors
 
 	FVector A, B;
-	InPlane->SafeNormal().FindBestAxisVectors( A, B );
+	InPlane->GetSafeNormal().FindBestAxisVectors( A, B );
 
 	// Create 4 vertices from the plane origin and the 2 axis generated above
 
@@ -2076,7 +2076,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				{
 					FPlane* plane = SplitterPlanes[x];
 
-					if( plane->SafeNormal().Equals( SplittingPlane->SafeNormal(), NormalTolerance ) )
+					if( plane->GetSafeNormal().Equals( SplittingPlane->GetSafeNormal(), NormalTolerance ) )
 					{
 						bAddPlaneToList = false;
 						break;
@@ -2085,15 +2085,15 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 				// As a final test, make sure that this planes normal falls within the normal limits that were defined
 
-				if( FMath::Abs( SplittingPlane->SafeNormal().X ) > NormalLimits.X )
+				if( FMath::Abs( SplittingPlane->GetSafeNormal().X ) > NormalLimits.X )
 				{
 					bAddPlaneToList = false;
 				}
-				if( FMath::Abs( SplittingPlane->SafeNormal().Y ) > NormalLimits.Y )
+				if( FMath::Abs( SplittingPlane->GetSafeNormal().Y ) > NormalLimits.Y )
 				{
 					bAddPlaneToList = false;
 				}
-				if( FMath::Abs( SplittingPlane->SafeNormal().Z ) > NormalLimits.Z )
+				if( FMath::Abs( SplittingPlane->GetSafeNormal().Z ) > NormalLimits.Z )
 				{
 					bAddPlaneToList = false;
 				}
@@ -2132,7 +2132,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				poly = &(*BuilderBrushPolys)[bp];
 
 				FPoly Front, Back;
-				int res = poly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->SafeNormal(), &Front, &Back, true );
+				int res = poly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->GetSafeNormal(), &Front, &Back, true );
 				switch( res )
 				{
 					// Ignore these results.  We don't want them.
@@ -2183,7 +2183,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 						plane = new FPlane( poly->Vertices[0], poly->Vertices[1], poly->Vertices[2] );
 
 						FPoly Front, Back;
-						int res = CappingPoly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->SafeNormal(), &Front, &Back, true );
+						int res = CappingPoly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->GetSafeNormal(), &Front, &Back, true );
 						switch( res )
 						{
 							case SP_Split:

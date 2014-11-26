@@ -56,7 +56,7 @@ bool UBTDecorator_ConeCheck::CalculateDirection(const UBlackboardComponent* Blac
 		}
 		else if (BlackboardComp->GetLocationFromEntry(Origin.GetSelectedKeyID(), PointA) && BlackboardComp->GetLocationFromEntry(End.GetSelectedKeyID(), PointB))
 		{
-			Direction = (PointB - PointA).SafeNormal();
+			Direction = (PointB - PointA).GetSafeNormal();
 			return true;
 		}
 	}

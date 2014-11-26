@@ -216,13 +216,13 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	const FVector ToCorner = NextPathCorner - AgentLoc;
 	if (ToCorner.SizeSquared() > FMath::Square(10.0f))
 	{
-		MoveSegmentDirection = ToCorner.SafeNormal();
+		MoveSegmentDirection = ToCorner.GetSafeNormal();
 	}
 
 	// CrowdAgentMoveDirection either direction on path or aligned with current velocity
 	if (!bTraversingLink)
 	{
-		CrowdAgentMoveDirection = bRotateToVelocity && (NewVelocity.SizeSquared() > KINDA_SMALL_NUMBER) ? NewVelocity.SafeNormal() : MoveSegmentDirection;
+		CrowdAgentMoveDirection = bRotateToVelocity && (NewVelocity.SizeSquared() > KINDA_SMALL_NUMBER) ? NewVelocity.GetSafeNormal() : MoveSegmentDirection;
 	}
 }
 
@@ -596,7 +596,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		bCheckMovementAngle = true;
 		bUpdateDirectMoveVelocity = DestinationActor.IsValid();
 		CurrentDestination.Set(Path->GetBaseActor(), CurrentTargetPt);
-		CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).SafeNormal();
+		CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).GetSafeNormal();
 		MoveSegmentDirection = CrowdAgentMoveDirection;
 		SuspendCrowdSteering(true);
 
@@ -706,7 +706,7 @@ void UCrowdFollowingComponent::FollowPathSegment(float DeltaTime)
 			const FVector AgentLoc = GetCrowdAgentLocation();
 
 			CurrentDestination.Set(Path->GetBaseActor(), CurrentTargetPt);
-			CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).SafeNormal();
+			CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).GetSafeNormal();
 			MoveSegmentDirection = CrowdAgentMoveDirection;
 
 			Manager->SetAgentMoveDirection(this, MoveSegmentDirection);

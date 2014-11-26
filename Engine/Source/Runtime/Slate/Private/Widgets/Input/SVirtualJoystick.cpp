@@ -359,7 +359,7 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 			// now pass the fake joystick events to the game
 			// Assume that joystick size is all equal
 			float JoysticInputSize = Control.ThumbPosition.Size() * 2.f / Control.VisualSize.X;
-			FVector2D NormalizedOffset = Control.ThumbPosition.SafeNormal() * Control.InputScale * JoysticInputSize;
+			FVector2D NormalizedOffset = Control.ThumbPosition.GetSafeNormal() * Control.InputScale * JoysticInputSize;
 			EControllerButtons::Type XAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogX : EControllerButtons::RightAnalogX;
 			EControllerButtons::Type YAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogY : EControllerButtons::RightAnalogY;
 

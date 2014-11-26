@@ -67,7 +67,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 		if (ActorValue != NULL)
 		{
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
-				, (ActorValue->GetActorLocation() - PawnLocation).SafeNormal2D());
+				, (ActorValue->GetActorLocation() - PawnLocation).GetSafeNormal2D());
 			
 			if (AngleDifference >= PrecisionDot)
 			{
@@ -89,7 +89,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 		if (FAISystem::IsValidLocation(KeyValue))
 		{
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
-				, (KeyValue - PawnLocation).SafeNormal2D());
+				, (KeyValue - PawnLocation).GetSafeNormal2D());
 
 			if (AngleDifference >= PrecisionDot)
 			{
@@ -144,7 +144,7 @@ void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent* OwnerComp, ui
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();				
 		const FVector FocalPoint = AIController->GetFocalPoint(EAIFocusPriority::Gameplay);
 
-		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).SafeNormal2D()) >= PrecisionDot)
+		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D()) >= PrecisionDot)
 		{
 			CleanUp(*AIController, NodeMemory);
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
@@ -197,7 +197,7 @@ void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeCompo
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();
 		const FVector FocalPoint = AIController->GetFocusItem(EAIFocusPriority::Gameplay).GetLocation();
 
-		const float CurrentAngleRadians = CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).SafeNormal2D());
+		const float CurrentAngleRadians = CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D());
 		Values.Add(FString::Printf(TEXT("Current angle: %.2f"), FMath::RadiansToDegrees(FMath::Acos(CurrentAngleRadians))));
 	}
 	else

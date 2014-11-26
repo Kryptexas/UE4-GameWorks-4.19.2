@@ -1167,7 +1167,7 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, con
 		DeltaPos = FVector2D(10.0f, 0.0f);
 	}
 
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).SafeNormal();
+	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	const FVector2D SlidingCapsuleBias = FVector2D::ZeroVector;//(0.5f * FMath::Sin(Normal.X * (float)HALF_PI) * DesiredSize.X, 0.0f);
 

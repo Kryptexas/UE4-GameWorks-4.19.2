@@ -86,12 +86,12 @@ FViewportCursorLocation::FViewportCursorLocation( const FSceneView* View, FEdito
 	if ( ViewportClient->IsPerspective() )
 	{
 		Origin = View->ViewMatrices.ViewOrigin;
-		Direction = InvViewMatrix.TransformVector(FVector(InvProjMatrix.TransformFVector4(FVector4(ScreenX * GNearClippingPlane,ScreenY * GNearClippingPlane,0.0f,GNearClippingPlane)))).SafeNormal();
+		Direction = InvViewMatrix.TransformVector(FVector(InvProjMatrix.TransformFVector4(FVector4(ScreenX * GNearClippingPlane,ScreenY * GNearClippingPlane,0.0f,GNearClippingPlane)))).GetSafeNormal();
 	}
 	else
 	{
 		Origin = InvViewMatrix.TransformFVector4(InvProjMatrix.TransformFVector4(FVector4(ScreenX,ScreenY,0.5f,1.0f)));
-		Direction = InvViewMatrix.TransformVector(FVector(0,0,1)).SafeNormal();
+		Direction = InvViewMatrix.TransformVector(FVector(0,0,1)).GetSafeNormal();
 	}
 }
 

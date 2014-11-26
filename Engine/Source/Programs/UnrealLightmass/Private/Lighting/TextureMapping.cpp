@@ -293,7 +293,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 		TextureMapping->Mesh->GetTriangle(TriangleIndex, V0.Vertex, V1.Vertex, V2.Vertex, Element);
 		V0.ElementIndex = V1.ElementIndex = V2.ElementIndex = Element;
 
-		const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).SafeNormal();
+		const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).GetSafeNormal();
 
 		// Don't rasterize degenerates 
 		if (!TriangleNormal.IsNearlyZero3())
@@ -806,7 +806,7 @@ void FStaticLightingSystem::SetupTextureMapping(
 			TextureMapping->Mesh->GetTriangle(TriangleIndex,V0.Vertex,V1.Vertex,V2.Vertex,Element);
 			V0.ElementIndex = V1.ElementIndex = V2.ElementIndex = Element;
 
-			const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).SafeNormal();
+			const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).GetSafeNormal();
 
 			// Don't rasterize degenerates 
 			if (!TriangleNormal.IsNearlyZero3())
@@ -1902,7 +1902,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 					CurrentSample.SetMapped(true);
 
 					const FVector4 LightPosition = Light->LightCenterPosition(TexelToVertex.WorldPosition, TexelToVertex.WorldTangentZ);
-					const FVector4 LightVector = (LightPosition - TexelToVertex.WorldPosition).SafeNormal();
+					const FVector4 LightVector = (LightPosition - TexelToVertex.WorldPosition).GetSafeNormal();
 
 					FVector4 NormalForOffset = CurrentSample.GetNormal();
 					// Flip the normal used for offsetting the start of the ray for two sided materials if a flipped normal would be closer to the light.
@@ -2133,7 +2133,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 								&& Light->AffectsBounds(FBoxSphereBounds(HighResSample.GetPosition(), FVector4(0,0,0),0)))
 							{
 								const FVector4 LightPosition = Light->LightCenterPosition(HighResSample.GetPosition(), HighResSample.GetNormal());
-								const FVector4 LightVector = (LightPosition - HighResSample.GetPosition()).SafeNormal();
+								const FVector4 LightVector = (LightPosition - HighResSample.GetPosition()).GetSafeNormal();
 
 								FVector4 NormalForOffset = HighResSample.GetNormal();
 								// Flip the normal used for offsetting the start of the ray for two sided materials if a flipped normal would be closer to the light.

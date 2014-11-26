@@ -189,8 +189,8 @@ FTransform UPaperTerrainComponent::GetTransformAtDistance(float InDistance) cons
 	const float Param = AssociatedSpline->SplineReparamTable.Eval(InDistance, 0.0f);
 	const FVector Position3D = AssociatedSpline->SplineInfo.Eval(Param, FVector::ZeroVector);
 
-	const FVector Tangent = AssociatedSpline->SplineInfo.EvalDerivative(Param, FVector(1.0f, 0.0f, 0.0f)).SafeNormal();
-	const FVector NormalEst = AssociatedSpline->SplineInfo.EvalSecondDerivative(Param, FVector(0.0f, 1.0f, 0.0f)).SafeNormal();
+	const FVector Tangent = AssociatedSpline->SplineInfo.EvalDerivative(Param, FVector(1.0f, 0.0f, 0.0f)).GetSafeNormal();
+	const FVector NormalEst = AssociatedSpline->SplineInfo.EvalSecondDerivative(Param, FVector(0.0f, 1.0f, 0.0f)).GetSafeNormal();
 	const FVector Bitangent = FVector::CrossProduct(Tangent, NormalEst);
 	const FVector Normal = FVector::CrossProduct(Bitangent, Tangent);
 	const FVector Floop = FVector::CrossProduct(PaperAxisZ, Tangent);

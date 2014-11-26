@@ -640,7 +640,7 @@ void UPrimitiveComponent::ReceiveComponentDamage(float DamageAmount, FDamageEven
 		FPointDamageEvent* const PointDamageEvent = (FPointDamageEvent*) &DamageEvent;
 		if((DamageTypeCDO->DamageImpulse > 0.f) && !PointDamageEvent->ShotDirection.IsNearlyZero())
 		{
-			FVector const ImpulseToApply = PointDamageEvent->ShotDirection.SafeNormal() * DamageTypeCDO->DamageImpulse;
+			FVector const ImpulseToApply = PointDamageEvent->ShotDirection.GetSafeNormal() * DamageTypeCDO->DamageImpulse;
 			AddImpulseAtLocation( ImpulseToApply, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.BoneName );
 		}
 	}
@@ -1178,7 +1178,7 @@ static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestH
 			const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
 
 			// Dot product of movement direction against 'exit' direction
-			const FVector MovementDir = MovementDirDenormalized.SafeNormal();
+			const FVector MovementDir = MovementDirDenormalized.GetSafeNormal();
 			const float MoveDot = (TestHit.ImpactNormal | MovementDir);
 
 			const bool bMovingOut = MoveDot > DotTolerance;

@@ -466,7 +466,7 @@ FLinearColor FLight::GetDirectIntensity(const FVector4& Point, bool bCalculateFo
 	// light profile (IES)
 	float LightProfileAttenuation;
 	{
-		FVector4 NegLightVector = (Position - Point).SafeNormal();
+		FVector4 NegLightVector = (Position - Point).GetSafeNormal();
 
 		LightProfileAttenuation = ComputeLightProfileMultiplier(Dot3(NegLightVector, Direction));
 	}
@@ -970,7 +970,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 
 	// light profile (IES)
 	{
-		FVector4 NegLightVector = (Position - Point).SafeNormal();
+		FVector4 NegLightVector = (Position - Point).GetSafeNormal();
 
 		UnrealAttenuation *= ComputeLightProfileMultiplier(Dot3(NegLightVector, Direction));
 	}
@@ -1020,7 +1020,7 @@ void FPointLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& Samp
 		this
 		);
 
-	LightSourceNormal = (SurfaceSample.Position - Position).SafeNormal();
+	LightSourceNormal = (SurfaceSample.Position - Position).GetSafeNormal();
 
 	// Approximate the probability of generating this direction as uniform over all the solid angles
 	// This diverges from the actual probability for positions inside the light source radius
@@ -1321,7 +1321,7 @@ FLinearColor FSpotLight::GetDirectIntensity(const FVector4& Point, bool bCalcula
 			OuterCone = FMath::Cos(ClampedOuterConeAngle),
 			InnerCone = FMath::Cos(ClampedInnerConeAngle);
 
-	FVector4 LightVector = (Point - Position).SafeNormal();
+	FVector4 LightVector = (Point - Position).GetSafeNormal();
 	float SpotAttenuation = FMath::Square(FMath::Clamp<float>((Dot3(LightVector, Direction) - OuterCone) / (InnerCone - OuterCone),0.0f,1.0f));
 
 	if( LightFlags & GI_LIGHT_INVERSE_SQUARED )
@@ -1598,7 +1598,7 @@ FLinearColor FMeshAreaLight::GetDirectIntensity(const FVector4& Point, bool bCal
 		{
 			PrimitiveCenter += CurrentPrimitive.Corners[CornerIndex].WorldPosition / 4.0f;
 		}
-		const FVector4 LightVector = (Point - PrimitiveCenter).SafeNormal();
+		const FVector4 LightVector = (Point - PrimitiveCenter).GetSafeNormal();
 		const float NDotL = Dot3(LightVector, CurrentPrimitive.SurfaceNormal);
 		if (NDotL >= 0)
 		{

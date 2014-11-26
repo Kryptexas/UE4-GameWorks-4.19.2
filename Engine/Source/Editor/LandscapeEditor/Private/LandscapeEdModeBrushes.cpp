@@ -1164,7 +1164,7 @@ public:
 			{
 				double SampleTime = FPlatformTime::Seconds();
 				float DeltaTime = (float)(SampleTime - LastMouseSampleTime);
-				FVector2D MouseDirection = MouseDelta.SafeNormal();
+				FVector2D MouseDirection = MouseDelta.GetSafeNormal();
 				float MouseAngle = FMath::Lerp(LastMouseAngle, FMath::Atan2(-MouseDirection.Y, MouseDirection.X), FMath::Min<float>(10.f * DeltaTime, 1.f));		// lerp over 100ms
 				LastMouseAngle = MouseAngle;
 				LastMouseSampleTime = SampleTime;

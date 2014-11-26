@@ -62,7 +62,7 @@ void UProjectileMovementComponent::InitializeComponent()
 		// InitialSpeed > 0 overrides initial velocity magnitude.
 		if (InitialSpeed > 0.f)
 		{
-			Velocity = Velocity.SafeNormal() * InitialSpeed;
+			Velocity = Velocity.GetSafeNormal() * InitialSpeed;
 		}
 
 		if (bInitialVelocityInLocalSpace)
@@ -182,7 +182,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			// if velocity still into wall (after HandleHitWall() had a chance to adjust), slide along wall
 			const float DotTolerance = 0.01f;
 			bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Normal)) ||
-						 ((Velocity.SafeNormal() | Normal) <= DotTolerance);
+						 ((Velocity.GetSafeNormal() | Normal) <= DotTolerance);
 			
 			if (bIsSliding)
 			{
@@ -190,7 +190,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 				{
 					//90 degree or less corner, so use cross product for direction
 					FVector NewDir = (Normal ^ PreviousHitNormal);
-					NewDir = NewDir.SafeNormal();
+					NewDir = NewDir.GetSafeNormal();
 					Velocity = Velocity.ProjectOnToNormal(NewDir);
 					if ((OldVelocity | Velocity) < 0.f)
 					{
@@ -268,7 +268,7 @@ bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTick
 			const FVector ProjectedForce = FVector::VectorPlaneProject(Force, OldHitNormal);
 			const FVector NewVelocity = Velocity + ProjectedForce;
 
-			const FVector FrictionForce = -NewVelocity.SafeNormal() * FMath::Min(-ForceDotN * Friction, NewVelocity.Size());
+			const FVector FrictionForce = -NewVelocity.GetSafeNormal() * FMath::Min(-ForceDotN * Friction, NewVelocity.Size());
 			Velocity = ConstrainDirectionToPlane(NewVelocity + FrictionForce);
 		}
 		else
@@ -319,7 +319,7 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 	const float CurrentMaxSpeed = GetMaxSpeed();
 	if (CurrentMaxSpeed > 0.f)
 	{
-		NewVelocity = NewVelocity.ClampMaxSize(CurrentMaxSpeed);
+		NewVelocity = NewVelocity.GetClampedToMaxSize(CurrentMaxSpeed);
 	}
 
 	return ConstrainDirectionToPlane(NewVelocity);
@@ -357,7 +357,7 @@ FVector UProjectileMovementComponent::ComputeAcceleration(const FVector& InVeloc
 // Allow the projectile to track towards its homing target.
 FVector UProjectileMovementComponent::ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime) const
 {
-	FVector HomingAcceleration = ((HomingTargetComponent->GetComponentLocation() - UpdatedComponent->GetComponentLocation()).SafeNormal() * HomingAccelerationMagnitude);
+	FVector HomingAcceleration = ((HomingTargetComponent->GetComponentLocation() - UpdatedComponent->GetComponentLocation()).GetSafeNormal() * HomingAccelerationMagnitude);
 	return HomingAcceleration;
 }
 

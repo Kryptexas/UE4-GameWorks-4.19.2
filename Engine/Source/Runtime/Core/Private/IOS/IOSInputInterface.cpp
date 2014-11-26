@@ -207,7 +207,7 @@ void FIOSInputInterface::GetMovementData(FVector& Attitude, FVector& RotationRat
 		FilteredAccelerometer = FilteredAccelerometer * VectorFilter + (1.0f - VectorFilter) * NewAcceleration;
 
 		// create an normalized acceleration vector
-		FVector FinalAcceleration = -FilteredAccelerometer.SafeNormal();
+		FVector FinalAcceleration = -FilteredAccelerometer.GetSafeNormal();
 
 		// calculate Roll/Pitch
 		float CurrentPitch = FMath::Atan2(FinalAcceleration.Y, FinalAcceleration.Z);

@@ -346,7 +346,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 		{
 			OldLocation	= Particle.OldLocation;
 		}
-		FVector	Direction = (Location - OldLocation).SafeNormal();
+		FVector	Direction = (Location - OldLocation).GetSafeNormal();
 
 		// Determine the size
 		FVector Size = Particle.Size * ParentScale;

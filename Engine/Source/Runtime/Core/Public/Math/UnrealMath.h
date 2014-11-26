@@ -102,7 +102,7 @@ inline FPlane FPlane::TransformBy( const FMatrix& M ) const
 
 inline FPlane FPlane::TransformByUsingAdjointT( const FMatrix& M, float DetM, const FMatrix& TA ) const
 {
-	FVector newNorm = TA.TransformVector(*this).SafeNormal();
+	FVector newNorm = TA.TransformVector(*this).GetSafeNormal();
 
 	if(DetM < 0.f)
 	{

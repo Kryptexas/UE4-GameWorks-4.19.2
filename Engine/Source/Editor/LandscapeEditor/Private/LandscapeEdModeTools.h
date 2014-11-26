@@ -419,9 +419,9 @@ struct TLandscapeEditCache
 		FVector Vert10 = FVector(1.f, 0.f, V10);
 		FVector Vert11 = FVector(1.f, 1.f, V11);
 
-		FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).SafeNormal();
-		FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).SafeNormal();
-		return (FaceNormal1 + FaceNormal2).SafeNormal();
+		FVector FaceNormal1 = ((Vert00 - Vert10) ^ (Vert10 - Vert11)).GetSafeNormal();
+		FVector FaceNormal2 = ((Vert11 - Vert01) ^ (Vert01 - Vert00)).GetSafeNormal();
+		return (FaceNormal1 + FaceNormal2).GetSafeNormal();
 	}
 
 	void SetValue(int32 LandscapeX, int32 LandscapeY, AccessorType Value)

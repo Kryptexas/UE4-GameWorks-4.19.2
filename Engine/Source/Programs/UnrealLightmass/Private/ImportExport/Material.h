@@ -47,7 +47,7 @@ namespace Lightmass
 		{
 			Normal = MaterialNormal.SampleNormal(UV);
 			Normal.W = 0.0f;
-			Normal = Normal.SafeNormal();
+			Normal = Normal.GetSafeNormal();
 			if( Normal.SizeSquared3() < KINDA_SMALL_NUMBER )
 			{
 				Normal.Set( 0.0f, 0.0f, 1.0f, 0.0f );

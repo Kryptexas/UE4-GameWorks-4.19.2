@@ -1083,7 +1083,7 @@ void UParticleModuleLocationPrimitiveCylinder::SpawnEx(FParticleEmitterInstance*
 	vNormalizedDir.Normalize();
 
 	FVector2D vUnitDir2D(vUnitDir[RadialIndex0], vUnitDir[RadialIndex1]);
-	FVector2D vNormalizedDir2D = vUnitDir2D.SafeNormal();
+	FVector2D vNormalizedDir2D = vUnitDir2D.GetSafeNormal();
 
 	// Determine the position
 	// Always want Z in the [-Height, Height] range
@@ -1207,9 +1207,9 @@ void UParticleModuleLocationPrimitiveCylinder::Render3DPreview(FParticleEmitterI
 	FVector	TransformedAxis[3];
 	FVector	Axis[3];
 
-	TransformedAxis[0] = LocalToWorld.TransformVector(FVector(1.0f, 0.0f, 0.0f)).SafeNormal();
-	TransformedAxis[1] = LocalToWorld.TransformVector(FVector(0.0f, 1.0f, 0.0f)).SafeNormal();
-	TransformedAxis[2] = LocalToWorld.TransformVector(FVector(0.0f, 0.0f, 1.0f)).SafeNormal();
+	TransformedAxis[0] = LocalToWorld.TransformVector(FVector(1.0f, 0.0f, 0.0f)).GetSafeNormal();
+	TransformedAxis[1] = LocalToWorld.TransformVector(FVector(0.0f, 1.0f, 0.0f)).GetSafeNormal();
+	TransformedAxis[2] = LocalToWorld.TransformVector(FVector(0.0f, 0.0f, 1.0f)).GetSafeNormal();
 
 	switch (HeightAxis)
 	{

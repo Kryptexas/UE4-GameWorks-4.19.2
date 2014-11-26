@@ -318,12 +318,12 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	else if (InitOptions.bUseFauxOrthoViewPos)
 	{
 		float DistanceToViewOrigin = WORLD_MAX;
-		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).SafeNormal()*DistanceToViewOrigin,1) + InvViewMatrix.GetOrigin();
+		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal()*DistanceToViewOrigin,1) + InvViewMatrix.GetOrigin();
 	}
 #endif
 	else
 	{
-		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).SafeNormal(),0);
+		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal(),0);
 		// to avoid issues with view dependent effect (e.g. Frensel)
 		ApplyPreViewTranslation = false;
 	}
@@ -616,7 +616,7 @@ void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRe
 		RayEndViewSpace /= HGRayEndViewSpace.W;
 	}
 	FVector RayDirViewSpace = RayEndViewSpace - RayStartViewSpace;
-	RayDirViewSpace = RayDirViewSpace.SafeNormal();
+	RayDirViewSpace = RayDirViewSpace.GetSafeNormal();
 
 	// The view transform does not have projection, so we can use the standard functions that deal with vectors and normals (normals
 	// are vectors that do not use the translational part of a rotation/translation)
@@ -626,7 +626,7 @@ void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRe
 	// Finally, store the results in the hitcheck inputs.  The start position is the eye, and the end position
 	// is the eye plus a long distance in the direction the mouse is pointing.
 	out_WorldOrigin = RayStartWorldSpace;
-	out_WorldDirection = RayDirWorldSpace.SafeNormal();
+	out_WorldDirection = RayDirWorldSpace.GetSafeNormal();
 }
 
 #define LERP_PP(NAME) if(Src.bOverride_ ## NAME)	Dest . NAME = FMath::Lerp(Dest . NAME, Src . NAME, Weight);

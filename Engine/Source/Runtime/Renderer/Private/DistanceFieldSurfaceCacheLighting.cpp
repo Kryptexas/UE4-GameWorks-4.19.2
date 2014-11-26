@@ -3679,7 +3679,7 @@ FVector GetUnitPosition2(FRandomStream& RandomStream)
 /** Generates a pseudo-random unit vector, uniformly distributed over all directions. */
 FVector GetUnitVector2(FRandomStream& RandomStream)
 {
-	return GetUnitPosition2(RandomStream).UnsafeNormal();
+	return GetUnitPosition2(RandomStream).GetUnsafeNormal();
 }
 
 void GenerateBestSpacedVectors()
@@ -3721,14 +3721,14 @@ void GenerateBestSpacedVectors()
 						if (Dot > 0)
 						{
 							// Repulsion force
-							Force += .001f * Distance.SafeNormal() * Dot * Dot * Dot * Dot;
+							Force += .001f * Distance.GetSafeNormal() * Dot * Dot * Dot * Dot;
 						}
 					}
 				}
 
 				FVector NewPosition = OriginalSpacedVectors9[i] + Force;
 				NewPosition.Z = FMath::Max(NewPosition.Z, MinZ);
-				NewPosition = NewPosition.SafeNormal();
+				NewPosition = NewPosition.GetSafeNormal();
 				OriginalSpacedVectors9[i] = NewPosition;
 			}
 		}

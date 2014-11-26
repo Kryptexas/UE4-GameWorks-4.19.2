@@ -440,7 +440,7 @@ void DrawDebugCylinder(const UWorld* InWorld, FVector const& Start, FVector cons
 		float Angle = AngleInc;
 
 		// Default for Axis is up
-		FVector Axis = (End - Start).SafeNormal();
+		FVector Axis = (End - Start).GetSafeNormal();
 		if( Axis.IsZero() )
 		{
 			Axis = FVector(0.f, 0.f, 1.f);
@@ -584,7 +584,7 @@ void DrawDebugCone(const UWorld* InWorld, FVector const& Origin, FVector const& 
 
 		// Calculate transform for cone.
 		FVector YAxis, ZAxis;
-		FVector DirectionNorm = Direction.SafeNormal();
+		FVector DirectionNorm = Direction.GetSafeNormal();
 		DirectionNorm.FindBestAxisVectors(YAxis, ZAxis);
 		const FMatrix ConeToWorld = FScaleMatrix(FVector(Length)) * FMatrix(DirectionNorm, YAxis, ZAxis, Origin);
 

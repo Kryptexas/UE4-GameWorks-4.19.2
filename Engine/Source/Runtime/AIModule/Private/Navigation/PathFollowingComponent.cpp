@@ -85,7 +85,7 @@ void LogBlockHelper(AActor* LogOwner, UNavMovementComponent* MoveComp, float Rad
 	{
 		const FVector AgentLocation = MoveComp->GetActorFeetLocation();
 		const FVector ToTarget = (SegmentEnd - AgentLocation);
-		const float SegmentDot = FVector::DotProduct(ToTarget.SafeNormal(), (SegmentEnd - SegmentStart).SafeNormal());
+		const float SegmentDot = FVector::DotProduct(ToTarget.GetSafeNormal(), (SegmentEnd - SegmentStart).GetSafeNormal());
 		UE_VLOG(LogOwner, LogPathFollowing, Verbose, TEXT("[agent to segment end] dot [segment dir]: %f"), SegmentDot);
 		
 		float AgentRadius = 0.0f;
@@ -557,12 +557,12 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		CurrentDestination.Set(Path->GetBaseActor(), SegmentEnd);
 		CurrentAcceptanceRadius = (Path->GetPathPoints().Num() == (EndSegmentIndex + 1)) ? AcceptanceRadius : 0.0f;
 
-		MoveSegmentDirection = (SegmentEnd - SegmentStart).SafeNormal();
+		MoveSegmentDirection = (SegmentEnd - SegmentStart).GetSafeNormal();
 		
 		// make sure we have a non-zero direction if still following a valid path
 		if (MoveSegmentDirection.IsZero() && int32(MoveSegmentEndIndex + 1) < Path->GetPathPoints().Num())
 		{
-			MoveSegmentDirection = (Path->GetPathPoints()[MoveSegmentEndIndex + 1].Location - SegmentStart).SafeNormal();
+			MoveSegmentDirection = (Path->GetPathPoints()[MoveSegmentEndIndex + 1].Location - SegmentStart).GetSafeNormal();
 		}
 
 		// handle moving through custom nav links
@@ -962,7 +962,7 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	}
 
 	const FVector ToGoal = (GoalLocation - AgentLocation);
-	CurrentDot = FVector::DotProduct(ToGoal.SafeNormal(), MoveSegmentDirection);
+	CurrentDot = FVector::DotProduct(ToGoal.GetSafeNormal(), MoveSegmentDirection);
 	bDotFailed = (CurrentDot < 0.0f) ? 1 : 0;
 
 	// get cylinder of moving agent

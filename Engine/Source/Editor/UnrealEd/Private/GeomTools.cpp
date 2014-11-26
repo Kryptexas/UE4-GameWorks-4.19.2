@@ -316,10 +316,10 @@ static void FixPolyWinding(FUtilPoly2D& Poly)
 		int32 CIndex = (i+1)%Poly.Verts.Num();
 
 		float ABDist = (Poly.Verts[BIndex].Pos - Poly.Verts[AIndex].Pos).Size();
-		FVector2D ABEdge = (Poly.Verts[BIndex].Pos - Poly.Verts[AIndex].Pos).SafeNormal();
+		FVector2D ABEdge = (Poly.Verts[BIndex].Pos - Poly.Verts[AIndex].Pos).GetSafeNormal();
 
 		float BCDist = (Poly.Verts[CIndex].Pos - Poly.Verts[BIndex].Pos).Size();
-		FVector2D BCEdge = (Poly.Verts[CIndex].Pos - Poly.Verts[BIndex].Pos).SafeNormal();
+		FVector2D BCEdge = (Poly.Verts[CIndex].Pos - Poly.Verts[BIndex].Pos).GetSafeNormal();
 
 		// See if points are co-incident or edges are co-linear - if so, remove.
 		if(ABDist < 0.01f || BCDist < 0.01f || ABEdge.Equals(BCEdge, 0.01f))
@@ -595,7 +595,7 @@ FClipSMPolygon Transform2DPolygonToSMPolygon(const FUtilPoly2D& InPoly, const FM
 	}
 
 	// Assume that the matrix defines the polygon's normal.
-	Result.FaceNormal = InMatrix.TransformVector(FVector(0,0,-1)).SafeNormal();
+	Result.FaceNormal = InMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal();
 
 	return Result;
 }
@@ -636,7 +636,7 @@ static FMatrix ComputeTriangleParameterToAttribute(
 {
 	const FVector AttributeOverS = AttributeV1 - AttributeV0;
 	const FVector AttributeOverT = AttributeV2 - AttributeV0;
-	const FVector AttributeOverNormal = (AttributeOverS ^ AttributeOverT).SafeNormal();
+	const FVector AttributeOverNormal = (AttributeOverS ^ AttributeOverT).GetSafeNormal();
 	return FMatrix(
 		FPlane(	AttributeOverS.X,		AttributeOverS.Y,		AttributeOverS.Z,		0	),
 		FPlane(	AttributeOverT.X,		AttributeOverT.Y,		AttributeOverT.Z,		0	),
@@ -876,7 +876,7 @@ void Split2DPolysWithPlane(FUtilPoly2DSet& PolySet, const FPlane& Plane, const F
 	check(!Intersect.ContainsNaN());
 
 	// Make 2D line.
-	FVector2D Normal2D = FVector2D(LNormal.X, LNormal.Y).SafeNormal();
+	FVector2D Normal2D = FVector2D(LNormal.X, LNormal.Y).GetSafeNormal();
 	FVector2D Base2D = FVector2D(Intersect.X, Intersect.Y);
 	FSplitLine2D Plane2D(Base2D, Normal2D);
 

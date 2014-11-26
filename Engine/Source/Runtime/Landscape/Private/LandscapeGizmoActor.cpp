@@ -189,7 +189,7 @@ public:
 						SampledPos.Z = Gizmo->GetLandscapeHeight(SampledPos.Z);
 
 						FVector SampledNormal = NormalM.TransformVector(Gizmo->SampledNormal[X + Y * ALandscapeGizmoActiveActor::DataTexSize]);
-						SampledNormal = SampledNormal.SafeNormal();
+						SampledNormal = SampledNormal.GetSafeNormal();
 
 						SampledPositions.Add(SampledPos);
 						SampledNormals.Add(SampledNormal);
@@ -277,7 +277,7 @@ public:
 							{
 								FVector SampledNormal = SampledNormals[X + Y * SampleSizeX];
 								FVector TangentX(SampledNormal.Z, 0, -SampledNormal.X);
-								TangentX = TangentX.SafeNormal();
+								TangentX = TangentX.GetSafeNormal();
 
 								MeshBuilder.AddVertex(SampledPositions[X + Y * SampleSizeX], FVector2D((float)X / (SampleSizeX), (float)Y / (SampleSizeY)), TangentX, SampledNormal^TangentX, SampledNormal, FColor(255, 255, 255) );
 							}
@@ -744,8 +744,8 @@ void ALandscapeGizmoActiveActor::CalcNormal()
 				FVector Vert10 = SampledHeight[X+1 + Y*DataTexSize];
 				FVector Vert11 = SampledHeight[X+1 + (Y+1)*DataTexSize];
 
-				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal(); 
+				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).GetSafeNormal();
+				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).GetSafeNormal(); 
 
 				// contribute to the vertex normals.
 				SampledNormal[X + Y*DataTexSize] += FaceNormal1;
@@ -758,7 +758,7 @@ void ALandscapeGizmoActiveActor::CalcNormal()
 		{
 			for (int32 X = 0; X < SampleSizeX; ++X)
 			{
-				SampledNormal[X + Y*DataTexSize] = SampledNormal[X + Y*DataTexSize].SafeNormal();
+				SampledNormal[X + Y*DataTexSize] = SampledNormal[X + Y*DataTexSize].GetSafeNormal();
 			}
 		}
 	}

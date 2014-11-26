@@ -6245,7 +6245,7 @@ static void DrawVolumeOnCanvas(const AVolume* Volume, FCanvas* Canvas, const FVe
 				// We only want to draw faces pointing up
 				const FVector Edge0 = V1 - V0;
 				const FVector Edge1 = V2 - V1;
-				const FVector Normal = (Edge1 ^ Edge0).SafeNormal();
+				const FVector Normal = (Edge1 ^ Edge0).GetSafeNormal();
 				if(Normal.Z > 0.01)
 				{
 					// Transform as 2d points in 'map space'

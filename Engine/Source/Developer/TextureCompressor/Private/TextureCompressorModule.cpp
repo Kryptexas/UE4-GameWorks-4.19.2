@@ -1589,7 +1589,7 @@ static void NormalizeMip(FImage& InOutMip)
 
 		FVector Normal = FVector(Color.R * 2.0f - 1.0f, Color.G * 2.0f - 1.0f, Color.B * 2.0f - 1.0f);
 
-		Normal = Normal.SafeNormal();
+		Normal = Normal.GetSafeNormal();
 
 		Color = FLinearColor(Normal.X * 0.5f + 0.5f, Normal.Y * 0.5f + 0.5f, Normal.Z * 0.5f + 0.5f, Color.A);
 	}

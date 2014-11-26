@@ -500,7 +500,7 @@ static FVector SplineEvalDir(const FVector& StartPos, const FVector& StartTangen
 
 	const float A2 = A  * A;
 
-	return ((C * A2) + (D * A) + E).SafeNormal();
+	return ((C * A2) + (D * A) + E).GetSafeNormal();
 }
 
 
@@ -520,8 +520,8 @@ FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) c
 	const FVector SplineDir = SplineEvalDir( SplineParams.StartPos, SplineParams.StartTangent, SplineParams.EndPos, SplineParams.EndTangent, Alpha );
 
 	// Find base frenet frame
-	const FVector BaseXVec = (SplineUpDir ^ SplineDir).SafeNormal();
-	const FVector BaseYVec = (SplineDir ^ BaseXVec).SafeNormal();
+	const FVector BaseXVec = (SplineUpDir ^ SplineDir).GetSafeNormal();
+	const FVector BaseYVec = (SplineDir ^ BaseXVec).GetSafeNormal();
 
 	// Offset the spline by the desired amount
 	const FVector2D SliceOffset = FMath::Lerp<FVector2D>(SplineParams.StartOffset, SplineParams.EndOffset, HermiteAlpha);

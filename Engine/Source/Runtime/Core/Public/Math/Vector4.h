@@ -289,6 +289,9 @@ public:
 	 * @param Tolerance Minimum squared length of vector for normalization.
 	 * @return A normalized copy of the vector or a zero vector.
 	 */
+	FORCEINLINE FVector4 GetSafeNormal(float Tolerance = SMALL_NUMBER) const;
+
+	DEPRECATED(4.7, "Deprecated due to unclear name, use GetSafeNormal instead.")
 	FORCEINLINE FVector4 SafeNormal( float Tolerance=SMALL_NUMBER ) const;
 
 	/**
@@ -296,6 +299,9 @@ public:
 	 *
 	 * @return Normalized version of vector.
 	 */
+	FORCEINLINE FVector4 GetUnsafeNormal3() const;
+
+	DEPRECATED(4.7, "Deprecated due to unclear name, use GetUnsafeNormal3 instead.")
 	FORCEINLINE FVector4 UnsafeNormal3( ) const;
 
 	/**
@@ -562,7 +568,7 @@ FORCEINLINE bool FVector4::InitFromString( const FString& InSourceString )
 }
 
 
-FORCEINLINE FVector4 FVector4::SafeNormal( float Tolerance ) const
+FORCEINLINE FVector4 FVector4::GetSafeNormal( float Tolerance ) const
 {
 	const float SquareSum = X*X + Y*Y + Z*Z;
 	if( SquareSum > Tolerance )
@@ -574,10 +580,22 @@ FORCEINLINE FVector4 FVector4::SafeNormal( float Tolerance ) const
 }
 
 
-FORCEINLINE FVector4 FVector4::UnsafeNormal3( ) const
+FORCEINLINE FVector4 FVector4::SafeNormal(float Tolerance) const
+{
+	return GetSafeNormal(Tolerance);
+}
+
+
+FORCEINLINE FVector4 FVector4::GetUnsafeNormal3( ) const
 {
 	const float Scale = FMath::InvSqrt(X*X+Y*Y+Z*Z);
 	return FVector4( X*Scale, Y*Scale, Z*Scale, 0.0f );
+}
+
+
+FORCEINLINE FVector4 FVector4::UnsafeNormal3() const
+{
+	return GetUnsafeNormal3();
 }
 
 
@@ -633,7 +651,7 @@ FORCEINLINE void FVector4::FindBestAxisVectors3( FVector4& Axis1, FVector4& Axis
 	if( NZ>NX && NZ>NY )	Axis1 = FVector4(1,0,0);
 	else					Axis1 = FVector4(0,0,1);
 
-	Axis1 = (Axis1 - *this * Dot3(Axis1, *this)).SafeNormal();
+	Axis1 = (Axis1 - *this * Dot3(Axis1, *this)).GetSafeNormal();
 	Axis2 = Axis1 ^ *this;
 }
 

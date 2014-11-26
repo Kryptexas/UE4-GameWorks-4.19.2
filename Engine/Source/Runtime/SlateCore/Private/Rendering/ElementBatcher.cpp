@@ -823,7 +823,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	const FVector2D EndDir = InPayload.EndDir;
 	
 	// Compute the normal to the line
-	FVector2D Normal = FVector2D( StartPt.Y - EndPt.Y, EndPt.X - StartPt.X ).SafeNormal();
+	FVector2D Normal = FVector2D( StartPt.Y - EndPt.Y, EndPt.X - StartPt.X ).GetSafeNormal();
 
 	FVector2D Up = Normal * HalfThickness;
 
@@ -850,7 +850,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 		int32 IndexStart = BatchVertices.Num();
 
 		// Compute the normal to the line
-		FVector2D SegmentNormal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).SafeNormal();
+		FVector2D SegmentNormal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).GetSafeNormal();
 
 		// Create the new vertices for the thick line segment
 		Up = SegmentNormal * HalfThickness;
@@ -968,7 +968,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 		FVector2D StartPos = Points[0];
 		FVector2D EndPos = Points[1];
 
-		FVector2D Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).SafeNormal();
+		FVector2D Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).GetSafeNormal();
 
 		FVector2D Up = Normal * HalfThickness;
 
@@ -985,7 +985,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 			uint32 IndexStart = BatchVertices.Num();
 
 			// Compute the normal to the line
-			Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).SafeNormal();
+			Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).GetSafeNormal();
 
 			// Create the new vertices for the thick line segment
 			Up = Normal * HalfThickness;
@@ -1000,7 +1000,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 				const FVector2D NextEndPos = Points[Point+1];
 
 				// The normal of the next segment
-				const FVector2D NextNormal = FVector2D( EndPos.Y - NextEndPos.Y, NextEndPos.X - EndPos.X ).SafeNormal();
+				const FVector2D NextNormal = FVector2D( EndPos.Y - NextEndPos.Y, NextEndPos.X - EndPos.X ).GetSafeNormal();
 
 				// The next amount to adjust the vertices by 
 				FVector2D NextUp = NextNormal * HalfThickness;

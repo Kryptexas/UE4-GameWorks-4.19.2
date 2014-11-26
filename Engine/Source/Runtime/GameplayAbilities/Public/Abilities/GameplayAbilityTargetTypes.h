@@ -443,7 +443,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 		{
 			if (TargetActorArray[i].IsValid())
 			{
-				FVector Direction = (TargetActorArray[i].Get()->GetActorLocation() - ReturnTransform.GetLocation()).SafeNormal();
+				FVector Direction = (TargetActorArray[i].Get()->GetActorLocation() - ReturnTransform.GetLocation()).GetSafeNormal();
 				if (Direction.IsNormalized())
 				{
 					ReturnTransform.SetRotation(Direction.Rotation().Quaternion());

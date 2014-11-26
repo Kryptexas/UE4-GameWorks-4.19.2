@@ -1747,7 +1747,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 
 		FPoly front, back;
 
-		int32 res = Poly.SplitWithPlane( PlaneBase, InPlane.SafeNormal(), &front, &back, true );
+		int32 res = Poly.SplitWithPlane( PlaneBase, InPlane.GetSafeNormal(), &front, &back, true );
 
 		switch( res )
 		{
@@ -2492,7 +2492,7 @@ bool UGeomModifier_Split::OnApply()
 
 		// Generate a base and a normal for the cutting plane
 
-		const FVector PlaneNormal( (Vtx1 - Vtx0).SafeNormal() );
+		const FVector PlaneNormal( (Vtx1 - Vtx0).GetSafeNormal() );
 		const FVector PlaneBase = 0.5f*(Vtx1 + Vtx0);
 
 		// Clip the selected polygon against the cutting plane
@@ -2570,7 +2570,7 @@ bool UGeomModifier_Split::OnApply()
 
 		const FVector v0 = *Vertex0->GetActualVertex( Vertex0->ActualVertexIndices[0] );
 		const FVector v1 = *Vertex1->GetActualVertex( Vertex1->ActualVertexIndices[0] );
-		const FVector PlaneNormal( (v1 - v0).SafeNormal() );
+		const FVector PlaneNormal( (v1 - v0).GetSafeNormal() );
 		const FVector PlaneBase = 0.5f*(v1 + v0);
 
 		ABrush* Brush = GeomObject->GetActualBrush();

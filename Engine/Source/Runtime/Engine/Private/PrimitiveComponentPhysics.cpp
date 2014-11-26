@@ -72,7 +72,7 @@ bool UPrimitiveComponent::ApplyRigidBodyState(const FRigidBodyState& NewState, c
 		if (FMath::Abs(DeltaAng) < ErrorCorrection.AngularDeltaThreshold )
 		{
 			UpdatedQuat = FMath::Lerp(CurrentState.Quaternion, NewState.Quaternion, ErrorCorrection.AngularInterpAlpha);
-			FixAngVel = DeltaAxis.SafeNormal() * FMath::RadiansToDegrees(DeltaAng) * (1.f - ErrorCorrection.AngularInterpAlpha) * ErrorCorrection.AngularRecipFixTime;
+			FixAngVel = DeltaAxis.GetSafeNormal() * FMath::RadiansToDegrees(DeltaAng) * (1.f - ErrorCorrection.AngularInterpAlpha) * ErrorCorrection.AngularRecipFixTime;
 		}
 
 		/////// BODY UPDATE ///////

@@ -37,7 +37,7 @@ namespace
 	{
 		float uniScale = 5.8f;
 		FVector trans(5, 6, 7);
-		FQuat quat(FVector(1, 2, 3).SafeNormal(), 33.5f);
+		FQuat quat(FVector(1, 2, 3).GetSafeNormal(), 33.5f);
 		FRotator rot(7, 8, 9);
 		FMatrix mat = FRotationMatrix::Make(rot);
 

@@ -230,7 +230,7 @@ public:
 		if (LightDistance <= SubjectRadius * ShadowRadiusMultiplier)
 		{
 			// Make the primitive fit in a single < 90 degree FOV projection.
-			LightVector = SubjectRadius * LightVector.SafeNormal() * ShadowRadiusMultiplier;
+			LightVector = SubjectRadius * LightVector.GetSafeNormal() * ShadowRadiusMultiplier;
 			LightPosition = (SubjectBounds.Origin - LightVector );
 			LightDistance = SubjectRadius * ShadowRadiusMultiplier;
 			SilhouetteRadius = 1.0f;

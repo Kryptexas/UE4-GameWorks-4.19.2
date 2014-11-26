@@ -236,8 +236,8 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 				FVector Vert10 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X+1.f,	XYOffsets[(X+0) + NumVertsX*(Y+0)].Y, ((float)Data[(X+1) + Stride*(Y+0)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
 				FVector Vert11 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X+1.f,	XYOffsets[(X+0) + NumVertsX*(Y+0)].Y+1.f, ((float)Data[(X+1) + Stride*(Y+1)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
 
-				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal(); 
+				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).GetSafeNormal();
+				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).GetSafeNormal(); 
 
 				// contribute to the vertex normals.
 				VertexNormals[(X+1 + NumVertsX*(Y+0))] += FaceNormal1;
@@ -348,7 +348,7 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 							// Update normals if we're not on an edge vertex
 							if( VertexNormals && LandscapeX > X1 && LandscapeX < X2 && LandscapeY > Y1 && LandscapeY < Y2 )
 							{
-								FVector Normal = VertexNormals[DataIndex].SafeNormal();
+								FVector Normal = VertexNormals[DataIndex].GetSafeNormal();
 								TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
 								TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
 							}
@@ -460,8 +460,8 @@ void FLandscapeEditDataInterface::RecalculateNormals()
 				FVector Vert10 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X+1.f,	XYOffsets[(X+0) + Stride*(Y+0)].Y, ((float)HeightData[(X+1) + Stride*(Y+0)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
 				FVector Vert11 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X+1.f,	XYOffsets[(X+0) + Stride*(Y+0)].Y+1.f,((float)HeightData[(X+1) + Stride*(Y+1)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
 
-				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal(); 
+				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).GetSafeNormal();
+				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).GetSafeNormal(); 
 
 				// contribute to the vertex normals.
 				VertexNormals[(X+1 + Stride*(Y+0))] += FaceNormal1;
@@ -498,7 +498,7 @@ void FLandscapeEditDataInterface::RecalculateNormals()
 						FColor& TexData = HeightmapTextureData[ TexX + TexY * SizeU ];
 
 						// Update the texture
-						FVector Normal = VertexNormals[DataIndex].SafeNormal();
+						FVector Normal = VertexNormals[DataIndex].GetSafeNormal();
 						TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
 						TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
 					}

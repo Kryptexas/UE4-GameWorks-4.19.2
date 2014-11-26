@@ -723,7 +723,7 @@ void ULandscapeSplineControlPoint::AutoSetConnections(bool bIncludingValid)
 				FVector StartLocation; FRotator StartRotation;
 				NearConnection.ControlPoint->GetConnectionLocationAndRotation(NearConnection.SocketName, StartLocation, StartRotation);
 
-				if (FVector::DotProduct((EndLocation - StartLocation).SafeNormal(), StartRotation.Vector()) < 0)
+				if (FVector::DotProduct((EndLocation - StartLocation).GetSafeNormal(), StartRotation.Vector()) < 0)
 				{
 					NearConnection.TangentLen = -NearConnection.TangentLen;
 				}
@@ -856,7 +856,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 			const float Roll = FMath::DegreesToRadians(StartRotation.Roll);
 			const FVector Tangent = StartRotation.Vector();
-			const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).SafeNormal());
+			const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).GetSafeNormal());
 			const FVector LeftPos = StartLocation - BiNormal * Width;
 			const FVector RightPos = StartLocation + BiNormal * Width;
 			const FVector FalloffLeftPos = StartLocation - BiNormal * (Width + SideFalloff);
@@ -877,7 +877,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 		const float Roll = FMath::DegreesToRadians(StartRotation.Roll);
 		const FVector Tangent = StartRotation.Vector();
-		const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).SafeNormal());
+		const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).GetSafeNormal());
 		const FVector LeftPos = StartLocation - BiNormal * Width;
 		const FVector RightPos = StartLocation + BiNormal * Width;
 		const FVector FalloffLeftPos = StartLocation - BiNormal * (Width + SideFalloff);
@@ -1109,11 +1109,11 @@ void ULandscapeSplineSegment::AutoFlipTangents()
 	Connections[1].ControlPoint->GetConnectionLocationAndRotation(Connections[1].SocketName, EndLocation, EndRotation);
 
 	// Flipping the tangent is only allowed if not using a socket
-	if (Connections[0].SocketName == NAME_None && FVector::DotProduct((EndLocation - StartLocation).SafeNormal() * Connections[0].TangentLen, StartRotation.Vector()) < 0)
+	if (Connections[0].SocketName == NAME_None && FVector::DotProduct((EndLocation - StartLocation).GetSafeNormal() * Connections[0].TangentLen, StartRotation.Vector()) < 0)
 	{
 		Connections[0].TangentLen = -Connections[0].TangentLen;
 	}
-	if (Connections[1].SocketName == NAME_None && FVector::DotProduct((StartLocation - EndLocation).SafeNormal() * Connections[1].TangentLen, EndRotation.Vector()) < 0)
+	if (Connections[1].SocketName == NAME_None && FVector::DotProduct((StartLocation - EndLocation).GetSafeNormal() * Connections[1].TangentLen, EndRotation.Vector()) < 0)
 	{
 		Connections[1].TangentLen = -Connections[1].TangentLen;
 	}
@@ -1238,8 +1238,8 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		const float NewKeyFalloff = FMath::Lerp(StartSideFalloff, EndSideFalloff, NewKeyCosInterp);
 		const float NewKeyRoll = FMath::Lerp(StartRoll, EndRoll, NewKeyCosInterp);
 		const FVector NewKeyPos = SplineInfo.Eval(NewKeyTime, FVector::ZeroVector);
-		const FVector NewKeyTangent = SplineInfo.EvalDerivative(NewKeyTime, FVector::ZeroVector).SafeNormal();
-		const FVector NewKeyBiNormal = FQuat(NewKeyTangent, -NewKeyRoll).RotateVector((NewKeyTangent ^ FVector(0, 0, -1)).SafeNormal());
+		const FVector NewKeyTangent = SplineInfo.EvalDerivative(NewKeyTime, FVector::ZeroVector).GetSafeNormal();
+		const FVector NewKeyBiNormal = FQuat(NewKeyTangent, -NewKeyRoll).RotateVector((NewKeyTangent ^ FVector(0, 0, -1)).GetSafeNormal());
 		const FVector NewKeyLeftPos = NewKeyPos - NewKeyBiNormal * NewKeyWidth;
 		const FVector NewKeyRightPos = NewKeyPos + NewKeyBiNormal * NewKeyWidth;
 		const FVector NewKeyFalloffLeftPos = NewKeyPos - NewKeyBiNormal * (NewKeyWidth + NewKeyFalloff);
@@ -1261,8 +1261,8 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				const float NewFalloff = FMath::Lerp(StartSideFalloff, EndSideFalloff, NewCosInterp);
 				const float NewRoll = FMath::Lerp(StartRoll, EndRoll, NewCosInterp);
 				const FVector NewPos = SplineInfo.Eval(NewTime, FVector::ZeroVector);
-				const FVector NewTangent = SplineInfo.EvalDerivative(NewTime, FVector::ZeroVector).SafeNormal();
-				const FVector NewBiNormal = FQuat(NewTangent, -NewRoll).RotateVector((NewTangent ^ FVector(0, 0, -1)).SafeNormal());
+				const FVector NewTangent = SplineInfo.EvalDerivative(NewTime, FVector::ZeroVector).GetSafeNormal();
+				const FVector NewBiNormal = FQuat(NewTangent, -NewRoll).RotateVector((NewTangent ^ FVector(0, 0, -1)).GetSafeNormal());
 				const FVector NewLeftPos = NewPos - NewBiNormal * NewWidth;
 				const FVector NewRightPos = NewPos + NewBiNormal * NewWidth;
 				const FVector NewFalloffLeftPos = NewPos - NewBiNormal * (NewWidth + NewFalloff);
@@ -1679,8 +1679,8 @@ bool ULandscapeSplineSegment::FixSelfIntersection(FVector FLandscapeSplineInterp
 		{
 			const FLandscapeSplineInterpPoint& CurrentPoint = Points[i];
 			const FLandscapeSplineInterpPoint& NextPoint = Points[i+1];
-			const FVector Direction = (NextPoint.Center - CurrentPoint.Center).SafeNormal();
-			const FVector SideDirection = (NextPoint.*Side - CurrentPoint.*Side).SafeNormal();
+			const FVector Direction = (NextPoint.Center - CurrentPoint.Center).GetSafeNormal();
+			const FVector SideDirection = (NextPoint.*Side - CurrentPoint.*Side).GetSafeNormal();
 			bReversed = (SideDirection | Direction) < 0;
 		}
 

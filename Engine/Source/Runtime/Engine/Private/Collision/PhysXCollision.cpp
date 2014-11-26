@@ -205,7 +205,7 @@ public:
 
 		if (ResponseMode != ResponseNone)
 		{
-			ProcessHit(Fixture, Fraction, FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Normal).SafeNormal(), ResponseMode);
+			ProcessHit(Fixture, Fraction, FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Normal).GetSafeNormal(), ResponseMode);
 		}
 
 		switch (ResponseMode)
@@ -274,7 +274,7 @@ protected:
 			PointQueryStartTime = FPhysicsIntegration2D::ConvertUnrealVectorToPerpendicularDistance(Start);
 			const float PointQueryEndTime = FPhysicsIntegration2D::ConvertUnrealVectorToPerpendicularDistance(End);
 			PointQueryScaleFactor = 1.0f / (PointQueryEndTime - PointQueryStartTime);
-			PointQueryNormal = (Start - End).SafeNormal();
+			PointQueryNormal = (Start - End).GetSafeNormal();
 
 			// Run the query
 			b2AABB QueryBox;

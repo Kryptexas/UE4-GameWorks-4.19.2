@@ -382,7 +382,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 				V2.Z = 0;
 			}
 
-			const FVector LocalNormal = ((V1 - V2) ^ (V0 - V2)).SafeNormal();
+			const FVector LocalNormal = ((V1 - V2) ^ (V0 - V2)).GetSafeNormal();
 
 			// No degenerates
 			if (LocalNormal.IsUnit())
@@ -1482,7 +1482,7 @@ static void ComputeTriangleTangents(
 			P[i] = GetPositionForWedge(RawMesh, TriangleIndex * 3 + i);
 		}
 
-		const FVector Normal = ((P[1] - P[2])^(P[0] - P[2])).SafeNormal(ComparisonThreshold);
+		const FVector Normal = ((P[1] - P[2])^(P[0] - P[2])).GetSafeNormal(ComparisonThreshold);
 		FMatrix	ParameterToLocal(
 			FPlane(P[1].X - P[0].X, P[1].Y - P[0].Y, P[1].Z - P[0].Z, 0),
 			FPlane(P[2].X - P[0].X, P[2].Y - P[0].Y, P[2].Z - P[0].Z, 0),
@@ -1503,8 +1503,8 @@ static void ComputeTriangleTangents(
 		// Use InverseSlow to catch singular matrices.  Inverse can miss this sometimes.
 		const FMatrix TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
 
-		TriangleTangentX.Add(TextureToLocal.TransformVector(FVector(1,0,0)).SafeNormal());
-		TriangleTangentY.Add(TextureToLocal.TransformVector(FVector(0,1,0)).SafeNormal());
+		TriangleTangentX.Add(TextureToLocal.TransformVector(FVector(1,0,0)).GetSafeNormal());
+		TriangleTangentY.Add(TextureToLocal.TransformVector(FVector(0,1,0)).GetSafeNormal());
 		TriangleTangentZ.Add(Normal);
 
 		FVector::CreateOrthonormalBasis(
@@ -2044,9 +2044,9 @@ static FStaticMeshBuildVertex BuildStaticMeshVertex(FRawMesh const& RawMesh, int
 	Vertex.Position = GetPositionForWedge(RawMesh, WedgeIndex) * BuildScale;
 
 	const FMatrix ScaleMatrix = FScaleMatrix( BuildScale ).Inverse().GetTransposed();	
-	Vertex.TangentX = ScaleMatrix.TransformVector(RawMesh.WedgeTangentX[WedgeIndex]).SafeNormal();
-	Vertex.TangentY = ScaleMatrix.TransformVector(RawMesh.WedgeTangentY[WedgeIndex]).SafeNormal();
-	Vertex.TangentZ = ScaleMatrix.TransformVector(RawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
+	Vertex.TangentX = ScaleMatrix.TransformVector(RawMesh.WedgeTangentX[WedgeIndex]).GetSafeNormal();
+	Vertex.TangentY = ScaleMatrix.TransformVector(RawMesh.WedgeTangentY[WedgeIndex]).GetSafeNormal();
+	Vertex.TangentZ = ScaleMatrix.TransformVector(RawMesh.WedgeTangentZ[WedgeIndex]).GetSafeNormal();
 
 	if (RawMesh.WedgeColors.IsValidIndex(WedgeIndex))
 	{
@@ -2633,15 +2633,15 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 				);
 
 			FMatrix	TextureToLocal = ParameterToTexture.Inverse() * ParameterToLocal;
-			FVector	TangentX = TextureToLocal.TransformVector(FVector(1,0,0)).SafeNormal(),
-				TangentY = TextureToLocal.TransformVector(FVector(0,1,0)).SafeNormal(),
+			FVector	TangentX = TextureToLocal.TransformVector(FVector(1,0,0)).GetSafeNormal(),
+				TangentY = TextureToLocal.TransformVector(FVector(0,1,0)).GetSafeNormal(),
 				TangentZ;
 
 			TangentX = TangentX - TriangleNormal * (TangentX | TriangleNormal);
 			TangentY = TangentY - TriangleNormal * (TangentY | TriangleNormal);
 
-			FaceTangentX[FaceIndex] = TangentX.SafeNormal();
-			FaceTangentY[FaceIndex] = TangentY.SafeNormal();
+			FaceTangentX[FaceIndex] = TangentX.GetSafeNormal();
+			FaceTangentY[FaceIndex] = TangentY.GetSafeNormal();
 		}
 	}
 
@@ -2871,12 +2871,12 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 
 			if( bComputeNormals || bComputeTangents )
 			{
-				TangentX = VertexTangentX[VertexIndex].SafeNormal();
-				TangentY = VertexTangentY[VertexIndex].SafeNormal();
+				TangentX = VertexTangentX[VertexIndex].GetSafeNormal();
+				TangentY = VertexTangentY[VertexIndex].GetSafeNormal();
 
 				if( bComputeNormals )
 				{
-					TangentZ = VertexTangentZ[VertexIndex].SafeNormal();
+					TangentZ = VertexTangentZ[VertexIndex].GetSafeNormal();
 				}
 				else
 				{

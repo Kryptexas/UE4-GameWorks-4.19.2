@@ -107,7 +107,7 @@ FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& In
 		const FVector OrthoPitchAxis = FVector::CrossProduct(PitchReferenceAxis, InModelAxis);
 		const float Pitch = FMath::Acos(PitchReferenceAxis | DestNormalModelSpace) - FMath::Acos(PitchReferenceAxis | InModelAxis);//FMath::Asin(OrthoPitchAxis.Size());
 
-		DeltaRotation = FQuat(OrthoPitchAxis.SafeNormal(), Pitch);
+		DeltaRotation = FQuat(OrthoPitchAxis.GetSafeNormal(), Pitch);
 		DeltaRotation.Normalize();
 
 		// Transform the model axis with this new pitch rotation to see if there is any need for yaw

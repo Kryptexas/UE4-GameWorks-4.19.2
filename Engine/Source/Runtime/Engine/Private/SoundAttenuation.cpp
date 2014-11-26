@@ -161,7 +161,7 @@ float FAttenuationSettings::AttenuationEvalCone(const FTransform& SoundTransform
 
 	if (VolumeMultiplier > 0.f)
 	{
-		const float theta = FMath::RadiansToDegrees(fabsf(FMath::Acos( FVector::DotProduct(SoundForward, (ListenerLocation - Origin).SafeNormal()))));
+		const float theta = FMath::RadiansToDegrees(fabsf(FMath::Acos( FVector::DotProduct(SoundForward, (ListenerLocation - Origin).GetSafeNormal()))));
 		VolumeMultiplier *= AttenuationEval(DistanceAlgorithm, theta - AttenuationShapeExtents.Y, AttenuationShapeExtents.Z, dBAttenuationAtMax);
 	}
 

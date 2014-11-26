@@ -2194,8 +2194,8 @@ FParticleBeamTrailUniformBufferRef CreateBeamTrailUniformBuffer(
 	const EParticleAxisLock LockAxisFlag = (EParticleAxisLock)SourceData->LockAxisFlag;
 	if (LockAxisFlag == EPAL_NONE)
 	{
-		CameraUp	= -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f)).SafeNormal();
-		CameraRight	= -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f)).SafeNormal();
+		CameraUp	= -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f)).GetSafeNormal();
+		CameraRight	= -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f)).GetSafeNormal();
 	}
 	else
 	{

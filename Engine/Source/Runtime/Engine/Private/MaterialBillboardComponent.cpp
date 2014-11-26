@@ -180,8 +180,8 @@ public:
 						for(uint32 VertexIndex = 0;VertexIndex < 4;++VertexIndex)
 						{
 							VertexArray.Vertices[VertexIndex].Color = Color;
-							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.SafeNormal());
-							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.SafeNormal());
+							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.GetSafeNormal());
+							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.GetSafeNormal());
 						}
 
 						// Set up the sprite vertex positions and texture coordinates.

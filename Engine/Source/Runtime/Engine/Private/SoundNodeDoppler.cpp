@@ -26,7 +26,7 @@ float USoundNodeDoppler::GetDopplerPitchMultiplier(FListener const& InListener, 
 {
 	static const float SpeedOfSoundInAirAtSeaLevel = 33000.f;		// cm/sec
 
-	FVector const SourceToListenerNorm = (InListener.Transform.GetTranslation() - Location).SafeNormal();
+	FVector const SourceToListenerNorm = (InListener.Transform.GetTranslation() - Location).GetSafeNormal();
 
 	// find source and listener speeds along the line between them
 	float const SourceVelMagTorwardListener = Velocity | SourceToListenerNorm;

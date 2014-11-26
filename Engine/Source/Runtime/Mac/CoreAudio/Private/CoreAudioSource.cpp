@@ -283,7 +283,7 @@ void FCoreAudioSoundSource::Update( void )
 		}
 		else if( WaveInstance->bUseSpatialization )
 		{
-			FVector Direction = AudioDevice->InverseTransform.TransformPosition(WaveInstance->Location).SafeNormal();
+			FVector Direction = AudioDevice->InverseTransform.TransformPosition(WaveInstance->Location).GetSafeNormal();
 
 			FVector EmitterPosition;
 			EmitterPosition.X = -Direction.Z;

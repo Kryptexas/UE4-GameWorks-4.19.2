@@ -225,8 +225,8 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 	// Update transform for upper bone.
 	{
 		// Get difference in direction for old and new joint orientations
-		FVector const OldDir = (InitialJointPos - RootPos).SafeNormal();
-		FVector const NewDir = (OutJointPos - RootPos).SafeNormal();
+		FVector const OldDir = (InitialJointPos - RootPos).GetSafeNormal();
+		FVector const NewDir = (OutJointPos - RootPos).GetSafeNormal();
 		// Find Delta Rotation take takes us from Old to New dir
 		FQuat const DeltaRotation = FQuat::FindBetween(OldDir, NewDir);
 		// Rotate our Joint quaternion by this delta rotation
@@ -241,8 +241,8 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 	// Update transform for lower bone.
 	{
 		// Get difference in direction for old and new joint orientations
-		FVector const OldDir = (InitialEndPos - InitialJointPos).SafeNormal();
-		FVector const NewDir = (OutEndPos - OutJointPos).SafeNormal();
+		FVector const OldDir = (InitialEndPos - InitialJointPos).GetSafeNormal();
+		FVector const NewDir = (OutEndPos - OutJointPos).GetSafeNormal();
 
 		// Find Delta Rotation take takes us from Old to New dir
 		FQuat const DeltaRotation = FQuat::FindBetween(OldDir, NewDir);

@@ -145,7 +145,7 @@ FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInsta
 
 			if (Start.Num() > 0 && End.Num() > 0)
 			{
-				Direction = (End[0] - Start[0]).SafeNormal();
+				Direction = (End[0] - Start[0]).GetSafeNormal();
 			}
 			else
 			{

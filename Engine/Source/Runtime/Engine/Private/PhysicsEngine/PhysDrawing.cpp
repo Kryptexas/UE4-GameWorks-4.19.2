@@ -429,9 +429,9 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 			const PxU8* indices = PIndexBuffer + Data.mIndexBase;
 
 			// create tangents from the first and second vertices of each polygon
-			const FVector TangentX = P2UVector(PVertices[indices[1]]-PVertices[indices[0]]).SafeNormal();
-			const FVector TangentZ = FVector(Data.mPlane[0], Data.mPlane[1], Data.mPlane[2]).SafeNormal();
-			const FVector TangentY = (TangentX ^ TangentZ).SafeNormal();
+			const FVector TangentX = P2UVector(PVertices[indices[1]]-PVertices[indices[0]]).GetSafeNormal();
+			const FVector TangentZ = FVector(Data.mPlane[0], Data.mPlane[1], Data.mPlane[2]).GetSafeNormal();
+			const FVector TangentY = (TangentX ^ TangentZ).GetSafeNormal();
 
 			// add vertices 
 			for(PxU32 j=0;j<Data.mNbVerts;j++)

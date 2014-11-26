@@ -1431,7 +1431,7 @@ bool ARecastNavMesh::AdjustLocationWithFilter(const FVector& StartLoc, FVector& 
 		// move it just a bit further - otherwise recast can still pick "wrong" poly when 
 		// later projecting StartLoc (meaning a poly we want to filter out with 
 		// QueryFilter here)
-		OutAdjustedLocation += (OutAdjustedLocation - StartLoc).SafeNormal() * 0.1f;
+		OutAdjustedLocation += (OutAdjustedLocation - StartLoc).GetSafeNormal() * 0.1f;
 		return true;
 	}
 }

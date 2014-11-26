@@ -425,8 +425,8 @@ struct FLookAtMatrix : FMatrix
 
 FORCEINLINE FLookAtMatrix::FLookAtMatrix(const FVector& EyePosition, const FVector& LookAtPosition, const FVector& UpVector)
 {
-	const FVector ZAxis = (LookAtPosition - EyePosition).SafeNormal();
-	const FVector XAxis = (UpVector ^ ZAxis).SafeNormal();
+	const FVector ZAxis = (LookAtPosition - EyePosition).GetSafeNormal();
+	const FVector XAxis = (UpVector ^ ZAxis).GetSafeNormal();
 	const FVector YAxis = ZAxis ^ XAxis;
 
 	for (uint32 RowIndex = 0; RowIndex < 3; RowIndex++)

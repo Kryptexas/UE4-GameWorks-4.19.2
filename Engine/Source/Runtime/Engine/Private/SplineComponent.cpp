@@ -498,7 +498,7 @@ FVector USplineComponent::GetWorldTangentAtDistanceAlongSpline(float Distance) c
 FVector USplineComponent::GetWorldDirectionAtDistanceAlongSpline(float Distance) const
 {
 	const float Param = SplineReparamTable.Eval(Distance, 0.f);
-	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector).SafeNormal();
+	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector).GetSafeNormal();
 	return ComponentToWorld.TransformVectorNoScale(Tangent);
 }
 
@@ -541,7 +541,7 @@ FVector USplineComponent::GetWorldDirectionAtTime(float Time, bool bUseConstantV
 	}
 
 	const float TimeMultiplier = (SplineInfo.Points.Num() - 1.0f) / Duration;
-	const FVector Tangent = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector::ZeroVector).SafeNormal();
+	const FVector Tangent = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector::ZeroVector).GetSafeNormal();
 	return ComponentToWorld.TransformVectorNoScale(Tangent);
 }
 

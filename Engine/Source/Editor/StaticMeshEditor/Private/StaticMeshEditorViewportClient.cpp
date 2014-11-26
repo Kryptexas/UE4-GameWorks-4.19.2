@@ -527,17 +527,17 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 			if( bDrawNormals )
 			{
-				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Normal ).SafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
+				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Normal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
 			}
 
 			if( bDrawTangents )
 			{
-				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).SafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
+				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).GetSafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
 			}
 
 			if( bDrawBinormals )
 			{
-				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).SafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
+				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
 			}
 		}	
 	}
@@ -915,7 +915,7 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 						// Compute the per-triangle normal
 						const FVector BA = A - B;
 						const FVector CA = A - C;
-						const FVector TriangleNormal = (CA ^ BA).SafeNormal();
+						const FVector TriangleNormal = (CA ^ BA).GetSafeNormal();
 
 						// Transform the view position from world to component space
 						const FVector ComponentSpaceViewOrigin = StaticMeshComponent->ComponentToWorld.InverseTransformPosition( View->ViewMatrices.ViewOrigin);

@@ -137,7 +137,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, FEnvQu
 		
 		for (int32 ToIndex = 0; ToIndex < ContextLocationTo.Num(); ToIndex++)
 		{
-			const FVector Dir = (ContextLocationTo[ToIndex] - ContextLocationFrom[FromIndex]).SafeNormal();
+			const FVector Dir = (ContextLocationTo[ToIndex] - ContextLocationFrom[FromIndex]).GetSafeNormal();
 			Directions.Add(Dir);
 		}
 	}

@@ -247,7 +247,7 @@ void FEditorCameraController::UpdatePosition( const FCameraControllerUserImpulse
 	// Constrain maximum movement speed
 	if( MovementVelocity.Size() > Config.MaximumMovementSpeed * MovementSpeedScale )
 	{
-		MovementVelocity = MovementVelocity.UnsafeNormal() * Config.MaximumMovementSpeed * MovementSpeedScale;
+		MovementVelocity = MovementVelocity.GetUnsafeNormal() * Config.MaximumMovementSpeed * MovementSpeedScale;
 	}
 
 

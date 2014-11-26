@@ -943,9 +943,9 @@ void UTetrahedronBuilder::Extrapolate( int32 a, int32 b, int32 c, int32 Count, f
 {
 	if( Count>1 )
 	{
-		int32 ab=Vertexv( InRadius*(GetVertex(a)+GetVertex(b)).SafeNormal() );
-		int32 bc=Vertexv( InRadius*(GetVertex(b)+GetVertex(c)).SafeNormal() );
-		int32 ca=Vertexv( InRadius*(GetVertex(c)+GetVertex(a)).SafeNormal() );
+		int32 ab=Vertexv( InRadius*(GetVertex(a)+GetVertex(b)).GetSafeNormal() );
+		int32 bc=Vertexv( InRadius*(GetVertex(b)+GetVertex(c)).GetSafeNormal() );
+		int32 ca=Vertexv( InRadius*(GetVertex(c)+GetVertex(a)).GetSafeNormal() );
 		Extrapolate(a,ab,ca,Count-1,InRadius);
 		Extrapolate(b,bc,ab,Count-1,InRadius);
 		Extrapolate(c,ca,bc,Count-1,InRadius);

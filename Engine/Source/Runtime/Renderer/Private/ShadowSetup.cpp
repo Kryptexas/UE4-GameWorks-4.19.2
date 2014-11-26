@@ -257,8 +257,8 @@ static bool GetBestShadowTransform(const FVector& ZAxis,const FBoundingBoxVertex
 		const FVector Point = PointsPtr[EdgesPtr[EdgeIndex].FirstEdgeIndex];
 		const FVector OtherPoint = PointsPtr[EdgesPtr[EdgeIndex].SecondEdgeIndex];
 		const FVector PointDelta = OtherPoint - Point;
-		const FVector TrialXAxis = (PointDelta - ZAxis * (PointDelta | ZAxis)).SafeNormal();
-		const FVector TrialYAxis = (ZAxis ^ TrialXAxis).SafeNormal();
+		const FVector TrialXAxis = (PointDelta - ZAxis * (PointDelta | ZAxis)).GetSafeNormal();
+		const FVector TrialYAxis = (ZAxis ^ TrialXAxis).GetSafeNormal();
 
 		// Calculate the size of the projection of the bounds onto this axis and an axis orthogonal to it and the Z axis.
 		float MinProjectedX = FLT_MAX;
@@ -414,7 +414,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	FMatrix LightToShadow;
 	float AspectRatio;
 
-	if (GetBestShadowTransform(Initializer.FaceDirection.SafeNormal(),ProjectedBoundsPoints,BoundsEdges,AspectRatio,LightToShadow))
+	if (GetBestShadowTransform(Initializer.FaceDirection.GetSafeNormal(), ProjectedBoundsPoints, BoundsEdges, AspectRatio, LightToShadow))
 	{
 		bValidTransform = true;
 		const FMatrix WorldToShadow = WorldToLightScaled * LightToShadow;
@@ -516,7 +516,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	FVector	XAxis, YAxis;
 	Initializer.FaceDirection.FindBestAxisVectors(XAxis,YAxis);
 	const FMatrix WorldToLightScaled = Initializer.WorldToLight * FScaleMatrix(Initializer.Scales);
-	const FMatrix WorldToFace = WorldToLightScaled * FBasisVectorMatrix(-XAxis,YAxis,Initializer.FaceDirection.SafeNormal(),FVector::ZeroVector);
+	const FMatrix WorldToFace = WorldToLightScaled * FBasisVectorMatrix(-XAxis,YAxis,Initializer.FaceDirection.GetSafeNormal(),FVector::ZeroVector);
 
 	MaxSubjectZ = WorldToFace.TransformPosition(Initializer.SubjectBounds.Origin).Z + Initializer.SubjectBounds.SphereRadius;
 	MinSubjectZ = FMath::Max(MaxSubjectZ - Initializer.SubjectBounds.SphereRadius * 2,Initializer.MinLightW);

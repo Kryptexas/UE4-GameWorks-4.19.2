@@ -419,17 +419,17 @@ void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI
 
 		if( bDrawNormals )
 		{
-			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( (FVector)(Normal) ).SafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
+			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( (FVector)(Normal) ).GetSafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
 		}
 
 		if( bDrawTangents )
 		{
-			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).SafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
+			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).GetSafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
 		}
 
 		if( bDrawBinormals )
 		{
-			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).SafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
+			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
 		}
 	}
 }
@@ -560,7 +560,7 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta
 	// Save W before = operator. That overwrites W to be 127.
 	uint8 W = DestVertex.TangentZ.Vector.W;
 	// add normal offset. can only apply normal deltas up to a weight of 1
-	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).UnsafeNormal();
+	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).GetUnsafeNormal();
 	// Recover W
 	DestVertex.TangentZ.Vector.W = W;
 } 

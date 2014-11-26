@@ -1595,7 +1595,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 					}
 
 					// Check to see if the triangle is front facing
-					FVector TriangleNormal = ( TriVertices[ 1 ] - TriVertices[ 0 ] ^ TriVertices[ 2 ] - TriVertices[ 0 ] ).SafeNormal();
+					FVector TriangleNormal = ( TriVertices[ 1 ] - TriVertices[ 0 ] ^ TriVertices[ 2 ] - TriVertices[ 0 ] ).GetSafeNormal();
 					const float SignedPlaneDist = FVector::PointPlaneDist( ComponentSpaceCameraPosition, TriVertices[ 0 ], TriangleNormal );
 					if( !bOnlyFrontFacing || SignedPlaneDist < 0.0f )
 					{
@@ -1831,7 +1831,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UStaticMeshComponent* StaticMeshCompone
 		{
 			// Check to see if the triangle is front facing
 			FMeshTriangle const& CurrentTri = TriIt.GetCurrentElement();
-			FVector TriangleNormal = ( CurrentTri.Vertices[ 1 ] - CurrentTri.Vertices[ 0 ] ^ CurrentTri.Vertices[ 2 ] - CurrentTri.Vertices[ 0 ] ).SafeNormal();
+			FVector TriangleNormal = ( CurrentTri.Vertices[ 1 ] - CurrentTri.Vertices[ 0 ] ^ CurrentTri.Vertices[ 2 ] - CurrentTri.Vertices[ 0 ] ).GetSafeNormal();
 			const float SignedPlaneDist = FVector::PointPlaneDist( ComponentSpaceCameraPosition, CurrentTri.Vertices[ 0 ], TriangleNormal );
 			if( !bOnlyFrontFacing || SignedPlaneDist < 0.0f )
 			{

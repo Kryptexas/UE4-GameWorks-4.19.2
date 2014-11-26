@@ -459,7 +459,7 @@ void FPoly::Transform
 
 	// Transform normal.  Since the transformation coordinate system is
 	// orthogonal but not orthonormal, it has to be renormalized here.
-	Normal = Normal.SafeNormal();
+	Normal = Normal.GetSafeNormal();
 
 }
 
@@ -484,7 +484,7 @@ void FPoly::Rotate
 
 	// Rotate the normal.
 	Normal = FRotationMatrix(Rotation).TransformVector(Normal);
-	Normal = Normal.SafeNormal();
+	Normal = Normal.GetSafeNormal();
 }
 
 
@@ -507,7 +507,7 @@ void FPoly::Scale
 	TextureV *= Scale;
 
 	// Renormalize the normal.
-	Normal = Normal.SafeNormal();
+	Normal = Normal.GetSafeNormal();
 }
 
 
@@ -839,7 +839,7 @@ FPoly FPoly::BuildAndCutInfiniteFPoly(const FPlane& InPlane, const TArray<FPlane
 	{
 		const FPlane* Plane = &InCutPlanes[p];
 
-		result = PolyMerged.SplitWithPlane( Plane->SafeNormal() * Plane->W, Plane->SafeNormal(), &Front, &Back, 1 );
+		result = PolyMerged.SplitWithPlane( Plane->GetSafeNormal() * Plane->W, Plane->GetSafeNormal(), &Front, &Back, 1 );
 
 		if( result == SP_Split )
 		{
@@ -933,8 +933,8 @@ int32 FPoly::Finalize( ABrush* InOwner, int32 NoError )
 	{
 		for( int32 i=1; i<Vertices.Num(); i++ )
 		{
-			TextureU = ((Vertices[0] - Vertices[i]) ^ Normal).SafeNormal();
-			TextureV = (Normal ^ TextureU).SafeNormal();
+			TextureU = ((Vertices[0] - Vertices[i]) ^ Normal).GetSafeNormal();
+			TextureV = (Normal ^ TextureU).GetSafeNormal();
 			if( TextureU.SizeSquared()!=0 && TextureV.SizeSquared()!=0 )
 				break;
 		}

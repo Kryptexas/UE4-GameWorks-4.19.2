@@ -479,7 +479,7 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisL
 
 			if ( SharedData->WidgetMode == FWidget::WM_Translate )
 			{
-				FVector Dir = SelectedObject.WidgetTM.InverseTransformVector( Drag.SafeNormal() );
+				FVector Dir = SelectedObject.WidgetTM.InverseTransformVector( Drag.GetSafeNormal() );
 				FVector DragVec = Dir * Drag.Size();
 				SelectedObject.ManipulateTM.AddToTranslation( DragVec );
 			}

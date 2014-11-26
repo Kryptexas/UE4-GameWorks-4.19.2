@@ -86,7 +86,7 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
-	const FVector ControlAcceleration = GetPendingInputVector().ClampMaxSize(1.f);
+	const FVector ControlAcceleration = GetPendingInputVector().GetClampedToMaxSize(1.f);
 
 	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
 	const float MaxPawnSpeed = GetMaxSpeed() * AnalogInputModifier;
@@ -107,12 +107,12 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 		{
 			const FVector OldVelocity = Velocity;
 			const float VelSize = FMath::Max(Velocity.Size() - FMath::Abs(Deceleration) * DeltaTime, 0.f);
-			Velocity = Velocity.SafeNormal() * VelSize;
+			Velocity = Velocity.GetSafeNormal() * VelSize;
 
 			// Don't allow braking to lower us below max speed if we started above it.
 			if (bExceedingMaxSpeed && Velocity.SizeSquared() < FMath::Square(MaxPawnSpeed))
 			{
-				Velocity = OldVelocity.SafeNormal() * MaxPawnSpeed;
+				Velocity = OldVelocity.GetSafeNormal() * MaxPawnSpeed;
 			}
 		}
 	}
@@ -120,7 +120,7 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 	// Apply acceleration and clamp velocity magnitude.
 	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxPawnSpeed)) ? Velocity.Size() : MaxPawnSpeed;
 	Velocity += ControlAcceleration * FMath::Abs(Acceleration) * DeltaTime;
-	Velocity = Velocity.ClampMaxSize(NewMaxSpeed);
+	Velocity = Velocity.GetClampedToMaxSize(NewMaxSpeed);
 
 	ConsumeInputVector();
 }

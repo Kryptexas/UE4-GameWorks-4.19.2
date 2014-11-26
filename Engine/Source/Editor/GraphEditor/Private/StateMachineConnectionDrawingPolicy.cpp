@@ -129,8 +129,8 @@ void FStateMachineConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVec
 	const float LineSeparationAmount = 4.5f;
 
 	const FVector2D DeltaPos = EndAnchorPoint - StartAnchorPoint;
-	const FVector2D UnitDelta = DeltaPos.SafeNormal();
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).SafeNormal();
+	const FVector2D UnitDelta = DeltaPos.GetSafeNormal();
+	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	// Come up with the final start/end points
 	const FVector2D DirectionBias = Normal * LineSeparationAmount;
@@ -179,7 +179,7 @@ void FStateMachineConnectionDrawingPolicy::DrawConnection(int32 LayerId, const F
 	const FVector2D& P1 = End;
 
 	const FVector2D Delta = End-Start;
-	const FVector2D NormDelta = Delta.SafeNormal();
+	const FVector2D NormDelta = Delta.GetSafeNormal();
 	
 	const FVector2D P0Tangent = NormDelta;
 	const FVector2D P1Tangent = NormDelta;

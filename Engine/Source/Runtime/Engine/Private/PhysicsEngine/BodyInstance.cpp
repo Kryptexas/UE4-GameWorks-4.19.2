@@ -613,7 +613,7 @@ void FBodyInstance::CreateDOFLock()
 		DOFConstraint->LinearYMotion = ELinearConstraintMotion::LCM_Free;
 		DOFConstraint->LinearZMotion = ELinearConstraintMotion::LCM_Free;
 
-		FVector Normal = LockedAxis.SafeNormal();
+		FVector Normal = LockedAxis.GetSafeNormal();
 		FVector Sec;
 		FVector Garbage;
 		Normal.FindBestAxisVectors(Garbage, Sec);

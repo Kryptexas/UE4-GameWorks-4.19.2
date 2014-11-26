@@ -541,7 +541,7 @@ void UCharacterMovementComponent::JumpOff(AActor* MovementBaseActor)
 			Velocity += MaxSpeed * GetBestDirectionOffActor(MovementBaseActor);
 			if ( Velocity.Size2D() > MaxSpeed )
 			{
-				Velocity = MaxSpeed * Velocity.SafeNormal();
+				Velocity = MaxSpeed * Velocity.GetSafeNormal();
 			}
 			Velocity.Z = JumpOffJumpZFactor * JumpZVelocity;
 			SetMovementMode(MOVE_Falling);
@@ -555,7 +555,7 @@ FVector UCharacterMovementComponent::GetBestDirectionOffActor(AActor* BaseActor)
 	// By default, just pick a random direction.  Derived character classes can choose to do more complex calculations,
 	// such as finding the shortest distance to move in based on the BaseActor's Bounding Volume.
 	const float RandAngle = FMath::DegreesToRadians(GetNetworkSafeRandomAngleDegrees());
-	return FVector(FMath::Cos(RandAngle), FMath::Sin(RandAngle), 0.5f).SafeNormal();
+	return FVector(FMath::Cos(RandAngle), FMath::Sin(RandAngle), 0.5f).GetSafeNormal();
 }
 
 float UCharacterMovementComponent::GetNetworkSafeRandomAngleDegrees() const
@@ -757,7 +757,7 @@ void UCharacterMovementComponent::PerformAirControlForPathFollowing(FVector Dire
 			{
 				float Dist2D = Direction.Size2D();
 				//Direction.Z = 0.f;
-				Acceleration = Direction.SafeNormal() * GetMaxAcceleration();
+				Acceleration = Direction.GetSafeNormal() * GetMaxAcceleration();
 
 				if ( (Dist2D < 0.5f * FMath::Abs(Direction.Z)) && ((Velocity | Direction) > 0.5f*FMath::Square(Dist2D)) )
 				{
@@ -1100,7 +1100,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 			return;
 		}
 
-		Acceleration = Velocity.SafeNormal();	// Not currently used for simulated movement
+		Acceleration = Velocity.GetSafeNormal();	// Not currently used for simulated movement
 		AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
 
 		MaybeUpdateBasedMovement(DeltaSeconds);
@@ -1899,7 +1899,7 @@ float UCharacterMovementComponent::SlideAlongSurface(const FVector& Delta, float
 		{
 			if (!IsWalkable(Hit))
 			{
-				Normal = Normal.SafeNormal2D();
+				Normal = Normal.GetSafeNormal2D();
 			}
 		}
 		else if (Normal.Z < -KINDA_SMALL_NUMBER)
@@ -1914,7 +1914,7 @@ float UCharacterMovementComponent::SlideAlongSurface(const FVector& Delta, float
 					Normal = FloorNormal;
 				}
 				
-				Normal = Normal.SafeNormal2D();
+				Normal = Normal.GetSafeNormal2D();
 			}
 		}
 	}
@@ -1937,7 +1937,7 @@ void UCharacterMovementComponent::TwoWallAdjust(FVector &Delta, const FHitResult
 			{
 				// Maintain horizontal velocity
 				const float Time = (1.f - Hit.Time);
-				const FVector ScaledDelta = Delta.SafeNormal() * InDelta.Size();
+				const FVector ScaledDelta = Delta.GetSafeNormal() * InDelta.Size();
 				Delta = FVector(InDelta.X, InDelta.Y, ScaledDelta.Z / Hit.Normal.Z) * Time;
 			}
 			else
@@ -1995,7 +1995,7 @@ FVector UCharacterMovementComponent::HandleSlopeBoosting(const FVector& SlideRes
 
 			// Make remaining portion of original result horizontal and parallel to impact normal.
 			const FVector RemainderXY = (SlideResult - Result) * FVector(1.f, 1.f, 0.f);
-			const FVector NormalXY = Normal.SafeNormal2D();
+			const FVector NormalXY = Normal.GetSafeNormal2D();
 			const FVector Adjust = Super::ComputeSlideVector(RemainderXY, 1.f, NormalXY, Hit);
 			Result += Adjust;
 		}
@@ -2022,7 +2022,7 @@ FVector UCharacterMovementComponent::NewFallVelocity(const FVector& InitialVeloc
 		// Apply gravity.
 		Result += Gravity * DeltaTime;
 
-		const FVector GravityDir = Gravity.SafeNormal();
+		const FVector GravityDir = Gravity.GetSafeNormal();
 		const float TerminalLimit = FMath::Abs(GetPhysicsVolume()->TerminalVelocity);
 
 		// Don't exceed terminal velocity.
@@ -2141,7 +2141,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	float RequestedSpeed = 0.0f;
 	if (ApplyRequestedMove(DeltaTime, MaxAccel, MaxSpeed, Friction, BrakingDeceleration, RequestedAcceleration, RequestedSpeed))
 	{
-		RequestedAcceleration = RequestedAcceleration.ClampMaxSize(MaxAccel);
+		RequestedAcceleration = RequestedAcceleration.GetClampedToMaxSize(MaxAccel);
 		bZeroRequestedAcceleration = false;
 	}
 
@@ -2237,7 +2237,7 @@ bool UCharacterMovementComponent::ApplyRequestedMove(float DeltaTime, float MaxA
 
 			// How much do we need to accelerate to get to the new velocity?
 			NewAcceleration = ((MoveVelocity - Velocity) / DeltaTime);
-			NewAcceleration = NewAcceleration.ClampMaxSize(MaxAccel);
+			NewAcceleration = NewAcceleration.GetClampedToMaxSize(MaxAccel);
 		}
 		else
 		{
@@ -2264,7 +2264,7 @@ void UCharacterMovementComponent::RequestDirectMove(const FVector& MoveVelocity,
 
 	if (IsFalling())
 	{
-		const FVector FallVelocity = MoveVelocity.ClampMaxSize(GetMaxSpeed());
+		const FVector FallVelocity = MoveVelocity.GetClampedToMaxSize(GetMaxSpeed());
 		PerformAirControlForPathFollowing(FallVelocity, FallVelocity.Z);
 		return;
 	}
@@ -2627,7 +2627,7 @@ void UCharacterMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
 	if( Hit.Time < 1.f && CharacterOwner )
 	{
 		const FVector GravDir = FVector(0.f,0.f,-1.f);
-		const FVector VelDir = Velocity.SafeNormal();
+		const FVector VelDir = Velocity.GetSafeNormal();
 		const float UpDown = GravDir | VelDir;
 
 		bool bSteppedUp = false;
@@ -2695,7 +2695,7 @@ void UCharacterMovementComponent::PhysSwimming(float deltaTime, int32 Iterations
 	if ( Hit.Time < 1.f && CharacterOwner)
 	{
 		const FVector GravDir = FVector(0.f,0.f,-1.f);
-		const FVector VelDir = Velocity.SafeNormal();
+		const FVector VelDir = Velocity.GetSafeNormal();
 		const float UpDown = GravDir | VelDir;
 
 		bool bSteppedUp = false;
@@ -2761,7 +2761,7 @@ void UCharacterMovementComponent::StartSwimming(FVector OldLocation, FVector Old
 	{
 		Velocity = (CharacterOwner->GetActorLocation() - OldLocation)/timeTick; //actual average velocity
 		Velocity = 2.f*Velocity - OldVelocity; //end velocity has 2* accel of avg
-		Velocity.ClampMaxSize(GetPhysicsVolume()->TerminalVelocity);
+		Velocity = Velocity.GetClampedToMaxSize(GetPhysicsVolume()->TerminalVelocity);
 	}
 	const FVector End = FindWaterLine(CharacterOwner->GetActorLocation(), OldLocation);
 	float waterTime = 0.f;
@@ -2824,7 +2824,7 @@ FVector UCharacterMovementComponent::FindWaterLine(FVector InWater, FVector Outo
 			APhysicsVolume *W = Cast<APhysicsVolume>(Check.GetActor());
 			if ( W && W->bWaterVolume )
 			{
-				FVector Dir = (InWater - OutofWater).SafeNormal();
+				FVector Dir = (InWater - OutofWater).GetSafeNormal();
 				Result = Check.Location;
 				if ( W == GetPhysicsVolume() )
 					Result += 0.1f * Dir;
@@ -2856,7 +2856,7 @@ FVector UCharacterMovementComponent::GetFallingLateralAcceleration(float DeltaTi
 	if (!HasRootMotion() && FallAcceleration.SizeSquared2D() > 0.f)
 	{
 		FallAcceleration = GetAirControl(DeltaTime, AirControl, FallAcceleration);
-		FallAcceleration = FallAcceleration.ClampMaxSize(GetMaxAcceleration());
+		FallAcceleration = FallAcceleration.GetClampedToMaxSize(GetMaxAcceleration());
 	}
 
 	return FallAcceleration;
@@ -3093,10 +3093,10 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 						if ( Hit.Time == 0 )
 						{
 							// if we are stuck then try to side step
-							FVector SideDelta = (OldHitNormal + Hit.ImpactNormal).SafeNormal2D();
+							FVector SideDelta = (OldHitNormal + Hit.ImpactNormal).GetSafeNormal2D();
 							if ( SideDelta.IsNearlyZero() )
 							{
-								SideDelta = FVector(OldHitNormal.Y, -OldHitNormal.X, 0).SafeNormal();
+								SideDelta = FVector(OldHitNormal.Y, -OldHitNormal.X, 0).GetSafeNormal();
 							}
 							SafeMoveUpdatedComponent( SideDelta, PawnRotation, true, Hit);
 						}
@@ -3177,7 +3177,7 @@ FVector UCharacterMovementComponent::LimitAirControl(float DeltaTime, const FVec
 			if (FVector::DotProduct(FallAcceleration, HitResult.Normal) < 0.f)
 			{
 				// Allow movement parallel to the wall, but not into it because that may push us up.
-				const FVector Normal2D = HitResult.Normal.SafeNormal2D();
+				const FVector Normal2D = HitResult.Normal.GetSafeNormal2D();
 				Result = FVector::VectorPlaneProject(FallAcceleration, Normal2D);
 			}
 		}
@@ -3364,7 +3364,7 @@ FVector UCharacterMovementComponent::ComputeGroundMovementDelta(const FVector& D
 		}
 		else
 		{
-			return RampMovement.SafeNormal() * Delta.Size();
+			return RampMovement.GetSafeNormal() * Delta.Size();
 		}
 	}
 
@@ -3456,7 +3456,7 @@ void UCharacterMovementComponent::MaintainHorizontalGroundVelocity()
 		else
 		{
 			// Rescale velocity to be horizontal but maintain magnitude of last update.
-			Velocity = Velocity.SafeNormal2D() * Velocity.Size();
+			Velocity = Velocity.GetSafeNormal2D() * Velocity.Size();
 		}
 	}
 }
@@ -3858,7 +3858,7 @@ FRotator UCharacterMovementComponent::ComputeOrientToMovementRotation(const FRot
 		// AI path following request can orient us in that direction (it's effectively an acceleration)
 		if (bHasRequestedVelocity && RequestedVelocity.SizeSquared() > KINDA_SMALL_NUMBER)
 		{
-			return RequestedVelocity.SafeNormal().Rotation();
+			return RequestedVelocity.GetSafeNormal().Rotation();
 		}
 
 		// Don't change rotation if there is no acceleration.
@@ -3866,7 +3866,7 @@ FRotator UCharacterMovementComponent::ComputeOrientToMovementRotation(const FRot
 	}
 
 	// Rotate toward direction of acceleration.
-	return Acceleration.SafeNormal().Rotation();
+	return Acceleration.GetSafeNormal().Rotation();
 }
 
 void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
@@ -4008,7 +4008,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 	}
 	// check if there is a wall directly in front of the swimming pawn
 	CheckPoint.Z = 0.f;
-	FVector CheckNorm = CheckPoint.SafeNormal();
+	FVector CheckNorm = CheckPoint.GetSafeNormal();
 	float PawnCapsuleRadius, PawnCapsuleHalfHeight;
 	CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleSize(PawnCapsuleRadius, PawnCapsuleHalfHeight);
 	CheckPoint = CharacterOwner->GetActorLocation() + 1.2f * PawnCapsuleRadius * CheckNorm;
@@ -4121,7 +4121,7 @@ void UCharacterMovementComponent::MoveSmooth(const FVector& InVelocity, const fl
 					if (FMath::Abs(Hit.ImpactNormal.Z) < 0.2f)
 					{
 						const FVector GravDir = FVector(0.f,0.f,-1.f);
-						const FVector DesiredDir = Delta.SafeNormal();
+						const FVector DesiredDir = Delta.GetSafeNormal();
 						const float UpDown = GravDir | DesiredDir;
 						if ((UpDown < 0.5f) && (UpDown > -0.2f))
 						{
@@ -4697,7 +4697,7 @@ bool UCharacterMovementComponent::StepUp(const FVector& InGravDir, const FVector
 		return false;
 	}
 
-	const FVector GravDir = InGravDir.SafeNormal();
+	const FVector GravDir = InGravDir.GetSafeNormal();
 	if (GravDir.IsZero())
 	{
 		return false;
@@ -4936,7 +4936,7 @@ void UCharacterMovementComponent::ApplyImpactPhysicsForces(const FHitResult& Imp
 			float PushForceModificator = 1.0f;
 
 			const FVector ComponentVelocity = ImpactComponent->GetPhysicsLinearVelocity();
-			const FVector VirtualVelocity = ImpactAcceleration.IsZero() ? ImpactVelocity : ImpactAcceleration.SafeNormal() * GetMaxSpeed();
+			const FVector VirtualVelocity = ImpactAcceleration.IsZero() ? ImpactVelocity : ImpactAcceleration.GetSafeNormal() * GetMaxSpeed();
 
 			float Dot = 0.0f;
 
@@ -5131,7 +5131,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation)
 		{
 			ClientData->MeshTranslationOffset = (DistSq > FMath::Square(ClientData->NoSmoothNetUpdateDist)) 
 				? FVector::ZeroVector 
-				: ClientData->MeshTranslationOffset + ClientData->MaxSmoothNetUpdateDist * (OldLocation - CharacterOwner->GetActorLocation()).SafeNormal();	
+				: ClientData->MeshTranslationOffset + ClientData->MaxSmoothNetUpdateDist * (OldLocation - CharacterOwner->GetActorLocation()).GetSafeNormal();
 		}
 		else
 		{
@@ -6219,8 +6219,8 @@ void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveCompo
 	{
 		const FVector OtherLoc = OtherComp->GetComponentLocation();
 		const FVector Loc = UpdatedComponent->GetComponentLocation();
-		FVector ImpulseDir = FVector(OtherLoc.X - Loc.X, OtherLoc.Y - Loc.Y, 0.25f).SafeNormal();
-		ImpulseDir = (ImpulseDir + Velocity.SafeNormal2D()) * 0.5f;
+		FVector ImpulseDir = FVector(OtherLoc.X - Loc.X, OtherLoc.Y - Loc.Y, 0.25f).GetSafeNormal();
+		ImpulseDir = (ImpulseDir + Velocity.GetSafeNormal2D()) * 0.5f;
 		ImpulseDir.Normalize();
 
 		FName BoneName = NAME_None;
@@ -6396,7 +6396,7 @@ void UCharacterMovementComponent::AddRadialForce(const FVector& Origin, float Ra
 		return;
 	}
 
-	Delta = Delta.SafeNormal();
+	Delta = Delta.GetSafeNormal();
 
 	float ForceMagnitude = Strength;
 	if (Falloff == RIF_Linear && Radius > 0.0f)
@@ -6418,7 +6418,7 @@ void UCharacterMovementComponent::AddRadialImpulse(const FVector& Origin, float 
 		return;
 	}
 
-	Delta = Delta.SafeNormal();
+	Delta = Delta.GetSafeNormal();
 
 	float ImpulseMagnitude = Strength;
 	if (Falloff == RIF_Linear && Radius > 0.0f)
