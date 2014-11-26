@@ -1492,6 +1492,7 @@ public:
 	virtual void SetActorTickEnabled(bool bEnabled);
 
 	/**  Returns whether this actor has tick enabled or not	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsActorTickEnabled() const;
 
 	/**
