@@ -1,29 +1,4 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-#ifndef _UNREAL_NAMES_H_
-#define _UNREAL_NAMES_H_
-
-//
-// Macros.
-//
-
-/** Index of highest hardcoded name to be replicated by index by the networking code
- * @warning: changing this number or making any change to the list of hardcoded names with index
- * less than this value breaks network compatibility (update GEngineMinNetVersion)
- * @note: names with a greater value than this can still be replicated, but they are sent as
- * strings instead of an efficient index
- */
-#define MAX_NETWORKED_HARDCODED_NAME 410
-
-// Define a message as an enumeration.
-#ifndef REGISTER_NAME
-	#define REGISTER_NAME(num,name) NAME_##name = num,
-	#define REGISTERING_ENUM
-	enum EName {
-#endif
-
-//
-// Hardcoded names.
-//
 
 // Special zero value, meaning no name.
 REGISTER_NAME(0,None)
@@ -196,16 +171,3 @@ REGISTER_NAME(450,AI)
 REGISTER_NAME(451,NavMesh)
 
 REGISTER_NAME(500,PerformanceCapture)
-
-//
-// Closing.
-//
-
-#ifdef REGISTERING_ENUM
-	NAME_MaxHardcodedNameIndex,
-	};
-	#undef REGISTER_NAME
-	#undef REGISTERING_ENUM
-#endif
-
-#endif // _UNREAL_NAMES_H_
