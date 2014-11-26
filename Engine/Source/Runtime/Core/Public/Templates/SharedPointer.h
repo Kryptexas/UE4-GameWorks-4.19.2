@@ -1394,4 +1394,4 @@ FORCEINLINE void CleanupPointerMap(TMap< TWeakPtr<KeyType>, ValueType >& Pointer
 
 
 // Shared pointer testing
-#include "SharedPointerTesting.h"
+#include "SharedPointerTesting.inl"

@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "../PhysicsEngine/PhysXSupport.h"
-
 /** 
  * Set of flags stored in the PhysX FilterData
  *

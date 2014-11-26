@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Projects.h"
 #include "ModuleDescriptor.h"
 
 /**

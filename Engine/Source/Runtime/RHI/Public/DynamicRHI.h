@@ -7,7 +7,6 @@
 #ifndef __DYNAMICRHI_H__
 #define __DYNAMICRHI_H__
 
-#include "RHI.h"
 #include "ModuleInterface.h"
 
 #if USE_DYNAMIC_RHI

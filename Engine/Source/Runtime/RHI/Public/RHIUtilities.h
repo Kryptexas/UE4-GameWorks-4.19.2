@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "RHI.h"
 #include "RHICommandList.h"
 
 /** Encapsulates a GPU read/write buffer with its UAV and SRV. */

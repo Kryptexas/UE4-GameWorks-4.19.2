@@ -3,7 +3,6 @@
 #pragma once
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemTypes.h"
-#include "OnlineNotificationHandler.h"
 
 // abstract base class for messages of the type understood by the specific transport mechanism, eg. xmpp
 class IOnlineNotificationTransportMessage

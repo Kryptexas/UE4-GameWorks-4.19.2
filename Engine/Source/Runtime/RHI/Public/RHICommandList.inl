@@ -6,7 +6,6 @@
 
 #ifndef __RHICOMMANDLIST_INL__
 #define __RHICOMMANDLIST_INL__
-#include "RHICommandList.h"
 
 FORCEINLINE_DEBUGGABLE void FRHICommandListBase::Flush()
 {

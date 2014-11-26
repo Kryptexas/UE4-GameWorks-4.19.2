@@ -4,8 +4,6 @@
 
 #include "SlateBasics.h"
 
-#include "WidgetCarouselPrivatePCH.h"
-
 #include "WidgetCarouselModule.h"
 #include "SWidgetCarousel.h"
 #include "SCarouselNavigationButton.h"

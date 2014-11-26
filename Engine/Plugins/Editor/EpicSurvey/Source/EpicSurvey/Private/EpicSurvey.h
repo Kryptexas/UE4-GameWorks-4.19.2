@@ -3,8 +3,6 @@
 
 DECLARE_DELEGATE_OneParam( FOnBrushLoaded, const TSharedPtr< FSlateDynamicImageBrush >& /*Brush*/ );
 
-#include "SurveyBranch.h"
-
 namespace EContentInitializationState
 {
 	enum Type
