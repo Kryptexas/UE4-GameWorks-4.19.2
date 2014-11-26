@@ -41,7 +41,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			.Padding(FMargin(2.0f, 0.0f))
 			[
 				SNew(SHyperlink)
-				.Text(this, &SReflectorTreeWidgetItem::GetReadableLocation)
+				.Text(this, &SReflectorTreeWidgetItem::GetReadableLocationAsText)
 				.OnNavigate(this, &SReflectorTreeWidgetItem::HandleHyperlinkNavigate)
 			];
 	}
@@ -136,7 +136,7 @@ void SReflectorTreeWidgetItem::HandleHyperlinkNavigate()
 		{
 			if ( OnAccessSourceCode.IsBound() )
 			{
-				OnAccessSourceCode.Execute(GetWidgetFile(), GetWidgetLineNumber(), 0);
+				OnAccessSourceCode.Execute(GetWidgetFile().ToString(), GetWidgetLineNumber(), 0);
 			}
 		}
 	}

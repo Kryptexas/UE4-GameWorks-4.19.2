@@ -762,9 +762,9 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 		];
 }
 
-FString SNewClassDialog::GetSelectedParentClassName() const
+FText SNewClassDialog::GetSelectedParentClassName() const
 {
-	return ParentClassInfo.IsSet() ? ParentClassInfo.GetClassName() : TEXT("");
+	return ParentClassInfo.IsSet() ? FText::FromString(ParentClassInfo.GetClassName()) : FText::GetEmpty();
 }
 
 FString GetClassHeaderPath(const UClass* Class)
@@ -785,14 +785,14 @@ EVisibility SNewClassDialog::GetSourceHyperlinkVisibility() const
 	return (GetClassHeaderPath(ParentClassInfo.BaseClass).Len() > 0 ? EVisibility::Visible : EVisibility::Hidden);
 }
 
-FString SNewClassDialog::GetSelectedParentClassFilename() const
+FText SNewClassDialog::GetSelectedParentClassFilename() const
 {
 	const FString ClassHeaderPath = GetClassHeaderPath(ParentClassInfo.BaseClass);
 	if (ClassHeaderPath.Len() > 0)
 	{
-		return FPaths::GetCleanFilename(*ClassHeaderPath);
+		return FText::FromString(FPaths::GetCleanFilename(*ClassHeaderPath));
 	}
-	return FString();
+	return FText::GetEmpty();
 }
 
 EVisibility SNewClassDialog::GetDocLinkVisibility() const
@@ -870,14 +870,14 @@ EVisibility SNewClassDialog::GetNameErrorLabelVisibility() const
 	return GetNameErrorLabelText().IsEmpty() ? EVisibility::Hidden : EVisibility::Visible;
 }
 
-FString SNewClassDialog::GetNameErrorLabelText() const
+FText SNewClassDialog::GetNameErrorLabelText() const
 {
 	if ( !bLastInputValidityCheckSuccessful )
 	{
-		return LastInputValidityErrorText.ToString();
+		return LastInputValidityErrorText;
 	}
 
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 EVisibility SNewClassDialog::GetGlobalErrorLabelVisibility() const
@@ -919,15 +919,17 @@ void SNewClassDialog::OnNamePageEntered()
 	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EFocusCause::SetDirectly);
 }
 
-FString SNewClassDialog::GetNameClassTitle() const
+FText SNewClassDialog::GetNameClassTitle() const
 {
-	FString ParentClassName = GetSelectedParentClassName();
-	if(ParentClassName.IsEmpty() || ParentClassName == "None")
+	static const FString NoneString = TEXT("None");
+
+	const FText ParentClassName = GetSelectedParentClassName();
+	if(!ParentClassName.IsEmpty() && ParentClassName.ToString() != NoneString)
 	{
-		ParentClassName = TEXT("Class");
+		return FText::Format( LOCTEXT( "NameClassTitle", "Name Your New {0}" ), ParentClassName );
 	}
 
-	return FText::Format( LOCTEXT( "NameClassTitle", "Name Your New {0}" ), FText::FromString(ParentClassName) ).ToString();
+	return LOCTEXT( "NameClassGenericTitle", "Name Your New Class" );
 }
 
 FText SNewClassDialog::OnGetClassNameText() const

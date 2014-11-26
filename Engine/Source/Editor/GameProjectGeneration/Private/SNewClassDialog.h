@@ -30,10 +30,10 @@ private:
 	TSharedRef<ITableRow> MakeParentClassListViewWidget(TSharedPtr<FParentClassItem> ParentClassItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Gets the currently selected parent class name */
-	FString GetSelectedParentClassName() const;
+	FText GetSelectedParentClassName() const;
 
 	/** Gets the currently selected parent class's filename */
-	FString GetSelectedParentClassFilename() const;
+	FText GetSelectedParentClassFilename() const;
 
 	/** Whether the hyper link to go to source should be visible */
 	EVisibility GetSourceHyperlinkVisibility() const;
@@ -72,7 +72,7 @@ private:
 	EVisibility GetNameErrorLabelVisibility() const;
 
 	/** Gets the text to display in the name error label */
-	FString GetNameErrorLabelText() const;
+	FText GetNameErrorLabelText() const;
 
 	/** Gets the visibility of the global error label */
 	EVisibility GetGlobalErrorLabelVisibility() const;
@@ -87,7 +87,7 @@ private:
 	void OnNamePageEntered();
 
 	/** Returns the title text for the "name class" page */
-	FString GetNameClassTitle() const;
+	FText GetNameClassTitle() const;
 
 	/** Returns the text in the class name edit box */
 	FText OnGetClassNameText() const;

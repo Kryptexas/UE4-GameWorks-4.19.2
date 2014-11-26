@@ -48,20 +48,25 @@ public:
 protected:
 
 	/** @return String representation of the widget we are visualizing */
-	FString GetWidgetType() const
+	FText GetWidgetType() const
 	{
 		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetTypeAsString()
-			: TEXT("Null Widget");
+			? FText::FromString(WidgetInfo.Get()->Widget.Pin()->GetTypeAsString())
+			: NSLOCTEXT("SWidgetReflector", "NullWidget", "Null Widget");
 	}
 	
-	FString GetReadableLocation() const;
+	virtual FString GetReadableLocation() const override;
 
-	FString GetWidgetFile() const
+	FText GetReadableLocationAsText() const
+	{
+		return FText::FromString(GetReadableLocation());
+	}
+
+	FText GetWidgetFile() const
 	{
 		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetCreatedInFile()
-			: FString();
+			? FText::FromString(WidgetInfo.Get()->Widget.Pin()->GetCreatedInFile())
+			: FText::GetEmpty();
 	}
 
 	int32 GetWidgetLineNumber() const
@@ -71,12 +76,12 @@ protected:
 			: 0;
 	}
 
-	FString GetVisibilityAsString() const
+	FText GetVisibilityAsString() const
 	{
 		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
 		return TheWidget.IsValid()
-			? TheWidget->GetVisibility().ToString()
-			: FString();
+			? FText::FromString(TheWidget->GetVisibility().ToString())
+			: FText::GetEmpty();
 	}
 
 	/** @return The tint of the reflector node */

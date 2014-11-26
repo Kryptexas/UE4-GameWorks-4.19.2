@@ -923,7 +923,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 				AppendExcerpt(Box,
 					SNew(SHyperlink)
-					.Text(Line.AdditionalContent[0])
+					.Text(FText::FromString(Line.AdditionalContent[0]))
 					.TextStyle(FEditorStyle::Get(), Style.HyperlinkTextStyleName)
 					.UnderlineStyle(FEditorStyle::Get(), Style.HyperlinkButtonStyleName)
 					.OnNavigate( this, &FUDNParser::HandleHyperlinkNavigate, Line.AdditionalContent[1])

@@ -497,7 +497,7 @@ protected:
 	}
 	
 	
-	FString GetLocationDescription() const;
+	FText GetLocationDescription() const;
 	FReply OnUserToggledEnabled();
 
 	void OnNavigateToBreakpointLocation();
@@ -506,13 +506,13 @@ protected:
 	FString GetStatusTooltip() const;
 };
 
-FString FBreakpointLineItem::GetLocationDescription() const
+FText FBreakpointLineItem::GetLocationDescription() const
 {
 	if (UBreakpoint* MyBreakpoint = BreakpointRef.Get())
 	{
 		return MyBreakpoint->GetLocationDescription();
 	}
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 FReply FBreakpointLineItem::OnUserToggledEnabled()
@@ -847,13 +847,13 @@ protected:
 		return TEXT("");
 	}
 
-	FString GetContextObjectName() const
+	FText GetContextObjectName() const
 	{
 		const TSimpleRingBuffer<FKismetTraceSample>& TraceStack = FKismetDebugUtilities::GetTraceStack();
 
 		UObject* ObjectContext = (StackIndex < TraceStack.Num()) ? TraceStack(StackIndex).Context.Get() : NULL;
 		
-		return (ObjectContext != NULL) ? ObjectContext->GetName() : LOCTEXT("ObjectDoesNotExist", "(object no longer exists)").ToString();
+		return (ObjectContext != NULL) ? FText::FromString(ObjectContext->GetName()) : LOCTEXT("ObjectDoesNotExist", "(object no longer exists)");
 	}
 
 	void OnNavigateToNode()

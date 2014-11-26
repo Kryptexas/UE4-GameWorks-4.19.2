@@ -50,8 +50,7 @@ public:
 	}
 
 	/** Gets a string that describes the location */
-	FString GetLocationDescription() const;
-
+	FText GetLocationDescription() const;
 
 	friend class FKismetDebugUtilities;
 };
