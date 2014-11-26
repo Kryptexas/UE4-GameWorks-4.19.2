@@ -56,3 +56,15 @@ bool UDataTableFunctionLibrary::GetDataTableRowFromName(UDataTable* Table, FName
 	check(0);
     return false;
 }
+
+void UDataTableFunctionLibrary::GetDataTableRowNames(UDataTable* Table, TArray<FName>& OutRowNames)
+{
+	if (Table)
+	{
+		OutRowNames = Table->GetRowNames();
+	}
+	else
+	{
+		OutRowNames.Empty();
+	}
+}

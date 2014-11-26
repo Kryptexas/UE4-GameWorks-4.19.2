@@ -376,7 +376,7 @@ void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerC
 	BreakAllNodeLinks();
 }
 
-void UK2Node_GetDataTableRow::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+void UK2Node_GetDataTableRow::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
 	const auto DataTablePin = GetDataTablePin();
 	const auto RowNamePin = GetRowNamePin();
@@ -393,15 +393,18 @@ void UK2Node_GetDataTableRow::ValidateNodeDuringCompilation(class FCompilerResul
 		return;
 	}
 
-	const FName CurrentName = FName(*RowNamePin->GetDefaultAsString());
-	if (!DataTable->GetRowNames().Contains(CurrentName))
+	if (!RowNamePin->LinkedTo.Num())
 	{
-		const FString Msg = FString::Printf(
-			*LOCTEXT("WronRowName", "'%s' row name is not stored in '%s'. @@").ToString()
-			, *CurrentName.ToString()
-			, *GetFullNameSafe(DataTable));
-		MessageLog.Error(*Msg, this);
-		return;
+		const FName CurrentName = FName(*RowNamePin->GetDefaultAsString());
+		if (!DataTable->GetRowNames().Contains(CurrentName))
+		{
+			const FString Msg = FString::Printf(
+				*LOCTEXT("WronRowName", "'%s' row name is not stored in '%s'. @@").ToString()
+				, *CurrentName.ToString()
+				, *GetFullNameSafe(DataTable));
+			MessageLog.Error(*Msg, this);
+			return;
+		}
 	}
 }
 

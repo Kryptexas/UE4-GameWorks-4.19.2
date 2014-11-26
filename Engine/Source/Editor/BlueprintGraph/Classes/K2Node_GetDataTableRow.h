@@ -23,7 +23,6 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
         OutColor = GetNodeTitleColor();
         return TEXT("Kismet.AllClasses.FunctionIcon");
     }
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
@@ -32,6 +31,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
+	virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const override;
 	// End UK2Node interface
 
 
