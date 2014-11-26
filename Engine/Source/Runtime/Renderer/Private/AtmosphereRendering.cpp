@@ -605,7 +605,7 @@ class FAtmosphereGS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform) 
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && RHISupportsGeometryShaders(Platform);
 	}
 
 	FAtmosphereGS() {}
