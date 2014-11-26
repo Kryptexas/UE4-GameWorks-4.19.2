@@ -83,6 +83,8 @@ public:
 	/** Resets runtime movement state to character's movement capabilities */
 	void ResetMoveState() { MovementState = NavAgentProps; }
 
+	/** @return true if path following can start */
+	virtual bool CanStartPathFollowing() const { return true; }
 
 	/** @return true if component can crouch */
 	FORCEINLINE bool CanEverCrouch() const { return NavAgentProps.bCanCrouch; }

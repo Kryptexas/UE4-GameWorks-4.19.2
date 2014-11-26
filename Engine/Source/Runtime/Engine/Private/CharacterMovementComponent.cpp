@@ -2279,6 +2279,28 @@ void UCharacterMovementComponent::RequestDirectMove(const FVector& MoveVelocity,
 	}
 }
 
+bool UCharacterMovementComponent::CanStartPathFollowing() const
+{
+	if (!HasValidData() || HasRootMotion())
+	{
+		return false;
+	}
+
+	if (CharacterOwner)
+	{
+		if (CharacterOwner->GetRootComponent() && CharacterOwner->GetRootComponent()->IsSimulatingPhysics())
+		{
+			return false;
+		}
+		else if (CharacterOwner->IsMatineeControlled())
+		{
+			return false;
+		}
+	}
+
+	return Super::CanStartPathFollowing();
+}
+
 bool UCharacterMovementComponent::CanStopPathFollowing() const
 {
 	return !IsFalling();

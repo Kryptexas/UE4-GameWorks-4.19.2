@@ -1405,6 +1405,11 @@ FString UPathFollowingComponent::GetDebugString() const
 	return Desc;
 }
 
+bool UPathFollowingComponent::IsPathFollowingAllowed() const
+{
+	return MovementComp && MovementComp->CanStartPathFollowing();
+}
+
 void UPathFollowingComponent::LockResource(EAIRequestPriority::Type LockSource)
 {
 	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));

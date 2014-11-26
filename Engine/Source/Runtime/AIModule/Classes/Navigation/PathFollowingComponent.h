@@ -251,6 +251,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** Called when falling movement ends. */
 	virtual void OnLanded() {}
 
+	/** Check if path following can be activated */
+	virtual bool IsPathFollowingAllowed() const;
+
 	/** call when moving agent finishes using custom nav link, returns control back to path following */
 	virtual void FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink);
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "MessageLog.h"
 #include "NavDataGenerator.h"
 #include "NavigationOctree.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
@@ -33,6 +34,8 @@ static const uint32 MAX_NAV_SEARCH_NODES = RECAST_MAX_SEARCH_NODES;
 #else // WITH_RECAST
 static const uint32 MAX_NAV_SEARCH_NODES = 2048;
 #endif // WITH_RECAST
+
+#define LOCTEXT_NAMESPACE "Navigation"
 
 DEFINE_LOG_CATEGORY(LogNavigation);
 DEFINE_LOG_CATEGORY_STATIC(LogNavOctree, Warning, All);
@@ -897,6 +900,22 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 	UPathFollowingComponent* PFollowComp = NULL;
 
 	Controller->InitNavigationControl(PFindComp, PFollowComp);
+
+	if (PFindComp == nullptr || PFollowComp == nullptr)
+	{
+		FMessageLog("PIE").Warning(FText::Format(
+			LOCTEXT("SimpleMoveErrorNoComp", "SimpleMove failed for {0}: missing components"),
+			FText::FromName(Controller->GetFName())
+			));
+	}
+
+	if (!PFollowComp->IsPathFollowingAllowed())
+	{
+		FMessageLog("PIE").Warning(FText::Format(
+			LOCTEXT("SimpleMoveErrorMovement", "SimpleMove failed for {0}: movement not allowed"),
+			FText::FromName(Controller->GetFName())
+			));
+	}
 
 	if (PFindComp && PFollowComp && !PFollowComp->HasReached(GoalLocation))
 	{
