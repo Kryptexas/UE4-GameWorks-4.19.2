@@ -2760,7 +2760,7 @@ void FSlateEditorStyle::FStyle::SetupTutorialStyles()
 				);
 
 			Set("TutorialEditableText.Toolbar.ItalicText", FTextBlockStyle(NormalText)
-				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Italic", 10))
+				.SetFont(TTF_FONT("Fonts/Roboto-Italic", 10))
 				.SetColorAndOpacity(TextColor)
 				);
 
