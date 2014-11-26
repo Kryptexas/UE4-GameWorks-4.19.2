@@ -782,7 +782,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
 
-#if	UE_EDITOR
+#if WITH_ENGINE
 	TArray<FString> Tokens;
 	TArray<FString> Switches;
 	UCommandlet::ParseCommandLine(CommandLineCopy, Tokens, Switches);
@@ -944,7 +944,23 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	bHasEditorToken = !bIsNotEditor;
-#else	//UE_EDITOR
+#elif WITH_ENGINE
+	const TCHAR* CommandletCommandLine = NULL;
+	if (bHasCommandletToken)
+	{
+#if STATS
+		FThreadStats::MasterDisableForever();
+#endif
+		if (Token.StartsWith(TEXT("run=")))
+		{
+			Token = Token.RightChop(4);
+			if (!Token.EndsWith(TEXT("Commandlet")))
+			{
+				Token += TEXT("Commandlet");
+			}
+		}
+		CommandletCommandLine = ParsedCmdLine;
+	}
 #if WITH_EDITOR && WITH_EDITORONLY_DATA
 	// If a non-editor target build w/ WITH_EDITOR and WITH_EDITORONLY_DATA, use the old token check...
 	//@todo. Is this something we need to support?
@@ -1113,8 +1129,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GIsServer = true;
 #if WITH_EDITOR
 		GIsEditor = true;
-		PRIVATE_GIsRunningCommandlet = true;
 #endif	//WITH_EDITOR
+		PRIVATE_GIsRunningCommandlet = true;
 
 		// We need to disregard the empty token as we try finding Token + "Commandlet" which would result in finding the
 		// UCommandlet class if Token is empty.
@@ -1154,8 +1170,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			GIsServer = false;
 #if WITH_EDITORONLY_DATA
 			GIsEditor = false;
-			PRIVATE_GIsRunningCommandlet = false;
 #endif
+			PRIVATE_GIsRunningCommandlet = false;
 		}
 	}
 
@@ -1163,8 +1179,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		GIsClient = false;
 		GIsServer = true;
-#if WITH_EDITOR
 		PRIVATE_GIsRunningCommandlet = false;
+#if WITH_EDITOR
 		GIsEditor = false;
 #endif
 		bIsSeekFreeDedicatedServer = FPlatformProperties::RequiresCookedData();
@@ -1391,7 +1407,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	SlowTask.EnterProgressFrame(50);
 
-#if WITH_EDITOR
 	if (!bHasEditorToken)
 	{
 		UClass* CommandletClass = NULL;
@@ -1445,7 +1460,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			GIsClient = Default->IsClient;
 			GIsServer = Default->IsServer;
+#if WITH_EDITOR
 			GIsEditor = Default->IsEditor;
+#else
+			if (Default->IsEditor)
+			{
+				UE_LOG(LogInit, Error, TEXT("Cannot run editor commandlet %s with game executable."), *CommandletClass->GetFullName());
+				GIsRequestingExit = true;
+				return 1;
+			}
+#endif
 			PRIVATE_GIsRunningCommandlet = true;
 			// Reset aux log if we don't want to log to the console window.
 			if( !Default->LogToConsole )
@@ -1459,6 +1483,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			CommandletClass->GetDefaultObject<UCommandlet>()->CreateCustomEngine(CommandletCommandLine);
 			if ( GEngine == NULL )
 			{
+#if WITH_EDITOR
 				if ( GIsEditor )
 				{
 					UClass* EditorEngineClass = StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
@@ -1472,6 +1497,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UE_LOG(LogInit, Log, TEXT("Initializing Editor Engine Completed"));
 				}
 				else
+#endif
 				{
 					UClass* EngineClass = StaticLoadClass( UEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.GameEngine"), NULL, LOAD_None, NULL );
 
@@ -1608,8 +1634,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 		}
 	}
-
-#endif	//WITH_EDITOR
 
 	// exit if wanted.
 	if( GIsRequestingExit )

@@ -56,6 +56,9 @@ extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
 /** Helper function to flush resource streaming. */
 extern CORE_API void(*GFlushStreamingFunc)(void);
 
+#if WITH_ENGINE
+extern CORE_API bool PRIVATE_GIsRunningCommandlet;
+#endif
 
 #if WITH_EDITORONLY_DATA
 
@@ -65,7 +68,6 @@ extern CORE_API void(*GFlushStreamingFunc)(void);
 */
 extern CORE_API bool GIsEditor;
 extern CORE_API bool GIsImportingT3D;
-extern CORE_API bool PRIVATE_GIsRunningCommandlet;
 extern CORE_API bool GIsUCCMakeStandaloneHeaderGenerator;
 extern CORE_API bool GIsTransacting;
 
@@ -79,7 +81,6 @@ extern CORE_API bool			GFirstFrameIntraFrameDebugging;
 #else
 
 #define GIsEditor								false
-#define PRIVATE_GIsRunningCommandlet			false
 #define GIsUCCMakeStandaloneHeaderGenerator		false
 #define GIntraFrameDebuggingGameThread			false
 #define GFirstFrameIntraFrameDebugging			false
@@ -92,7 +93,7 @@ extern CORE_API bool			GFirstFrameIntraFrameDebugging;
 */
 FORCEINLINE bool IsRunningCommandlet()
 {
-#if WITH_EDITORONLY_DATA
+#if WITH_ENGINE
 	return PRIVATE_GIsRunningCommandlet;
 #else
 	return false;
