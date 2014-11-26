@@ -251,6 +251,9 @@ protected:
 	virtual void CleanUp();
 
 	void RemoveDeadData();
+
+	/** Updates the stimulus entry in StimulusStore, if NewStimulus is more recent or stronger */
+	virtual void RefreshStimulus(FAIStimulus& StimulusStore, const FAIStimulus& NewStimulus);
 	
 private:
 	FPerceptionListenerID PerceptionListenerId;

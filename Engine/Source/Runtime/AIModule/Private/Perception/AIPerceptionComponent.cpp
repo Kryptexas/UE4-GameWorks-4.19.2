@@ -401,13 +401,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
-			// if new stimulus is younger or stronger
-			// note that stimulus Age depends on PerceptionSystem::PerceptionAgingRate. It's possible that 
-			// both already stored and the new stimulus have Age of 0, but stored stimulus' acctual age is in [0, PerceptionSystem::PerceptionAgingRate)
-			if (SourcedStimulus->Stimulus.GetAge() <= StimulusStore.GetAge() || StimulusStore.Strength < SourcedStimulus->Stimulus.Strength)
-			{
-				StimulusStore = SourcedStimulus->Stimulus;
-			}
+			RefreshStimulus(StimulusStore, SourcedStimulus->Stimulus);
 		}
 		else
 		{
@@ -427,6 +421,17 @@ void UAIPerceptionComponent::ProcessStimuli()
 		}
 
 		OnPerceptionUpdated.Broadcast(UpdatedActors);
+	}
+}
+
+void UAIPerceptionComponent::RefreshStimulus(FAIStimulus& StimulusStore, const FAIStimulus& NewStimulus)
+{
+	// if new stimulus is younger or stronger
+	// note that stimulus Age depends on PerceptionSystem::PerceptionAgingRate. It's possible that 
+	// both already stored and the new stimulus have Age of 0, but stored stimulus' acctual age is in [0, PerceptionSystem::PerceptionAgingRate)
+	if (NewStimulus.GetAge() <= StimulusStore.GetAge() || StimulusStore.Strength < NewStimulus.Strength)
+	{
+		StimulusStore = NewStimulus;
 	}
 }
 
