@@ -64,6 +64,11 @@ public:
 		Seed = InitialSeed;
 	}
 
+	int32 GetInitialSeed() const
+	{
+		return InitialSeed;
+	}
+
 	/**
 	 * Generates a new random seed.
 	 */

@@ -1115,6 +1115,14 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(NativeBreakFunc))
 	static void BreakTransform(const FTransform& InTransform, FVector& Location, FRotator& Rotation, FVector& Scale);
 
+	/** Makes a SRand-based random number generator */
+	UFUNCTION(BlueprintPure, meta = (Keywords = "construct build", NativeMakeFunc), Category = "Math|Random")
+		static FRandomStream MakeRandomStream(int32 InitialSeed);
+
+	/** Breaks apart a random number generator */
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (NativeBreakFunc))
+		static void BreakRandomStream(const FRandomStream& InRandomStream, int32& InitialSeed);
+
 	/** Make a color from individual color components (RGB space) */
 	UFUNCTION(BlueprintPure, Category="Math|Color", meta=(Keywords="construct build"))
 	static FLinearColor MakeColor(float R, float G, float B, float A = 1.0f);

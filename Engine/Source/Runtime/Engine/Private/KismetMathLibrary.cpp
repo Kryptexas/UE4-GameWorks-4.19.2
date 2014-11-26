@@ -1993,3 +1993,13 @@ bool UKismetMathLibrary::LinePlaneIntersection_OriginNormal(const FVector& LineS
 
 	return true;
 }
+
+void UKismetMathLibrary::BreakRandomStream(const FRandomStream& InRandomStream, int32& InitialSeed)
+{
+	InitialSeed = InRandomStream.GetInitialSeed();
+}
+
+FRandomStream UKismetMathLibrary::MakeRandomStream(int32 InitialSeed)
+{
+	return FRandomStream(InitialSeed);
+}
