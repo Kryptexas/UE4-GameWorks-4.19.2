@@ -284,6 +284,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatBackgroundBrush(const FSlateB
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatChannelsBackgroundBrush(const FSlateBrush& InChatChannelsBackgroundBrush)
+{
+	ChatChannelsBackgroundBrush = InChatChannelsBackgroundBrush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatOptionsBackgroundBrush(const FSlateBrush& InChatOptionsBackgroundBrush)
+{
+	ChatOptionsBackgroundBrush = InChatOptionsBackgroundBrush;
+	return *this;
+}
+
 const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 {
 	static FFriendsAndChatStyle Default;

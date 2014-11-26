@@ -255,4 +255,12 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatBackgroundBrush;
 	FFriendsAndChatStyle& SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatChannelsBackgroundBrush;
+	FFriendsAndChatStyle& SetChatChannelsBackgroundBrush(const FSlateBrush& InChatChannelsBackgroundBrush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatOptionsBackgroundBrush;
+	FFriendsAndChatStyle& SetChatOptionsBackgroundBrush(const FSlateBrush& InChatOptionsBackgroundBrush);
 };

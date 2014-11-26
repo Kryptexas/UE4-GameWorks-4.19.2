@@ -75,7 +75,7 @@ public:
 					.VAlign(VAlign_Fill)
 					[
 						SAssignNew(ActionMenu, SMenuAnchor)
-						.Placement(EMenuPlacement::MenuPlacement_AboveAnchor)
+						.Placement(EMenuPlacement::MenuPlacement_BelowAnchor)  	// MenuPlacement_BelowAnchor is a workaround until a workarea bug is fixed in SlateApplication menu placement code
 						.Method(EPopupMethod::UseCurrentWindow)
 						.OnGetMenuContent(this, &SChatWindowImpl::GetMenuContent)
 						[
@@ -107,40 +107,40 @@ public:
 								SNew(SBorder)
 								.BorderImage(&FriendStyle.FriendContainerBackground)
 								.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
-							[
-								SNew(SHorizontalBox)
-								.Visibility(this, &SChatWindowImpl::GetFriendNameVisibility)
-								+SHorizontalBox::Slot()
+								[
+									SNew(SHorizontalBox)
+									.Visibility(this, &SChatWindowImpl::GetFriendNameVisibility)
+									+SHorizontalBox::Slot()
 									.Padding(5,0)
-								.AutoWidth()
-								.VAlign(VAlign_Center)
-								[
-									SNew(STextBlock)
-									.Font(FriendStyle.FriendsFontStyleSmallBold)
-									.Text(ViewModelPtr, &FChatViewModel::GetChatGroupText)
-								]
-								+SHorizontalBox::Slot()
-									.Padding(0, 0, 5, 0)
-								.AutoWidth()
-								.VAlign(VAlign_Center)
-								[
-									SNew(SButton)
-									.Visibility(this, &SChatWindowImpl::GetFriendActionVisibility)
-									.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-									.ContentPadding(FMargin(-2,3))
-									.OnClicked(this, &SChatWindowImpl::HandleFriendActionDropDownClicked)
+									.AutoWidth()
+									.VAlign(VAlign_Center)
 									[
-										SAssignNew(ChatItemActionMenu, SMenuAnchor)
-										.Placement(EMenuPlacement::MenuPlacement_AboveAnchor)
-										.Method(EPopupMethod::UseCurrentWindow)
-										.OnGetMenuContent(this, &SChatWindowImpl::GetFriendActionMenu)
+										SNew(STextBlock)
+										.Font(FriendStyle.FriendsFontStyleSmallBold)
+										.Text(ViewModelPtr, &FChatViewModel::GetChatGroupText)
+									]
+									+SHorizontalBox::Slot()
+									.Padding(0, 0, 5, 0)
+									.AutoWidth()
+									.VAlign(VAlign_Center)
+									[
+										SNew(SButton)
+										.Visibility(this, &SChatWindowImpl::GetFriendActionVisibility)
+										.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+										.ContentPadding(FMargin(-2,3))
+										.OnClicked(this, &SChatWindowImpl::HandleFriendActionDropDownClicked)
 										[
-											SNew(SImage)
-											.Image(&FriendStyle.FriendsCalloutBrush)
+											SAssignNew(ChatItemActionMenu, SMenuAnchor)
+											.Placement(EMenuPlacement::MenuPlacement_BelowAnchor)	// MenuPlacement_BelowAnchor is a workaround until a workarea bug is fixed in SlateApplication menu placement code
+											.Method(EPopupMethod::UseCurrentWindow)
+											.OnGetMenuContent(this, &SChatWindowImpl::GetFriendActionMenu)
+											[
+												SNew(SImage)
+												.Image(&FriendStyle.FriendsCalloutBrush)
+											]
 										]
 									]
 								]
-							]
 							]
 							+SHorizontalBox::Slot()
 							.HAlign(HAlign_Fill)
@@ -160,69 +160,69 @@ public:
 							.Visibility(this, &SChatWindowImpl::GetConfirmationVisibility)
 							.BorderImage(&FriendStyle.FriendContainerBackground)
 							.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot()
 								.Padding(5, 0)
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							.MaxWidth(200)
-							[
-								SNew(STextBlock)
-								.Font(FriendStyle.FriendsFontStyleSmallBold)
-								.Text(ViewModelPtr, &FChatViewModel::GetChatGroupText)
-							]
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								.MaxWidth(200)
+								[
+									SNew(STextBlock)
+									.Font(FriendStyle.FriendsFontStyleSmallBold)
+									.Text(ViewModelPtr, &FChatViewModel::GetChatGroupText)
+								]
+								+SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
 								.Padding(0, 0, 5, 0)
-							[
-								SNew(SButton)
-								.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-								.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::SendFriendRequest)
-								.ContentPadding(5)
-								.VAlign(VAlign_Center)
-								.HAlign(HAlign_Center)
 								[
-									SNew(STextBlock)
-									.Font(FriendStyle.FriendsFontStyleSmallBold)
-									.ColorAndOpacity(FriendStyle.DefaultFontColor)
-									.Text(FText::FromString("Add Friend"))
+									SNew(SButton)
+									.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+									.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::SendFriendRequest)
+									.ContentPadding(5)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Center)
+									[
+										SNew(STextBlock)
+										.Font(FriendStyle.FriendsFontStyleSmallBold)
+										.ColorAndOpacity(FriendStyle.DefaultFontColor)
+										.Text(FText::FromString("Add Friend"))
+									]
 								]
-							]
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							.Padding(0, 0, 5, 0)
-							[
-								SNew(SButton)
-								.Visibility(ViewModelPtr, &FChatViewModel::GetInviteToGameVisibility)
-								.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-								.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::InviteToGame)
-								.ContentPadding(5)
+								+SHorizontalBox::Slot()
+								.AutoWidth()
 								.VAlign(VAlign_Center)
-								.HAlign(HAlign_Center)
+								.Padding(0, 0, 5, 0)
 								[
-									SNew(STextBlock)
-									.Font(FriendStyle.FriendsFontStyleSmallBold)
-									.ColorAndOpacity(FriendStyle.DefaultFontColor)
-									.Text(FText::FromString("Invite To Game"))
+									SNew(SButton)
+									.Visibility(ViewModelPtr, &FChatViewModel::GetInviteToGameVisibility)
+									.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+									.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked, EFriendActionType::InviteToGame)
+									.ContentPadding(5)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Center)
+									[
+										SNew(STextBlock)
+										.Font(FriendStyle.FriendsFontStyleSmallBold)
+										.ColorAndOpacity(FriendStyle.DefaultFontColor)
+										.Text(FText::FromString("Invite To Game"))
+									]
 								]
-							]
-							+ SHorizontalBox::Slot()
-							.HAlign(HAlign_Right)
-							.VAlign(VAlign_Center)
-							.Padding(0, 0, 5, 0)
-							.AutoWidth()
-							[
-								SNew(SButton)
-								.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
-								.OnClicked(this, &SChatWindowImpl::CancelActionClicked)
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Right)
+								.VAlign(VAlign_Center)
+								.Padding(0, 0, 5, 0)
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
+									.OnClicked(this, &SChatWindowImpl::CancelActionClicked)
+								]
 							]
 						]
 					]
 				]
-			]
 			]
 		]);
 
@@ -315,7 +315,7 @@ private:
 		+SUniformGridPanel::Slot(0,0)
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendContainerBackground)
+			.BorderImage(&FriendStyle.ChatChannelsBackgroundBrush)
 			[
 				SAssignNew(ChannelSelection, SVerticalBox)
 			]
@@ -323,8 +323,7 @@ private:
 		+SUniformGridPanel::Slot(1,0)
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.FriendContainerBackground)
-			.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
+			.BorderImage(&FriendStyle.ChatOptionsBackgroundBrush)
 			.Padding(8.0f)
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Top)
