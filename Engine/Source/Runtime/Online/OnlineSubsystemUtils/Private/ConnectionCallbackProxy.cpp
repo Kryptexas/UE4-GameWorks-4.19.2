@@ -32,12 +32,12 @@ void UConnectionCallbackProxy::Activate()
 		IOnlineIdentityPtr OnlineIdentity = Helper.OnlineSub->GetIdentityInterface();
 		if (OnlineIdentity.IsValid())
 		{
-			ULocalPlayer * localPlayer = CastChecked<ULocalPlayer>(PlayerControllerWeakPtr.Get()->Player);
+			const int32 ControllerId = CastChecked<ULocalPlayer>(PlayerControllerWeakPtr.Get()->Player)->GetControllerId();
 
-			if (!OnlineIdentity->OnLoginCompleteDelegates[localPlayer->ControllerId].IsBoundToObject(this))
+			if (!OnlineIdentity->OnLoginCompleteDelegates[ControllerId].IsBoundToObject(this))
 			{
-				OnlineIdentity->AddOnLoginCompleteDelegate(localPlayer->ControllerId, OnLoginCompleteDelegate);
-				OnlineIdentity->Login(localPlayer->ControllerId, FOnlineAccountCredentials()); /// Probably need to supply real creds here somehow... doesn't apply for all imple however.
+				OnlineIdentity->AddOnLoginCompleteDelegate(ControllerId, OnLoginCompleteDelegate);
+				OnlineIdentity->Login(ControllerId, FOnlineAccountCredentials()); /// Probably need to supply real creds here somehow... doesn't apply for all imple however.
 			}
 			else
 			{

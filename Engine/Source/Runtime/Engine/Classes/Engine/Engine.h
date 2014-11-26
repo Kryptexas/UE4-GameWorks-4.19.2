@@ -1780,8 +1780,8 @@ public:
 	TArray<class ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator(UWorld *World);
 	TArray<class ULocalPlayer*>::TConstIterator GetLocalPlayerIterator(const UGameViewportClient *Viewport);
 
-	const TArray<class ULocalPlayer*>& GetGamePlayers(UWorld *World);
-	const TArray<class ULocalPlayer*>& GetGamePlayers(const UGameViewportClient *Viewport);
+	const TArray<class ULocalPlayer*>& GetGamePlayers(UWorld *World) const;
+	const TArray<class ULocalPlayer*>& GetGamePlayers(const UGameViewportClient *Viewport) const;
 
 	/**
 	 *	Returns the first ULocalPlayer that matches the given ControllerId. 
@@ -2042,10 +2042,10 @@ public:
 	 * @param	ControllerId	the game pad index of the player to search for
 	 * @return	The player that has the ControllerId specified, or nullptr if no players have that ControllerId
 	 */
-	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId );
-	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
+	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, const int32 ControllerId ) const;
+	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, const int32 ControllerId ) const;
 
-	void SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID);
+	void SwapControllerId(ULocalPlayer *NewPlayer, const int32 CurrentControllerId, const int32 NewControllerID) const;
 
 	/** 
 	 * Find a Local Player Controller, which may not exist at all if this is a server.
@@ -2405,14 +2405,28 @@ public:
 	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
 	FWorldContext* GetWorldContextFromPIEInstance(const int32 PIEInstance);
 
-	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
+	const FWorldContext* GetWorldContextFromWorld(const UWorld* InWorld) const;
+	const FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport) const;
+	const FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame) const;	
+	const FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame) const;	
+	const FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle) const;
+	const FWorldContext* GetWorldContextFromPIEInstance(const int32 PIEInstance) const;
+
+	FWorldContext& GetWorldContextFromWorldChecked(const UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
 	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
 	FWorldContext& GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance);
 
-	const TIndirectArray<FWorldContext>& GetWorldContexts() { return WorldList;	}
+	const FWorldContext& GetWorldContextFromWorldChecked(const UWorld * InWorld) const;
+	const FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport) const;
+	const FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame) const;	
+	const FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame) const;	
+	const FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle) const;
+	const FWorldContext& GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance) const;
+
+	const TIndirectArray<FWorldContext>& GetWorldContexts() const { return WorldList;	}
 
 
 	/** Verify any remaining World(s) are valid after ::LoadMap destroys a world */
@@ -2424,7 +2438,7 @@ public:
 	bool ShouldAbsorbAuthorityOnlyEvent();
 	bool ShouldAbsorbCosmeticOnlyEvent();
 
-	UGameViewportClient* GameViewportForWorld(UWorld *InWorld);
+	UGameViewportClient* GameViewportForWorld(const UWorld *InWorld) const;
 
 protected:
 

@@ -107,7 +107,7 @@ void FPlayerMuteList::ClientMutePlayer(APlayerController* OwningPC, const FUniqu
 		if (VoiceInt.IsValid())
 		{
 			// Have the voice subsystem mute this player
-			VoiceInt->MuteRemoteTalker(LP->ControllerId, *PlayerIdToMute, false);
+			VoiceInt->MuteRemoteTalker(LP->GetControllerId(), *PlayerIdToMute, false);
 		}
 	}
 }
@@ -128,7 +128,7 @@ void FPlayerMuteList::ClientUnmutePlayer(APlayerController* OwningPC, const FUni
 		if (VoiceInt.IsValid())
 		{
 			// Have the voice subsystem mute this player
-			VoiceInt->UnmuteRemoteTalker(LP->ControllerId, *PlayerIdToUnmute, false);
+			VoiceInt->UnmuteRemoteTalker(LP->GetControllerId(), *PlayerIdToUnmute, false);
 		}
 	}
 }

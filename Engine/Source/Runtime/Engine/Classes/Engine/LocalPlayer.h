@@ -134,10 +134,6 @@ class ENGINE_API ULocalPlayer : public UPlayer
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The controller ID which this player accepts input from. */
-	UPROPERTY()
-	int32 ControllerId;
-
 	/** The FUniqueNetId which this player is associated with. */
 	TSharedPtr<class FUniqueNetId> CachedUniqueNetId;
 
@@ -146,15 +142,12 @@ class ENGINE_API ULocalPlayer : public UPlayer
 	class UGameViewportClient* ViewportClient;
 
 	/** The coordinates for the upper left corner of the master viewport subregion allocated to this player. 0-1 */
-	UPROPERTY()
 	FVector2D Origin;
 
 	/** The size of the master viewport subregion allocated to this player. 0-1 */
-	UPROPERTY()
 	FVector2D Size;
 
 	/** The location of the player's view the previous frame. */
-	UPROPERTY(transient)
 	FVector LastViewLocation;
 
 	/** How to constrain perspective viewport FOV */
@@ -174,11 +167,14 @@ private:
 	FSceneViewStateReference StereoViewState;
 
 	/** Class to manage online services */
-	UPROPERTY(transient)
+	UPROPERTY()
 	class UOnlineSession* OnlineSession;
 
 	/** @return OnlineSession class to use for this player controller  */
 	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass();
+
+	/** The controller ID which this player accepts input from. */
+	int32 ControllerId;
 
 public:
 	// UObject interface
@@ -307,6 +303,11 @@ public:
 	 * @param	NewControllerId		the ControllerId to assign to this player.
 	 */
 	virtual void SetControllerId(int32 NewControllerId);
+
+	/**
+	 * Returns the controller ID for the player
+	 */
+	int32 GetControllerId() const { return ControllerId; }
 
 	/** 
 	 * Retrieves this player's name/tag from the online subsystem

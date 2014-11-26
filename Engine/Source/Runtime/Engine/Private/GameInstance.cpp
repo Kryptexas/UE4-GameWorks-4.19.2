@@ -485,7 +485,7 @@ bool UGameInstance::RemoveLocalPlayer(ULocalPlayer* ExistingPlayer)
 	// Do this after notifications, as some of them require the ViewportClient.
 	ExistingPlayer->ViewportClient = NULL;
 
-	UE_LOG(LogPlayerManagement, Log, TEXT("UGameInstance::RemovePlayer: Removed player %s with ControllerId %i at index %i (%i remaining players)"), *ExistingPlayer->GetName(), ExistingPlayer->ControllerId, OldIndex, LocalPlayers.Num());
+	UE_LOG(LogPlayerManagement, Log, TEXT("UGameInstance::RemovePlayer: Removed player %s with ControllerId %i at index %i (%i remaining players)"), *ExistingPlayer->GetName(), ExistingPlayer->GetControllerId(), OldIndex, LocalPlayers.Num());
 
 	return true;
 }
@@ -538,11 +538,11 @@ APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 	return nullptr;
 }
 
-ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(int32 ControllerId) const
+ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(const int32 ControllerId) const
 {
 	for (ULocalPlayer * LP : LocalPlayers)
 	{
-		if (LP && (LP->ControllerId == ControllerId))
+		if (LP && (LP->GetControllerId() == ControllerId))
 		{
 			return LP;
 		}

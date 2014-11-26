@@ -2698,7 +2698,7 @@ void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerC
 			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
 			if(LocalPlayer)
 			{
-				LocalUserNum = LocalPlayer->ControllerId;
+				LocalUserNum = LocalPlayer->GetControllerId();
 			}
 		}
 		ExternalUI->ShowAchievementsUI(LocalUserNum);

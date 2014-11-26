@@ -37,9 +37,9 @@ APlayerController* UOnlineSessionClient::GetPlayerController()
 int32 UOnlineSessionClient::GetControllerId()
 {
 	ULocalPlayer* LP = Cast<ULocalPlayer>(GetOuter());
-	if (LP != NULL)
+	if (LP != nullptr)
 	{
-		return LP->ControllerId;
+		return LP->GetControllerId();
 	}
 
 	return INVALID_CONTROLLERID;

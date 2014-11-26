@@ -143,7 +143,7 @@ public:
 	int32					GetNumLocalPlayers() const;
 	ULocalPlayer*			GetLocalPlayerByIndex(const int32 Index) const;
 	APlayerController*		GetFirstLocalPlayerController() const;
-	ULocalPlayer*			FindLocalPlayerFromControllerId(int32 ControllerId) const;
+	ULocalPlayer*			FindLocalPlayerFromControllerId(const int32 ControllerId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr< FUniqueNetId > UniqueNetId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
 	ULocalPlayer*			GetFirstGamePlayer() const;

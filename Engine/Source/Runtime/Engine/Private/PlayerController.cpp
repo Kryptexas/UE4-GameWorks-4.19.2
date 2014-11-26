@@ -1340,7 +1340,7 @@ void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
 		if (ForceFeedbackSystem)
 		{
-			ForceFeedbackSystem->SetChannelValues(LocalPlayer->ControllerId, FForceFeedbackValues());
+			ForceFeedbackSystem->SetChannelValues(LocalPlayer->GetControllerId(), FForceFeedbackValues());
 		}
 	}
 
@@ -3009,11 +3009,11 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 		{
 			if (bSpeaking)
 			{
-				VoiceInt->StartNetworkedVoice(LP->ControllerId);
+				VoiceInt->StartNetworkedVoice(LP->GetControllerId());
 			}
 			else
 			{
-				VoiceInt->StopNetworkedVoice(LP->ControllerId);
+				VoiceInt->StopNetworkedVoice(LP->GetControllerId());
 			}
 		}
 	}
@@ -3505,7 +3505,7 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 	IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
 	if (ForceFeedbackSystem)
 	{
-		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
+		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->GetControllerId(), (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
 	}
 }
 

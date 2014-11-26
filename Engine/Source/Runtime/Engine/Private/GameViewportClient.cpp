@@ -1325,13 +1325,13 @@ void UGameViewportClient::PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver
 void UGameViewportClient::SSSwapControllers()
 {
 #if !UE_BUILD_SHIPPING
-	int32 TmpControllerID = GetOuterUEngine()->GetFirstGamePlayer(this)->ControllerId;
+	const int32 TmpControllerID = GetOuterUEngine()->GetFirstGamePlayer(this)->GetControllerId();
 
 	for (int32 Idx=0; Idx<GetOuterUEngine()->GetNumGamePlayers(this)-1; ++Idx)
 	{
-		GetOuterUEngine()->GetGamePlayer(this, Idx)->ControllerId = GetOuterUEngine()->GetGamePlayer(this, Idx+1)->ControllerId;
+		GetOuterUEngine()->GetGamePlayer(this, Idx)->SetControllerId(GetOuterUEngine()->GetGamePlayer(this, Idx+1)->GetControllerId());
 	}
-	GetOuterUEngine()->GetGamePlayer(this, GetOuterUEngine()->GetNumGamePlayers(this)-1)->ControllerId = TmpControllerID;
+	GetOuterUEngine()->GetGamePlayer(this, GetOuterUEngine()->GetNumGamePlayers(this)-1)->SetControllerId(TmpControllerID);
 #endif
 }
 
