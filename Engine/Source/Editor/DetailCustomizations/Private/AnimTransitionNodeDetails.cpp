@@ -378,7 +378,7 @@ TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(FStr
 
 	return
 		SNew(SExpandableArea)
-		.AreaTitle(TypeName)
+		.AreaTitle(FText::FromString(TypeName))
 		.InitiallyCollapsed(true)
 		.BodyContent()
 		[

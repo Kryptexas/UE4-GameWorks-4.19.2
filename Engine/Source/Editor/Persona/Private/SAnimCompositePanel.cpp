@@ -34,7 +34,7 @@ void SAnimCompositePanel::Construct(const FArguments& InArgs)
 		.FillHeight(1)
 		[
 			SNew( SExpandableArea )
-			.AreaTitle( LOCTEXT( "CompositeLabel", "Composite" ).ToString() )
+			.AreaTitle( LOCTEXT( "CompositeLabel", "Composite" ) )
 			.BodyContent()
 			[
 				SAssignNew( PanelArea, SBorder )

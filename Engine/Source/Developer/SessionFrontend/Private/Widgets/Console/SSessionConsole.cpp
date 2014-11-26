@@ -55,7 +55,7 @@ void SSessionConsole::Construct( const FArguments& InArgs, ISessionManagerRef In
 					[
 						// filter bar
 						SNew(SExpandableArea)
-							.AreaTitle(LOCTEXT("FilterBarAreaTitle", "Log Filter").ToString())
+							.AreaTitle(LOCTEXT("FilterBarAreaTitle", "Log Filter"))
 							.InitiallyCollapsed(true)
 							.Padding(FMargin(8.0f, 6.0f))
 							.BodyContent()
