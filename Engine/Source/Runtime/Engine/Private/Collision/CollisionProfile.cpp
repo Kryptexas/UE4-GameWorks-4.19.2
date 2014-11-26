@@ -62,7 +62,7 @@ UCollisionProfile* UCollisionProfile::Get()
 
 void UCollisionProfile::GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList)
 {
-	UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
+	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
 	check(CollisionProfile);
 
 	int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
@@ -76,6 +76,32 @@ void UCollisionProfile::GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList)
 
 		OutNameList.Add(MakeShareable(new FName(ProfileTemplate->Name)));
 	}
+}
+
+bool UCollisionProfile::GetChannelAndResponseParams(FName ProfileName, ECollisionChannel &CollisionChannel, FCollisionResponseParams &ResponseParams)
+{
+	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
+	check(CollisionProfile);
+
+	FCollisionResponseTemplate Template;
+
+	if (CollisionProfile->GetProfileTemplate(ProfileName, Template))
+	{
+		CollisionChannel = Template.ObjectType;
+		ResponseParams = FCollisionResponseParams(Template.ResponseToChannels);
+		return true;
+	}
+
+	// Check for redirects
+	const FName* RedirectName = CollisionProfile->LookForProfileRedirect(ProfileName);
+	if (RedirectName && CollisionProfile->GetProfileTemplate(*RedirectName, Template))
+	{
+		CollisionChannel = Template.ObjectType;
+		ResponseParams = FCollisionResponseParams(Template.ResponseToChannels);
+		return true;
+	}
+
+	return false;
 }
 
 bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const

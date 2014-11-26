@@ -297,24 +297,8 @@ bool UWorld::OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos
 // profile interfaces
 static void GetCollisionProfileChannelAndResponseParams(FName ProfileName, ECollisionChannel &CollisionChannel, FCollisionResponseParams &ResponseParams)
 {
-	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
-	check(CollisionProfile != NULL);
-
-	FCollisionResponseTemplate Template;
-
-	if (CollisionProfile->GetProfileTemplate(ProfileName, Template))
+	if (UCollisionProfile::GetChannelAndResponseParams(ProfileName, CollisionChannel, ResponseParams))
 	{
-		CollisionChannel = Template.ObjectType;
-		ResponseParams = FCollisionResponseParams(Template.ResponseToChannels);
-		return;
-	}
-
-	// Check for redirects
-	const FName* RedirectName = CollisionProfile->LookForProfileRedirect(ProfileName);
-	if (RedirectName && CollisionProfile->GetProfileTemplate(*RedirectName, Template))
-	{
-		CollisionChannel = Template.ObjectType;
-		ResponseParams = FCollisionResponseParams(Template.ResponseToChannels);
 		return;
 	}
 

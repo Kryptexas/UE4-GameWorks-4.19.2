@@ -216,6 +216,17 @@ void FCollisionResponseContainer::SetAllChannels(ECollisionResponse NewResponse)
 	}
 }
 
+void FCollisionResponseContainer::ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse)
+{
+	for (int32 i = 0; i < ARRAY_COUNT(EnumArray); i++)
+	{
+		if(EnumArray[i] == OldResponse)
+		{
+			EnumArray[i] = NewResponse;
+		}
+	}
+}
+
 /** Returns if the specified channel is set */
 ECollisionResponse FCollisionResponseContainer::GetResponse(ECollisionChannel Channel) const
 {

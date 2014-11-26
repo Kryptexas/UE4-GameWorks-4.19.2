@@ -688,6 +688,9 @@ struct ENGINE_API FCollisionResponseContainer
 	/** Set all channels to the specified response */
 	void SetAllChannels(ECollisionResponse NewResponse);
 
+	/** Replace the channels matching the old response with the new response */
+	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
+
 	/** Returns the response set on the specified channel */
 	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
 

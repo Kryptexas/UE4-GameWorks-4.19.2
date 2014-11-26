@@ -177,6 +177,9 @@ public:
 	/** Fill up the array with the profile names **/
 	ENGINE_API static void GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList);
 
+	/** Get the channel and response params from the specified profile */
+	ENGINE_API static bool GetChannelAndResponseParams(FName ProfileName, ECollisionChannel &CollisionChannel, FCollisionResponseParams &ResponseParams);
+
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
 	bool ReadConfig(FName ProfileName, struct FBodyInstance& BodyInstance) const;
 
