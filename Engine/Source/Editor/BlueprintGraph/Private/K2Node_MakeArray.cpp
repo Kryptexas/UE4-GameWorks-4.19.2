@@ -226,8 +226,9 @@ void UK2Node_MakeArray::PropagatePinType()
 				{
 					CurrentPin->ResetDefaultValue();
 				}
-				else
+				else if (CurrentPin->GetDefaultAsString().IsEmpty() == true)
 				{
+					// Only reset default value if there isn't one set. Otherwise this deletes data!
 					Schema->SetPinDefaultValueBasedOnType(CurrentPin);
 				}
 
