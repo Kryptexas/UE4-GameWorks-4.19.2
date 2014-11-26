@@ -70,6 +70,9 @@ struct ENGINE_API FCollisionResponse
 	/** Set all channels to the specified response */
 	void SetAllChannels(ECollisionResponse NewResponse);
 
+	/** Replace the channels matching the old response with the new response */
+	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
+
 	/** Returns the response set on the specified channel */
 	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
 	const FCollisionResponseContainer& GetResponseContainer() const { return ResponseToChannels; }
@@ -516,6 +519,9 @@ public:
 
 	/** Set the response of this body to all channels */
 	void SetResponseToAllChannels(ECollisionResponse NewResponse);
+
+	/** Replace the channels on this body matching the old response with the new response */
+	void ReplaceResponseToChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
 
 	/** Set the response of this body to the supplied settings */
 	void SetResponseToChannels(const FCollisionResponseContainer& NewReponses);

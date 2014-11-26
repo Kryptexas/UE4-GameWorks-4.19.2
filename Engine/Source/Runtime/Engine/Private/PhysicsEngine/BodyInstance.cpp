@@ -65,6 +65,14 @@ void FCollisionResponse::SetAllChannels(ECollisionResponse NewResponse)
 #endif
 }
 
+void FCollisionResponse::ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse)
+{
+	ResponseToChannels.ReplaceChannels(OldResponse, NewResponse);
+#if 1// @hack until PostLoad is disabled for CDO of BP WITH_EDITOR
+	UpdateArrayFromResponseContainer();
+#endif
+}
+
 /** Returns the response set on the specified channel */
 ECollisionResponse FCollisionResponse::GetResponse(ECollisionChannel Channel) const
 {
@@ -474,6 +482,14 @@ void FBodyInstance::SetResponseToAllChannels(ECollisionResponse NewResponse)
 	UpdatePhysicsFilterData();
 }
 	
+void FBodyInstance::ReplaceResponseToChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse)
+{
+	InvalidateCollisionProfileName();
+	ResponseToChannels_DEPRECATED.ReplaceChannels(OldResponse, NewResponse);
+	CollisionResponses.ReplaceChannels(OldResponse, NewResponse);
+	UpdatePhysicsFilterData();
+}
+
 void FBodyInstance::SetResponseToChannels(const FCollisionResponseContainer& NewReponses)
 {
 	InvalidateCollisionProfileName();
