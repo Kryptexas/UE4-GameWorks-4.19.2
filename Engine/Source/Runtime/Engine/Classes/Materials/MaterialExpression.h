@@ -365,9 +365,10 @@ protected:
 	 * Checks whether any inputs to this expression create a loop by recursively
 	 * calling itself and keeping a list of inputs as expression keys.
 	 *
-	 * @param ExpressionStack List of expression keys that have been checked already
+	 * @param ExpressionStack    List of expression keys that have been checked already in the current stack
+	 * @param VisitedExpressions List of all expression keys that have been visited
 	 */
-	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack);
+	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions);
 };
 
 

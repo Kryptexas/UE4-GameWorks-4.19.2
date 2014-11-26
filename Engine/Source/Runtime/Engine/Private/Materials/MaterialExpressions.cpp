@@ -977,11 +977,11 @@ void UMaterialExpression::SetEditableName(const FString& NewName)
 bool UMaterialExpression::ContainsInputLoop()
 {
 	TArray<FMaterialExpressionKey> ExpressionStack;
-
-	return ContainsInputLoopInternal(ExpressionStack);
+	TSet<FMaterialExpressionKey> VisitedExpressions;
+	return ContainsInputLoopInternal(ExpressionStack, VisitedExpressions);
 }
 
-bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack)
+bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions)
 {
 	const TArray<FExpressionInput*> Inputs = GetInputs();
 	for (int32 Index = 0; Index < Inputs.Num(); ++Index)
@@ -994,10 +994,12 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 			{
 				return true;
 			}
-			else
+			// prevent recurring visits to expressions we've already checked
+			else if (!VisitedExpressions.Contains(InputExpressionKey))
 			{
+				VisitedExpressions.Add(InputExpressionKey);
 				ExpressionStack.Add(InputExpressionKey);
-				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack))
+				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack, VisitedExpressions))
 				{
 					return true;
 				}
