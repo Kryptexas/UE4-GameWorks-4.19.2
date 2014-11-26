@@ -2,6 +2,7 @@
 
 #include "SymbolDebuggerApp.h"
 #include "SSymbolDebugger.h"
+#include "SThrobber.h"
 
 TSharedRef<SWidget> SSymbolDebugger::GenerateActionButton(ESymbolDebuggerActions InAction)
 {
