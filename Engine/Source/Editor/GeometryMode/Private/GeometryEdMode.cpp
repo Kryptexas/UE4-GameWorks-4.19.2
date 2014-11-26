@@ -80,7 +80,11 @@ bool FEdModeGeometry::GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void*
 
 	if( InData )
 	{
-		InMatrix = FRotationMatrix( ((FGeomBase*)InData)->GetNormal().Rotation() );
+		FGeomBase* GeomBase = static_cast<FGeomBase*>(InData);
+		FGeomObject* GeomObject = GeomBase->GetParentObject();
+		check(GeomObject != nullptr);
+		ABrush* Brush = GeomObject->GetActualBrush();
+		InMatrix = FRotationMatrix(GeomBase->GetNormal().Rotation()) * FRotationMatrix(Brush->GetActorRotation());
 	}
 	else
 	{
@@ -94,7 +98,12 @@ bool FEdModeGeometry::GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void*
 
 			if( go->SelectionOrder.Num() )
 			{
-				InMatrix = FRotationMatrix( go->SelectionOrder[ go->SelectionOrder.Num()-1 ]->GetWidgetRotation() );
+				FGeomBase* GeomBase = go->SelectionOrder[go->SelectionOrder.Num() - 1];
+				check(GeomBase != nullptr);
+				FGeomObject* GeomObject = GeomBase->GetParentObject();
+				check(GeomObject != nullptr);
+				ABrush* Brush = GeomObject->GetActualBrush();
+				InMatrix = FRotationMatrix( go->SelectionOrder[ go->SelectionOrder.Num()-1 ]->GetWidgetRotation() ) * FRotationMatrix(Brush->GetActorRotation());
 				return 1;
 			}
 		}

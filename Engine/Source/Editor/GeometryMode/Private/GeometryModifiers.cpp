@@ -488,17 +488,8 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 	
 	if( !InDrag.IsZero() )
 	{
-		// Volumes store their rotation locally, whereas normal brush rotations are always in worldspace, so we need to transform
-		// the drag vector into a volume's local space before applying it.
-		if( Brush->IsVolumeBrush() )
-		{
-			const FVector Wk = Brush->ActorToWorld().InverseTransformVector(InDrag);
-			vertOffset = Wk;
-		}
-		else
-		{
-			vertOffset = InDrag;
-		}
+		// Transform the drag vector into the brush's local space before applying it.
+		vertOffset = Brush->ActorToWorld().InverseTransformVector(InDrag);
 	}
 
 	/**
@@ -531,17 +522,19 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 
 		if( !InScale.IsZero() )
 		{
-			float XFactor = (InScale.X > 0.f) ? 1 : -1;
-			float YFactor = (InScale.Y > 0.f) ? 1 : -1;
-			float ZFactor = (InScale.Z > 0.f) ? 1 : -1;
+			// TODO: sort this out properly, taking into account the 'fake' local transform according to the poly normal.
+			// Also use a scaling method which actually works properly.
+
+			float XFactor = FMath::Sign(InScale.X);
+			float YFactor = FMath::Sign(InScale.Y);
+			float ZFactor = FMath::Sign(InScale.Z);
 			float Strength;
 
 			FVector Wk( vtx->X, vtx->Y, vtx->Z );
-			Wk = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().TransformPosition( Wk );
 
 			// Move vert to the origin
 
-			Wk -= GLevelEditorModeTools().PivotLocation;
+			Wk -= (GLevelEditorModeTools().PivotLocation - Brush->GetActorLocation());
 
 			// Move it along each axis based on it's distance from the origin
 
@@ -565,9 +558,9 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 
 			// Move it back into world space
 
-			Wk += GLevelEditorModeTools().PivotLocation;
+			Wk += (GLevelEditorModeTools().PivotLocation - Brush->GetActorLocation());
 
-			*vtx = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().InverseTransformPosition( Wk );
+			*vtx = Wk;
 		}
 	}
 	
