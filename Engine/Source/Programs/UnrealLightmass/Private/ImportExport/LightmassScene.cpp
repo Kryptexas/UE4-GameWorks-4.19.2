@@ -1471,7 +1471,7 @@ void FMeshLightPrimitive::AddSubPrimitive(const FTexelToCorners& TexelToCorners,
 
 void FMeshLightPrimitive::Finalize()
 {
-	SurfaceNormal = SurfaceNormal.SizeSquared3() > SMALL_NUMBER ? SurfaceNormal.UnsafeNormal3() : FVector4(0, 0, 1);
+	SurfaceNormal = SurfaceNormal.SizeSquared3() > SMALL_NUMBER ? SurfaceNormal.GetUnsafeNormal3() : FVector4(0, 0, 1);
 }
 
 //----------------------------------------------------------------------------

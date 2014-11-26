@@ -261,7 +261,7 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 					{
 						FTexelToCorners& CurrentTexelCorners = TexelToCornersMap(X, Y);
 						// Normals need to be unit as their dot product will be used in comparisons later
-						CurrentTexelCorners.WorldTangentZ = CurrentTexelCorners.WorldTangentZ.SizeSquared3() > DELTA ? CurrentTexelCorners.WorldTangentZ.UnsafeNormal3() : FVector4(0,0,1);
+						CurrentTexelCorners.WorldTangentZ = CurrentTexelCorners.WorldTangentZ.SizeSquared3() > DELTA ? CurrentTexelCorners.WorldTangentZ.GetUnsafeNormal3() : FVector4(0,0,1);
 					}
 				}
 

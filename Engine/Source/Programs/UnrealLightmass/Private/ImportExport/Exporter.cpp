@@ -119,7 +119,7 @@ namespace Lightmass
 				}
 				if (AverageNormal.SizeSquared3() > KINDA_SMALL_NUMBER)
 				{
-					AverageNormal = AverageNormal.UnsafeNormal3();
+					AverageNormal = AverageNormal.GetUnsafeNormal3();
 				}
 				else
 				{

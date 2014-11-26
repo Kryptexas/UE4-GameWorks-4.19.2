@@ -1656,7 +1656,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 						// FindNearbyPhotons only returns photons whose incident directions lie in this hemisphere, but the recalculated direction might not.
 						if (Dot3(NewDirection, Vertex.TriangleNormal) > 0.0f)
 						{
-							ImportancePhotonDirections.Add(NewDirection.UnsafeNormal3());
+							ImportancePhotonDirections.Add(NewDirection.GetUnsafeNormal3());
 						}
 					}
 				}
