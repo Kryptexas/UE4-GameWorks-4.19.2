@@ -370,7 +370,7 @@ public:
 	 *
 	 *	@return The parent node.
 	 */
-	TSharedPtr< FClassViewerNode > FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InParentClassname, const UClass* InParentClass);
+	TSharedPtr< FClassViewerNode > FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, FName InParentClassname, const UClass* InParentClass);
 
 	/** Updates the Class of a node. Uses the generated class package name to find the node.
 	 *	@param InGeneratedClassPackageName			The name of the generated class package to find the node for.
@@ -1648,7 +1648,7 @@ static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TM
 
 		if ( GeneratedClassnamePtr )
 		{
-			NewNode->GeneratedClassname = *GeneratedClassnamePtr;
+			NewNode->GeneratedClassname = FName(**GeneratedClassnamePtr);
 		}
 	}
 
@@ -1719,7 +1719,7 @@ void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOu
 	}
 }
 
-TSharedPtr< FClassViewerNode > FClassHierarchy::FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InParentClassname, const UClass* InParentClass)
+TSharedPtr< FClassViewerNode > FClassHierarchy::FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, FName InParentClassname, const UClass* InParentClass)
 {
 	// Check if the current node is the parent classname that is being searched for.
 	if(InRootNode->GeneratedClassname == InParentClassname)
@@ -1828,37 +1828,40 @@ void FClassHierarchy::RemoveAsset(const FAssetData& InRemovedAssetData)
 
 void FClassHierarchy::AddAsset(const FAssetData& InAddedAssetData)
 {
-	// Grab the asset class, it will be checked for being a blueprint.
-	UClass* Asset = FindObject<UClass>(ANY_PACKAGE, *InAddedAssetData.AssetClass.ToString());
-	
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	if(Asset->IsChildOf(UBlueprint::StaticClass()) &&  !AssetRegistryModule.Get().IsLoadingAssets())
+	if ( !AssetRegistryModule.Get().IsLoadingAssets() )
 	{
-		// Make sure that the node does not already exist. There is a bit of double adding going on at times and this prevents it.
-		if(!FindNodeByGeneratedClassPackageName(ObjectClassRoot, InAddedAssetData.PackageName.ToString()).IsValid())
+		TArray<FName> AncestorClassNames;
+		AssetRegistryModule.Get().GetAncestorClassNames(InAddedAssetData.AssetClass, AncestorClassNames);
+
+		if( AncestorClassNames.Contains(UBlueprint::StaticClass()->GetFName()) )
 		{
-			TSharedPtr< FClassViewerNode > NewNode;
-			LoadUnloadedTagData(NewNode, InAddedAssetData);
-
-			// Find the blueprint if it's loaded.
-			FindClass(NewNode);
-
-			// Resolve the parent's class name locally and use it to find the parent's class.
-			FString ParentClassName = NewNode->ParentClassname;
-			UObject* Outer(NULL);
-			ResolveName(Outer, ParentClassName, false, false);
-
-			UClass* ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
-			TSharedPtr< FClassViewerNode > ParentNode = FindParent(ObjectClassRoot, NewNode->ParentClassname, ParentClass); 
-			if(ParentNode.IsValid())
+			// Make sure that the node does not already exist. There is a bit of double adding going on at times and this prevents it.
+			if(!FindNodeByGeneratedClassPackageName(ObjectClassRoot, InAddedAssetData.PackageName.ToString()).IsValid())
 			{
-				ParentNode->AddChild(NewNode);
-				
-				// Make sure the children are properly sorted.
-				SortChildren(ObjectClassRoot);
+				TSharedPtr< FClassViewerNode > NewNode;
+				LoadUnloadedTagData(NewNode, InAddedAssetData);
 
-				// All Viewers must repopulate.
-				ClassViewer::Helpers::RefreshAll();
+				// Find the blueprint if it's loaded.
+				FindClass(NewNode);
+
+				// Resolve the parent's class name locally and use it to find the parent's class.
+				FString ParentClassName = NewNode->ParentClassname.ToString();
+				UObject* Outer(NULL);
+				ResolveName(Outer, ParentClassName, false, false);
+
+				UClass* ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
+				TSharedPtr< FClassViewerNode > ParentNode = FindParent(ObjectClassRoot, NewNode->ParentClassname, ParentClass); 
+				if(ParentNode.IsValid())
+				{
+					ParentNode->AddChild(NewNode);
+				
+					// Make sure the children are properly sorted.
+					SortChildren(ObjectClassRoot);
+
+					// All Viewers must repopulate.
+					ClassViewer::Helpers::RefreshAll();
+				}
 			}
 		}
 	}
@@ -1953,15 +1956,15 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 
 	InOutClassViewerNode->GeneratedClassPackage = GeneratedClassPackage;
 
-	InOutClassViewerNode->ParentClassname.Empty();
+	InOutClassViewerNode->ParentClassname = NAME_None;
 	if(ParentClassname)
 	{
-		InOutClassViewerNode->ParentClassname = *ParentClassname;
+		InOutClassViewerNode->ParentClassname = FName(**ParentClassname);
 	}
 
 	if(GeneratedClassname)
 	{
-		InOutClassViewerNode->GeneratedClassname = *GeneratedClassname;
+		InOutClassViewerNode->GeneratedClassname = FName(**GeneratedClassname);
 	}
 
 	if(BlueprintType && *BlueprintType == TEXT("BPType_Normal"))
@@ -2011,10 +2014,10 @@ void FClassHierarchy::PopulateClassHierarchy()
 	// Second pass to link them to parents.
 	for (int32 CurrentNodeIdx = 0; CurrentNodeIdx < RootLevelClasses.Num(); ++CurrentNodeIdx)
 	{
-		if(!RootLevelClasses[CurrentNodeIdx]->ParentClassname.IsEmpty())
+		if(RootLevelClasses[CurrentNodeIdx]->ParentClassname != NAME_None)
 		{
 			// Resolve the parent's class name locally and use it to find the parent's class.
-			FString ParentClassName = RootLevelClasses[CurrentNodeIdx]->ParentClassname;
+			FString ParentClassName = RootLevelClasses[CurrentNodeIdx]->ParentClassname.ToString();
 			UObject* Outer(NULL);
 			ResolveName(Outer, ParentClassName, false, false);
 			const UClass* ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
