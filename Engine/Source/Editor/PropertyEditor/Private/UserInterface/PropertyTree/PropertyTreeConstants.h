@@ -8,8 +8,8 @@ namespace PropertyTreeConstants
 	const FName ColumnId_Name( TEXT("Property") );
 	const FName ColumnId_Property( TEXT("Value") );
 
-	const FString ColumnText_Name( NSLOCTEXT("PropertyEditorWidgets", "Property", "Property").ToString() );
-	const FString ColumnText_Property( NSLOCTEXT("PropertyEditorWidgets", "Value", "Value").ToString() );
+	const FText ColumnText_Name( NSLOCTEXT("PropertyEditorWidgets", "Property", "Property") );
+	const FText ColumnText_Property( NSLOCTEXT("PropertyEditorWidgets", "Value", "Value") );
 }
 
 

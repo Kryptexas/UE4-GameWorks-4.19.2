@@ -56,19 +56,19 @@ public:
 					SNew(SHeaderRow)
 
 					+ SHeaderRow::Column("Name")
-						.DefaultLabel(LOCTEXT("InstanceListNameColumnHeader", "Instance").ToString())
+						.DefaultLabel(LOCTEXT("InstanceListNameColumnHeader", "Instance"))
 
 					+ SHeaderRow::Column("Type")
-						.DefaultLabel(LOCTEXT("InstanceListTypeColumnHeader", "Type").ToString())
+						.DefaultLabel(LOCTEXT("InstanceListTypeColumnHeader", "Type"))
 
 					+ SHeaderRow::Column("Device")
-						.DefaultLabel(LOCTEXT("InstanceListDeviceColumnHeader", "Device").ToString())
+						.DefaultLabel(LOCTEXT("InstanceListDeviceColumnHeader", "Device"))
 
 					+ SHeaderRow::Column("Platform")
-						.DefaultLabel(LOCTEXT("InstanceListPlatformColumnHeader", "Platform").ToString())
+						.DefaultLabel(LOCTEXT("InstanceListPlatformColumnHeader", "Platform"))
 
 					+ SHeaderRow::Column("Status")
-						.DefaultLabel(LOCTEXT("InstanceListStatusColumnHeader", "Status").ToString())
+						.DefaultLabel(LOCTEXT("InstanceListStatusColumnHeader", "Status"))
 						.HAlignCell(HAlign_Right)
 						.HAlignHeader(HAlign_Right)
 				)

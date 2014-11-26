@@ -146,7 +146,7 @@ void SSkeletonAnimNotifies::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_AnimNotifyNameLabel )
-				.DefaultLabel( LOCTEXT( "AnimNotifyNameLabel", "Notify Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "AnimNotifyNameLabel", "Notify Name" ) )
 			)
 		]
 	];

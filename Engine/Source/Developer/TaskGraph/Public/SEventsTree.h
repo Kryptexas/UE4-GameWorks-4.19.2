@@ -228,7 +228,7 @@ protected:
 	}
 
 	/** Gets the currently selected time units text */
-	FString GetDurationColumnTitle() const;
+	FText GetDurationColumnTitle() const;
 
 	/** A pointer to the ListView of profiler events */
 	TSharedPtr< STreeView< TSharedPtr< FVisualizerEvent > > > EventsListView;

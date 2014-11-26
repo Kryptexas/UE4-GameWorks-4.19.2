@@ -21,8 +21,8 @@ namespace KismetDebugViewConstants
 {
 	const FName ColumnId_Name( "Name" );
 	const FName ColumnId_Value( "Value" );
-	const FString ColumnText_Name( NSLOCTEXT("DebugViewUI", "Name", "Name").ToString() );
-	const FString ColumnText_Value( NSLOCTEXT("DebugViewUI", "Value", "Value").ToString() );
+	const FText ColumnText_Name( NSLOCTEXT("DebugViewUI", "Name", "Name") );
+	const FText ColumnText_Value( NSLOCTEXT("DebugViewUI", "Value", "Value") );
 }
 
 //////////////////////////////////////////////////////////////////////////

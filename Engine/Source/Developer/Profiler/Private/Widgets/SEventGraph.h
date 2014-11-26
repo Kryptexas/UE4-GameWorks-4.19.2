@@ -71,8 +71,8 @@ public:
 	(
 		const EEventPropertyIndex::Type InIndex,
 		const FName InSearchID,
-		const FString InShortName,
-		const FString InDescription,
+		const FText InShortName,
+		const FText InDescription,
 		const bool bInCanBeHidden,
 		const bool bInIsVisible,
 		const bool bInCanBeSorted,
@@ -84,8 +84,8 @@ public:
 		: Index( InIndex )
 		, ID( FEventGraphSample::GetEventPropertyByIndex(InIndex).Name )
 		, SearchID( InSearchID )
-		, ShortName( InShortName )
-		, Description( InDescription )
+		, ShortName( MoveTemp(InShortName) )
+		, Description( MoveTemp(InDescription) )
 		, bCanBeHidden( bInCanBeHidden )
 		, bIsVisible( bInIsVisible )
 		, bCanBeSorted( bInCanBeSorted )
@@ -106,10 +106,10 @@ public:
 	FName SearchID;
 
 	/** Short name of the column, displayed in the event graph header. */
-	FString ShortName;
+	FText ShortName;
 
 	/** Long name of the column, displayed in the column tooltip. */
-	FString Description;
+	FText Description;
 
 	/** Whether this column can be hidden. */
 	bool bCanBeHidden;

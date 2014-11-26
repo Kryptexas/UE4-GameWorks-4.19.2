@@ -235,13 +235,13 @@ void SMorphTargetViewer::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_MorphTargetNameLabel )
-				.DefaultLabel( LOCTEXT( "MorphTargetNameLabel", "Morph Target Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "MorphTargetNameLabel", "Morph Target Name" ) )
 
 				+ SHeaderRow::Column( ColumnID_MorphTargetWeightLabel )
-				.DefaultLabel( LOCTEXT( "MorphTargetWeightLabel", "Weight" ).ToString() )
+				.DefaultLabel( LOCTEXT( "MorphTargetWeightLabel", "Weight" ) )
 
-				+ SHeaderRow::Column(ColumnID_MorphTargetVertCountLabel)
-				.DefaultLabel(LOCTEXT("MorphTargetVertCountLabel", "Vert Count").ToString())
+				+ SHeaderRow::Column( ColumnID_MorphTargetVertCountLabel )
+				.DefaultLabel( LOCTEXT("MorphTargetVertCountLabel", "Vert Count") )
 			)
 		]
 	];

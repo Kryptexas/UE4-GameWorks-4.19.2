@@ -64,7 +64,7 @@ public:
 
 	SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona)			// Our Persona instance
 	SLATE_ARGUMENT(FName, ContainerName)				// The name of the smartname container to manage
-	SLATE_ARGUMENT(FString, NameColumnDescription)		// Description text for the display column header
+	SLATE_ARGUMENT(FText, NameColumnDescription)		// Description text for the display column header
 
 	SLATE_END_ARGS();
 
@@ -146,7 +146,7 @@ public:
 
 		SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona)			// Our Persona instance
 		SLATE_ARGUMENT(FName, ContainerName)				// Name of the container to manage in the skeleton
-		SLATE_ARGUMENT(FString, NameColumnDescription)		// Description to show in the name column
+		SLATE_ARGUMENT(FText, NameColumnDescription)		// Description to show in the name column
 	SLATE_END_ARGS();
 
 	void Construct(const FArguments& InArgs)

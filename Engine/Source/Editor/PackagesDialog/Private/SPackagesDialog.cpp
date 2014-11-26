@@ -119,7 +119,7 @@ void SPackagesDialog::Construct(const FArguments& InArgs)
 
 	HeaderRowWidget->AddColumn(
 		SHeaderRow::Column( SPackagesDialogDefs::ColumnID_FileLabel )
-		.DefaultLabel( LOCTEXT("FileColumnLabel", "File" ).ToString() )
+		.DefaultLabel( LOCTEXT("FileColumnLabel", "File" ) )
 		.SortMode( this, &SPackagesDialog::GetColumnSortMode, SPackagesDialogDefs::ColumnID_FileLabel )
 		.OnSort( this, &SPackagesDialog::OnColumnSortModeChanged )
 		.FillWidth( 7.0f )
@@ -127,7 +127,7 @@ void SPackagesDialog::Construct(const FArguments& InArgs)
 
 	HeaderRowWidget->AddColumn(
 		SHeaderRow::Column( SPackagesDialogDefs::ColumnID_TypeLabel )
-		.DefaultLabel( LOCTEXT("TypeColumnLabel", "Type" ).ToString() )
+		.DefaultLabel( LOCTEXT("TypeColumnLabel", "Type" ) )
 		.SortMode( this, &SPackagesDialog::GetColumnSortMode, SPackagesDialogDefs::ColumnID_TypeLabel )
 		.OnSort( this, &SPackagesDialog::OnColumnSortModeChanged )
 		.FillWidth( 2.0f )

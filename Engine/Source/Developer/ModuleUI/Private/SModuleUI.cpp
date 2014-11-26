@@ -25,10 +25,10 @@ void SModuleUI::Construct(const SModuleUI::FArguments& InArgs)
 					(
 						SNew(SHeaderRow)
 						+SHeaderRow::Column("ModuleName")
-						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleName", "Module").ToString())
+						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleName", "Module"))
 						.FillWidth(200)
 						+SHeaderRow::Column("ModuleActions")
-						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleActions", "Actions").ToString())
+						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleActions", "Actions"))
 						.FillWidth(1000)
 					)
 			]
@@ -77,7 +77,7 @@ TSharedRef<ITableRow> SModuleUI::OnGenerateWidgetForModuleListView(TSharedPtr< F
 			{
 				return
 					SNew( STextBlock )
-					.Text( Item->ModuleName.ToString() );
+					.Text( FText::FromName(Item->ModuleName) );
 			}
 			else if ( ColumnName == "ModuleActions" )
 			{

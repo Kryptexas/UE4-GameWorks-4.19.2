@@ -286,11 +286,11 @@ void SRigWindow::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_NodeNameLabel )
-				.DefaultLabel( LOCTEXT( "RigWindow_NodeNameLabel", "Node (Rig)" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RigWindow_NodeNameLabel", "Node (Rig)" ) )
 				.FixedWidth(150.f)
 
 				+ SHeaderRow::Column( ColumnID_BoneNameLabel )
-				.DefaultLabel( LOCTEXT( "RigWindow_BoneNameLabel", "Bone (Skeleton)" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RigWindow_BoneNameLabel", "Bone (Skeleton)" ) )
 			)
 		]
 	];

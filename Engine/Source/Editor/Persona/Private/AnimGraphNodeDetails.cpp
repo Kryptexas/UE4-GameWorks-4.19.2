@@ -556,11 +556,11 @@ void FAnimGraphParentPlayerDetails::CustomizeDetails(class IDetailLayoutBuilder&
 			SNew(SHeaderRow)
 			+SHeaderRow::Column(FName("Name"))
 			.FillWidth(0.5f)
-			.DefaultLabel(LOCTEXT("ParentPlayer_NameCol", "Name").ToString())
+			.DefaultLabel(LOCTEXT("ParentPlayer_NameCol", "Name"))
 
 			+SHeaderRow::Column(FName("Asset"))
 			.FillWidth(0.5f)
-			.DefaultLabel(LOCTEXT("ParentPlayer_AssetCol", "Asset").ToString())
+			.DefaultLabel(LOCTEXT("ParentPlayer_AssetCol", "Asset"))
 		);
 
 	// Expand top level (blueprint) entries so the panel seems less empty

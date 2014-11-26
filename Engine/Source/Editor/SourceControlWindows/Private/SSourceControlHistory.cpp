@@ -640,11 +640,11 @@ public:
 							.HeaderRow
 							(
 							SNew(SHeaderRow)
-							+ SHeaderRow::Column("Revision") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Revision", "Revision").ToString())			.FillWidth(100)
-							+ SHeaderRow::Column("Changelist") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Changelist", "ChangeList").ToString())		.FillWidth(150)
-							+ SHeaderRow::Column("Date") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Date", "Date Submitted").ToString())				.FillWidth(250)
-							+ SHeaderRow::Column("UserName") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "UserName", "Submitted By").ToString())		.FillWidth(200)
-							+ SHeaderRow::Column("Description") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Description", "Description").ToString())	.FillWidth(300)
+							+ SHeaderRow::Column("Revision") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Revision", "Revision"))			.FillWidth(100)
+							+ SHeaderRow::Column("Changelist") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Changelist", "ChangeList"))	.FillWidth(150)
+							+ SHeaderRow::Column("Date") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Date", "Date Submitted"))			.FillWidth(250)
+							+ SHeaderRow::Column("UserName") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "UserName", "Submitted By"))		.FillWidth(200)
+							+ SHeaderRow::Column("Description") .DefaultLabel(NSLOCTEXT("SourceControl.HistoryPanel.Header", "Description", "Description"))	.FillWidth(300)
 							)
 						]
 					]

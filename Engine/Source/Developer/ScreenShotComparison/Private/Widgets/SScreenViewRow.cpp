@@ -21,7 +21,7 @@ void SScreenViewRow::Construct( const FArguments& InArgs, const TSharedRef<STabl
 	TSharedPtr<IScreenShotData> ScreenShotData = InArgs._ScreenShotData;
 
 	// The display string for the view
-	FString InfoText = FString::Printf( *LOCTEXT("ScreenShotName", "Screen shot: %s").ToString(), *ScreenShotData->GetName() );
+	const FText InfoText = FText::Format( LOCTEXT("ScreenShotNameFmt", "Screen shot: {0}"), FText::FromString(ScreenShotData->GetName()) );
 
 	ChildSlot
 	[
@@ -57,16 +57,16 @@ void SScreenViewRow::Construct( const FArguments& InArgs, const TSharedRef<STabl
 						.HAlignCell(HAlign_Center)
 						.VAlignCell(VAlign_Center)
 						.FixedWidth( 200.0f )
-						.DefaultLabel(LOCTEXT("PlatformName", "Platform").ToString())
+						.DefaultLabel(LOCTEXT("PlatformName", "Platform"))
 					+ SHeaderRow::Column( "Current View" )
 						.HAlignHeader(HAlign_Center)
 						.VAlignHeader(VAlign_Center)
 						.HAlignCell(HAlign_Center)
 						.VAlignCell(VAlign_Center)
  						.FixedWidth( 300.0f )
-						.DefaultLabel(LOCTEXT("CurrentViewName", "Current View").ToString())
+						.DefaultLabel(LOCTEXT("CurrentViewName", "Current View"))
 					+ SHeaderRow::Column( "History View" )
-					.DefaultLabel(LOCTEXT("HistoryViewName", "History").ToString())
+					.DefaultLabel(LOCTEXT("HistoryViewName", "History"))
 				)
 			]
 		]

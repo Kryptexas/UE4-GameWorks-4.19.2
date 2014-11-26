@@ -237,10 +237,10 @@ void SRetargetSourceWindow::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_RetargetSourceNameLabel )
-				.DefaultLabel( LOCTEXT( "RetargetSourceNameLabel", "Retarget Source Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RetargetSourceNameLabel", "Retarget Source Name" ) )
 
 				+ SHeaderRow::Column( ColumnID_BaseReferenceMeshLabel )
-				.DefaultLabel( LOCTEXT( "RetargetSourceWeightLabel", "Source Mesh" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RetargetSourceWeightLabel", "Source Mesh" ) )
 			)
 		]
 	];

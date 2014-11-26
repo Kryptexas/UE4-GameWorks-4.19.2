@@ -61,11 +61,11 @@ public:
 
 			/** LayerName label column */
 			+ SHeaderRow::Column( LayersView::ColumnID_LayerLabel )
-			.DefaultLabel( LOCTEXT("Column_LayerNameLabel", "Layer").ToString() )
+			.DefaultLabel( LOCTEXT("Column_LayerNameLabel", "Layer") )
 
 			/** Layer visibility column */
 			+ SHeaderRow::Column( LayersView::ColumnID_Visibility )
-			.DefaultLabel( NSLOCTEXT("LayersView", "Visibility", "Visibility").ToString() )
+			.DefaultLabel( NSLOCTEXT("LayersView", "Visibility", "Visibility") )
 			.FixedWidth( 48.0f );
 
 		ChildSlot
@@ -101,7 +101,7 @@ public:
 					.OnItemScrolledIntoView( this, &SLayersView::OnItemScrolledIntoView)
 
 					// Help text 
-					.ToolTipText(LOCTEXT("HelpText", "Drag actors from scene outliner or right click to add a new layer.").ToString())
+					.ToolTipText(LOCTEXT("HelpText", "Drag actors from scene outliner or right click to add a new layer."))
 				]
 			];
 

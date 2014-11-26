@@ -206,7 +206,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							SNew(SHeaderRow)
 
 							+ SHeaderRow::Column("WidgetName")
-							.DefaultLabel(LOCTEXT("WidgetName", "Widget Name").ToString())
+							.DefaultLabel(LOCTEXT("WidgetName", "Widget Name"))
 							.FillWidth(0.65f)
 
 							+ SHeaderRow::Column("ForegroundColor")
@@ -215,16 +215,16 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							.HeaderContent()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("ForegroundColor", "FG").ToString())
-								.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color").ToString())
+								.Text(LOCTEXT("ForegroundColor", "FG"))
+								.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color"))
 							]
 
 							+ SHeaderRow::Column("Visibility")
-							.DefaultLabel(LOCTEXT("Visibility", "Visibility" ).ToString())
+							.DefaultLabel(LOCTEXT("Visibility", "Visibility" ))
 							.FixedWidth(125.0f)
 
 							+ SHeaderRow::Column("WidgetInfo")
-							.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
+							.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ))
 							.FillWidth(0.25f)
 
 							+ SHeaderRow::Column("Address")

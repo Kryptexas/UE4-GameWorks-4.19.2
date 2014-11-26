@@ -644,7 +644,7 @@ FName FItemLabelColumn::GetColumnID()
 SHeaderRow::FColumn::FArguments FItemLabelColumn::ConstructHeaderRowColumn()
 {
 	return SHeaderRow::Column(GetColumnID())
-		.DefaultLabel(LOCTEXT("ItemLabel_HeaderText", "Label").ToString())
+		.DefaultLabel(LOCTEXT("ItemLabel_HeaderText", "Label"))
 		.FillWidth( 5.0f );
 }
 const TSharedRef<SWidget> FItemLabelColumn::ConstructRowWidget(FTreeItemRef TreeItem, const STableRow<FTreeItemPtr>& Row)

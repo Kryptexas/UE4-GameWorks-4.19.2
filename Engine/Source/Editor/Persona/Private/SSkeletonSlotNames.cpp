@@ -190,7 +190,7 @@ void SSkeletonSlotNames::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_SlotNameLabel )
-				.DefaultLabel( LOCTEXT( "SlotNameNameLabel", "Slot Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "SlotNameNameLabel", "Slot Name" ) )
 			)
 		]
 	];

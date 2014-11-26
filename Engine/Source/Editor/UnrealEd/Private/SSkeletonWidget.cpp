@@ -226,9 +226,9 @@ void SSkeletonCompareWidget::SkeletonSelectionChanged(const FAssetData& AssetDat
 					(
 					SNew(SHeaderRow)
 					+SHeaderRow::Column(TEXT("Curretly Selected"))
-					.DefaultLabel(NSLOCTEXT("SkeletonWidget", "CurrentlySelected", "Currently Selected").ToString())
+					.DefaultLabel(NSLOCTEXT("SkeletonWidget", "CurrentlySelected", "Currently Selected"))
 					+SHeaderRow::Column(TEXT("Target Skeleton Bone"))
-					.DefaultLabel(NSLOCTEXT("SkeletonWidget", "TargetSkeletonBone", "Target Skeleton Bone").ToString())
+					.DefaultLabel(NSLOCTEXT("SkeletonWidget", "TargetSkeletonBone", "Target Skeleton Bone"))
 					)
 				]
 			];

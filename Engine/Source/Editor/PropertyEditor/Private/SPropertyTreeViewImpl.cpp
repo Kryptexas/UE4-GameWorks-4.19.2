@@ -243,7 +243,7 @@ void SPropertyTreeViewImpl::ConstructPropertyTree()
 						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 						[
 							SNew(STextBlock)
-							.Text( NSLOCTEXT("PropertyEditor", "NameColumn", "Name").ToString() )
+							.Text( NSLOCTEXT("PropertyEditor", "NameColumn", "Name") )
 						]
 					]
 					+SHeaderRow::Column(PropertyTreeConstants::ColumnId_Property)
@@ -254,7 +254,7 @@ void SPropertyTreeViewImpl::ConstructPropertyTree()
 						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 						[
 							SNew(STextBlock)
-							.Text( NSLOCTEXT("PropertyEditor", "PropertyColumn", "Value").ToString() )
+							.Text( NSLOCTEXT("PropertyEditor", "PropertyColumn", "Value") )
 						]
 					]
 				)

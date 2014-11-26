@@ -264,26 +264,26 @@ void SSoundWaveCompressionOptions::Construct( const FArguments& InArgs )
 
 			// Quality label column
 			+ SHeaderRow::Column( SoundWaveCompressionOptions::ColumnID_QualityLabel )
-				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "QualityColumnLabel", "Quality").ToString() )
+				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "QualityColumnLabel", "Quality") )
 		
 			// Original Data Size label column
 			+ SHeaderRow::Column( SoundWaveCompressionOptions::ColumnID_OriginalDataSizeLabel )
-				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "OriginalDataSizeColumnLabel", "Original DataSize(Kb)").ToString() )
+				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "OriginalDataSizeColumnLabel", "Original DataSize(Kb)") )
 				.FillWidth( 3.0f )
 
 			// Vorbis Data Size label column
 			+ SHeaderRow::Column( SoundWaveCompressionOptions::ColumnID_VorbisDataSizeLabel )
-				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "VorbisDataSizeColumnLabel", "Vorbis DataSize(Kb)").ToString() )
+				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "VorbisDataSizeColumnLabel", "Vorbis DataSize(Kb)") )
 				.FillWidth( 3.0f )
 			
 			// XMA Data Size label column
 			+ SHeaderRow::Column( SoundWaveCompressionOptions::ColumnID_XMADataSizeLabel )
-				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "XMADataSizeColumnLabel", "XMA DataSize(Kb)").ToString() )
+				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "XMADataSizeColumnLabel", "XMA DataSize(Kb)") )
 				.FillWidth( 3.0f )
 			
 			// PS3 Data Size label column
 			+ SHeaderRow::Column( SoundWaveCompressionOptions::ColumnID_PS3DataSizeLabel )
-				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "PS3DataSizeColumnLabel", "PS3 DataSize(Kb)").ToString() )
+				.DefaultLabel( NSLOCTEXT("SoundWaveOptions", "PS3DataSizeColumnLabel", "PS3 DataSize(Kb)") )
 				.FillWidth( 3.0f );
 
 	this->ChildSlot
@@ -339,7 +339,7 @@ void SSoundWaveCompressionOptions::Construct( const FArguments& InArgs )
 						.OnClicked(this, &SSoundWaveCompressionOptions::OnOK_Clicked)
 						[
 							SNew(STextBlock)
-								.Text(NSLOCTEXT("SoundWaveOptions", "OK", "OK").ToString())
+								.Text(NSLOCTEXT("SoundWaveOptions", "OK", "OK"))
 						]
 				]
 
@@ -350,7 +350,7 @@ void SSoundWaveCompressionOptions::Construct( const FArguments& InArgs )
 						.OnClicked(this, &SSoundWaveCompressionOptions::OnCancel_Clicked)
 						[
 							SNew(STextBlock)
-							.Text(NSLOCTEXT("SoundWaveOptions", "Cancel", "Cancel").ToString())
+							.Text(NSLOCTEXT("SoundWaveOptions", "Cancel", "Cancel"))
 						]
 					]
 			]
