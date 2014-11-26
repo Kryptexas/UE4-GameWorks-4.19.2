@@ -123,7 +123,7 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 			const FVector FromOrigin = DesiredLoc - ArmOrigin;
 			if (FromOrigin.SizeSquared() > FMath::Square(CameraLagMaxDistance))
 			{
-				DesiredLoc = ArmOrigin + FromOrigin.ClampMaxSize(CameraLagMaxDistance);
+				DesiredLoc = ArmOrigin + FromOrigin.GetClampedToMaxSize(CameraLagMaxDistance);
 				bClampedDist = true;
 			}
 		}		
