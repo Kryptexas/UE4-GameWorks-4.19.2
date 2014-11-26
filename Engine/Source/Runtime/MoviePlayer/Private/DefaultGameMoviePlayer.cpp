@@ -213,9 +213,12 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 
 	if (LoadingScreenIsPrepared() && ( IsMovieCurrentlyPlaying() || !bEnforceMinimumTime ) )
 	{
-		SyncMechanism->DestroySlateThread();
-		delete SyncMechanism;
-		SyncMechanism = NULL;
+		if (SyncMechanism)
+		{
+			SyncMechanism->DestroySlateThread();
+			delete SyncMechanism;
+			SyncMechanism = NULL;
+		}
 
 		if( !bEnforceMinimumTime )
 		{
