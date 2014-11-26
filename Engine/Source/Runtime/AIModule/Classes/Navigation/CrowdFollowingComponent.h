@@ -47,6 +47,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual void FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink) override;
 	virtual void OnPathFinished(EPathFollowingResult::Type Result) override;
 	virtual void OnPathUpdated() override;
+	virtual void OnPathfindingQuery(FPathFindingQuery& Query) override;
 	virtual int32 GetCurrentPathElement() const override { return LastPathPolyIndex; }
 	// PathFollowingComponent END
 

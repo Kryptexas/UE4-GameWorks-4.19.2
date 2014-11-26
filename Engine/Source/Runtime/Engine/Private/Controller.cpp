@@ -16,7 +16,6 @@
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/PathFollowingComponent.h"
-#include "Navigation/NavigationComponent.h"
 
 #include "GameFramework/PlayerState.h"
 #include "Components/CapsuleComponent.h"
@@ -557,13 +556,6 @@ bool AController::ShouldPostponePathUpdates() const
 
 void AController::UpdateNavigationComponents()
 {
-	UNavigationComponent* PathFindingComp = FindComponentByClass<UNavigationComponent>();
-	if (PathFindingComp != NULL)
-	{
-		PathFindingComp->OnNavAgentChanged();
-		PathFindingComp->UpdateCachedComponents();
-	}
-
 	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp != NULL)
 	{
@@ -571,15 +563,8 @@ void AController::UpdateNavigationComponents()
 	}
 }
 
-void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
+void AController::InitNavigationControl(UPathFollowingComponent*& PathFollowingComp)
 {
-	PathFindingComp = FindComponentByClass<UNavigationComponent>();
-	if (PathFindingComp == NULL)
-	{
-		PathFindingComp = NewObject<UNavigationComponent>(this);
-		PathFindingComp->RegisterComponentWithWorld(GetWorld());
-	}
-
 	PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp == NULL)
 	{

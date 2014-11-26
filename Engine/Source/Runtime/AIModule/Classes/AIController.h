@@ -12,7 +12,6 @@
 #include "AIController.generated.h"
 
 class APawn;
-class UNavigationComponent;
 class UPathFollowingComponent;
 class UBrainComponent;
 class UAIPerceptionComponent;
@@ -26,6 +25,7 @@ class UCanvas;
 #if ENABLE_VISUAL_LOG
 struct FVisualLogEntry;
 #endif // ENABLE_VISUAL_LOG
+struct FPathFindingQuery;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
@@ -98,10 +98,6 @@ public:
 	uint32 bWantsPlayerState:1;
 
 private_subobject:
-	/** Component used for pathfinding and querying environment's navigation. */
-	DEPRECATED_FORGAME(4.6, "NavComponent should not be accessed directly, please use GetNavComponent() function instead. NavComponent will soon be private and your code will not compile.")
-	UPROPERTY()
-	UNavigationComponent* NavComponent;
 
 	/** Component used for moving along a path. */
 	DEPRECATED_FORGAME(4.6, "PathFollowingComponent should not be accessed directly, please use GetPathFollowingComponent() function instead. PathFollowingComponent will soon be private and your code will not compile.")
@@ -153,6 +149,25 @@ public:
 	// EPathFollowingRequestResult::Type MoveToLocation(const FVector& Dest, float AcceptanceRadius = /*UPathFollowingComponent::DefaultAcceptanceRadius==*/-1, bool bStopOnOverlap = true, bool bUsePathfinding = true, bool bCanStrafe = true);
 	// but parser doesn't like this (it's a bug, when fixed this will be changed)
 
+	/** Prepares a query for pathfinding
+	 *  @param Query - query struct to fill
+	 *  @param Dest - destination location
+	 *  @param Goal - goal actor (if applies)
+	 *  @param bUsePathfinding - calculate paths vs move in straight line
+	 *  @param QueryFilter - optional filter for path finding
+	 *  @return true if query was filled in successfully
+	 */
+	virtual bool PreparePathfinding(FPathFindingQuery& Query, const FVector& Dest, AActor* Goal, bool bUsePathfinding = true, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+
+	/** Executes pathfinding query and starts move request
+	 *  @param Query - query struct holding pathfinding data
+	 *  @param Goal - goal actor if following actor
+	 *  @param AcceptanceRadius - finish move if pawn gets close enough
+	 *  @param CustomData - game specific data, that will be passed to pawn's movement component
+	 *  @return RequestID, or 0 when failed
+	 */
+	virtual FAIRequestID RequestPathAndMove(FPathFindingQuery& Query, AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData);
+
 	/** Handle move requests
 	 *  @param Path - path to follow (can use incomplete)
 	 *  @param Goal - goal actor if following actor
@@ -181,12 +196,6 @@ public:
 	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
 
-	/** @returns path to actor Goal (can be incomplete if async pathfinding is used) */
-	FNavPathSharedPtr FindPath(AActor* Goal, bool bUsePathfinding = true, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
-
-	/** @returns path to point Dest (can be incomplete if async pathfinding is used) */
-	FNavPathSharedPtr FindPath(const FVector& Dest, bool bUsePathfinding = true, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
-
 	/** Returns status of path following */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	EPathFollowingStatus::Type GetMoveStatus() const;
@@ -204,7 +213,7 @@ public:
 	void SetMoveBlockDetection(bool bEnable);
 
 	/** Prepares path finding and path following components. */
-	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp) override;
+	virtual void InitNavigationControl(UPathFollowingComponent*& PathFollowingComp) override;
 
 	/** Starts executing behavior tree. */
 	UFUNCTION(BlueprintCallable, Category="AI")

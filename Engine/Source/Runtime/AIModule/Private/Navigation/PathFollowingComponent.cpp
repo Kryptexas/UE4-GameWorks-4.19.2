@@ -5,7 +5,6 @@
 #	include "Detour/DetourNavMeshQuery.h"
 #endif
 #include "AI/Navigation/RecastNavMesh.h"
-#include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "GameFramework/NavMovementComponent.h"
 #include "GameFramework/Character.h"
@@ -263,11 +262,6 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 			MovementComp->StopMovementKeepPathing();
 		}
 
-		if (NavComp && FinishResult != EPathFollowingResult::Skipped)
-		{
-			NavComp->ResetTransientData();
-		}
-
 		// notify observers after state was reset (they can request another move)
 		SavedReqFinished.ExecuteIfBound(FinishResult);
 		OnMoveFinished.Broadcast(AbortedMoveId, FinishResult);
@@ -299,6 +293,8 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 
 		UpdateMoveFocus();
 	}
+
+	// TODO: pause path updates with goal movement
 }
 
 void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
@@ -380,11 +376,6 @@ void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 		MovementComp->StopMovementKeepPathing();
 	}
 
-	if (NavComp && Result != EPathFollowingResult::Skipped)
-	{
-		NavComp->ResetTransientData();
-	}
-
 	// notify observers after state was reset (they can request another move)
 	SavedReqFinished.ExecuteIfBound(Result);
 	OnMoveFinished.Broadcast(FinishedMoveId, Result);
@@ -413,12 +404,6 @@ void UPathFollowingComponent::Cleanup()
 
 void UPathFollowingComponent::UpdateCachedComponents()
 {
-	AActor* MyOwner = GetOwner();
-	if (MyOwner)
-	{
-		NavComp = MyOwner->FindComponentByClass<UNavigationComponent>();
-	}
-
 	UpdateMovementComponent(/*bForce=*/true);
 }
 
@@ -623,13 +608,8 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	//SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
 
 	const AAIController* MyAI = Cast<AAIController>(GetOwner());
-	const ANavigationData* NavData = MyAI && MyAI->GetNavComponent() ? MyAI->GetNavComponent()->GetNavData() : NULL;
-	if (Path.IsValid())
-	{
-		Path->ShortcutNodeRefs.Reset();
-	}
-
-	if (NavData == NULL)
+	const ANavigationData* NavData = Path.IsValid() ? Path->GetNavigationDataUsed() : NULL;
+	if (NavData == NULL || MyAI == NULL)
 	{
 		return StartIndex + 1;
 	}
@@ -651,7 +631,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	}
 
 #endif
-	TSharedPtr<FNavigationQueryFilter> QueryFilter = (NavComp && NavComp->GetStoredQueryFilter().IsValid()) ? NavComp->GetStoredQueryFilter()->GetCopy() : NavData->GetDefaultQueryFilter()->GetCopy();
+	TSharedPtr<FNavigationQueryFilter> QueryFilter = Path->GetFilter()->GetCopy();
 #if WITH_RECAST
 	const uint8 StartArea = FNavMeshNodeFlags(Path->GetPathPoints()[StartIndex].Flags).Area;
 	TArray<float> CostArray;
@@ -662,6 +642,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 
 	const int32 MaxPoints = Path->GetPathPoints().Num();
 	int32 Index = StartIndex + 2;
+	Path->ShortcutNodeRefs.Reset();
 
 	for (; Index <= MaxPoints; ++Index)
 	{
@@ -725,7 +706,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 
 	if (!Path->IsValid())
 	{
-		if (NavComp == NULL || !NavComp->IsWaitingForRepath())
+		if (!Path->IsWaitingForRepath())
 		{
 			AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
 		}
@@ -1242,7 +1223,7 @@ EPathFollowingAction::Type UPathFollowingComponent::GetPathActionType() const
 		case EPathFollowingStatus::Paused:	
 		case EPathFollowingStatus::Moving:
 			return Path.IsValid() == false ? EPathFollowingAction::Error :
-				Path->IsDirect() ? EPathFollowingAction::DirectMove :
+				Path->CastPath<FAbstractNavigationPath>() ? EPathFollowingAction::DirectMove :
 				Path->IsPartial() ? EPathFollowingAction::PartialPath : EPathFollowingAction::PathToGoal;
 
 		default:
@@ -1323,7 +1304,10 @@ void UPathFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) co
 	}
 
 	Category.Add(TEXT("Status"), StatusDesc);
-	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") : (Path->CastPath<FNavMeshPath>() != NULL) ? TEXT("navmesh") : TEXT("direct"));
+	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") :
+		(Path->CastPath<FNavMeshPath>() != NULL) ? TEXT("navmesh") :
+		(Path->CastPath<FAbstractNavigationPath>() != NULL) ? TEXT("direct") :
+		TEXT("unknown"));
 	
 	UObject* CustomNavLinkOb = CurrentCustomLinkOb.Get();
 	if (CustomNavLinkOb)
@@ -1349,7 +1333,7 @@ void UPathFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TArr
 	if (Path.IsValid())
 	{
 		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->GetPathPoints().Num() : -1;
-		const bool bIsDirect = HasDirectPath();
+		const bool bIsDirect = (Path->CastPath<FAbstractNavigationPath>() != NULL);
 		const bool bIsCustomLink = CurrentCustomLinkOb.IsValid();
 
 		if (!bIsDirect)

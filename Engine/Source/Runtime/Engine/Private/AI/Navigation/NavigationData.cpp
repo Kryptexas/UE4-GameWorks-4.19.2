@@ -16,6 +16,7 @@ FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const ANavigationDa
 , QueryFilter(SourceQueryFilter)
 , PathInstanceToFill(InPathInstanceToFill)
 , NavDataFlags(0)
+, bAllowPartialPaths(true)
 {
 	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -31,6 +32,7 @@ FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
 , QueryFilter(Source.QueryFilter)
 , PathInstanceToFill(Source.PathInstanceToFill)
 , NavDataFlags(Source.NavDataFlags)
+, bAllowPartialPaths(Source.bAllowPartialPaths)
 {
 	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -46,6 +48,7 @@ FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const 
 , QueryFilter(PathToRecalculate->GetFilter())
 , PathInstanceToFill(PathToRecalculate)
 , NavDataFlags(0)
+, bAllowPartialPaths(true)
 {
 	if (QueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -215,9 +218,19 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 
 	if (RepathRequests.Num() > 0)
 	{
+		TArray<FNavPathRecalculationRequest> PostponedRequests;
+
 		// @todo batch-process it!
 		for (auto RecalcRequest : RepathRequests)
 		{
+			// check if it can be updated right now
+			const UObject* PathQuerier = RecalcRequest.Path->GetQuerier();
+			const INavAgentInterface* PathNavAgent = Cast<const INavAgentInterface>(PathQuerier);
+			if (PathNavAgent && PathNavAgent->ShouldPostponePathUpdates())
+			{
+				PostponedRequests.Add(RecalcRequest);
+			}
+
 			FPathFindingQuery Query(RecalcRequest.Path);
 			// @todo consider supplying NavAgentPropertied from path's querier
 			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(RecalcRequest.Path));
@@ -239,6 +252,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 		}
 
 		RepathRequests.Reset();
+		RepathRequests.Append(PostponedRequests);
 	}
 }
 

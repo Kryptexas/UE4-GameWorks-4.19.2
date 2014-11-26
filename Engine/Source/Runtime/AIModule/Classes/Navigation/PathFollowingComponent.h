@@ -257,6 +257,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** call when moving agent finishes using custom nav link, returns control back to path following */
 	virtual void FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink);
 
+	/** called when owner is preparing new pathfinding request */
+	virtual void OnPathfindingQuery(FPathFindingQuery& Query) {}
+
 	// IAIResourceInterface begin
 	virtual void LockResource(EAIRequestPriority::Type LockSource) override;
 	virtual void ClearResourceLock(EAIRequestPriority::Type LockSource) override;
@@ -269,10 +272,6 @@ protected:
 	/** associated movement component */
 	UPROPERTY(transient)
 	UNavMovementComponent* MovementComp;
-
-	/** associated navigation component */
-	UPROPERTY(transient)
-	UNavigationComponent* NavComp;
 
 	/** currently traversed custom nav link */
 	FWeakObjectPtr CurrentCustomLinkOb;

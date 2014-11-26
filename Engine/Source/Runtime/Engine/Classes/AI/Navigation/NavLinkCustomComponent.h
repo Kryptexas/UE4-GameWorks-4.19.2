@@ -27,7 +27,7 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	GENERATED_UCLASS_BODY()
 
 	DECLARE_DELEGATE_ThreeParams(FOnMoveReachedLink, UNavLinkCustomComponent* /*ThisComp*/, UPathFollowingComponent* /*PathComp*/, const FVector& /*DestPoint*/);
-	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<UNavigationComponent*>& /*NotifyList*/);
+	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<UPathFollowingComponent*>& /*NotifyList*/);
 
 	// BEGIN INavLinkCustomInterface
 	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const override;
@@ -206,5 +206,5 @@ protected:
 	void BroadcastStateChange();
 	
 	/** gather agents to notify about state change */
-	void CollectNearbyAgents(TArray<UNavigationComponent*>& NotifyList);
+	void CollectNearbyAgents(TArray<UPathFollowingComponent*>& NotifyList);
 };

@@ -133,6 +133,10 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	UPROPERTY()
 	ANavigationData* MainNavData;
 
+	/** special navigation data for managing direct paths, not part of NavDataSet! */
+	UPROPERTY()
+	ANavigationData* AbstractNavData;
+
 	/** Should navigation system spawn default Navigation Data when there's none and there are navigation bounds present? */
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bAutoCreateNavigationData:1;
@@ -387,6 +391,8 @@ public:
 	ANavigationData* GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
 	const ANavigationData* GetMainNavData() const { return MainNavData; }
+
+	ANavigationData* GetAbstractNavData() const { return AbstractNavData; }
 
 	TSharedPtr<FNavigationQueryFilter> CreateDefaultQueryFilterCopy() const;
 

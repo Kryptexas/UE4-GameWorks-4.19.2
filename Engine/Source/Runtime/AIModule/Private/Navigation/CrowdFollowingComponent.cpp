@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/CrowdManager.h"
-#include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
+#include "AI/Navigation/AbstractNavData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 
@@ -261,20 +261,6 @@ void UCrowdFollowingComponent::SetCrowdSimulation(bool bEnable)
 
 	UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetCrowdSimulation: %s"), bEnable ? TEXT("enabled") : TEXT("disabled"));
 	bEnableCrowdSimulation = bEnable;
-
-	if (NavComp)
-	{
-		if (bEnableCrowdSimulation)
-		{
-			// disable path post processing (string pulling), crowd simulation needs to handle 
-			// large paths by splitting into smaller parts and optimization gets in the way
-			NavComp->SetNavDataFlag(ERecastPathFlags::SkipStringPulling);
-		}
-		else
-		{
-			NavComp->ClearNavDataFlag(ERecastPathFlags::SkipStringPulling);
-		}
-	}
 }
 
 void UCrowdFollowingComponent::Initialize()
@@ -290,13 +276,6 @@ void UCrowdFollowingComponent::Initialize()
 	else
 	{
 		bEnableCrowdSimulation = false;
-	}
-
-	if (bEnableCrowdSimulation && NavComp)
-	{
-		// disable path post processing (string pulling), crowd simulation needs to handle 
-		// large paths by splitting into smaller parts and optimization gets in the way
-		NavComp->SetNavDataFlag(ERecastPathFlags::SkipStringPulling);
 	}
 }
 
@@ -418,6 +397,17 @@ void UCrowdFollowingComponent::OnPathUpdated()
 	LastPathPolyIndex = 0;
 }
 
+void UCrowdFollowingComponent::OnPathfindingQuery(FPathFindingQuery& Query)
+{
+	// disable path post processing (string pulling), crowd simulation needs to handle 
+	// large paths by splitting into smaller parts and optimization gets in the way
+
+	if (bEnableCrowdSimulation)
+	{
+		Query.NavDataFlags |= ERecastPathFlags::SkipStringPulling;
+	}
+}
+
 bool UCrowdFollowingComponent::ShouldCheckPathOnResume() const
 {
 	if (bEnableCrowdSimulation)
@@ -529,6 +519,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 	FVector CurrentTargetPt = Path->GetPathPoints()[1].Location;
 
 	FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
+	FAbstractNavigationPath* DirectPath = Path->CastPath<FAbstractNavigationPath>();
 	if (NavMeshPath)
 	{
 #if WITH_RECAST
@@ -594,7 +585,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		}
 #endif
 	}
-	else
+	else if (DirectPath)
 	{
 		// direct paths are not using any steering or avoidance
 		// pathfinding is replaced with simple velocity request 
@@ -618,6 +609,10 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 			CrowdManager->SetAgentMoveDirection(this, CrowdAgentMoveDirection);
 		}
 	}
+	else
+	{
+		UE_VLOG(GetOwner(), LogCrowdFollowing, Error, TEXT("SetMoveSegment, unknown path type!"));
+	}
 }
 
 void UCrowdFollowingComponent::UpdatePathSegment()
@@ -636,7 +631,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 	if (!Path->IsValid())
 	{
-		if (NavComp == NULL || !NavComp->IsWaitingForRepath())
+		if (!Path->IsWaitingForRepath())
 		{
 			AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
 		}
@@ -653,7 +648,8 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 		if (bFinalPathPart)
 		{
 			const FVector ToTarget = (GoalLocation - MovementComp->GetActorFeetLocation());
-			const float SegmentDot = FVector::DotProduct(ToTarget, Path->IsDirect() ? MovementComp->Velocity : CrowdAgentMoveDirection);
+			const bool bDirectPath = Path->CastPath<FAbstractNavigationPath>() != NULL;
+			const float SegmentDot = FVector::DotProduct(ToTarget, bDirectPath ? MovementComp->Velocity : CrowdAgentMoveDirection);
 			const bool bMovedTooFar = bCheckMovementAngle && (SegmentDot < 0.0);
 
 			// can't use HasReachedDestination here, because it will use last path point
@@ -814,9 +810,13 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 		{
 			StatusDesc += FString::Printf(TEXT(" (path:%d, visited:%d)"), PathStartIndex, LastPathPolyIndex);
 		}
-		else
+		else if (Path->CastPath<FAbstractNavigationPath>())
 		{
 			StatusDesc += TEXT(" (direct)");
+		}
+		else
+		{
+			StatusDesc += TEXT(" (unknown path)");
 		}
 	}
 
@@ -878,13 +878,15 @@ void UCrowdFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) c
 	FString StatusDesc = GetStatusDesc();
 
 	FNavMeshPath* NavMeshPath = Path.IsValid() ? Path->CastPath<FNavMeshPath>() : NULL;
+	FAbstractNavigationPath* DirectPath = Path.IsValid() ? Path->CastPath<FAbstractNavigationPath>() : NULL;
+
 	if (Status == EPathFollowingStatus::Moving)
 	{
 		StatusDesc += FString::Printf(TEXT(" [path:%d, visited:%d]"), PathStartIndex, LastPathPolyIndex);
 	}
 
 	Category.Add(TEXT("Status"), StatusDesc);
-	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") : NavMeshPath ? TEXT("navmesh") : TEXT("direct"));
+	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") : NavMeshPath ? TEXT("navmesh") : DirectPath ? TEXT("direct") : TEXT("unknown"));
 
 	UObject* CustomLinkOb = GetCurrentCustomLinkOb();
 	if (CustomLinkOb)

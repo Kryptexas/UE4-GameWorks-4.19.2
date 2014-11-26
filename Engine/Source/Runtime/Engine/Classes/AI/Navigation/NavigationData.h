@@ -85,9 +85,9 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return bReachedSearchLimit;
 	}
-	FORCEINLINE bool IsDirect() const
+	FORCEINLINE bool IsWaitingForRepath() const
 	{
-		return NavigationDataUsed.Get() == NULL;
+		return bWaitingForRepath;
 	}
 	FORCEINLINE FVector GetDestinationLocation() const
 	{
@@ -159,8 +159,11 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 	FORCEINLINE void DoneUpdating(ENavPathUpdateType::Type UpdateType)
 	{
-		bUpToDate = true; ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
+		bUpToDate = true;
+		bWaitingForRepath = false;
+		ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
 	}
+
 	void Invalidate();
 	void RePathFailed();
 
@@ -350,6 +353,9 @@ protected:
 
 	/** if true path will request re-pathing if it gets invalidated due to underlying navigation changed */
 	uint32 bDoAutoUpdateOnInvalidation : 1;
+
+	/** set when path is waiting for recalc from navigation data */
+	uint32 bWaitingForRepath : 1;
 
 	/** navigation data used to generate this path */
 	TWeakObjectPtr<ANavigationData> NavigationDataUsed;

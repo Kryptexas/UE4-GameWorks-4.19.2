@@ -19,13 +19,13 @@
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/CrowdManager.h"
 #include "Navigation/PathFollowingComponent.h"
-#include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 #include "AI/Navigation/NavigationPath.h"
+#include "AI/Navigation/AbstractNavData.h"
 
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
 static const uint32 REGISTRATION_QUEUE_SIZE = 16;	// and we'll not reallocate
@@ -276,6 +276,25 @@ void UNavigationSystem::DoInitialSetup()
 		// @note: if you don't want navigation system to be created at all you can disable it by 
 		// setting AWorldSettings.bEnableNavigationSystem to false
 		UE_LOG(LogNavigation, Error, TEXT("No navigation data types found while setting up required navigation types!"));
+	}
+
+	// spawn abstract nav data separately
+	// it's responsible for direct paths and shouldn't be picked for any agent type as default one
+	UWorld* NavWorld = GetWorld();
+	for (TActorIterator<AAbstractNavData> It(NavWorld); It; ++It)
+	{
+		AAbstractNavData* Nav = (*It);
+		if (Nav && !Nav->IsPendingKill())
+		{
+			AbstractNavData = Nav;
+			break;
+		}
+	}
+
+	if (AbstractNavData == NULL)
+	{
+		FNavDataConfig DummyConfig;
+		AbstractNavData = CreateNavigationDataInstance(AAbstractNavData::StaticClass(), NavWorld, DummyConfig);
 	}
 
 	CreateCrowdManager();
@@ -872,12 +891,10 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 		return;
 	}
 
-	UNavigationComponent* PFindComp = NULL;
 	UPathFollowingComponent* PFollowComp = NULL;
-	
-	Controller->InitNavigationControl(PFindComp, PFollowComp);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Controller->GetWorld());
 
-	if (PFindComp == nullptr || PFollowComp == nullptr)
+	if (PFollowComp == nullptr)
 	{
 		FMessageLog("PIE").Warning(FText::Format(
 			LOCTEXT("SimpleMoveErrorNoComp", "SimpleMove failed for {0}: missing components"),
@@ -895,12 +912,16 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 		return;
 	}
 
-	if (!PFollowComp->HasReached(*Goal))
+	if (NavSys && !PFollowComp->HasReached(*Goal))
 	{
-		const bool bPathExists = PFindComp->FindPathToActor(Goal);
-		if (bPathExists)
+		const ANavigationData* NavData = NavSys->GetNavDataForProps(Controller->GetNavAgentProperties());
+		FPathFindingQuery Query(Controller, NavData, Controller->GetNavAgentLocation(), Goal->GetActorLocation());
+		FPathFindingResult Result = NavSys->FindPathSync(Query);
+		if (Result.IsSuccessful())
 		{
-			PFollowComp->RequestMove(PFindComp->GetPath(), Goal);
+			Result.Path->SetGoalActorObservation(*Goal, 100.0f);
+
+			PFollowComp->RequestMove(Result.Path, Goal);
 		}
 	}
 }
@@ -914,12 +935,12 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 		return;
 	}
 
-	UNavigationComponent* PFindComp = NULL;
 	UPathFollowingComponent* PFollowComp = NULL;
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Controller->GetWorld());
 
-	Controller->InitNavigationControl(PFindComp, PFollowComp);
+	Controller->InitNavigationControl(PFollowComp);
 
-	if (PFindComp == nullptr || PFollowComp == nullptr)
+	if (PFollowComp == nullptr)
 	{
 		FMessageLog("PIE").Warning(FText::Format(
 			LOCTEXT("SimpleMoveErrorNoComp", "SimpleMove failed for {0}: missing components"),
@@ -937,12 +958,14 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 		return;
 	}
 
-	if (!PFollowComp->HasReached(GoalLocation))
+	if (NavSys && !PFollowComp->HasReached(GoalLocation))
 	{
-		const bool bPathExists = PFindComp->FindPathToLocation(GoalLocation);
-		if (bPathExists)
+		const ANavigationData* NavData = NavSys->GetNavDataForProps(Controller->GetNavAgentProperties());
+		FPathFindingQuery Query(Controller, NavData, Controller->GetNavAgentLocation(), GoalLocation);
+		FPathFindingResult Result = NavSys->FindPathSync(Query);
+		if (Result.IsSuccessful())
 		{
-			PFollowComp->RequestMove(PFindComp->GetPath(), NULL);
+			PFollowComp->RequestMove(Result.Path, NULL);
 		}
 	}
 }

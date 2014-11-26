@@ -38,4 +38,7 @@ class INavAgentInterface
 	 * @param GoalHalfHeight - cylinder half height
 	 */
 	virtual void GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const {}
+
+	/** Allows delaying repath requests */
+	virtual bool ShouldPostponePathUpdates() const { return false; }
 };

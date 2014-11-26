@@ -123,6 +123,7 @@ void FNavigationPath::Invalidate()
 	ObserverDelegate.Broadcast(this, ENavPathEvent::Invalidated);
 	if (bDoAutoUpdateOnInvalidation && NavigationDataUsed.IsValid())
 	{
+		bWaitingForRepath = true;
 		NavigationDataUsed->RequestRePath(AsShared(), ENavPathUpdateType::NavigationChanged);
 	}
 }
@@ -130,6 +131,7 @@ void FNavigationPath::Invalidate()
 void FNavigationPath::RePathFailed()
 {
 	ObserverDelegate.Broadcast(this, ENavPathEvent::RePathFailed);
+	bWaitingForRepath = false;
 }
 
 void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const

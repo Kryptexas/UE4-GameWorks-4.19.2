@@ -6,7 +6,6 @@
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 // @todo to be addressed when removing AIModule circular dependency
 #include "Navigation/PathFollowingComponent.h"
-#include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavLinkCustomComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
@@ -255,7 +254,7 @@ void UNavLinkCustomComponent::SendBroadcastWhenDisabled(bool bEnabled)
 	bNotifyWhenDisabled = bEnabled;
 }
 
-void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>& NotifyList)
+void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UPathFollowingComponent*>& NotifyList)
 {
 	AActor* MyOwner = GetOwner();
 	if (BroadcastRadius < KINDA_SMALL_NUMBER || MyOwner == NULL)
@@ -302,8 +301,8 @@ void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>&
 
 	for (int32 i = 0; i < PawnList.Num(); i++)
 	{
-		UNavigationComponent* NavComp = PawnList[i]->GetController()->FindComponentByClass<UNavigationComponent>();
-		if (NavComp && NavComp->WantsSmartLinkUpdates())
+		UPathFollowingComponent* NavComp = PawnList[i]->GetController()->FindComponentByClass<UPathFollowingComponent>();
+		if (NavComp)// && NavComp->WantsSmartLinkUpdates())
 		{
 			NotifyList.Add(NavComp);
 		}
@@ -312,14 +311,14 @@ void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>&
 
 void UNavLinkCustomComponent::BroadcastStateChange()
 {
-	TArray<UNavigationComponent*> NearbyAgents;
+	TArray<UPathFollowingComponent*> NearbyAgents;
 
 	CollectNearbyAgents(NearbyAgents);
 	OnBroadcastFilter.ExecuteIfBound(this, NearbyAgents);
 
 	for (int32 i = 0; i < NearbyAgents.Num(); i++)
 	{
-		NearbyAgents[i]->OnCustomLinkBroadcast(this);
+//		NearbyAgents[i]->OnCustomLinkBroadcast(this);
 	}
 
 	if (BroadcastInterval > 0.0f)

@@ -91,16 +91,23 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 		MyObj = NewObject<UAIAsyncTaskBlueprintProxy>(World);
-		FNavPathSharedPtr Path = TargetActor ? AIController->FindPath(TargetActor, true) : AIController->FindPath(Destination, true);
-		if (Path.IsValid())
+
+		FPathFindingQuery Query;
+		const bool bValidQuery = AIController->PreparePathfinding(Query, Destination, TargetActor, true);
+
+		if (bValidQuery)
 		{
-			MyObj->AIController = AIController;
-			MyObj->AIController->ReceiveMoveCompleted.AddDynamic(MyObj, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
-			MyObj->MoveRequestId = MyObj->AIController->RequestMove(Path, TargetActor, AcceptanceRadius, bStopOnOverlap);
-		}
-		else
-		{
-			World->GetTimerManager().SetTimer(MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1, false);
+			const FAIRequestID RequestID = AIController->RequestPathAndMove(Query, NULL, AcceptanceRadius, bStopOnOverlap, NULL);
+			if (RequestID.IsValid())
+			{
+				MyObj->AIController = AIController;
+				MyObj->AIController->ReceiveMoveCompleted.AddDynamic(MyObj, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
+				MyObj->MoveRequestId = RequestID;
+			}
+			else
+			{
+				World->GetTimerManager().SetTimer(MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1f, false);
+			}
 		}
 	}
 	return MyObj;

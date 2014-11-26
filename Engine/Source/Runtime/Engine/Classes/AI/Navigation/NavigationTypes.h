@@ -448,7 +448,10 @@ struct ENGINE_API FPathFindingQuery
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
 
-	FPathFindingQuery();
+	/** if set, allow partial paths as a result */
+	uint32 bAllowPartialPaths : 1;
+
+	FPathFindingQuery() {}
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 

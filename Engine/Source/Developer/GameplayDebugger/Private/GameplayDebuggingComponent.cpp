@@ -14,7 +14,6 @@
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "BehaviorTreeDelegates.h"
-#include "Navigation/NavigationComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "Engine/Channel.h"
 
@@ -484,9 +483,9 @@ void UGameplayDebuggingComponent::CollectPathData()
 	bool bRefreshRendering = false;
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
-		if ( MyController->GetNavComponent() && MyController->GetNavComponent()->HasValidPath())
+		if (MyController->PathFollowingComponent && MyController->PathFollowingComponent->GetPath().IsValid())
 		{
-			const FNavPathSharedPtr& NewPath = MyController->GetNavComponent()->GetPath();
+			const FNavPathSharedPtr& NewPath = MyController->PathFollowingComponent->GetPath();
 			if (!CurrentPath.HasSameObject(NewPath.Get()))
 			{
 				FVisualLogEntry Snapshot;
