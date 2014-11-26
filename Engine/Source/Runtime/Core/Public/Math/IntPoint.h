@@ -189,6 +189,12 @@ public:
 	*/
 	int32 operator[](int32 Index) const;
 
+	/** Gets the component-wise min of two vectors. */
+	FORCEINLINE FIntPoint ComponentMin(const FIntPoint& Other) const;
+
+	/** Gets the component-wise max of two vectors. */
+	FORCEINLINE FIntPoint ComponentMax(const FIntPoint& Other) const;
+
 public:
 
 	/**
@@ -397,6 +403,16 @@ FORCEINLINE int32 FIntPoint::operator[](int32 Index) const
 {
 	check(Index >= 0 && Index < 2);
 	return ((Index == 0) ? X : Y);
+}
+
+FORCEINLINE FIntPoint FIntPoint::ComponentMin(const FIntPoint& Other) const
+{
+	return FIntPoint(FMath::Min(X, Other.X), FMath::Min(Y, Other.Y));
+}
+
+FORCEINLINE FIntPoint FIntPoint::ComponentMax(const FIntPoint& Other) const
+{
+	return FIntPoint(FMath::Max(X, Other.X), FMath::Max(Y, Other.Y));
 }
 
 FORCEINLINE FIntPoint FIntPoint::DivideAndRoundUp( FIntPoint lhs, int32 Divisor )
