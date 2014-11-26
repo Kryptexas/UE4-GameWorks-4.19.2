@@ -11,7 +11,6 @@ public:
 		SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
 		SLATE_ARGUMENT(EPopupMethod, Method)
 		SLATE_ARGUMENT(int32, MaxChatLength)
-		SLATE_ARGUMENT(bool, bInGameUI)
 	SLATE_END_ARGS()
 
 	/**

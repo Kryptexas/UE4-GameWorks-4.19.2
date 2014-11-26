@@ -16,7 +16,6 @@ public:
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		MenuMethod = InArgs._Method;
-		bInGameUI = InArgs._bInGameUI;
 		MaxChatLength = InArgs._MaxChatLength;
 		this->ViewModel = InViewModel;
 		FChatViewModel* ViewModelPtr = ViewModel.Get();
@@ -46,7 +45,7 @@ public:
 			 		.AutoWidth()
 					[
 						SNew( SBorder )
-						.Visibility(bInGameUI ? EVisibility::Collapsed : EVisibility::Visible)
+						.Visibility(ViewModel->GetScrollbarVisibility())
 						.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
 						.ColorAndOpacity(this, &SChatWindowImpl::GetTimedFadeColor)
 						[
@@ -559,7 +558,7 @@ private:
 
 	EVisibility GetActionVisibility() const
 	{
-		return !bInGameUI ? EVisibility::Visible : ViewModel->GetEntryBarVisibility();
+		return ViewModel->GetEntryBarVisibility();
 	}
 
 	EVisibility GetChatEntryVisibility() const
@@ -652,9 +651,6 @@ private:
 
 	// Holds the time transparency.
 	float TimeTransparency;
-
-	// Holds if this widget is being displayed in game
-	bool bInGameUI;
 };
 
 TSharedRef<SChatWindow> SChatWindow::New()

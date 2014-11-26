@@ -44,6 +44,11 @@ public:
 		UnInitialize();
 	}
 
+	virtual const TArray<TSharedPtr<FFriendChatMessage> >& GetMessageList() const override
+	{
+		return ReceivedMessages;
+	}
+
 	virtual bool SendRoomMessage(const FString& RoomName, const FString& MsgBody) override
 	{
 		if (OnlineSub != nullptr &&
@@ -82,7 +87,7 @@ public:
 		return false;
 	}
 
-	virtual bool SendPrivateMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) override
+	virtual bool SendPrivateMessage(const FUniqueNetId& RecipientId, TSharedPtr< FFriendChatMessage > ChatMessage) override
 	{
 		if (OnlineSub != nullptr &&
 			LoggedInUser.IsValid())
@@ -90,7 +95,8 @@ public:
 			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
 			if(ChatInterface.IsValid())
 			{
-				return ChatInterface->SendPrivateChat(*LoggedInUser, RecipientId, MsgBody);
+				AddMessage(ChatMessage.ToSharedRef());
+				return ChatInterface->SendPrivateChat(*LoggedInUser, RecipientId, ChatMessage->Message.ToString());
 			}
 		}
 		return false;
@@ -104,7 +110,7 @@ public:
 		ChatItem->MessageType = EChatMessageType::Party;
 		ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 		ChatItem->bIsFromSelf = false;
-		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+		AddMessage(ChatItem.ToSharedRef());
 	}
 
 	virtual void JoinPublicRoom(const FString& RoomName) override
@@ -236,7 +242,7 @@ private:
 			ChatItem->MessageType = EChatMessageType::Global;
 			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 			ChatItem->bIsFromSelf = false;
-			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+			AddMessage(ChatItem);
 		}
 	}
 
@@ -256,7 +262,7 @@ private:
 			ChatItem->MessageType = EChatMessageType::Global;
 			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 			ChatItem->bIsFromSelf = false;
-			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+			AddMessage(ChatItem);
 		}
 	}
 
@@ -280,7 +286,7 @@ private:
 		}
 
 		ChatItem->MessageRef = ChatMessage;
-		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+		AddMessage(ChatItem);
 
 	}
 
@@ -299,7 +305,7 @@ private:
 			ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp());
 			ChatItem->bIsFromSelf = false;
 			ChatItem->MessageRef = ChatMessage;
-			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+			AddMessage(ChatItem);
 		}
 	}
 
@@ -316,6 +322,12 @@ private:
 				}
 			}
 		}
+	}
+
+	void AddMessage(TSharedPtr< FFriendChatMessage > ChatItem)
+	{
+		ReceivedMessages.Add(ChatItem);
+		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 	}
 
 private:
@@ -338,6 +350,8 @@ private:
 	IOnlineSubsystem* OnlineSub;
 	TSharedPtr<FUniqueNetId> LoggedInUser;
 	TArray<FString> RoomJoins;
+
+	TArray<TSharedPtr< FFriendChatMessage > > ReceivedMessages; 
 
 	bool bEnableEnterExitMessages;
 

@@ -338,28 +338,22 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 }
 
 
-TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsAndChatStyle* InStyle, bool bInGameUI)
+TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel)
 {
-	GetChatViewModel(); // ensure creation
-	TSharedPtr<SChatWindow> ChatWidget;
-	ChatViewModel->SetCaptureFocus(true);
+	// todo - NDavies = find a better way to do this
+	TSharedRef<FChatViewModel> ChatViewModel = StaticCastSharedRef<FChatViewModel>(ViewModel);
 
+	TSharedPtr<SChatWindow> ChatWidget;
 	Style = *InStyle;
-	SAssignNew(ChatWidget, SChatWindow, ChatViewModel.ToSharedRef())
-	.FriendStyle( &Style )
-	.Method(EPopupMethod::UseCurrentWindow)
-	.bInGameUI(bInGameUI);
+	SAssignNew(ChatWidget, SChatWindow, ChatViewModel)
+	.FriendStyle(&Style)
+	.Method(SMenuAnchor::UseCurrentWindow);
 	return ChatWidget;
 }
 
 TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 {
-	if (!ChatViewModel.IsValid())
-	{
-		check(MessageManager.IsValid());
-		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
-	}
-	return ChatViewModel;
+	return FChatViewModelFactory::Create(MessageManager.ToSharedRef());
 }
 
 void FFriendsAndChatManager::GenerateChatWindow()
@@ -368,13 +362,6 @@ void FFriendsAndChatManager::GenerateChatWindow()
 
 	check(MessageManager.IsValid());
 	bCreateChatWindow = true;
-
-	if(!ChatViewModel.IsValid())
-	{
-		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
-	}
-
-	ChatViewModel->SetCaptureFocus(false);
 
 	if (!ChatWindow.IsValid())
 	{
@@ -402,10 +389,7 @@ void FFriendsAndChatManager::GenerateChatWindow()
 
 void FFriendsAndChatManager::SetChatFriend( TSharedPtr< IFriendItem > FriendItem )
 {
-	if(ChatViewModel.IsValid())
-	{
-		ChatViewModel->SetChatFriend(FriendItem);
-	}
+	OnChatFriendSelected().Broadcast(FriendItem);
 
 	if(bCreateChatWindow)
 	{
@@ -423,6 +407,9 @@ void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& I
 void FFriendsAndChatManager::SetChatWindowContents()
 {
 	TSharedPtr<SWindowTitleBar> TitleBar;
+	TSharedPtr<FChatViewModel> ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+	ChatViewModel->SetInGameUI(false);
+	ChatViewModel->SetCaptureFocus(false);
 
 	ChatWindow->SetContent(
 		SNew( SBorder )
@@ -443,7 +430,6 @@ void FFriendsAndChatManager::SetChatWindowContents()
 			[
 				SNew(SChatWindow, ChatViewModel.ToSharedRef())
 				.FriendStyle( &Style )
-				.bInGameUI(false)
 			]
 		]);
 }

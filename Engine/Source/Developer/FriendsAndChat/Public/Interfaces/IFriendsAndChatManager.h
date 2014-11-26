@@ -41,9 +41,10 @@ public:
 	/**
 	 * Generate a chat widget.
 	 * @param InStyle The style to use to create the widgets.
+	 * @param The chat view model.
 	 * @return The chat widget.
 	 */
-	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, bool bInGameUI) = 0;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel) = 0;
 
 	/**
 	 * Get the chat system view model for manipulating the chat widget.

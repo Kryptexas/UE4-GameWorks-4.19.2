@@ -30,6 +30,7 @@ public:
 	virtual FText GetChatGroupText() const = 0;
 	virtual const EVisibility GetTextEntryVisibility() = 0;
 	virtual const EVisibility GetConfirmationVisibility() = 0;
+	virtual EVisibility GetScrollbarVisibility() const = 0;
 	virtual EVisibility GetInviteToGameVisibility() const = 0;
 	virtual void EnumerateChatChannelOptionsList(TArray<EChatMessageType::Type>& OUTChannelType) = 0;
 	virtual void EnumerateFriendOptions(TArray<EFriendActionType::Type>& OUTActionList) = 0;
@@ -44,7 +45,6 @@ public:
 	virtual const float GetTimeTransparency() const = 0;
 	virtual EChatMessageType::Type GetChatChannelType() const = 0;
 	virtual const TArray<TSharedPtr<FSelectedFriend> >& GetRecentOptions() const = 0;
-	virtual void SetChatFriend(TSharedPtr<IFriendItem> ChatFriend) = 0;
 	virtual void SetAllowGlobalChat(bool bAllow) = 0;
 	virtual bool IsGlobalChatEnabled() const = 0;
 	virtual const bool IsChatHidden() = 0;

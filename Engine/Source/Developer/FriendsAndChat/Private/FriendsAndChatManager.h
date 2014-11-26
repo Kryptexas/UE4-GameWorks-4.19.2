@@ -128,7 +128,7 @@ public:
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
-	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, bool bInGameUI) override;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel) override;
 	virtual TSharedPtr<IChatViewModel> GetChatViewModel() override;
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
@@ -346,6 +346,12 @@ public:
 	virtual FOnGameInvitesUpdated& OnGameInvitesUpdated()
 	{
 		return OnGameInvitesUpdatedDelegate;
+	}
+
+	DECLARE_EVENT_OneParam(FFriendsAndChatManager, FOnChatFriendSelected, TSharedPtr<IFriendItem> /*ChatFriend*/)
+	virtual FOnChatFriendSelected& OnChatFriendSelected()
+	{
+		return OnChatFriendSelectedDelegate;
 	}
 
 private:
@@ -657,6 +663,8 @@ private:
 	FOnFriendsUpdated OnFriendsListUpdatedDelegate;
 	// Delegate for when list of active game invites updates
 	FOnGameInvitesUpdated OnGameInvitesUpdatedDelegate;
+	// Delegate for when a friend is selected for chat
+	FOnChatFriendSelected OnChatFriendSelectedDelegate;
 
 	/* Identity stuff
 	*****************************************************************************/
@@ -675,8 +683,6 @@ private:
 	TArray<FString> ChatRoomstoJoin;
 	// Manages private/public chat messages 
 	TSharedPtr<class FFriendsMessageManager> MessageManager;
-	// Info needed to view chat messages
-	TSharedPtr<class FChatViewModel> ChatViewModel;
 
 	/* Manger state
 	*****************************************************************************/
