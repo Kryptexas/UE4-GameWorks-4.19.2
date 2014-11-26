@@ -101,6 +101,7 @@
 #include "Camera/CameraAnim.h"
 #include "GameFramework/TouchInterface.h"
 #include "Engine/DataTable.h"
+#include "DataTableEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
