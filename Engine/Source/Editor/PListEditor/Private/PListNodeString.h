@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListNodeString_h__
-#define __PlistNodeString_h__
-
 #include "PListNode.h"
 
 /** A Node representing a string value */
@@ -103,5 +100,3 @@ private:
 	/** Flag for valid value string */
 	bool bValueValid;
 };
-
-#endif

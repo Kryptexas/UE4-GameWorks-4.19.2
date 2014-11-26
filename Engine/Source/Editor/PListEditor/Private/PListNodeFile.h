@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListNodeFile_h__
-#define __PlistNodeFile_h__
-
 #include "PListNode.h"
 
 /** A Node representing the plist as a whole */
@@ -60,5 +57,3 @@ private:
 	/** Widget for displaying text on this row */
 	TSharedPtr<STextBlock> TextWidget;
 };
-
-#endif

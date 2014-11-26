@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #include "GameMenuBuilderModule.h"
 
 #include "SlateBasics.h"
@@ -9,8 +11,6 @@
 #include "SGameMenuItemWidget.h"
 #include "GameMenuItem.h"
 #include "GameMenuPage.h"
-
-#pragma once
 
 class FGameMenuBuilderModule : public IGameMenuBuilderModule
 {

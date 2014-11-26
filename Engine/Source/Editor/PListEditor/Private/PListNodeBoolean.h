@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListNodeBoolean_h__
-#define __PlistNodeBoolean_h__
-
 #include "PListNode.h"
 
 /** A Node representing a boolean value */
@@ -97,5 +94,3 @@ private:
 	/** Flag for valid key string */
 	bool bKeyValid;
 };
-
-#endif

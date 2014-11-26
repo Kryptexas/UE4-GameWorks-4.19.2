@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListNodeDictionary_h__
-#define __PlistNodeDictionary_h__
-
 #include "PListNode.h"
 
 /** A Node representing a dictionary */
@@ -91,5 +88,3 @@ private:
 	/** Filtered Status */
 	bool bFiltered;
 };
-
-#endif

@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListNodeArray_h__
-#define __PlistNodeArray_h__
-
 #include "PListNode.h"
 
 /** A Node representing an array */
@@ -104,5 +101,3 @@ private:
 	/** Flag for valid key string */
 	bool bKeyValid;
 };
-
-#endif

@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListNode_h__
-#define __PlistNode_h__
-
 #include "SlateBasics.h"
 
 /** Forward declaration for the panel which we will need to access in delegates */
@@ -124,5 +121,3 @@ private:
 
 	int32 Depth;
 };
-
-#endif
