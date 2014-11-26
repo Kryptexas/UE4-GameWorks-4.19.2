@@ -537,7 +537,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 		AggregateMesh.IntersectLightRay(SampleRay, true, true, true, CoherentRayCache, PathIntersection);
 		Output.DirectPhotonsTracingThreadTime += CoherentRayCache.FirstHitRayTraceTime - BeforeDirectTraceTime;
 
-		const FVector4 WorldPathDirection = SampleRay.Direction.UnsafeNormal3();
+		const FVector4 WorldPathDirection = SampleRay.Direction.GetUnsafeNormal3();
 
 		// Register this photon path as long as it hit a frontface of something in the scene
 		if (PathIntersection.bIntersects 
@@ -937,7 +937,7 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 		Output.IntersectLightRayThreadTime += CoherentRayCache.FirstHitRayTraceTime - BeforeLightRayTime;
 
 		LIGHTINGSTAT(FScopedRDTSCTimer PhotonTracingTimer(Output.PhotonBounceTracingThreadTime));
-		FVector4 WorldPathDirection = SampleRay.Direction.UnsafeNormal3();
+		FVector4 WorldPathDirection = SampleRay.Direction.GetUnsafeNormal3();
 		// Continue tracing this photon path as long as it hit a frontface of something in the scene
 		while (PathIntersection.bIntersects && Dot3(WorldPathDirection, PathIntersection.IntersectionVertex.WorldTangentZ) < 0.0f)
 		{

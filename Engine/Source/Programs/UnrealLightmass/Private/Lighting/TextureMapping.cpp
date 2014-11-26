@@ -365,14 +365,14 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 				}
 
 				// Normalize the tangent basis and ensure it is orthonormal
-				CurrentVertex.WorldTangentZ = CurrentVertex.WorldTangentZ.UnsafeNormal3();
-				CurrentVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();
+				CurrentVertex.WorldTangentZ = CurrentVertex.WorldTangentZ.GetUnsafeNormal3();
+				CurrentVertex.TriangleNormal = TexelToVertex.TriangleNormal.GetUnsafeNormal3();
 				checkSlow(!CurrentVertex.TriangleNormal.ContainsNaN());
 
 				const FVector4 OriginalTangentX = CurrentVertex.WorldTangentX;
 				const FVector4 OriginalTangentY = CurrentVertex.WorldTangentY;
 
-				CurrentVertex.WorldTangentY = (CurrentVertex.WorldTangentZ ^ CurrentVertex.WorldTangentX).UnsafeNormal3();
+				CurrentVertex.WorldTangentY = (CurrentVertex.WorldTangentZ ^ CurrentVertex.WorldTangentX).GetUnsafeNormal3();
 				// Maintain handedness
 				if (Dot3(CurrentVertex.WorldTangentY, OriginalTangentY) < 0)
 				{
@@ -956,14 +956,14 @@ void FStaticLightingSystem::SetupTextureMapping(
 				}
 
 				// Normalize the tangent basis and ensure it is orthonormal
-				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.UnsafeNormal3();
-				TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();
+				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.GetUnsafeNormal3();
+				TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal.GetUnsafeNormal3();
 				checkSlow(!TexelToVertex.TriangleNormal.ContainsNaN());
 
 				const FVector4 OriginalTangentX = TexelToVertex.WorldTangentX;
 				const FVector4 OriginalTangentY = TexelToVertex.WorldTangentY;
 				
-				TexelToVertex.WorldTangentY = (TexelToVertex.WorldTangentZ ^ TexelToVertex.WorldTangentX).UnsafeNormal3();
+				TexelToVertex.WorldTangentY = (TexelToVertex.WorldTangentZ ^ TexelToVertex.WorldTangentX).GetUnsafeNormal3();
 				// Maintain handedness
 				if (Dot3(TexelToVertex.WorldTangentY, OriginalTangentY) < 0)
 				{
