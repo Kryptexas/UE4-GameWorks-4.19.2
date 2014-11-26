@@ -812,10 +812,10 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 	if (MeshComponent != NULL)
 	{
-		if (MeshComponent->Materials != MaterialOverrides)
+		if (MeshComponent->OverrideMaterials != MaterialOverrides)
 		{
 			MeshComponent->Modify();
-			MeshComponent->Materials = MaterialOverrides;
+			MeshComponent->OverrideMaterials = MaterialOverrides;
 			MeshComponent->MarkRenderStateDirty();
 			if (MeshComponent->BodyInstance.IsValidBodyInstance())
 			{
@@ -1391,7 +1391,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 
 			MeshComponent->SetStaticMesh(Mesh);
 
-			MeshComponent->Materials = MeshEntry->MaterialOverrides;
+			MeshComponent->OverrideMaterials = MeshEntry->MaterialOverrides;
 			MeshComponent->MarkRenderStateDirty();
 			if (MeshComponent->BodyInstance.IsValidBodyInstance())
 			{

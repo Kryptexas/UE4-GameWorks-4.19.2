@@ -747,7 +747,7 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 						// OK, we need to figure out how many material slots this mesh component/static mesh has.
 						// Start with the actor's material count, then drill into the static/skeletal mesh to make sure 
 						// we have the right total.
-						int32 MaterialCount = FMath::Max(FoundMeshComponent->Materials.Num(), FoundMeshComponent->GetNumMaterials());
+						int32 MaterialCount = FMath::Max(FoundMeshComponent->OverrideMaterials.Num(), FoundMeshComponent->GetNumMaterials());
 
 						// Any materials to overwrite?
 						if( MaterialCount > 0 )

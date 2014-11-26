@@ -227,9 +227,9 @@ void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMat
 
 UMaterialInterface* UPaperSpriteComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if (Materials.IsValidIndex(MaterialIndex) && (Materials[MaterialIndex] != nullptr))
+	if (OverrideMaterials.IsValidIndex(MaterialIndex) && (OverrideMaterials[MaterialIndex] != nullptr))
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	else if (SourceSprite != nullptr)
 	{
@@ -254,11 +254,11 @@ int32 UPaperSpriteComponent::GetNumMaterials() const
 {
 	if (SourceSprite != nullptr)
 	{
-		return FMath::Max<int32>(Materials.Num(), SourceSprite->GetNumMaterials());
+		return FMath::Max<int32>(OverrideMaterials.Num(), SourceSprite->GetNumMaterials());
 	}
 	else
 	{
-		return FMath::Max<int32>(Materials.Num(), 1);
+		return FMath::Max<int32>(OverrideMaterials.Num(), 1);
 	}
 }
 

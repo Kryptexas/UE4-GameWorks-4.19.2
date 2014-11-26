@@ -207,8 +207,8 @@ void SMaterialEditorViewport::Construct(const FArguments& InArgs)
 
 SMaterialEditorViewport::~SMaterialEditorViewport()
 {
-	PreviewMeshComponent->Materials.Empty();
-	PreviewSkeletalMeshComponent->Materials.Empty();
+	PreviewMeshComponent->OverrideMaterials.Empty();
+	PreviewSkeletalMeshComponent->OverrideMaterials.Empty();
 
 	if (EditorViewportClient.IsValid())
 	{
@@ -322,10 +322,10 @@ void SMaterialEditorViewport::SetPreviewMaterial(UMaterialInterface* InMaterialI
 	check( PreviewMeshComponent );
 	check( PreviewSkeletalMeshComponent );
 
-	PreviewMeshComponent->Materials.Empty();
-	PreviewMeshComponent->Materials.Add( InMaterialInterface );
-	PreviewSkeletalMeshComponent->Materials.Empty();
-	PreviewSkeletalMeshComponent->Materials.Add( InMaterialInterface );
+	PreviewMeshComponent->OverrideMaterials.Empty();
+	PreviewMeshComponent->OverrideMaterials.Add( InMaterialInterface );
+	PreviewSkeletalMeshComponent->OverrideMaterials.Empty();
+	PreviewSkeletalMeshComponent->OverrideMaterials.Add( InMaterialInterface );
 }
 
 void SMaterialEditorViewport::ToggleRealtime()

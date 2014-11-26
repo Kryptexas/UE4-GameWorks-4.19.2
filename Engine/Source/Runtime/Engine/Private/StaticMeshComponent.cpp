@@ -341,10 +341,10 @@ void UStaticMeshComponent::CheckForErrors()
 			}
 		}
 
-		if (Materials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
 		{
 			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("OverridenCount"), Materials.Num());
+			Arguments.Add(TEXT("OverridenCount"), OverrideMaterials.Num());
 			Arguments.Add(TEXT("ReferencedCount"), StaticMesh->Materials.Num());
 			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
 			FMessageLog("MapCheck").Warning()
@@ -1145,7 +1145,7 @@ void UStaticMeshComponent::PostLoad()
 
 #if WITH_EDITORONLY_DATA
 	// Remap the materials array if the static mesh materials may have been remapped to remove zero triangle sections.
-	if (StaticMesh && GetLinkerUE4Version() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS && Materials.Num())
+	if (StaticMesh && GetLinkerUE4Version() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS && OverrideMaterials.Num())
 	{
 		StaticMesh->ConditionalPostLoad();
 		if (StaticMesh->HasValidRenderData()
@@ -1154,8 +1154,8 @@ void UStaticMeshComponent::PostLoad()
 			TArray<UMaterialInterface*> OldMaterials;
 			const TArray<int32>& MaterialIndexToImportIndex = StaticMesh->RenderData->MaterialIndexToImportIndex;
 
-			Exchange(Materials,OldMaterials);
-			Materials.Empty(MaterialIndexToImportIndex.Num());
+			Exchange(OverrideMaterials,OldMaterials);
+			OverrideMaterials.Empty(MaterialIndexToImportIndex.Num());
 			for (int32 MaterialIndex = 0; MaterialIndex < MaterialIndexToImportIndex.Num(); ++MaterialIndex)
 			{
 				UMaterialInterface* Material = NULL;
@@ -1164,13 +1164,13 @@ void UStaticMeshComponent::PostLoad()
 				{
 					Material = OldMaterials[OldMaterialIndex];
 				}
-				Materials.Add(Material);
+				OverrideMaterials.Add(Material);
 			}
 		}
 
-		if (Materials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
 		{
-			Materials.RemoveAt(StaticMesh->Materials.Num(), Materials.Num() - StaticMesh->Materials.Num());
+			OverrideMaterials.RemoveAt(StaticMesh->Materials.Num(), OverrideMaterials.Num() - StaticMesh->Materials.Num());
 		}
 	}
 #endif // #if WITH_EDITORONLY_DATA
@@ -1470,23 +1470,23 @@ int32 UStaticMeshComponent::GetNumMaterials() const
 
 TArray<class UMaterialInterface*> UStaticMeshComponent::GetMaterials() const
 {
-	TArray<class UMaterialInterface*> Materials = Super::GetMaterials();
+	TArray<class UMaterialInterface*> OutMaterials = Super::GetMaterials();
 
 	// if no material is overriden, look for mesh material;
-	if(Materials.Num() == 0 && StaticMesh)
+	if(OutMaterials.Num() == 0 && StaticMesh)
 	{
-		Materials = StaticMesh->Materials;
+		OutMaterials = StaticMesh->Materials;
 	}
 
-	return Materials;
+	return OutMaterials;
 }
 
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
 	// If we have a base materials array, use that
-	if(MaterialIndex < Materials.Num() && Materials[MaterialIndex])
+	if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	// Otherwise get from static mesh
 	else

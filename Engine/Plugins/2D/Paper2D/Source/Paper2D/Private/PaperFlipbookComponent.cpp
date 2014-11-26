@@ -148,9 +148,9 @@ void UPaperFlipbookComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EM
 
 UMaterialInterface* UPaperFlipbookComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if (Materials.IsValidIndex(MaterialIndex) && (Materials[MaterialIndex] != nullptr))
+	if (OverrideMaterials.IsValidIndex(MaterialIndex) && (OverrideMaterials[MaterialIndex] != nullptr))
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	else if (SourceFlipbook != nullptr)
 	{
@@ -173,7 +173,7 @@ void UPaperFlipbookComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePr
 
 int32 UPaperFlipbookComponent::GetNumMaterials() const
 {
-	return FMath::Max<int32>(Materials.Num(), 1);
+	return FMath::Max<int32>(OverrideMaterials.Num(), 1);
 }
 
 void UPaperFlipbookComponent::CalculateCurrentFrame()

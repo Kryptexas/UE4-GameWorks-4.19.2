@@ -3378,7 +3378,7 @@ struct FConvertStaticMeshActorInfo
 	// Component properties.
 	UStaticMesh*						StaticMesh;
 	USkeletalMesh*						SkeletalMesh;
-	TArray<UMaterialInterface*>			Materials;
+	TArray<UMaterialInterface*>			OverrideMaterials;
 	TArray<FGuid>						IrrelevantLights;
 	float								CachedMaxDrawDistance;
 	bool								CastShadow;
@@ -3431,7 +3431,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Copy over component properties.
 		StaticMesh				= MeshComp->StaticMesh;
-		Materials				= MeshComp->Materials;
+		OverrideMaterials		= MeshComp->OverrideMaterials;
 		IrrelevantLights		= MeshComp->IrrelevantLights;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
 		CastShadow				= MeshComp->CastShadow;
@@ -3475,7 +3475,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->StaticMesh			= StaticMesh;
-		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->Materials				= Materials;
+		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
 		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->IrrelevantLights		= IrrelevantLights;
 		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
 		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
@@ -3534,7 +3534,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Copy over component properties.
 		SkeletalMesh			= MeshComp->SkeletalMesh;
-		Materials				= MeshComp->Materials;
+		OverrideMaterials		= MeshComp->OverrideMaterials;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
 		CastShadow				= MeshComp->CastShadow;
 
@@ -3558,7 +3558,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SkeletalMesh			= SkeletalMesh;
-		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->Materials				= Materials;
+		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
 		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
 		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
 		if ( bComponentPropsDifferFromDefaults[5] ) MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);

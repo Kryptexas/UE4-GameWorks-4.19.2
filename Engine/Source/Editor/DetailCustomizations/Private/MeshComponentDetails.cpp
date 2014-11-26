@@ -12,7 +12,7 @@ TSharedRef<IDetailCustomization> FMeshComponentDetails::MakeInstance()
 void FMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	RenderingCategory = &DetailLayout.EditCategory("Rendering");
-	TSharedRef<IPropertyHandle> MaterialProperty = DetailLayout.GetProperty( GET_MEMBER_NAME_CHECKED(UMeshComponent, Materials) );
+	TSharedRef<IPropertyHandle> MaterialProperty = DetailLayout.GetProperty( GET_MEMBER_NAME_CHECKED(UMeshComponent, OverrideMaterials) );
 
 	if( MaterialProperty->IsValidHandle() )
 	{

@@ -381,7 +381,7 @@ FSkeletalMeshThumbnailScene::FSkeletalMeshThumbnailScene()
 
 void FSkeletalMeshThumbnailScene::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 	PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(InSkeletalMesh);
 
 	if ( InSkeletalMesh )
@@ -524,7 +524,7 @@ FAnimationSequenceThumbnailScene::FAnimationSequenceThumbnailScene()
 
 bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimation)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 
 	bool bSetSucessfully = false;
 
@@ -648,7 +648,7 @@ FBlendSpaceThumbnailScene::FBlendSpaceThumbnailScene()
 
 bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpace)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 
 	bool bSetSucessfully = false;
 
@@ -774,7 +774,7 @@ FAnimBlueprintThumbnailScene::FAnimBlueprintThumbnailScene()
 
 bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlueprint)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 
 	bool bSetSucessfully = false;
 

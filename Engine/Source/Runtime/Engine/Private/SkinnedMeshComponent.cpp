@@ -316,27 +316,23 @@ void USkinnedMeshComponent::UpdateSlaveComponent()
 
 TArray<class UMaterialInterface*> USkinnedMeshComponent::GetMaterials() const
 {
-	TArray<class UMaterialInterface*> Materials = Super::GetMaterials();
+	TArray<class UMaterialInterface*> OutMaterials = Super::GetMaterials();
 
 	// if no material is overriden, look for mesh material;
-	if(Materials.Num() == 0 && SkeletalMesh)
+	if(OutMaterials.Num() == 0 && SkeletalMesh)
 	{
 		for (auto Material : SkeletalMesh->Materials)
 		{
-			Materials.Add(Material.MaterialInterface);
+			OutMaterials.Add(Material.MaterialInterface);
 		}
 	}
 
-	return Materials;
+	return OutMaterials;
 }
 
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
-	if (Materials.Num() > 0)
-	{
-		return Materials.Num();
-	}
-	else if (SkeletalMesh)
+	if (SkeletalMesh)
 	{
 		return SkeletalMesh->Materials.Num();
 	}
@@ -346,9 +342,9 @@ int32 USkinnedMeshComponent::GetNumMaterials() const
 
 UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if(MaterialIndex < Materials.Num() && Materials[MaterialIndex])
+	if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	else if (SkeletalMesh && MaterialIndex < SkeletalMesh->Materials.Num() && SkeletalMesh->Materials[MaterialIndex].MaterialInterface)
 	{
@@ -370,7 +366,7 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrim
 	{
 		const float LocalTexelFactor = SkeletalMesh->GetStreamingTextureFactor(0) * StreamingDistanceMultiplier;
 		const float WorldTexelFactor = LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-		const int32 NumMaterials = FMath::Max(SkeletalMesh->Materials.Num(), Materials.Num());
+		const int32 NumMaterials = FMath::Max(SkeletalMesh->Materials.Num(), OverrideMaterials.Num());
 		for( int32 MatIndex = 0; MatIndex < NumMaterials; MatIndex++ )
 		{
 			UMaterialInterface* const MaterialInterface = GetMaterial(MatIndex);
@@ -1354,7 +1350,7 @@ void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMa
 	if( SkeletalMesh )
 	{
 		// The max number of materials used is the max of the materials on the skeletal mesh and the materials on the mesh component
-		const int32 NumMaterials = FMath::Max( SkeletalMesh->Materials.Num(), Materials.Num() );
+		const int32 NumMaterials = FMath::Max( SkeletalMesh->Materials.Num(), OverrideMaterials.Num() );
 		for( int32 MatIdx = 0; MatIdx < NumMaterials; ++MatIdx )
 		{
 			// GetMaterial will determine the correct material to use for this index.  
