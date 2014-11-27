@@ -125,7 +125,7 @@ public:
 	virtual void Login() override;
 	virtual bool IsLoggedIn() override;
 	virtual void SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
-	virtual void CreateFriendsListWidget(const FFriendsAndChatStyle* InStyle ) override;
+	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;

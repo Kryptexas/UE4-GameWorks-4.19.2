@@ -153,6 +153,7 @@ private:
 			.Padding(5)
 			[
 				SNew(SButton)
+				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
 				.OnClicked(this, &SFriendItemImpl::HandleActionClicked, FriendAction)
 				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
 				.VAlign(VAlign_Center)
@@ -298,6 +299,11 @@ private:
 			ViewModel->PerformAction(FriendAction);
 		}
 		return FReply::Handled();
+	}
+
+	bool IsActionEnabled(EFriendActionType::Type FriendAction) const
+	{
+		return FriendAction == EFriendActionType::JoinGame ? ViewModel->CanJoinGame() : true;
 	}
 
 	FReply HandleRemoveClicked(bool bConfirm)

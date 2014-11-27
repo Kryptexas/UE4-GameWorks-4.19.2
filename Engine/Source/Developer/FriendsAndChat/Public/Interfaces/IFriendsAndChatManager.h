@@ -10,12 +10,10 @@ class IFriendsAndChatManager
 public:
 
 	/**
-	 * Create the friends list widget.
-	 *
-	 * @param ParentWindow The parent window to add the widget
+	 * Create a friends list window.
 	 * @param InStyle The style to use to create the widgets
 	 */
-	virtual void CreateFriendsListWidget(const struct FFriendsAndChatStyle* InStyle ) = 0;
+	virtual void CreateFriendsListWindow(const struct FFriendsAndChatStyle* InStyle ) = 0;
 
 	/**
 	 * Set the FriendsAndChatUserSettings.
