@@ -561,16 +561,16 @@
 		}
 
 #define SLATE_TEXT_ARGUMENT( ArgName ) \
-	FString _##ArgName; \
+	FText _##ArgName; \
 	WidgetArgsType& ArgName( FString InArg ) \
 	{ \
-		_##ArgName = InArg; \
+		_##ArgName = FText::FromString(InArg); \
 		return this->Me(); \
 	}\
 	\
 	WidgetArgsType& ArgName( FText InArg ) \
 	{ \
-		_##ArgName = InArg.ToString(); \
+		_##ArgName = InArg; \
 		return this->Me(); \
 	}
 
