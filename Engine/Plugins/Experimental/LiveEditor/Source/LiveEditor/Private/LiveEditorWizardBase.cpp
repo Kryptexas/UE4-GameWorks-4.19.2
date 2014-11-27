@@ -1,6 +1,8 @@
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorWizardBase.h"
 
+#define LOCTEXT_NAMESPACE "LiveEditorWizard"
+
 /**
  *
  * FLiveEditorDeviceSetupWizard::FState
@@ -40,7 +42,7 @@ FLiveEditorWizardBase::~FLiveEditorWizardBase()
 	ClearStates();
 }
 
-FString FLiveEditorWizardBase::GetActiveStateTitle() const
+FText FLiveEditorWizardBase::GetActiveStateTitle() const
 {
 	if ( States.Contains(CurState) )
 	{
@@ -48,7 +50,7 @@ FString FLiveEditorWizardBase::GetActiveStateTitle() const
 	}
 	else
 	{
-		return FString( TEXT("Complete") );
+		return LOCTEXT("Complete", "Complete");
 	}
 }
 
@@ -174,7 +176,9 @@ void FLiveEditorWizardBase::ClearStates()
 	States.Empty();
 }
 
-FString FLiveEditorWizardBase::GetAdvanceButtonText() const
+FText FLiveEditorWizardBase::GetAdvanceButtonText() const
 {
-	return (IsOnLastStep())? FString( TEXT("Finish") ) : FString( TEXT("Next") );
+	return (IsOnLastStep())? LOCTEXT("Finish", "Finish") : LOCTEXT("Next", "Next");
 }
+
+#undef LOCTEXT_NAMESPACE

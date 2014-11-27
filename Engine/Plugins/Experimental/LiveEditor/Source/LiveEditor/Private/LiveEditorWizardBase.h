@@ -11,7 +11,7 @@ public:
 	FLiveEditorWizardBase( int32 _FinalState );
 	virtual ~FLiveEditorWizardBase();
 
-	FString GetActiveStateTitle() const;
+	FText GetActiveStateTitle() const;
 
 	// _DeviceID: device to which this Wizard is restricted from recieving data. If == pmNoDevice, all device input is permitted
 	void Start( int32 FirstState, PmDeviceID _RestrictedToDeviceID = pmNoDevice );
@@ -39,7 +39,7 @@ public:
 		bReadyToAdvance = true;
 	}
 
-	virtual FString GetAdvanceButtonText() const;
+	virtual FText GetAdvanceButtonText() const;
 
 	struct FState
 	{
@@ -47,8 +47,8 @@ public:
 		virtual ~FState() {}
 		int32 GetNextState() const;
 
-		virtual FString GetStateTitle() const = 0;
-		virtual FString GetStateText() const = 0;
+		virtual FText GetStateTitle() const = 0;
+		virtual FText GetStateText() const = 0;
 		
 		virtual void Init() = 0;
 		virtual void OnExit() {}

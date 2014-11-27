@@ -18,8 +18,8 @@ public:
 private:
 	void GenerateStateContent();
 
-	FString GetTitle() const;
-	FString GetButtonText() const;
+	FText GetTitle() const;
+	FText GetButtonText() const;
 
 	EVisibility ShowCancelButton() const;
 	bool ButtonEnabled() const;

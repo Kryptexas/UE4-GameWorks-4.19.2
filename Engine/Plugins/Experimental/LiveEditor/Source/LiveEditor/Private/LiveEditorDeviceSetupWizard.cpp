@@ -1,6 +1,8 @@
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorDeviceSetupWizard.h"
 
+#define LOCTEXT_NAMESPACE "LiveEditorWizard"
+
 namespace nLiveEditorDeviceSetupWizard
 {
 	enum States
@@ -49,13 +51,13 @@ struct FConfigurationState : public FLiveEditorDeviceSetupWizard::FState
 	{
 	}
 
-	virtual FString GetStateTitle() const
+	virtual FText GetStateTitle() const
 	{
-		return FString( TEXT("Device Questionnaire") );
+		return LOCTEXT("DeviceQuestionnaire", "Device Questionnaire");
 	}
-	virtual FString GetStateText() const
+	virtual FText GetStateText() const
 	{
-		return FString( TEXT("Select all properties that apply to your device") );
+		return LOCTEXT("DeviceQuestionnaireDesc", "Select all properties that apply to your device");
 	}
 	virtual void Init()
 	{
@@ -121,7 +123,7 @@ void SDeviceQuestionnaireSubWindow::Construct(const FArguments& InArgs, FConfigu
 			.Content()
 			[
 				SNew(STextBlock)
-				.Text( FString(TEXT("Buttons")) )
+				.Text( LOCTEXT("Buttons", "Buttons") )
 			]
 		]
 		+SVerticalBox::Slot()
@@ -134,7 +136,7 @@ void SDeviceQuestionnaireSubWindow::Construct(const FArguments& InArgs, FConfigu
 			.Content()
 			[
 				SNew(STextBlock)
-				.Text( FString(TEXT("Endless Encoders")) )
+				.Text( LOCTEXT("EndlessEncoders", "Endless Encoders") )
 			]
 		]
 	];
@@ -168,13 +170,13 @@ struct FButtonState : public FLiveEditorDeviceSetupWizard::FState
 		HandleType(HT_DOWN)
 	{
 	}
-	virtual FString GetStateTitle() const
+	virtual FText GetStateTitle() const
 	{
-		return FString( TEXT("Button Configuration") );
+		return LOCTEXT("ButtonConfiguration", "Button Configuration");
 	}
-	virtual FString GetStateText() const
+	virtual FText GetStateText() const
 	{
-		return FString( TEXT("Push a button") );
+		return LOCTEXT("ButtonConfigurationDesc", "Push a button");
 	}
 	virtual void Init()
 	{
@@ -277,13 +279,13 @@ private:
 struct FContinuousKnobRightState : public FContinuousKnobBaseState
 {
 	FContinuousKnobRightState( int32 _NextState ) : FContinuousKnobBaseState( 15, _NextState ) {}
-	virtual FString GetStateTitle() const
+	virtual FText GetStateTitle() const
 	{
-		return FString( TEXT("Continuous Knob Configuration") );
+		return LOCTEXT("ContinuousKnobConfiguration", "Continuous Knob Configuration");
 	}
-	virtual FString GetStateText() const
+	virtual FText GetStateText() const
 	{
-		return FString( TEXT("Twist a knob to the RIGHT") );
+		return LOCTEXT("ContinuousKnobConfigurationRightDesc", "Twist a knob to the RIGHT");
 	}
 
 protected:
@@ -296,13 +298,13 @@ protected:
 struct FContinuousKnobLeftState : public FContinuousKnobBaseState
 {
 	FContinuousKnobLeftState( int32 _NextState ) : FContinuousKnobBaseState( 15, _NextState ) {}
-	virtual FString GetStateTitle() const
+	virtual FText GetStateTitle() const
 	{
-		return FString( TEXT("Continuous Knob Configuration") );
+		return LOCTEXT("ContinuousKnobConfiguration", "Continuous Knob Configuration");
 	}
-	virtual FString GetStateText() const
+	virtual FText GetStateText() const
 	{
-		return FString( TEXT("Twist a knob to the LEFT") );
+		return LOCTEXT("ContinuousKnobConfigurationLeftDesc", "Twist a knob to the LEFT");
 	}
 
 protected:
@@ -328,12 +330,12 @@ FLiveEditorDeviceSetupWizard::~FLiveEditorDeviceSetupWizard()
 {
 }
 
-FString FLiveEditorDeviceSetupWizard::GetAdvanceButtonText() const
+FText FLiveEditorDeviceSetupWizard::GetAdvanceButtonText() const
 {
 	if ( GetCurState() == nLiveEditorDeviceSetupWizard::S_CONFIGURATION )
 	{
 		check( ConfigState != NULL );
-		return ( ConfigState->bHasButtons || ConfigState->bHasEndlessEncoders )? FString(TEXT("Next")) : FString(TEXT("Finish"));
+		return ( ConfigState->bHasButtons || ConfigState->bHasEndlessEncoders )? LOCTEXT("Next", "Next") : LOCTEXT("Finish", "Finish");
 	}
 	else
 	{
@@ -374,3 +376,4 @@ void FLiveEditorDeviceSetupWizard::OnWizardFinished( struct FLiveEditorDeviceDat
 	FLiveEditorManager::SaveDeviceData( Data );
 }
 
+#undef LOCTEXT_NAMESPACE

@@ -14,7 +14,7 @@ public:
 	void Start( PmDeviceID _DeviceID, struct FLiveEditorDeviceData &Data );
 	void Configure( bool bHasButtons, bool bHasEndlessEncoders );
 
-	virtual FString GetAdvanceButtonText() const;
+	virtual FText GetAdvanceButtonText() const override;
 
 protected:
 	virtual void OnWizardFinished( struct FLiveEditorDeviceData &Data );

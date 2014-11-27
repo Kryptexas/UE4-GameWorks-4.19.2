@@ -10,6 +10,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LiveEditorConfigWindow, Log, All);
 
+#define LOCTEXT_NAMESPACE "LiveEditorConfig"
+
 class SLiveEditorBlueprint : public SCompoundWidget
 {
 public:
@@ -46,7 +48,7 @@ public:
 			[
 				SNew( SButton )
 				.Text( this, &SLiveEditorBlueprint::GetBindButtonText )
-				.ToolTipText( FString(TEXT("Bind your MIDI hardware to this Blueprint")) )
+				.ToolTipText( LOCTEXT("BindHardwareTooltip", "Bind your MIDI hardware to this Blueprint") )
 				.HAlign( HAlign_Center )
 				.VAlign( VAlign_Center )
 				.OnClicked( this, &SLiveEditorBlueprint::BindBlueprint )
@@ -56,8 +58,8 @@ public:
 			.Padding(2.0f)
 			[
 				SNew( SButton )
-				.Text( FString(TEXT("Activate")) )
-				.ToolTipText( FString(TEXT("Make this Blueprint active in the LiveEditor context")) )
+				.Text( LOCTEXT("Activate", "Activate") )
+				.ToolTipText( LOCTEXT("ActivateTooltip", "Make this Blueprint active in the LiveEditor context") )
 				.HAlign( HAlign_Center )
 				.VAlign( VAlign_Center )
 				.Visibility( this, &SLiveEditorBlueprint::CanActivate )
@@ -68,8 +70,8 @@ public:
 			.Padding(2.0f)
 			[
 				SNew( SButton )
-				.Text( FString(TEXT("DeActivate")) )
-				.ToolTipText( FString(TEXT("Stop this Blueprint running in the LiveEditor context")) )
+				.Text( LOCTEXT("Deactivate", "Deactivate") )
+				.ToolTipText( LOCTEXT("DeactivateTooltip", "Stop this Blueprint running in the LiveEditor context") )
 				.HAlign( HAlign_Center )
 				.VAlign( VAlign_Center )
 				.Visibility( this, &SLiveEditorBlueprint::CanDeActivate )
@@ -80,8 +82,8 @@ public:
 			.Padding(2.0f)
 			[
 				SNew( SButton )
-				.Text( FString(TEXT("Remove")) )
-				.ToolTipText( FString(TEXT("Remove this Blueprint from the LiveEditor context")) )
+				.Text( LOCTEXT("Remove", "Remove") )
+				.ToolTipText( LOCTEXT("RemoveTooltip", "Remove this Blueprint from the LiveEditor context") )
 				.HAlign( HAlign_Center )
 				.VAlign( VAlign_Center )
 				.OnClicked( this, &SLiveEditorBlueprint::RemoveBlueprint )
@@ -92,17 +94,18 @@ public:
 			.Padding(2.0f)
 			[
 				SAssignNew( NameView, STextBlock )
-				.Text( *Name.Get() )
+				.Text( FText::FromString(*Name) )
 				.ColorAndOpacity( GetFontColor() )
 			]
 		];
 	}
 
-	FString GetBindButtonText() const
+	FText GetBindButtonText() const
 	{
 		check( Blueprint != NULL );
-		return (FLiveEditorManager::Get().BlueprintHasBinding(*Blueprint))? FString(TEXT("Re-Bind")) : FString(TEXT("Bind"));
+		return (FLiveEditorManager::Get().BlueprintHasBinding(*Blueprint))? LOCTEXT("Rebind", "Re-Bind") : LOCTEXT("Bind", "Bind");
 	}
+
 	FReply BindBlueprint()
 	{
 		check( Blueprint != NULL );
@@ -235,7 +238,7 @@ public:
 				[
 					SNew( SButton )
 					.Text( this, &SLiveEditorDeviceData::GetConfigureButtonTitle )
-					.ToolTipText( FString(TEXT("Configure this MIDI hardware for use in the LiveEditor")) )
+					.ToolTipText( LOCTEXT("ConfigureHardwareTooltip", "Configure this MIDI hardware for use in the LiveEditor") )
 					.HAlign( HAlign_Center )
 					.VAlign( VAlign_Center )
 					.OnClicked( this, &SLiveEditorDeviceData::ConfigureDevice )
@@ -311,25 +314,29 @@ public:
 		return ( DeviceData.ConfigState == FLiveEditorDeviceData::CONFIGURED )? EVisibility::Visible : EVisibility::Hidden;
 	}
 
-	FString GetConfigureButtonTitle() const
+	FText GetConfigureButtonTitle() const
 	{
-		return ( DeviceData.ConfigState == FLiveEditorDeviceData::CONFIGURED )? FString(TEXT("Re-Configure")) : FString(TEXT("Configure"));
+		return ( DeviceData.ConfigState == FLiveEditorDeviceData::CONFIGURED )? LOCTEXT("Reconfigure", "Re-Configure") : LOCTEXT("Configure", "Configure");
 	}
-	FString GetTextButtonDown() const
+
+	FText GetTextButtonDown() const
 	{
-		return FString::Printf( TEXT("ButtonDown Signal: %d"), DeviceData.ButtonSignalDown );
+		return FText::Format( LOCTEXT("ButtonDownSignalFmt", "ButtonDown Signal: {0}"), FText::AsNumber(DeviceData.ButtonSignalDown) );
 	}
-	FString GetTextButtonUp() const
+
+	FText GetTextButtonUp() const
 	{
-		return FString::Printf( TEXT("ButtonUp Signal: %d"), DeviceData.ButtonSignalUp );
+		return FText::Format( LOCTEXT("ButtonUpSignalFmt", "ButtonUp Signal: {0}"), FText::AsNumber(DeviceData.ButtonSignalUp) );
 	}
-	FString GetTextCCIncrement() const
+
+	FText GetTextCCIncrement() const
 	{
-		return FString::Printf( TEXT("ContinuousIncrement Signal: %d"), DeviceData.ContinuousIncrement );
+		return FText::Format( LOCTEXT("ContinuousIncrementSignalFmt", "ContinuousIncrement Signal: {0}"), FText::AsNumber(DeviceData.ContinuousIncrement) );
 	}
-	FString GetTextCCDecrement() const
+
+	FText GetTextCCDecrement() const
 	{
-		return FString::Printf( TEXT("ContinuousDecrement Signal: %d"), DeviceData.ContinuousDecrement );
+		return FText::Format( LOCTEXT("ContinuousDecrementSignalFmt", "ContinuousDecrement Signal: {0}"), FText::AsNumber(DeviceData.ContinuousDecrement) );
 	}
 
 private:
@@ -418,7 +425,7 @@ void SLiveEditorConfigWindow::Construct(const FArguments& InArgs)
 				.HeaderContent()
 				[
 					SNew( STextBlock )
-					.Text( FString(TEXT("Blueprints")) )
+					.Text( LOCTEXT("Blueprints", "Blueprints") )
 					.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceTitleFont") )
 				]
 				.BodyContent()
@@ -432,8 +439,8 @@ void SLiveEditorConfigWindow::Construct(const FArguments& InArgs)
 						.Padding(2.0f)
 						[
 							SNew( SButton )
-							.Text( FString(TEXT("Select Blueprint")) )
-							.ToolTipText( FString(TEXT("Use Selected Asset from Content Browser")) )
+							.Text( LOCTEXT("SelectBlueprint", "Select Blueprint") )
+							.ToolTipText( LOCTEXT("SelectBlueprintTooltip", "Use Selected Asset from Content Browser") )
 							.OnClicked( this, &SLiveEditorConfigWindow::AddBlueprintToList )
 						]
 						+SVerticalBox::Slot()
@@ -458,7 +465,7 @@ void SLiveEditorConfigWindow::Construct(const FArguments& InArgs)
 				.HeaderContent()
 				[
 					SNew( STextBlock )
-					.Text( FString(TEXT("Remote Connection Manager")) )
+					.Text( LOCTEXT("RemoteConnectionManager", "Remote Connection Manager") )
 					.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceTitleFont") )
 				]
 				.BodyContent()
@@ -481,7 +488,7 @@ void SLiveEditorConfigWindow::Construct(const FArguments& InArgs)
 				.HeaderContent()
 				[
 					SNew( STextBlock )
-					.Text( FString(TEXT("Devices")) )
+					.Text( LOCTEXT("Devices", "Devices") )
 					.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceTitleFont") )
 				]
 				.BodyContent()
@@ -495,8 +502,8 @@ void SLiveEditorConfigWindow::Construct(const FArguments& InArgs)
 						.Padding(2.0f)
 						[
 							SNew( SButton )
-							.Text( FString(TEXT("Refresh Devices")) )
-							.ToolTipText( FString(TEXT("Refresh MIDI Device Connections")) )
+							.Text( LOCTEXT("RefreshDevices", "Refresh Devices") )
+							.ToolTipText( LOCTEXT("RefreshDevicesTooltip", "Refresh MIDI Device Connections") )
 							.OnClicked( this, &SLiveEditorConfigWindow::RefreshDevices )
 						]
 						+SVerticalBox::Slot()
@@ -564,3 +571,5 @@ TSharedRef<ITableRow> SLiveEditorConfigWindow::OnGenerateWidgetForDeviceList(TSh
 			SNew(SLiveEditorDeviceData, Item, this)
 		];
 }
+
+#undef LOCTEXT_NAMESPACE
