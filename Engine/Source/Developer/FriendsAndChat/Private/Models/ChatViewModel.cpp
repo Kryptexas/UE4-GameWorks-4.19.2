@@ -409,14 +409,15 @@ private:
 				if(ChatItem->GetMessageType() != EChatMessageType::Global)
 				{
 					FilteredChatLists.Add(ChatItem);
+					ChatListUpdatedEvent.Broadcast();
 				}
 			}
 		}
 		else
 		{
 			FilteredChatLists = ChatLists;
+			ChatListUpdatedEvent.Broadcast();
 		}
-		ChatListUpdatedEvent.Broadcast();
 	}
 
 	TSharedPtr<FSelectedFriend> FindFriend(TSharedPtr<FUniqueNetId> UniqueID)

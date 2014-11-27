@@ -18,6 +18,7 @@
 /* Interfaces
  *****************************************************************************/
 #include "IChatViewModel.h"
+#include "IFriendsApplicationViewModel.h"
 #include "FriendsAndChatMessage.h"
 #include "FriendsAndChatUserSettings.h"
 #include "IFriendsAndChatManager.h"

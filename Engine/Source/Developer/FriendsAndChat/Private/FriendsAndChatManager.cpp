@@ -199,6 +199,11 @@ bool FFriendsAndChatManager::IsLoggedIn()
 	return ManagerState != EFriendsAndManagerState::OffLine;
 }
 
+void FFriendsAndChatManager::SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> InApplicationViewModel)
+{
+	ApplicationViewModel = InApplicationViewModel;
+}
+
 void FFriendsAndChatManager::SetUserSettings(const FFriendsAndChatSettings& UserSettings)
 {
 	this->UserSettings = UserSettings;
@@ -1161,7 +1166,8 @@ void FFriendsAndChatManager::OnPresenceReceived( const FUniqueNetId& UserId, con
 	{
 		if( Friend->GetUniqueID().Get() == UserId)
 		{
-			// TODO: May need to do something here
+			RefreshList();
+			break;
 		}
 	}
 }
@@ -1277,7 +1283,18 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	// notify for further processing of join game request 
 	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), FriendItem->GetGameSessionId());
 
+	if(ApplicationViewModel.IsValid())
+	{
+		const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetUniqueID()->ToString() + TEXT(" -invitefrom=") + FriendItem->GetGameSessionId();
+		ApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
+	}
+
 	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
+}
+
+const bool FFriendsAndChatManager::CanJoinGame() const
+{
+	return !ApplicationViewModel.IsValid() || ApplicationViewModel->IsAppJoinable();
 }
 
 void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem)

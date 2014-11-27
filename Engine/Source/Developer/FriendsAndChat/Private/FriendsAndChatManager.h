@@ -124,6 +124,7 @@ public:
 	virtual void Logout() override;
 	virtual void Login() override;
 	virtual bool IsLoggedIn() override;
+	virtual void SetApplicationViewModel(TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
 	virtual void CreateFriendsListWidget(const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
@@ -250,6 +251,12 @@ public:
 	 * @param FriendItem friend with game invite info
 	 */
 	void AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
+
+	/**
+	 * Can we join a game
+	 * @return True if able to join a game
+	 */
+	const bool CanJoinGame() const;
 
 	/**
 	 * Send a game invite to a friend
@@ -700,6 +707,8 @@ private:
 	TSharedPtr< SWidget > FriendListWidget;
 	// Holds the chat window
 	TSharedPtr< SWindow > ChatWindow;
+	// Holds the application view model - used for launching and querying
+	TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel;
 	// Holds the style used to create the Friends List widget
 	FFriendsAndChatStyle Style;
 	// Holds if the Friends list is inited
