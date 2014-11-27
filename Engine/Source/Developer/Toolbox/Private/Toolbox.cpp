@@ -11,6 +11,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "STestSuite.h"
+#include "ISlateReflectorModule.h"
 
 IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 
@@ -71,6 +72,15 @@ public:
 				.Text( NSLOCTEXT("DeveloperToolbox", "DisplayTextureAtlases", "Display Texture Atlases") )
 				.OnClicked( this, &SDebugPanel::OnDisplayTextureAtlases )
 			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( 4.0f )
+			.HAlign(HAlign_Left)
+			[
+				SNew( SButton )
+				.Text( NSLOCTEXT("DeveloperToolbox", "DisplayFontAtlases", "Display Font Atlases") )
+				.OnClicked( this, &SDebugPanel::OnDisplayFontAtlases )
+			]
 		];
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -84,7 +94,15 @@ public:
 
 	FReply OnDisplayTextureAtlases()
 	{
-		FSlateApplication::Get().GetRenderer()->DisplayTextureAtlases();
+		static const FName SlateReflectorModuleName("SlateReflector");
+		FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
+		return FReply::Handled();
+	}
+
+	FReply OnDisplayFontAtlases()
+	{
+		static const FName SlateReflectorModuleName("SlateReflector");
+		FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
 		return FReply::Handled();
 	}
 

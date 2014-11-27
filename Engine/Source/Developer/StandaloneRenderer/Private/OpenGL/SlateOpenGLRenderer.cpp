@@ -38,16 +38,23 @@ public:
 	{
 	}
 
+	virtual FIntPoint GetAtlasSize() const override
+	{
+		return FIntPoint(TextureSize, TextureSize);
+	}
+
 	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
-		/** Size of each font texture, width and height */
-		const uint32 TextureSize = 1024;
-
 		TSharedRef<FSlateFontTextureOpenGL> FontTexture = MakeShareable( new FSlateFontTextureOpenGL( TextureSize, TextureSize ) );
 		FontTexture->CreateFontTexture();
 
 		return FontTexture;
 	}
+
+private:
+
+	/** Size of each font texture, width and height */
+	static const uint32 TextureSize = 1024;
 };
 
 void FSlateOpenGLRenderer::Initialize()
@@ -233,4 +240,14 @@ FSlateUpdatableTexture* FSlateOpenGLRenderer::CreateUpdatableTexture(uint32 Widt
 void FSlateOpenGLRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 {
 	delete Texture;
+}
+
+ISlateAtlasProvider* FSlateOpenGLRenderer::GetTextureAtlasProvider()
+{
+	if( TextureManager.IsValid() )
+	{
+		return TextureManager->GetTextureAtlasProvider();
+	}
+
+	return nullptr;
 }

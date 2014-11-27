@@ -20,6 +20,7 @@ public class Toolbox : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
+				"SlateReflector",
                 "EditorStyle",
 				"DesktopPlatform",
 				"AppFramework"

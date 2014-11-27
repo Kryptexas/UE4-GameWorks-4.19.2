@@ -876,22 +876,20 @@ void UCheatManager::TestCollisionDistance()
 
 void UCheatManager::WidgetReflector()
 {
-	static TWeakPtr<SWindow> WidgetReflectorWindow;
-	
-	// Only allow one instance open at a time
-	if( !WidgetReflectorWindow.IsValid() )
-	{
-		const TSharedRef<SWindow> ReflectorWindow = SNew(SWindow)
-			.AutoCenter(EAutoCenter::PrimaryWorkArea)
-			.ClientSize(FVector2D(600,400))
-			[
-				FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
-			];
-		
-		WidgetReflectorWindow = ReflectorWindow;
-		
-		FSlateApplication::Get().AddWindow( ReflectorWindow );
-	}
+	static const FName SlateReflectorModuleName("SlateReflector");
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
+}
+
+void UCheatManager::TextureAtlasVisualizer()
+{
+	static const FName SlateReflectorModuleName("SlateReflector");
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
+}
+
+void UCheatManager::FontAtlasVisualizer()
+{
+	static const FName SlateReflectorModuleName("SlateReflector");
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
 }
 
 void UCheatManager::RebuildNavigation()

@@ -1127,9 +1127,21 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 
 	TSharedPtr<const ISlateViewport> ViewportPin = InPayload.Viewport.Pin();
 
-	FSlateShaderResource* ViewportResource = ViewportPin.IsValid() ? ViewportPin->GetViewportRenderTargetTexture() : nullptr;
+	FSlateShaderResource* ViewportResource =  nullptr;
+	ESlateShader::Type ShaderType = ESlateShader::Default;
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
+	if( ViewportPin.IsValid() )
+	{
+		ViewportResource = ViewportPin->GetViewportRenderTargetTexture();
+
+		if( ViewportPin->IsViewportTextureAlphaOnly() )
+		{
+			// This is a slight hack, but the font shader is the same as the general shader except it reads alpha only textures
+			ShaderType = ESlateShader::Font;
+		}
+	}
+
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ShaderType, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
 	TArray<FSlateVertex>& BatchVertices = BatchVertexArrays[ElementBatch.VertexArrayIndex];
 	TArray<SlateIndex>& BatchIndices = BatchIndexArrays[ElementBatch.IndexArrayIndex];
 

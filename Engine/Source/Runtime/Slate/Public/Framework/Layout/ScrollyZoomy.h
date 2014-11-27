@@ -37,7 +37,7 @@ class SLATE_API FScrollyZoomy
 public:
 
 	/** Default constructor for FScrollyZoomy */
-	FScrollyZoomy( );
+	FScrollyZoomy( const bool bInUseIntertialScrolling = true );
 
 	/** 
 	 * Should be called every frame to update simulation state
@@ -130,6 +130,9 @@ private:
 
 	// The current position of the software cursor.
 	FVector2D SoftwareCursorPosition;
+
+	// Is intertial scrolling enabled?
+	bool bUseIntertialScrolling;
 
 	// Tracks simulation state for horizontal scrolling.
 	FInertialScrollManager HorizontalIntertia;

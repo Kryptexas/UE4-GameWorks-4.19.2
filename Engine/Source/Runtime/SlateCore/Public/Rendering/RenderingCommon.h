@@ -230,6 +230,14 @@ public:
 	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const = 0;
 
 	/**
+	 * Does the texture returned by GetViewportRenderTargetTexture only have an alpha channel?
+	 */
+	virtual bool IsViewportTextureAlphaOnly() const
+	{
+		return false;
+	}
+
+	/**
 	 * Performs any ticking necessary by this handle                   
 	 */
 	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )

@@ -312,3 +312,9 @@ FSlateShaderResourceProxy* FSlateOpenGLTextureManager::GetShaderResource( const 
 
 	return Texture;
 }
+
+ISlateAtlasProvider* FSlateOpenGLTextureManager::GetTextureAtlasProvider()
+{
+	// Texture atlases aren't implemented for the standalone OpenGL renderer
+	return nullptr;
+}

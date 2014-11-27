@@ -8,16 +8,16 @@ class FRHITexture2D;
 class ISlateStyle;
 class FSlateDrawBuffer;
 class FSlateUpdatableTexture;
+class ISlateAtlasProvider;
 
 struct FSlateBrush;
 
 typedef FRHITexture2D* FTexture2DRHIParamRef;
 
-
 /**
  * Abstract base class for Slate renderers.
  */
-class FSlateRenderer
+class SLATECORE_API FSlateRenderer
 {
 public:
 
@@ -153,7 +153,7 @@ public:
 	/**
 	 * Flushes all cached data from the font cache
 	 */
-	void SLATECORE_API FlushFontCache();
+	void FlushFontCache();
 
 	/**
 	 * Gives the renderer a chance to wait for any render commands to be completed before returning/
@@ -176,9 +176,6 @@ public:
 	 */
 	virtual void LoadStyleResources( const ISlateStyle& Style ) {}
 
-	/** Creates a window to visualize the texture atlases */
-	virtual void DisplayTextureAtlases() {}
-
 	/** Releases a specific resource */
 	virtual void ReleaseDynamicResource( const FSlateBrush& Brush ) = 0;
 
@@ -188,7 +185,7 @@ public:
 	 * @Window	The window to check for fullscreen
 	 * @return true if the window's viewport should be fullscreen
 	 */
-	bool SLATECORE_API IsViewportFullscreen( const SWindow& Window ) const;
+	bool IsViewportFullscreen( const SWindow& Window ) const;
 
 	/** Returns whether shaders that Slate depends on have been compiled. */
 	virtual bool AreShadersInitialized() const { return true; }
@@ -227,6 +224,16 @@ public:
 	 * @param	Texture	The texture we are releasing (should not use this pointer after calling)
 	 */
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) = 0;
+
+	/**
+	 * Returns the way to access the texture atlas information for this renderer
+	 */
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider();
+
+	/**
+	 * Returns the way to access the font atlas information for this renderer
+	 */
+	virtual ISlateAtlasProvider* GetFontAtlasProvider();
 
 private:
 

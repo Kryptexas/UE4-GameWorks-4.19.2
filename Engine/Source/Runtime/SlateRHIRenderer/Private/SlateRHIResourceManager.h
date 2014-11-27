@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "TextureAtlas.h"
+
 class FSlateDynamicTextureResource;
 class FSlateUTextureResource;
 class FSlateMaterialResource;
@@ -50,11 +52,17 @@ private:
 /**
  * Stores a mapping of texture names to their RHI texture resource               
  */
-class FSlateRHIResourceManager : public FSlateShaderResourceManager
+class FSlateRHIResourceManager : public ISlateAtlasProvider, public FSlateShaderResourceManager
 {
 public:
 	FSlateRHIResourceManager();
 	virtual ~FSlateRHIResourceManager();
+
+	/** ISlateAtlasProvider */
+	virtual int32 GetNumAtlasPages() const override;
+	virtual FIntPoint GetAtlasPageSize() const override;
+	virtual FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const override;
+	virtual bool IsAtlasPageResourceAlphaOnly() const override;
 
 	/**
 	 * Loads and creates rendering resources for all used textures.  
@@ -78,7 +86,8 @@ public:
 
 	/** FSlateShaderResourceManager interface */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
-	
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
+
 	/**
 	 * Makes a dynamic texture resource and begins use of it
 	 *
@@ -132,16 +141,6 @@ public:
 	 */
 	void ReloadTextures();
 
-	/** @return The number of texture atlases in the manager */
-	uint32 GetNumTextureAtlases() const;
-
-	/** @return The atlas texture at a given index */
-	FSlateShaderResource* GetTextureAtlas( uint32 Index );
-
-	/**
-	 * Creates an atlas visualizer widget
-	 */
-	TSharedRef<SWidget> CreateTextureDisplayWidget();
 private:
 	/**
 	 * Deletes resources created by the manager

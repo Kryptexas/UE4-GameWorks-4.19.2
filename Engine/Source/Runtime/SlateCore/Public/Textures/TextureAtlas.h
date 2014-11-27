@@ -214,3 +214,25 @@ protected:
 	 */
 	ESlateTextureAtlasOwnerThread AtlasOwnerThread;
 };
+
+/**
+ * Interface to allow the Slate atlas visualizer to query atlas page information for an atlas provider
+ */
+class ISlateAtlasProvider
+{
+public:
+	/** Virtual destructor */
+	virtual ~ISlateAtlasProvider() {}
+
+	/** Get the number of atlas pages this atlas provider has available when calling GetAtlasPageResource */
+	virtual int32 GetNumAtlasPages() const = 0;
+
+	/** Get the size of each atlas page */
+	virtual FIntPoint GetAtlasPageSize() const = 0;
+
+	/** Get the page resource for the given index (verify with GetNumAtlasPages) */ 
+	virtual FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const = 0;
+
+	/** Do the atlas page resources only contain alpha information? This affects how the atlas visualizer will sample them */
+	virtual bool IsAtlasPageResourceAlphaOnly() const = 0;
+};

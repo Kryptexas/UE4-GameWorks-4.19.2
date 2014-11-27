@@ -27,6 +27,11 @@ public:
 	{
 	}
 
+	virtual FIntPoint GetAtlasSize() const override
+	{
+		return FIntPoint(AtlasSize, AtlasSize);
+	}
+
 	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
 		return MakeShareable(new FSlateFontAtlasRHI(AtlasSize, AtlasSize));

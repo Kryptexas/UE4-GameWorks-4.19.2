@@ -52,13 +52,20 @@ public:
 	{
 	}
 
+	virtual FIntPoint GetAtlasSize() const override
+	{
+		return FIntPoint(TextureSize, TextureSize);
+	}
+
 	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
-		/** Size of each font texture, width and height */
-		const uint32 TextureSize = 1024;
-
 		return MakeShareable( new FSlateFontAtlasD3D( TextureSize, TextureSize ) );
 	}
+
+private:
+
+	/** Size of each font texture, width and height */
+	static const uint32 TextureSize = 1024;
 };
 
 void FSlateD3DRenderer::Initialize()
@@ -130,6 +137,16 @@ FSlateUpdatableTexture* FSlateD3DRenderer::CreateUpdatableTexture(uint32 Width, 
 void FSlateD3DRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 {
 	delete Texture;
+}
+
+ISlateAtlasProvider* FSlateD3DRenderer::GetTextureAtlasProvider()
+{
+	if( TextureManager.IsValid() )
+	{
+		return TextureManager->GetTextureAtlasProvider();
+	}
+
+	return nullptr;
 }
 
 void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, const FVector2D &WindowSize )

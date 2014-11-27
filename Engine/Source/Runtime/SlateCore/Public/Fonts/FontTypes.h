@@ -122,5 +122,6 @@ public:
 class SLATECORE_API ISlateFontAtlasFactory
 {
 public:
+	virtual FIntPoint GetAtlasSize() const = 0;
 	virtual TSharedRef<class FSlateFontAtlas> CreateFontAtlas() const = 0;
 };

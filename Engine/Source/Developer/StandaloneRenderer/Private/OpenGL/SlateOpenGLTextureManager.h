@@ -22,6 +22,8 @@ public:
 	 */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
 
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
+
 	/**
 	 * Creates a 1x1 texture of the specified color
 	 * 

@@ -1071,6 +1071,26 @@ FSlateFontCache::~FSlateFontCache()
 
 }
 
+int32 FSlateFontCache::GetNumAtlasPages() const
+{
+	return FontAtlases.Num();
+}
+
+FIntPoint FSlateFontCache::GetAtlasPageSize() const
+{
+	return FontAtlasFactory->GetAtlasSize();
+}
+
+FSlateShaderResource* FSlateFontCache::GetAtlasPageResource(const int32 InIndex) const
+{
+	return FontAtlases[InIndex]->GetSlateTexture();
+}
+
+bool FSlateFontCache::IsAtlasPageResourceAlphaOnly() const
+{
+	return true;
+}
+
 bool FSlateFontCache::AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry ) const
 {
 	float SubFontScalingFactor = 1.0f;

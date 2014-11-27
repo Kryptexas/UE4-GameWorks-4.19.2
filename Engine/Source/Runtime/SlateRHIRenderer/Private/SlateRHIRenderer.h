@@ -168,6 +168,7 @@ public:
 	virtual void SetColorVisionDeficiencyType( uint32 Type ) override;
 	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) override;
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
 	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync);
@@ -201,11 +202,6 @@ public:
 
 
 	virtual void LoadStyleResources( const ISlateStyle& Style ) override;
-
-	/**
-	 * Creates a window with an atlas visualizer inside it
-	 */
-	virtual void DisplayTextureAtlases();
 
 	/**
 	 * Returns the viewport RHI reference for the provided window

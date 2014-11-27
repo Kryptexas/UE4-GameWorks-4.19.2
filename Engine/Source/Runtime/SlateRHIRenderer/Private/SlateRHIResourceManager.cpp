@@ -156,6 +156,26 @@ FSlateRHIResourceManager::~FSlateRHIResourceManager()
 	}
 }
 
+int32 FSlateRHIResourceManager::GetNumAtlasPages() const
+{
+	return TextureAtlases.Num();
+}
+
+FIntPoint FSlateRHIResourceManager::GetAtlasPageSize() const
+{
+	return FIntPoint(1024, 1024);
+}
+
+FSlateShaderResource* FSlateRHIResourceManager::GetAtlasPageResource(const int32 InIndex) const
+{
+	return TextureAtlases[InIndex]->GetAtlasTexture();
+}
+
+bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
+{
+	return false;
+}
+
 void FSlateRHIResourceManager::CreateTextures( const TArray< const FSlateBrush* >& Resources )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Slate Textures"), STAT_Slate, STATGROUP_LoadTime);
@@ -381,6 +401,11 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 	}
 
 	return Texture;
+}
+
+ISlateAtlasProvider* FSlateRHIResourceManager::GetTextureAtlasProvider()
+{
+	return this;
 }
 
 TSharedPtr<FSlateDynamicTextureResource> FSlateRHIResourceManager::MakeDynamicTextureResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes )
@@ -765,199 +790,4 @@ void FSlateRHIResourceManager::ReloadTextures()
 
 	// Reload everythng
 	LoadUsedTextures();
-}
-
-uint32 FSlateRHIResourceManager::GetNumTextureAtlases() const
-{
-	return TextureAtlases.Num();
-}
-
-FSlateShaderResource* FSlateRHIResourceManager::GetTextureAtlas( uint32 Index )
-{
-	return TextureAtlases[Index]->GetAtlasTexture();
-}
-
-struct FAtlasPage
-{
-	FAtlasPage( FSlateShaderResource* InTexture, uint32 InIndex )
-		: Texture( InTexture )
-		, Index( InIndex )
-	{}
-
-	FSlateShaderResource* Texture;
-	uint32 Index;
-};
-
-class FAtlasVisualizer : public ISlateViewport, public TSharedFromThis<FAtlasVisualizer>
-{
-public:
-	FAtlasVisualizer( FSlateRHIResourceManager& InTextureManager )
-		: TextureManager( InTextureManager )
-		, SelectedAtlasPage( NULL )
-	{}
-
-	virtual FIntPoint GetSize() const override { return FIntPoint(1024,1024); }
-
-	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override
-	{
-		if( SelectedAtlasPage.IsValid() )
-		{
-			return SelectedAtlasPage.Pin()->Texture;
-		}
-		else
-		{
-			return NULL;
-		}
-	}
-
-	virtual bool RequiresVsync() const override { return false; }
-
-	TSharedRef<SWidget> MakeVisualizerWidget()
-	{
-		bDisplayCheckerboard = false;
-		AtlasPages.Empty();
-
-		for( uint32 AtlasIndex = 0; AtlasIndex < TextureManager.GetNumTextureAtlases(); ++AtlasIndex )
-		{
-			AtlasPages.Add( MakeShareable( new FAtlasPage( TextureManager.GetTextureAtlas(AtlasIndex), AtlasIndex ) ) );
-		}
-
-		SelectedAtlasPage = AtlasPages.Num() > 0 ? AtlasPages[0] : NULL;
-		TSharedPtr<SViewport> Viewport;
-
-		TSharedRef<SWidget> Widget =
-		SNew( SVerticalBox )
-		+ SVerticalBox::Slot()
-		.Padding(4.0f)
-		.HAlign(HAlign_Left)
-		.AutoHeight()
-		[
-			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
-			.VAlign( VAlign_Center )
-			.AutoWidth()
-			.Padding(0.0,2.0f,2.0f,2.0f)
-			[
-				SNew( STextBlock )
-				.Text( NSLOCTEXT("TextureManagerVisualizer", "SelectAPageLabel", "Select a page") )
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(2.0f)
-			.VAlign( VAlign_Center )
-			[
-				SNew( SComboBox< TSharedPtr<FAtlasPage> > )
-				.OptionsSource( &AtlasPages )
-				.OnGenerateWidget( this, &FAtlasVisualizer::OnGenerateWidgetForCombo )
-				.OnSelectionChanged( this, &FAtlasVisualizer::OnAtlasPageChanged )
-				.InitiallySelectedItem( SelectedAtlasPage.IsValid() ? SelectedAtlasPage.Pin() : NULL )
-				.Content()
-				[
-					SNew( STextBlock )
-					.Text( this, &FAtlasVisualizer::OnGetSelectedItemText )
-				]
-			]
-			+ SHorizontalBox::Slot()
-			.Padding(20.0f,2.0f)
-			.AutoWidth()
-			.VAlign( VAlign_Center )
-			[
-				SNew( SCheckBox )
-				.OnCheckStateChanged( this, &FAtlasVisualizer::OnDisplayCheckerboardStateChanged )
-				.IsChecked( this, &FAtlasVisualizer::OnGetCheckerboardState )
-				.Content()
-				[
-					SNew( STextBlock )
-					.Text( NSLOCTEXT("TextureManagerVisualizer", "DisplayCheckerboardCheckboxLabel", "Display Checkerboard") )
-				]
-			]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(2.0f)
-		.AutoHeight()
-		[
-			SNew( SBox )
-			.WidthOverride(1024)
-			.HeightOverride(1024)
-			[
-				SNew( SOverlay )
-				+ SOverlay::Slot()
-				[
-					SNew( SImage )
-					.Visibility( this, &FAtlasVisualizer::OnGetCheckerboardVisibility )
-					.Image( FCoreStyle::Get().GetBrush("Checkerboard") )
-				]
-				+ SOverlay::Slot()
-				[
-					SAssignNew( Viewport, SViewport )
-					.IgnoreTextureAlpha(false)
-					.EnableBlending(true)
-				]
-			]
-		];
-
-		Viewport->SetViewportInterface( SharedThis( this ) );
-
-		return Widget;
-
-	}
-
-private:
-
-	void OnDisplayCheckerboardStateChanged( ESlateCheckBoxState::Type NewState )
-	{
-		bDisplayCheckerboard = NewState == ESlateCheckBoxState::Checked;
-	}
-
-	ESlateCheckBoxState::Type OnGetCheckerboardState() const
-	{
-		return bDisplayCheckerboard ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
-	}
-
-	EVisibility OnGetCheckerboardVisibility() const
-	{
-		return bDisplayCheckerboard ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-
-	FString OnGetSelectedItemText() const
-	{
-		if( SelectedAtlasPage.IsValid() )
-		{
-			return FString::Printf( TEXT("Page %d"), SelectedAtlasPage.Pin()->Index );
-		}
-		else
-		{
-			return TEXT("Select a page");
-		}
-	}
-
-	void OnAtlasPageChanged( TSharedPtr<FAtlasPage> AtlasPage, ESelectInfo::Type SelectionType )
-	{
-		SelectedAtlasPage = AtlasPage;
-	}
-
-	TSharedRef<SWidget> OnGenerateWidgetForCombo( TSharedPtr<FAtlasPage> AtlasPage )
-	{
-		return 
-		SNew( STextBlock )
-		.Text( FString::Printf( TEXT("Page %d"), AtlasPage->Index ) );
-	}
-private:
-	TArray< TSharedPtr<FAtlasPage> > AtlasPages;
-	FSlateRHIResourceManager& TextureManager;
-	TWeakPtr<FAtlasPage> SelectedAtlasPage;
-	bool bDisplayCheckerboard;
-};
-
-
-
-TSharedRef<SWidget> FSlateRHIResourceManager::CreateTextureDisplayWidget()
-{
-	static TSharedPtr<FAtlasVisualizer> AtlasVisualizer;
-	if( !AtlasVisualizer.IsValid() )
-	{
-		AtlasVisualizer = MakeShareable( new FAtlasVisualizer( *this ) );
-	}
-
-	return AtlasVisualizer->MakeVisualizerWidget();
 }

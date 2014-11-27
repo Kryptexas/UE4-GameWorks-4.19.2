@@ -39,6 +39,23 @@ bool FSlateRenderer::IsViewportFullscreen( const SWindow& Window ) const
 }
 
 
+ISlateAtlasProvider* FSlateRenderer::GetTextureAtlasProvider()
+{
+	return nullptr;
+}
+
+
+ISlateAtlasProvider* FSlateRenderer::GetFontAtlasProvider()
+{
+	if( FontCache.IsValid() )
+	{
+		return FontCache.Get();
+	}
+
+	return nullptr;
+}
+
+
 /* Global functions
  *****************************************************************************/
 

@@ -1095,24 +1095,6 @@ void FSlateRHIRenderer::LoadStyleResources( const ISlateStyle& Style )
 	}
 }
 
-void FSlateRHIRenderer::DisplayTextureAtlases()
-{
-	TSharedRef<SWindow> Window = SNew(SWindow)
-		.SizingRule( ESizingRule::Autosized )
-		.SupportsMaximize(false)
-		.SupportsMinimize(false)
-		.Title( FText::GetEmpty() )
-		[
-			SNew( SBorder )
-			.BorderImage( FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder") )
-			[
-				ResourceManager->CreateTextureDisplayWidget()
-			]
-		];
-
-	FSlateApplication::Get().AddWindow( Window );
-}
-
 void FSlateRHIRenderer::ReleaseDynamicResource( const FSlateBrush& InBrush )
 {
 	ensure( IsInGameThread() );
@@ -1180,6 +1162,16 @@ void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 		FlushRenderingCommands();
 	}
 	delete Texture;
+}
+
+ISlateAtlasProvider* FSlateRHIRenderer::GetTextureAtlasProvider()
+{
+	if( ResourceManager.IsValid() )
+	{
+		return ResourceManager->GetTextureAtlasProvider();
+	}
+
+	return nullptr;
 }
 
 bool FSlateRHIRenderer::AreShadersInitialized() const
