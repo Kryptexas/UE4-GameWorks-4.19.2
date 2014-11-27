@@ -190,43 +190,13 @@ public:
 
 		Material->AppendReferencedTextures(ReferencedTextures);
 
-		// Have to properly handle compilation of static switches in MaterialInstance* cases...
-		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(InMaterialInterface);
+		FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
 
-		// Walk up the parent chain until we find the first MI with static parameters
-		while (MaterialInstance 
-			&& !MaterialInstance->bHasStaticPermutationResource
-			&& MaterialInstance->Parent 
-			&& MaterialInstance->Parent->IsA<UMaterialInstance>())
-		{
-			MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
-		}
-
-		// Special path for a MI with static parameters
-		if (MaterialInstance && MaterialInstance->bHasStaticPermutationResource && MaterialInstance->Parent)
-		{
-			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GMaxRHIFeatureLevel);
-
-			// Use the shader map Id from the static permutation
-			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
-			FMaterialShaderMapId ResourceId;
-			//@todo - always use highest quality level for static lighting
-			MaterialInstance->GetMaterialResourceId(GMaxRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
-
-			// Override with a special usage so we won't re-use the shader map used by the MI for rendering
-			ResourceId.Usage = GetShaderMapUsage();
-
-			CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
-		}
-		else
-		{
-			FMaterialResource* MaterialResource = Material->GetMaterialResource(GMaxRHIFeatureLevel);
-
-			// Copy the material resource Id
-			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map
-
-			CacheShaders(GMaxRHIShaderPlatform, true);
-		}
+		FMaterialShaderMapId ResourceId;
+		Resource->GetShaderMapId(GMaxRHIShaderPlatform, ResourceId);
+		// Override with a special usage so we won't re-use the shader map used by the material for rendering
+		ResourceId.Usage = GetShaderMapUsage();
+		CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
 	}
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const override

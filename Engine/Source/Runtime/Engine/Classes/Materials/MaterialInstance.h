@@ -339,9 +339,6 @@ public:
 	 */
 	void CacheResourceShadersForCooking(EShaderPlatform ShaderPlatform, TArray<FMaterialResource*>& OutCachedMaterialResources);
 
-	/** Builds a FMaterialShaderMapId to represent this material instance for the given platform and quality level. */
-	ENGINE_API void GetMaterialResourceId(EShaderPlatform ShaderPlatform, EMaterialQualityLevel::Type QualityLevel, FMaterialShaderMapId& OutId);
-
 	/** 
 	 * Gathers actively used shader maps from all material resources used by this material instance
 	 * Note - not refcounting the shader maps so the references must not be used after material resources are modified (compilation, loading, etc)
@@ -405,9 +402,6 @@ protected:
 
 	/** Initialize the material instance's resources. */
 	ENGINE_API void InitResources();
-
-	/** Builds a FMaterialShaderMapId for the material instance. */
-	void GetMaterialResourceId(const FMaterialResource* Resource, EShaderPlatform ShaderPlatform, const FStaticParameterSet& CompositedStaticParameters, FMaterialShaderMapId& OutId);
 
 	/** 
 	 * Cache resource shaders for rendering on the given shader platform. 

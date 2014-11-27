@@ -1276,27 +1276,6 @@ void UMaterialInstance::GetAllShaderMaps(TArray<FMaterialShaderMap*>& OutShaderM
 	}
 }
 
-void UMaterialInstance::GetMaterialResourceId(EShaderPlatform ShaderPlatform, EMaterialQualityLevel::Type QualityLevel, FMaterialShaderMapId& OutId)
-{
-	UMaterial* BaseMaterial = GetMaterial();
-
-	FStaticParameterSet CompositedStaticParameters;
-	GetStaticParameterValues(CompositedStaticParameters);
-
-	ERHIFeatureLevel::Type FeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
-	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(FeatureLevel, QualityLevel);
-
-	GetMaterialResourceId(BaseResource, ShaderPlatform, CompositedStaticParameters, OutId);
-}
-
-void UMaterialInstance::GetMaterialResourceId(const FMaterialResource* Resource, EShaderPlatform ShaderPlatform, const FStaticParameterSet& CompositedStaticParameters, FMaterialShaderMapId& OutId)
-{
-	Resource->GetShaderMapId(ShaderPlatform, OutId);
-
-	//@todo - should the resource be able to generate its own shadermap id?
-	OutId.ParameterSet = CompositedStaticParameters;
-}
-
 void UMaterialInstance::UpdatePermutationAllocations()
 {
 	if (bHasStaticPermutationResource)
@@ -1404,9 +1383,6 @@ void UMaterialInstance::CacheResourceShadersForCooking(EShaderPlatform ShaderPla
 
 void UMaterialInstance::CacheShadersForResources(EShaderPlatform ShaderPlatform, const TArray<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering)
 {
-	FStaticParameterSet CompositedStaticParameters;
-	GetStaticParameterValues(CompositedStaticParameters);
-
 	UMaterial* BaseMaterial = GetMaterial();
 
 	BaseMaterial->CacheExpressionTextureReferences();
@@ -1416,7 +1392,7 @@ void UMaterialInstance::CacheShadersForResources(EShaderPlatform ShaderPlatform,
 		FMaterialResource* CurrentResource = ResourcesToCache[ResourceIndex];
 
 		FMaterialShaderMapId ShaderMapId;
-		GetMaterialResourceId(CurrentResource, ShaderPlatform, CompositedStaticParameters, ShaderMapId);
+		CurrentResource->GetShaderMapId(ShaderPlatform, ShaderMapId);
 
 		const bool bSuccess = CurrentResource->CacheShaders(ShaderMapId, ShaderPlatform, bApplyCompletedShaderMapForRendering);
 

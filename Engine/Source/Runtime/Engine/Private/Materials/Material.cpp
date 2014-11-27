@@ -126,6 +126,10 @@ void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShader
 	if(MaterialInstance)
 	{
 		MaterialInstance->GetBasePropertyOverridesHash(OutId.BasePropertyOverridesHash);
+
+		FStaticParameterSet CompositedStaticParameters;
+		MaterialInstance->GetStaticParameterValues(CompositedStaticParameters);
+		OutId.ParameterSet = CompositedStaticParameters;
 	}
 }
 

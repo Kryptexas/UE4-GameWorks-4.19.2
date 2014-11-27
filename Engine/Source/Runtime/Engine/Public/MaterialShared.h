@@ -313,7 +313,10 @@ namespace EMaterialShaderMapUsage
 		LightmassExportEmissive,
 		LightmassExportDiffuse,
 		LightmassExportOpacity,
-		LightmassExportNormal
+		LightmassExportNormal,
+		MaterialExportDiffuseColor,
+		MaterialExportSpecularColor,
+		MaterialExportNormal
 	};
 }
 
