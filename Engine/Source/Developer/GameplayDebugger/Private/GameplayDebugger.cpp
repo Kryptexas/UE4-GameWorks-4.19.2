@@ -7,15 +7,19 @@
 #include "GameplayDebuggingReplicator.h"
 #include "GameplayDebuggingControllerComponent.h"
 #include "AISystem.h"
+#include "GameplayDebuggerSettings.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
+#include "ISettingsModule.h"
+#include "LevelEditor.h"
 #endif // WITH_EDITOR
 
-uint32 FGameplayDebuggerSettings::ShowFlagIndex = 0;
+#define ADD_LEVEL_EDITOR_EXTENSIONS 0
 
+#define LOCTEXT_NAMESPACE "FGameplayDebugger"
 FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator)
 {
-	static uint32 Settings = (1 << EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead);
+	uint32 Settings = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->GetSettings();
 	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
 }
 
@@ -32,6 +36,10 @@ public:
 #if WITH_EDITOR
 	void OnLevelActorAdded(AActor* InActor);
 	void OnLevelActorDeleted(AActor* InActor);
+	TSharedRef<FExtender> OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList);
+	void CreateSnappingOptionsMenu(FMenuBuilder& Builder);
+	void CreateSettingSubMenu(FMenuBuilder& Builder);
+
 #endif
 
 	TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& GetAllReplicators(UWorld* InWorld);
@@ -48,6 +56,10 @@ private:
 	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController);
 
 	TMap<TWeakObjectPtr<UWorld>, TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> > > AllReplilcatorsPerWorlds;
+
+#if WITH_EDITOR
+	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
+#endif
 };
 
 IMPLEMENT_MODULE(FGameplayDebugger, GameplayDebugger)
@@ -63,6 +75,30 @@ void FGameplayDebugger::StartupModule()
 #if WITH_EDITOR
 		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebugger::OnLevelActorAdded);
 		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebugger::OnLevelActorDeleted);
+
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->RegisterSettings("Editor", "General", "AITools",
+				LOCTEXT("AIToolsSettingsName", "AI Tools"),
+				LOCTEXT("AIToolsSettingsDescription", "General settings for UE4 AI Tools."),
+				UGameplayDebuggerSettings::StaticClass()->GetDefaultObject()
+				);
+		}
+#	if ADD_LEVEL_EDITOR_EXTENSIONS
+		if (!IsRunningCommandlet())
+		{
+			// Register the extension with the level editor
+			{
+				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebugger::OnExtendLevelEditorViewMenu);
+				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
+				if (LevelEditor)
+				{
+					LevelEditor->GetAllLevelViewportOptionsMenuExtenders().Add(ViewMenuExtender);
+				}
+			}
+		}
+#	endif //ADD_LEVEL_EDITOR_EXTENSIONS
 #endif
 	}
 #endif
@@ -80,10 +116,77 @@ void FGameplayDebugger::ShutdownModule()
 #if WITH_EDITOR
 		GEngine->OnLevelActorAdded().RemoveAll(this);
 		GEngine->OnLevelActorDeleted().RemoveAll(this);
+
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->UnregisterSettings("Editor", "General", "AITools");
+		}
+
+#	if ADD_LEVEL_EDITOR_EXTENSIONS
+		if (UObjectInitialized() && !IsRunningCommandlet())
+		{
+			// Unregister the level editor extensions
+			{
+				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
+				if (LevelEditor)
+				{
+					LevelEditor->GetAllLevelViewportOptionsMenuExtenders().Remove(ViewMenuExtender);
+				}
+			}
+		}
+#	endif //ADD_LEVEL_EDITOR_EXTENSIONS
 #endif
 	}
 #endif
 }
+
+#if WITH_EDITOR
+void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	Builder.AddMenuEntry(
+		LOCTEXT("Test_GameplayDebugger_Menu", "Test Gameplay Debugger Option"),
+		LOCTEXT("Test_GameplayDebugger_Menu_Tooltip", "If Enabled, actors will snap to the nearest location on the constraint plane (NOTE: Only works correctly in perspective views right now!)"),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction()/*FExecuteAction::CreateRaw(PlanarPolicy.Get(), &FPlanarConstraintSnapPolicy::ToggleEnabled)*/,
+		FCanExecuteAction(),
+		FIsActionChecked()/*FIsActionChecked::CreateRaw(PlanarPolicy.Get(), &FPlanarConstraintSnapPolicy::IsEnabled)*/
+		),
+		NAME_None,
+		EUserInterfaceActionType::Button,
+		NAME_None);
+#endif
+}
+
+void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	Builder.AddMenuSeparator();
+	Builder.AddSubMenu(
+		LOCTEXT("Test_GameplayDebugger_Menu", "Gameplay Debugger"),
+		LOCTEXT("Test_GameplayDebugger_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
+		FNewMenuDelegate::CreateRaw(this, &FGameplayDebugger::CreateSettingSubMenu)
+		);
+#endif
+}
+
+TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	TSharedRef<FExtender> Extender(new FExtender());
+
+	Extender->AddMenuExtension(
+		"LevelViewportLayouts",
+		EExtensionHook::After,
+		NULL,
+		FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebugger::CreateSnappingOptionsMenu));
+
+	return Extender;
+#endif
+}
+#endif
 
 bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController)
 {
@@ -395,3 +498,4 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 	return bHandled;
 }
 
+#undef LOCTEXT_NAMESPACE

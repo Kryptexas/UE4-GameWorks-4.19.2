@@ -15,6 +15,11 @@ struct GAMEPLAYDEBUGGER_API FDebugCategoryView
 	FDebugCategoryView(EAIDebugDrawDataView::Type InView, const FString& Description) : Desc(Description), View(InView) {}
 };
 
+#define ADD_GAMEVIEW_CATEGORY(__Category__) \
+{\
+	UGameplayDebuggerSettings* GDS = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>();\
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::GameView1, GDS->GetCustomViewNames().GameView1.Len() ? GDS->GetCustomViewNames().GameView1 : TEXT("GameView1")));\
+}
 
 UCLASS(notplaceable)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingHUDComponent : public AActor

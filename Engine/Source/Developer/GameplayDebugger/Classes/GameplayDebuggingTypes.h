@@ -48,7 +48,6 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerSettings
 	}
 
 	uint32 &DebuggerShowFlags;
-	static uint32 ShowFlagIndex;
 };
 
 GAMEPLAYDEBUGGER_API

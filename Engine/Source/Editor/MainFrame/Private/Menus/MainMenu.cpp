@@ -176,7 +176,7 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		bool bVisualLogger = GetDefault<UEditorExperimentalSettings>()->bVisualLogger;
 
 		// Make sure at least one is enabled before creating the section
-		if (bProjectLauncher || bMessagingDebugger || bBlutility || bTranslationEditor)
+		if (bProjectLauncher || bMessagingDebugger || bBlutility || bTranslationEditor || bVisualLogger)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{

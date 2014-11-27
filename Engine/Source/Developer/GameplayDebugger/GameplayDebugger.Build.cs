@@ -12,6 +12,7 @@ namespace UnrealBuildTool.Rules
                 new string[] {
 				    "Developer/GameplayDebugger/Public",
 				    "Developer/AIModule/Public",
+                    "Developer/Settings/Public",
 				    // ... add public include paths required here ...
 			    }
             );
@@ -35,6 +36,7 @@ namespace UnrealBuildTool.Rules
                     "RenderCore",
                     "RHI",
                     "ShaderCore",
+                    "Settings",
                     "AIModule",  // it have to be here for now. It'll be changed to remove any dependency to AIModule in future
 				}
                 );
@@ -49,6 +51,9 @@ namespace UnrealBuildTool.Rules
             if (UEBuildConfiguration.bBuildEditor == true)
             {
                 PrivateDependencyModuleNames.Add("UnrealEd");
+                PrivateDependencyModuleNames.Add("LevelEditor");
+                PrivateDependencyModuleNames.Add("Slate");
+                PublicIncludePaths.Add("Editor/LevelEditor/Public");
             }
 
             if (UEBuildConfiguration.bCompileRecast)

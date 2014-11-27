@@ -4,6 +4,7 @@
 	HUD.cpp: Heads up Display related functionality
 =============================================================================*/
 #include "GameplayDebuggerPrivate.h"
+#include "GameplayDebuggerSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
@@ -73,11 +74,11 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 
 void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
 {
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, TEXT("NavMesh")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, TEXT("Basic")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, TEXT("BehaviorTree")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, TEXT("EQS")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, TEXT("Perception")));
 }
 
 void AGameplayDebuggingHUDComponent::PrintAllData()
