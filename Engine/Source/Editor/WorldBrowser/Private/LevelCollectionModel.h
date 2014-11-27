@@ -569,7 +569,7 @@ struct FTiledLandscapeImportSettings
 		, QuadsPerSection(63)
 		, SectionsPerComponent(1)
 		, TilesCoordinatesOffset(0,0)
-		, TileResolution(1009)
+		, SizeX(1009)
 	{}
 	
 	FVector				Scale3D;
@@ -580,7 +580,7 @@ struct FTiledLandscapeImportSettings
 	TArray<FString>		HeightmapFileList;
 	TArray<FIntPoint>	TileCoordinates;
 	FIntPoint			TilesCoordinatesOffset;	
-	int32				TileResolution;	
+	int32				SizeX;
 
 
 	TWeakObjectPtr<UMaterialInterface>	LandscapeMaterial;

@@ -260,13 +260,20 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 	// If we have not created a heightfield yet - do it now.
 	if (!IsValidRef(HeightfieldRef))
 	{
+		FPhysXHeightfieldRef* ExistingHeightfieldRef = nullptr;
+		bool bCheckDDC = true;
+
 		if (!HeightfieldGuid.IsValid())
 		{
 			HeightfieldGuid = FGuid::NewGuid();
+			bCheckDDC = false;
+		}
+		else
+		{
+			// Look for a heightfield object with the current Guid (this occurs with PIE)
+			ExistingHeightfieldRef = GSharedHeightfieldRefs.FindRef(HeightfieldGuid);
 		}
 
-		// Look for a heightfield object with the current Guid (this occurs with PIE)
-		FPhysXHeightfieldRef* ExistingHeightfieldRef = GSharedHeightfieldRefs.FindRef(HeightfieldGuid);
 		if (ExistingHeightfieldRef)
 		{
 			HeightfieldRef = ExistingHeightfieldRef;
@@ -276,7 +283,7 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 #if WITH_EDITOR
 			// Prepare heightfield data
 			static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
-			CookCollsionData(PhysicsFormatName, false, CookedCollisionData, CookedPhysicalMaterials);
+			CookCollsionData(PhysicsFormatName, false, bCheckDDC, CookedCollisionData, CookedPhysicalMaterials);
 #endif //WITH_EDITOR
 
 			if (CookedCollisionData.Num())
@@ -306,7 +313,7 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 				if (!GetWorld()->IsGameWorld())
 				{
 					TArray<UPhysicalMaterial*> CookedMaterialsEd;
-					if (CookCollsionData(PhysicsFormatName, true, CookedCollisionDataEd, CookedMaterialsEd))
+					if (CookCollsionData(PhysicsFormatName, true, bCheckDDC, CookedCollisionDataEd, CookedMaterialsEd))
 					{
 						FPhysXInputStream HeightFieldStream(CookedCollisionDataEd.GetData(), CookedCollisionDataEd.Num());
 						HeightfieldRef->RBHeightfieldEd = GPhysXSDK->createHeightField(HeightFieldStream);
@@ -320,17 +327,20 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 }
 
 #if WITH_EDITOR
-bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Format, bool bUseDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const
+bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const
 {
 #if WITH_PHYSX
 
-	// Ensure that content was saved with physical materials before using DDC data
-	if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS) 
+	if (bCheckDDC)
 	{
-		if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+		// Ensure that content was saved with physical materials before using DDC data
+		if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
 		{
-			bShouldSaveCookedDataToDDC = false;
-			return true;
+			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+			{
+				bShouldSaveCookedDataToDDC = false;
+				return true;
+			}
 		}
 	}
 				
@@ -452,17 +462,20 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Form
 	return false;
 }
 
-bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, bool bUseDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const
+bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const
 {
 #if WITH_PHYSX
 	
-	// Ensure that content was saved with physical materials before using DDC data
-	if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
+	if (bCheckDDC)
 	{
-		if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+		// Ensure that content was saved with physical materials before using DDC data
+		if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
 		{
-			bShouldSaveCookedDataToDDC = false;
-			return true;
+			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+			{
+				bShouldSaveCookedDataToDDC = false;
+				return true;
+			}
 		}
 	}
 	
@@ -625,13 +638,20 @@ void ULandscapeMeshCollisionComponent::CreateCollisionObject()
 	// If we have not created a heightfield yet - do it now.
 	if (!IsValidRef(MeshRef))
 	{
+		FPhysXMeshRef* ExistingMeshRef = nullptr;
+		bool bCheckDDC = true;
+
 		if (!MeshGuid.IsValid())
 		{
 			MeshGuid = FGuid::NewGuid();
+			bCheckDDC = false;
+		}
+		else
+		{
+			// Look for a heightfield object with the current Guid (this occurs with PIE)
+			ExistingMeshRef = GSharedMeshRefs.FindRef(MeshGuid);
 		}
 
-		// Look for a heightfield object with the current Guid (this occurs with PIE)
-		FPhysXMeshRef* ExistingMeshRef = GSharedMeshRefs.FindRef(MeshGuid);
 		if (ExistingMeshRef)
 		{
 			MeshRef = ExistingMeshRef;
@@ -641,7 +661,7 @@ void ULandscapeMeshCollisionComponent::CreateCollisionObject()
 #if WITH_EDITOR
 			// Create cooked physics data
 			static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
-			CookCollsionData(PhysicsFormatName, false, CookedCollisionData, CookedPhysicalMaterials);
+			CookCollsionData(PhysicsFormatName, false, bCheckDDC, CookedCollisionData, CookedPhysicalMaterials);
 #endif //WITH_EDITOR
 
 			if (CookedCollisionData.Num())
@@ -669,7 +689,7 @@ void ULandscapeMeshCollisionComponent::CreateCollisionObject()
 				if (!GetWorld()->IsGameWorld())
 				{
 					TArray<UPhysicalMaterial*> CookedMaterialsEd;
-					if (CookCollsionData(PhysicsFormatName, true, CookedCollisionDataEd, CookedMaterialsEd))
+					if (CookCollsionData(PhysicsFormatName, true, bCheckDDC, CookedCollisionDataEd, CookedMaterialsEd))
 					{
 						FPhysXInputStream MeshStream(CookedCollisionDataEd.GetData(), CookedCollisionDataEd.Num());
 						MeshRef->RBTriangleMeshEd = GPhysXSDK->createTriangleMesh(MeshStream);
@@ -1115,7 +1135,7 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 		if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject))
 		{
 			FName Format = Ar.CookingTarget()->GetPhysicsFormat(nullptr);
-			CookCollsionData(Format, false, CookedCollisionData, CookedPhysicalMaterials);
+			CookCollsionData(Format, false, true, CookedCollisionData, CookedPhysicalMaterials);
 			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(Format, false, HeightfieldGuid), CookedCollisionData);
 		}
 	}

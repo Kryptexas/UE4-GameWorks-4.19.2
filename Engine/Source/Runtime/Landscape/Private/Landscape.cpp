@@ -1420,7 +1420,10 @@ void ALandscapeProxy::RecreateComponentsState()
 		if (Comp)
 		{
 			Comp->UpdateComponentToWorld();
-			Comp->RecreateCollision();
+#if WITH_EDITOR
+			Comp->UpdateAddCollisions();
+#endif
+			Comp->RecreatePhysicsState();
 		}
 	}
 }

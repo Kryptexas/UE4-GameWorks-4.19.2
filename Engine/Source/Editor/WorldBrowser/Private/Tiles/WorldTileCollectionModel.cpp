@@ -11,6 +11,7 @@
 #include "MeshUtilities.h"
 #include "RawMesh.h"
 #include "LandscapeEdMode.h"
+#include "ImageWrapper.h"
 
 #include "WorldTileDetails.h"
 #include "WorldTileDetailsCustomization.h"
@@ -1389,21 +1390,42 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 }
 
 template<typename DataType>
-static bool ReadRawFile(TArray<DataType>& Result, const TCHAR* Filename, uint32 Flags = 0)
+static bool ReadRawFile(TArray<DataType>& Result, const FString& Filename, uint32 Flags = 0)
 {
-	auto Reader = TScopedPointer<FArchive>(IFileManager::Get().CreateFileReader(Filename, Flags));
+	auto Reader = TScopedPointer<FArchive>(IFileManager::Get().CreateFileReader(*Filename, Flags));
 	if (!Reader)
 	{
 		if (!(Flags & FILEREAD_Silent))
 		{
-			UE_LOG(LogStreaming, Warning, TEXT("Failed to read file '%s' error."), Filename);
+			UE_LOG(LogStreaming, Warning, TEXT("Failed to read file '%s' error."), *Filename);
 		}
 		return 0;
 	}
-	Result.Reset();
-	Result.AddUninitialized(Reader->TotalSize()/Result.GetTypeSize());
+	Result.Init(Reader->TotalSize()/Result.GetTypeSize());
 	Reader->Serialize(Result.GetData(), Result.Num()*Result.GetTypeSize());
 	return Reader->Close();
+}
+
+static bool ReadWeightmapFile(TArray<uint8>& Result, const FString& Filename, uint32 Flags = 0)
+{
+	bool bResult = ReadRawFile(Result, Filename, Flags);
+	if (bResult && Filename.EndsWith(TEXT(".png")))
+	{
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
+		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		bResult = ImageWrapper->SetCompressed(Result.GetData(), Result.Num());
+		if (bResult)
+		{
+			const TArray<uint8>* RawData = nullptr;
+			bResult = ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData);
+			if (bResult)
+			{
+				Result = *RawData;
+			}
+		}
+	}
+
+	return bResult;
 }
 
 static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FString ContentPath)
@@ -1491,8 +1513,8 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			TileImportSettings.ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;
 			TileImportSettings.QuadsPerSection		= ImportSettings.QuadsPerSection;
 			TileImportSettings.SectionsPerComponent = ImportSettings.SectionsPerComponent;
-			TileImportSettings.SizeX				= ImportSettings.TileResolution;
-			TileImportSettings.SizeY				= ImportSettings.TileResolution;
+			TileImportSettings.SizeX				= ImportSettings.SizeX;
+			TileImportSettings.SizeY				= ImportSettings.SizeX;
 			TileImportSettings.HeightmapFilename	= Filename;
 			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
 
@@ -1510,13 +1532,13 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 				if (WeightmapFile)
 				{
 					LayerImportInfo.SourceFilePath = *WeightmapFile;
-					ReadRawFile(LayerImportInfo.LayerData, *LayerImportInfo.SourceFilePath, FILEREAD_Silent);
+					ReadWeightmapFile(LayerImportInfo.LayerData, LayerImportInfo.SourceFilePath, FILEREAD_Silent);
 					LayerImportInfo.LayerInfo = GetandscapeLayerInfoObject(LayerImportInfo.LayerName, GetWorld()->GetOutermost()->GetName());
 					LayerImportInfo.LayerInfo->bNoWeightBlend = ImportSettings.LandscapeLayerSettingsList[LayerIdx].bNoBlendWeight;
 				}
 			}
 						
-			if (ReadRawFile(TileImportSettings.HeightData, *Filename, FILEREAD_Silent))
+			if (ReadRawFile(TileImportSettings.HeightData, Filename, FILEREAD_Silent))
 			{
 				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();
 				// Create a new world - so we can 'borrow' its level

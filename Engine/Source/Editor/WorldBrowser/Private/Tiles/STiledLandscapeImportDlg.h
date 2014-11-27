@@ -11,8 +11,9 @@ public:
 	/** */		
 	struct FTileImportConfiguration
 	{
-		int32 Resolution;
+		int64 ImportFileSize;
 		
+		int32 SizeX;
 		int32 NumComponents;
 		int32 NumSectionsPerComponent;
 		int32 NumQuadsPerSection;
@@ -76,7 +77,7 @@ private:
 	void OnLayerBlendStateChanged(ESlateCheckBoxState::Type NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData);
 
 	/** */
-	void SetPossibleConfigurationsForResolution(int32 TargetResolutuion);
+	int32 SetPossibleConfigurationsForFileSize(int64 InFileSize);
 	
 	/** */
 	void GenerateAllPossibleTileConfigurations();
@@ -90,6 +91,9 @@ private:
 private:
 	/** */
 	bool bShouldImport;
+
+	/** */
+	mutable FText StatusMessage;
 	
 	/** */
 	TSharedPtr<SWindow> ParentWindow;

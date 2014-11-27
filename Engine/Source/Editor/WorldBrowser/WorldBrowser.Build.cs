@@ -41,6 +41,7 @@ public class WorldBrowser : ModuleRules
                 "MeshUtilities",
                 "LandscapeEditor",
 				"Levels",
+                "ImageWrapper",
             }
 		);
 
@@ -50,6 +51,7 @@ public class WorldBrowser : ModuleRules
 				"SceneOutliner",
                 "MeshUtilities",
                 "ContentBrowser",
+                "ImageWrapper",
 			}
 		);
     }
