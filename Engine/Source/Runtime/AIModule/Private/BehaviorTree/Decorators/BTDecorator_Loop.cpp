@@ -54,7 +54,7 @@ FString UBTDecorator_Loop::GetStaticDescription() const
 		FString::Printf(TEXT("%s: %d loops"), *Super::GetStaticDescription(), NumLoops);
 }
 
-void UBTDecorator_Loop::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_Loop::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

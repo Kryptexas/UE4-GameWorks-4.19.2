@@ -9,7 +9,7 @@ class APawn;
 struct AIMODULE_API FBehaviorTreeDelegates
 {
 	/** delegate type for tree execution events (Params: const UBehaviorTreeComponent* OwnerComp, const UBehaviorTree* TreeAsset) */
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTreeStarted, const UBehaviorTreeComponent*, const UBehaviorTree* );
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTreeStarted, const UBehaviorTreeComponent&, const UBehaviorTree& );
 
 	/** delegate type for locking AI debugging tool on pawn */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnTreeDebugTool, const APawn*);

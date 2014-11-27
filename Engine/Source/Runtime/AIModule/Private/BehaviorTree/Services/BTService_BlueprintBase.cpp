@@ -39,7 +39,7 @@ void UBTService_BlueprintBase::SetOwner(AActor* InActorOwner)
 	AIOwner = Cast<AAIController>(InActorOwner);
 }
 
-void UBTService_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
@@ -54,15 +54,15 @@ void UBTService_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerCom
 	}
 }
 
-void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
-	if (OwnerComp && !OwnerComp->HasAnyFlags(RF_BeginDestroyed) && OwnerComp->GetOwner())
+	if (!OwnerComp.HasAnyFlags(RF_BeginDestroyed) && OwnerComp.GetOwner())
 	{
 		// force dropping all pending latent actions associated with this blueprint
 		// we can't have those resuming activity when node is/was aborted
-		BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+		BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 
 		if (AIOwner != nullptr && ReceiveActivationImplementations & FBTNodeBPImplementationHelper::AISpecific)
 		{
@@ -76,12 +76,10 @@ void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp
 	else
 	{
 		UE_LOG(LogBehaviorTree, Warning,
-			TEXT("OnCeaseRelevant called on Blueprint service %s with invalid owner.  OwnerComponent: %s, OwnerComponent Owner: %s.  %s"),
-			*GetNameSafe(this),
-			*GetNameSafe(OwnerComp),
-			OwnerComp ? *GetNameSafe(OwnerComp->GetOwner()) : TEXT("<None>"),
-			OwnerComp && OwnerComp->HasAnyFlags(RF_BeginDestroyed) ? TEXT("OwnerComponent has BeginDestroyed flag") : TEXT("")
-			  );
+			TEXT("OnCeaseRelevant called on Blueprint service %s with invalid owner.  OwnerComponent: %s, OwnerComponent Owner: %s.  %s")
+			, *GetNameSafe(this), *OwnerComp.GetName(), *GetNameSafe(OwnerComp.GetOwner())
+			, OwnerComp.HasAnyFlags(RF_BeginDestroyed) ? TEXT("OwnerComponent has BeginDestroyed flag") : TEXT("")
+		);
 	}
 }
 
@@ -110,7 +108,7 @@ void UBTService_BlueprintBase::OnSearchStart(FBehaviorTreeSearchData& SearchData
 	}
 }
 
-void UBTService_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService_BlueprintBase::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
@@ -159,7 +157,7 @@ FString UBTService_BlueprintBase::GetStaticServiceDescription() const
 	return ReturnDesc;
 }
 
-void UBTService_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTService_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTService_BlueprintBase* CDO = (UBTService_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -169,10 +167,10 @@ void UBTService_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponen
 	}
 }
 
-void UBTService_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+void UBTService_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 }
 
 #if WITH_EDITOR

@@ -15,7 +15,7 @@ UTestBTTask_Log::UTestBTTask_Log(const FObjectInitializer& ObjectInitializer) : 
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
 	MyMemory->EndFrameIdx = ExecutionTicks + FAITestHelpers::FramesCounter();
@@ -29,7 +29,7 @@ EBTNodeResult::Type UTestBTTask_Log::ExecuteTask(UBehaviorTreeComponent* OwnerCo
 	return EBTNodeResult::InProgress;
 }
 
-void UTestBTTask_Log::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UTestBTTask_Log::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTLogTaskMemory* MyMemory = (FBTLogTaskMemory*)NodeMemory;
 
@@ -45,7 +45,7 @@ uint16 UTestBTTask_Log::GetInstanceMemorySize() const
 	return sizeof(FBTLogTaskMemory);
 }
 
-void UTestBTTask_Log::LogExecution(UBehaviorTreeComponent* OwnerComp, int32 LogNumber)
+void UTestBTTask_Log::LogExecution(UBehaviorTreeComponent& OwnerComp, int32 LogNumber)
 {
 	if (LogNumber >= 0)
 	{

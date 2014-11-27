@@ -12,7 +12,7 @@ UTestBTDecorator_CantExecute::UTestBTDecorator_CantExecute(const FObjectInitiali
 	bAllowAbortChildNodes = false;
 }
 
-bool UTestBTDecorator_CantExecute::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UTestBTDecorator_CantExecute::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	return false;
 }

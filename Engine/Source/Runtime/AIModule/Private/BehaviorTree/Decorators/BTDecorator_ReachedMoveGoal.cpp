@@ -14,9 +14,9 @@ UBTDecorator_ReachedMoveGoal::UBTDecorator_ReachedMoveGoal(const FObjectInitiali
 	FlowAbortMode = EBTFlowAbortMode::None;
 }
 
-bool UBTDecorator_ReachedMoveGoal::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
+bool UBTDecorator_ReachedMoveGoal::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const 
 {
-	AAIController* AIOwner = OwnerComp->GetAIOwner();
+	AAIController* AIOwner = OwnerComp.GetAIOwner();
 	const bool bReachedGoal = AIOwner && AIOwner->GetPathFollowingComponent() && AIOwner->GetPathFollowingComponent()->DidMoveReachGoal();
 	return bReachedGoal;
 }

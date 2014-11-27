@@ -363,14 +363,14 @@ void UBehaviorTreeManager::DumpUsageStats() const
 	AllNodesCounter.Print(TEXT(","));
 }
 
-void UBehaviorTreeManager::AddActiveComponent(UBehaviorTreeComponent* Component)
+void UBehaviorTreeManager::AddActiveComponent(UBehaviorTreeComponent& Component)
 {
-	ActiveComponents.AddUnique(Component);
+	ActiveComponents.AddUnique(&Component);
 }
 
-void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent* Component)
+void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent& Component)
 {
-	ActiveComponents.Remove(Component);
+	ActiveComponents.Remove(&Component);
 }
 
 UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UWorld* World)

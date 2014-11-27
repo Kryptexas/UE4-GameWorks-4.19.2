@@ -66,7 +66,7 @@ void UBTDecorator_BlueprintBase::SetOwner(AActor* InActorOwner)
 	AIOwner = Cast<AAIController>(InActorOwner);
 }
 
-void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	if (AIOwner != nullptr && ReceiveObserverActivatedImplementations & FBTNodeBPImplementationHelper::AISpecific)
 	{
@@ -77,7 +77,7 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerC
 		ReceiveObserverActivated(ActorOwner);
 	}
 
-	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (BlackboardComp && CDO)
 	{
@@ -92,9 +92,9 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerC
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (BlackboardComp && CDO)
 	{
@@ -142,7 +142,7 @@ void UBTDecorator_BlueprintBase::OnNodeDeactivation(FBehaviorTreeSearchData& Sea
 	}
 }
 
-void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	if (AIOwner != nullptr && ReceiveTickImplementations & FBTNodeBPImplementationHelper::AISpecific)
 	{
@@ -154,7 +154,7 @@ void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uin
 	}
 }
 
-bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	CurrentCallResult = false;
 	if (ReceiveConditionCheckImplementations != 0)
@@ -183,15 +183,13 @@ void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
 bool UBTDecorator_BlueprintBase::IsDecoratorExecutionActive() const
 {
 	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
-	const bool bIsActive = OwnerComp->IsExecutingBranch(GetMyNode(), GetChildIndex());
-	return bIsActive;
+	return OwnerComp && OwnerComp->IsExecutingBranch(GetMyNode(), GetChildIndex());
 }
 
 bool UBTDecorator_BlueprintBase::IsDecoratorObserverActive() const
 {
 	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
-	const bool bIsActive = OwnerComp->IsAuxNodeActive(this);
-	return bIsActive;
+	return OwnerComp && OwnerComp->IsAuxNodeActive(this);
 }
 
 FString UBTDecorator_BlueprintBase::GetStaticDescription() const
@@ -213,7 +211,7 @@ FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -231,10 +229,10 @@ void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent& 
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+void UBTDecorator_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 }
 
 #if WITH_EDITOR

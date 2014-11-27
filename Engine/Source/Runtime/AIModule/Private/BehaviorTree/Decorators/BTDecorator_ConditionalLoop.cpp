@@ -14,7 +14,7 @@ UBTDecorator_ConditionalLoop::UBTDecorator_ConditionalLoop(const FObjectInitiali
 	bAllowAbortChildNodes = false;
 }
 
-bool UBTDecorator_ConditionalLoop::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_ConditionalLoop::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	// always allows execution
 	return true;
@@ -27,11 +27,11 @@ void UBTDecorator_ConditionalLoop::OnBlackboardChange(const UBlackboardComponent
 
 void UBTDecorator_ConditionalLoop::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
-	if (NodeResult != EBTNodeResult::Aborted && SearchData.OwnerComp)
+	if (NodeResult != EBTNodeResult::Aborted)
 	{
-		const UBlackboardComponent* BlackboardComp = SearchData.OwnerComp->GetBlackboardComponent();
+		const UBlackboardComponent* BlackboardComp = SearchData.OwnerComp.GetBlackboardComponent();
 		const bool bEvalResult = BlackboardComp && EvaluateOnBlackboard(*BlackboardComp);
-		UE_VLOG(SearchData.OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Loop condition: %s -> %s"),
+		UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Loop condition: %s -> %s"),
 			bEvalResult ? TEXT("true") : TEXT("false"), (bEvalResult != IsInversed()) ? TEXT("run again!") : TEXT("break"));
 
 		if (bEvalResult != IsInversed())

@@ -9,23 +9,18 @@
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance
 //----------------------------------------------------------------------//
-void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType)
+void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex, EBTMemoryInit::Type InitType)
 {
-	if (Node == NULL)
+	for (int32 ServiceIndex = 0; ServiceIndex < Node.Services.Num(); ServiceIndex++)
 	{
-		return;
+		Node.Services[ServiceIndex]->InitializeInSubtree(OwnerComp, Node.Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 	}
 
-	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
-	{
-		Node->Services[ServiceIndex]->InitializeInSubtree(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
-	}
+	Node.InitializeInSubtree(OwnerComp, Node.GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 
-	Node->InitializeInSubtree(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
-
-	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
+	for (int32 ChildIndex = 0; ChildIndex < Node.Children.Num(); ChildIndex++)
 	{
-		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
+		FBTCompositeChild& ChildInfo = Node.Children[ChildIndex];
 
 		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
@@ -34,7 +29,7 @@ void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent* OwnerComp, UBTCom
 
 		if (ChildInfo.ChildComposite)
 		{
-			Initialize(OwnerComp, ChildInfo.ChildComposite, InstancedIndex, InitType);
+			Initialize(OwnerComp, *(ChildInfo.ChildComposite), InstancedIndex, InitType);
 		}
 		else if (ChildInfo.ChildTask)
 		{
@@ -43,19 +38,14 @@ void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent* OwnerComp, UBTCom
 	}
 }
 
-void FBehaviorTreeInstance::InjectNodes(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
+void FBehaviorTreeInstance::InjectNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex)
 {
-	if (Node == NULL)
+	for (int32 ChildIndex = 0; ChildIndex < Node.Children.Num(); ChildIndex++)
 	{
-		return;
-	}
-
-	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
-	{
-		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
+		FBTCompositeChild& ChildInfo = Node.Children[ChildIndex];
 		if (ChildInfo.ChildComposite)
 		{
-			InjectNodes(OwnerComp, ChildInfo.ChildComposite, InstancedIndex);
+			InjectNodes(OwnerComp, *(ChildInfo.ChildComposite), InstancedIndex);
 		}
 		else
 		{
@@ -69,43 +59,38 @@ void FBehaviorTreeInstance::InjectNodes(UBehaviorTreeComponent* OwnerComp, UBTCo
 	}
 }
 
-void FBehaviorTreeInstance::Cleanup(UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType)
+void FBehaviorTreeInstance::Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemoryClear::Type CleanupType)
 {
-	FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
+	FBehaviorTreeInstanceId& Info = OwnerComp.KnownInstances[InstanceIdIndex];
 	if (Info.FirstNodeInstance >= 0)
 	{
-		const int32 MaxAllowedIdx = OwnerComp->NodeInstances.Num();
-		const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ?
-			FMath::Min(OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance, MaxAllowedIdx) :
+		const int32 MaxAllowedIdx = OwnerComp.NodeInstances.Num();
+		const int32 LastNodeIdx = OwnerComp.KnownInstances.IsValidIndex(InstanceIdIndex + 1) ?
+			FMath::Min(OwnerComp.KnownInstances[InstanceIdIndex + 1].FirstNodeInstance, MaxAllowedIdx) :
 			MaxAllowedIdx;
 
 		for (int32 Idx = Info.FirstNodeInstance; Idx < LastNodeIdx; Idx++)
 		{
-			OwnerComp->NodeInstances[Idx]->OnInstanceDestroyed(OwnerComp);
+			OwnerComp.NodeInstances[Idx]->OnInstanceDestroyed(OwnerComp);
 		}
 	}
 
-	CleanupNodes(OwnerComp, RootNode, CleanupType);
+	CleanupNodes(OwnerComp, *RootNode, CleanupType);
 	Info.InstanceMemory = InstanceMemory;
 }
 
-void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType)
+void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, EBTMemoryClear::Type CleanupType)
 {
-	if (Node == NULL)
+	for (int32 ServiceIndex = 0; ServiceIndex < Node.Services.Num(); ServiceIndex++)
 	{
-		return;
+		Node.Services[ServiceIndex]->CleanupInSubtree(OwnerComp, Node.Services[ServiceIndex]->GetNodeMemory<uint8>(*this), CleanupType);
 	}
 
-	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
-	{
-		Node->Services[ServiceIndex]->CleanupInSubtree(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), CleanupType);
-	}
+	Node.CleanupInSubtree(OwnerComp, Node.GetNodeMemory<uint8>(*this), CleanupType);
 
-	Node->CleanupInSubtree(OwnerComp, Node->GetNodeMemory<uint8>(*this), CleanupType);
-
-	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
+	for (int32 ChildIndex = 0; ChildIndex < Node.Children.Num(); ChildIndex++)
 	{
-		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
+		FBTCompositeChild& ChildInfo = Node.Children[ChildIndex];
 
 		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
@@ -114,7 +99,7 @@ void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent* OwnerComp, UBTC
 
 		if (ChildInfo.ChildComposite)
 		{
-			CleanupNodes(OwnerComp, ChildInfo.ChildComposite, CleanupType);
+			CleanupNodes(OwnerComp, *(ChildInfo.ChildComposite), CleanupType);
 		}
 		else if (ChildInfo.ChildTask)
 		{
@@ -148,7 +133,7 @@ int32 FBehaviorTreeSearchData::NextSearchId = 1;
 
 void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo)
 {
-	UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
+	UE_VLOG(OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
 		*UBehaviorTreeTypes::DescribeNodeUpdateMode(UpdateInfo.Mode),
 		*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
 

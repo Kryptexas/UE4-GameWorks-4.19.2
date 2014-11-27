@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AITypes.h"
+#include "GameFramework/Pawn.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
@@ -338,4 +339,11 @@ public:
 	UPawnActionsComponent* GetActionsComp() const;
 };
 
-
+namespace FAISystem
+{
+	FORCEINLINE bool IsValidControllerAndHasValidPawn(const AController* Controller)
+	{
+		return Controller != nullptr && Controller->IsPendingKillPending() == false
+			&& Controller->GetPawn() != nullptr && Controller->GetPawn()->IsPendingKillPending() == false;
+	}
+}

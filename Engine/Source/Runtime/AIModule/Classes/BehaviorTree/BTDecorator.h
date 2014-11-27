@@ -36,7 +36,7 @@ class AIMODULE_API UBTDecorator : public UBTAuxiliaryNode
 	void InitializeDecorator(uint8 InChildIndex);
 
 	/** wrapper for node instancing: CalculateRawConditionValue */
-	bool WrappedCanExecute(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	bool WrappedCanExecute(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
 
 	/** wrapper for node instancing: OnNodeActivation  */
 	void WrappedOnNodeActivation(FBehaviorTreeSearchData& SearchData) const;
@@ -118,7 +118,7 @@ protected:
 	virtual void OnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult);
 
 	/** calculates raw, core value of decorator's condition. Should not include calling IsInversed */
-	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
 
 	friend FBehaviorDecoratorDetails;
 };

@@ -9,29 +9,29 @@ UBTTaskNode::UBTTaskNode(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	bNotifyTick = false;
 }
 
-EBTNodeResult::Type UBTTaskNode::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTaskNode::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	return EBTNodeResult::Succeeded;
 }
 
-EBTNodeResult::Type UBTTaskNode::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTaskNode::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	return EBTNodeResult::Aborted;
 }
 
-EBTNodeResult::Type UBTTaskNode::WrappedExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTaskNode::WrappedExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
 	return NodeOb ? ((UBTTaskNode*)NodeOb)->ExecuteTask(OwnerComp, NodeMemory) : EBTNodeResult::Failed;
 }
 
-EBTNodeResult::Type UBTTaskNode::WrappedAbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTaskNode::WrappedAbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
 	return NodeOb ? ((UBTTaskNode*)NodeOb)->AbortTask(OwnerComp, NodeMemory) : EBTNodeResult::Aborted;
 }
 
-void UBTTaskNode::WrappedTickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
+void UBTTaskNode::WrappedTickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	if (bNotifyTick)
 	{
@@ -49,17 +49,17 @@ void UBTTaskNode::ReceivedMessage(UBrainComponent* BrainComp, const FAIMessage& 
 	uint16 InstanceIdx = OwnerComp->FindInstanceContainingNode(this);
 	uint8* NodeMemory = GetNodeMemory<uint8>(OwnerComp->InstanceStack[InstanceIdx]);
 
-	OnMessage(OwnerComp, NodeMemory, Message.MessageName, Message.RequestID, Message.Status == FAIMessage::Success);
+	OnMessage(*OwnerComp, NodeMemory, Message.MessageName, Message.RequestID, Message.Status == FAIMessage::Success);
 }
 
-void UBTTaskNode::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTTaskNode::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	// empty in base class
 }
 
-void UBTTaskNode::OnMessage(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 RequestID, bool bSuccess)
+void UBTTaskNode::OnMessage(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, FName Message, int32 RequestID, bool bSuccess)
 {
-	const EBTTaskStatus::Type Status = OwnerComp->GetTaskStatus(this);
+	const EBTTaskStatus::Type Status = OwnerComp.GetTaskStatus(this);
 	if (Status == EBTTaskStatus::Active)
 	{
 		FinishLatentTask(OwnerComp, bSuccess ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
@@ -70,36 +70,36 @@ void UBTTaskNode::OnMessage(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory
 	}
 }
 
-void UBTTaskNode::FinishLatentTask(UBehaviorTreeComponent* OwnerComp, EBTNodeResult::Type TaskResult) const
+void UBTTaskNode::FinishLatentTask(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type TaskResult) const
 {
 	// OnTaskFinished must receive valid template node
-	UBTTaskNode* TemplateNode = (UBTTaskNode*)OwnerComp->FindTemplateNode(this);
-	OwnerComp->OnTaskFinished(TemplateNode, TaskResult);
+	UBTTaskNode* TemplateNode = (UBTTaskNode*)OwnerComp.FindTemplateNode(this);
+	OwnerComp.OnTaskFinished(TemplateNode, TaskResult);
 }
 
-void UBTTaskNode::FinishLatentAbort(UBehaviorTreeComponent* OwnerComp) const
+void UBTTaskNode::FinishLatentAbort(UBehaviorTreeComponent& OwnerComp) const
 {
 	// OnTaskFinished must receive valid template node
-	UBTTaskNode* TemplateNode = (UBTTaskNode*)OwnerComp->FindTemplateNode(this);
-	OwnerComp->OnTaskFinished(TemplateNode, EBTNodeResult::Aborted);
+	UBTTaskNode* TemplateNode = (UBTTaskNode*)OwnerComp.FindTemplateNode(this);
+	OwnerComp.OnTaskFinished(TemplateNode, EBTNodeResult::Aborted);
 }
 
-void UBTTaskNode::WaitForMessage(UBehaviorTreeComponent* OwnerComp, FName MessageType) const
+void UBTTaskNode::WaitForMessage(UBehaviorTreeComponent& OwnerComp, FName MessageType) const
 {
 	// messages delegates should be called on node instances (if they exists)
-	OwnerComp->RegisterMessageObserver(this, MessageType);
+	OwnerComp.RegisterMessageObserver(this, MessageType);
 }
 
-void UBTTaskNode::WaitForMessage(UBehaviorTreeComponent* OwnerComp, FName MessageType, int32 RequestID) const
+void UBTTaskNode::WaitForMessage(UBehaviorTreeComponent& OwnerComp, FName MessageType, int32 RequestID) const
 {
 	// messages delegates should be called on node instances (if they exists)
-	OwnerComp->RegisterMessageObserver(this, MessageType, RequestID);
+	OwnerComp.RegisterMessageObserver(this, MessageType, RequestID);
 }
 	
-void UBTTaskNode::StopWaitingForMessages(UBehaviorTreeComponent* OwnerComp) const
+void UBTTaskNode::StopWaitingForMessages(UBehaviorTreeComponent& OwnerComp) const
 {
 	// messages delegates should be called on node instances (if they exists)
-	OwnerComp->UnregisterMessageObserversFrom(this);
+	OwnerComp.UnregisterMessageObserversFrom(this);
 }
 
 #if WITH_EDITOR

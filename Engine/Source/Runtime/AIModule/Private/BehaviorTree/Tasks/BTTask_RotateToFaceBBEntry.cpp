@@ -39,10 +39,9 @@ namespace
 	}
 }
 
-EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	check(OwnerComp);
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController == NULL || AIController->GetPawn() == NULL)
 	{
@@ -57,7 +56,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 
 	APawn* Pawn = AIController->GetPawn();
 	const FVector PawnLocation = Pawn->GetActorLocation();
-	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
 
 	if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
@@ -130,10 +129,9 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 	return Result;
 }
 
-void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	check(OwnerComp);
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController == NULL || AIController->GetPawn() == NULL)
 	{
@@ -173,9 +171,9 @@ void UBTTask_RotateToFaceBBEntry::CleanUp(AAIController& AIController, uint8* No
 	}
 }
 
-EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController != NULL)
 	{
@@ -185,12 +183,12 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponen
 	return EBTNodeResult::Succeeded;
 }
 
-void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	FString KeyDesc = BlackboardKey.SelectedKeyName.ToString();
 	Values.Add(FString::Printf(TEXT("%s: %s"), *Super::GetStaticDescription(), *KeyDesc));
 
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController != NULL && AIController->GetPawn() != NULL)
 	{

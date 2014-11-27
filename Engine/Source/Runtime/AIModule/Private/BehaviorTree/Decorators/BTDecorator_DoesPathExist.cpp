@@ -41,9 +41,9 @@ void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree& Asset)
 	BlackboardKeyB.CacheSelectedKey(BBAsset);
 }
 
-bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
+bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp == NULL)
 	{
 		return false;
@@ -56,10 +56,10 @@ bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeCompone
 	
 	bool bHasPath = false;
 
-	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp->GetWorld());
+	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp.GetWorld());
 	if (NavSys && bHasPointA && bHasPointB)
 	{
-		const AAIController* AIOwner = OwnerComp->GetAIOwner();
+		const AAIController* AIOwner = OwnerComp.GetAIOwner();
 		const ANavigationData* NavData = AIOwner ? NavSys->GetNavDataForProps(AIOwner->GetNavAgentProperties()) : NULL;
 		TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(NavData, FilterClass);
 

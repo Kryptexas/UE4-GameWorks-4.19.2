@@ -12,8 +12,8 @@ UTestBTTask_SetFlag::UTestBTTask_SetFlag(const FObjectInitializer& ObjectInitial
 	bValue = true;
 }
 
-EBTNodeResult::Type UTestBTTask_SetFlag::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UTestBTTask_SetFlag::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	OwnerComp->GetBlackboardComponent()->SetValueAsBool(KeyName, bValue);
+	OwnerComp.GetBlackboardComponent()->SetValueAsBool(KeyName, bValue);
 	return TaskResult;
 }

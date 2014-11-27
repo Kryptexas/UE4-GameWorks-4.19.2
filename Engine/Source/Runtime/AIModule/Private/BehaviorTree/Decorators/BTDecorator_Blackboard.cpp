@@ -11,9 +11,9 @@ UBTDecorator_Blackboard::UBTDecorator_Blackboard(const FObjectInitializer& Objec
 	NotifyObserver = EBTBlackboardRestart::ResultChange;
 }
 
-bool UBTDecorator_Blackboard::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_Blackboard::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	// note that this may produce unexpected logical results. FALSE is a valid return value here as well
 	// @todo signal it
 	return BlackboardComp && EvaluateOnBlackboard(*BlackboardComp);
@@ -91,11 +91,11 @@ void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent& Bla
 	}
 }
 
-void UBTDecorator_Blackboard::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_Blackboard::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	FString DescKeyValue;
 
 	if (BlackboardComp)

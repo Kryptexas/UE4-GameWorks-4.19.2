@@ -49,10 +49,10 @@ class AIMODULE_API UBehaviorTreeManager : public UObject
 	void DumpUsageStats() const;
 
 	/** register new behavior tree component for tracking */
-	void AddActiveComponent(UBehaviorTreeComponent* Component);
+	void AddActiveComponent(UBehaviorTreeComponent& Component);
 
 	/** unregister behavior tree component from tracking */
-	void RemoveActiveComponent(UBehaviorTreeComponent* Component);
+	void RemoveActiveComponent(UBehaviorTreeComponent& Component);
 
 	static UBehaviorTreeManager* GetCurrent(UWorld* World);
 	static UBehaviorTreeManager* GetCurrent(UObject* WorldContextObject);

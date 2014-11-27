@@ -20,7 +20,7 @@ namespace BlueprintNodeHelpers
 
 	bool FindNodeOwner(AActor* OwningActor, UBTNode* Node, UBehaviorTreeComponent*& OwningComp, int32& OwningInstanceIdx);
 
-	void AbortLatentActions(UActorComponent* OwnerOb, const UObject* Ob);
+	void AbortLatentActions(UActorComponent& OwnerOb, const UObject& Ob);
 
 	FORCEINLINE bool HasBlueprintFunction(FName FuncName, const UObject* Ob, const UClass* StopAtClass)
 	{

@@ -18,10 +18,11 @@ UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const FObjectInitializer& ObjectInitial
 	}
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AActor* QueryOwner = OwnerComp->GetOwner();
-	if (AController* ControllerOwner = Cast<AController>(QueryOwner))
+	AActor* QueryOwner = OwnerComp.GetOwner();
+	AController* ControllerOwner = Cast<AController>(QueryOwner);
+	if (ControllerOwner)
 	{
 		QueryOwner = ControllerOwner->GetPawn();
 	}
@@ -42,9 +43,9 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(UBehaviorTreeComponent* Own
 	return EBTNodeResult::Failed;
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	UWorld* MyWorld = OwnerComp->GetWorld();
+	UWorld* MyWorld = OwnerComp.GetWorld();
 	UEnvQueryManager* QueryManager = UEnvQueryManager::GetCurrent(MyWorld);
 	
 	if (QueryManager)
@@ -62,7 +63,7 @@ FString UBTTask_RunEQSQuery::GetStaticDescription() const
 		*GetNameSafe(QueryTemplate), *BlackboardKey.SelectedKeyName.ToString());
 }
 
-void UBTTask_RunEQSQuery::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_RunEQSQuery::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

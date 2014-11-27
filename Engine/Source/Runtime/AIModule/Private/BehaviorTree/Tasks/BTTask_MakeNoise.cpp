@@ -10,11 +10,9 @@ UBTTask_MakeNoise::UBTTask_MakeNoise(const FObjectInitializer& ObjectInitializer
 	NodeName = "MakeNoise";
 }
 
-EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	check(OwnerComp);
-
-	const AController* MyController = OwnerComp ? Cast<AController>(OwnerComp->GetOwner()) : NULL;
+	const AController* MyController = Cast<AController>(OwnerComp.GetOwner());
 	APawn* MyPawn = MyController ? MyController->GetPawn() : NULL;
 
 	if (MyPawn)

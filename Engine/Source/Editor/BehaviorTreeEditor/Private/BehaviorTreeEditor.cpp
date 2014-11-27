@@ -1019,11 +1019,14 @@ TSharedRef<class SWidget> FBehaviorTreeEditor::OnGetDebuggerActorsMenu()
 		// Fill the combo menu with presets of common screen resolutions
 		for (int32 i = 0; i < MatchingInstances.Num(); i++)
 		{
-			const FText ActorDesc = FText::FromString( Debugger->DescribeInstance(MatchingInstances[i]) );
-			TWeakObjectPtr<UBehaviorTreeComponent> InstancePtr = MatchingInstances[i];
+			if (MatchingInstances[i])
+			{
+				const FText ActorDesc = FText::FromString(Debugger->DescribeInstance(*MatchingInstances[i]));
+				TWeakObjectPtr<UBehaviorTreeComponent> InstancePtr = MatchingInstances[i];
 
-			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FBehaviorTreeEditor::OnDebuggerActorSelected, InstancePtr));
-			MenuBuilder.AddMenuEntry(ActorDesc, TAttribute<FText>(), FSlateIcon(), ItemAction);
+				FUIAction ItemAction(FExecuteAction::CreateSP(this, &FBehaviorTreeEditor::OnDebuggerActorSelected, InstancePtr));
+				MenuBuilder.AddMenuEntry(ActorDesc, TAttribute<FText>(), FSlateIcon(), ItemAction);
+			}
 		}
 
 		// Failsafe when no actor match

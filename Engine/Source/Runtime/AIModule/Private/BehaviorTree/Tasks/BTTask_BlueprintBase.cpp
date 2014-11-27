@@ -35,7 +35,7 @@ void UBTTask_BlueprintBase::SetOwner(AActor* InActorOwner)
 	AIOwner = Cast<AAIController>(InActorOwner);
 }
 
-EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	// fail when task doesn't react to execution (start or tick)
 	CurrentCallResult = (ReceiveExecuteImplementations != 0 || ReceiveTickImplementations != 0) ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
@@ -59,11 +59,11 @@ EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(UBehaviorTreeComponent* O
 	return CurrentCallResult;
 }
 
-EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	// force dropping all pending latent actions associated with this blueprint
 	// we can't have those resuming activity when node is/was aborted
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 
 	CurrentCallResult = ReceiveAbortImplementations != 0 ? EBTNodeResult::InProgress : EBTNodeResult::Aborted;
 
@@ -86,7 +86,7 @@ EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(UBehaviorTreeComponent* Own
 	return CurrentCallResult;
 }
 
-void UBTTask_BlueprintBase::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) 
+void UBTTask_BlueprintBase::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	if (AIOwner != nullptr && ReceiveTickImplementations & FBTNodeBPImplementationHelper::AISpecific)
 	{
@@ -109,7 +109,7 @@ void UBTTask_BlueprintBase::FinishExecute(bool bSuccess)
 	}
 	else if (OwnerComp)
 	{
-		FinishLatentTask(OwnerComp, NodeResult);
+		FinishLatentTask(*OwnerComp, NodeResult);
 	}
 }
 
@@ -124,7 +124,7 @@ void UBTTask_BlueprintBase::FinishAbort()
 	}
 	else if (OwnerComp)
 	{
-		FinishLatentAbort(OwnerComp);
+		FinishLatentAbort(*OwnerComp);
 	}
 }
 
@@ -173,7 +173,7 @@ FString UBTTask_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTTask_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTTask_BlueprintBase* CDO = (UBTTask_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -182,10 +182,10 @@ void UBTTask_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* 
 	}
 }
 
-void UBTTask_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+void UBTTask_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 }
 
 #if WITH_EDITOR

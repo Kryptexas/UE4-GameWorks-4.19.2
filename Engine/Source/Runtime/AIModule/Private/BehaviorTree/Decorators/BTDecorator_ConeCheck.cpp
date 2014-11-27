@@ -64,9 +64,9 @@ bool UBTDecorator_ConeCheck::CalculateDirection(const UBlackboardComponent* Blac
 	return false;
 }
 
-FORCEINLINE bool UBTDecorator_ConeCheck::CalcConditionImpl(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+FORCEINLINE bool UBTDecorator_ConeCheck::CalcConditionImpl(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const UBlackboardComponent* BBComponent = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BBComponent = OwnerComp.GetBlackboardComponent();
 
 	FVector ConeDir;
 	FVector DirectionToObserve;
@@ -76,12 +76,12 @@ FORCEINLINE bool UBTDecorator_ConeCheck::CalcConditionImpl(UBehaviorTreeComponen
 		&& ConeDir.CosineAngle2D(DirectionToObserve) > ConeHalfAngleDot;
 }
 
-bool UBTDecorator_ConeCheck::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_ConeCheck::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	return CalcConditionImpl(OwnerComp, NodeMemory);
 }
 
-void UBTDecorator_ConeCheck::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_ConeCheck::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
 	DecoratorMemory->bLastRawResult = CalcConditionImpl(OwnerComp, NodeMemory);
@@ -92,13 +92,13 @@ void UBTDecorator_ConeCheck::OnBlackboardChange(const UBlackboardComponent& Blac
 	check(false);
 }
 
-void UBTDecorator_ConeCheck::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTDecorator_ConeCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	const TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
+	const TNodeInstanceMemory* DecoratorMemory = reinterpret_cast<TNodeInstanceMemory*>(NodeMemory);
 
 	if (CalcConditionImpl(OwnerComp, NodeMemory) != DecoratorMemory->bLastRawResult)
 	{
-		OwnerComp->RequestExecution(this);
+		OwnerComp.RequestExecution(this);
 	}
 }
 
@@ -109,9 +109,9 @@ FString UBTDecorator_ConeCheck::GetStaticDescription() const
 		, ConeHalfAngle * 2, *ConeOrigin.SelectedKeyName.ToString(), *ConeDirection.SelectedKeyName.ToString());
 }
 
-void UBTDecorator_ConeCheck::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_ConeCheck::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
-	const UBlackboardComponent* BBComponent = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BBComponent = OwnerComp.GetBlackboardComponent();
 			
 	FVector ConeDir;
 	FVector DirectionToObserved;

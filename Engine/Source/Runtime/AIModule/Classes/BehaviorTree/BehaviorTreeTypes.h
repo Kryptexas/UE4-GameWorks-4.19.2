@@ -19,7 +19,7 @@ struct FBehaviorTreeSearchUpdate;
 
 // Visual logging helper
 #define BT_VLOG(Context, Verbosity, Format, ...) UE_VLOG(Context->OwnerComp.IsValid() ? Context->OwnerComp->GetOwner() : NULL, LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
-#define BT_SEARCHLOG(SearchData, Verbosity, Format, ...) UE_VLOG(SearchData.OwnerComp->GetOwner(), LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
+#define BT_SEARCHLOG(SearchData, Verbosity, Format, ...) UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
 
 // Behavior tree debugger in editor
 #define USE_BEHAVIORTREE_DEBUGGER	(1 && WITH_EDITORONLY_DATA)
@@ -297,18 +297,18 @@ struct FBehaviorTreeInstance
 #endif // STATS
 
 	/** initialize memory and create node instances */
-	void Initialize(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
+	void Initialize(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
 
 	/** update injected nodes */
-	void InjectNodes(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
+	void InjectNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex);
 
 	/** cleanup node instances */
-	void Cleanup(UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType);
+	void Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemoryClear::Type CleanupType);
 
 protected:
 
 	/** worker for updating all nodes */
-	void CleanupNodes(UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType);
+	void CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, EBTMemoryClear::Type CleanupType);
 };
 
 struct FBTNodeIndex
@@ -357,7 +357,7 @@ struct FBehaviorTreeSearchUpdate
 struct FBehaviorTreeSearchData
 {
 	/** BT component */
-	UBehaviorTreeComponent* OwnerComp;
+	UBehaviorTreeComponent& OwnerComp;
 
 	/** requested updates of additional nodes (preconditions, services, parallels)
 	 *  buffered during search to prevent instant add & remove pairs */
@@ -377,6 +377,9 @@ struct FBehaviorTreeSearchData
 
 	/** assign unique Id number */
 	void AssignSearchId();
+
+	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) : OwnerComp(InOwnerComp)
+	{}
 
 private:
 

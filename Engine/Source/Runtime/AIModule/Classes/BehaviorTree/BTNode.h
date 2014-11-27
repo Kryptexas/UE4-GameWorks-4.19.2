@@ -33,28 +33,28 @@ class AIMODULE_API UBTNode : public UObject
 	virtual void InitializeFromAsset(UBehaviorTree& Asset);
 	
 	/** initialize memory block */
-	virtual void InitializeMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const;
+	virtual void InitializeMemory(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const;
 
 	/** cleanup memory block */
-	virtual void CleanupMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const;
+	virtual void CleanupMemory(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const;
 
 	/** gathers description of all runtime parameters */
-	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const;
 
 	/** size of instance memory */
 	virtual uint16 GetInstanceMemorySize() const;
 
 	/** called when node instance is added to tree */
-	virtual void OnInstanceCreated(UBehaviorTreeComponent* OwnerComp);
+	virtual void OnInstanceCreated(UBehaviorTreeComponent& OwnerComp);
 
 	/** called when node instance is removed from tree */
-	virtual void OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp);
+	virtual void OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp);
 
 	/** called on creating subtree to set up memory and instancing */
-	void InitializeInSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const;
+	void InitializeInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const;
 
 	/** called on removing subtree to cleanup memory */
-	void CleanupInSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const;
+	void CleanupInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const;
 
 	/** size of special, hidden memory block for internal mechanics */
 	virtual uint16 GetSpecialMemorySize() const;
@@ -120,11 +120,11 @@ class AIMODULE_API UBTNode : public UObject
 	UBlackboardData* GetBlackboardAsset() const;
 
 	/** @return node instance if bCreateNodeInstance was set */
-	UBTNode* GetNodeInstance(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	UBTNode* GetNodeInstance(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
 	UBTNode* GetNodeInstance(FBehaviorTreeSearchData& SearchData) const;
 
 	/** @return string containing description of this node instance with all relevant runtime values */
-	FString GetRuntimeDescription(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity) const;
+	FString GetRuntimeDescription(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity) const;
 
 	/** @return string containing description of this node with all setup values */
 	virtual FString GetStaticDescription() const;
@@ -253,13 +253,13 @@ FORCEINLINE bool UBTNode::IsInstanced() const
 template<typename T>
 T* UBTNode::GetNodeMemory(FBehaviorTreeSearchData& SearchData) const
 {
-	return GetNodeMemory<T>(SearchData.OwnerComp->InstanceStack[SearchData.OwnerComp->GetActiveInstanceIdx()]);
+	return GetNodeMemory<T>(SearchData.OwnerComp.InstanceStack[SearchData.OwnerComp.GetActiveInstanceIdx()]);
 }
 
 template<typename T>
 const T* UBTNode::GetNodeMemory(const FBehaviorTreeSearchData& SearchData) const
 {
-	return GetNodeMemory<T>(SearchData.OwnerComp->InstanceStack[SearchData.OwnerComp->GetActiveInstanceIdx()]);
+	return GetNodeMemory<T>(SearchData.OwnerComp.InstanceStack[SearchData.OwnerComp.GetActiveInstanceIdx()]);
 }
 
 template<typename T>

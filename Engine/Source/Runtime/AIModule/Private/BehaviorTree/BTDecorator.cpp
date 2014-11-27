@@ -25,7 +25,7 @@ void UBTDecorator::InitializeDecorator(uint8 MyChildIndex)
 	ChildIndex = MyChildIndex;
 }
 
-bool UBTDecorator::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	return true;
 }
@@ -47,7 +47,7 @@ void UBTDecorator::OnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeR
 {
 }
 
-bool UBTDecorator::WrappedCanExecute(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator::WrappedCanExecute(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	const UBTDecorator* NodeOb = bCreateNodeInstance ? (const UBTDecorator*)GetNodeInstance(OwnerComp, NodeMemory) : this;
 	return NodeOb ? (IsInversed() != NodeOb->CalculateRawConditionValue(OwnerComp, NodeMemory)) : false;

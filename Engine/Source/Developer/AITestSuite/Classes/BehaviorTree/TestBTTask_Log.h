@@ -26,11 +26,11 @@ class UTestBTTask_Log : public UBTTaskNode
 	UPROPERTY()
 	TEnumAsByte<EBTNodeResult::Type> LogResult;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual uint16 GetInstanceMemorySize() const override;
 
-	void LogExecution(class UBehaviorTreeComponent* OwnerComp, int32 LogNumber);
+	void LogExecution(UBehaviorTreeComponent& OwnerComp, int32 LogNumber);
 
 protected:
-	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 };

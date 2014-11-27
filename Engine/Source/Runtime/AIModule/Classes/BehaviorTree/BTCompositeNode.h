@@ -105,16 +105,16 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	int32 FindChildToExecute(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& LastResult) const;
 
 	/** get index of child node (handle subtrees) */
-	int32 GetChildIndex(FBehaviorTreeSearchData& SearchData, const UBTNode* ChildNode) const;
+	int32 GetChildIndex(FBehaviorTreeSearchData& SearchData, const UBTNode& ChildNode) const;
 	/** get index of child node */
-	int32 GetChildIndex(const UBTNode* ChildNode) const;
+	int32 GetChildIndex(const UBTNode& ChildNode) const;
 
 	/** called before passing search to child node */
-	void OnChildActivation(FBehaviorTreeSearchData& SearchData, const UBTNode* ChildNode) const;
+	void OnChildActivation(FBehaviorTreeSearchData& SearchData, const UBTNode& ChildNode) const;
 	void OnChildActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIndex) const;
 
 	/** called after child has finished search */
-	void OnChildDeactivation(FBehaviorTreeSearchData& SearchData, const UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const;
+	void OnChildDeactivation(FBehaviorTreeSearchData& SearchData, const UBTNode& ChildNode, EBTNodeResult::Type& NodeResult) const;
 	void OnChildDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIndex, EBTNodeResult::Type& NodeResult) const;
 
 	/** called when start enters this node */
@@ -127,7 +127,7 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	void OnNodeRestart(FBehaviorTreeSearchData& SearchData) const;
 
 	/** notify about task execution start */
-	void ConditionalNotifyChildExecution(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, const UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const;
+	void ConditionalNotifyChildExecution(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, const UBTNode& ChildNode, EBTNodeResult::Type& NodeResult) const;
 
 	/** size of instance memory */
 	virtual uint16 GetInstanceMemorySize() const override;
@@ -148,10 +148,10 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	void SetChildOverride(FBehaviorTreeSearchData& SearchData, int8 Index) const;
 
 	/** gathers description of all runtime parameters */
-	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 
 	/** check if child node can execute new subtree */
-	virtual bool CanPushSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const;
+	virtual bool CanPushSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx) const;
 
 #if WITH_EDITOR
 	/** @return allowed flow abort modes for decorators */
@@ -163,7 +163,7 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	int32 GetMatchingChildIndex(int32 ActiveInstanceIdx, FBTNodeIndex& NodeIdx) const;
 
 	/** is child execution allowed by decorators? */
-	bool DoDecoratorsAllowExecution(UBehaviorTreeComponent* OwnerComp, int32 InstanceIdx, int32 ChildIdx) const;
+	bool DoDecoratorsAllowExecution(UBehaviorTreeComponent& OwnerComp, int32 InstanceIdx, int32 ChildIdx) const;
 
 protected:
 
@@ -180,7 +180,7 @@ protected:
 	uint8 bUseNodeDeactivationNotify : 1;
 
 	/** called just after child execution, allows to modify result */
-	virtual void NotifyChildExecution(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const;
+	virtual void NotifyChildExecution(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const;
 
 	/** called when start enters this node */
 	virtual void NotifyNodeActivation(FBehaviorTreeSearchData& SearchData) const;
@@ -201,7 +201,7 @@ protected:
 	int32 GetNextChild(FBehaviorTreeSearchData& SearchData, int32 LastChildIdx, EBTNodeResult::Type LastResult) const;
 
 	/** store delayed execution request */
-	void RequestDelayedExecution(UBehaviorTreeComponent* OwnerComp, EBTNodeResult::Type LastResult) const;
+	void RequestDelayedExecution(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type LastResult) const;
 };
 
 
@@ -214,7 +214,7 @@ FORCEINLINE UBTNode* UBTCompositeNode::GetChildNode(int32 Index) const
 		(Children[Index].ChildComposite ?
 			(UBTNode*)Children[Index].ChildComposite :
 			(UBTNode*)Children[Index].ChildTask) :
-		NULL;
+		nullptr;
 }
 
 FORCEINLINE int32 UBTCompositeNode::GetChildrenNum() const

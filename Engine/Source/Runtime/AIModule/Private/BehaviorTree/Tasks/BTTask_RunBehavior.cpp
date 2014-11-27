@@ -9,9 +9,9 @@ UBTTask_RunBehavior::UBTTask_RunBehavior(const FObjectInitializer& ObjectInitial
 	NodeName = "Run Behavior";
 }
 
-EBTNodeResult::Type UBTTask_RunBehavior::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunBehavior::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	const bool bPushed = OwnerComp->PushInstance(*BehaviorAsset);
+	const bool bPushed = OwnerComp.PushInstance(*BehaviorAsset);
 	return bPushed ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
 }
 
@@ -39,7 +39,7 @@ uint16 UBTTask_RunBehavior::GetInstanceMemorySize() const
 	return MemorySize;
 }
 
-void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& InstancedIndex) const
+void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32& InstancedIndex) const
 {
 	if (BehaviorAsset == NULL || BehaviorAsset->RootDecorators.Num() == 0)
 	{
@@ -53,7 +53,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 	uint8* InjectedMemoryBase = NodeMemory + sizeof(FBTInstancedNodeMemory);
 
 	// initialize on first access
-	if (!OwnerComp->NodeInstances.IsValidIndex(InstancedIndex))
+	if (!OwnerComp.NodeInstances.IsValidIndex(InstancedIndex))
 	{
 		TArray<uint16> MemoryOffsets;
 		int32 MemorySize = 0;
@@ -88,7 +88,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 				DecoratorOb->InitializeInSubtree(OwnerComp, RawDummyMemory, InstancedIndex, InitType);
 				DecoratorOb->ForceInstancing(false);
 
-				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances.Last());
+				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances.Last());
 				InstancedOb->InitializeMemory(OwnerComp, InjectedMemoryBase + MemoryOffsets[Idx], InitType);
 			}
 		}
@@ -97,7 +97,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 		uint16 NewExecutionIdx = GetExecutionIndex() - GetInjectedNodesCount();
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 		{
-			UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
+			UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances[FirstNodeIdx + Idx]);
 			InstancedOb->InitializeNode(GetParentNode(), NewExecutionIdx, GetMemoryOffset() + MemoryOffsets[Idx], GetTreeDepth() - 1);
 			InstancedOb->MarkInjectedNode();
 
@@ -113,7 +113,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 		{
 			UBTDecorator* DecoratorOb = BehaviorAsset->RootDecorators[Idx];
-			UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
+			UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances[FirstNodeIdx + Idx]);
 
 			const bool bUsesInstancing = DecoratorOb->HasInstance();
 			if (bUsesInstancing)
@@ -133,7 +133,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 	// inject nodes
 	if (GetParentNode())
 	{
-		const int32 ChildIdx = GetParentNode()->GetChildIndex(this);
+		const int32 ChildIdx = GetParentNode()->GetChildIndex(*this);
 		if (ChildIdx != INDEX_NONE)
 		{
 			FBTCompositeChild& LinkData = GetParentNode()->Children[ChildIdx];
@@ -153,7 +153,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 			const int32 NumOriginalDecorators = LinkData.Decorators.Num();
 			for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 			{
-				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
+				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances[FirstNodeIdx + Idx]);
 				InstancedOb->InitializeFromAsset(*BehaviorAsset);
 				InstancedOb->InitializeDecorator(ChildIdx);
 
@@ -223,12 +223,12 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 
 				if (NodeIt)
 				{
-					NodeIt->InitializeExecutionOrder(OwnerComp->NodeInstances[FirstNodeIdx]);
+					NodeIt->InitializeExecutionOrder(OwnerComp.NodeInstances[FirstNodeIdx]);
 					NodeIt = NodeIt->GetNextNode();
 
 					for (int32 Idx = 1; Idx < NumInjectedDecorators; Idx++)
 					{
-						NodeIt->InitializeExecutionOrder(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
+						NodeIt->InitializeExecutionOrder(OwnerComp.NodeInstances[FirstNodeIdx + Idx]);
 						NodeIt = NodeIt->GetNextNode();
 					}
 
@@ -240,11 +240,11 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 	}
 }
 
-void UBTTask_RunBehavior::CleanupMemory(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
+void UBTTask_RunBehavior::CleanupMemory(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
 	Super::CleanupMemory(OwnerComp, NodeMemory, CleanupType);
 
-	if (GetParentNode() && OwnerComp && BehaviorAsset)
+	if (GetParentNode() && BehaviorAsset)
 	{
 		FBTInstancedNodeMemory* NodeMemoryHeader = (FBTInstancedNodeMemory*)NodeMemory;
 		uint8* InjectedMemoryBase = NodeMemory + sizeof(FBTInstancedNodeMemory);
@@ -253,8 +253,8 @@ void UBTTask_RunBehavior::CleanupMemory(UBehaviorTreeComponent* OwnerComp, uint8
 		for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
 		{
 			const int32 InstancedNodeIdx = NodeMemoryHeader->NodeIdx + Idx;
-			UBTDecorator* InstancedOb = OwnerComp->NodeInstances.IsValidIndex(InstancedNodeIdx) ?
-				Cast<UBTDecorator>(OwnerComp->NodeInstances[InstancedNodeIdx]) : NULL;
+			UBTDecorator* InstancedOb = OwnerComp.NodeInstances.IsValidIndex(InstancedNodeIdx) ?
+				Cast<UBTDecorator>(OwnerComp.NodeInstances[InstancedNodeIdx]) : NULL;
 
 			if (InstancedOb)
 			{

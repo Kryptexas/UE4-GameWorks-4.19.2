@@ -18,5 +18,5 @@ class UTestBTTask_SetFlag : public UBTTaskNode
 	UPROPERTY()
 	TEnumAsByte<EBTNodeResult::Type> TaskResult;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

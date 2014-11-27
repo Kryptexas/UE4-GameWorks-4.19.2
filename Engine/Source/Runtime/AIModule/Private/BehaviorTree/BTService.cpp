@@ -13,7 +13,7 @@ UBTService::UBTService(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	RandomDeviation = 0.1f;
 }
 
-void UBTService::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	const float NextTickTime = FMath::FRandRange(FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation));
 	SetNextTickTime(NodeMemory, NextTickTime);

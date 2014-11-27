@@ -19,18 +19,16 @@ UBTService_DefaultFocus::UBTService_DefaultFocus(const FObjectInitializer& Objec
 	BlackboardKey.AddVectorFilter(this);
 }
 
-void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) 
+void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	check(OwnerComp);
-
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
 	FBTFocusMemory* MyMemory = (FBTFocusMemory*)NodeMemory;
 	check(MyMemory);
 	MyMemory->Reset();
 
-	AAIController* OwnerController = OwnerComp->GetAIOwner();
-	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
+	AAIController* OwnerController = OwnerComp.GetAIOwner();
+	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
 	
 	if (OwnerController != NULL && MyBlackboard != NULL)
 	{
@@ -54,15 +52,13 @@ void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp
 	}
 }
 
-void UBTService_DefaultFocus::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService_DefaultFocus::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	check(OwnerComp);
-
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
 	FBTFocusMemory* MyMemory = (FBTFocusMemory*)NodeMemory;
 	check(MyMemory);
-	AAIController* OwnerController = OwnerComp->GetAIOwner();
+	AAIController* OwnerController = OwnerComp.GetAIOwner();
 	if (OwnerController != NULL)
 	{
 		bool bClearFocus = false;
@@ -94,7 +90,7 @@ FString UBTService_DefaultFocus::GetStaticDescription() const
 	return FString::Printf(TEXT("Set default focus to %s"), *KeyDesc);
 }
 
-void UBTService_DefaultFocus::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTService_DefaultFocus::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 }

@@ -18,10 +18,10 @@ void UBTTask_WaitBlackboardTime::InitializeFromAsset(UBehaviorTree& Asset)
 	BlackboardKey.CacheSelectedKey(GetBlackboardAsset());
 }
 
-EBTNodeResult::Type UBTTask_WaitBlackboardTime::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_WaitBlackboardTime::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	// Update wait time based on current blackboard key value
-	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
 	if (MyBlackboard && BlackboardKey.SelectedKeyType == UBlackboardKeyType_Float::StaticClass())
 	{
 		WaitTime = MyBlackboard->GetValueAsFloat(BlackboardKey.GetSelectedKeyID());
