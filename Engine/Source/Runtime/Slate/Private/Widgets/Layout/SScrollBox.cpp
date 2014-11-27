@@ -361,6 +361,28 @@ void SScrollBox::ScrollToEnd()
 	bScrollToEnd = true;
 }
 
+bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll)
+{
+	// We need to safely find the one WidgetToFind among our descendants.
+	TSet< TSharedRef<SWidget> > WidgetsToFind;
+	{
+		WidgetsToFind.Add( WidgetToFind.ToSharedRef() );
+	}
+	TMap<TSharedRef<SWidget>, FArrangedWidget> Result;
+
+	FindChildGeometries( MyGeometry, WidgetsToFind, Result );
+
+	FArrangedWidget* WidgetGeometry = Result.Find( WidgetToFind.ToSharedRef() );
+	if ( ensureMsg( WidgetGeometry, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox") ) )
+	{
+		// Calculate how much we would need to scroll to bring this to the top of the scroll box
+		const float ScrollOffset = WidgetGeometry->Geometry.AbsolutePosition.Y - MyGeometry.AbsolutePosition.Y;
+		ScrollBy(MyGeometry, ScrollOffset, InAnimateScroll);
+		return true;
+	}
+	return false;
+}
+
 EOrientation SScrollBox::GetOrientation()
 {
 	return Orientation;
