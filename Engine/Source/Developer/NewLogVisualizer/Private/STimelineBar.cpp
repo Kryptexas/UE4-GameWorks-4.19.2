@@ -221,12 +221,14 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	const FSlateBrush* FillImage = FLogVisualizerStyle::Get().GetBrush("LogVisualizer.LogBar.EntryDefault");
 	static const FColor CurrentTimeColor(140, 255, 255, 255);
 	static const FColor ErrorTimeColor(255, 0, 0, 255);
+	static const FColor WarningTimeColor(255, 255, 0, 255);
 	static const FColor SelectedBarColor(255, 255, 255, 255);
 	const FSlateBrush* SelectedFillImage = FLogVisualizerStyle::Get().GetBrush("LogVisualizer.LogBar.Selected");
 
 	const ESlateDrawEffect::Type DrawEffects = ESlateDrawEffect::None;// bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	TArray<float> ErrorTimes;
+	TArray<float> WarningTimes;
 	auto &Entries = TimelineOwner.Pin()->GetEntries();
 	for (int32 Index = 0; Index < Entries.Num(); Index++)
 	{
@@ -250,6 +252,11 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 				ErrorTimes.AddUnique(CurrentTime);
 				break;
 			}
+			else if (CurrentLine.Verbosity == ELogVerbosity::Warning)
+			{
+				WarningTimes.AddUnique(CurrentTime);
+				break;
+			}
 		}
 
 		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
@@ -269,6 +276,23 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 	float ErrorBoxWidth = BoxWidth+2;
 	for (auto CurrentTime : ErrorTimes)
+	{
+		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			RetLayerId++,
+			AllottedGeometry.ToPaintGeometry(
+			FVector2D(LinePos - ErrorBoxWidth * 0.5f, 0.0f),
+			FVector2D(ErrorBoxWidth, AllottedGeometry.Size.Y)),
+			FillImage,
+			MyClippingRect,
+			DrawEffects,
+			ErrorTimeColor
+			);
+	}
+
+	for (auto CurrentTime : WarningTimes)
 	{
 		float LinePos = (CurrentTime - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
 
