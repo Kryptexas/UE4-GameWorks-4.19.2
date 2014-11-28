@@ -803,6 +803,11 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 		{
 			StatType = STATTYPE_AccumulatorFLOAT;
 		}
+		else if( LongName.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_Ptr )
+		{
+			// Not supported at this moment.
+			continue;
+		}
 
 		check( StatType != STATTYPE_Error );
 

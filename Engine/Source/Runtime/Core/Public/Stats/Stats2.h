@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include "LockFreeList.h"
+#include "LockFreeFixedSizeAllocator.h"
 #include "ChunkedArray.h"
+
+class FThreadStats;
 
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds
@@ -174,10 +178,16 @@ struct EStatDataType
 	enum Type
 	{
 		Invalid,
+		/** Not defined. */
 		ST_None,
+		/** int64. */
 		ST_int64,
+		/** double. */
 		ST_double,
+		/** FName. */
 		ST_FName,
+		/** Memory pointer, stored as uint64. */
+		ST_Ptr,
 
 		Num,
 		Mask = 0x7,
@@ -194,16 +204,28 @@ struct EStatOperation
 	enum Type
 	{
 		Invalid,
+		/** Indicates metadata message. */
 		SetLongName,
+		/** Special message for advancing the stats frame from the game thread. */
 		AdvanceFrameEventGameThread,    
+		/** Special message for advancing the stats frame from the render thread. */
 		AdvanceFrameEventRenderThread,  
+		/** Indicates begin of the cycle scope. */
 		CycleScopeStart,
+		/** Indicates end of the cycle scope. */
 		CycleScopeEnd,
-		SpecialMessageMarker, // This is not a regular stat operation, but just a special message marker to determine that we encountered a special data in the stat file
+		/** This is not a regular stat operation, but just a special message marker to determine that we encountered a special data in the stat file. */
+		SpecialMessageMarker,
+		/** Set operation. */
 		Set, 
+		/** Clear operation. */
 		Clear,
+		/** Add operation. */
 		Add,
+		/** Subtract operation. */
 		Subtract,
+		/** This is a memory operation. @see EMemoryOperation. */
+		Memory,
 
 		// these are special ones for processed data
 		ChildrenStart,
@@ -259,6 +281,21 @@ struct EMemoryRegion
 	static_assert(FPlatformMemory::MCR_MAX < (1 << NumBits), "Need to expand memory region field.");
 };
 
+/** Memory operation for STAT_Memory_AllocPtr. */
+enum class EMemoryOperation
+{
+	/** Invalid. */
+	Invalid,	
+	/** Alloc. */
+	Alloc,
+	/** Free. */
+	Free,
+
+	Num,
+	Mask = 0x7,
+	/** Every allocation is aligned to 8 or 16 bytes, so we have 3/4 bits free to use. */
+	NumBits = 3,
+};
 
 /**
  * A few misc final bit packing computations
@@ -541,6 +578,8 @@ private:
 	double	Float;
 	/** For ST_int64 and IsCycle or IsMemory. */
 	int64	Cycles;
+	/** For ST_Ptr. */
+	uint64	Ptr;
 	/** ST_int64 and IsPackedCCAndDuration. */
 	int32	CCAndDuration[2];
 };
@@ -593,7 +632,7 @@ struct FStatMessage
 		NameAndInfo.SetField<EStatOperation>(EStatOperation::SetLongName);
 	}
 
-	FORCEINLINE_STATS FStatMessage(FStatNameAndInfo InStatName)
+	explicit FORCEINLINE_STATS FStatMessage(FStatNameAndInfo InStatName)
 		: NameAndInfo(InStatName)
 	{
 	}
@@ -622,7 +661,7 @@ struct FStatMessage
 	/**
 	* int64 operation
 	*/
-	explicit FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, int64 Value, bool bIsCycle)
+	FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, int64 Value, bool bIsCycle)
 		: NameAndInfo(InStatName, true)
 	{
 		NameAndInfo.SetField<EStatOperation>(InStatOperation);
@@ -634,7 +673,7 @@ struct FStatMessage
 	/**
 	* double operation
 	*/
-	explicit FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, double Value, bool)
+	FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, double Value, bool)
 		: NameAndInfo(InStatName, true)
 	{
 		NameAndInfo.SetField<EStatOperation>(InStatOperation);
@@ -646,13 +685,25 @@ struct FStatMessage
 	/**
 	* name operation
 	*/
-	explicit FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, FName Value, bool)
+	FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, FName Value, bool)
 		: NameAndInfo(InStatName, true)
 	{
 		NameAndInfo.SetField<EStatOperation>(InStatOperation);
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
 		checkStats(NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) == false);
 		GetValue_FName() = Value;
+	}
+
+	/**
+	 * Ptr operation
+	 */
+	FORCEINLINE_STATS FStatMessage(FName InStatName, EStatOperation::Type InStatOperation, uint64 Value, bool)
+		: NameAndInfo(InStatName, true)
+	{
+		NameAndInfo.SetField<EStatOperation>(InStatOperation);
+		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_Ptr);
+		checkStats(NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) == false);
+		GetValue_Ptr() = Value;
 	}
 
 	/**
@@ -677,6 +728,18 @@ struct FStatMessage
 	{
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		return *(int64 const*)&StatData;
+	}
+
+	FORCEINLINE_STATS uint64& GetValue_Ptr()
+	{
+		static_assert(sizeof(uint64) <= DATA_SIZE && ALIGNOF(uint64) <= DATA_ALIGN, "Bad data for stat message.");
+		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_Ptr);
+		return *(uint64*)&StatData;
+	}
+	FORCEINLINE_STATS uint64 GetValue_Ptr() const
+	{
+		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_Ptr);
+		return *(uint64 const*)&StatData;
 	}
 
 	FORCEINLINE_STATS int64 GetValue_Duration() const
@@ -1000,15 +1063,72 @@ struct FStatPacket
 	}
 };
 
+/** Helper struct used to monitor the scope of the message. */
+struct FStatMessageLock
+{
+	FStatMessageLock(int32& InMessageScope)
+		: MessageScope(InMessageScope)
+	{
+		MessageScope++;
+	}
+
+	~FStatMessageLock()
+	{
+		MessageScope--;
+	}
+
+protected:
+	int32& MessageScope;
+};
+
+/** Preallocates FThreadStats to avoid dynamic memory allocation. */
+struct CORE_API FThreadStatsPool
+{
+	enum
+	{
+		/**
+		 *	Number of elements preallocated in the pool.
+		 *  Should be enough to handle all threads.
+		 *  Increase if you encounter a crash.
+		 */
+		NUM_ELEMENTS_IN_POOL = 128,
+	};
+
+	/** Lock free pool of FThreadStats instances. */
+	TLockFreePointerList<FThreadStats> Pool;
+
+public:
+	/** Default constructor. */
+	FThreadStatsPool();
+
+	/** Singleton accessor. */
+	static FThreadStatsPool& Get()
+	{
+		static FThreadStatsPool Singleton;
+		return Singleton;
+	}
+
+	/** Gets an instance from the pool and call the default constructor on it. */
+	FThreadStats* GetFromPool();
+
+	/** Return an instance to the pool. */
+	void ReturnToPool(FThreadStats* Instance);
+};
+
 /**
 * This is thread-private information about the stats we are acquiring. Pointers to these objects are held in TLS.
 */
 class FThreadStats
 {
+	friend class FStatsMallocProfilerProxy;
+	friend class FStatsThreadState;
+	friend class FStatsThread;
+	friend struct FThreadStatsPool;
+
 	enum
 	{
 		PRESIZE_MAX_NUM_ENTRIES = 10,
-		PRESIZE_MAX_SIZE = EStatMessagesArrayConstants::MESSAGES_CHUNK_SIZE,
+		PRESIZE_MAX_SIZE = 256*1024,
 	};
 
 	/** Used to control when we are collecting stats. User of the stats system increment and decrement this counter as they need data. **/
@@ -1024,7 +1144,8 @@ class FThreadStats
 	/** TLS slot that holds a FThreadStats. **/
 	CORE_API static uint32 TlsSlot;
 
-	friend class FStatsThread;
+	/** The data we are eventually going to send to the stats thread. **/
+	FStatPacket Packet;
 
 	/** Current game frame for this thread stat. */
 	int32 CurrentGameFrame;
@@ -1035,14 +1156,22 @@ class FThreadStats
 	/** Tracks current stack depth for cycle counters. **/
 	uint32 bWaitForExplicitFlush;
 
+	/** 
+	 * Tracks the progress of adding a new memory stat message and prevents from using the memory profiler in the scope.
+	 * Mostly related to ignoring all memory allocations in Flush() and AddStatMessage().
+	 * Memory usage of the stats messages is handled by the STAT_StatMessagesMemory.
+	 */
+	int32 MemoryMessageScope;
+
 	/** Tracks current stack depth for cycle counters. **/
 	bool bSawExplicitFlush;
 
-	/** The data we are eventually going to send to the stats thread. **/
-	FStatPacket Packet;
-
-	/** Gathers information about the current thread and sets upt eh TLS value. **/
+	/** Gathers information about the current thread and sets up the TLS value. **/
 	CORE_API FThreadStats();
+
+	/** Constructor used for the pool. */
+	CORE_API FThreadStats(bool);
+
 	/** Copys a packet for sending. !!!CAUTION!!! does not copy packets.**/
 	CORE_API FThreadStats(FThreadStats const& Other);
 
@@ -1052,7 +1181,7 @@ class FThreadStats
 		FThreadStats* Stats = (FThreadStats*)FPlatformTLS::GetTlsValue(TlsSlot);
 		if (!Stats)
 		{
-			Stats = new FThreadStats();
+			Stats = FThreadStatsPool::Get().GetFromPool();
 		}
 		return Stats;
 	}
@@ -1063,6 +1192,12 @@ class FThreadStats
 	/** Send any outstanding packets to the stats thread **/
 	CORE_API void Flush(bool bHasBrokenCallstacks = false);
 
+	FORCEINLINE_STATS void AddStatMessage( const FStatMessage& StatMessage )
+	{
+		FStatMessageLock MessageLock(MemoryMessageScope);
+		Packet.StatMessages.AddElement(StatMessage);
+	}
+
 public:
 	/** This should be called when a thread exits, this deletes FThreadStats from the heap and TLS. **/
 	static void Shutdown()
@@ -1070,8 +1205,9 @@ public:
 		FThreadStats* Stats = (FThreadStats*)FPlatformTLS::GetTlsValue(TlsSlot);
 		if (Stats)
 		{
+			// Flush stats?
 			FPlatformTLS::SetTlsValue(TlsSlot, nullptr);
-			delete Stats;
+			FThreadStatsPool::Get().ReturnToPool(Stats);
 		}
 	}
 
@@ -1084,13 +1220,13 @@ public:
 		if (InStatOperation == EStatOperation::CycleScopeStart)
 		{
 			ThreadStats->ScopeCount++;
-			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);	
+			ThreadStats->AddStatMessage(FStatMessage(InStatName, InStatOperation));
 		}
 		else if (InStatOperation == EStatOperation::CycleScopeEnd)
 		{
 			if (ThreadStats->ScopeCount > ThreadStats->bWaitForExplicitFlush)
 			{
-				new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);
+				ThreadStats->AddStatMessage(FStatMessage(InStatName, InStatOperation));
 				ThreadStats->ScopeCount--;
 				if (!ThreadStats->ScopeCount)
 				{
@@ -1108,12 +1244,19 @@ public:
 		if (!InStatName.IsNone() && WillEverCollectData())
 		{
 			FThreadStats* ThreadStats = GetThreadStats();
-			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation, Value, bIsCycle);
+			ThreadStats->AddStatMessage(FStatMessage(InStatName, InStatOperation, Value, bIsCycle));
 			if(!ThreadStats->ScopeCount)
 			{
 				ThreadStats->Flush();
 			}
 		}
+	}
+
+	/** Pseudo-Memory operation. */
+	template<typename TValue>
+	FORCEINLINE_STATS void AddMemoryMessage( FName InStatName, TValue Value )
+	{
+		AddStatMessage(FStatMessage(InStatName, EStatOperation::Memory, Value, false));
 	}
 
 	/** 
@@ -1264,6 +1407,7 @@ public:
 };
 
 /** Manages startup messages, usually to update the metadata. */
+// @TODO yrx 2014-11-18 Eventually add startup messages for memory profiling?
 class CORE_API FStartupMessages
 {
 public:
@@ -1349,7 +1493,7 @@ protected:
 template<class TStatData, bool TCompiledIn>
 struct FThreadSafeStaticStatInner : public FThreadSafeStaticStatBase
 {
-	FORCEINLINE TStatId GetStatId() const
+	FORCEINLINE_STATS TStatId GetStatId() const
 	{
 		static_assert(sizeof(HighPerformanceEnable) == sizeof(TStatId), "Unsafe cast requires these to be the same thing.");
 		if (!HighPerformanceEnable)
@@ -1448,6 +1592,10 @@ struct FStat_##StatName\
 
 #define STAT_GROUP_TO_FStatGroup(Group) FStatGroup_##Group
 
+/*-----------------------------------------------------------------------------
+	Local
+-----------------------------------------------------------------------------*/
+
 #define DEFINE_STAT(Stat) \
 	struct FThreadSafeStaticStat<FStat_##Stat> StatPtr_##Stat;
 
@@ -1471,12 +1619,18 @@ struct FStat_##StatName\
 #define DECLARE_DWORD_ACCUMULATOR_STAT(CounterName,StatId,GroupId) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, false, false, FPlatformMemory::MCR_Invalid); \
 	static DEFINE_STAT(StatId)
+
 #define DECLARE_MEMORY_STAT(CounterName,StatId,GroupId) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, false, false, FPlatformMemory::MCR_Physical); \
 	static DEFINE_STAT(StatId)
+
 #define DECLARE_MEMORY_STAT_POOL(CounterName,StatId,GroupId,Pool) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, false, false, Pool); \
 	static DEFINE_STAT(StatId)
+
+/*-----------------------------------------------------------------------------
+	Extern
+-----------------------------------------------------------------------------*/
 
 #define DECLARE_CYCLE_STAT_EXTERN(CounterName,StatId,GroupId, APIX) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
@@ -1721,6 +1875,6 @@ DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("StatUnit FPS"), STAT_FPS, STATGROUP_Engi
 /** Stats for the stat system */
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawStats"),STAT_DrawStats,STATGROUP_StatSystem, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Stat messages memory"),STAT_StatMessagesMemory,STATGROUP_StatSystem, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Stat Messages"),STAT_StatMessagesMemory,STATGROUP_StatSystem, CORE_API);
 
 #endif

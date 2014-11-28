@@ -14,6 +14,7 @@
 #include "MallocProfiler.h"
 #include "MallocThreadSafeProxy.h"
 #include "MallocCrash.h"
+#include "StatsMallocProfilerProxy.h"
 
 
 /** Helper function called on first allocation to create and initialize GMalloc */
@@ -39,6 +40,11 @@ void GCreateMalloc()
 	{
 		GMalloc = new FMallocThreadSafeProxy( GMalloc );
 	}
+
+#if	STATS
+	// Create the stats malloc profiler proxy, needs to be enabled separately.
+	//GMalloc = FStatsMallocProfilerProxy::Get();
+#endif // STATS
 }
 
 

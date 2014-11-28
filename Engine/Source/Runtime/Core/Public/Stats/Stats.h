@@ -283,6 +283,7 @@
  */
 
 #define FORCEINLINE_STATS FORCEINLINE
+//#define FORCEINLINE_STATS FORCEINLINE_DEBUGGABLE
 #define checkStats(x)
 
 #if !defined(STATS)

@@ -192,6 +192,7 @@ struct CORE_API FStatPacketArray
 	void Empty();
 };
 
+// @TODO yrx 2014-11-21 basic memory profiling?
 /**
 * A call stack of stat messages. Normally we don't store or transmit these; they are used for stats processing and visualization.
 */
@@ -399,6 +400,37 @@ struct IItemFiler
 	virtual bool Keep(FStatMessage const& Item) = 0;
 };
 
+/** Simple allocation info, temporary. */
+struct FAllocationInfo
+{
+	int64 Size;
+	FName Scope;
+	FAllocationInfo(int64 InSize, FName InScope)
+		: Size(InSize)
+		, Scope(InScope)
+	{}
+	FAllocationInfo()
+		: Size(0)
+	{}
+};
+
+/** Simple allocation info, temporary. */
+struct FAllocationInfoEx
+{
+	int64 Size;
+	FName Scope;
+	int64 Cycles;
+	FAllocationInfoEx(int64 InSize, FName InScope, int64 InCycles)
+		: Size(InSize)
+		, Scope(InScope)
+		, Cycles(InCycles)
+	{}
+	FAllocationInfoEx()
+		: Size(0)
+		, Cycles(0)
+	{}
+};
+
 // @TODO yrx 2014-03-21 Move metadata functionality into a separate class
 /**
 * Tracks stat state and history
@@ -477,6 +509,12 @@ private:
 	/** Cached condensed frames. This saves a lot of time since multiple listeners can use the same condensed data **/
 	mutable TMap<int64, TArray<FStatMessage>* > CondensedStackHistory;
 
+	/** Map from allocation pointer to allocation info, currently active allocations */
+	mutable TMap< uint64, FAllocationInfo > AllocationMap;
+
+	/** Map from allocation pointer to allocation info. */
+	mutable TMap< uint64, FAllocationInfoEx > NonSequentialAllocationMap;
+
 	/** After we add to the history, these frames are known good. **/
 	TSet<int64>	GoodFrames;
 
@@ -529,6 +567,17 @@ public:
 	bool IsFrameValid(int64 Frame) const
 	{
 		return GoodFrames.Contains(Frame);
+	}
+
+	/** Gets allocations map. */
+	const TMap< uint64, FAllocationInfo >& GetAllocations() const 
+	{ 
+		return AllocationMap; 
+	}
+
+	const TMap< uint64, FAllocationInfoEx >& GetNonSequentialAllocations() const 
+	{ 
+		return NonSequentialAllocationMap; 
 	}
 
 	/** Used by the hitch detector. Does a very fast look a thread to decide if this is a hitch frame. **/
@@ -778,7 +827,7 @@ struct FGameThreadHudData
 /**
 * Singleton that holds the last data sent from the stats thread to the game thread for HUD stats
 */
-struct CORE_API FHUDGroupGameThreadRenderer 
+struct FHUDGroupGameThreadRenderer 
 {
 	FGameThreadHudData* Latest;
 
@@ -795,16 +844,16 @@ struct CORE_API FHUDGroupGameThreadRenderer
 
 	void NewData(FGameThreadHudData* Data);
 
-	static FHUDGroupGameThreadRenderer& Get();
+	CORE_API static FHUDGroupGameThreadRenderer& Get();
 };
 
 /**
  * Singleton that holds a list of newly registered group stats to inform the game thread of
  */
-struct CORE_API FStatGroupGameThreadNotifier
+struct FStatGroupGameThreadNotifier
 {
 public:
-	static FStatGroupGameThreadNotifier& Get();
+	CORE_API static FStatGroupGameThreadNotifier& Get();
 
 	void NewData(FStatNameAndInfo NameAndInfo)
 	{

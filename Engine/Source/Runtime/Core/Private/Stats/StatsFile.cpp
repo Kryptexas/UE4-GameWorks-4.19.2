@@ -437,7 +437,8 @@ void FStatsWriteFile::NewFrame( int64 TargetFrame )
 {
 	SCOPE_CYCLE_COUNTER( STAT_StreamFile );
 
-	// Currently raw stat files are limited to 120 frames.
+	// @TODO yrx 2014-11-25 Add stat startfile -num=number of frames to capture
+	/*
 	enum
 	{
 		MAX_NUM_RAWFRAMES = 120,
@@ -455,6 +456,7 @@ void FStatsWriteFile::NewFrame( int64 TargetFrame )
 			return;
 		}
 	}
+	}*/
 
 	WriteFrame( TargetFrame );
 	SendTask();

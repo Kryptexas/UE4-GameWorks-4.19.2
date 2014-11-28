@@ -31,14 +31,14 @@
 #include "Array.h"
 
 /** Malloc binned allocator specific stats. */
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Os Current"),	STAT_Binned_OsCurrent,STATGROUP_MemoryAllocator, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Os Peak"),		STAT_Binned_OsPeak,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Os Current"),		STAT_Binned_OsCurrent,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Os Peak"),			STAT_Binned_OsPeak,STATGROUP_MemoryAllocator, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Waste Current"),	STAT_Binned_WasteCurrent,STATGROUP_MemoryAllocator, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Waste Peak"),	STAT_Binned_WastePeak,STATGROUP_MemoryAllocator, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Used Current"),	STAT_Binned_UsedCurrent,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Waste Peak"),		STAT_Binned_WastePeak,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Used Current"),		STAT_Binned_UsedCurrent,STATGROUP_MemoryAllocator, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Used Peak"),		STAT_Binned_UsedPeak,STATGROUP_MemoryAllocator, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Current Allocs"),STAT_Binned_CurrentAllocs,STATGROUP_MemoryAllocator, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Total Allocs"),	STAT_Binned_TotalAllocs,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Current Allocs"),	STAT_Binned_CurrentAllocs,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Total Allocs"),		STAT_Binned_TotalAllocs,STATGROUP_MemoryAllocator, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned Slack Current"),	STAT_Binned_SlackCurrent,STATGROUP_MemoryAllocator, CORE_API);
 
 
@@ -802,6 +802,7 @@ public:
 		check(!(AddressLimit & (AddressLimit - 1)));
 		check(PageSize <= 65536); // There is internal limit on page size of 64k
 		check(AddressLimit > PageSize); // Check to catch 32 bit overflow in AddressLimit
+		InitializeStatsMetadata();
 
 		/** Shift to get the reference from the indirect tables */
 		PoolBitShift = FPlatformMath::CeilLogTwo(PageSize);
@@ -877,6 +878,8 @@ public:
 		check(MAX_POOLED_ALLOCATION_SIZE - 1 == PoolTable[POOL_COUNT - 1].BlockSize);
 	}
 	
+	virtual void InitializeStatsMetadata() override;
+
 	virtual ~FMallocBinned()
 	{}
 

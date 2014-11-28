@@ -66,3 +66,20 @@ void FMallocBinned::GetAllocatorStats( FGenericMemoryStats& out_Stats )
 	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_SlackCurrent ), LocalSlackCurrent );
 #endif // STATS
 }
+
+void FMallocBinned::InitializeStatsMetadata()
+{
+	FMalloc::InitializeStatsMetadata();
+
+	// Initialize stats metadata here instead of UpdateStats.
+	// Mostly to avoid dead-lock when stats malloc profiler is enabled.
+	GET_STATFNAME(STAT_Binned_OsCurrent);
+	GET_STATFNAME(STAT_Binned_OsPeak);
+	GET_STATFNAME(STAT_Binned_WasteCurrent);
+	GET_STATFNAME(STAT_Binned_WastePeak);
+	GET_STATFNAME(STAT_Binned_UsedCurrent);
+	GET_STATFNAME(STAT_Binned_UsedPeak);
+	GET_STATFNAME(STAT_Binned_CurrentAllocs);
+	GET_STATFNAME(STAT_Binned_TotalAllocs);
+	GET_STATFNAME(STAT_Binned_SlackCurrent);
+}

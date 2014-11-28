@@ -795,6 +795,10 @@ void FName::StaticInit()
 		}
 	}
 #endif
+
+	// Initialize stats metadata.
+	// We need to do here, after all hardcoded names have been initialized.
+	GMalloc->InitializeStatsMetadata();
 }
 
 bool& FName::GetIsInitialized()

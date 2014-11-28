@@ -75,6 +75,12 @@ class CORE_API FMalloc  :
 	public FExec
 {
 public:
+	/**
+	 *	Initializes stats metadata. We need to do this as soon as possible, but cannot be done in the constructor
+	 *	due to the FName::StaticInit
+	 */
+	virtual void InitializeStatsMetadata();
+
 	/** 
 	 * QuantizeSize returns the actual size of allocation request likely to be returned
 	 * so for the template containers that use slack, they can more wisely pick

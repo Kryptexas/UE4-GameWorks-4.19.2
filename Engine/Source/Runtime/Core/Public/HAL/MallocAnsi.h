@@ -39,6 +39,7 @@ public:
 	// FMalloc interface.
 	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
+		IncrementTotalMallocCalls();
 		Alignment = FMath::Max(Size >= 16 ? (uint32)16 : (uint32)8, Alignment);
 
 #if USE_ALIGNED_MALLOC
@@ -60,6 +61,7 @@ public:
 
 	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) override
 	{
+		IncrementTotalReallocCalls();
 		void* Result;
 		Alignment = FMath::Max(NewSize >= 16 ? (uint32)16 : (uint32)8, Alignment);
 
@@ -107,6 +109,7 @@ public:
 
 	virtual void Free( void* Ptr ) override
 	{
+		IncrementTotalFreeCalls();
 #if USE_ALIGNED_MALLOC
 		_aligned_free( Ptr );
 #else

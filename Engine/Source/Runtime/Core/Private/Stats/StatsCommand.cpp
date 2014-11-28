@@ -8,6 +8,7 @@
 
 #include "StatsData.h"
 #include "StatsFile.h"
+#include "StatsMallocProfilerProxy.h"
 
 DECLARE_CYCLE_STAT(TEXT("Hitch Scan"),STAT_HitchScan,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
@@ -962,6 +963,95 @@ static void DumpCPU(int64 Frame)
 	StatsMasterEnableSubtract();
 }
 
+static void DumpMemory(int64 /*Frame*/)
+{
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+	const TMap<uint64,FAllocationInfo>& Allocations = Stats.GetAllocations();
+	if( Allocations.Num() == 0  )
+	{
+		UE_LOG(LogStats, Warning, TEXT("There are no allocations, make sure memory profiler is enabled") );
+	}
+	else
+	{
+		const TMap<uint64,FAllocationInfoEx>& NonSequentialAllocations = Stats.GetNonSequentialAllocations();
+
+		struct FSizeAndCount
+		{
+			uint64 Size;
+			uint64 Count;
+			FSizeAndCount()
+				: Size(0)
+				, Count(0)
+			{}
+		};
+
+		TMap<FName,FSizeAndCount> ScopedAllocations;
+
+		uint64 TotalAllocatedMemory = 0;
+		for( const auto& It : Allocations )
+		{
+			const FAllocationInfo& Alloc = It.Value;
+			FSizeAndCount& SizeAndCount = ScopedAllocations.FindOrAdd(Alloc.Scope);
+			SizeAndCount.Size += Alloc.Size;
+			SizeAndCount.Count += 1;
+
+			TotalAllocatedMemory += Alloc.Size;
+		}
+
+		// Dump memory to the log.
+		struct FGreater
+		{
+			FORCEINLINE bool operator()(const FSizeAndCount& A, const FSizeAndCount& B) const { return B.Size < A.Size; }
+		};
+
+		ScopedAllocations.ValueSort( FGreater() );
+
+		const float MaxPctDisplayed = 0.99f;
+		int32 CurrentIndex = 0;
+		uint64 DisplayedSoFar = 0;
+		UE_LOG( LogStats, Warning, TEXT("Index, Size (Size MB), Count, Stat desc [ Group ]") );
+		for( const auto& It : ScopedAllocations )
+		{
+			const FName LongName = It.Key;
+			const FSizeAndCount& SizeAndCount = It.Value;
+
+			const FString ShortName = FStatNameAndInfo::GetShortNameFrom(LongName).ToString();
+			const FString Group = FStatNameAndInfo::GetGroupNameFrom(LongName).ToString();
+			FString Desc = FStatNameAndInfo::GetDescriptionFrom(LongName);
+			Desc.Trim();
+
+			if( Desc != ShortName )
+			{
+				if( Desc.Len() )
+				{
+					Desc += TEXT( " - " );
+				}
+				Desc += ShortName;
+			}
+
+			UE_LOG( LogStats, Warning, TEXT("%2i, %llu (%.2f MB), %llu, %s [%s] "), 
+				CurrentIndex, 
+				SizeAndCount.Size, 
+				SizeAndCount.Size/1024.0f/1024.0f,
+				SizeAndCount.Count,
+				*Desc, 
+				*Group );
+
+			CurrentIndex++;
+			DisplayedSoFar += SizeAndCount.Size;
+
+			const float CurrentPct = (float)DisplayedSoFar/(float)TotalAllocatedMemory;
+			if( CurrentPct > MaxPctDisplayed )
+			{
+				break;
+			}
+		}
+
+		UE_LOG(LogStats, Warning, TEXT("Allocated memory: %llu bytes (%.2f MB)"), TotalAllocatedMemory, TotalAllocatedMemory/1024.0f/1024.0f );
+	}
+
+	Stats.NewFrameDelegate.RemoveStatic(&DumpMemory);
+}
 
 static struct FDumpMultiple* DumpMultiple = NULL;
 
@@ -1082,7 +1172,14 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 	Ar.Log( TEXT("stat startfile - starts dumping a capture"));
 	Ar.Log( TEXT("stat stopfile - stops dumping a capture"));
 
+	Ar.Log( TEXT("stat startfileraw - starts dumping a raw capture"));
+	Ar.Log( TEXT("stat stopfileraw - stops dumping a raw capture"));
+
 	Ar.Log( TEXT("stat toggledebug - toggles tracking the most memory expensive stats"));
+
+	Ar.Log( TEXT("stat memoryprofiler enable - enables tracking all memory operations, run 'stat startfileraw' before"));
+	Ar.Log( TEXT("stat memoryprofiler disable - disables tracking all memory operations, run 'stat startfileraw' after"));
+	Ar.Log( TEXT("stat dumpmemory - dump basic memory statistics WIP, memoryprofiler must to be enabled"));
 }
 
 static void CommandTestFile()
@@ -1134,6 +1231,10 @@ static void StatCmd(FString InCmd)
 	{
 		StatsMasterEnableAdd();
 		Stats.NewFrameDelegate.AddStatic(&DumpFrame);
+	} 
+	else if( FParse::Command(&Cmd,TEXT("DumpMemory")) )
+	{
+		Stats.NewFrameDelegate.AddStatic(&DumpMemory);
 	}
 	else if ( FParse::Command(&Cmd,TEXT("DUMPNONFRAME")) )
 	{
@@ -1238,6 +1339,14 @@ static void StatCmd(FString InCmd)
 	{
 		FStatsThreadState::GetLocalState().ToggleFindMemoryExtensiveStats();
 	}
+	else if ( FParse::Command( &Cmd, TEXT( "memoryprofiler" ) ) )
+	{
+		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("enable LinkerLoad") );
+		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("enable AsyncLoad") );
+
+		const bool bEnable = FParse::Command( &Cmd, TEXT( "enable" ) ) || FParse::Command( &Cmd, TEXT( "start" ) );
+		FStatsMallocProfilerProxy::Get()->SetState( bEnable );
+	}
 	// @see FStatHierParams
 	else if ( FParse::Command( &Cmd, TEXT( "hier" ) ) )
 	{
@@ -1321,6 +1430,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		else if( FParse::Command(&TempCmd,TEXT("DUMPFRAME")) )
 		{
 		}
+		else if( FParse::Command(&TempCmd,TEXT("DumpMemory")) )
+		{
+		}
 		else if ( FParse::Command(&TempCmd,TEXT("DUMPNONFRAME")) )
 		{
 		}
@@ -1364,6 +1476,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else if ( FParse::Command( &TempCmd, TEXT( "toggledebug" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "memoryprofiler" ) ) )
 		{
 		}
 		else
