@@ -33,7 +33,7 @@ public:
 			.AutoHeight()
 			[
 				SNew(SBorder)
-				.Padding(15.0f)
+				.Padding(FriendStyle.BorderPadding)
 				.BorderImage(&FriendStyle.FriendListHeader)
 				[
 					SNew(SButton)

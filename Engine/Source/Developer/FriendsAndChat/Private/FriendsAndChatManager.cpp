@@ -437,7 +437,7 @@ void FFriendsAndChatManager::SetChatWindowContents()
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(20.0f, 0.0f, 0.0f, 40.0f)
+			.Padding(20.0f, 0.0f)
 			.VAlign(VAlign_Top)
 			[
 				SNew(SFriendsStatus, StatusViewModel)
