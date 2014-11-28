@@ -259,12 +259,6 @@ public:
 	void AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
 
 	/**
-	 * Can we join a game
-	 * @return True if able to join a game
-	 */
-	const bool CanJoinGame() const;
-
-	/**
 	 * Send a game invite to a friend
 	 *
 	 * @param FriendItem friend to send game invite to

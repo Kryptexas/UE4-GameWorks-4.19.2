@@ -91,7 +91,7 @@ private:
 
 	bool IsActionEnabled(EFriendActionType::Type FriendAction) const
 	{
-		return FriendAction == EFriendActionType::JoinGame ? ViewModel->CanJoinGame() : true;
+		return ViewModel->CanPerformAction(FriendAction);
 	}
 
 private:

@@ -174,11 +174,6 @@ public:
 		return FriendItem.IsValid() ? FriendItem->IsOnline() : false;
 	}
 
-	virtual bool CanJoinGame() const override
-	{
-		return FFriendsAndChatManager::Get()->CanJoinGame();
-	}
-
 	virtual EOnlinePresenceState::Type GetOnlineStatus() const override
 	{
 		return FriendItem.IsValid() ? FriendItem->GetOnlineStatus() : EOnlinePresenceState::Offline;

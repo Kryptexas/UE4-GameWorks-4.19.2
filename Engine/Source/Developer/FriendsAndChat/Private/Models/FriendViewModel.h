@@ -56,7 +56,6 @@ public:
 	virtual FText GetFriendLocation() const = 0;
 	virtual FString GetClientId() const = 0;
 	virtual bool IsOnline() const = 0;
-	virtual bool CanJoinGame() const = 0;
 	virtual EOnlinePresenceState::Type GetOnlineStatus() const = 0;
 };
 

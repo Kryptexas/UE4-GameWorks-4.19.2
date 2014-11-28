@@ -626,6 +626,10 @@ bool FFriendsAndChatManager::JoinGameAllowed()
 	{
 		return AllowFriendsJoinGame().Execute();
 	}
+	else if (ApplicationViewModel.IsValid())
+	{
+		return ApplicationViewModel->IsAppJoinable();
+	}
 	return false;
 }
 
@@ -1353,11 +1357,6 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	}
 
 	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
-}
-
-const bool FFriendsAndChatManager::CanJoinGame() const
-{
-	return !ApplicationViewModel.IsValid() || ApplicationViewModel->IsAppJoinable();
 }
 
 void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
