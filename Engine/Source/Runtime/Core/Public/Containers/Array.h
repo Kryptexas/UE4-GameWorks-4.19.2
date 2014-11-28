@@ -3238,7 +3238,7 @@ public:
 	 */
 	uint32 GetAllocatedSize() const
 	{
-		return Array.Max() * (sizeof(T)+sizeof(T*));
+		return Array.Max() * sizeof(T*) + Array.Num() * sizeof(T);
 	}
 
 	// Iterators
