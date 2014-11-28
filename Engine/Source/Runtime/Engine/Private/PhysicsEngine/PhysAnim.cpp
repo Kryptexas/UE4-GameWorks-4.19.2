@@ -211,7 +211,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 
 	// We now have all the animations blended together and final relative transforms for each bone.
 	// If we don't have or want any physics, we do nothing.
-	if( Bodies.Num() > 0 && (bBlendPhysics || ShouldBlendPhysicsBones()) )
+	if( Bodies.Num() > 0 )
 	{
 		BlendPhysicsBones( RequiredBones );
 		
