@@ -156,6 +156,7 @@ private:
 				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
 				.OnClicked(this, &SFriendItemImpl::HandleActionClicked, FriendAction)
 				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+				.IsEnabled(this, &SFriendItemImpl::IsActionEnabled, FriendAction)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
@@ -281,6 +282,11 @@ private:
 		return Contents;
 	}
 
+	bool IsActionEnabled(const EFriendActionType::Type FriendAction) const
+	{
+		return ViewModel->CanPerformAction(FriendAction);
+	}
+
 	FReply HandleActionClicked(const EFriendActionType::Type FriendAction)
 	{
 		if( FriendAction == EFriendActionType::RemoveFriend)
@@ -299,11 +305,6 @@ private:
 			ViewModel->PerformAction(FriendAction);
 		}
 		return FReply::Handled();
-	}
-
-	bool IsActionEnabled(EFriendActionType::Type FriendAction) const
-	{
-		return FriendAction == EFriendActionType::JoinGame ? ViewModel->CanJoinGame() : true;
 	}
 
 	FReply HandleRemoveClicked(bool bConfirm)

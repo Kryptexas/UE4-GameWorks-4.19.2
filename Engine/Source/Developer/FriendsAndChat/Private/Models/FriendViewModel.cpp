@@ -8,7 +8,7 @@ class FFriendViewModelImpl
 {
 public:
 
-	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false)
+	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false) override
 	{
 		if(FriendItem->IsGameRequest())
 		{
@@ -21,6 +21,18 @@ public:
 		else if(FriendItem->IsPendingAccepted())
 		{
 			Actions.Add(EFriendActionType::Updating);
+		}
+		else if (FriendItem->GetListType() == EFriendsDisplayLists::RecentPlayersDisplay)
+		{
+			TSharedPtr<IFriendItem> ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*FriendItem->GetUniqueID());
+			if (!ExistingFriend.IsValid())
+			{
+				Actions.Add(EFriendActionType::SendFriendRequest);
+			}
+			if (FFriendsAndChatManager::Get()->IsInJoinableGameSession())
+			{
+				Actions.Add(EFriendActionType::InviteToGame);
+			}
 		}
 		else
 		{
@@ -71,7 +83,7 @@ public:
 			|| FFriendsAndChatManager::Get()->IsInJoinableGameSession();
 	}
 
-	virtual void PerformAction(const EFriendActionType::Type ActionType)
+	virtual void PerformAction(const EFriendActionType::Type ActionType) override
 	{
 		switch(ActionType)
 		{
@@ -113,6 +125,31 @@ public:
 			{
 				StartChat();
 				break;
+			}
+		}
+	}
+
+	virtual bool CanPerformAction(const EFriendActionType::Type ActionType) override
+	{
+		switch (ActionType)
+		{
+			case EFriendActionType::JoinGame:
+			{
+				return FFriendsAndChatManager::Get()->JoinGameAllowed();
+			}
+			case EFriendActionType::AcceptFriendRequest:
+			case EFriendActionType::RemoveFriend:
+			case EFriendActionType::IgnoreFriendRequest:
+			case EFriendActionType::BlockFriend:
+			case EFriendActionType::RejectFriendRequest:
+			case EFriendActionType::CancelFriendRequest:
+			case EFriendActionType::SendFriendRequest:
+			case EFriendActionType::InviteToGame:
+			case EFriendActionType::RejectGame:
+			case EFriendActionType::Chat:
+			default:
+			{
+				return true;
 			}
 		}
 	}
@@ -174,8 +211,7 @@ private:
 
 	void InviteToGame()
 	{
-		if (FriendItem.IsValid() && 
-			FriendItem->GetOnlineFriend().IsValid())
+		if (FriendItem.IsValid())
 		{
 			FFriendsAndChatManager::Get()->SendGameInvite(FriendItem);
 		}
@@ -183,8 +219,7 @@ private:
 
 	void JoinGame()
 	{
-		if (FriendItem.IsValid() && 
-			FriendItem->GetOnlineFriend().IsValid() && 
+		if (FriendItem.IsValid() &&
 			(FriendItem->IsGameRequest() || FriendItem->IsGameJoinable()))
 		{
 			FFriendsAndChatManager::Get()->AcceptGameInvite(FriendItem);
@@ -194,7 +229,6 @@ private:
 	void RejectGame()
 	{
 		if (FriendItem.IsValid() &&
-			FriendItem->GetOnlineFriend().IsValid() &&
 			FriendItem->IsGameRequest())
 		{
 			FFriendsAndChatManager::Get()->RejectGameInvite(FriendItem);

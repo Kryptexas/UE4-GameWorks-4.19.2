@@ -602,7 +602,31 @@ bool FFriendsAndChatManager::IsInGameSession() const
 
 bool FFriendsAndChatManager::IsInJoinableGameSession() const
 {
+	bool bIsGameJoinable = false;
+
+	if (OnlineSubMcp != nullptr &&
+		OnlineSubMcp->GetIdentityInterface().IsValid() &&
+		OnlineSubMcp->GetPresenceInterface().IsValid())
+	{
+		TSharedPtr<FUniqueNetId> CurrentUserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId(0);
+		TSharedPtr<FOnlineUserPresence> Presence;
+		OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*CurrentUserId, Presence);
+		if (Presence.IsValid())
+		{
+			bIsGameJoinable = Presence->bIsJoinable;
+		}
+	}
+
 	return bIsGameJoinable && IsInGameSession();
+}
+
+bool FFriendsAndChatManager::JoinGameAllowed()
+{
+	if (AllowFriendsJoinGame().IsBound())
+	{
+		return AllowFriendsJoinGame().Execute();
+	}
+	return false;
 }
 
 EOnlinePresenceState::Type FFriendsAndChatManager::GetUserIsOnline()
@@ -664,6 +688,10 @@ bool FFriendsAndChatManager::Tick( float Delta )
 		{
 			bRequiresRecentPlayersRefresh = false;
 			SetState( EFriendsAndManagerState::RequestRecentPlayersListRefresh );
+		}
+		else if (ReceivedGameInvites.Num() > 0)
+		{
+			SetState(EFriendsAndManagerState::RequestGameInviteRefresh);
 		}
 	}
 	return true;
@@ -736,6 +764,16 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 	case EFriendsAndManagerState::AcceptingFriendRequest:
 		{
 			FriendsInterface->AcceptInvite( 0, PendingOutgoingAcceptFriendRequests[0], EFriendsLists::ToString( EFriendsLists::Default ) );
+		}
+		break;
+	case EFriendsAndManagerState::RequestGameInviteRefresh:
+		{	
+			// process invites and remove entries that are completed
+			ProcessReceivedGameInvites();
+			if (!RequestGameInviteUserInfo())
+			{
+				SetState(EFriendsAndManagerState::Idle);
+			}			
 		}
 		break;
 	default:
@@ -900,6 +938,12 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 			}
 		}
 		OnFriendsListUpdated().Broadcast();
+		SetState(EFriendsAndManagerState::Idle);
+	}
+	else if (ManagerState == EFriendsAndManagerState::RequestGameInviteRefresh)
+	{
+		ProcessReceivedGameInvites();
+		ReceivedGameInvites.Empty();
 		SetState(EFriendsAndManagerState::Idle);
 	}
 }
@@ -1162,45 +1206,12 @@ void FFriendsAndChatManager::OnSendInviteComplete( int32 LocalPlayer, bool bWasS
 
 void FFriendsAndChatManager::OnPresenceReceived( const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)
 {
-	for (const auto& Friend : FriendsList)
-	{
-		if( Friend->GetUniqueID().Get() == UserId)
-		{
-			RefreshList();
-			break;
-		}
-	}
+	RefreshList();
 }
 
 void FFriendsAndChatManager::OnPresenceUpdated(const FUniqueNetId& UserId, const bool bWasSuccessful)
 {
-	if (OnlineSubMcp != nullptr &&
-		OnlineSubMcp->GetIdentityInterface().IsValid() &&
-		OnlineSubMcp->GetPresenceInterface().IsValid())
-	{
-		TSharedPtr<FUniqueNetId> CurrentUserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId(0);
-		if (CurrentUserId.IsValid() &&
-			*CurrentUserId == UserId)
-		{
-			TSharedPtr<FOnlineUserPresence> Presence;
-			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(UserId, Presence);
-			bIsGameJoinable = false;
-			if (Presence.IsValid())
-			{
-				if (Presence->bIsJoinable)
-				{
-					FString SessionIdStr;
-					const FVariantData* SessionId = Presence->Status.Properties.Find(DefaultSessionIdKey);
-					if (SessionId != nullptr)
-					{
-						SessionId->GetValue(SessionIdStr);
-					}
-					bIsGameJoinable = !SessionIdStr.IsEmpty();
-				}
-			}
-			RefreshList();
-		}
-	}
+	RefreshList();
 }
 
 void FFriendsAndChatManager::OnFriendsListChanged()
@@ -1215,24 +1226,76 @@ void FFriendsAndChatManager::OnFriendInviteReceived(const FUniqueNetId& UserId, 
 
 void FFriendsAndChatManager::OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult)
 {
-	// game invites can only be received from friends
-	// so should already be in our existing friends list
-	TSharedPtr<IFriendItem> Friend = FindUser(FromId);
-	if (Friend.IsValid() &&
-		Friend->GetOnlineFriend().IsValid() &&
-		Friend->GetOnlineUser().IsValid())
+	if (OnlineSubMcp != NULL &&
+		OnlineSubMcp->GetIdentityInterface().IsValid())
 	{
-		TSharedPtr<FFriendGameInviteItem> FriendGameInvite = MakeShareable(new FFriendGameInviteItem(
-			Friend->GetOnlineFriend().ToSharedRef(), 
-			Friend->GetOnlineUser().ToSharedRef(), 
-			MakeShareable(new FOnlineSessionSearchResult(InviteResult))
-			));
-
-		PendingGameInvitesList.Add(Friend->GetUniqueID()->ToString(), FriendGameInvite);
-
-		OnGameInvitesUpdated().Broadcast();
-		SendGameInviteNotification(Friend);
+		TSharedPtr<FUniqueNetId> FromIdPtr = OnlineSubMcp->GetIdentityInterface()->CreateUniquePlayerId(FromId.ToString());
+		if (FromIdPtr.IsValid())
+		{
+			ReceivedGameInvites.AddUnique(FReceivedGameInvite(FromIdPtr.ToSharedRef(), InviteResult));
+		}
 	}
+}
+
+void FFriendsAndChatManager::ProcessReceivedGameInvites()
+{
+	if (OnlineSubMcp != NULL &&
+		OnlineSubMcp->GetUserInterface().IsValid())
+	{
+		for (int32 Idx = 0; Idx < ReceivedGameInvites.Num(); Idx++)
+		{
+			const FReceivedGameInvite& Invite = ReceivedGameInvites[Idx];
+
+			TSharedPtr<FOnlineUser> UserInfo;
+			TSharedPtr<IFriendItem> Friend = FindUser(*Invite.FromId);
+			if (Friend.IsValid())
+			{
+				UserInfo = Friend->GetOnlineUser();
+			}
+			if (!UserInfo.IsValid())
+			{
+				UserInfo = OnlineSubMcp->GetUserInterface()->GetUserInfo(0, *Invite.FromId);
+			}
+			if (UserInfo.IsValid())
+			{
+				TSharedPtr<FFriendGameInviteItem> GameInvite = MakeShareable(
+					new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult)
+					);
+
+				PendingGameInvitesList.Add(Invite.FromId->ToString(), GameInvite);
+
+				OnGameInvitesUpdated().Broadcast();
+				SendGameInviteNotification(GameInvite);
+
+				ReceivedGameInvites.RemoveAt(Idx--);
+			}
+		}
+	}
+}
+
+bool FFriendsAndChatManager::RequestGameInviteUserInfo()
+{
+	bool bPending = false;
+
+	// query for user ids that are not already cached from game invites
+	IOnlineUserPtr UserInterface = OnlineSubMcp->GetUserInterface();
+	IOnlineIdentityPtr IdentityInterface = OnlineSubMcp->GetIdentityInterface();
+	if (UserInterface.IsValid() &&
+		IdentityInterface.IsValid())
+	{
+		TArray<TSharedRef<FUniqueNetId>> GameInviteUserIds;
+		for (auto GameInvite : ReceivedGameInvites)
+		{
+			GameInviteUserIds.Add(GameInvite.FromId);
+		}
+		if (GameInviteUserIds.Num() > 0)
+		{
+			UserInterface->QueryUserInfo(0, GameInviteUserIds);
+			bPending = true;
+		}
+	}
+
+	return bPending;
 }
 
 void FFriendsAndChatManager::SendGameInviteNotification(const TSharedPtr<IFriendItem>& FriendItem)

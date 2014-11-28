@@ -20,10 +20,9 @@ public:
 	// FFriendGameInviteItem
 
 	FFriendGameInviteItem(
-		const TSharedRef<FOnlineFriend>& InOnlineFriend,
 		const TSharedRef<FOnlineUser>& InOnlineUser,
 		const TSharedRef<FOnlineSessionSearchResult>& InSessionResult)
-		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
+		: FFriendItem(nullptr, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
 		, SessionResult(InSessionResult)
 	{ }
 

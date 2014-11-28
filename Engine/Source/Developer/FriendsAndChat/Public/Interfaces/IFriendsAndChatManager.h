@@ -88,6 +88,9 @@ public:
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FString& /*SessionId*/)
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
 
+	DECLARE_DELEGATE_RetVal(bool, FAllowFriendsJoinGame);
+	virtual FAllowFriendsJoinGame& AllowFriendsJoinGame() = 0;
+
 public:
 
 	/** Virtual destructor. */

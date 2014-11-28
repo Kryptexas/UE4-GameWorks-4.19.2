@@ -250,13 +250,13 @@ public:
 				break;
 				case EChatMessageType::Global:
 				{
-					//@todo samz - send message to specific room (empty room name will send to all rooms)
-					if (MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString()))
+					if (IsGlobalChatEnabled())
 					{
-						bSuccess = true;
-					}
+						//@todo samz - send message to specific room (empty room name will send to all rooms)
+						bSuccess = MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
 
-					FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Global"));
+						FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Global"));
+					}	
 				}
 				break;
 				case EChatMessageType::Party:

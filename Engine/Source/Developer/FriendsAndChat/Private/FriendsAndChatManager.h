@@ -13,6 +13,7 @@ namespace EFriendsAndManagerState
 		RequestFriendsListRefresh,			// List request in progress
 		RequestingRecentPlayersIDs,			// Requesting recent player ids
 		RequestRecentPlayersListRefresh,	// Recent players request in progress
+		RequestGameInviteRefresh,			// Game invites can be from non-friends. refresh non-friend user info
 		ProcessFriendsList,					// Process the Friends List after a list refresh
 		RequestingFriendName,				// Requesting a friend add
 		DeletingFriends,					// Deleting a friend
@@ -162,6 +163,11 @@ public:
 	 * @return True if we are in a game session.
 	 */
 	bool IsInJoinableGameSession() const;
+
+	/**
+	 * @return true if joining a game is allowed
+	 */
+	bool JoinGameAllowed();
 
 	/**
 	 * Create the friends list window.
@@ -341,6 +347,11 @@ public:
 		return FriendsJoinGameEvent;
 	}
 
+	virtual FAllowFriendsJoinGame& AllowFriendsJoinGame() override
+	{
+		return AllowFriendsJoinGameDelegate;
+	}
+
 	// Internal events
 
 	DECLARE_EVENT(FFriendsAndChatManager, FOnFriendsUpdated)
@@ -516,6 +527,18 @@ private:
 	 */
 	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult);
 
+	/**
+	 * Process any invites that were received and are pending. 
+	 * Will remove entries that are processed
+	 */
+	void ProcessReceivedGameInvites();
+	/**
+	 * Query for user info associated with user invites
+	 *
+	 * @return true if request is pending
+	 */
+	bool RequestGameInviteUserInfo();
+
 	void OnGameDestroyed(const FName SessionName, bool bWasSuccessful);
 
 	/**
@@ -618,6 +641,31 @@ private:
 	// Holds an array of outgoing accept friend requests
 	TArray< FUniqueNetIdString > PendingOutgoingAcceptFriendRequests;
 
+	/**
+	 * Game invite that needs to be processed before being displayed
+	 */
+	class FReceivedGameInvite
+	{
+	public:
+		FReceivedGameInvite(
+			const TSharedRef<FUniqueNetId>& InFromId,
+			const FOnlineSessionSearchResult& InInviteResult)
+			: FromId(InFromId)
+			, InviteResult(new FOnlineSessionSearchResult(InInviteResult))
+		{}
+		// who sent the invite (could be non-friend)
+		TSharedRef<FUniqueNetId> FromId;
+		// session info needed to join the invite
+		TSharedRef<FOnlineSessionSearchResult> InviteResult;
+		// equality check
+		bool operator==(const FReceivedGameInvite& Other) const
+		{
+			return Other.FromId == FromId;
+		}
+	};
+	// List of invites that need to be processed
+	TArray<FReceivedGameInvite> ReceivedGameInvites;
+
 	/* Delegates
 	*****************************************************************************/
 
@@ -664,6 +712,8 @@ private:
 	FOnFriendsUserSettingsUpdatedEvent FriendsUserSettingsUpdatedDelegate;
 	// Holds the join game request delegate
 	FOnFriendsJoinGameEvent FriendsJoinGameEvent;
+	// Delegate callback for determining if joining games functionality should be allowed
+	FAllowFriendsJoinGame AllowFriendsJoinGameDelegate;
 
 	// Internal events
 	// Holds the delegate to call when the friends list gets updated - refresh the UI
@@ -713,8 +763,6 @@ private:
 	FFriendsAndChatStyle Style;
 	// Holds if the Friends list is inited
 	bool bIsInited;
-	// true if the current game is allowed to be joined
-	bool bIsGameJoinable;
 	// Holds the Friends system user settings
 	FFriendsAndChatSettings UserSettings;
 	// Holds if we need a list refresh
