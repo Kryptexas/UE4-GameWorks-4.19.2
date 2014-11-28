@@ -3,6 +3,12 @@
 #include "STimelineBar.h"
 #include "TimeSliderController.h"
 #include "STimelinesContainer.h"
+#include "LogVisualizerSettings.h"
+
+STimeline::~STimeline()
+{
+	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().RemoveAll(this);
+}
 
 FReply STimeline::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -39,7 +45,9 @@ void STimeline::OnDeselect()
 
 void STimeline::UpdateVisibility()
 {
-	SetVisibility(HiddenEntries.Num() == Entries.Num() || (SearchFilter.Len() > 0 && Name.ToString().Find(SearchFilter) == INDEX_NONE) ? EVisibility::Collapsed : EVisibility::Visible);
+	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
+	const bool bJustIgnore = Settings->bIgnoreTrivialLogs && Entries.Num() <= Settings->TrivialLogsThreshold;
+	SetVisibility(bJustIgnore || HiddenEntries.Num() == Entries.Num() || (SearchFilter.Len() > 0 && Name.ToString().Find(SearchFilter) == INDEX_NONE) ? EVisibility::Collapsed : EVisibility::Visible);
 	if (GetVisibility() != EVisibility::Visible)
 	{
 		Owner->SetSelectionState(SharedThis(this), false, false);
@@ -74,6 +82,11 @@ bool STimeline::IsEntryHidden(const FVisualLogDevice::FVisualLogEntryItem& Entry
 	return HiddenEntries.Contains(&EntryItem);
 }
 
+void STimeline::HandleLogVisualizerSettingChanged(FName Name)
+{
+	UpdateVisibility();
+}
+
 void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView> VisualLoggerView, TSharedPtr<FSequencerTimeSliderController> TimeSliderController, TSharedPtr<STimelinesContainer> InContainer, const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
 	VisualLoggerInterface = InArgs._VisualLoggerInterface.Get();
@@ -82,6 +95,9 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView
 
 	Entries.Add(Entry);
 	OnFiltersChanged();
+	
+	ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->OnSettingChanged().AddRaw(this, &STimeline::HandleLogVisualizerSettingChanged);
+
 
 	ChildSlot
 		[

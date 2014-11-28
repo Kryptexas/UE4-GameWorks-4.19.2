@@ -463,6 +463,11 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 	{
 		return;
 	}
+
+	if (!Canvas || !Canvas->SceneView || Canvas->SceneView->bIsGameView == false)
+	{
+		return;
+	}
 	LastDrawAtFrame = GFrameNumber;
 
 	FEngineShowFlags EngineShowFlags = Canvas && Canvas->SceneView && Canvas->SceneView->Family ? Canvas->SceneView->Family->EngineShowFlags : FEngineShowFlags(GIsEditor ? EShowFlagInitMode::ESFIM_Editor : EShowFlagInitMode::ESFIM_Game);

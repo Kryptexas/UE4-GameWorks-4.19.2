@@ -39,7 +39,7 @@ public:
 	TSharedRef<FExtender> OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList);
 	void CreateSnappingOptionsMenu(FMenuBuilder& Builder);
 	void CreateSettingSubMenu(FMenuBuilder& Builder);
-
+	void HandleExperimentalSettingChanged(FName PropertyName);
 #endif
 
 	TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& GetAllReplicators(UWorld* InWorld);
@@ -76,11 +76,13 @@ void FGameplayDebugger::StartupModule()
 		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebugger::OnLevelActorAdded);
 		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebugger::OnLevelActorDeleted);
 
+		UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebugger::HandleExperimentalSettingChanged);
+
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
 		{
-			SettingsModule->RegisterSettings("Editor", "General", "AITools",
-				LOCTEXT("AIToolsSettingsName", "AI Tools"),
+			SettingsModule->RegisterSettings("Editor", "General", "GameplayDebugger",
+				LOCTEXT("AIToolsSettingsName", "Gameplay Debugger"),
 				LOCTEXT("AIToolsSettingsDescription", "General settings for UE4 AI Tools."),
 				UGameplayDebuggerSettings::StaticClass()->GetDefaultObject()
 				);
@@ -117,10 +119,12 @@ void FGameplayDebugger::ShutdownModule()
 		GEngine->OnLevelActorAdded().RemoveAll(this);
 		GEngine->OnLevelActorDeleted().RemoveAll(this);
 
+		UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
+
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
 		{
-			SettingsModule->UnregisterSettings("Editor", "General", "AITools");
+			SettingsModule->UnregisterSettings("Editor", "General", "GameplayDebugger");
 		}
 
 #	if ADD_LEVEL_EDITOR_EXTENSIONS
@@ -142,6 +146,37 @@ void FGameplayDebugger::ShutdownModule()
 }
 
 #if WITH_EDITOR
+
+void FGameplayDebugger::HandleExperimentalSettingChanged(FName PropertyName)
+{
+	if (PropertyName == TEXT("bGameplayDebugger"))
+	{
+		if (UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>()->bGameplayDebugger == false)
+		{
+			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+			if (SettingsModule != nullptr)
+			{
+				SettingsModule->UnregisterSettings("Editor", "General", "GameplayDebugger");
+			}
+		}
+		else
+		{
+			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+			if (SettingsModule != nullptr)
+			{
+				SettingsModule->RegisterSettings("Editor", "General", "GameplayDebugger",
+					LOCTEXT("AIToolsSettingsName", "Gameplay Debugger"),
+					LOCTEXT("AIToolsSettingsDescription", "General settings for UE4 AI Tools."),
+					UGameplayDebuggerSettings::StaticClass()->GetDefaultObject()
+					);
+			}
+		}
+	}
+	//FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+	//TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+	//LevelEditorTabManager->UpdateMainMenu(true);
+}
+
 void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -163,12 +198,15 @@ void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
 void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Builder.AddMenuSeparator();
-	Builder.AddSubMenu(
-		LOCTEXT("Test_GameplayDebugger_Menu", "Gameplay Debugger"),
-		LOCTEXT("Test_GameplayDebugger_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
-		FNewMenuDelegate::CreateRaw(this, &FGameplayDebugger::CreateSettingSubMenu)
-		);
+	if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
+	{
+		Builder.AddMenuSeparator();
+		Builder.AddSubMenu(
+			LOCTEXT("Test_GameplayDebugger_Menu", "Gameplay Debugger"),
+			LOCTEXT("Test_GameplayDebugger_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
+			FNewMenuDelegate::CreateRaw(this, &FGameplayDebugger::CreateSettingSubMenu)
+			);
+	}
 #endif
 }
 

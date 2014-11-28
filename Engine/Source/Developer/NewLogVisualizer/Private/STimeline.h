@@ -20,6 +20,7 @@ public:
 	virtual void OnDeselect();
 
 	/** Constructs this widget with InArgs */
+	virtual ~STimeline();
 	void Construct(const FArguments& InArgs, TSharedPtr<class SVisualLoggerView> VisualLoggerView, TSharedPtr<class FSequencerTimeSliderController> InTimeSliderController, TSharedPtr<class STimelinesContainer> InContainer, const FVisualLogDevice::FVisualLogEntryItem& Entry);
 	bool IsSelected() const;
 	bool IsEntryHidden(const FVisualLogDevice::FVisualLogEntryItem&) const;
@@ -31,6 +32,7 @@ public:
 	void AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry) { Entries.Add(Entry); }
 	const TArray<FVisualLogDevice::FVisualLogEntryItem>& GetEntries() { return Entries; }
 	FName GetName() { return Name; }
+	void HandleLogVisualizerSettingChanged(FName Name);
 
 protected:
 	TArray<FVisualLogDevice::FVisualLogEntryItem> Entries;

@@ -17,6 +17,7 @@ public:
 	// End IModuleInterface
 
 private:
+	void HandleExperimentalSettingChanged(FName PropertyName);
 	TSharedRef<SDockTab> SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs);
 	void OnTabClosed(TSharedRef<SDockTab>);
 };

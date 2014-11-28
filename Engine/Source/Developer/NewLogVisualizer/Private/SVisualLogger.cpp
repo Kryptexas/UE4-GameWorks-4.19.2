@@ -272,6 +272,23 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 		"Window"
 		);
 
+	MenuBarBuilder.AddMenuEntry(
+		LOCTEXT("SettingsMenuLabel", "Settings"),
+		FText::GetEmpty(),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda(
+			[this](){
+				ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+				if (SettingsModule != nullptr)
+				{
+					SettingsModule->ShowViewer("Editor", "General", "VisualLogger");
+				}
+			}
+		)),
+		"Settings"
+		);
+
 
 	ChildSlot
 		[

@@ -89,6 +89,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Visual Logger"))
 	bool bVisualLogger;
 
+	/** Enables Gameplay Debugger */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Gameplay Debugger"))
+	bool bGameplayDebugger;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
