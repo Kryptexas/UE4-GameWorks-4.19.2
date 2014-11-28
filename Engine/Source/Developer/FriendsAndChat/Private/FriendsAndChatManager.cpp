@@ -5,9 +5,11 @@
 #include "SChatWindow.h"
 #include "FriendsViewModel.h"
 #include "FriendViewModel.h"
+#include "FriendsStatusViewModel.h"
 #include "ChatViewModel.h"
 #include "SNotificationList.h"
 #include "SWindowTitleBar.h"
+#include "SFriendsStatus.h"
 #include "FriendRecentPlayerItems.h"
 #include "FriendGameInviteItem.h"
 
@@ -235,7 +237,7 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 
 void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle )
 {
-	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(308, 458);
+	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(325, 458);
 
 	Style = *InStyle;
 
@@ -416,6 +418,8 @@ void FFriendsAndChatManager::SetChatWindowContents()
 	ChatViewModel->SetInGameUI(false);
 	ChatViewModel->SetCaptureFocus(false);
 
+	TSharedRef< FFriendsStatusViewModel > StatusViewModel = FFriendsStatusViewModelFactory::Create(SharedThis(this));
+
 	ChatWindow->SetContent(
 		SNew( SBorder )
 		.VAlign( VAlign_Fill )
@@ -430,6 +434,15 @@ void FFriendsAndChatManager::SetChatWindowContents()
 				//.Style(FPortalStyle::Get(), "Window")
 				.ShowAppIcon(false)
 				.Title(FText::GetEmpty())
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(20.0f, 0.0f, 0.0f, 40.0f)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SFriendsStatus, StatusViewModel)
+				.FriendStyle(&Style)
+				.Method(EPopupMethod::UseCurrentWindow)
 			]
 			+ SVerticalBox::Slot()
 			[

@@ -73,7 +73,7 @@ public:
 								+ SHorizontalBox::Slot()
 								[
 									SAssignNew(FriendNameTextBox, SEditableTextBox)
-									.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
+									.HintText(LOCTEXT("AddFriendHint", "Add friend by account name"))
 									.Style(&FriendStyle.AddFriendEditableTextStyle)
 									.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
 								]
