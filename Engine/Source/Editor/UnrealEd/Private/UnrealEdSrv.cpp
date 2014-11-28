@@ -639,6 +639,19 @@ bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, 
 	return true;
 }
 
+bool UUnrealEdEngine::HandleRemoveLandscapeXYOffsetsCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld)
+{
+	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
+	{
+		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
+		{
+			ULandscapeInfo* Info = It.Value();
+			Info->RemoveXYOffsets();
+		}
+	}
+	return true;
+}
+
 bool UUnrealEdEngine::HandleConvertMatineesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
 	FVector StartLocation= FVector::ZeroVector;
@@ -842,6 +855,12 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
 		UWorld* World = GetEditorWorldContext().World();
 		return HandleRecreateLandscapeCollisionCommand(Str, Ar, World);
+	}
+	else if (FParse::Command(&Str, TEXT("RemoveLandscapeXYOffsets")))
+	{
+		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
+		UWorld* World = GetEditorWorldContext().World();
+		return HandleRemoveLandscapeXYOffsetsCommand(Str, Ar, World);
 	}
 #endif // WITH_EDITOR
 	else if( FParse::Command(&Str, TEXT("CONVERTMATINEES")) )

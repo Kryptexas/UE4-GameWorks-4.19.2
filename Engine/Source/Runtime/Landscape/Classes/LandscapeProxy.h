@@ -412,6 +412,10 @@ public:
 	/** Recreate all collision components based on render component */
 	LANDSCAPE_API void RecreateCollisionComponents();
 
+	/** Remove all XYOffset values */
+	LANDSCAPE_API void RemoveXYOffsets();
+
+
 	LANDSCAPE_API static ULandscapeMaterialInstanceConstant* GetLayerThumbnailMIC(UMaterialInterface* LandscapeMaterial, FName LayerName, UTexture2D* ThumbnailWeightmap, UTexture2D* ThumbnailHeightmap, ALandscapeProxy* Proxy);
 
 	LANDSCAPE_API void Import(FGuid Guid, int32 VertsX, int32 VertsY, 

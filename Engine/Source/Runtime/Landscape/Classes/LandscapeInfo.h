@@ -241,5 +241,7 @@ public:
 	LANDSCAPE_API void FixupProxiesWeightmaps();
 
 	LANDSCAPE_API void RecreateCollisionComponents();
+
+	LANDSCAPE_API void RemoveXYOffsets();
 #endif
 };

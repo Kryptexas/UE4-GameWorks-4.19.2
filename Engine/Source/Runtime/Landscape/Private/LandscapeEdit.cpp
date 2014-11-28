@@ -3458,6 +3458,33 @@ void ULandscapeLayerInfoObject::PostLoad()
 	}
 }
 
+void ALandscapeProxy::RemoveXYOffsets()
+{
+	bool bFoundXYOffset = false;
+
+	for (int32 i = 0; i < LandscapeComponents.Num(); ++i)
+	{
+		ULandscapeComponent* Comp = LandscapeComponents[i];
+		if (Comp && Comp->XYOffsetmapTexture)
+		{
+			Comp->XYOffsetmapTexture->SetFlags(RF_Transactional);
+			Comp->XYOffsetmapTexture->Modify();
+			Comp->XYOffsetmapTexture->MarkPackageDirty();
+			Comp->XYOffsetmapTexture->ClearFlags(RF_Standalone);
+			Comp->Modify();
+			Comp->MarkPackageDirty();
+			Comp->XYOffsetmapTexture = NULL;
+			Comp->MarkRenderStateDirty();
+			bFoundXYOffset = true;
+		}
+	}
+
+	if (bFoundXYOffset)
+	{
+		RecreateCollisionComponents();
+	}
+}
+
 void ALandscapeProxy::RecreateCollisionComponents()
 {
 	// Clear old CollisionComponent containers
@@ -3509,6 +3536,20 @@ void ULandscapeInfo::RecreateCollisionComponents()
 	{
 		ALandscapeProxy* Proxy = (*It);
 		Proxy->RecreateCollisionComponents();
+	}
+}
+
+void ULandscapeInfo::RemoveXYOffsets()
+{
+	if (LandscapeActor.IsValid())
+	{
+		LandscapeActor->RemoveXYOffsets();
+	}
+
+	for (auto It = Proxies.CreateConstIterator(); It; ++It)
+	{
+		ALandscapeProxy* Proxy = (*It);
+		Proxy->RemoveXYOffsets();
 	}
 }
 
