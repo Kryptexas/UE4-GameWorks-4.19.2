@@ -450,6 +450,12 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 	{
 		InName = PackageName;
 	}
+
+	if (InName.Contains(TEXT("//")))
+	{
+		UE_LOG(LogUObjectGlobals, Fatal, TEXT("Attempted to create a package with name containing double slashes. PackageName: %s"), PackageName);
+	}
+
 	if( InName.EndsWith( TEXT( "." ) ) )
 	{
 		FString InName2 = InName.Left( InName.Len() - 1 );
