@@ -646,9 +646,10 @@ FAutomationTestFramework::FAutomationTestFramework()
 ,	CurrentTest(NULL)
 ,	bDeveloperDirectoryIncluded(false)
 ,	bVisualCommandletFilterOn(false)
-,	bUseFullSizeScreenShots(false)
+,	bUseFullSizeScreenShots(true)
 ,	NetworkRoleIndex(0)
 ,	bForceSmokeTests(false)
+,	bScreenshotsEnabled(true)
 { }
 
 
