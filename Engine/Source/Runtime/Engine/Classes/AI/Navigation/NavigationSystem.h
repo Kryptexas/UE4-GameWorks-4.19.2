@@ -40,7 +40,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const UClass* /*AreaClass*/);
 
 /** Delegate to let interested parties know that Nav Data has been registered */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataRegistered, ANavigationData*, NavData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataGenerigEvent, ANavigationData*, NavData);
 
 namespace NavigationDebugDrawing
 {
@@ -190,8 +190,11 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	TArray<FNavigationBoundsUpdateRequest> PendingNavBoundsUpdates;
 
  	UPROPERTY(/*BlueprintAssignable, */Transient)
-	FOnNavDataRegistered OnNavDataRegisteredEvent;
+	FOnNavDataGenerigEvent OnNavDataRegisteredEvent;
 
+	UPROPERTY(BlueprintAssignable, Transient, meta = (displayname = OnNavigationGenerationFinished))
+	FOnNavDataGenerigEvent OnNavigationGenerationFinishedDelegate;
+	
 private:
 	TWeakObjectPtr<UCrowdManager> CrowdManager;
 
@@ -564,6 +567,8 @@ public:
 
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
+
+	void OnNavigationGenerationFinished(ANavigationData& NavData);
 
 	/** Used to display "navigation building in progress" counter */
 	int32 GetNumRemainingBuildTasks() const;

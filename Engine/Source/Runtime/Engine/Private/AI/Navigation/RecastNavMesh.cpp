@@ -1265,56 +1265,65 @@ URecastNavMeshDataChunk* ARecastNavMesh::GetNavigationDataChunk(ULevel* InLevel)
 
 void ARecastNavMesh::OnNavMeshGenerationFinished()
 {
-#if WITH_EDITOR
 	UWorld* World = GetWorld();
-	// For static navmeshes create navigation data holders in each streaming level
-	// so parts of navmesh can be streamed in/out with those levels
-	if (!World->IsGameWorld())
+
+	if (World != nullptr && World->IsPendingKill() == false)
 	{
-		const auto& Levels = World->GetLevels();
-		for (auto Level : Levels)
+#if WITH_EDITOR	
+		// For static navmeshes create navigation data holders in each streaming level
+		// so parts of navmesh can be streamed in/out with those levels
+		if (!World->IsGameWorld())
 		{
-			if (Level->IsPersistentLevel())
+			const auto& Levels = World->GetLevels();
+			for (auto Level : Levels)
 			{
-				continue;
-			}
-			
-			URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(Level);
-				
-			if (!bRebuildAtRuntime)
-			{
-				// We use nav volumes that belongs to this streaming level to find tiles we want to save
-				TArray<int32> LevelTiles;
-				TArray<FBox> LevelNavBounds = GetNavigableBoundsInLevel(Level->GetOutermost()->GetFName());
-				RecastNavMeshImpl->GetNavMeshTilesIn(LevelNavBounds, LevelTiles);
-				
-				if (LevelTiles.Num())
+				if (Level->IsPersistentLevel())
 				{
-					// Create new chunk only if we have something to save in it			
-					if (NavDataChunk == nullptr)
-					{
-						NavDataChunk = NewObject<URecastNavMeshDataChunk>(Level);
-						NavDataChunk->NavigationDataName = GetFName();
-						Level->NavDataChunks.Add(NavDataChunk);
-					}
-					
-					NavDataChunk->GatherTiles(RecastNavMeshImpl->DetourNavMesh, LevelTiles);
-					NavDataChunk->MarkPackageDirty();
 					continue;
 				}
-			}
-			
-			// stale data that is left in the level
-			if (NavDataChunk)
-			{
-				// clear it
-				NavDataChunk->ReleaseTiles();
-				NavDataChunk->MarkPackageDirty();
-				Level->NavDataChunks.Remove(NavDataChunk);
+
+				URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(Level);
+
+				if (!bRebuildAtRuntime)
+				{
+					// We use nav volumes that belongs to this streaming level to find tiles we want to save
+					TArray<int32> LevelTiles;
+					TArray<FBox> LevelNavBounds = GetNavigableBoundsInLevel(Level->GetOutermost()->GetFName());
+					RecastNavMeshImpl->GetNavMeshTilesIn(LevelNavBounds, LevelTiles);
+
+					if (LevelTiles.Num())
+					{
+						// Create new chunk only if we have something to save in it			
+						if (NavDataChunk == nullptr)
+						{
+							NavDataChunk = NewObject<URecastNavMeshDataChunk>(Level);
+							NavDataChunk->NavigationDataName = GetFName();
+							Level->NavDataChunks.Add(NavDataChunk);
+						}
+
+						NavDataChunk->GatherTiles(RecastNavMeshImpl->DetourNavMesh, LevelTiles);
+						NavDataChunk->MarkPackageDirty();
+						continue;
+					}
+				}
+
+				// stale data that is left in the level
+				if (NavDataChunk)
+				{
+					// clear it
+					NavDataChunk->ReleaseTiles();
+					NavDataChunk->MarkPackageDirty();
+					Level->NavDataChunks.Remove(NavDataChunk);
+				}
 			}
 		}
-	}
 #endif// WITH_EDITOR
+
+		if (World->GetNavigationSystem())
+		{
+			World->GetNavigationSystem()->OnNavigationGenerationFinished(*this);
+		}
+	}
 }
 
 #if !UE_BUILD_SHIPPING

@@ -2906,6 +2906,11 @@ bool UNavigationSystem::IsNavigationBuildInProgress(bool bCheckDirtyToo)
 	return bRet;
 }
 
+void UNavigationSystem::OnNavigationGenerationFinished(ANavigationData& NavData)
+{
+	OnNavigationGenerationFinishedDelegate.Broadcast(&NavData);
+}
+
 int32 UNavigationSystem::GetNumRemainingBuildTasks() const
 {
 	int32 NumTasks = 0;
