@@ -27,7 +27,7 @@ public:
 	 */
 	FStatsMallocProfilerProxy( FMalloc* InMalloc);
 
-	static FStatsMallocProfilerProxy* Get();
+	static CORE_API FStatsMallocProfilerProxy* Get();
 
 	void SetState( bool bEnable );
 
@@ -37,11 +37,6 @@ public:
 	}
 
 	virtual void InitializeStatsMetadata() override;
-
-	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment ) override
-	{
-		return UsedMalloc->QuantizeSize(Size,Alignment); 
-	}
 
 	/**
 	 * Tracks malloc operation.

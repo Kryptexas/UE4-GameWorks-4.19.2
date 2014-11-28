@@ -82,22 +82,6 @@ public:
 	virtual void InitializeStatsMetadata();
 
 	/** 
-	 * QuantizeSize returns the actual size of allocation request likely to be returned
-	 * so for the template containers that use slack, they can more wisely pick
-	 * appropriate sizes to grow and shrink to.
-	 *
-	 * CAUTION: QuantizeSize is a special case and is NOT guarded by a thread lock, so must be intrinsically thread safe!
-	 *
-	 * @param Size			The size of a hypothetical allocation request
-	 * @param Alignment		The alignment of a hypothetical allocation request
-	 * @return				Returns the usable size that the allocation request would return. In other words you can ask for this greater amount without using any more actual memory.
-	 */
-	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment )
-	{
-		return Size; // implementations where this is not possible need not implement it.
-	}
-
-	/** 
 	 * Malloc
 	 */
 	virtual void* Malloc( SIZE_T Count, uint32 Alignment=DEFAULT_ALIGNMENT ) = 0;

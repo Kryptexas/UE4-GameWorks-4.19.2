@@ -41,31 +41,12 @@ void GCreateMalloc()
 		GMalloc = new FMallocThreadSafeProxy( GMalloc );
 	}
 
+
+
 #if	STATS
 	// Create the stats malloc profiler proxy, needs to be enabled separately.
 	//GMalloc = FStatsMallocProfilerProxy::Get();
 #endif // STATS
-}
-
-
-/** 
- * FMemory::MallocQuantizeSize returns the actual size of allocation request likely to be returned
- * so for the template containers that use slack, they can more wisely pick
- * appropriate sizes to grow and shrink to.
- *
- * @param Size			The size of a hypothetical allocation request
- * @param Alignment		The alignment of a hypothetical allocation request
- * @return				Returns the usable size that the allocation request would return. In other words you can ask for this greater amount without using any more actual memory.
- */
-SIZE_T FMemory::MallocQuantizeSize( SIZE_T Size, uint32 Alignment )
-{
-	if( !GMalloc )
-	{
-		GCreateMalloc();
-		CA_ASSUME( GMalloc != NULL );	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
-	}
-	return GMalloc->QuantizeSize( Size, Alignment );
-
 }
 
 void* FMemory::Malloc( SIZE_T Count, uint32 Alignment ) 
