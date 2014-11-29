@@ -258,7 +258,7 @@ void UBrainComponent::InitializeComponent()
 		BlackboardComp = GetOwner()->FindComponentByClass<UBlackboardComponent>();
 		if (BlackboardComp)
 		{
-			BlackboardComp->CacheBrainComponent(this);
+			BlackboardComp->CacheBrainComponent(*this);
 		}
 	}
 }

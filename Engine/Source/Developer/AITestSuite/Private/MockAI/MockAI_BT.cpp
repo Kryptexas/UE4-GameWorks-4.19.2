@@ -28,7 +28,7 @@ bool UMockAI_BT::IsRunning() const
 bool UMockAI_BT::RunBT(UBehaviorTree& BTAsset, EBTExecutionMode::Type RunType)
 {
 	BBComp->InitializeBlackboard(BTAsset.BlackboardAsset);
-	BBComp->CacheBrainComponent(BTComp);
+	BBComp->CacheBrainComponent(*BTComp);
 	BTComp->CacheBlackboardComponent(BBComp);
 
 	UWorld* World = FAITestHelpers::GetWorld();

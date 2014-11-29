@@ -767,6 +767,17 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	return bSuccess;
 }
 
+bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, UBlackboardData& BlackboardAsset)
+{
+	check(BlackboardComp.GetOwner() == this);
+	if (BlackboardComp.InitializeBlackboard(&BlackboardAsset))
+	{
+		OnUsingBlackBoard(&BlackboardComp, &BlackboardAsset);
+		return true;
+	}
+	return false;
+}
+
 bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
 {
 	if (BlackboardAsset == NULL)
@@ -783,20 +794,20 @@ bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
 		BlackboardComp = ConstructObject<UBlackboardComponent>(UBlackboardComponent::StaticClass(), this, TEXT("BlackboardComponent"));
 		if (BlackboardComp != NULL)
 		{
-			BlackboardComp->InitializeBlackboard(BlackboardAsset);
+			InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
 			BlackboardComp->RegisterComponent();
 		}
 
 	}
 	else if (BlackboardComp->GetBlackboardAsset() == NULL)
 	{
-		BlackboardComp->InitializeBlackboard(BlackboardAsset);
+		InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
 	}
 	else if (BlackboardComp->GetBlackboardAsset() != BlackboardAsset)
 	{
 		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: requested blackboard %s while already has %s instantiated. Forcing new BB.")
 			, *GetNameSafe(BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
-		BlackboardComp->InitializeBlackboard(BlackboardAsset);
+		InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
 	}
 
 	return bSuccess;

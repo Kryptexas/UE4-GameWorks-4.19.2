@@ -73,10 +73,10 @@ struct FFocusKnowledge
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/
  */
 
-UCLASS(BlueprintType, Blueprintable)
+UCLASS(ClassGroup = AI, BlueprintType, Blueprintable)
 class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 protected:
 	FFocusKnowledge	FocusInformation;
@@ -120,9 +120,12 @@ private_subobject:
 	UPawnActionsComponent* ActionsComp;
 
 public:
+	
+	AAIController(const FObjectInitializer& ObjectInitializer);
+
 	/** Event called when PossessedPawn is possesed by this controller. */
-	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
-	void OnPossess(APawn* PossessedPawn);
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual void OnPossess(APawn* PossessedPawn);
 
 	/** Makes AI go toward specified Goal actor (destination will be continuously updated)
 	 *  @param AcceptanceRadius - finish move if pawn gets close enough
@@ -196,7 +199,7 @@ public:
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
-
+	
 	/** Returns status of path following */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	EPathFollowingStatus::Type GetMoveStatus() const;
@@ -222,8 +225,15 @@ public:
 
 	/** makes AI use specified BB asset */
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	virtual bool UseBlackboard(UBlackboardData* BlackboardAsset);
+	bool UseBlackboard(UBlackboardData* BlackboardAsset);
 
+protected:
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual void OnUsingBlackBoard(UBlackboardComponent* BlackboardComp, UBlackboardData* BlackboardAsset);
+
+	virtual bool InitializeBlackboard(UBlackboardComponent& BlackboardComp, UBlackboardData& BlackboardAsset);
+
+public:
 	/** Retrieve the final position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual FVector GetFocalPoint() const;

@@ -75,10 +75,10 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	UBlackboardData* GetBlackboardAsset() const;
 
 	/** caches UBrainComponent pointer to be used in communication */
-	void CacheBrainComponent(UBrainComponent* BrainComponent);
+	void CacheBrainComponent(UBrainComponent& BrainComponent);
 
 	/** setup component for using given blackboard asset */
-	void InitializeBlackboard(UBlackboardData* NewAsset);
+	bool InitializeBlackboard(UBlackboardData* NewAsset);
 	
 	/** @return true if component can be used with specified blackboard asset */
 	bool IsCompatibleWith(UBlackboardData* TestAsset) const;

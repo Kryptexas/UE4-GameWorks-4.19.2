@@ -31,11 +31,11 @@ void UBlackboardComponent::InitializeComponent()
 	InitializeBlackboard(BlackboardAsset);
 }
 
-void UBlackboardComponent::CacheBrainComponent(UBrainComponent* BrainComponent)
+void UBlackboardComponent::CacheBrainComponent(UBrainComponent& BrainComponent)
 {
-	if (BrainComponent != BrainComp)
+	if (&BrainComponent != BrainComp)
 	{
-		BrainComp = BrainComponent;
+		BrainComp = &BrainComponent;
 	}
 }
 
@@ -68,19 +68,21 @@ void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
 	}
 }
 
-void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
+bool UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
 	// in reseting, since we'd loose all the accumulated knowledge
 	if (NewAsset == BlackboardAsset)
 	{
-		return;
+		return false;
 	}
 
 	BlackboardAsset = NewAsset;
 	ValueMemory.Reset();
 	ValueOffsets.Reset();
 
+	bool bSuccess = true;
+	
 	if (BlackboardAsset)
 	{
 		if (BlackboardAsset->IsValid())
@@ -127,9 +129,12 @@ void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 		}
 		else
 		{
+			bSuccess = false;
 			UE_LOG(LogBehaviorTree, Error, TEXT("Blackboard asset (%s) has errors and can't be used!"), *GetNameSafe(BlackboardAsset));
 		}
 	}
+
+	return bSuccess;
 }
 
 UBrainComponent* UBlackboardComponent::GetBrainComponent() const
