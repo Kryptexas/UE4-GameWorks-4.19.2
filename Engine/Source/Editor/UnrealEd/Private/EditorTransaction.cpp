@@ -40,8 +40,8 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 	{
 		//UE_LOG( LogEditorTransaction, Log, TEXT("Array %s %i*%i: %i"), Object ? *Object->GetFullName() : TEXT("Invalid Object"), Index, ElementSize, InOper);
 
-		check((SIZE_T)Array>=(SIZE_T)Object+sizeof(UObject));
-		check((SIZE_T)Array+sizeof(FScriptArray)<=(SIZE_T)Object+Object->GetClass()->GetPropertiesSize());
+		check((SIZE_T)Array >= (SIZE_T)Object.Get() + sizeof(UObject));
+		check((SIZE_T)Array + sizeof(FScriptArray) <= (SIZE_T)Object.Get() + Object->GetClass()->GetPropertiesSize());
 		check(ElementSize!=0);
 		check(DefaultConstructor!=NULL);
 		check(Serializer!=NULL);
@@ -152,9 +152,11 @@ void FTransaction::DumpObjectMap(FOutputDevice& Ar) const
 
 FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 {
-	check(R.Object);
+	UObject* Object = R.Object.Get();
+	check(Object);
 	FMemMark Mark(FMemStack::Get());
-	Ar << R.Object;
+	Ar << Object;
+	R.Object = Object;
 	Ar << R.Data;
 	Ar << R.ReferencedObjects;
 	Ar << R.ReferencedNames;
@@ -164,7 +166,9 @@ FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 
 void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	Collector.AddReferencedObject( Object );
+	UObject* Obj = Object.Get();
+	Collector.AddReferencedObject(Obj);
+	Object = Obj;
 	for( int32 ObjIndex = 0; ObjIndex < ReferencedObjects.Num(); ObjIndex++ )
 	{
 		Collector.AddReferencedObject( ReferencedObjects[ ObjIndex ] );
@@ -247,13 +251,14 @@ void FTransaction::Apply()
 		FObjectRecord& Record = Records[i];
 		Record.bRestored = false;
 
-		if (!ChangedObjects.Contains(Record.Object))
+		UObject* Object = Record.Object.Get();
+		if (!ChangedObjects.Contains(Object))
 		{
-			Record.Object->CheckDefaultSubobjects();
-			Record.Object->PreEditUndo();
+			Object->CheckDefaultSubobjects();
+			Object->PreEditUndo();
 		}
 
-		ChangedObjects.Add(Record.Object, Record.ObjectAnnotation);
+		ChangedObjects.Add(Object, Record.ObjectAnnotation);
 	}
 	for( int32 i=Start; i!=End; i+=Inc )
 	{
@@ -320,10 +325,10 @@ void FTransaction::GetTransactionObjects(TArray<UObject*>& Objects)
 
 	for(int32 i=0; i<Records.Num(); i++)
 	{
-		UObject* obj = Records[i].Object;
-		if(obj)
+		UObject* Obj = Records[i].Object.Get();
+		if (Obj)
 		{
-			Objects.AddUnique(obj);
+			Objects.AddUnique(Obj);
 		}
 	}
 }

@@ -64,6 +64,39 @@ protected:
 	class UNREALED_API FObjectRecord
 	{
 	public:
+
+		struct FPersistentObjectRef
+		{
+		private:
+			UObject* Object;
+			UClass* SourceCDO;
+		public:
+			FPersistentObjectRef()
+				: Object(NULL)
+				, SourceCDO(NULL)
+			{}
+
+			FPersistentObjectRef(UObject* InObject)
+			{
+				const bool bIsCDO = InObject && InObject->HasAllFlags(RF_ClassDefaultObject);
+				Object = bIsCDO ? NULL : InObject;
+				SourceCDO = bIsCDO ? InObject->GetClass() : NULL;
+			}
+
+			UObject* Get() const
+			{
+				checkSlow(!SourceCDO || !Object);
+				return SourceCDO ? SourceCDO->GetDefaultObject(false) : Object;
+			}
+
+			UObject* operator->() const
+			{
+				auto Obj = Get();
+				check(Obj);
+				return Obj;
+			}
+		};
+
 		// Variables.
 		/** The data stream used to serialize/deserialize record */
 		TArray<uint8>		Data;
@@ -72,7 +105,7 @@ protected:
 		/** FNames referenced in the object record */
 		TArray<FName>		ReferencedNames;
 		/** The object to track */
-		UObject*			Object;
+		FPersistentObjectRef	Object;
 		/** Annotation data for the object stored externally */
 		TSharedPtr<ITransactionObjectAnnotation> ObjectAnnotation;
 		/** Array: If an array object, reference to script array */
@@ -163,7 +196,7 @@ protected:
 				{
 					for( int32 i=0; i<Owner->Records.Num(); i++ )
 					{
-						if( Owner->Records[i].Object==InObject )
+						if( Owner->Records[i].Object.Get()==InObject )
 						{
 							Owner->Records[i].Restore( Owner );
 						}
