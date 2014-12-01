@@ -414,8 +414,15 @@ public:
 	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const override;
 	virtual void SplitPin(UEdGraphPin* Pin) const override;
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
-	virtual bool DoesSupportEventDispatcher() const	override { return true; }
 	// End EdGraphSchema Interface
+
+	/**
+	 *
+	 *	Determine if this graph supports event dispatcher
+	 * 
+	 *	@return True if this schema supports Event Dispatcher 
+	 */
+	virtual bool DoesSupportEventDispatcher() const { return true; }
 
 	/**
 	* Configure the supplied variable node based on the supplied info

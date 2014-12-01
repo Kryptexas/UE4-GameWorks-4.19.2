@@ -27,6 +27,8 @@ public:
 	virtual void OnDragBegin(const TSharedRef<class SGraphPin>& InPin) {}
 	// End of interface to override
 	
+	virtual bool IsSupportedBySchema(const class UEdGraphSchema* Schema) const { return true; }
+
 protected:
 	void SetFeedbackMessage(const TSharedPtr<SWidget>& Message);
 	void SetSimpleFeedbackMessage(const FSlateBrush* Icon, const FSlateColor& IconColor, const FText& Message);

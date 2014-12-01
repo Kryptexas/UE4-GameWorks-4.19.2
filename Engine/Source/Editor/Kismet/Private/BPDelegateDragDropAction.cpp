@@ -142,4 +142,10 @@ bool FKismetDelegateDragDropAction::IsValid() const
 		(NULL != FindField<UMulticastDelegateProperty>(VariableSource.Get(), VariableName));
 }
 
+bool FKismetDelegateDragDropAction::IsSupportedBySchema(const class UEdGraphSchema* Schema) const
+{
+	auto SchemaK2 = Cast<UEdGraphSchema_K2>(Schema);
+	return SchemaK2 && SchemaK2->DoesSupportEventDispatcher();
+}
+
 #undef LOCTEXT_NAMESPACE
