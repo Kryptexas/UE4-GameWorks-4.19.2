@@ -34,7 +34,11 @@ FFeaturePackContentSourceProvider::FFeaturePackContentSourceProvider()
 	PlatformFile.IterateDirectory(*FeaturePackPath, DirectoryVisitor);
 	for (auto FeaturePackFile : DirectoryVisitor.Files)
 	{
-		ContentSources.Add(MakeShareable(new FFeaturePackContentSource(FeaturePackFile)));
+		TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FeaturePackFile);
+		if(NewContentSource->IsDataValid())
+		{
+			ContentSources.Add(MakeShareable(NewContentSource.Release()));
+		}
 	}
 }
 

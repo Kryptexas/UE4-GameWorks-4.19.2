@@ -6,20 +6,28 @@
 #include "AssetToolsModule.h"
 #include "IPlatformFilePak.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogFeaturePack, Log, All);
+
+
 FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 {
 	FeaturePackPath = InFeaturePackPath;
-
+	bPackValid = false;
 	// Create a pak platform file and mount the feature pack file.
 	FPakPlatformFile PakPlatformFile;
 	FString CommandLine;
 	PakPlatformFile.Initialize(&FPlatformFileManager::Get().GetPlatformFile(), TEXT(""));
 	FString MountPoint = "root:/";
 	PakPlatformFile.Mount(*InFeaturePackPath, 0, *MountPoint);
-
+	
 	// Gets the manifest file as a JSon string
 	TArray<uint8> ManifestBuffer;
-	LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("manifest.json")), ManifestBuffer);
+	if( LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("manifest.json")), ManifestBuffer) == false )
+	{
+		UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Cannot find manifest."), *InFeaturePackPath);
+		Category = EContentSourceCategory::Unknown;
+		return;
+	}
 	FString ManifestString;
 	FFileHelper::BufferToString(ManifestString, ManifestBuffer.GetData(), ManifestBuffer.Num());
 
@@ -52,6 +60,10 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	{
 		Category = EContentSourceCategory::BlueprintFeature;
 	}
+	else if (CategoryString == "Content")
+	{
+		Category = EContentSourceCategory::Content;
+	}
 	else
 	{
 		Category = EContentSourceCategory::Unknown;
@@ -70,13 +82,19 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 		LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("Media"), *ScreenshotFilename->AsString()), *SingleScreenshotData);
 		ScreenshotData.Add(MakeShareable(new FImageData(ScreenshotFilename->AsString(), SingleScreenshotData)));
 	}
+	bPackValid = true;
 }
 
-void FFeaturePackContentSource::LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer)
+bool FFeaturePackContentSource::LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer)
 {
+	bool bResult = false;
 	TSharedPtr<IFileHandle> FileHandle(PakPlatformFile.OpenRead(*Path));
-	Buffer.AddUninitialized(FileHandle->Size());
-	FileHandle->Read(Buffer.GetData(), FileHandle->Size());
+	if( FileHandle.IsValid())
+	{
+		Buffer.AddUninitialized(FileHandle->Size());
+		bResult = FileHandle->Read(Buffer.GetData(), FileHandle->Size());
+	}
+	return bResult;
 }
 
 TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedNames()
@@ -104,14 +122,41 @@ TArray<TSharedPtr<FImageData>> FFeaturePackContentSource::GetScreenshotData()
 	return ScreenshotData;
 }
 
-void FFeaturePackContentSource::InstallToProject(FString InstallPath)
+bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 {
-	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	TArray<FString> AssetPaths;
-	AssetPaths.Add(FeaturePackPath);
-	AssetToolsModule.Get().ImportAssets(AssetPaths, InstallPath);
+	bool bResult = false;
+	if( IsDataValid() == false )
+	{
+		UE_LOG(LogFeaturePack, Warning, TEXT("Trying to install invalid pack %s"), *InstallPath);
+	}
+	else
+	{
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		TArray<FString> AssetPaths;
+		AssetPaths.Add(FeaturePackPath);
+		TArray<UObject*> ImportedObjects = AssetToolsModule.Get().ImportAssets(AssetPaths, InstallPath);
+		if( ImportedObjects.Num() == 0 )
+		{
+			UE_LOG(LogFeaturePack, Warning, TEXT("No objects imported installing pack %s"), *InstallPath);
+		}
+		else
+		{
+			bResult = true;
+		}
+	}
+	return bResult;
 }
 
 FFeaturePackContentSource::~FFeaturePackContentSource()
 {
+}
+
+bool FFeaturePackContentSource::IsDataValid() const
+{
+	if( bPackValid == false )
+	{
+		return false;
+	}
+	// To Do maybe validate other data here
+	return true;	
 }

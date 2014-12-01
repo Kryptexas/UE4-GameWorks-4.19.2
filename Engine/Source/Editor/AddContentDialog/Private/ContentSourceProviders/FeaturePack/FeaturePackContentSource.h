@@ -18,12 +18,13 @@ public:
 	virtual TSharedPtr<FImageData> GetIconData() override;
 	virtual TArray<TSharedPtr<FImageData>> GetScreenshotData() override;
 
-	virtual void InstallToProject(FString InstallPath) override;
+	virtual bool InstallToProject(FString InstallPath) override;
+	virtual bool IsDataValid() const override;
 
 	virtual ~FFeaturePackContentSource();
-
+	
 private:
-	void LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);
+	bool LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);
 
 private:
 	FString FeaturePackPath;
@@ -32,4 +33,5 @@ private:
 	EContentSourceCategory Category;
 	TSharedPtr<FImageData> IconData;
 	TArray<TSharedPtr<FImageData>> ScreenshotData;
+	bool bPackValid;
 };

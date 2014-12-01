@@ -299,7 +299,8 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	bLastGlobalValidityCheckSuccessful = true;
 	bLastNameAndLocationValidityCheckSuccessful = true;
 	bPreventPeriodicValidityChecksUntilNextChange = false;
-	
+	bCopyStarterContent = true;
+
 	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
 
 	SelectedHardwareClassTarget = EHardwareClass::Desktop;
