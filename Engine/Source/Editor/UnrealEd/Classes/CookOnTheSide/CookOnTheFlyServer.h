@@ -157,62 +157,6 @@ public:
 		 */
 	};
 
-	// pending delete: don't think I need this anymore
-	/*template<typename Type>
-	struct FLookupQueue
-	{
-	private:
-		TSet<Type> Set;
-		FQueue<Type> Queue;
-
-	public:
-		void Enqueue(const Type& Item)
-		{
-			Set.Add(Item);
-			Queue.Enqueue(Item);
-		}
-		void EnqueueUnique( const Type& Item )
-		{
-			if ( Set.Find(Item) == NULL )
-			{
-				Enqueue( Item );
-			}
-		}
-
-		bool Dequeue(Type* Result)
-		{
-			if (Queue.Num())
-			{
-				Queue.Dequeue(Result);
-				Set.Remove(*Result);
-				return true;
-			}
-			return false;
-		}
-		void DequeueAll(TArray<Type>& Results)
-		{
-			Queue.DequeueAll(Results);
-			Set.Empty();
-		}
-
-		bool HasItems() const
-		{
-			return Queue.Num() > 0;
-		}
-
-		void Remove( const Type& Item ) 
-		{
-			Queue.Remove( Item );
-			Set.Remove(Item);
-		}
-
-		int Num() const 
-		{
-			return Queue.Num();
-		}
-
-	};*/
-
 public:
 	/** cooked file requests which includes platform which file is requested for */
 	struct FFilePlatformRequest
@@ -577,6 +521,36 @@ private:
 			CookedPackages.Empty();
 		}
 	};
+
+
+	struct FCachedPackageFilename
+	{
+	public:
+		FCachedPackageFilename(FString &&InPackageFilename, FString &&InStandardFilename, FName InStandardFileFName ) :
+			PackageFilename( MoveTemp( InPackageFilename )),
+			StandardFilename(MoveTemp(InStandardFilename)),
+			StandardFileFName( InStandardFileFName )
+		{
+		}
+
+		FCachedPackageFilename( const FCachedPackageFilename &In )
+		{
+			PackageFilename = In.PackageFilename;
+			StandardFilename = In.StandardFilename;
+			StandardFileFName = In.StandardFileFName;
+		}
+
+		FCachedPackageFilename( FCachedPackageFilename &&In )
+		{
+			PackageFilename = MoveTemp(In.PackageFilename);
+			StandardFilename = MoveTemp(In.StandardFilename);
+			StandardFileFName = In.StandardFileFName;
+		}
+
+		FString PackageFilename; // this is also full path
+		FString StandardFilename;
+		FName StandardFileFName;
+	};
 private:
 	/** Current cook mode the cook on the fly server is running in */
 	ECookMode::Type CurrentCookMode;
@@ -600,6 +574,8 @@ private:
 		bool bRunning;
 		/** Cancel has been queued will be processed next tick */
 		bool bCancel;
+		/** DlcName setup if we are cooking dlc will be used as the directory to save cooked files to */
+		FString DlcName;
 		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
 		TSet<FWeakObjectPtr> LastGCItems;
 		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
@@ -628,6 +604,18 @@ private:
 	FFilenameQueue CookRequests; // list of requested files
 	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
 	FThreadSafeFilenameSet CookedPackages; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
+
+	TMap<FName, FCachedPackageFilename> PackageFilenameCache; // filename cache (only process the string operations once)
+
+	FString GetCachedPackageFilename( const FName& PackageName );
+	FString GetCachedStandardPackageFilename( const FName& PackageName );
+	FName GetCachedStandardPackageFileFName( const FName& PackageName );
+	FString GetCachedPackageFilename( UPackage* Package );
+	FString GetCachedStandardPackageFilename( UPackage* Package );
+	FName GetCachedStandardPackageFileFName( UPackage* Package );
+	const FString& GetCachedSandboxFilename( UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile );
+	const FCachedPackageFilename& Cache(const FName& PackageName);
+	void ClearPackageFilenameCache();
 
 	// declared mutable as it's used purely as a cache and don't want to have to declare all the functions as non const just because of this cache
 	mutable TMap<FName, TArray<FString>> CachedIniVersionStringsMap;
@@ -688,7 +676,7 @@ public:
 	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, 
 		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, 
 		const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections, 
-		ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None );
+		ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None, const FString &DLCName = FString() );
 
 	/**
 	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
@@ -872,6 +860,24 @@ private:
 	 */
 	bool GetCookedIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings ) const;
 
+
+	/**
+	 * Convert a path to a full sandbox path
+	 * This function should be used instead of calling the 
+	 */
+	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite = false ) const;
+
+	inline bool IsCookingDLC() const
+	{
+		// can only cook dlc in cook by the book
+		// we are cooking dlc when the dlc name is setup
+		if ( CookByTheBookOptions )
+		{
+			return  !CookByTheBookOptions->DlcName.IsEmpty();
+		}
+		return false;
+	}
+
 	/**
 	 * Checks if important ini settings have changed since last cook for each target platform 
 	 * 
@@ -898,6 +904,12 @@ private:
 	 * @return Cooker output directory for the specified platform.
 	 */
 	FString GetOutputDirectory( const FString& PlatformName ) const;
+
+
+	/**
+	 * Gets the asset registry path and name
+	 */
+	FString GetAssetRegistryPath() const;
 
 	/**
 	 *	Get the given packages 'cooked' timestamp (i.e. account for dependencies)

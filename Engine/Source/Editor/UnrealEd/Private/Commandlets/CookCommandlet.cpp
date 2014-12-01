@@ -43,6 +43,7 @@ static FString GetPackageFilename( UPackage* Package )
 	if (FPackageName::DoesPackageExist(Package->GetName(), NULL, &Filename))
 	{
 		Filename = FPaths::ConvertRelativePathToFull(Filename);
+		FPaths::RemoveDuplicateSlashes(Filename);
 	}
 	return Filename;
 }
@@ -1034,7 +1035,10 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//////////////////////////////////////////////////////////////////////////
 	// parse commandline options 
 
-	FString AssetRegistry;
+	FString DLCName;
+	FParse::Value( *Params, TEXT("DLCNAME"), DLCName);
+
+	/*FString AssetRegistry;
 	if (FParse::Value(*Params, TEXT("SHIPPEDASSETREGISTRY="), AssetRegistry))
 	{
 		TArray<FName> TargetPlatformNames;
@@ -1044,7 +1048,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			TargetPlatformNames.Add(PlatformName); // build list of all target platform names
 		}
 		CookOnTheFlyServer->WarmCookedPackages(FPaths::GameContentDir() / AssetRegistry, TargetPlatformNames);
-	}
+	}*/
 
 	TArray<FString> CmdLineIniSections;
 	FString SectionStr;
@@ -1133,7 +1137,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		MapList.Add( MapName );
 	}
 
-	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections, CookOptions );
+	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections, CookOptions, DLCName );
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map
