@@ -460,7 +460,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 	if ( Space != EWidgetSpace::Screen )
 	{
-		if ( SlateWidget.IsValid() )
+		if ( !SlateWidget.IsValid() )
 		{
 			return;
 		}
