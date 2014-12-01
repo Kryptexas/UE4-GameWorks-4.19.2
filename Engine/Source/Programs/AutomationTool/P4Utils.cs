@@ -2403,6 +2403,10 @@ namespace AutomationTool
 			{
 				throw new AutomationException("p4 print {0} failed", DepotPath);
 			}
+			if(!Output.Trim().Contains("\n") && Output.Contains("no such file(s)"))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
 			return Output;
 		}
 
