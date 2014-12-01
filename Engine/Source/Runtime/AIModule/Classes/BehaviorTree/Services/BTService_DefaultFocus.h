@@ -12,7 +12,9 @@ struct FBTFocusMemory
 
 	void Reset()
 	{
-		FMemory::MemZero(*this);
+		FocusActorSet = nullptr;
+		FocusLocationSet = FAISystem::InvalidLocation;
+		bActorSet = false;
 	}
 };
 

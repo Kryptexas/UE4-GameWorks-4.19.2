@@ -46,7 +46,7 @@ void UBTService_DefaultFocus::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp
 		else
 		{
 			const FVector FocusLocation = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
-			OwnerController->SetFocalPoint(FocusLocation, /*bOffsetFromBase=*/false, EAIFocusPriority::Default);
+			OwnerController->SetFocalPoint(FocusLocation, EAIFocusPriority::Default);
 			MyMemory->FocusLocationSet = FocusLocation;
 		}
 	}
@@ -64,11 +64,11 @@ void UBTService_DefaultFocus::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp,
 		bool bClearFocus = false;
 		if (MyMemory->bActorSet)
 		{
-			bClearFocus = (MyMemory->FocusActorSet == OwnerController->GetFocusActor(EAIFocusPriority::Default));
+			bClearFocus = (MyMemory->FocusActorSet == OwnerController->GetFocusActorForPriority(EAIFocusPriority::Default));
 		}
 		else
 		{
-			bClearFocus = (MyMemory->FocusLocationSet == OwnerController->GetFocalPoint(EAIFocusPriority::Default));
+			bClearFocus = (MyMemory->FocusLocationSet == OwnerController->GetFocalPointForPriority(EAIFocusPriority::Default));
 		}
 
 		if (bClearFocus)

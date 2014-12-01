@@ -16,7 +16,6 @@ class APawn;
 class UPathFollowingComponent;
 class UBrainComponent;
 class UAIPerceptionComponent;
-struct FBasedPosition;
 class UPawnAction;
 class UPawnActionsComponent;
 class UNavigationQueryFilter;
@@ -30,6 +29,9 @@ struct FPathFindingQuery;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
+// the reason for this being namespace instead of a regular enum is
+// so that it can be expanded in game-specific code
+// @todo this is a bit messy, needs to be refactored
 namespace EAIFocusPriority
 {
 	typedef uint8 Type;
@@ -46,19 +48,15 @@ struct FFocusKnowledge
 	struct FFocusItem
 	{
 		TWeakObjectPtr<AActor> Actor;
-		FBasedPosition Position;    
+		FVector Position;
 
-		FVector GetLocation() const 
+		FFocusItem()
 		{
-			const AActor* FocusActor = Actor.Get();
-			return FocusActor ? FocusActor->GetActorLocation() : *Position;
+			Actor = nullptr;
+			Position = FAISystem::InvalidLocation;
 		}
 	};
-
-	FFocusKnowledge() 
-	{
-		Priorities.Reserve(6);
-	}
+	
 	TArray<FFocusItem> Priorities;
 };
 
@@ -120,7 +118,7 @@ private_subobject:
 	UPawnActionsComponent* ActionsComp;
 
 public:
-	
+
 	AAIController(const FObjectInitializer& ObjectInitializer);
 
 	/** Event called when PossessedPawn is possesed by this controller. */
@@ -199,7 +197,7 @@ public:
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
-	
+
 	/** Returns status of path following */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	EPathFollowingStatus::Type GetMoveStatus() const;
@@ -236,14 +234,17 @@ protected:
 public:
 	/** Retrieve the final position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI")
-	virtual FVector GetFocalPoint() const;
+	FVector GetFocalPoint() const;
 
-	FVector GetFocalPoint(EAIFocusPriority::Type Priority) const;
-	FORCEINLINE FFocusKnowledge::FFocusItem GetFocusItem(EAIFocusPriority::Type Priority) const { return FocusInformation.Priorities.IsValidIndex(Priority) ? FocusInformation.Priorities[Priority] : FFocusKnowledge::FFocusItem(); }
-	
-	/** Set FocalPoint as absolute position or offset from base. */
+	FVector GetFocalPointForPriority(EAIFocusPriority::Type InPriority) const;
+
+	/** Retrieve the focal point this controller should focus to on given actor. */
+	UFUNCTION(BlueprintCallable, Category="AI")
+	virtual FVector GetFocalPointOnActor(const AActor *Actor) const;
+
+	/** Set the position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocalPoint"))
-	void K2_SetFocalPoint(FVector FP, bool bOffsetFromBase = false);
+	void K2_SetFocalPoint(FVector FP);
 
 	/** Set Focus for actor, will set FocalPoint as a result. */
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocus"))
@@ -253,7 +254,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI")
 	AActor* GetFocusActor() const;
 
-	FORCEINLINE AActor* GetFocusActor(EAIFocusPriority::Type Priority) const {  return FocusInformation.Priorities.IsValidIndex(Priority) ? FocusInformation.Priorities[Priority].Actor.Get() : NULL; }
+	FORCEINLINE AActor* GetFocusActorForPriority(EAIFocusPriority::Type InPriority) const {  return FocusInformation.Priorities.IsValidIndex(InPriority) ? FocusInformation.Priorities[InPriority].Actor.Get() : nullptr; }
 
 	/** Clears Focus, will also clear FocalPoint as a result */
 	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="ClearFocus"))
@@ -309,7 +310,7 @@ public:
 	virtual void UpdateControlRotation(float DeltaTime, bool bUpdatePawn = true);
 
 	/** Set FocalPoint for given priority as absolute position or offset from base. */
-	virtual void SetFocalPoint(FVector FP, bool bOffsetFromBase=false, uint8 InPriority=EAIFocusPriority::Gameplay);
+	virtual void SetFocalPoint(FVector NewFocus, EAIFocusPriority::Type InPriority=EAIFocusPriority::Gameplay);
 
 	/* Set Focus actor for given priority, will set FocalPoint as a result. */
 	virtual void SetFocus(AActor* NewFocus, EAIFocusPriority::Type InPriority = EAIFocusPriority::Gameplay);

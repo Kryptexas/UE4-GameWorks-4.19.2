@@ -1161,7 +1161,7 @@ void UPathFollowingComponent::UpdateMoveFocus()
 		if (Status == EPathFollowingStatus::Moving)
 		{
 			const FVector MoveFocus = GetMoveFocus(AIOwner->bAllowStrafe);
-			AIOwner->SetFocalPoint(MoveFocus, false, EAIFocusPriority::Move);
+			AIOwner->SetFocalPoint(MoveFocus, EAIFocusPriority::Move);
 		}
 		else
 		{

@@ -96,7 +96,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			}
 			else
 			{
-				AIController->SetFocalPoint(KeyValue, false, EAIFocusPriority::Gameplay);
+				AIController->SetFocalPoint(KeyValue, EAIFocusPriority::Gameplay);
 				MyMemory->FocusLocationSet = KeyValue;
 				Result = EBTNodeResult::InProgress;
 			}
@@ -119,7 +119,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			{
 				const FVector FocalPoint = PawnLocation + DirectionVector * (MAX_FLT / 2);
 				// set focal somewhere far in the indicated direction
-				AIController->SetFocalPoint(FocalPoint, false, EAIFocusPriority::Gameplay);
+				AIController->SetFocalPoint(FocalPoint, EAIFocusPriority::Gameplay);
 				MyMemory->FocusLocationSet = FocalPoint;
 				Result = EBTNodeResult::InProgress;
 			}
@@ -140,7 +140,7 @@ void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 	else
 	{
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();				
-		const FVector FocalPoint = AIController->GetFocalPoint(EAIFocusPriority::Gameplay);
+		const FVector FocalPoint = AIController->GetFocalPointForPriority(EAIFocusPriority::Gameplay);
 
 		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D()) >= PrecisionDot)
 		{
@@ -158,11 +158,11 @@ void UBTTask_RotateToFaceBBEntry::CleanUp(AAIController& AIController, uint8* No
 	bool bClearFocus = false;
 	if (MyMemory->bActorSet)
 	{
-		bClearFocus = (MyMemory->FocusActorSet == AIController.GetFocusActor(EAIFocusPriority::Gameplay));
+		bClearFocus = (MyMemory->FocusActorSet == AIController.GetFocusActorForPriority(EAIFocusPriority::Gameplay));
 	}
 	else
 	{
-		bClearFocus = (MyMemory->FocusLocationSet == AIController.GetFocalPoint(EAIFocusPriority::Gameplay));
+		bClearFocus = (MyMemory->FocusLocationSet == AIController.GetFocalPointForPriority(EAIFocusPriority::Gameplay));
 	}
 	
 	if (bClearFocus)
@@ -193,7 +193,7 @@ void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeCompo
 	if (AIController != NULL && AIController->GetPawn() != NULL)
 	{
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();
-		const FVector FocalPoint = AIController->GetFocusItem(EAIFocusPriority::Gameplay).GetLocation();
+		const FVector FocalPoint = AIController->GetFocalPointForPriority(EAIFocusPriority::Gameplay);
 
 		const float CurrentAngleRadians = CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D());
 		Values.Add(FString::Printf(TEXT("Current angle: %.2f"), FMath::RadiansToDegrees(FMath::Acos(CurrentAngleRadians))));
