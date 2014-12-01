@@ -15,8 +15,6 @@ namespace EChatMessageType
 		Party,
 		// Global Chat Item
 		Global,
-		// Network chat item
-		Network,
 	};
 
 	/** @return the FTextified version of the enum passed in */
@@ -27,7 +25,6 @@ namespace EChatMessageType
 			case Global: return NSLOCTEXT("FriendsList","Global", "Global");
 			case Whisper: return NSLOCTEXT("FriendsList","Whisper", "Whisper");
 			case Party: return NSLOCTEXT("FriendsList","Party", "Party");
-			case Network: return NSLOCTEXT("FriendsList","Network", "Network");
 
 			default: return FText::GetEmpty();
 		}
@@ -41,6 +38,7 @@ struct FFriendChatMessage
 	FText FromName;
 	FText Message;
 	FText MessageTimeText;
+	FDateTime ExpireTime;
 	TSharedPtr<class FChatMessage> MessageRef;
 	TSharedPtr<FUniqueNetId> SenderId;
 	bool bIsFromSelf;

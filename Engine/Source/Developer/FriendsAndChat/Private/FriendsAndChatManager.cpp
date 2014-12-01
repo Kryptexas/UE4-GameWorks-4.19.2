@@ -237,7 +237,7 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 
 void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle )
 {
-	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(325, 458);
+	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(350, 458);
 
 	Style = *InStyle;
 

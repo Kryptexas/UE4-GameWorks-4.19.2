@@ -384,7 +384,6 @@ private:
 				case EChatMessageType::Global: ChannelColor = FriendStyle.DefaultChatColor; break;
 				case EChatMessageType::Whisper: ChannelColor = FriendStyle.WhisplerChatColor; break;
 				case EChatMessageType::Party: ChannelColor = FriendStyle.PartyChatColor; break;
-				case EChatMessageType::Network: ChannelColor = FriendStyle.NetworkChatColor; break;
 			}
 
 			ChannelSelection->AddSlot()

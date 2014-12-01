@@ -108,7 +108,6 @@ private:
 				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-				case EChatMessageType::Network: return FriendStyle.NetworkChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 				default: return FLinearColor::Gray;
 			}
 		}
@@ -128,7 +127,6 @@ private:
 				case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
 				case EChatMessageType::Whisper: DisplayColor =  FriendStyle.WhisplerChatColor; break;
 				case EChatMessageType::Party: DisplayColor =  FriendStyle.PartyChatColor; break;
-				case EChatMessageType::Network: DisplayColor = FriendStyle.NetworkChatColor; break;
 				default: DisplayColor = FLinearColor::Gray;
 			}
 			return DisplayColor;

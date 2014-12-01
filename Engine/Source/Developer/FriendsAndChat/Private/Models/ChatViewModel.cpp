@@ -5,6 +5,9 @@
 #include "ChatViewModel.h"
 #include "OnlineChatInterface.h"
 
+// Holds how many message to display
+static const int32 MessageDisplay = 200;
+
 class FChatViewModelImpl
 	: public FChatViewModel
 {
@@ -401,21 +404,27 @@ private:
 
 	void FilterChatList()
 	{
+		bool bAddedItem = true;
 		if(!IsGlobalChatEnabled())
 		{
 			FilteredChatLists.Empty();
+			bAddedItem = false;
 			for (const auto& ChatItem : ChatLists)
 			{
 				if(ChatItem->GetMessageType() != EChatMessageType::Global)
 				{
 					FilteredChatLists.Add(ChatItem);
-					ChatListUpdatedEvent.Broadcast();
+					bAddedItem = true;
 				}
 			}
 		}
 		else
 		{
 			FilteredChatLists = ChatLists;
+		}
+
+		if(bAddedItem)
+		{
 			ChatListUpdatedEvent.Broadcast();
 		}
 	}
@@ -435,7 +444,14 @@ private:
 
 	void HandleMessageReceived(const TSharedRef<FFriendChatMessage> NewMessage)
 	{
-		ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
+		if(IsGlobalChatEnabled() || NewMessage->MessageType != EChatMessageType::Global)
+		{
+			ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
+			if(ChatLists.Num() > MessageDisplay)
+			{
+				ChatLists.RemoveAt(0);
+			}
+		}
 		FilterChatList();
 	}
 
