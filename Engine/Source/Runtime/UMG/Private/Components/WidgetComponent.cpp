@@ -263,7 +263,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
 	
-	SetRelativeRotation( FRotator( 0.f, 0.f, 90.f ) );
+	RelativeRotation = FRotator(0.f, 0.f, 90.f);
 	
 	BodyInstance.SetCollisionProfileName(FName(TEXT("UI")));
 
@@ -307,7 +307,10 @@ FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) c
 {
 	if ( Space != EWidgetSpace::Screen )
 	{
-		return FBoxSphereBounds(FVector(DrawSize.X / 2.0f, DrawSize.Y / 2.0f, .5f), FVector(DrawSize.X / 2, DrawSize.Y / 2, 1.0f), DrawSize.Size() / 2).TransformBy(LocalToWorld);
+		const FVector Origin = FVector(DrawSize.X / 2.0f - ( DrawSize.X * Pivot.X ), DrawSize.Y / 2.0f - ( DrawSize.Y * Pivot.Y ), .5f);
+		const FVector BoxExtent = FVector(DrawSize.X / 2.0f, DrawSize.Y / 2.0f, 1.0f);
+
+		return FBoxSphereBounds(Origin, BoxExtent, DrawSize.Size() / 2.0f).TransformBy(LocalToWorld);
 	}
 	else
 	{
@@ -325,14 +328,14 @@ FCollisionShape UWidgetComponent::GetCollisionShape(float Inflation) const
 {
 	if ( Space != EWidgetSpace::Screen )
 	{
-		FVector	Extent = ( FVector(DrawSize.Y, DrawSize.Y, 1.0f) * ComponentToWorld.GetScale3D() ) + Inflation;
+		FVector	BoxHalfExtent = ( FVector(DrawSize.X * 0.5f, DrawSize.Y * 0.5f, 1.0f) * ComponentToWorld.GetScale3D() ) + Inflation;
 		if ( Inflation < 0.0f )
 		{
 			// Don't shrink below zero size.
-			Extent = Extent.ComponentMax(FVector::ZeroVector);
+			BoxHalfExtent = BoxHalfExtent.ComponentMax(FVector::ZeroVector);
 		}
 
-		return FCollisionShape::MakeBox(Extent);
+		return FCollisionShape::MakeBox(BoxHalfExtent);
 	}
 	else
 	{
@@ -607,6 +610,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 	if( Property && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
 		static FName DrawSizeName("DrawSize");
+		static FName PivotName("Pivot");
 		static FName WidgetClassName("WidgetClass");
 		static FName IsOpaqueName("bIsOpaque");
 		static FName IsTwoSidedName("bIsTwoSided");
@@ -618,7 +622,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		{
 			UpdateWidget();
 
-			if( PropertyName == DrawSizeName )
+			if ( PropertyName == DrawSizeName || PropertyName == PivotName )
 			{
 				UpdateBodySetup(true);
 			}
@@ -755,8 +759,10 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 
 		FKBoxElem* BoxElem = BodySetup->AggGeom.BoxElems.GetData();
 
+		const FVector Origin = FVector(DrawSize.X / 2.0f - ( DrawSize.X * Pivot.X ), DrawSize.Y / 2.0f - ( DrawSize.Y * Pivot.Y ), .5f);
+
 		BoxElem->SetTransform(FTransform::Identity);
-		BoxElem->Center = FVector(DrawSize.X/2.0f, DrawSize.Y/2.0f, .5f);
+		BoxElem->Center = Origin;
 		BoxElem->X = DrawSize.X;
 		BoxElem->Y = DrawSize.Y;
 		BoxElem->Z = 1.0f;
@@ -793,4 +799,14 @@ TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath( const FHitResult& 
 TSharedPtr<SWidget> UWidgetComponent::GetSlateWidget() const
 {
 	return SlateWidget;
+}
+
+void UWidgetComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_ADD_PIVOT_TO_WIDGET_COMPONENT )
+	{
+		Pivot = FVector2D(0, 0);
+	}
 }

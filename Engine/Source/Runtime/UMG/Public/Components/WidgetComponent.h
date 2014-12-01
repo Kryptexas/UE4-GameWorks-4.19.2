@@ -37,6 +37,10 @@ public:
 	virtual FName GetComponentInstanceDataType() const override;
 	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 
+	// Begin UObject
+	virtual void PostLoad() override;
+	// End UObject
+
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 #endif
