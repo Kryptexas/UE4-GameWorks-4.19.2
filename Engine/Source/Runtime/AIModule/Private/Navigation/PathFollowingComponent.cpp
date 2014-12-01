@@ -810,7 +810,7 @@ bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAccep
 	{
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
-	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, !bExactSpot);
+	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, /*bSuccessOnRadiusOverlap=*/!bExactSpot);
 }
 
 bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAcceptanceRadius, bool bExactSpot) const
@@ -834,7 +834,7 @@ bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAccepta
 	}
 
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
-	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, !bExactSpot);
+	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, /*bSuccessOnRadiusOverlap=*/!bExactSpot);
 }
 
 bool UPathFollowingComponent::HasReachedDestination(const FVector& CurrentLocation) const
@@ -860,7 +860,7 @@ bool UPathFollowingComponent::HasReachedDestination(const FVector& CurrentLocati
 		}
 	}
 
-	return HasReachedInternal(GoalLocation, GoalRadius, GoalHalfHeight, CurrentLocation, AcceptanceRadius, bStopOnOverlap);
+	return HasReachedInternal(GoalLocation, GoalRadius, GoalHalfHeight, CurrentLocation, AcceptanceRadius, /*bSuccessOnRadiusOverlap=*/bStopOnOverlap);
 }
 
 bool UPathFollowingComponent::HasReachedCurrentTarget(const FVector& CurrentLocation) const
@@ -884,10 +884,10 @@ bool UPathFollowingComponent::HasReachedCurrentTarget(const FVector& CurrentLoca
 	// don't use acceptance radius here, it has to be exact for moving near corners
 	const float GoalRadius = 0.0f;
 	const float GoalHalfHeight = 0.0f;
-	return HasReachedInternal(CurrentTarget, GoalRadius, GoalHalfHeight, CurrentLocation, CurrentAcceptanceRadius, false);
+	return HasReachedInternal(CurrentTarget, GoalRadius, GoalHalfHeight, CurrentLocation, CurrentAcceptanceRadius, /*bSuccessOnRadiusOverlap=*/false);
 }
 
-bool UPathFollowingComponent::HasReachedInternal(const FVector& Goal, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, bool bUseAgentRadius) const
+bool UPathFollowingComponent::HasReachedInternal(const FVector& Goal, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, bool bSuccessOnRadiusOverlap) const
 {
 	if (MovementComp == NULL)
 	{
@@ -904,7 +904,7 @@ bool UPathFollowingComponent::HasReachedInternal(const FVector& Goal, float Goal
 	const FVector ToGoal = Goal - AgentLocation;
 
 	const float Dist2DSq = ToGoal.SizeSquared2D();
-	const float UseRadius = GoalRadius + RadiusThreshold + (bUseAgentRadius ? AgentRadius * MinAgentRadiusPct : 0.0f);
+	const float UseRadius = FMath::Max(RadiusThreshold, GoalRadius + (bSuccessOnRadiusOverlap ? AgentRadius * MinAgentRadiusPct : 0.0f));
 	if (Dist2DSq > FMath::Square(UseRadius))
 	{
 		return false;
@@ -972,7 +972,7 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	MovingAgent->GetSimpleCollisionCylinder(AgentRadius, AgentHalfHeight);
 
 	CurrentDistance = ToGoal.Size2D();
-	const float UseRadius = GoalRadius + RadiusThreshold + (bUseAgentRadius ? AgentRadius * MinAgentRadiusPct : 0.0f);
+	const float UseRadius = FMath::Max(RadiusThreshold, GoalRadius + (bUseAgentRadius ? AgentRadius * MinAgentRadiusPct : 0.0f));
 	bDistanceFailed = (CurrentDistance > UseRadius) ? 1 : 0;
 
 	CurrentHeight = FMath::Abs(ToGoal.Z);
