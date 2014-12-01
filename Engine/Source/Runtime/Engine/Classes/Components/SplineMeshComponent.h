@@ -249,6 +249,14 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetForwardAxis(ESplineMeshAxis::Type InForwardAxis);
 
+	/** Get the spline up direction */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector GetSplineUpDir() const;
+
+	/** Set the spline up direction */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetSplineUpDir(const FVector& InSplineUpDir);
+
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();
 #if WITH_EDITOR

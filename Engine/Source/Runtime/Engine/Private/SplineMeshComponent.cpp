@@ -367,6 +367,17 @@ void USplineMeshComponent::SetForwardAxis(ESplineMeshAxis::Type InForwardAxis)
 	MarkSplineParamsDirty();
 }
 
+FVector USplineMeshComponent::GetSplineUpDir() const
+{
+	return SplineUpDir;
+}
+
+void USplineMeshComponent::SetSplineUpDir(const FVector& InSplineUpDir)
+{
+	SplineUpDir = InSplineUpDir.GetSafeNormal();
+	MarkSplineParamsDirty();
+}
+
 
 void USplineMeshComponent::MarkSplineParamsDirty()
 {
