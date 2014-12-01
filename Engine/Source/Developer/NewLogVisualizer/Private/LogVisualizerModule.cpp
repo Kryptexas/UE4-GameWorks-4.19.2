@@ -5,7 +5,7 @@
 #include "LogVisualizerStyle.h"
 #include "SDockTab.h"
 #include "VisualLoggerRenderingActor.h"
-#include "LogVIsualizerSettings.h"
+#include "LogVisualizerSettings.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
 #include "ISettingsModule.h"
