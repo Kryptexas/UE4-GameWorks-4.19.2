@@ -439,7 +439,7 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 				int32 VertIndex = indices[j];
 
 				FDynamicMeshVertex Vert1;
-				Vert1.Position = P2UVector(PVertices[VertIndex]);
+				Vert1.Position = Transform.TransformPosition( P2UVector(PVertices[VertIndex]) ); // Apply element transform to get geom in component space
 				Vert1.Color = VertexColor;
 				Vert1.SetTangents(
 					TangentX,
@@ -581,6 +581,8 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 			// Cache collision vertex/index buffer
 			if(!RenderInfo)
 			{
+				UE_LOG(LogTemp, Log, TEXT("Create RenderInfo %x"), this);
+
 				//@todo - parallelrendering, remove const cast
 				FKAggregateGeom& ThisGeom = const_cast<FKAggregateGeom&>(*this);
 				ThisGeom.RenderInfo = new FKConvexGeomRenderInfo();
@@ -652,6 +654,8 @@ void FKAggregateGeom::FreeRenderInfo()
 	// See if we have rendering resources to free
 	if(RenderInfo)
 	{
+		UE_LOG(LogTemp, Log, TEXT("Create RenderInfo %x"), this);
+
 		// Should always have these if RenderInfo exists
 		check(RenderInfo->VertexBuffer);
 		check(RenderInfo->IndexBuffer);

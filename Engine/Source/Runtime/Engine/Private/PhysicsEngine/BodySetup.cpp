@@ -232,6 +232,9 @@ void UBodySetup::ClearPhysicsMeshes()
 
 	bCreatedPhysicsMeshes = false;
 #endif
+
+	// Also clear render info
+	AggGeom.FreeRenderInfo();
 }
 
 #if WITH_PHYSX

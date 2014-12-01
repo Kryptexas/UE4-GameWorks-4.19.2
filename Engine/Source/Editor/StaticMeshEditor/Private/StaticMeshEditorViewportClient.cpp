@@ -412,6 +412,9 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 	if (bShowCollision && StaticMesh->BodySetup)
 	{
+		// Ensure physics mesh is created before we try and draw it
+		StaticMesh->BodySetup->CreatePhysicsMeshes();
+
 		const FColor SelectedColor(149, 223, 157);
 		const FColor UnselectedColor(157, 149, 223);
 
