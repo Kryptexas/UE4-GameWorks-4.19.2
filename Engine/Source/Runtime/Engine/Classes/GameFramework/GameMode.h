@@ -502,6 +502,9 @@ public:
 	 */
 	virtual class AActor* FindPlayerStart( AController* Player, const FString& IncomingName = TEXT("") );
 
+	UFUNCTION(BlueprintPure, Category=Game, meta=(FriendlyName="FindPlayerStart"))
+	AActor* K2_FindPlayerStart(AController* Player);
+
 	/** 
 	* Return the 'best' player start for this player to start from.  
 	* Default implementation just returns the first PlayerStart found.

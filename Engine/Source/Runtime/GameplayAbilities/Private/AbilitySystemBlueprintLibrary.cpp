@@ -20,21 +20,6 @@ UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemCompone
 	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
 }
 
-AActor* UAbilitySystemBlueprintLibrary::FindPlayerStart(AController* PlayerController)
-{
-	if (PlayerController)
-	{
-		if (UWorld* World = PlayerController->GetWorld())
-		{
-			if (AGameMode* GameMode = World->GetAuthGameMode())
-			{
-				return GameMode->FindPlayerStart(PlayerController);
-			}
-		}
-	}
-	return NULL;
-}
-
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AppendTargetDataHandle(FGameplayAbilityTargetDataHandle TargetHandle, FGameplayAbilityTargetDataHandle HandleToAdd)
 {
 	TargetHandle.Append(&HandleToAdd);

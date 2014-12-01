@@ -391,6 +391,11 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	return BestStart;
 }
 
+AActor* AGameMode::K2_FindPlayerStart( AController* Player )
+{
+	return FindPlayerStart(Player);
+}
+
 void AGameMode::PreInitializeComponents()
 {
 	Super::PreInitializeComponents();

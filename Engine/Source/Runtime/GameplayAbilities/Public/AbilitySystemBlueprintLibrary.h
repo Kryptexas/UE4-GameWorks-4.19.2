@@ -23,9 +23,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintPure, Category = Ability)
 	static UAbilitySystemComponent* GetAbilitySystemComponent(AActor *Actor);
 
-	UFUNCTION(BlueprintPure, Category = Ability)
-	static AActor* FindPlayerStart(AController* PlayerController);
-
 	// -------------------------------------------------------------------------------
 	//		TargetData
 	// -------------------------------------------------------------------------------
