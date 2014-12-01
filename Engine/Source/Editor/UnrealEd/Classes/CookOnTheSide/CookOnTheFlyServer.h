@@ -42,6 +42,7 @@ namespace ECookMode
 	enum Type
 	{
 		CookOnTheFly,				// default mode, handles requests from network
+		CookOnTheFlyFromTheEditor,	// cook on the side
 		CookByTheBookFromTheEditor,	// precook all resources while in the editor
 		CookByTheBook,				// cooking by the book (not in the editor)
 	};
@@ -381,7 +382,7 @@ private:
 			// return FilesProcessed.Contains(Filename);
 		}
 		// two versions of this function so I don't have to create temporary FFIleplatformRequest in some cases to call the exists function
-		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames )
+		bool Exists( const FName& Filename, const TArray<FName>& PlatformNames ) const
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -404,7 +405,17 @@ private:
 			return true;
 		}
 
-		bool GetCookedPlatforms( const FName& Filename, TArray<FName>& PlatformList )
+		void RemoveAllCookedFilesForPlatform( const FName& PlatformName )
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+
+			for ( auto& Request : FilesProcessed )
+			{	
+				Request.Value.RemovePlatform( PlatformName );
+			}
+		}
+
+		bool GetCookedPlatforms( const FName& Filename, TArray<FName>& PlatformList ) const
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			const FFilePlatformRequest* Request = FilesProcessed.Find(Filename);
@@ -618,6 +629,9 @@ private:
 	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
 	FThreadSafeFilenameSet CookedPackages; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
 
+	// declared mutable as it's used purely as a cache and don't want to have to declare all the functions as non const just because of this cache
+	mutable TMap<FName, TArray<FString>> CachedIniVersionStringsMap;
+
 public:
 
 	void WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames);
@@ -697,6 +711,20 @@ public:
 	 */
 	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
 	
+
+	/**
+	 * Clear all the previously cooked data all cook requests from now on will be considered recook requests
+	 */
+	void ClearAllCookedData();
+
+	/**
+	 * Clear all the previously cooked data for the platform passed in 
+	 * 
+	 * @param name of the platform to clear the cooked packages for
+	 */
+	void ClearPlatformCookedData( const FName& PlatformName );
+
+
 	/**
 	 * Force stop whatever pending cook requests are going on and clear all the cooked data
 	 * Note cook on the side / cook on the fly clients may not be able to recover from this if they are waiting on a cook request to complete
@@ -721,7 +749,21 @@ public:
 	 * 
 	 * @return returns true if this cooker is running in realtime mode like in the editor
 	 */
-	bool IsRealtimeMode();
+	bool IsRealtimeMode() const;
+
+	/**
+	 * Helper function returns if we are in any cook by the book mode
+	 *
+	 * @return if the cook mode is a cook by the book mode
+	 */
+	bool IsCookByTheBookMode() const;
+
+	/**
+	 * Helper function returns if we are in any cook on the fly mode
+	 *
+	 * @return if the cook mode is a cook on the fly mode
+	 */
+	bool IsCookOnTheFlyMode() const;
 	
 
 	virtual void BeginDestroy() override;
@@ -765,16 +807,6 @@ private:
 	 * Call back from the TickCookOnTheSide when a cook by the book finishes (when started form StartCookByTheBook)
 	 */
 	void CookByTheBookFinished();
-
-	/**
-	 * Helper function returns if we are in any cook by the book mode
-	 *
-	 * @return if the cook mode is a cook by the book mode
-	 */
-	inline bool IsCookByTheBookMode() const 
-	{ 
-		return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookByTheBook; 
-	}
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -846,15 +878,7 @@ private:
 	 * @param TargetPlatforms to check if out of date
 	 * @param OutOfDateTargetPlatforms return list of out of date target platforms which should be cleaned
 	 */
-	bool IniSettingsOutOfDate( const TArray<ITargetPlatform*>& TargetPlatforms, TArray<ITargetPlatform*>& OutOfDateTargetPlatforms ) const;
-
-	/**
-	 * SaveIniVersionStrings save out the ini version strings for all platforms so next cook can use them
-	 * -iterate uses this to figure out if content needs to be recooked
-	 * 
-	 * @param TargetPlatforms the target platforms to generate ini version info for
-	 */
-	void SaveIniVersionStrings( const TArray<ITargetPlatform*>& TargetPlatforms ) const;
+	bool IniSettingsOutOfDate( const TArray<ITargetPlatform*>& TargetPlatforms, TArray<ITargetPlatform*>& OutOfDateTargetPlatforms, bool bShouldSaveCookedVersions = true ) const;
 
 	/**
 	 * IsCookFlagSet
