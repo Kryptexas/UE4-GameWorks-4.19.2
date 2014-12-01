@@ -917,18 +917,17 @@ public:
 	bool DoesGraphSupportImpureFunctions(const UEdGraph* InGraph) const;
 
 	/**
-	 * Checks to see if the passed in function is valid in the class
+	 * Checks to see if the passed in function is valid in the graph for the current class
 	 *
 	 * @param	InClass  			Class being checked to see if the function is valid for
 	 * @param	InFunction			Function being checked
 	 * @param	InDestGraph			Graph we will be using action for (may be NULL)
 	 * @param	InFunctionTypes		Combination of EFunctionType to indicate types of functions accepted
-	 * @param	bInShowInherited	Allows for inherited functions
 	 * @param	bInCalledForEach	Call for each element in an array (a node accepts array)
 	 * @param	InTargetInfo		Allows spawning nodes which also create a target variable as well
 	 * @param	OutReason			Allows callers to receive a localized string containing more detail when the function is determined to be invalid (optional)
 	 */
-	bool CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason = nullptr) const;
+	bool CanFunctionBeUsedInGraph(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason = nullptr) const;
 
 	/**
 	 * Makes connections into/or out of the gateway node, connect directly to the associated networks on the opposite side of the tunnel

@@ -507,7 +507,7 @@ bool UEdGraphSchema_K2::DoesFunctionHaveOutParameters( const UFunction* Function
 	return false;
 }
 
-bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InAllowedFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason) const
+bool UEdGraphSchema_K2::CanFunctionBeUsedInGraph(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InAllowedFunctionTypes, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason) const
 {
 	if (CanUserKismetCallFunction(InFunction))
 	{
@@ -639,17 +639,6 @@ bool UEdGraphSchema_K2::CanFunctionBeUsedInClass(const UClass* InClass, UFunctio
 					return false;
 				}
 			}
-		}
-
-		const bool bFunctionHidden = FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, InClass);
-		if (bFunctionHidden)
-		{
-			if(OutReason != nullptr)
-			{
-				*OutReason = LOCTEXT("HiddenFunctionInaccessible", "Function is hidden and inaccessible.");
-			}
-
-			return false;
 		}
 
 		const bool bFunctionStatic = InFunction->HasAllFunctionFlags(FUNC_Static);

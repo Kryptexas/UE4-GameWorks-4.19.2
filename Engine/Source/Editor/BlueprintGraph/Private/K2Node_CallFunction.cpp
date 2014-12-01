@@ -1023,7 +1023,7 @@ bool UK2Node_CallFunction::CanPasteHere(const UEdGraph* TargetGraph) const
 			AllowedFunctionTypes |= UEdGraphSchema_K2::EFunctionType::FT_Imperative;
 		}
 
-		bCanPaste = K2Schema->CanFunctionBeUsedInClass(FBlueprintEditorUtils::FindBlueprintForGraphChecked(TargetGraph)->GeneratedClass, GetTargetFunction(), TargetGraph, AllowedFunctionTypes, true, false, FFunctionTargetInfo());
+		bCanPaste = K2Schema->CanFunctionBeUsedInGraph(FBlueprintEditorUtils::FindBlueprintForGraphChecked(TargetGraph)->GeneratedClass, GetTargetFunction(), TargetGraph, AllowedFunctionTypes, false, FFunctionTargetInfo());
 	}
 	
 	return bCanPaste;

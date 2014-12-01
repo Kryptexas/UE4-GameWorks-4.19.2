@@ -95,7 +95,7 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 				}
 
 				const UClass* GeneratedClass = FBlueprintEditorUtils::FindBlueprintForGraphChecked(HoveredGraphIn)->GeneratedClass;
-				bCanBePlaced = K2Schema->CanFunctionBeUsedInClass(GeneratedClass, Function, HoveredGraphIn, AllowedFunctionTypes, true, false, FFunctionTargetInfo(), &ImpededReasonOut);
+				bCanBePlaced = K2Schema->CanFunctionBeUsedInGraph(GeneratedClass, Function, HoveredGraphIn, AllowedFunctionTypes, false, FFunctionTargetInfo(), &ImpededReasonOut);
 			}
 		}
 		else if (UK2Node_Event const* EventNode = Cast<UK2Node_Event const>(NodeToBePlaced))

@@ -1489,9 +1489,14 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 		for (TFieldIterator<UFunction> FunctionIt(Class, SuperClassFlag); FunctionIt; ++FunctionIt)
 		{
 			UFunction* Function = *FunctionIt;
-			if( K2Schema->CanFunctionBeUsedInClass(Class, Function, DestGraph, FunctionTypes, bShowInherited, bCalledForEach, TargetInfo) )
+			if( K2Schema->CanFunctionBeUsedInGraph(Class, Function, DestGraph, FunctionTypes, bCalledForEach, TargetInfo) )
 			{
-				FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, TargetInfo, FMemberReference(), BaseCategory, K2Schema->AG_LevelReference, ListBuilder, bCalledForEach);
+				// Check if the function is hidden
+				const bool bFunctionHidden = FObjectEditorUtils::IsFunctionHiddenFromClass(Function, Class);
+				if (!bFunctionHidden)
+				{
+					FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, TargetInfo, FMemberReference(), BaseCategory, K2Schema->AG_LevelReference, ListBuilder, bCalledForEach);
+				}
 			}
 		}
 

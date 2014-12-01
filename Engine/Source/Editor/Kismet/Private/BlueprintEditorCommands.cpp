@@ -223,7 +223,7 @@ public:
 				FunctionTypes |= UEdGraphSchema_K2::EFunctionType::FT_Imperative;
 			}
 
-			if(K2Schema->CanFunctionBeUsedInClass(Blueprint->GeneratedClass, FunctionPtr, InDestGraph, FunctionTypes, true, false, FFunctionTargetInfo()))
+			if(K2Schema->CanFunctionBeUsedInGraph(Blueprint->GeneratedClass, FunctionPtr, InDestGraph, FunctionTypes, false, FFunctionTargetInfo()))
 			{
 				FK2ActionMenuBuilder::AddSpawnInfoForFunction(FunctionPtr, false, FFunctionTargetInfo(), FMemberReference(), TEXT(""), K2Schema->AG_LevelReference, InPaletteBuilder);
 			}
