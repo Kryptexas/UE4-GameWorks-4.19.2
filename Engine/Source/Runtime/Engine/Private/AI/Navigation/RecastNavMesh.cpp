@@ -720,11 +720,6 @@ void ARecastNavMesh::FillConfig(FNavDataConfig& Dest)
 	Dest.AgentStepHeight = AgentMaxStepHeight;
 }
 
-bool ARecastNavMesh::DoesSupportAgent(const FNavAgentProperties& AgentProps) const
-{
-	return NavDataConfig.IsEquivalent(AgentProps);
-}
-
 void ARecastNavMesh::BeginBatchQuery() const
 {
 #if RECAST_ASYNC_REBUILDING

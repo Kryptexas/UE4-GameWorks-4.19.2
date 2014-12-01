@@ -446,7 +446,7 @@ public:
 	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; SetNavRenderingEnabled(bIsDefault); }
 	bool IsSupportingDefaultAgent() const { return bSupportsDefaultAgent; }
 
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const { return false; }
+	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const;
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }

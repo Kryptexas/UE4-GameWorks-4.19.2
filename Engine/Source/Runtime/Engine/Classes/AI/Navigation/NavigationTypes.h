@@ -382,22 +382,22 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Display)
 	FName Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Display)
 	FColor Color;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Querying, config)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Querying, config)
 	FVector DefaultQueryExtent;
 
-	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight)
-		: FNavAgentProperties(Radius, Height)
-		, Name(TEXT("Default"))
-		, Color(140,255,0,164)
-		, DefaultQueryExtent(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL)
-	{
-	}	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Navigation, config)
+	TSubclassOf<ANavigationData> NavigationDataClass;
+
+	UPROPERTY(config)
+	FStringClassReference NavigationDataClassName;
+
+	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight);
 };
 
 struct FNavigationProjectionWork

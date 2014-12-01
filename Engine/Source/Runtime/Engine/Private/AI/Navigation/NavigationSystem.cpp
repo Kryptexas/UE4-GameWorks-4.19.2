@@ -111,6 +111,17 @@ namespace NavigationDebugDrawing
 }
 
 //----------------------------------------------------------------------//
+// FNavDataConfig
+//----------------------------------------------------------------------//
+FNavDataConfig::FNavDataConfig(float Radius, float Height)
+	: FNavAgentProperties(Radius, Height)
+	, Name(TEXT("Default"))
+	, Color(140, 255, 0, 164)
+	, DefaultQueryExtent(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL)
+	, NavigationDataClass(ARecastNavMesh::StaticClass())
+{
+}
+//----------------------------------------------------------------------//
 // FNavigationLockContext                                                                
 //----------------------------------------------------------------------//
 void FNavigationLockContext::LockUpdates()
@@ -294,7 +305,8 @@ void UNavigationSystem::DoInitialSetup()
 	if (AbstractNavData == NULL)
 	{
 		FNavDataConfig DummyConfig;
-		AbstractNavData = CreateNavigationDataInstance(AAbstractNavData::StaticClass(), NavWorld, DummyConfig);
+		DummyConfig.NavigationDataClass = AAbstractNavData::StaticClass();
+		AbstractNavData = CreateNavigationDataInstance(DummyConfig);
 	}
 
 	CreateCrowdManager();
@@ -332,7 +344,42 @@ void UNavigationSystem::PostInitProperties()
 		FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
 	}
+	else
+	{
+		// update SupportedActors' navigation classes
+		for (FNavDataConfig& SupportedAgentConfig : SupportedAgents)
+		{
+			if (SupportedAgentConfig.NavigationDataClassName.IsValid())
+			{
+				SupportedAgentConfig.NavigationDataClass = LoadClass<ANavigationData>(NULL, *SupportedAgentConfig.NavigationDataClassName.ToString(), NULL, LOAD_None, NULL);
+			}
+		}
+	}
 }
+
+#if WITH_EDITOR
+void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	static const FName NAME_SupportedAgents = GET_MEMBER_NAME_CHECKED(UNavigationSystem, SupportedAgents);
+	static const FName NAME_NavigationDataClass = GET_MEMBER_NAME_CHECKED(FNavDataConfig, NavigationDataClass);
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property)
+	{
+		FName PropName = PropertyChangedEvent.Property->GetFName();
+		if (PropName == NAME_NavigationDataClass)
+		{
+			int32 SupportedAgentIndex = PropertyChangedEvent.GetArrayIndex(NAME_SupportedAgents.ToString());
+			if (SupportedAgentIndex != INDEX_NONE)
+			{
+				// reflect the change to SupportedAgent's 
+				SupportedAgents[SupportedAgentIndex].NavigationDataClassName = FStringClassReference::GetOrCreateIDForClass(SupportedAgents[SupportedAgentIndex].NavigationDataClass);
+			}
+		}
+	}
+}
+#endif // WITH_EDITOR
 
 void UNavigationSystem::OnInitializeActors()
 {
@@ -1469,7 +1516,8 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 	if (NavConfig.IsValid() == false && SupportedAgents.Num() == 1)
 	{
 		// fill in AgentProps with whatever is the instance's setup
-		NavData->SetConfig((NavConfig = SupportedAgents[0]));
+		NavConfig = SupportedAgents[0];
+		NavData->SetConfig(SupportedAgents[0]);
 		NavData->SetSupportsDefaultAgent(true);	
 		NavData->ProcessNavAreas(NavAreaClasses, 0);
 	}
@@ -1482,19 +1530,19 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 		{
 			// ok, so this navigation agent doesn't have its navmesh registered yet, but do we want to support it?
 			bool bAgentSupported = false;
-			FNavDataConfig* Agent = SupportedAgents.GetData();
-			for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex, ++Agent)
+			
+			for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex)
 			{
-				if (Agent->IsEquivalent(NavConfig) == true)
+				if (NavData->GetClass() == SupportedAgents[AgentIndex].NavigationDataClass && SupportedAgents[AgentIndex].IsEquivalent(NavConfig) == true)
 				{
 					// it's supported, then just in case it's not a precise match (IsEquivalent succeeds with some precision) 
 					// update NavData with supported Agent
 					bAgentSupported = true;
 
-					NavData->SetConfig(*Agent);
+					NavData->SetConfig(SupportedAgents[AgentIndex]);
 					if (!NavData->IsA(AAbstractNavData::StaticClass()))
 					{
-						AgentToNavDataMap.Add(*Agent, NavData);
+						AgentToNavDataMap.Add(SupportedAgents[AgentIndex], NavData);
 					}
 
 					NavData->SetSupportsDefaultAgent(AgentIndex == 0);
@@ -2700,14 +2748,13 @@ void UNavigationSystem::SpawnMissingNavigationData()
 	UWorld* NavWorld = GetWorld();
 
 	// 1. check whether any of required navigation data has already been instantiated
-	for (TActorIterator<ARecastNavMesh> It(NavWorld); It && NumberFound < SupportedAgentsCount; ++It)
+	for (TActorIterator<ANavigationData> It(NavWorld); It && NumberFound < SupportedAgentsCount; ++It)
 	{
-		ARecastNavMesh* Nav = (*It);
+		ANavigationData* Nav = (*It);
 		if (Nav != NULL && Nav->GetTypedOuter<UWorld>() == NavWorld && Nav->IsPendingKill() == false)
 		{
 			// find out which one it is
-			const FNavDataConfig* AgentProps = SupportedAgents.GetData();
-			for (int32 AgentIndex = 0; AgentIndex < SupportedAgentsCount; ++AgentIndex, ++AgentProps)
+			for (int32 AgentIndex = 0; AgentIndex < SupportedAgentsCount; ++AgentIndex)
 			{
 				if (AlreadyInstantiated[AgentIndex] == true)
 				{
@@ -2715,7 +2762,7 @@ void UNavigationSystem::SpawnMissingNavigationData()
 					continue;
 				}
 
-				if (Nav->DoesSupportAgent(*AgentProps) == true)
+				if (Nav->GetClass() == SupportedAgents[AgentIndex].NavigationDataClass && Nav->DoesSupportAgent(SupportedAgents[AgentIndex]) == true)
 				{
 					AlreadyInstantiated[AgentIndex] = true;
 					++NumberFound;
@@ -2734,19 +2781,13 @@ void UNavigationSystem::SpawnMissingNavigationData()
 			{
 				bool bHandled = false;
 
-				for (int32 NavClassIndex = 0; NavClassIndex < NavDataClasses.Num(); ++NavClassIndex)
+				ANavigationData* Instance = CreateNavigationDataInstance(SupportedAgents[AgentIndex]);
+
+				if (Instance != NULL)
 				{
-					ANavigationData* Instance = CreateNavigationDataInstance(NavDataClasses[NavClassIndex], NavWorld, SupportedAgents[AgentIndex]);
-
-					if (Instance != NULL)
-					{
-						RequestRegistration(Instance);
-						bHandled = true;
-						break;
-					}
+					RequestRegistration(Instance);
 				}
-
-				if (bHandled == false)
+				else 
 				{
 					UE_LOG(LogNavigation, Warning, TEXT("Was not able to create navigation data for SupportedAgent %s (index %d)")
 						, *(SupportedAgents[AgentIndex].Name.ToString()), AgentIndex);
@@ -2764,8 +2805,10 @@ void UNavigationSystem::SpawnMissingNavigationData()
 	}
 }
 
-ANavigationData* UNavigationSystem::CreateNavigationDataInstance(TSubclassOf<ANavigationData> NavDataClass, UWorld* World, const FNavDataConfig& NavConfig)
+ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataConfig& NavConfig)
 {
+	TSubclassOf<ANavigationData> NavDataClass = NavConfig.NavigationDataClass;
+	UWorld* World = GetWorld();
 	check(World);
 
 	FActorSpawnParameters SpawnInfo;

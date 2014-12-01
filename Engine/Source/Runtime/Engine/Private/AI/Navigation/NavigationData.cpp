@@ -331,6 +331,11 @@ void ANavigationData::PostEditUndo()
 }
 #endif // WITH_EDITOR
 
+bool ANavigationData::DoesSupportAgent(const FNavAgentProperties& AgentProps) const
+{
+	return NavDataConfig.IsEquivalent(AgentProps);
+}
+
 void ANavigationData::Destroyed()
 {
 	UWorld* WorldOuter = GetWorld();
