@@ -164,6 +164,12 @@ private:
 		return ChildSlot;
 	}
 
+	// Viewports shouldn't show focus
+	virtual const FSlateBrush* GetFocusBrush() const override
+	{
+		return nullptr;
+	}
+
 protected:
 
 	/** Interface to the rendering and I/O implementation of the viewport. */

@@ -27,9 +27,6 @@ void SViewport::Construct( const FArguments& InArgs )
 	ViewportInterface = InArgs._ViewportInterface;
 	ViewportSize = InArgs._ViewportSize;
 
-	// Viewports should show focus
-	SetFocusBrush(nullptr);
-
 	this->ChildSlot
 	[
 		InArgs._Content.Widget

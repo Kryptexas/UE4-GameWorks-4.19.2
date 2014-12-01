@@ -551,9 +551,6 @@ public:
 	 */
 	bool HasFocusedDescendants() const;
 
-	/** @param InFocusBrush Sets the brush used to render focus. */
-	void SetFocusBrush(TOptional<FSlateBrush*> InFocusBrush);
-
 	/**
 	 * Checks to see if this widget is the current mouse captor
 	 *
@@ -807,6 +804,9 @@ protected:
 		return IsEnabled() && InParentEnabled;
 	}
 
+	/** @return a brush to draw focus, nullptr if no focus drawing is desired */
+	virtual const FSlateBrush* GetFocusBrush() const;
+
 private:
 
 	/**
@@ -869,9 +869,6 @@ protected:
 
 	/** Render transform pivot of this widget (in normalized local space) */
 	TAttribute< FVector2D > RenderTransformPivot;
-
-	/** The brush used to draw focus, if unset it will use system default. */
-	TOptional<FSlateBrush*> FocusBrush;
 
 	/** Is this widget hovered? */
 	bool bIsHovered;

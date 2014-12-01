@@ -414,9 +414,9 @@ bool SWidget::HasFocusedDescendants() const
 	return FSlateApplicationBase::Get().HasFocusedDescendants(SharedThis(this));
 }
 
-void SWidget::SetFocusBrush(TOptional<FSlateBrush*> InFocusBrush)
+const FSlateBrush* SWidget::GetFocusBrush() const
 {
-	FocusBrush = InFocusBrush;
+	return FCoreStyle::Get().GetBrush("FocusRectangle");
 }
 
 bool SWidget::HasMouseCapture() const
@@ -633,7 +633,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 		TOptional<EFocusCause> FocusCause = HasAnyUserFocus();
 		if (FocusCause.IsSet() && FocusCause.GetValue() == EFocusCause::Navigation)
 		{
-			const FSlateBrush* BrushResource = FocusBrush.IsSet() ? FocusBrush.GetValue() : FCoreStyle::Get().GetBrush("FocusRectangle");
+			const FSlateBrush* BrushResource = GetFocusBrush();
 
 			if (BrushResource != nullptr)
 			{
