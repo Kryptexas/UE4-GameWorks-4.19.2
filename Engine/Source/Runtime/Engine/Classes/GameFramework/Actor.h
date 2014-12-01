@@ -81,7 +81,7 @@ public:
 	 * @see https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Engine/FTickFunction/
 	 * @see AddTickPrerequisiteActor(), AddTickPrerequisiteComponent()
 	 */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category="Tick")
 	struct FActorTickFunction PrimaryActorTick;
 
 	/** Allow each actor to run at a different time speed. The DeltaTime for a frame is multiplied by the global TimeDilation (in WorldSettings) and this CustomTimeDilation for this actor's tick.  */
@@ -1489,7 +1489,7 @@ public:
 	 * @param	bEnabled - Rather it should be enabled or not
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
-	virtual void SetActorTickEnabled(bool bEnabled);
+	void SetActorTickEnabled(bool bEnabled);
 
 	/**  Returns whether this actor has tick enabled or not	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
