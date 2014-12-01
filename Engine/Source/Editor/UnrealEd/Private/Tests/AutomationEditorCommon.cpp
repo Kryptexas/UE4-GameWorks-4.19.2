@@ -59,6 +59,7 @@
 
 #include "CookOnTheSide/CookOnTheFlyServer.h"
 #include "Interfaces/ILauncherProfile.h"
+#include "LightingBuildOptions.h"
 
 #define COOK_TIMEOUT 3600
 
