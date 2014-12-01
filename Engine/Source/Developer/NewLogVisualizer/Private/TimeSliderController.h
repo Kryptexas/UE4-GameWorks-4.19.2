@@ -7,7 +7,7 @@
 struct FVisualLoggerTimeSliderArgs : FTimeSliderArgs
 {
 	FVisualLoggerTimeSliderArgs()
-		: CursorSize(0.0f)
+		: CursorSize(0.1f)
 	{}
 
 	/** Cursor range for data like histogram graphs, etc. */
