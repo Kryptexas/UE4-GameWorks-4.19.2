@@ -48,8 +48,7 @@ void FGameplayEffectContext::AddActors(TArray<TWeakObjectPtr<AActor>> InActors, 
 		Actors.Reset();
 	}
 
-	check(!Actors.Num());
-	Actors = InActors;
+	Actors.Append(InActors);
 }
 
 void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bReset)
