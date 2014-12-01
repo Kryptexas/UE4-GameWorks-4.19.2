@@ -84,7 +84,7 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 	TArray<FDebugRenderSceneProxy::FDebugLine> ClusterLinkLines;
 
 	TArray<int32> PathCollidingGeomIndices;
-	TNavStatArray<FVector> PathCollidingGeomVerts;
+	TArray<FDynamicMeshVertex> PathCollidingGeomVerts;
 
 	TArray<FBoxCenterAndExtent>	OctreeBounds;
 		
@@ -274,7 +274,8 @@ public:
 			return;
 		}
 
-		MeshColors.Reserve(NumberOfMeshes);
+		MeshColors.Reserve(NumberOfMeshes + (ProxyData.bDrawPathCollidingGeometry && ProxyData.PathCollidingGeomVerts.Num() > 0 ? 1 : 0));
+		MeshBatchElements.Reserve(NumberOfMeshes);
 		const FMaterialRenderProxy* ParentMaterial = GEngine->DebugMeshMaterial->GetRenderProxy(false);
 		for (int32 Index = 0; Index < NumberOfMeshes; ++Index)
 		{
@@ -282,7 +283,7 @@ public:
 
 			FMeshBatchElement Element;
 			Element.FirstIndex = IndexBuffer.Indices.Num();
-			Element.NumPrimitives = CurrentMeshBuilder.Indices.Num() / 3;
+			Element.NumPrimitives = FMath::FloorToInt(CurrentMeshBuilder.Indices.Num() / 3);
 			Element.MinVertexIndex = VertexBuffer.Vertices.Num();
 			Element.MaxVertexIndex = Element.MinVertexIndex + CurrentMeshBuilder.Vertices.Num() - 1;
 			Element.IndexBuffer = &IndexBuffer;
@@ -294,28 +295,9 @@ public:
 			IndexBuffer.Indices.Append( CurrentMeshBuilder.Indices );
 		}
 
-		if (ProxyData.bDrawPathCollidingGeometry && ProxyData.PathCollidingGeomVerts.Num() > 0)
-		{
-			FMeshBatchElement Element;
-			Element.FirstIndex = IndexBuffer.Indices.Num();
-			Element.MinVertexIndex = VertexBuffer.Vertices.Num();
-			Element.IndexBuffer = &IndexBuffer;
-
-			for (const auto& CurrentLoc : ProxyData.PathCollidingGeomVerts)
-			{
-				VertexBuffer.Vertices.Add(FDynamicMeshVertex(CurrentLoc));
-			}
-			IndexBuffer.Indices.Append(ProxyData.PathCollidingGeomIndices);
-
-			Element.NumPrimitives = ProxyData.PathCollidingGeomIndices.Num() / 3;
-			Element.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
-			MeshBatchElements.Add(Element);
-
-			MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, NavMeshRenderColor_PathCollidingGeom));
-		}
+		MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, NavMeshRenderColor_PathCollidingGeom));
 
 		VertexFactory.Init(&VertexBuffer);
-
 		BeginInitResource(&IndexBuffer);
 		BeginInitResource(&VertexBuffer);
 		BeginInitResource(&VertexFactory);
@@ -326,6 +308,7 @@ public:
 		VertexBuffer.ReleaseResource();
 		IndexBuffer.ReleaseResource();
 		VertexFactory.ReleaseResource();
+
 		ProxyData.Reset();
 	}
 
@@ -429,6 +412,15 @@ public:
 					Mesh.DepthPriorityGroup = SDPG_World;
 					Mesh.bCanApplyViewModeOverrides = false;
 					Collector.AddMesh(ViewIndex, Mesh);
+				}
+
+				if (ProxyData.PathCollidingGeomIndices.Num() > 2)
+				{
+					FDynamicMeshBuilder MeshBuilder;
+					MeshBuilder.AddVertices(ProxyData.PathCollidingGeomVerts);
+					MeshBuilder.AddTriangles(ProxyData.PathCollidingGeomIndices);
+
+					MeshBuilder.GetMesh(FMatrix::Identity, &MeshColors[MeshBatchElements.Num()], SDPG_World, false, false, ViewIndex, Collector);
 				}
 
 				int32 Num = ProxyData.NavMeshEdgeLines.Num();
@@ -587,6 +579,7 @@ private:
 	FNavMeshIndexBuffer IndexBuffer;
 	FNavMeshVertexBuffer VertexBuffer;
 	FNavMeshVertexFactory VertexFactory;
+
 	TArray <FColoredMaterialRenderProxy> MeshColors;
 	TArray<FMeshBatchElement> MeshBatchElements;
 
@@ -597,23 +590,21 @@ private:
 };
 #endif // WITH_RECAST
 
-FORCEINLINE void AppendGeometry(TNavStatArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer,
+FORCEINLINE void AppendGeometry(TArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer,
 								const float* Coords, int32 NumVerts, const int32* Faces, int32 NumFaces)
 {
 	const int32 VertIndexBase = OutVertexBuffer.Num();
-	for (int32 VertIdx = 0; VertIdx < NumVerts; ++VertIdx)
+	for (int32 VertIdx = 0; VertIdx < NumVerts*3; VertIdx+=3)
 	{
-		OutVertexBuffer.Add(Recast2UnrealPoint(&Coords[VertIdx * 3]));
+		OutVertexBuffer.Add(Recast2UnrealPoint(&Coords[VertIdx]));
 	}
 
 	const int32 FirstNewFaceVertexIndex = OutIndexBuffer.Num();
-	OutIndexBuffer.AddUninitialized(NumFaces * 3);
-	int32* DestFaceVertIndex = OutIndexBuffer.GetData() + FirstNewFaceVertexIndex;
-	const int32* SrcFaceVertIndex = Faces;
-	// copy with offset
-	for (int32 Index = 0; Index < NumFaces * 3; ++Index, ++DestFaceVertIndex, ++SrcFaceVertIndex)
+	const uint32 NumIndices = NumFaces * 3;
+	OutIndexBuffer.AddUninitialized(NumIndices);
+	for (uint32 Index = 0; Index < NumIndices; ++Index)
 	{
-		*DestFaceVertIndex = *SrcFaceVertIndex + VertIndexBase;
+		OutIndexBuffer[FirstNewFaceVertexIndex + Index] = VertIndexBase + Faces[Index];
 	}
 }
 

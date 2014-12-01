@@ -183,35 +183,6 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			}
 		}
 
-		if (NavMesh->bDrawPathCollidingGeometry)
-		{
-			// draw all geometry gathered in navoctree
-			const FNavigationOctree* NavOctree = NavMesh->GetWorld()->GetNavigationSystem()->GetNavOctree();
-
-			for (FNavigationOctree::TConstIterator<> It(*NavOctree); It.HasPendingNodes(); It.Advance())
-			{
-				const FNavigationOctree::FNode& Node = It.GetCurrentNode();
-				for (FNavigationOctree::ElementConstIt ElementIt(Node.GetElementIt()); ElementIt; ElementIt++)
-				{
-					const FNavigationOctreeElement& Element = *ElementIt;
-					if (Element.ShouldUseGeometry(&NavMesh->NavDataConfig) && Element.Data.CollisionData.Num())
-					{
-						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
-						AppendGeometry(CurrentData->PathCollidingGeomVerts, CurrentData->PathCollidingGeomIndices,
-							CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
-					}
-				}
-
-				FOREACH_OCTREE_CHILD_NODE(ChildRef)
-				{
-					if (Node.HasChild(ChildRef))
-					{
-						It.PushChild(ChildRef);
-					}
-				}
-			}
-		}
-		
 		// offset all navigation-link positions
 		if (!NavMesh->bDrawClusters)
 		{
@@ -367,7 +338,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 				CurrentData->MeshBuilders.Add(DebugMeshData);
 			}
 		}
-		else
+		else if (NavMesh->bDrawNavMesh)
 		{			
 			for (int32 AreaType = 0; AreaType < RECAST_MAX_AREAS; ++AreaType)
 			{
@@ -393,17 +364,39 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			}
 		}
 
-		// Draw path generation input geometry
-		if (CurrentData->bDrawPathCollidingGeometry)
+		if (NavMesh->bDrawPathCollidingGeometry)
 		{
-			FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
-			for (int32 VertIdx=0; VertIdx < CurrentData->PathCollidingGeomVerts.Num(); ++VertIdx)
+			// draw all geometry gathered in navoctree
+			const FNavigationOctree* NavOctree = NavMesh->GetWorld()->GetNavigationSystem()->GetNavOctree();
+
+			TArray<FVector> PathCollidingGeomVerts;
+			TArray <int32> PathCollidingGeomIndices;
+			for (FNavigationOctree::TConstIterator<> It(*NavOctree); It.HasPendingNodes(); It.Advance())
 			{
-				AddVertexHelper(DebugMeshData, CurrentData->PathCollidingGeomVerts[VertIdx], NavMeshRenderColor_PathCollidingGeom);
+				const FNavigationOctree::FNode& Node = It.GetCurrentNode();
+				for (FNavigationOctree::ElementConstIt ElementIt(Node.GetElementIt()); ElementIt; ElementIt++)
+				{
+					const FNavigationOctreeElement& Element = *ElementIt;
+					if (Element.ShouldUseGeometry(&NavMesh->NavDataConfig) && Element.Data.CollisionData.Num())
+					{
+						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
+						AppendGeometry(PathCollidingGeomVerts, PathCollidingGeomIndices, CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
+					}
+				}
+				FOREACH_OCTREE_CHILD_NODE(ChildRef)
+				{
+					if (Node.HasChild(ChildRef))
+					{
+						It.PushChild(ChildRef);
+					}
+				}
 			}
-			DebugMeshData.Indices.Append(CurrentData->PathCollidingGeomIndices);
-			DebugMeshData.ClusterColor = NavMeshRenderColor_PathCollidingGeom;
-			CurrentData->MeshBuilders.Add(DebugMeshData);
+			CurrentData->PathCollidingGeomIndices = PathCollidingGeomIndices;
+			for (const auto& Vertex : PathCollidingGeomVerts)
+			{
+				CurrentData->PathCollidingGeomVerts.Add(FDynamicMeshVertex(Vertex));
+			}
+
 		}
 
 		if (CurrentData->NavMeshGeometry.BuiltMeshIndices.Num() > 0)

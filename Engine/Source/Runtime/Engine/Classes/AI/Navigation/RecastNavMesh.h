@@ -444,6 +444,9 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(config)
 	uint32 bDistinctlyDrawTilesBeingBuilt:1;
 
+	UPROPERTY(EditAnywhere, Category = Display)
+	uint32 bDrawNavMesh : 1;
+
 	/** vertical offset added to navmesh's debug representation for better readability */
 	UPROPERTY(EditAnywhere, Category=Display, config)
 	float DrawOffset;
