@@ -243,7 +243,7 @@ public:
 		SLATE_EVENT(FSimpleDelegate, HideTrashCallback)
 		
 		/** Specify what the bar should display when no colors are present */
-		SLATE_TEXT_ARGUMENT(EmptyText)
+		SLATE_ARGUMENT(FText, EmptyText)
 
 		/** Whether to display sRGB color */
 		SLATE_ATTRIBUTE(bool, UseSRGB)

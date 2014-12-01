@@ -718,7 +718,7 @@ void SColorThemeBar::Construct(const FArguments& InArgs)
 							.ColorTheme(InArgs._ColorTheme)
 							.ShowTrashCallback(ShowTrashCallback)
 							.HideTrashCallback(HideTrashCallback)
-							.EmptyText(NSLOCTEXT("ColorThemesViewer", "NoColorsText", "No Colors Added Yet").ToString())
+							.EmptyText(NSLOCTEXT("ColorThemesViewer", "NoColorsText", "No Colors Added Yet"))
 							.UseSRGB(bUseSRGB)
 							.UseAlpha(bUseAlpha)
 					]
