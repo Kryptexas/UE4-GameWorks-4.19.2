@@ -206,7 +206,7 @@ void UNavCollision::ClearCollision()
 	bHasConvexGeometry = false;
 }
 
-void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld) const
+void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld)
 {
 	const TSubclassOf<UNavArea> UseAreaClass = AreaClass ? AreaClass : UNavigationSystem::GetDefaultObstacleArea();
 
@@ -230,6 +230,12 @@ void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const
 		FAreaNavModifier AreaMod(BoxCollision[i].Extent, BoxToWorld, UseAreaClass);
 		AreaMod.SetIncludeAgentHeight(true);
 		Modifier.Add(AreaMod);
+	}
+
+	// rebuild collision data if needed
+	if (!bHasConvexGeometry)
+	{
+		bHasConvexGeometry = GatherCollision();
 	}
 
 	if (ConvexCollision.VertexBuffer.Num() > 0)

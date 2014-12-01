@@ -95,7 +95,7 @@ class ENGINE_API UNavCollision : public UObject
 	void DrawSimpleGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color);
 
 	/** Get data for dynamic obstacle */
-	void GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld) const;
+	void GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld);
 
 	/** Read collisions data */
 	bool GatherCollision();
