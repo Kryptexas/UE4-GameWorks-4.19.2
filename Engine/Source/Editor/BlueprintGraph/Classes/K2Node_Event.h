@@ -53,7 +53,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 
 	// Begin UK2Node interface
 	virtual bool DrawNodeAsEntry() const override { return true; }
-	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	BLUEPRINTGRAPH_API virtual bool NodeCausesStructuralBlueprintChange() const override;
 	BLUEPRINTGRAPH_API virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
 	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	BLUEPRINTGRAPH_API virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
