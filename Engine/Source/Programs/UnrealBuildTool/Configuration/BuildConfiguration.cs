@@ -570,11 +570,6 @@ namespace UnrealBuildTool
                 bLogDetailedActionStats = false;
 			}
 
-			if (UnrealBuildTool.RunningRocket())
-			{
-				bAllowXGE = false;
-			}
-
 			// PDB
 			if (bUsePDBFiles)
 			{
