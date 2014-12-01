@@ -13,6 +13,7 @@
 #include "LevelEditor.h"
 #include "ModuleManager.h"
 #include "MainFrame.h"
+#include "FileManager.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -1448,14 +1449,12 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 		}
 	}
 
-	{
-		//Gather assets.
-		UObject* Cube = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/Cube.Cube"), NULL, LOAD_None, NULL);
-		//Add Cube mesh to the world
-		AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Cube));
-		StaticMesh->TeleportTo(FVector(0.0f, 0.0f, 0.0f), FRotator(0, 0, 0));
-		StaticMesh->SetActorRelativeScale3D(FVector(3.0f, 3.0f, 1.75f));
-	}
+	//Gather assets.
+	UObject* Cube = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/Cube.Cube"), NULL, LOAD_None, NULL);
+	//Add Cube mesh to the world
+	AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Cube));
+	StaticMesh->TeleportTo(FVector(0.0f, 0.0f, 0.0f), FRotator(0, 0, 0));
+	StaticMesh->SetActorRelativeScale3D(FVector(3.0f, 3.0f, 1.75f));
 
 	//Create the point light and set it's mobility, brightness, and light color.
 	const FTransform Transform(FVector(0.0f, 0.0f, 400.0f));
@@ -2073,39 +2072,123 @@ bool FStaticMeshUVsTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-
 /**
 * Launches a map onto a specified device after making a change to it.
 */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLaunchOnTestWithMapIteration, "Performance.Launch Test With Map Iteration", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLaunchOnTest, "Editor.Launch On Test", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
 
-void FLaunchOnTestWithMapIteration::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+void FLaunchOnTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
 {
-	//Get Map names from preferences (engine.ini)
+	{
+		UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
+		check(AutomationTestSettings);
 
-	//Check to see if the map has a set launch on device.
-		//If then don't add it as a test.
+		TArray<FString> MapToLaunch;
+		TArray<FString> DeviceToUse;
+		for (auto Iter = AutomationTestSettings->LaunchOnSettings.CreateConstIterator(); Iter; ++Iter)
+		{
+			if (Iter->LaunchOnTestmap.FilePath.Len() > 0 && !Iter->DeviceID.IsEmpty())
+			{
+				MapToLaunch.Add(Iter->LaunchOnTestmap.FilePath);
+				DeviceToUse.Add(Iter->DeviceID);
+			}
+
+			for (int32 i = 0; i < MapToLaunch.Num(); ++i)
+			{
+				//Get the location of the map being used.
+				FString Filename = FPaths::ConvertRelativePathToFull(MapToLaunch[i]);
+
+				//Get the DeviceID
+				FString DeviceID;
+				AutomationEditorCommonUtils::GetLaunchOnDeviceID(DeviceID, FPaths::GetBaseFilename(MapToLaunch[i]), DeviceToUse[i]);
+
+				if (!DeviceID.IsEmpty() && !DeviceID.Equals(TEXT("None")))
+				{
+					if (Filename.Contains(TEXT("/Engine/"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
+					{
+						//If true it will proceed to add the asset to the test list.
+						//This will be false if the map is on a different drive.
+						if (FPaths::MakePathRelativeTo(Filename, *FPaths::EngineContentDir()))
+						{
+							FString ShortName = FPaths::GetBaseFilename(Filename);
+							FString PathName = FPaths::GetPath(Filename);
+							FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s %s"), *PathName, *ShortName, *ShortName, *DeviceID);
+
+							ShortName += (TEXT(" ( ") + DeviceID.Left(DeviceID.Find(TEXT("@"))) + TEXT(" ) "));
+
+							OutBeautifiedNames.Add(ShortName);
+							OutTestCommands.Add(AssetName);
+						}
+						else
+						{
+							UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+						}
+					}
+					else
+					{
+						//If true it will proceed to add the asset to the test list.
+						//This will be false if the map is on a different drive.
+						if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
+						{
+							FString ShortName = FPaths::GetBaseFilename(Filename);
+							FString PathName = FPaths::GetPath(Filename);
+							FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s %s"), *PathName, *ShortName, *ShortName, *DeviceID);
+
+							ShortName += (TEXT(" (") + DeviceID.Left(DeviceID.Find(TEXT("@"))) + TEXT(") "));
+
+							OutBeautifiedNames.Add(ShortName);
+							OutTestCommands.Add(AssetName);
+						}
+						else
+						{
+							UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
-bool FLaunchOnTestWithMapIteration::RunTest(const FString& Parameters)
+bool FLaunchOnTest::RunTest(const FString& Parameters)
 {
-	//Get the map Name
+	//Get the map name and device id from the parameters.
+	FString MapName = Parameters.Left(Parameters.Find(TEXT(" ")));
+	FString DeviceID = Parameters.RightChop(Parameters.Find(TEXT(" ")));
+	DeviceID.Trim();
 
-	//Load Map
-	
-	//Make an adjustment to the map
-		
-	//Rebuild Map
+	//Delete the Cooked, StagedBuilds, and Automation_TEMP folder if they exist.
+	FString CookedLocation = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Cooked"));
+	FString StagedBuildsLocation = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("StagedBuilds"));
+	FString TempMapLocation = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(CookedLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(StagedBuildsLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(TempMapLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(2.0f));
 
-	//Check out Map and then save it
+	//Load Map and get the time it took to take to load the map.
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
 
-	//Set the device to be launched onto
+	//Make an adjustment to the map and rebuild its lighting.
+	ADD_LATENT_AUTOMATION_COMMAND(FAddStaticMeshCommand);
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
+	ADD_LATENT_AUTOMATION_COMMAND(FBuildLightingCommand);
+
+	//Save a copy of the map to the automation temp map folder location once the lighting build has finish.
+	ADD_LATENT_AUTOMATION_COMMAND(FSaveLevelCommand(FPaths::GetBaseFilename(MapName)));
 
 	//Launch onto device and get launch on times and cook times
+	ADD_LATENT_AUTOMATION_COMMAND(FLaunchOnCommand(DeviceID));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitToFinishCookByTheBookCommand);
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitToFinishBuildDeployCommand);
 
-	//Verify the launch worked.
+	//@todo: Close the Launched on Game.
 
-	//Revert Map
+	//Delete the Cooked, StagedBuilds, and Automation_TEMP folder if they exist.
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(CookedLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(StagedBuildsLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(TempMapLocation));
 
 	return true;
 }

@@ -135,6 +135,25 @@ namespace AutomationEditorCommonUtils
 	* @param InArchiveName - is the name of the archive to be used.
 	*/
 	bool IsArchiveWriteable(const FString& InFilePath, const FArchive* InArchiveName);
+		
+	/**
+	* Returns the first DeviceID 'Platform@Device'
+	* Searches the automation preferences for the platform to use.
+
+	* @param OutDeviceID - The variable that will hold the device ID.
+	* @param InMapName - The map name to check against in the automation preferences.
+	*/
+	void GetLaunchOnDeviceID(FString& OutDeviceID, const FString& InMapName);
+
+	/**
+	* Returns the DeviceID 'Platform@Device'
+	* Searches the automation preferences for the platform to use.
+
+	* @param OutDeviceID - The variable that will hold the device ID.
+	* @param InMapName - The map name to check against in the automation preferences.
+	* @param InDeviceName - Device Name 
+	*/
+	void GetLaunchOnDeviceID(FString& OutDeviceID, const FString& InMapName, const FString& InDeviceName);
 }
 
 
@@ -182,9 +201,44 @@ DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompiling);
 */
 DEFINE_LATENT_AUTOMATION_COMMAND(FChangeViewportToFirstAvailableBookmarkCommand);
 
+/**
+* Latent command that adds a static mesh to the worlds origin.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FAddStaticMeshCommand);
+
+/**
+* Latent command that builds the lighting for the current level.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FBuildLightingCommand);
+
+/**
+* Latent command that saves a copy of the level to a transient folder.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FSaveLevelCommand, FString, MapName);
+
+/**
+* Triggers a launch on using a specified device ID.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLaunchOnCommand, FString, InLauncherDeviceID);
+
+/**
+* Wait for a cook by the book to finish.  Will time out after 3600 seconds (1 hr).
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FWaitToFinishCookByTheBookCommand);
+
+/**
+* Wait for a build and deploy to finish before moving on.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FWaitToFinishBuildDeployCommand);
+
+/**
+* Latent command to delete a directory.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FDeleteDirCommand, FString, InFolderLocation);
+
+
 //////////////////////////////////////////////////////////////////////////
 // FEditorAutomationTestUtilities
-
 class FEditorAutomationTestUtilities
 {
 public:
