@@ -483,16 +483,12 @@ namespace AutomationTool
 				{
 					Log("Updating {0} with:", VerFile);
 					Log(" #define	ENGINE_VERSION  {0}", ChangelistNumber.ToString());
-					Log(" #define	ENGINE_VERSION_HIWORD  {0}", (ChangelistNumber >> 16).ToString());
-					Log(" #define	ENGINE_VERSION_LOWORD  {0}", (ChangelistNumber & 0xFFFF).ToString());					
 					Log(" #define	BRANCH_NAME  {0}", Branch);
 					Log(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
 					Log(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
 					VersionH.ReplaceLine("#define ENGINE_VERSION ", ChangelistNumber.ToString());
-					VersionH.ReplaceLine("#define ENGINE_VERSION_HIWORD ", (ChangelistNumber >> 16).ToString());
-					VersionH.ReplaceLine("#define ENGINE_VERSION_LOWORD ", (ChangelistNumber & 0xFFFF).ToString());					
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
 					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", ChangelistString);
 					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");

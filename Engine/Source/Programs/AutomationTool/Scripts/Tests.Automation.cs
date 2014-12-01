@@ -1630,8 +1630,6 @@ public class ZeroEngineVersions : BuildCommand
 			{
 				Log("Zeroing out engine versions in {0}", VersionFilename);
 				VersionH.ReplaceLine("#define ENGINE_VERSION ", "0");
-				VersionH.ReplaceLine("#define ENGINE_VERSION_HIWORD ", "0");
-				VersionH.ReplaceLine("#define ENGINE_VERSION_LOWORD ", "0");
 				VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + P4Env.BranchName + "\"");
 				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
 
