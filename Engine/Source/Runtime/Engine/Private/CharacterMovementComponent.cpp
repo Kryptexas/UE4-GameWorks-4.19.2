@@ -372,7 +372,7 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 	bDeferUpdateMoveComponent = false;
 	DeferredUpdatedMoveComponent = NULL;
 
-	if (UpdatedComponent != NULL && UpdatedComponent->OnComponentBeginOverlap.IsBound())
+	if (IsValid(UpdatedComponent) && UpdatedComponent->OnComponentBeginOverlap.IsBound())
 	{
 		UpdatedComponent->OnComponentBeginOverlap.RemoveDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}
@@ -385,7 +385,7 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 		StopActiveMovement();
 	}
 
-	if (UpdatedComponent && bEnablePhysicsInteraction)
+	if (IsValid(UpdatedComponent) && bEnablePhysicsInteraction)
 	{
 		UpdatedComponent->OnComponentBeginOverlap.AddUniqueDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}

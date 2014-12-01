@@ -40,7 +40,7 @@ UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializ
 
 void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent)
 {
-	if ( UpdatedComponent && UpdatedComponent!=NewUpdatedComponent )
+	if (UpdatedComponent && UpdatedComponent != NewUpdatedComponent)
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = false;
 		if (!UpdatedComponent->IsPendingKill())
@@ -55,7 +55,7 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 
 	UpdatedComponent = NewUpdatedComponent;
 
-	if ( UpdatedComponent != NULL )
+	if (IsValid(UpdatedComponent))
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
