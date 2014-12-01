@@ -11,6 +11,7 @@ namespace BlueprintNodeHelpers
 	uint16 GetPropertiesMemorySize(const TArray<UProperty*>& PropertyData);
 
 	void CollectBlackboardSelectors(const UObject* Ob, const UClass* StopAtClass, TArray<FName>& KeyNames);
+	bool HasAnyBlackboardSelectors(const UObject* Ob, const UClass* StopAtClass);
 
 	AIMODULE_API FString DescribeProperty(const UProperty* Prop, const uint8* PropertyAddr);
 	void DescribeRuntimeValues(const UObject* Ob, const TArray<UProperty*>& PropertyData, TArray<FString>& RuntimeValues);

@@ -15,7 +15,7 @@ void UBTAuxiliaryNode::WrappedOnBecomeRelevant(UBehaviorTreeComponent& OwnerComp
 {
 	if (bNotifyBecomeRelevant)
 	{
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+		const UBTNode* NodeOb = HasInstance() ? GetNodeInstance(OwnerComp, NodeMemory) : this;
 		if (NodeOb)
 		{
 			((UBTAuxiliaryNode*)NodeOb)->OnBecomeRelevant(OwnerComp, NodeMemory);
@@ -27,7 +27,7 @@ void UBTAuxiliaryNode::WrappedOnCeaseRelevant(UBehaviorTreeComponent& OwnerComp,
 {
 	if (bNotifyCeaseRelevant)
 	{
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+		const UBTNode* NodeOb = HasInstance() ? GetNodeInstance(OwnerComp, NodeMemory) : this;
 		if (NodeOb)
 		{
 			((UBTAuxiliaryNode*)NodeOb)->OnCeaseRelevant(OwnerComp, NodeMemory);
@@ -37,29 +37,32 @@ void UBTAuxiliaryNode::WrappedOnCeaseRelevant(UBehaviorTreeComponent& OwnerComp,
 
 void UBTAuxiliaryNode::WrappedTickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
-	if (bNotifyTick)
+	if (bNotifyTick || HasInstance())
 	{
-		float UseDeltaTime = DeltaSeconds;
+		const UBTAuxiliaryNode* NodeOb = HasInstance() ? static_cast<UBTAuxiliaryNode*>(GetNodeInstance(OwnerComp, NodeMemory)) : this;
+		
+		ensure(NodeOb);
 
-		if (bTickIntervals)
+		if (NodeOb != nullptr && NodeOb->bNotifyTick)
 		{
-			FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
-			AuxMemory->NextTickRemainingTime -= DeltaSeconds;
-			AuxMemory->AccumulatedDeltaTime += DeltaSeconds;
-			
-			if (AuxMemory->NextTickRemainingTime > 0.0f)
+			float UseDeltaTime = DeltaSeconds;
+
+			if (NodeOb->bTickIntervals)
 			{
-				return;
+				FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
+				AuxMemory->NextTickRemainingTime -= DeltaSeconds;
+				AuxMemory->AccumulatedDeltaTime += DeltaSeconds;
+
+				if (AuxMemory->NextTickRemainingTime > 0.0f)
+				{
+					return;
+				}
+
+				UseDeltaTime = AuxMemory->AccumulatedDeltaTime;
+				AuxMemory->AccumulatedDeltaTime = 0.0f;
 			}
 
-			UseDeltaTime = AuxMemory->AccumulatedDeltaTime;
-			AuxMemory->AccumulatedDeltaTime = 0.0f;
-		}
-
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
-		if (NodeOb)
-		{
-			((UBTAuxiliaryNode*)NodeOb)->TickNode(OwnerComp, NodeMemory, UseDeltaTime);
+			const_cast<UBTAuxiliaryNode*>(NodeOb)->TickNode(OwnerComp, NodeMemory, UseDeltaTime);
 		}
 	}
 }

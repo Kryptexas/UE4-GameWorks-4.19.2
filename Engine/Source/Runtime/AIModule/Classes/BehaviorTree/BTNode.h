@@ -143,7 +143,7 @@ class AIMODULE_API UBTNode : public UObject
 protected:
 
 	/** node name */
-	UPROPERTY(Category=Description, EditInstanceOnly)
+	UPROPERTY(Category=Description, EditAnywhere)
 	FString NodeName;
 	
 private:

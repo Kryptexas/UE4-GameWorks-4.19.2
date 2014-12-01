@@ -26,21 +26,28 @@ struct FBehaviorTreeSearchData;
 UCLASS(Abstract, Blueprintable)
 class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer);
 
 	/** initialize data about blueprint defined properties */
 	void InitializeProperties();
 
 	/** setup node name */
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 
 	/** notify about changes in blackboard */
 	void OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID);
 
 	virtual FString GetStaticDescription() const override;
 	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
-	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override final;
 	virtual void OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp) override;
+
+	/** return if this decorator should abort in current circumstances */
+	bool GetShouldAbort(UBehaviorTreeComponent& OwnerComp) const;
 
 	virtual void SetOwner(AActor* ActorOwner) override;
 
@@ -59,6 +66,7 @@ protected:
 	AActor* ActorOwner;
 
 	/** blackboard key names that should be observed */
+	UPROPERTY()
 	TArray<FName> ObservedKeyNames;
 
 	/** properties with runtime values, stored only in class default object */
@@ -68,9 +76,16 @@ protected:
 	UPROPERTY(EditInstanceOnly, Category=Description)
 	uint32 bShowPropertyDetails : 1;
 
-	/** temporary variable for ReceiveConditionCheck-FinishConditionCheck chain */
-	mutable uint32 CurrentCallResult : 1;
+	/** Applies only if Decorator has any FBlackboardKeySelector property and if decorator is 
+	 *	set to abort BT flow. Is set to true ReceiveConditionCheck will be called only on changes 
+	  *	to observed BB keys. If false or no BB keys observed ReceiveConditionCheck will be called every tick */
+	UPROPERTY(EditDefaultsOnly, Category = "FlowControl", AdvancedDisplay)
+	uint32 bCheckConditionOnlyBlackBoardChanges : 1;
 
+	/** gets set to true if decorator declared BB keys it can potentially observe */
+	UPROPERTY()
+	uint32 bIsObservingBB : 1;
+	
 	/** set if ReceiveTick is implemented by blueprint */
 	uint32 ReceiveTickImplementations : 2;
 
@@ -90,6 +105,8 @@ protected:
 	uint32 ReceiveConditionCheckImplementations : 2;
 
 	FOnBlackboardChange BBKeyObserver;
+
+	bool CalculateRawConditionValueImpl(UBehaviorTreeComponent& OwnerComp) const;
 	
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
@@ -131,7 +148,7 @@ protected:
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ReceiveConditionCheck(AActor* OwnerActor);
+	virtual bool ReceiveConditionCheck(AActor* OwnerActor);
 
 	/** Alternative AI version of ReceiveTick
 	 *	@see ReceiveTick for more details
@@ -173,11 +190,7 @@ protected:
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent, Category = AI)
-	virtual void ReceiveConditionCheckAI(AAIController* OwnerController, APawn* ControlledPawn);
-
-	/** finishes condition check */
-	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
-	void FinishConditionCheck(bool bAllowExecution);
+	virtual bool ReceiveConditionCheckAI(AAIController* OwnerController, APawn* ControlledPawn);
 		
 	/** check if decorator is part of currently active branch */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
@@ -188,4 +201,6 @@ protected:
 	bool IsDecoratorObserverActive() const;
 
 	friend FBehaviorBlueprintDetails;
+
+	FORCEINLINE bool GetNeedsTickForConditionChecking() const { return ReceiveConditionCheckImplementations != 0 && (bIsObservingBB == false || bCheckConditionOnlyBlackBoardChanges == false); }
 };

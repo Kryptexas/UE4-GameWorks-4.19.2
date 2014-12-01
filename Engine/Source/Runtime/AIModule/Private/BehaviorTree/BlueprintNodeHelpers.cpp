@@ -129,6 +129,35 @@ namespace BlueprintNodeHelpers
 		}
 	}
 
+	bool HasAnyBlackboardSelectors(const UObject* Ob, const UClass* StopAtClass)
+	{
+		bool bResult = false;
+
+		for (UProperty* TestProperty = Ob->GetClass()->PropertyLink; TestProperty; TestProperty = TestProperty->PropertyLinkNext)
+		{
+			// stop when reaching base class
+			if (TestProperty->GetOuter() == StopAtClass)
+			{
+				break;
+			}
+
+			// skip properties without any setup data	
+			if (TestProperty->HasAnyPropertyFlags(CPF_Transient) ||
+				TestProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+			{
+				continue;
+			}
+
+			const UStructProperty* StructProp = Cast<const UStructProperty>(TestProperty);
+			if (StructProp && StructProp->GetCPPType(NULL, CPPF_None).Contains(GET_STRUCT_NAME_CHECKED(FBlackboardKeySelector)))
+			{
+				bResult = true;
+			}
+		}
+
+		return bResult;
+	}
+
 #undef GET_STRUCT_NAME_CHECKED
 
 	FString CollectPropertyDescription(const UObject* Ob, const UClass* StopAtClass, const TArray<UProperty*>& PropertyData)

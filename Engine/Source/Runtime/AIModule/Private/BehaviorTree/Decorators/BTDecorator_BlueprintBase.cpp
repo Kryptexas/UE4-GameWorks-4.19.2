@@ -6,7 +6,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 
-UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
 	ReceiveTickImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveTick"), TEXT("ReceiveTickAI"), this, StopAtClass);
@@ -22,11 +23,11 @@ UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const FObjectInitializer&
 	bNotifyActivation = ReceiveExecutionStartImplementations != 0;
 	bNotifyDeactivation = ReceiveExecutionFinishImplementations != 0;
 	bShowPropertyDetails = true;
+	bCheckConditionOnlyBlackBoardChanges = false;
+	bIsObservingBB = false;
 
 	// all blueprint based nodes must create instances
 	bCreateNodeInstance = true;
-
-	InitializeProperties();
 }
 
 void UBTDecorator_BlueprintBase::InitializeProperties()
@@ -36,28 +37,41 @@ void UBTDecorator_BlueprintBase::InitializeProperties()
 		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
 		BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
 
-		if (GetFlowAbortMode() != EBTFlowAbortMode::None)
-		{
-			// find all blackboard key selectors and store their names
-			BlueprintNodeHelpers::CollectBlackboardSelectors(this, StopAtClass, ObservedKeyNames);
-		}
-	}
-	else
-	{
-		UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
-		if (CDO && CDO->ObservedKeyNames.Num())
-		{
-			bNotifyBecomeRelevant = true;
-			bNotifyCeaseRelevant = true;
-		}
+		bIsObservingBB = BlueprintNodeHelpers::HasAnyBlackboardSelectors(this, StopAtClass);
+
+		NodeName = BlueprintNodeHelpers::GetNodeName(this);
 	}
 }
 
 void UBTDecorator_BlueprintBase::PostInitProperties()
 {
 	Super::PostInitProperties();
-	NodeName = BlueprintNodeHelpers::GetNodeName(this);
-	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange);
+		
+	InitializeProperties();
+	
+	if (bIsObservingBB)
+	{
+		BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange);
+	}
+
+	if (ReceiveConditionCheckImplementations || bIsObservingBB)
+	{
+		bNotifyBecomeRelevant = true;
+		bNotifyCeaseRelevant = true;
+	}
+}
+
+void UBTDecorator_BlueprintBase::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetFlowAbortMode() != EBTFlowAbortMode::None && bIsObservingBB)
+	{
+		ObservedKeyNames.Reset();
+		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
+		BlueprintNodeHelpers::CollectBlackboardSelectors(this, StopAtClass, ObservedKeyNames);
+		ensure(ObservedKeyNames.Num() > 0);
+	}
 }
 
 void UBTDecorator_BlueprintBase::SetOwner(AActor* InActorOwner)
@@ -77,13 +91,19 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent& OwnerC
 		ReceiveObserverActivated(ActorOwner);
 	}
 
-	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
-	if (BlackboardComp && CDO)
+	if (GetNeedsTickForConditionChecking())
 	{
-		for (int32 NameIndex = 0; NameIndex < CDO->ObservedKeyNames.Num(); NameIndex++)
+		// if set up as observer, and has a condition check, we want to check the condition every frame
+		// highly inefficient, but hopefully people will use it only for prototyping.
+		bNotifyTick = true;
+	}
+
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	if (BlackboardComp)
+	{
+		for (int32 NameIndex = 0; NameIndex < ObservedKeyNames.Num(); NameIndex++)
 		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[NameIndex]);
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[NameIndex]);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
 				BlackboardComp->RegisterObserver(KeyID, BBKeyObserver);
@@ -95,12 +115,11 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent& OwnerC
 void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
-	if (BlackboardComp && CDO)
+	if (BlackboardComp)
 	{
-		for (int32 NameIndex = 0; NameIndex < CDO->ObservedKeyNames.Num(); NameIndex++)
+		for (int32 NameIndex = 0; NameIndex < ObservedKeyNames.Num(); NameIndex++)
 		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[NameIndex]);
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[NameIndex]);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
 				BlackboardComp->UnregisterObserver(KeyID, BBKeyObserver);
@@ -115,6 +134,12 @@ void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerCo
 	else if (ReceiveObserverDeactivatedImplementations & FBTNodeBPImplementationHelper::Generic)
 	{
 		ReceiveObserverDeactivated(ActorOwner);
+	}
+
+	if (GetNeedsTickForConditionChecking() == true && ReceiveTickImplementations == 0)
+	{
+		// clean up the tick request if no longer "active"
+		bNotifyTick = false;
 	}
 }
 
@@ -152,11 +177,40 @@ void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	{
 		ReceiveTick(ActorOwner, DeltaSeconds);
 	}
+		
+	// possible this got ticked due to the decorator being configured as an observer
+	if (GetNeedsTickForConditionChecking() && GetShouldAbort(OwnerComp))
+	{
+		OwnerComp.RequestExecution(this);
+	}
 }
 
-bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_BlueprintBase::GetShouldAbort(UBehaviorTreeComponent& OwnerComp) const 
 {
-	CurrentCallResult = false;
+	// if there's no condition-checking function implemented we always want to abort on any change
+	if (ReceiveConditionCheckImplementations == 0)
+	{
+		return true;
+	}
+
+	const bool bIsOnActiveBranch = OwnerComp.IsExecutingBranch(GetMyNode(), GetChildIndex());
+
+	bool bShouldAbort = false;
+	if (bIsOnActiveBranch)
+	{
+		bShouldAbort = (FlowAbortMode == EBTFlowAbortMode::Self || FlowAbortMode == EBTFlowAbortMode::Both) && CalculateRawConditionValueImpl(OwnerComp) == IsInversed();
+	}
+	else
+	{
+		bShouldAbort = (FlowAbortMode == EBTFlowAbortMode::LowerPriority || FlowAbortMode == EBTFlowAbortMode::Both) && CalculateRawConditionValueImpl(OwnerComp) != IsInversed();
+	}
+
+	return bShouldAbort;
+}
+
+bool UBTDecorator_BlueprintBase::CalculateRawConditionValueImpl(UBehaviorTreeComponent& OwnerComp) const
+{
+	bool CurrentCallResult = false;
 	if (ReceiveConditionCheckImplementations != 0)
 	{
 		// can't use const functions with blueprints
@@ -164,20 +218,20 @@ bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeCompone
 
 		if (AIOwner != nullptr && ReceiveConditionCheckImplementations & FBTNodeBPImplementationHelper::AISpecific)
 		{
-			MyNode->ReceiveConditionCheckAI(MyNode->AIOwner, MyNode->AIOwner->GetPawn());
+			CurrentCallResult = MyNode->ReceiveConditionCheckAI(MyNode->AIOwner, MyNode->AIOwner->GetPawn());
 		}
 		else if (ReceiveConditionCheckImplementations & FBTNodeBPImplementationHelper::Generic)
 		{
-			MyNode->ReceiveConditionCheck(MyNode->ActorOwner);
+			CurrentCallResult = MyNode->ReceiveConditionCheck(MyNode->ActorOwner);
 		}
 	}
 
 	return CurrentCallResult;
 }
 
-void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
+bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	CurrentCallResult = bAllowExecution;
+	return CalculateRawConditionValueImpl(OwnerComp);	
 }
 
 bool UBTDecorator_BlueprintBase::IsDecoratorExecutionActive() const
@@ -223,7 +277,7 @@ void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeCompon
 void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	UBehaviorTreeComponent* BehaviorComp = (UBehaviorTreeComponent*)Blackboard.GetBrainComponent();
-	if (BehaviorComp)
+	if (BehaviorComp && GetShouldAbort(*BehaviorComp))
 	{
 		BehaviorComp->RequestExecution(this);		
 	}
