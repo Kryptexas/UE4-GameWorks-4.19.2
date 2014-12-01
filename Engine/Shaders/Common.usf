@@ -372,6 +372,8 @@ SamplerState	LightAttenuationTextureSampler;
 // We don't use a function so we can avoid type promotion/ coercion.
 #define TangentBias(X) (X * 2.0f - 1.0f)
 
+#define TERRAIN_ZSCALE				(1.0f/128.0f)
+
 float Square( float x )
 {
 	return x*x;

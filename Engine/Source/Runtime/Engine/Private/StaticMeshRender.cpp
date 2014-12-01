@@ -974,7 +974,7 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 
 bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 {
-	return (CastsDynamicShadow() || CastsStaticShadow()) && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
+	return CastsDynamicShadow() && AffectsDistanceFieldLighting() && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
 }
 
 /** Initialization constructor. */

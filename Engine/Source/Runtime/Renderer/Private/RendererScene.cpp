@@ -92,13 +92,20 @@ void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (Proxy->SupportsDistanceFieldRepresentation()
-		&& Proxy->CastsDynamicShadow()
+	if (Proxy->CastsDynamicShadow()
 		&& Proxy->AffectsDistanceFieldLighting())
 	{
-		checkSlow(!PendingAddOperations.Contains(InPrimitive));
-		checkSlow(!PendingUpdateOperations.Contains(InPrimitive));
-		PendingAddOperations.Add(InPrimitive);
+		if (Proxy->SupportsHeightfieldRepresentation())
+		{
+			HeightfieldPrimitives.Add(InPrimitive);
+		}
+
+		if (Proxy->SupportsDistanceFieldRepresentation())
+		{
+			checkSlow(!PendingAddOperations.Contains(InPrimitive));
+			checkSlow(!PendingUpdateOperations.Contains(InPrimitive));
+			PendingAddOperations.Add(InPrimitive);
+		}
 	}
 }
 
@@ -106,9 +113,9 @@ void FDistanceFieldSceneData::UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (Proxy->SupportsDistanceFieldRepresentation() 
-		&& Proxy->CastsDynamicShadow() 
+	if (Proxy->CastsDynamicShadow() 
 		&& Proxy->AffectsDistanceFieldLighting()
+		&& Proxy->SupportsDistanceFieldRepresentation() 
 		&& !PendingAddOperations.Contains(InPrimitive))
 	{
 		check(InPrimitive->DistanceFieldInstanceIndices.Num() > 0);
@@ -139,6 +146,11 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 		}
 
 		InPrimitive->DistanceFieldInstanceIndices.Empty();
+	}
+
+	if (Proxy->SupportsHeightfieldRepresentation() && Proxy->AffectsDistanceFieldLighting())
+	{
+		HeightfieldPrimitives.Remove(InPrimitive);
 	}
 }
 

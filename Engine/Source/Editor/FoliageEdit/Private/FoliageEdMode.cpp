@@ -58,6 +58,7 @@ FEdModeFoliage::FEdModeFoliage()
 	SphereBrushComponent->StaticMesh = StaticMesh;
 	SphereBrushComponent->OverrideMaterials.Add(BrushMaterial);
 	SphereBrushComponent->SetAbsolute(true, true, true);
+	SphereBrushComponent->CastShadow = false;
 
 	bBrushTraceValid = false;
 	BrushLocation = FVector::ZeroVector;

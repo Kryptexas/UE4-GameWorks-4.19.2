@@ -204,6 +204,13 @@ public:
 		bMeshWasPlane = false;
 	}
 
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV)
+	{
+		OutHeightmapTexture = NULL;
+		OutHeightfieldScaleBias = FVector4(0, 0, 0, 0);
+		OutMinMaxUV = FVector4(0, 0, 0, 0);
+	}
+
 	/**
 	 *	Called when the rendering thread adds the proxy to the scene.
 	 *	This function allows for generating renderer-side resources.
@@ -346,6 +353,7 @@ public:
 	inline bool AlwaysHasVelocity() const { return bAlwaysHasVelocity; }
 	inline bool UseEditorDepthTest() const { return bUseEditorDepthTest; }
 	inline bool SupportsDistanceFieldRepresentation() const { return bSupportsDistanceFieldRepresentation; }
+	inline bool SupportsHeightfieldRepresentation() const { return bSupportsHeightfieldRepresentation; }
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -531,6 +539,9 @@ protected:
 
 	/** Whether the primitive type supports a distance field representation.  Does not mean the primitive has a valid representation. */
 	uint32 bSupportsDistanceFieldRepresentation : 1;
+
+	/** Whether the primitive implements GetHeightfieldRepresentation() */
+	uint32 bSupportsHeightfieldRepresentation : 1;
 
 private:
 

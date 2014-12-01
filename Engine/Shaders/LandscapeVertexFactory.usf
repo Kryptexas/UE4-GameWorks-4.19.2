@@ -6,8 +6,6 @@
 
 #include "VertexFactoryCommon.usf"
 
-#define TERRAIN_ZSCALE				(1.0f/128.0f)
-
 #define ES2_MAXLOD	5
 
 // Set by FLightMapTexturePolicy
