@@ -174,10 +174,10 @@ private:
 	/** The index for the space bases buffer we can currently read from */
 	int32 CurrentReadSpaceBases;
 
+protected:
 	/** Are we using double buffered blend spaces */
 	bool bDoubleBufferedBlendSpaces;
 
-protected:
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference
