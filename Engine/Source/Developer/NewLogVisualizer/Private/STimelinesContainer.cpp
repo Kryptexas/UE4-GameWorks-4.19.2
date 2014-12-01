@@ -247,6 +247,7 @@ void STimelinesContainer::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryI
 		{
 			CurrentItem->AddEntry(Entry);
 			bCreateNew = false;
+			break;
 		}
 	}
 

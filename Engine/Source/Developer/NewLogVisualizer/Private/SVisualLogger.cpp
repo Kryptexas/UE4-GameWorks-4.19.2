@@ -263,7 +263,12 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 					)
 			)
 		);
-	//FGlobalTabmanager::Get()->RestoreFrom(Layout, TSharedPtr<SWindow>());
+	TabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &SVisualLogger::HandleTabManagerPersistLayout));
+
+	// Load the potentially previously saved new layout
+	TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, Layout);
+
+	TabManager->RestoreFrom(UserConfiguredNewLayout, TSharedPtr<SWindow>());
 
 	// Window Menu
 	FMenuBarBuilder MenuBarBuilder = FMenuBarBuilder(TSharedPtr<FUICommandList>());
@@ -308,7 +313,6 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 		];
 
 	VisualLoggerCanvasRenderer = MakeShareable(new FVisualLoggerCanvasRenderer(VisualLoggerInterface));
-	ConstructUnderMajorTab->SetOnPersistVisualState(SDockTab::FOnPersistVisualState::CreateRaw(this, &SVisualLogger::HandleMajorTabPersistVisualState));
 
 	UDebugDrawService::Register(TEXT("VisLog"), FDebugDrawDelegate::CreateRaw(VisualLoggerCanvasRenderer.Get(), &FVisualLoggerCanvasRenderer::DrawOnCanvas));
 	//UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.AddSP(this, &SVisualLogger::SelectionChanged);
@@ -319,6 +323,10 @@ void SVisualLogger::HandleMajorTabPersistVisualState()
 	// save any settings here
 }
 
+void SVisualLogger::HandleTabManagerPersistLayout(const TSharedRef<FTabManager::FLayout>& LayoutToSave)
+{
+	FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+}
 
 void SVisualLogger::FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager)
 {

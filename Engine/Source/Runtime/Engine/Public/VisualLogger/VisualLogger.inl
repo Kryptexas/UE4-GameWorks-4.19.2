@@ -66,22 +66,19 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
 
 	bool InitializeNewEntry = false;
+
+	UWorld* World = GetWorld();
 	if (CurrentEntryPerObject.Contains(LogOwner))
 	{
 		CurrentEntry = &CurrentEntryPerObject[LogOwner];
-		if (TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create)
+		InitializeNewEntry = TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create;
+		if (World)
 		{
-			if (CurrentEntry->TimeStamp >= 0) //-1 means not initialized entry information
-			{
-				for (auto* Device : OutputDevices)
-				{
-					Device->Serialize(LogOwner, ObjectToNameMap[LogOwner], *CurrentEntry);
-				}
-			}
-			InitializeNewEntry = true;
+			World->GetTimerManager().ClearAllTimersForObject(this);
 		}
 	}
-	else
+
+	if(!CurrentEntry)
 	{
 		CurrentEntry = &CurrentEntryPerObject.Add(LogOwner);
 		ObjectToNameMap.Add(LogOwner, LogOwner->GetFName());
@@ -124,6 +121,27 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 				CurrentEntry->Location = ObjectAsActor->GetActorLocation();
 				ObjectAsActor->GrabDebugSnapshot(CurrentEntry);
 			}
+		}
+
+		if (World)
+		{
+			//set next tick timer to flush obsolete/old entries
+			World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
+				[this](){
+				for (auto& CurrentPair : CurrentEntryPerObject)
+				{
+					FVisualLogEntry* Entry = &CurrentPair.Value;
+					if (Entry->TimeStamp >= 0) // CurrentEntry->TimeStamp == -1 means it's not initialized entry information
+					{
+						for (auto* Device : OutputDevices)
+						{
+							Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], *Entry);
+						}
+						Entry->Reset();
+					}
+				}
+			}
+			));
 		}
 	}
 

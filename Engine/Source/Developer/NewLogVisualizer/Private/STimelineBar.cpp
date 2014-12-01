@@ -305,7 +305,7 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			FillImage,
 			MyClippingRect,
 			DrawEffects,
-			ErrorTimeColor
+			WarningTimeColor
 			);
 	}
 

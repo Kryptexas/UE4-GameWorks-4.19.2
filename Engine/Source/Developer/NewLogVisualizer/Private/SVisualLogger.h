@@ -87,7 +87,7 @@ public:
 	bool HandleCameraCommandIsChecked() const;
 
 	TSharedPtr<SVisualLoggerFilters> GetVisualLoggerFilters() { return VisualLoggerFilters; }
-
+	void HandleTabManagerPersistLayout(const TSharedRef<FTabManager::FLayout>& LayoutToSave);
 protected:
 	// Holds the list of UI commands.
 	TSharedRef<FUICommandList> CommandList;
