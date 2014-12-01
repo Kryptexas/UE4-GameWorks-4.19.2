@@ -70,12 +70,13 @@ void FMetalDynamicRHI::RHISetRasterizerState(FRasterizerStateRHIParamRef NewStat
 
 void FMetalDynamicRHI::RHISetComputeShader(FComputeShaderRHIParamRef ComputeShaderRHI)
 {
-	NOT_SUPPORTED("RHISetComputeShader");
+	DYNAMIC_CAST_METALRESOURCE(ComputeShader, ComputeShader);
+	FMetalManager::Get()->SetComputeShader(ComputeShader);
 }
 
-void FMetalDynamicRHI::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) 
+void FMetalDynamicRHI::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 { 
-	NOT_SUPPORTED("RHIDispatchComputeShader");
+	FMetalManager::Get()->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
 
 void FMetalDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBufferRHI, uint32 ArgumentOffset) 
@@ -181,7 +182,15 @@ void FMetalDynamicRHI::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShader, 
 
 void FMetalDynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShader, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
-	NOT_SUPPORTED("RHISetShaderTexture-Compute");
+	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(NewTextureRHI);
+	if (Surface != nullptr)
+	{
+		[FMetalManager::GetComputeContext() setTexture:Surface->Texture atIndex : TextureIndex];
+	}
+	else
+	{
+		[FMetalManager::GetComputeContext() setTexture:nil atIndex : TextureIndex];
+	}
 }
 
 
@@ -268,7 +277,29 @@ void FMetalDynamicRHI::RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef
 
 void FMetalDynamicRHI::RHISetShaderResourceViewParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
 {
-	NOT_SUPPORTED("RHISetShaderResourceViewParameter");
+	DYNAMIC_CAST_METALRESOURCE(ShaderResourceView, SRV);
+
+	FRHITexture* Texture = SRV->SourceTexture.GetReference();
+	if (Texture)
+	{
+		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+		if (Surface != nullptr)
+		{
+			[FMetalManager::GetComputeContext() setTexture:Surface->Texture atIndex : TextureIndex];
+		}
+		else
+		{
+			[FMetalManager::GetComputeContext() setTexture:nil atIndex : TextureIndex];
+		}
+	}
+	else
+	{
+		FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
+		if (VB)
+		{
+			[FMetalManager::GetComputeContext() setBuffer:VB->Buffer offset : VB->Offset atIndex : TextureIndex];
+		}
+	}
 }
 
 
@@ -309,11 +340,10 @@ void FMetalDynamicRHI::RHISetShaderSampler(FPixelShaderRHIParamRef PixelShader, 
 
 void FMetalDynamicRHI::RHISetShaderSampler(FComputeShaderRHIParamRef ComputeShader, uint32 SamplerIndex, FSamplerStateRHIParamRef NewStateRHI)
 {
-	DYNAMIC_CAST_METALRESOURCE(SamplerState,NewState);
+	DYNAMIC_CAST_METALRESOURCE(SamplerState, NewState);
 
-	NOT_SUPPORTED("RHISetSamplerState-Compute");
+	[FMetalManager::GetComputeContext() setSamplerState:NewState->State atIndex : SamplerIndex];
 }
-
 
 void FMetalDynamicRHI::RHISetShaderParameter(FVertexShaderRHIParamRef VertexShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
@@ -323,7 +353,6 @@ void FMetalDynamicRHI::RHISetShaderParameter(FVertexShaderRHIParamRef VertexShad
 void FMetalDynamicRHI::RHISetShaderParameter(FHullShaderRHIParamRef HullShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	NOT_SUPPORTED("RHISetShaderParameter-Hull");
-
 }
 
 void FMetalDynamicRHI::RHISetShaderParameter(FPixelShaderRHIParamRef PixelShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
@@ -334,18 +363,16 @@ void FMetalDynamicRHI::RHISetShaderParameter(FPixelShaderRHIParamRef PixelShader
 void FMetalDynamicRHI::RHISetShaderParameter(FDomainShaderRHIParamRef DomainShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	NOT_SUPPORTED("RHISetShaderParameter-Domain");
-
 }
 
 void FMetalDynamicRHI::RHISetShaderParameter(FGeometryShaderRHIParamRef GeometryShaderRHI, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
 	NOT_SUPPORTED("RHISetShaderParameter-Geometry");
-
 }
 
 void FMetalDynamicRHI::RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
-	NOT_SUPPORTED("RHISetShaderParameter-Compute");
+	FMetalManager::Get()->GetShaderParameters(CrossCompiler::SHADER_STAGE_COMPUTE).Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef VertexShaderRHI, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
@@ -393,9 +420,19 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelSh
 	}
 }
 
-void FMetalDynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
+void FMetalDynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShaderRHI, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	NOT_SUPPORTED("RHISetShaderUniformBuffer-Compute");
+	DYNAMIC_CAST_METALRESOURCE(ComputeShader, ComputeShader);
+	ComputeShader->BoundUniformBuffers[BufferIndex] = BufferRHI;
+	ComputeShader->DirtyUniformBuffers |= 1 << BufferIndex;
+
+	auto& Bindings = ComputeShader->Bindings;
+	check(BufferIndex < Bindings.NumUniformBuffers);
+	if (Bindings.bHasRegularUniformBuffers)
+	{
+		auto* UB = (FMetalUniformBuffer*)BufferRHI;
+		[FMetalManager::GetComputeContext() setBuffer:UB->Buffer offset : UB->Offset atIndex : BufferIndex];
+	}
 }
 
 

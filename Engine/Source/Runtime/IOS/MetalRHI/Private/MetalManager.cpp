@@ -150,6 +150,11 @@ id<MTLRenderCommandEncoder> FMetalManager::GetContext()
 	return FMetalManager::Get()->CurrentContext;
 }
 
+id<MTLComputeCommandEncoder> FMetalManager::GetComputeContext()
+{
+	return FMetalManager::Get()->CurrentComputeContext;
+}
+
 void FMetalManager::ReleaseObject(id Object)
 {
 	FMetalManager::Get()->DelayedFreeLists[FMetalManager::Get()->WhichFreeList].Add(Object);
@@ -161,6 +166,7 @@ FMetalManager::FMetalManager()
 	, CurrentCommandBuffer(nil)
 	, CurrentDrawable(nil)
 	, CurrentContext(nil)
+	, CurrentComputeContext(nil)
 	, CurrentNumRenderTargets(0)
 	, PreviousNumRenderTargets(0)
 	, CurrentDepthRenderTexture(nil)
@@ -204,15 +210,15 @@ FMetalManager::FMetalManager()
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
 
 	AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
-    
-    // Hook into the ios framepacer, if it's enabled for this platform.
-    FrameReadyEvent = NULL;
-    if( FIOSPlatformRHIFramePacer::IsEnabled() )
-    {
-        FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
-        FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
-    }
-    
+	
+	// Hook into the ios framepacer, if it's enabled for this platform.
+	FrameReadyEvent = NULL;
+	if( FIOSPlatformRHIFramePacer::IsEnabled() )
+	{
+		FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+		FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
+	}
+	
 	InitFrame();
 }
 
@@ -255,7 +261,6 @@ void FMetalManager::EndScene()
 void FMetalManager::BeginFrame()
 {
 }
-
 
 void FMetalManager::InitFrame()
 {
@@ -351,6 +356,33 @@ void FMetalManager::SubmitCommandBufferAndWait()
 	CreateCurrentCommandBuffer(true);
 }
 
+void FMetalManager::SubmitComputeCommandBufferAndWait()
+{
+	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
+	{
+		dispatch_semaphore_signal(CommandBufferSemaphore);
+	}];
+
+	// commit the compute context to the commandBuffer
+	[CurrentComputeContext endEncoding];
+	[CurrentComputeContext release];
+	CurrentComputeContext = nil;
+
+	// kick the whole buffer
+	// Commit to hand the commandbuffer off to the gpu
+	[CurrentCommandBuffer commit];
+
+	// wait for the gpu to finish executing our commands.
+	[CurrentCommandBuffer waitUntilCompleted];
+
+	//once a commandbuffer is commited it can't be added to again.
+	UNTRACK_OBJECT(CurrentCommandBuffer);
+	[CurrentCommandBuffer release];
+
+	// create a new command buffer.
+	CreateCurrentCommandBuffer(true);
+}
+
 void FMetalManager::EndFrame(bool bPresent)
 {
 //	NSLog(@"There were %d draw calls for final RT in frame %lld", NumDrawCalls, GFrameCounter);
@@ -364,12 +396,12 @@ void FMetalManager::EndFrame(bool bPresent)
 	 {
 		dispatch_semaphore_signal(CommandBufferSemaphore);
 	 }];
-    
-    // We may be limiting our framerate to the display link
-    if( FrameReadyEvent != nullptr )
-    {
-        FrameReadyEvent->Wait();
-    }
+	
+	// We may be limiting our framerate to the display link
+	if( FrameReadyEvent != nullptr )
+	{
+		FrameReadyEvent->Wait();
+	}
 
 	// Commit before waiting to avoid leaving the gpu idle
 	[CurrentCommandBuffer commit];
@@ -515,15 +547,15 @@ bool FMetalManager::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& Rende
 			const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
 			const FRHIRenderTargetView& PreviousRenderTargetView = PreviousRenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
 
-            // handle simple case of switching textures or mip/slice
-            if (RenderTargetView.Texture != PreviousRenderTargetView.Texture ||
-                RenderTargetView.MipIndex != PreviousRenderTargetView.MipIndex ||
-                RenderTargetView.ArraySliceIndex != PreviousRenderTargetView.ArraySliceIndex)
-            {
-                bAllChecksPassed = false;
-                break;
-            }
-            
+			// handle simple case of switching textures or mip/slice
+			if (RenderTargetView.Texture != PreviousRenderTargetView.Texture ||
+				RenderTargetView.MipIndex != PreviousRenderTargetView.MipIndex ||
+				RenderTargetView.ArraySliceIndex != PreviousRenderTargetView.ArraySliceIndex)
+			{
+				bAllChecksPassed = false;
+				break;
+			}
+			
 			// it's non-trivial when we need to switch based on load/store action:
 			// LoadAction - it only matters what we are switching to in the new one
 			//    If we switch to Load, no need to switch as we can re-use what we already have
@@ -772,21 +804,21 @@ uint32 FMetalManager::AllocateFromQueryBuffer()
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface* RESTRICT Surface)
 {
 //	check(Surface->Texture != nil);
-    if (Surface != nullptr)
-    {
-        if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
-        {
-            [FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
-        }
-        else
-        {
-            [FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex : BindIndex];
-        }
-    }
-    else
-    {
-        [FMetalManager::GetContext() setVertexTexture:nil atIndex : BindIndex];
-    }
+	if (Surface != nullptr)
+	{
+		if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
+		{
+			[FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
+		}
+		else
+		{
+			[FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex : BindIndex];
+		}
+	}
+	else
+	{
+		[FMetalManager::GetContext() setVertexTexture:nil atIndex : BindIndex];
+	}
 }
 
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState)
@@ -916,4 +948,16 @@ void FMetalManager::SetRasterizerState(const FRasterizerStateInitializerRHI& Sta
 #endif
 
 	bFirstRasterizerState = false;
+}
+
+void FMetalManager::Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
+{
+	check(CurrentComputeShader);
+	auto* ComputeShader = (FMetalComputeShader*)CurrentComputeShader;
+	MTLSize ThreadgroupCounts = MTLSizeMake(ComputeShader->NumThreadsX, ComputeShader->NumThreadsY, ComputeShader->NumThreadsZ);
+	MTLSize Threadgroups = MTLSizeMake(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+	//@todo-rco: setThreadgroupMemoryLength?
+	[CurrentComputeContext dispatchThreadgroups:Threadgroups threadsPerThreadgroup:ThreadgroupCounts];
+	//@todo: Here?
+	SubmitComputeCommandBufferAndWait();
 }
