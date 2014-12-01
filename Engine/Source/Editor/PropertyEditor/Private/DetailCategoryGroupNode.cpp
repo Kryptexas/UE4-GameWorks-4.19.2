@@ -104,7 +104,7 @@ TSharedRef< ITableRow > FDetailCategoryGroupNode::GenerateNodeWidget( const TSha
 {
 	return
 		SNew( SDetailCategoryTableRow, AsShared(), OwnerTable )
-		.DisplayName( GroupName.ToString() )
+		.DisplayName( FText::FromName(GroupName) )
 		.InnerCategory( true );
 }
 

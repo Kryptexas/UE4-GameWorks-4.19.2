@@ -70,7 +70,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			.HAlign(HAlign_Fill)
@@ -107,7 +107,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			[
@@ -137,7 +137,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveStructCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
-			StructBuilder.AddChildContent(TEXT("ExternalCurve"))
+			StructBuilder.AddChildContent(LOCTEXT("ExternalCurveLabel", "ExternalCurve"))
 				.NameContent()
 				[
 					Child->CreatePropertyNameWidget()
@@ -368,7 +368,7 @@ FReply FCurveStructCustomization::OnCurvePreviewDoubleClick( const FGeometry& In
 			FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, FCurveStructCustomization::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
 
 			TSharedPtr<SWindow> Window = SNew(SWindow)
-				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Curve Editor"), FText::FromString(StructPropertyHandle->GetPropertyDisplayName())) )
+				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Curve Editor"), StructPropertyHandle->GetPropertyDisplayName()) )
 				.ClientSize( FCurveStructCustomization::DEFAULT_WINDOW_SIZE )
 				.ScreenPosition(AdjustedSummonLocation)
 				.AutoCenter(EAutoCenter::None)

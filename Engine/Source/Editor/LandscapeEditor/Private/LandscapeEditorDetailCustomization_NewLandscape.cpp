@@ -52,7 +52,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 
 	IDetailCategoryBuilder& NewLandscapeCategory = DetailBuilder.EditCategory("New Landscape");
 
-	NewLandscapeCategory.AddCustomRow("")
+	NewLandscapeCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SUniformGridPanel)
 		.SlotPadding(FMargin(10, 2))
@@ -133,7 +133,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("Heightmap Resolution")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("HeightmapResolution", "Heightmap Resolution"))
 	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&GetVisibilityOnlyInNewLandscapeMode, ENewLandscapePreviewMode::ImportLandscape)))
 	.NameContent()
 	[
@@ -166,7 +166,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	TSharedRef<IPropertyHandle> PropertyHandle_Material = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_Material));
 	NewLandscapeCategory.AddProperty(PropertyHandle_Material);
 
-	NewLandscapeCategory.AddCustomRow("Layers")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("LayersLabel", "Layers"))
 	.Visibility(TAttribute<EVisibility>(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetMaterialTipVisibility))
 	[
 		SNew(SHorizontalBox)
@@ -351,7 +351,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("Overall Resolution")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("Resolution", "Overall Resolution"))
 	.RowTag("LandscapeEditor.OverallResolution")
 	.NameContent()
 	[
@@ -410,7 +410,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("Total Components")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("TotalComponents", "Total Components"))
 	.RowTag("LandscapeEditor.TotalComponents")
 	.NameContent()
 	[
@@ -436,7 +436,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("")
+	NewLandscapeCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -1377,7 +1377,7 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildre
 	Result = PropertyHandle_ThumbnailMIC->GetValue(ThumbnailMIC);
 	checkSlow(Result == FPropertyAccess::Success);
 
-	ChildBuilder.AddChildContent(LayerNameText.ToString())
+	ChildBuilder.AddChildContent(LayerNameText)
 	.NameContent()
 	[
 		SNew(SHorizontalBox)

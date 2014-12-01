@@ -36,11 +36,11 @@ FStaticMeshDetails::~FStaticMeshDetails()
 
 void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings").ToString() );
-	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings").ToString() );
-	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory( "ImportSettings", LOCTEXT("ImportGeneralSettings", "Import Settings").ToString() );
+	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
+	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings") );
+	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory( "ImportSettings", LOCTEXT("ImportGeneralSettings", "Import Settings") );
 	
-	DetailBuilder.EditCategory( "Navigation", TEXT(""), ECategoryPriority::Uncommon );
+	DetailBuilder.EditCategory( "Navigation", FText::GetEmpty(), ECategoryPriority::Uncommon );
 
 	LevelOfDetailSettings = MakeShareable( new FLevelOfDetailSettingsLayout( StaticMeshEditor ) );
 
@@ -90,7 +90,7 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 	check(StaticMesh);
 	if (StaticMesh->AssetImportData && StaticMesh->AssetImportData->GetClass() != UAssetImportData::StaticClass())
 	{
-		ImportCategory.AddCustomRow(LOCTEXT("ReimportStaticMesh", "Reimport Static Mesh").ToString(), true)
+		ImportCategory.AddCustomRow(LOCTEXT("ReimportStaticMesh", "Reimport Static Mesh"), true)
 			.ValueContent()
 			[
 				SNew(SButton)
@@ -315,7 +315,7 @@ void FMeshBuildSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeR
 void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -332,7 +332,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeTangents", "Recompute Tangents").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeTangents", "Recompute Tangents") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -348,7 +348,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RemoveDegenerates", "Remove Degenerates").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RemoveDegenerates", "Remove Degenerates") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -364,7 +364,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -380,7 +380,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -396,12 +396,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString())
+			.Text(LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution"))
 		]
 		.ValueContent()
 		[
@@ -415,12 +415,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString())
+			.Text(LOCTEXT("SourceLightmapIndex", "Source Lightmap Index"))
 		]
 		.ValueContent()
 		[
@@ -434,12 +434,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString())
+			.Text(LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index"))
 		]
 		.ValueContent()
 		[
@@ -453,7 +453,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -478,12 +478,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString())
+			.Text(LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale"))
 		]
 		.ValueContent()
 		[
@@ -498,12 +498,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 		
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided").ToString())
+			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided"))
 		]
 		.ValueContent()
 		[
@@ -514,7 +514,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes") )
 		.ValueContent()
 		.HAlign(HAlign_Left)
 		[
@@ -798,7 +798,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("PercentTriangles", "Percent Triangles").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("PercentTriangles", "Percent Triangles") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -819,7 +819,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("MaxDeviation", "Max Deviation").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("MaxDeviation", "Max Deviation") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -840,7 +840,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Silhouette_MeshSimplification", "Silhouette").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("Silhouette_MeshSimplification", "Silhouette") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -860,7 +860,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Texture_MeshSimplification", "Texture").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("Texture_MeshSimplification", "Texture") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -880,7 +880,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Shading_MeshSimplification", "Shading").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("Shading_MeshSimplification", "Shading") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -900,7 +900,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("WeldingThreshold", "Welding Threshold").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("WeldingThreshold", "Welding Threshold") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -921,7 +921,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -938,7 +938,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("HardEdgeAngle", "Hard Edge Angle").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("HardEdgeAngle", "Hard Edge Angle") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -959,7 +959,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes") )
 			.ValueContent()
 			.HAlign(HAlign_Left)
 			[
@@ -1396,11 +1396,11 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 
 	IDetailCategoryBuilder& LODSettingsCategory =
-		DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings").ToString() );
+		DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
 
 	
 
-	LODSettingsCategory.AddCustomRow( LOCTEXT("LODGroup", "LOD Group").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("LODGroup", "LOD Group") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1416,7 +1416,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnLODGroupChanged)
 	];
 	
-	LODSettingsCategory.AddCustomRow( LOCTEXT("LODImport", "LOD Import").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("LODImport", "LOD Import") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1434,7 +1434,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 
 	// Add Number of LODs slider.
 	const int32 MinAllowedLOD = 1;
-	LODSettingsCategory.AddCustomRow( LOCTEXT("NumberOfLODs", "Number of LODs").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("NumberOfLODs", "Number of LODs") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1455,7 +1455,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	];
 
 	// Auto LOD distance check box.
-	LODSettingsCategory.AddCustomRow( LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1469,7 +1469,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		.OnCheckStateChanged(this, &FLevelOfDetailSettingsLayout::OnAutoLODChanged)
 	];
 
-	LODSettingsCategory.AddCustomRow( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("ApplyChanges", "Apply Changes") )
 	.ValueContent()
 	.HAlign(HAlign_Left)
 	[
@@ -1485,7 +1485,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 
 	bool bAdvanced = true;
 	// Allowed pixel error.
-	LODSettingsCategory.AddCustomRow( LOCTEXT("AllowedPixelError", "Auto Distance Error").ToString(), bAdvanced )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("AllowedPixelError", "Auto Distance Error"), bAdvanced )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1563,7 +1563,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) ).ToString();
+			FText LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) );
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
 
@@ -1605,7 +1605,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex ) );
 			SectionSettingsWidgets[ LODIndex ]->AddToCategory( LODCategory );
 
-			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize").ToString()))
+			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize")))
 			.NameContent()
 			[
 				SNew(STextBlock)

@@ -9,7 +9,7 @@
 struct FSinglePropertyParams
 {
 	/** Override for the property name that will be displayed instead of the property name */
-	FString NameOverride;
+	FText NameOverride;
 
 	/** Font to use instead of the default property font */
 	FSlateFontInfo Font;
@@ -21,7 +21,7 @@ struct FSinglePropertyParams
 	EPropertyNamePlacement::Type NamePlacement;
 		
 	FSinglePropertyParams()
-		: NameOverride()
+		: NameOverride(FText::GetEmpty())
 		, Font()
 		, NotifyHook( NULL )
 		, NamePlacement( EPropertyNamePlacement::Left )

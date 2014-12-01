@@ -10,7 +10,7 @@ public:
 	SLATE_BEGIN_ARGS( SDetailCategoryTableRow )
 		: _InnerCategory( false )
 	{}
-		SLATE_TEXT_ARGUMENT( DisplayName )
+		SLATE_ARGUMENT( FText, DisplayName )
 		SLATE_ARGUMENT( bool, InnerCategory )
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, HeaderContent )
 	SLATE_END_ARGS()

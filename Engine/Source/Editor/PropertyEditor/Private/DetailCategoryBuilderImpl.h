@@ -138,11 +138,11 @@ public:
 	virtual IDetailPropertyRow& AddProperty( TSharedPtr<IPropertyHandle> PropertyHandle,  EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailLayoutBuilder& GetParentLayout() const override { return *DetailLayoutBuilder.Pin(); }
-	virtual FDetailWidgetRow& AddCustomRow( const FString& FilterString, bool bForAdvanced = false ) override;
+	virtual FDetailWidgetRow& AddCustomRow( const FText& FilterString, bool bForAdvanced = false ) override;
 	virtual void AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder> InCustomBuilder, bool bForAdvanced = false ) override;
-	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) override;
+	virtual IDetailGroup& AddGroup( FName GroupName, const FText& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) override;
 	virtual void GetDefaultProperties( TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true ) override;
-	virtual const FString& GetDisplayName() const override { return DisplayName; }
+	virtual const FText& GetDisplayName() const override { return DisplayName; }
 
 	/** IDetailTreeNode interface */
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
@@ -194,7 +194,7 @@ public:
 	 * @param CategoryName			Base category name to use if no localized override is set
 	 * @param LocalizedNameOverride	The localized name override to use (can be empty)
 	 */
-	void SetDisplayName( FName CategoryName, const FString& LocalizedNameOverride );
+	void SetDisplayName( FName CategoryName, const FText& LocalizedNameOverride );
 
 	/**
 	 * Request that a child node of this category be expanded or collapsed
@@ -346,7 +346,7 @@ private:
 	/** Delegate called when expansion of the category changes */
 	FOnBooleanValueChanged OnExpansionChangedDelegate;
 	/** The display name of the category */
-	FString DisplayName;
+	FText DisplayName;
 	/** The path name of the category */
 	FString CategoryPathName;
 	/** Custom header content displayed to the right of the category name */

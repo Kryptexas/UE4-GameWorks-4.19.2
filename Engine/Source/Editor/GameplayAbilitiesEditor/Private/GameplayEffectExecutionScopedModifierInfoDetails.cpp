@@ -192,7 +192,7 @@ void FGameplayEffectExecutionScopedModifierInfoDetails::CustomizeChildren(TShare
 		{
 			TSharedPtr< SComboBox< TSharedPtr<FGameplayEffectAttributeCaptureDefinition> > > BackingComboBox;
 
-			StructBuilder.AddChildContent(TEXT("CaptureDef"))
+			StructBuilder.AddChildContent(NSLOCTEXT("ScopedModifierDetails", "CaptureDefLabel", "Backing Capture Definition"))
 			.NameContent()
 			[
 				SNew(STextBlock)

@@ -110,7 +110,7 @@ public:
 	/**
 	 * Sets a string which should be used to filter the content when a user searches
 	 */
-	FDetailWidgetRow& FilterString( const FString& InFilterString )
+	FDetailWidgetRow& FilterString( const FText& InFilterString )
 	{
 		FilterTextString = InFilterString;
 		return *this;
@@ -195,7 +195,7 @@ public:
 	/** IsEnabled of the row */
 	TAttribute<bool> IsEnabledAttr;
 	/** String to filter with */
-	FString FilterTextString;
+	FText FilterTextString;
 	/** Action for coping data on this row */
 	FUIAction CopyMenuAction;
 	/** Action for pasting data on this row */

@@ -52,7 +52,7 @@ FPropertyEditor::FPropertyEditor( const TSharedRef<FPropertyNode>& InPropertyNod
 }
 
 
-FString FPropertyEditor::GetDisplayName() const
+FText FPropertyEditor::GetDisplayName() const
 {
 	FCategoryPropertyNode* CategoryNode = PropertyNode->AsCategoryNode();
 	FItemPropertyNode* ItemPropertyNode = PropertyNode->AsItemPropertyNode();
@@ -69,12 +69,13 @@ FString FPropertyEditor::GetDisplayName() const
 	{
 		FString DisplayName;
 		PropertyNode->GetQualifiedName( DisplayName, true );
-
-		return DisplayName;
+		return FText::FromString(DisplayName);
 	}
+
+	return FText::GetEmpty();
 }
 
-FString FPropertyEditor::GetToolTipText() const
+FText FPropertyEditor::GetToolTipText() const
 {
 	return PropertyNode->GetToolTipText();
 }

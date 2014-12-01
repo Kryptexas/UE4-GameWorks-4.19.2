@@ -61,7 +61,7 @@ protected:
 		else if ( PropertyPath.IsValid() && PropertyPath->GetNumProperties() > 0 )
 		{
 			UProperty* Property = PropertyPath->GetLeafMostProperty().Property.Get();
-			const FText ToolTipText = FText::FromString( PropertyEditorHelpers::GetToolTipText( Property ) );
+			const FText ToolTipText = PropertyEditorHelpers::GetToolTipText( Property );
 			const FString DocumentationLink = PropertyEditorHelpers::GetDocumentationLink( Property );
 			const FString DocumentationExcerptName = PropertyEditorHelpers::GetDocumentationExcerptName( Property );
 			ToolTip = IDocumentation::Get()->CreateToolTip( ToolTipText, NULL, DocumentationLink, DocumentationExcerptName );

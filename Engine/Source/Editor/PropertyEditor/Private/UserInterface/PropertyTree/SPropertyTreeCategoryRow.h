@@ -10,7 +10,7 @@ public:
 	SLATE_BEGIN_ARGS( SPropertyTreeCategoryRow )
 		: _DisplayName()
 	{}
-		SLATE_ARGUMENT( FString, DisplayName )
+		SLATE_ARGUMENT( FText, DisplayName )
 
 	SLATE_END_ARGS()
 

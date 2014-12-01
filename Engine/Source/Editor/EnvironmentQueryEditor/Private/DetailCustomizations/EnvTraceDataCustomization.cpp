@@ -35,7 +35,7 @@ void FEnvTraceDataCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 {
 	if (TraceModes.Num() > 1)
 	{
-		StructBuilder.AddChildContent("TraceMode")
+		StructBuilder.AddChildContent(LOCTEXT("TraceMode", "Trace Mode"))
 		.NameContent()
 		[
 			PropTraceMode->CreatePropertyNameWidget()

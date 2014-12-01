@@ -67,7 +67,7 @@ void FAnimGraphNodeSlotDetails::CustomizeDetails(class IDetailLayoutBuilder& Det
 
 	// create combo box
 	IDetailCategoryBuilder& SlotNameGroup = DetailBuilder.EditCategory(TEXT("Settings"));
-	SlotNameGroup.AddCustomRow(LOCTEXT("SlotNameTitleLabel", "Slot Name").ToString())
+	SlotNameGroup.AddCustomRow(LOCTEXT("SlotNameTitleLabel", "Slot Name"))
 	.NameContent()
 	[
 		SlotNodePropertyNameWidget

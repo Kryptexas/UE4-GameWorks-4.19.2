@@ -15,7 +15,7 @@ TSharedRef<IDetailCustomization> FBehaviorDecoratorDetails::MakeInstance()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBehaviorDecoratorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	FString AbortModeDesc = LOCTEXT("ObserverTitle","Observer aborts").ToString();
+	FText AbortModeDesc = LOCTEXT("ObserverTitle","Observer aborts");
 	PropUtils = &(DetailLayout.GetPropertyUtilities().Get());
 
 	TArray<TWeakObjectPtr<UObject> > EditedObjects;

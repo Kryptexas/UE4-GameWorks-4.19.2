@@ -104,14 +104,14 @@ public:
 	/**
 	 * Gets the property tool tip text.
 	 */
-	virtual FString GetToolTipText() const = 0;
+	virtual FText GetToolTipText() const = 0;
 	
 	/**
 	 * Sets the tooltip shown for this property
 	 *
 	 * @param ToolTip	The tool tip to show
 	 */
-	virtual void SetToolTipText(const FString& ToolTip) = 0;
+	virtual void SetToolTipText(const FText& ToolTip) = 0;
 
 	/**
 	 * Gets the value formatted as a string.
@@ -294,7 +294,7 @@ public:
 	/**
 	 * @return The display name of the property
 	 */
-	virtual FString GetPropertyDisplayName() const = 0;
+	virtual FText GetPropertyDisplayName() const = 0;
 	
 	/**
 	 * Resets the value to its default
@@ -342,7 +342,7 @@ public:
 	 * @param bDisplayThumbnail			Whether or not to display the thumbnail for the property (if any)
 	 * @return the name widget for this property
 	 */
-	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FString& NameOverride = TEXT(""), const FString& ToolTipOverride = TEXT(""), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const = 0;
+	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FText& NameOverride = FText::GetEmpty(), const FText& ToolTipOverride = FText::GetEmpty(), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const = 0;
 
 	/**
 	 * Creates a value widget for this property

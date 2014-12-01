@@ -16,15 +16,15 @@ FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(FClassToPropertyMap& InProper
 
 }
 
-IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FString& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )
+IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )
 {
-	FString LocalizedDisplayName = NewLocalizedDisplayName;
+	FText LocalizedDisplayName = NewLocalizedDisplayName;
 
 	// Use a generic name if one was not specified
 	if( CategoryName == NAME_None )
 	{
-		static const FString GeneralString = NSLOCTEXT("DetailLayoutBuilderImpl", "General", "General").ToString();
-		static const FName GeneralName = *GeneralString;
+		static const FText GeneralString = NSLOCTEXT("DetailLayoutBuilderImpl", "General", "General");
+		static const FName GeneralName = *GeneralString.ToString();
 
 		CategoryName = GeneralName;
 		LocalizedDisplayName = GeneralString;
@@ -115,7 +115,7 @@ FDetailCategoryImpl& FDetailLayoutBuilderImpl::DefaultCategory( FName CategoryNa
 	}
 	
 
-	CategoryImpl->SetDisplayName( CategoryName, TEXT("") );
+	CategoryImpl->SetDisplayName( CategoryName, FText::GetEmpty() );
 	return *CategoryImpl;
 }
 

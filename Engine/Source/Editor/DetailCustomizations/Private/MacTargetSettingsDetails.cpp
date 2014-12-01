@@ -89,10 +89,10 @@ static FString GetIconFilename(EMacImageScope::Type Scope)
 void FMacTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	// Add the splash image customization
-	IDetailCategoryBuilder& SplashCategoryBuilder = DetailBuilder.EditCategory(TEXT("Splash"));
-	FDetailWidgetRow& EditorSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(TEXT("Editor Splash"));
-
 	const FText EditorSplashDesc(LOCTEXT("EditorSplashLabel", "Editor Splash"));
+	IDetailCategoryBuilder& SplashCategoryBuilder = DetailBuilder.EditCategory(TEXT("Splash"));
+	FDetailWidgetRow& EditorSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(EditorSplashDesc);
+
 	const FString EditorSplash_TargetImagePath = GetSplashFilename(EMacImageScope::GameOverride, true);
 	const FString EditorSplash_DefaultImagePath = GetSplashFilename(EMacImageScope::Engine, true);
 
@@ -125,9 +125,9 @@ void FMacTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 		]
 	];
 
-	FDetailWidgetRow& GameSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(TEXT("Game Splash"));
-
 	const FText GameSplashDesc(LOCTEXT("GameSplashLabel", "Game Splash"));
+	FDetailWidgetRow& GameSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(GameSplashDesc);
+
 	const FString GameSplash_TargetImagePath = GetSplashFilename(EMacImageScope::GameOverride, false);
 	const FString GameSplash_DefaultImagePath = GetSplashFilename(EMacImageScope::Engine, false);
 
@@ -161,7 +161,7 @@ void FMacTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 	];
 
 	IDetailCategoryBuilder& IconsCategoryBuilder = DetailBuilder.EditCategory(TEXT("Icon"));	
-	FDetailWidgetRow& GameIconWidgetRow = IconsCategoryBuilder.AddCustomRow(TEXT("Game Icon"));
+	FDetailWidgetRow& GameIconWidgetRow = IconsCategoryBuilder.AddCustomRow(LOCTEXT("GameIconLabel", "Game Icon"));
 	GameIconWidgetRow
 	.NameContent()
 	[

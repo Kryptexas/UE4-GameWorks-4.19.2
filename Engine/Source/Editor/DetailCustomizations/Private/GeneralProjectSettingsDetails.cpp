@@ -23,7 +23,7 @@ void FGeneralProjectSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 	const FString ProjectThumbnail_TargetImagePath = FPaths::GetPath(FPaths::GetProjectFilePath()) / FString::Printf(TEXT("%s.png"), FApp::GetGameName());
 	const FString ProjectThumbnail_AutomaticImagePath = FPaths::GameSavedDir() / TEXT("AutoScreenshot.png");
 
-	ImageCategory.AddCustomRow(ProjectThumbnailDesc.ToString())
+	ImageCategory.AddCustomRow(ProjectThumbnailDesc)
 	.NameContent()
 	[
 		SNew(SHorizontalBox)

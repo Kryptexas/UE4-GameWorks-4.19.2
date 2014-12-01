@@ -50,7 +50,7 @@ public:
 	bool IsEditConditionMet() const;
 
 	/**	@return The tooltip for this property editor */
-	FString GetToolTipText() const;
+	FText GetToolTipText() const;
 
 	/** @return The documentation link for this property */
 	FString GetDocumentationLink() const;
@@ -59,7 +59,7 @@ public:
 	FString GetDocumentationExcerptName() const;
 
 	/**	@return The display name to be used for the property */
-	FString GetDisplayName() const;
+	FText GetDisplayName() const;
 
 	/** @return Whether or not resetting this property to its default value is a valid and worthwhile operation */
 	bool IsResetToDefaultAvailable() const;

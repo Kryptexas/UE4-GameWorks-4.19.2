@@ -86,7 +86,7 @@ public:
 	 * @param FilterString	 A string which is used to filter this custom row when a user types into the details panel search box
 	 * @param bForAdvanced	 Whether the widget should appear in the advanced section
 	 */
-	virtual FDetailWidgetRow& AddCustomRow( const FString& FilterString, bool bForAdvanced = false ) = 0;
+	virtual FDetailWidgetRow& AddCustomRow( const FText& FilterString, bool bForAdvanced = false ) = 0;
 
 	/**
 	 * Adds a custom builder to the category (for more complicated layouts)
@@ -104,7 +104,7 @@ public:
 	 * @param true if the group should appear in the advanced section of the category
 	 * @param true if the group should start expanded
 	 */
-	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) = 0;
+	virtual IDetailGroup& AddGroup( FName GroupName, const FText& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) = 0;
 
 	/**
 	 * Gets the default propeties of this category
@@ -123,5 +123,5 @@ public:
 	/**
 	 * @return The localized display name of the category
 	 */
-	virtual const FString& GetDisplayName() const = 0;
+	virtual const FText& GetDisplayName() const = 0;
 };

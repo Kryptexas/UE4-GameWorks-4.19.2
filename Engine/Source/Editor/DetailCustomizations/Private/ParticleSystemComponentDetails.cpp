@@ -16,11 +16,11 @@ void FParticleSystemComponentDetails::CustomizeDetails(IDetailLayoutBuilder& InD
 {
 	this->DetailLayout = &InDetailLayout;
 
-	InDetailLayout.EditCategory("Particles", TEXT(""), ECategoryPriority::Important);
+	InDetailLayout.EditCategory("Particles", FText::GetEmpty(), ECategoryPriority::Important);
 
-	IDetailCategoryBuilder& CustomCategory = InDetailLayout.EditCategory("EmitterActions", NSLOCTEXT("ParticleSystemComponentDetails", "EmitterActionCategoryName", "Emitter Actions").ToString(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& CustomCategory = InDetailLayout.EditCategory("EmitterActions", NSLOCTEXT("ParticleSystemComponentDetails", "EmitterActionCategoryName", "Emitter Actions"), ECategoryPriority::Important);
 
-	CustomCategory.AddCustomRow(TEXT(""))
+	CustomCategory.AddCustomRow(FText::GetEmpty())
 		[
 			SNew(SUniformGridPanel)
 			.SlotPadding(2.0f)

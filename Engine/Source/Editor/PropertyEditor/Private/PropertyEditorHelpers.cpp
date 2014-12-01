@@ -51,7 +51,7 @@ void SPropertyNameWidget::Construct( const FArguments& InArgs, TSharedPtr<FPrope
 				SNew( SPropertyEditorTitle, PropertyEditor.ToSharedRef() )
 				.StaticDisplayName( PropertyEditor->GetDisplayName() )
 				.OnDoubleClicked( InArgs._OnDoubleClicked )
-                .ToolTip( IDocumentation::Get()->CreateToolTip( FText::FromString( PropertyEditor->GetToolTipText() ), NULL, PropertyEditor->GetDocumentationLink(), PropertyEditor->GetDocumentationExcerptName() ) )
+                .ToolTip( IDocumentation::Get()->CreateToolTip( PropertyEditor->GetToolTipText(), NULL, PropertyEditor->GetDocumentationLink(), PropertyEditor->GetDocumentationExcerptName() ) )
 			]
 		]
 	
@@ -79,7 +79,7 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 
 	ValueEditorWidget = ConstructPropertyEditorWidget( PropertyEditor, InPropertyUtilities );
 
-	ValueEditorWidget->SetToolTipText( TAttribute<FString>(PropertyEditor->GetToolTipText()) );
+	ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 
 
 	if( InArgs._ShowPropertyButtons )
@@ -354,16 +354,14 @@ namespace PropertyEditorHelpers
 			&&	(bAllowAbstract || !CheckClass->HasAnyClassFlags(CLASS_Abstract));
 	}
 
-	FString GetToolTipText( const UProperty* const Property )
+	FText GetToolTipText( const UProperty* const Property )
 	{
 		if( Property )
 		{
-			FString ToolTipText = Property->GetToolTipText().ToString();
-
-			return ToolTipText;
+			return Property->GetToolTipText();
 		}
 
-		return FString();
+		return FText::GetEmpty();
 	}
 
 	FString GetDocumentationLink( const UProperty* const Property )

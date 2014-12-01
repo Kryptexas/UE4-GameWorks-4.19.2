@@ -20,7 +20,7 @@ TSharedRef<IDetailCustomization> FSpriteDetailsCustomization::MakeInstance()
 
 FDetailWidgetRow& FSpriteDetailsCustomization::GenerateWarningRow(IDetailCategoryBuilder& WarningCategory, bool bExperimental, const FText& WarningText, const FText& Tooltip, const FString& ExcerptLink, const FString& ExcerptName)
 {
-	const FString SearchString = WarningText.ToString();
+	const FText SearchString = WarningText;
 	const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
 
 	FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
@@ -55,7 +55,7 @@ FDetailWidgetRow& FSpriteDetailsCustomization::GenerateWarningRow(IDetailCategor
 void FSpriteDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	// Make sure sprite properties are near the top
-	IDetailCategoryBuilder& SpriteCategory = DetailLayout.EditCategory("Sprite", TEXT(""), ECategoryPriority::TypeSpecific);
+	IDetailCategoryBuilder& SpriteCategory = DetailLayout.EditCategory("Sprite", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	BuildSpriteSection(SpriteCategory, DetailLayout);
 
 	// Build the rendering category
@@ -95,7 +95,7 @@ void FSpriteDetailsCustomization::BuildRenderingSection(IDetailCategoryBuilder& 
 	// Add the rendering geometry mode into the parent container (renamed)
 	const FString RenderGeometryTypePropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, RenderGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpritePolygonCollection, GeometryType));
 	RenderingCategory.AddProperty(DetailLayout.GetProperty(*RenderGeometryTypePropertyPath))
-		.DisplayName(LOCTEXT("RenderGeometryType", "Render Geometry Type").ToString());
+		.DisplayName(LOCTEXT("RenderGeometryType", "Render Geometry Type"));
 
 	// Show the rendering geometry settings
 	TSharedRef<IPropertyHandle> RenderGeometry = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, RenderGeometry));
@@ -104,7 +104,7 @@ void FSpriteDetailsCustomization::BuildRenderingSection(IDetailCategoryBuilder& 
 	// Add the render polygons into advanced (renamed)
 	const FString RenderGeometryPolygonsPropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, RenderGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpritePolygonCollection, Polygons));
 	RenderingCategory.AddProperty(DetailLayout.GetProperty(*RenderGeometryPolygonsPropertyPath), EPropertyLocation::Advanced)
-		.DisplayName(LOCTEXT("RenderPolygons", "Render Polygons").ToString());
+		.DisplayName(LOCTEXT("RenderPolygons", "Render Polygons"));
 }
 
 void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& CollisionCategory, IDetailLayoutBuilder& DetailLayout)
@@ -142,7 +142,7 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 		CollisionGeometryTypeProperty->AddRestriction(PreventDicedRestriction.ToSharedRef());
 
 		CollisionCategory.AddProperty(CollisionGeometryTypeProperty)
-			.DisplayName(LOCTEXT("CollisionGeometryType", "Collision Geometry Type").ToString())
+			.DisplayName(LOCTEXT("CollisionGeometryType", "Collision Geometry Type"))
 			.Visibility(ParticipatesInPhysics);
 	}
 
@@ -157,7 +157,7 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 	// Add the collision polygons into advanced (renamed)
 	const FString CollisionGeometryPolygonsPropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, CollisionGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpritePolygonCollection, Polygons));
 	CollisionCategory.AddProperty(DetailLayout.GetProperty(*CollisionGeometryPolygonsPropertyPath), EPropertyLocation::Advanced)
-		.DisplayName(LOCTEXT("CollisionPolygons", "Collision Polygons").ToString())
+		.DisplayName(LOCTEXT("CollisionPolygons", "Collision Polygons"))
 		.Visibility(ParticipatesInPhysics);
 
 	// Show the default body instance (and only it) from the body setup (if it exists)

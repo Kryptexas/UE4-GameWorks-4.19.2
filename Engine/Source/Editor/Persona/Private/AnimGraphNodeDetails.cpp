@@ -242,7 +242,7 @@ void FAnimGraphNodeDetails::AbortDisplayOfAllNodes(TArray< TWeakObjectPtr<UObjec
 {
 	// Display a warning message
 	IDetailCategoryBuilder& ErrorCategory = DetailBuilder.EditCategory("Animation Nodes");
-	ErrorCategory.AddCustomRow( LOCTEXT("ErrorRow", "Error").ToString() )
+	ErrorCategory.AddCustomRow( LOCTEXT("ErrorRow", "Error") )
 	[
 		SNew(STextBlock)
 		.Text(LOCTEXT("MultiSelectNotSupported", "Multiple nodes selected"))
@@ -468,7 +468,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		[
 			SNew(SBoneSelectionWidget)
 			.Skeleton(TargetSkeleton)
-			.Tooltip(FText::FromString(StructPropertyHandle->GetToolTipText()))
+			.Tooltip(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
 		];
@@ -545,7 +545,7 @@ void FAnimGraphParentPlayerDetails::CustomizeDetails(class IDetailLayoutBuilder&
 		(*ExistingGraphEntry)->Children.Add(NodeEntry);
 	}
 
-	FDetailWidgetRow& Row = Category.AddCustomRow("");
+	FDetailWidgetRow& Row = Category.AddCustomRow(FText::GetEmpty());
 	TSharedRef<STreeView<TSharedPtr<FPlayerTreeViewEntry>>> TreeView = SNew(STreeView<TSharedPtr<FPlayerTreeViewEntry>>)
 		.SelectionMode(ESelectionMode::None)
 		.OnGenerateRow(this, &FAnimGraphParentPlayerDetails::OnGenerateRow)

@@ -22,7 +22,7 @@ public:
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			];
 	}
 
@@ -43,7 +43,7 @@ public:
 			CurveTablePropertyHandle->SetOnPropertyValueChanged( OnCurveTableChangedDelegate );
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent( TEXT( "Row Name" ) )
+			StructBuilder.AddChildContent( NSLOCTEXT("CurveTable", "RowNameLabel", "Row Name" ) )
 			.NameContent()
 				[
 					SNew( STextBlock )

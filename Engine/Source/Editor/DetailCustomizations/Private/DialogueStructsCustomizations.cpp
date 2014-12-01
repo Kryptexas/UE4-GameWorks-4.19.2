@@ -751,7 +751,7 @@ void SValidatedDialogueContextHeaderWidget::Construct( const FArguments& InArgs,
 							+SHorizontalBox::Slot()
 							.AutoWidth()
 							[
-								TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At").ToString() )
+								TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At") )
 							]
 							+SHorizontalBox::Slot()
 							.FillWidth(1.0f)

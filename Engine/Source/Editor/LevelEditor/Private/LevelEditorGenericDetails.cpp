@@ -131,7 +131,7 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 
 	const FSlateFontInfo& FontInfo = IDetailLayoutBuilder::GetDetailFont();
 
-	IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory( "Surface Materials", LOCTEXT("BSPSurfaceMaterials", "Surface Materials").ToString() );
+	IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory( "Surface Materials", LOCTEXT("BSPSurfaceMaterials", "Surface Materials") );
 	{
 		FMaterialListDelegates MaterialListDelegates;
 		MaterialListDelegates.OnGetMaterials.BindSP(this, &FLevelEditorGenericDetails::GetSelectedSurfaceMaterials);
@@ -143,8 +143,8 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 	}
 
 	// Add a new section for static meshes
-	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "Geometry", LOCTEXT("BSPSurfacesTitle", "Geometry").ToString() );
-	BSPCategory.AddCustomRow( TEXT("") )
+	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "Geometry", LOCTEXT("BSPSurfacesTitle", "Geometry") );
+	BSPCategory.AddCustomRow( FText::GetEmpty() )
 	[
 		SNew( SVerticalBox )
 		+ SVerticalBox::Slot()
@@ -187,7 +187,7 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
-	BSPCategory.AddCustomRow( LOCTEXT("CleanBSPMaterials", "Clean Geometry Materials").ToString(), true )
+	BSPCategory.AddCustomRow( LOCTEXT("CleanBSPMaterials", "Clean Geometry Materials"), true )
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -206,8 +206,8 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
-	IDetailCategoryBuilder& SurfaceCategory = DetailBuilder.EditCategory( "Surface Properties", LOCTEXT("BSPSurfaceProperties", "Surface Properties").ToString() );
-	SurfaceCategory.AddCustomRow( LOCTEXT("BSPSurfaceProperties", "Surface Properties").ToString() )
+	IDetailCategoryBuilder& SurfaceCategory = DetailBuilder.EditCategory( "Surface Properties", LOCTEXT("BSPSurfaceProperties", "Surface Properties") );
+	SurfaceCategory.AddCustomRow( LOCTEXT("BSPSurfaceProperties", "Surface Properties") )
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()

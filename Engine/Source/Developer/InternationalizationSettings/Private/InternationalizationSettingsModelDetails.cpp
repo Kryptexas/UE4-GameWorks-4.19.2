@@ -130,7 +130,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	// For use in the Slate macros below, the type must be typedef'd to compile.
 	typedef FCulturePtr ThreadSafeCulturePtr;
 
-	CategoryBuilder.AddCustomRow("Language")
+	CategoryBuilder.AddCustomRow(LOCTEXT("EditorLanguageLabel", "Language"))
 	.NameContent()
 	[
 		SNew(SHorizontalBox)
@@ -163,7 +163,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 
 	const FText RegionToolTipText = LOCTEXT("EditorRegionTooltip", "Change the Editor region (requires restart to take effect)");
 
-	CategoryBuilder.AddCustomRow("Region")
+	CategoryBuilder.AddCustomRow(LOCTEXT("EditorRegionLabel", "Region"))
 	.NameContent()
 	[
 		SNew(SHorizontalBox)
@@ -197,7 +197,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 
 	const FText FieldNamesToolTipText = LOCTEXT("EditorFieldNamesTooltip", "Toggle showing localized field names (requires restart to take effect)");
 
-	CategoryBuilder.AddCustomRow("FieldNames")
+	CategoryBuilder.AddCustomRow(LOCTEXT("EditorFieldNamesLabel", "Use Localized Field Names"))
 	.NameContent()
 	[
 		SNew(SHorizontalBox)
@@ -220,7 +220,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 		.OnCheckStateChanged(this, &FInternationalizationSettingsModelDetails::ShoudLoadLocalizedFieldNamesCheckChanged)
 	];
 
-	CategoryBuilder.AddCustomRow("RestartWarning")
+	CategoryBuilder.AddCustomRow(LOCTEXT("EditorRestartWarningLabel", "RestartWarning"))
 	.Visibility( TAttribute<EVisibility>(this, &FInternationalizationSettingsModelDetails::GetInternationalizationRestartRowVisibility) )
 	.WholeRowContent()
 	.HAlign(HAlign_Center)

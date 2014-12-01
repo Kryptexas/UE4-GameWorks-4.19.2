@@ -68,7 +68,7 @@ void FRigDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	// add custom menu
 	// -> set all to world
 	// -> set all to default parent
-	TransformBaseCategory.AddCustomRow(TEXT(""))
+	TransformBaseCategory.AddCustomRow(FText::GetEmpty())
 	[
 		// two button 1. view 2. save to base pose
 		SNew(SHorizontalBox)
@@ -117,7 +117,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 	check (ParentNameProp->GetValueAsDisplayString(ParentNodeName) != FPropertyAccess::Fail);
 	check (DisplayNameProp->GetValueAsDisplayString(DisplayString) != FPropertyAccess::Fail);
 
-	ChildrenBuilder.AddChildContent(TEXT(""))
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 
@@ -314,7 +314,7 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 		NodeIndex++;
 	}
 
-	ChildrenBuilder.AddChildContent(TEXT(""))
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 

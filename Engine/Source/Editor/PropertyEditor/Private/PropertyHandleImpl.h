@@ -300,7 +300,7 @@ public:
 	/**
 	 * @return The display name of the property
 	 */
-	FString GetDisplayName() const;
+	FText GetDisplayName() const;
 
 	/** @return The notify hook being used */
 	FNotifyHook* GetNotifyHook() const { return NotifyHook; }
@@ -367,14 +367,14 @@ public:
 
 	/** IPropertyHandle interface */
 	virtual bool IsValidHandle() const override;
-	virtual FString GetPropertyDisplayName() const override;
+	virtual FText GetPropertyDisplayName() const override;
 	virtual void ResetToDefault() override;
 	virtual bool DiffersFromDefault() const override;
 	virtual FText GetResetToDefaultLabel() const override;
 	virtual void MarkHiddenByCustomization() override;
 	virtual bool IsCustomized() const override;
 	virtual FString GeneratePathToProperty() const override;
-	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FString& NameOverride = TEXT(""), const FString& ToolTipOverride = TEXT(""), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const override;
+	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FText& NameOverride = FText::GetEmpty(), const FText& ToolTipOverride = FText::GetEmpty(), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const override;
 	virtual TSharedRef<SWidget> CreatePropertyValueWidget() const override;
 	virtual bool IsEditConst() const override;
 	virtual void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) override;
@@ -402,8 +402,8 @@ public:
 	virtual int32 GetINTMetaData(const FName& Key) const override;
 	virtual float GetFLOATMetaData(const FName& Key) const override;
 	virtual UClass* GetClassMetaData(const FName& Key) const override;
-	virtual FString GetToolTipText() const override;
-	virtual void SetToolTipText(const FString& ToolTip) override;
+	virtual FText GetToolTipText() const override;
+	virtual void SetToolTipText(const FText& ToolTip) override;
 	virtual FPropertyAccess::Result SetPerObjectValues( const TArray<FString>& InPerObjectValues,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 	virtual FPropertyAccess::Result GetPerObjectValues( TArray<FString>& OutPerObjectValues ) override;
 	virtual bool GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< TSharedPtr<FString> >& OutToolTips, TArray<bool>& OutRestrictedItems) override;

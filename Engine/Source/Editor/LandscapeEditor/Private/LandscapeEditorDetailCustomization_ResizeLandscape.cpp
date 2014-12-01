@@ -46,7 +46,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 
 	IDetailCategoryBuilder& ResizeLandscapeCategory = DetailBuilder.EditCategory("Change Component Size");
 
-	ResizeLandscapeCategory.AddCustomRow("Original New")
+	ResizeLandscapeCategory.AddCustomRow(LOCTEXT("OriginalNewLabel", "Original New"))
 	//.NameContent()
 	//[
 	//]
@@ -200,7 +200,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 		]
 	];
 
-	ResizeLandscapeCategory.AddCustomRow("Overall Resolution")
+	ResizeLandscapeCategory.AddCustomRow(LOCTEXT("Resolution", "Overall Resolution"))
 	.NameContent()
 	[
 		SNew(SBox)
@@ -240,7 +240,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 		]
 	];
 
-	ResizeLandscapeCategory.AddCustomRow("Total Components")
+	ResizeLandscapeCategory.AddCustomRow(LOCTEXT("TotalComponents", "Total Components"))
 	.NameContent()
 	[
 		SNew(SBox)
@@ -280,7 +280,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 		]
 	];
 
-	ResizeLandscapeCategory.AddCustomRow("")
+	ResizeLandscapeCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

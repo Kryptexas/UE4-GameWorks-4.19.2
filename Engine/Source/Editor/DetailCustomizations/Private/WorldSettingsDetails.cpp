@@ -96,7 +96,7 @@ void FLightmapCustomNodeBuilder::GenerateChildContent(IDetailChildrenBuilder& Ch
 {
 	RefreshLightmapItems();
 
-	ChildrenBuilder.AddChildContent(LOCTEXT("LightMapsFilter", "Lightmaps").ToString())
+	ChildrenBuilder.AddChildContent(LOCTEXT("LightMapsFilter", "Lightmaps"))
 	.ValueContent()
 	.HAlign(HAlign_Fill)
 	[

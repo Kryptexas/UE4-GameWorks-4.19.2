@@ -105,7 +105,7 @@ public:
 
 			SettingRegions.Add(Settings.SettingsObject, EditPropertiesBlock);
 
-			FDetailWidgetRow& CategoryRow = PendingChangesCategory.AddCustomRow(Settings.CategoryHeading.ToString())
+			FDetailWidgetRow& CategoryRow = PendingChangesCategory.AddCustomRow(Settings.CategoryHeading)
 				.Visibility(TAttribute<EVisibility>::Create(&SRequiredDefaultConfig::GetAnyPendingChangesVisibility))
 				.NameContent()
 				[
@@ -206,7 +206,7 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 
 	TSharedRef<SRequiredDefaultConfig> ConfigWidget = SNew(SRequiredDefaultConfig);
 	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
-	PendingChangesCategory.AddCustomRow(FString())
+	PendingChangesCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -274,7 +274,7 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		);
 	}
 
-	HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:").ToString())
+	HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:"))
 	.NameContent()
 	[
 		SNew(STextBlock)

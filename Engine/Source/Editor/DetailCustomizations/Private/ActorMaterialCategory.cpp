@@ -246,7 +246,7 @@ void FActorMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	if( bAnyMaterialsToDisplay )
 	{
 		// Make a category for the materials.
-		IDetailCategoryBuilder& MaterialCategory = DetailBuilder.EditCategory("Materials", TEXT(""), ECategoryPriority::TypeSpecific );
+		IDetailCategoryBuilder& MaterialCategory = DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific );
 
 		MaterialCategory.AddCustomBuilder( MaterialList );
 	}

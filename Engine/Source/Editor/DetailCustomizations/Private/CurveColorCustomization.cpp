@@ -55,7 +55,7 @@ void FCurveColorCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStr
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			.HAlign(HAlign_Fill)
@@ -90,7 +90,7 @@ void FCurveColorCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStr
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			[
@@ -120,7 +120,7 @@ void FCurveColorCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InS
 			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveColorCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
-			StructBuilder.AddChildContent(TEXT("ExternalCurve"))
+			StructBuilder.AddChildContent(LOCTEXT("ExternalCurveLabel", "ExternalCurve"))
 				.NameContent()
 				[
 					Child->CreatePropertyNameWidget()
@@ -384,7 +384,7 @@ FReply FCurveColorCustomization::OnCurvePreviewDoubleClick(const FGeometry& InMy
 			FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, FCurveColorCustomization::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
 
 			TSharedPtr<SWindow> Window = SNew(SWindow)
-				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Color Curve Editor"), FText::FromString(StructPropertyHandle->GetPropertyDisplayName())) )
+				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Color Curve Editor"), StructPropertyHandle->GetPropertyDisplayName()) )
 				.ClientSize( FCurveColorCustomization::DEFAULT_WINDOW_SIZE )
 				.ScreenPosition(AdjustedSummonLocation)
 				.AutoCenter(EAutoCenter::None)

@@ -56,14 +56,14 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	FName VarName =	GetVariableName();
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString());
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"));
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	
 	const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
 
 	TSharedPtr<SToolTip> VarNameTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarNameTooltip", "The name of the variable."), NULL, DocLink, TEXT("VariableName"));
 
-	Category.AddCustomRow( TEXT("Variable Name") )
+	Category.AddCustomRow( LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -85,7 +85,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> VarTypeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarTypeTooltip", "The type of the variable."), NULL, DocLink, TEXT("VariableType"));
 
-	Category.AddCustomRow( TEXT("Variable Type") )
+	Category.AddCustomRow( LOCTEXT("VariableTypeLabel", "Variable Type") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -107,7 +107,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> EditableTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarEditableTooltip", "Whether this variable is publically editable on instances of this Blueprint."), NULL, DocLink, TEXT("Editable"));
 
-	Category.AddCustomRow( TEXT("Editable") )
+	Category.AddCustomRow( LOCTEXT("IsVariableEditableLabel", "Editable") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ShowEditableCheckboxVisibilty))
 	.NameContent()
 	[
@@ -126,7 +126,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ToolTipTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarToolTipTooltip", "Extra information about this variable, shown when cursor is over it."), NULL, DocLink, TEXT("Tooltip"));
 
-	Category.AddCustomRow( TEXT("Tooltip") )
+	Category.AddCustomRow( LOCTEXT("IsVariableToolTipLabel", "Tooltip") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::IsTooltipEditVisible))
 	.NameContent()
 	[
@@ -146,7 +146,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> Widget3DTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableWidget3D_Tooltip", "When true, allows the user to tweak the vector variable by using a 3D transform widget in the viewport (usable when varible is public/enabled)."), NULL, DocLink, TEXT("Widget3D"));
 
-	Category.AddCustomRow( LOCTEXT("VariableWidget3D_Prompt", "Show 3D Widget").ToString() )
+	Category.AddCustomRow( LOCTEXT("VariableWidget3D_Prompt", "Show 3D Widget") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::Show3DWidgetVisibility))
 	.NameContent()
 	[
@@ -167,7 +167,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ExposeOnSpawnTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToSpawn_Tooltip", "Should this variable be exposed as a pin when spawning this Blueprint?"), NULL, DocLink, TEXT("ExposeOnSpawn"));
 
-	Category.AddCustomRow( TEXT("Expose on Spawn") )
+	Category.AddCustomRow( LOCTEXT("VariableExposeToSpawnLabel", "Expose on Spawn") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeOnSpawnVisibility))
 	.NameContent()
 	[
@@ -186,7 +186,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> PrivateTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariablePrivate_Tooltip", "Should this variable be private (derived blueprints cannot modify it)?"), NULL, DocLink, TEXT("Private"));
 
-	Category.AddCustomRow(TEXT(""))
+	Category.AddCustomRow(LOCTEXT("VariablePrivate", "Private"))
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposePrivateVisibility))
 	.NameContent()
 	[
@@ -205,7 +205,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ExposeToMatineeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToMatinee_Tooltip", "Should this variable be exposed for Matinee to modify?"), NULL, DocLink, TEXT("ExposeToMatinee"));
 
-	Category.AddCustomRow( TEXT("Expose to Matinee") )
+	Category.AddCustomRow( LOCTEXT("VariableExposeToMatinee", "Expose to Matinee") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeToMatineeVisibility))
 	.NameContent()
 	[
@@ -228,7 +228,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
-	Category.AddCustomRow( TEXT("Category") )
+	Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -279,7 +279,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	FName UIMin = TEXT("UIMin");
 	FName UIMax = TEXT("UIMax");
-	Category.AddCustomRow( TEXT("Slider Range") )
+	Category.AddCustomRow( LOCTEXT("SliderRangeLabel", "Slider Range") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
 	.NameContent()
 	[
@@ -321,7 +321,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	FName ClampMin = TEXT("ClampMin");
 	FName ClampMax = TEXT("ClampMax");
-	Category.AddCustomRow(TEXT("Value Range"))
+	Category.AddCustomRow(LOCTEXT("ValueRangeLabel", "Value Range"))
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
 	.NameContent()
 	[
@@ -365,7 +365,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ReplicationTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableReplicate_Tooltip", "Should this Variable be replicated over the network?"), NULL, DocLink, TEXT("Replication"));
 
-	Category.AddCustomRow( TEXT("Replication") )
+	Category.AddCustomRow( LOCTEXT("VariableReplicationLabel", "Replication") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
 	.NameContent()
 	[
@@ -394,7 +394,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				// Add Events Section property class that has valid events
 				if( FBlueprintEditor::CanClassGenerateEvents( ComponentProperty->PropertyClass ))
 				{
-					IDetailCategoryBuilder& EventCategory = DetailLayout.EditCategory("Component", LOCTEXT("ComponentDetailsCategory", "Events").ToString());
+					IDetailCategoryBuilder& EventCategory = DetailLayout.EditCategory("Component", LOCTEXT("ComponentDetailsCategory", "Events"));
 
 					FText NodeName = FText::FromName( VarName );
 					const FText AddEventLabel = FText::Format( LOCTEXT( "ScriptingEvents_AddEvent", "Add Event For {0}" ), NodeName );
@@ -402,7 +402,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 					TSharedPtr<SToolTip> EventsTooltip = IDocumentation::Get()->CreateToolTip(AddEventToolTip, NULL, DocLink, TEXT("Events"));
 
-					EventCategory.AddCustomRow( LOCTEXT("AddEventHeader", "Add Event").ToString())
+					EventCategory.AddCustomRow( LOCTEXT("AddEventHeader", "Add Event"))
 						.NameContent()
 						[
 							SNew(SHorizontalBox)
@@ -469,7 +469,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		UClass* VariableClass = (VariableProperty != NULL) ? VariableProperty->GetTypedOuter<UClass>() : NULL;
 
 		FText ErrorMessage;
-		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value").ToString());
+		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value"));
 
 		if (VariableProperty == NULL)
 		{
@@ -508,7 +508,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		// Show the error message if something went wrong
 		if (!ErrorMessage.IsEmpty())
 		{
-			DefaultValueCategory.AddCustomRow( TEXT("Error") )
+			DefaultValueCategory.AddCustomRow( ErrorMessage )
 			[
 				SNew(STextBlock)
 				.ToolTipText(ErrorMessage)
@@ -526,7 +526,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 		TSharedPtr<SToolTip> TransientTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableTransient_Tooltip", "Should this variable not serialize and be zero-filled at load?"), NULL, DocLink, TEXT("Transient"));
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(LOCTEXT("VariableTransient", "Transient"), true)
 			.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::GetTransientVisibility))
 			.NameContent()
 		[
@@ -545,7 +545,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 		TSharedPtr<SToolTip> SaveGameTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableSaveGame_Tooltip", "Should this variable be serialized for saved games?"), NULL, DocLink, TEXT("SaveGame"));
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(LOCTEXT("VariableSaveGame", "SaveGame"), true)
 		.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::GetSaveGameVisibility))
 		.NameContent()
 		[
@@ -564,7 +564,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 		TSharedPtr<SToolTip> PropertyFlagsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("DefinedPropertyFlags_Tooltip", "List of defined flags for this property"), NULL, DocLink, TEXT("PropertyFlags"));
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(LOCTEXT("DefinedPropertyFlags", "Defined Property Flags"), true)
 		.WholeRowWidget
 		[
 			SNew(STextBlock)
@@ -573,7 +573,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 		];
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(FText::GetEmpty(), true)
 		.WholeRowWidget
 		[
 			SAssignNew(PropertyFlagWidget, SListView< TSharedPtr< FString > >)
@@ -1709,7 +1709,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 {
 	if (bHasDefaultValue)
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1726,7 +1726,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		];
 
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1746,7 +1746,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 	// Read only graphs can't have their pins re-organized
 	if ( !IsPinEditingReadOnly() )
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsMoving", "Moving" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsMoving", "Moving" ) )
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
@@ -2011,15 +2011,15 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 	if (FunctionEntryNode && FunctionEntryNode->IsEditable())
 	{
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph").ToString());
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph"));
 		if (bHasAGraph)
 		{
-			Category.AddCustomRow( LOCTEXT( "DefaultTooltip", "Description" ).ToString() )
+			Category.AddCustomRow( LOCTEXT( "DefaultTooltip", "Description" ) )
 			.NameContent()
 			[
 				SNew(STextBlock)
-					.Text( LOCTEXT( "DefaultTooltip", "Description" ).ToString() )
-					.ToolTipText(LOCTEXT("FunctionTooltipTooltip", "Enter a short message describing the purpose and operation of this graph").ToString())
+					.Text( LOCTEXT( "DefaultTooltip", "Description" ) )
+					.ToolTipText(LOCTEXT("FunctionTooltipTooltip", "Enter a short message describing the purpose and operation of this graph"))
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 			.ValueContent()
@@ -2040,7 +2040,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
 				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
-				Category.AddCustomRow( TEXT("Category") )
+				Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 					.NameContent()
 					[
 						SNew(STextBlock)
@@ -2089,11 +2089,11 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 			if (IsAccessSpecifierVisible())
 			{
-				Category.AddCustomRow( LOCTEXT( "AccessSpecifier", "Access Specifier" ).ToString() )
+				Category.AddCustomRow( LOCTEXT( "AccessSpecifier", "Access Specifier" ) )
 				.NameContent()
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT( "AccessSpecifier", "Access Specifier" ).ToString() )
+						.Text( LOCTEXT( "AccessSpecifier", "Access Specifier" ) )
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 				.ValueContent()
@@ -2117,7 +2117,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			}
 			if (GetInstanceColorVisibility())
 			{
-				Category.AddCustomRow( LOCTEXT( "InstanceColor", "Instance Color" ).ToString() )
+				Category.AddCustomRow( LOCTEXT( "InstanceColor", "Instance Color" ) )
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -2135,12 +2135,12 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			}
 			if (IsPureFunctionVisible())
 			{
-				Category.AddCustomRow( LOCTEXT( "FunctionPure_Tooltip", "Pure" ).ToString() )
+				Category.AddCustomRow( LOCTEXT( "FunctionPure_Tooltip", "Pure" ) )
 				.NameContent()
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT( "FunctionPure_Tooltip", "Pure" ).ToString() )
-						.ToolTipText( LOCTEXT("FunctionIsPure_Tooltip", "Force this to be a pure function?").ToString() )
+						.Text( LOCTEXT( "FunctionPure_Tooltip", "Pure" ) )
+						.ToolTipText( LOCTEXT("FunctionIsPure_Tooltip", "Force this to be a pure function?") )
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 				.ValueContent()
@@ -2217,7 +2217,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 										FSlateIcon(),
 										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetClient) ), CanExecuteDelegate));
 
-			Category.AddCustomRow( LOCTEXT( "FunctionReplicate", "Replicates" ).ToString() )
+			Category.AddCustomRow( LOCTEXT( "FunctionReplicate", "Replicates" ) )
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -2271,12 +2271,12 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 							.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ).ToString() )
+								.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ) )
 						]
 					]
 				]
 			];
-			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ).ToString() )
+			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ) )
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -2303,19 +2303,19 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			];
 		}
 
-		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Inputs", LOCTEXT("FunctionDetailsInputs", "Inputs").ToString());
+		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Inputs", LOCTEXT("FunctionDetailsInputs", "Inputs"));
 		
 		TSharedRef<FBlueprintGraphArgumentGroupLayout> InputArgumentGroup =
 			MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionEntryNode));
 		InputsCategory.AddCustomBuilder(InputArgumentGroup);
 
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("FunctionNewInputArg", "New").ToString())
+				.Text(LOCTEXT("FunctionNewInputArg", "New"))
 				.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewInputClicked)
 				.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
 			]
@@ -2323,7 +2323,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 		if (bHasAGraph)
 		{
-			IDetailCategoryBuilder& OutputsCategory = DetailLayout.EditCategory("Outputs", LOCTEXT("FunctionDetailsOutputs", "Outputs").ToString());
+			IDetailCategoryBuilder& OutputsCategory = DetailLayout.EditCategory("Outputs", LOCTEXT("FunctionDetailsOutputs", "Outputs"));
 		
 			if (FunctionResultNode)
 			{
@@ -2332,13 +2332,13 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				OutputsCategory.AddCustomBuilder(OutputArgumentGroup);
 			}
 
-			OutputsCategory.AddCustomRow( LOCTEXT("FunctionNewOutputArg", "New").ToString() )
+			OutputsCategory.AddCustomRow( LOCTEXT("FunctionNewOutputArg", "New") )
 			[
 				SNew(SBox)
 				.HAlign(HAlign_Right)
 				[
 					SNew(SButton)
-					.Text(LOCTEXT("FunctionNewOutputArg", "New").ToString())
+					.Text(LOCTEXT("FunctionNewOutputArg", "New"))
 					.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewOutputClicked)
 					.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
 				]
@@ -2349,11 +2349,11 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 	{
 		if (bHasAGraph)
 		{
-			IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph").ToString());
-			Category.AddCustomRow( TEXT("") )
+			IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph"));
+			Category.AddCustomRow( FText::GetEmpty() )
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("GraphPresentButNotEditable", "Graph is not editable.").ToString() )
+				.Text( LOCTEXT("GraphPresentButNotEditable", "Graph is not editable.") )
 			];
 		}
 	}
@@ -2366,8 +2366,8 @@ TSharedRef<ITableRow> FBlueprintGraphActionDetails::OnGenerateReplicationComboWi
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		[
 			SNew( STextBlock )
-			.Text( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedName.ToString() : FString() )
-			.ToolTipText( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedToolTip.ToString() : FString() )
+			.Text( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedName : FText::GetEmpty() )
+			.ToolTipText( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedToolTip : FText::GetEmpty() )
 		];
 }
 
@@ -2657,8 +2657,8 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	{
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Delegate", LOCTEXT("DelegateDetailsCategory", "Delegate").ToString());
-		Category.AddCustomRow( TEXT("Tooltip") )
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Delegate", LOCTEXT("DelegateDetailsCategory", "Delegate"));
+		Category.AddCustomRow( LOCTEXT("VariableToolTipLabel", "Tooltip") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -2677,7 +2677,7 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 		TSharedPtr<SComboButton> NewComboButton;
 		TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
-		Category.AddCustomRow( TEXT("Category") )
+		Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -2724,11 +2724,11 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 
 	if (UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get())
 	{
-		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("DelegateInputs", LOCTEXT("DelegateDetailsInputs", "Inputs").ToString());
+		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("DelegateInputs", LOCTEXT("DelegateDetailsInputs", "Inputs"));
 		TSharedRef<FBlueprintGraphArgumentGroupLayout> InputArgumentGroup = MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionEntryNode));
 		InputsCategory.AddCustomBuilder(InputArgumentGroup);
 
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)
@@ -2741,7 +2741,7 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 
 		CollectAvailibleSignatures();
 
-		InputsCategory.AddCustomRow( LOCTEXT("CopySignatureFrom", "Copy signature from").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("CopySignatureFrom", "Copy signature from") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -3794,7 +3794,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	for (int32 i = 0; i < Interfaces.Num(); ++i)
 	{
 		TSharedPtr<SHorizontalBox> Box;
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "BlueprintInterfaceValue", "Interface Value" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "BlueprintInterfaceValue", "Interface Value" ) )
 		[
 			SAssignNew(Box, SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -3838,7 +3838,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	// Add message if no interfaces are being used
 	if (Interfaces.Num() == 0)
 	{
-		ChildrenBuilder.AddChildContent(*LOCTEXT("BlueprintInterfaceValue", "Interface Value").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("BlueprintInterfaceValue", "Interface Value"))
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("NoBlueprintInterface", "No Interfaces"))
@@ -3848,7 +3848,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 
 	if (!bShowsInheritedInterfaces)
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "BlueprintAddInterface", "Add Interface" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "BlueprintAddInterface", "Add Interface" ) )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)
@@ -4042,8 +4042,8 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		}
 
 		// Display the parent class and set up the menu for reparenting
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Globals", LOCTEXT("BlueprintGlobalDetailsCategory", "Globals").ToString());
-		Category.AddCustomRow( LOCTEXT("BlueprintGlobalDetailsCategory", "Globals").ToString() )
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Globals", LOCTEXT("BlueprintGlobalDetailsCategory", "Globals"));
+		Category.AddCustomRow( LOCTEXT("BlueprintGlobalDetailsCategory", "Globals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -4072,7 +4072,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		if (bSupportsInterfaces)
 		{
 			// Interface details customization
-			IDetailCategoryBuilder& InterfacesCategory = DetailLayout.EditCategory("Interfaces", LOCTEXT("BlueprintInterfacesDetailsCategory", "Interfaces").ToString());
+			IDetailCategoryBuilder& InterfacesCategory = DetailLayout.EditCategory("Interfaces", LOCTEXT("BlueprintInterfacesDetailsCategory", "Interfaces"));
 		
 			TSharedRef<FBlueprintInterfaceLayout> InterfaceLayout = MakeShareable(new FBlueprintInterfaceLayout(SharedThis(this), false));
 			InterfacesCategory.AddCustomBuilder(InterfaceLayout);
@@ -4094,7 +4094,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		else
 		{
 			// Only display the ability to deprecate a Blueprint on non-level Blueprints.
-			Category.AddCustomRow( TEXT("Deprecate") )
+			Category.AddCustomRow( LOCTEXT("DeprecateLabel", "Deprecate") )
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -4134,13 +4134,13 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 
 	if( CachedNodePtr.IsValid() )
 	{
-		IDetailCategoryBuilder& VariableCategory = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString(), ECategoryPriority::Variable);
+		IDetailCategoryBuilder& VariableCategory = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"), ECategoryPriority::Variable);
 
-		VariableCategory.AddCustomRow(TEXT("Variable Name"))
+		VariableCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name"))
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4153,11 +4153,11 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 
-		VariableCategory.AddCustomRow(TEXT("Tooltip"))
+		VariableCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip"))
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4171,11 +4171,11 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 		PopulateVariableCategories();
 		const FString CategoryTooltip = LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one.").ToString();
 
-		VariableCategory.AddCustomRow( TEXT("Category") )
+		VariableCategory.AddCustomRow( LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category") )
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category"))
 			.ToolTipText(CategoryTooltip)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
@@ -4214,13 +4214,13 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 			]
 		];
 
-		IDetailCategoryBuilder& SocketsCategory = DetailLayout.EditCategory("Sockets", LOCTEXT("BlueprintComponentDetailsCategory", "Sockets").ToString(), ECategoryPriority::Important);
+		IDetailCategoryBuilder& SocketsCategory = DetailLayout.EditCategory("Sockets", LOCTEXT("BlueprintComponentDetailsCategory", "Sockets"), ECategoryPriority::Important);
 
-		SocketsCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_Sockets", "Sockets").ToString())
+		SocketsCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_Sockets", "Sockets"))
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_ParentSocket", "Parent Socket").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_ParentSocket", "Parent Socket"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4259,13 +4259,13 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 
 	if( FBlueprintEditor::CanClassGenerateEvents( CommonEventsClass ))
 	{
-		IDetailCategoryBuilder& EventCategory = DetailLayout.EditCategory("Component", LOCTEXT("ComponentDetailsCategory", "Events").ToString(), ECategoryPriority::Important);
+		IDetailCategoryBuilder& EventCategory = DetailLayout.EditCategory("Component", LOCTEXT("ComponentDetailsCategory", "Events"), ECategoryPriority::Important);
 
 		FText NodeName = ( Nodes.Num() > 1 ) ? LOCTEXT( "ScriptingEvents_SelectedComponents", "Selected Components" ) : FText::FromName( CachedNodePtr->GetVariableName() );
 		const FText AddEventLabel = FText::Format( LOCTEXT( "ScriptingEvents_AddEvent", "Add Event For {0}" ), NodeName );
 		const FText AddEventToolTip = FText::Format( LOCTEXT( "ScriptingEvents_AddOrView", "Adds or views events for {0} in the Component Blueprint" ), NodeName );
 
-		EventCategory.AddCustomRow( LOCTEXT("AddEventHeader", "Add Event").ToString())
+		EventCategory.AddCustomRow( LOCTEXT("AddEventHeader", "Add Event"))
 			.NameContent()
 			[
 				SNew(SHorizontalBox)
@@ -4662,7 +4662,7 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		return;
 	}
 
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("GraphNodeDetail", LOCTEXT("GraphNodeDetailsCategory", "Graph Node").ToString(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("GraphNodeDetail", LOCTEXT("GraphNodeDetailsCategory", "Graph Node"), ECategoryPriority::Important);
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	FText RowHeader;
 	FText NameContent;
@@ -4679,7 +4679,7 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	}
 
 
-	Category.AddCustomRow( RowHeader.ToString() )
+	Category.AddCustomRow( RowHeader )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -4838,14 +4838,14 @@ void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		DocumentationLink = DocumentationNodePtr->GetDocumentationLink();
 		DocumentationExcerpt = DocumentationNodePtr->GetDocumentationExcerptName();
 
-		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation").ToString(), ECategoryPriority::Default);
+		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation"), ECategoryPriority::Default);
 
-		DocumentationCategory.AddCustomRow( TEXT( "Documentation Link" ))
+		DocumentationCategory.AddCustomRow( LOCTEXT( "DocumentationLinkLabel", "Documentation Link" ))
 		.NameContent()
 		.HAlign( HAlign_Fill )
 		[
 			SNew( STextBlock )
-			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Link", "Link" ).ToString() )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Link", "Link" ) )
 			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_LinkPathTooltip", "The documentation content path" ))
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
@@ -4862,12 +4862,12 @@ void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		];
 
-		DocumentationCategory.AddCustomRow( TEXT( "Documentation Excerpts" ))
+		DocumentationCategory.AddCustomRow( LOCTEXT( "DocumentationExcerptsLabel", "Documentation Excerpts" ))
 		.NameContent()
 		.HAlign( HAlign_Left )
 		[
 			SNew( STextBlock )
-			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Excerpt", "Excerpt" ).ToString() )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Excerpt", "Excerpt" ) )
 			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_ExcerptTooltip", "The current documentation excerpt" ))
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]

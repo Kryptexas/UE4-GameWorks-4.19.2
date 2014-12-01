@@ -31,7 +31,7 @@ void FTransitionPoseEvaluatorNodeDetails::CustomizeDetails( IDetailLayoutBuilder
 		}
 	}
 
-	IDetailCategoryBuilder& PoseCategory = DetailBuilder.EditCategory("Pose", TEXT("Pose") );
+	IDetailCategoryBuilder& PoseCategory = DetailBuilder.EditCategory("Pose", LOCTEXT("PoseCategoryName", "Pose") );
 	TSharedPtr<IPropertyHandle> FramesToCachePosePropety = DetailBuilder.GetProperty(TEXT("Node.FramesToCachePose"));
 
 	//@TODO: CONDUIT: try both

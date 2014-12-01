@@ -36,7 +36,7 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 	ImportUI = Cast<UFbxImportUI>(EditingObjects[0].Get());
 
 	// Handle mesh category
-	IDetailCategoryBuilder& MeshCategory = DetailBuilder.EditCategory("Mesh", TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& MeshCategory = DetailBuilder.EditCategory("Mesh", FText::GetEmpty(), ECategoryPriority::Important);
 	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory("Transform");
 	TArray<TSharedRef<IPropertyHandle>> CategoryDefaultProperties;
 	TArray<TSharedPtr<IPropertyHandle>> ExtraProperties;
@@ -133,7 +133,7 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 	}
 
 	// Animation Category
-	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	CategoryDefaultProperties.Empty();
 	AnimCategory.GetDefaultProperties(CategoryDefaultProperties);

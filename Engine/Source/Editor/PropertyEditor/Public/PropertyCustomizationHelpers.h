@@ -162,7 +162,7 @@ public:
 		, _DisplayResetToDefault( true )
 		{}
 		/** The display name to use in the default property widget */
-		SLATE_ATTRIBUTE( FString, DisplayName )
+		SLATE_ATTRIBUTE( FText, DisplayName )
 		/** Whether or not to display the property name */
 		SLATE_ARGUMENT( bool, ShouldDisplayName )
 		/** The widget to display for this property instead of the default */
@@ -228,7 +228,7 @@ public:
 		ArrayProperty->SetOnNumElementsChanged( Empty );
 	}
 
-	void SetDisplayName( const FString& InDisplayName )
+	void SetDisplayName( const FText& InDisplayName )
 	{
 		DisplayName = InDisplayName;
 	}
@@ -256,10 +256,10 @@ public:
 			const bool bDisplayResetToDefaultInNameContent = false;
 			TSharedPtr<SHorizontalBox> ContentHorizontalBox;
 			NodeRow
-			.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
+			.FilterString(!DisplayName.IsEmpty() ? DisplayName : BaseProperty->GetPropertyDisplayName())
 			.NameContent()
 			[
-				BaseProperty->CreatePropertyNameWidget(DisplayName, TEXT(""), bDisplayResetToDefaultInNameContent)
+				BaseProperty->CreatePropertyNameWidget(DisplayName, FText::GetEmpty(), bDisplayResetToDefaultInNameContent)
 			]
 			.ValueContent()
 			[
@@ -310,7 +310,7 @@ protected:
 		OnRebuildChildren.ExecuteIfBound();
 	}
 private:
-	FString DisplayName;
+	FText DisplayName;
 	FOnGenerateArrayElementWidget OnGenerateArrayElementWidgetDelegate;
 	TSharedPtr<IPropertyHandleArray> ArrayProperty;
 	TSharedRef<IPropertyHandle> BaseProperty;

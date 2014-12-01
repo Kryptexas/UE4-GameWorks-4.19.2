@@ -23,8 +23,8 @@ FParticleSysParamStructCustomization::FParticleSysParamStructCustomization()
 void FParticleSysParamStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	HeaderRow
 		.NameContent()
@@ -63,7 +63,7 @@ void FParticleSysParamStructCustomization::CustomizeChildren(TSharedRef<IPropert
 	TArray<bool> RestrictedList;
 	ParamTypeHandle->GeneratePossibleValues(ParameterTypeNames, ParameterTypeToolTips, RestrictedList);
 
-	StructBuilder.AddChildContent(TEXT("ParamType"))
+	StructBuilder.AddChildContent(LOCTEXT("ParamType", "Param Type"))
 		.NameContent()
 		[
 			ParamTypeHandle->CreatePropertyNameWidget()

@@ -123,7 +123,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 
 	FText Title;
 	FText AssetName;
-	FText PropertyName = FText::FromString( StructPropertyHandle->GetPropertyDisplayName() );
+	FText PropertyName = StructPropertyHandle->GetPropertyDisplayName();
 
 	if (OuterObjects.Num() > 1)
 	{
@@ -144,7 +144,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 		.Filter( Categories )
 		.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
 		.ReadOnly(bReadOnly)
-		.TagContainerName( StructPropertyHandle->GetPropertyDisplayName() )
+		.TagContainerName( StructPropertyHandle->GetPropertyDisplayName().ToString() )
 		.PropertyHandle( StructPropertyHandle )
 	];
 

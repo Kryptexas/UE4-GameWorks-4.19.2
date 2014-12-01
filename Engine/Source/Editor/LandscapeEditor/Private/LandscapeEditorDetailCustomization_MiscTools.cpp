@@ -29,7 +29,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 
 	if (IsBrushSetActive("BrushSet_Component"))
 	{
-		ToolsCategory.AddCustomRow("Clear Component Selection")
+		ToolsCategory.AddCustomRow(LOCTEXT("Component.ClearSelection", "Clear Component Selection"))
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_MiscTools::GetClearComponentSelectionVisibility)))
 		[
 			SNew(SButton)
@@ -41,7 +41,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 
 	//if (IsToolActive("Mask"))
 	{
-		ToolsCategory.AddCustomRow("Clear Region Selection")
+		ToolsCategory.AddCustomRow(LOCTEXT("Mask.ClearSelection", "Clear Region Selection"))
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_MiscTools::GetClearRegionSelectionVisibility)))
 		[
 			SNew(SButton)
@@ -53,7 +53,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 
 	if (IsToolActive("Splines"))
 	{
-		ToolsCategory.AddCustomRow("Apply Splines")
+		ToolsCategory.AddCustomRow(LOCTEXT("ApplySplinesLabel", "Apply Splines"))
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -65,7 +65,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 				.Text(LOCTEXT("Spline.ApplySplines", "Deform Landscape to Splines:"))
 			]
 		];
-		ToolsCategory.AddCustomRow("Apply Splines")
+		ToolsCategory.AddCustomRow(LOCTEXT("ApplySplinesLabel", "Apply Splines"))
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -85,7 +85,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 				.OnClicked_Static(&FLandscapeEditorDetailCustomization_MiscTools::OnApplySelectedSplinesButtonClicked)
 			]
 		];
-		ToolsCategory.AddCustomRow("Use Auto Rotate Control Point")
+		ToolsCategory.AddCustomRow(LOCTEXT("Spline.bUseAutoRotateControlPoint.Selected", "Use Auto Rotate Control Point"))
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -105,7 +105,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 
 	if (IsToolActive("Ramp"))
 	{
-		ToolsCategory.AddCustomRow("Ramp")
+		ToolsCategory.AddCustomRow(LOCTEXT("RampLabel", "Ramp"))
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -117,7 +117,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 				.Text(LOCTEXT("Ramp.Hint", "Click to add ramp points, then press \"Add Ramp\"."))
 			]
 		];
-		ToolsCategory.AddCustomRow("Apply Ramp")
+		ToolsCategory.AddCustomRow(LOCTEXT("ApplyRampLabel", "Apply Ramp"))
 		[
 			SNew(SBox)
 			.Padding(FMargin(0, 0, 12, 0)) // Line up with the other properties due to having no reset to default button

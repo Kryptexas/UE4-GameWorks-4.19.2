@@ -8,8 +8,8 @@ public:
 	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode = NULL);
 
 	/** IDetailPropertyRow interface */
-	virtual IDetailPropertyRow& DisplayName( const FString& InDisplayName ) override;
-	virtual IDetailPropertyRow& ToolTip( const FString& InToolTip ) override;
+	virtual IDetailPropertyRow& DisplayName( const FText& InDisplayName ) override;
+	virtual IDetailPropertyRow& ToolTip( const FText& InToolTip ) override;
 	virtual IDetailPropertyRow& ShowPropertyButtons( bool bInShowPropertyButtons ) override;
 	virtual IDetailPropertyRow& EditCondition( TAttribute<bool> EditConditionValue, FOnBooleanValueChanged OnEditConditionValueChanged ) override;
 	virtual IDetailPropertyRow& IsEnabled( TAttribute<bool> InIsEnabled ) override;

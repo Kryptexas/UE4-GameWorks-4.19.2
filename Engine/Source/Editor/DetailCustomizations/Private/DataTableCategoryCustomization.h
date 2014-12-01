@@ -23,7 +23,7 @@ public:
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget(TEXT(""), TEXT( "" ), false)
+				InStructPropertyHandle->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
 			];
 	}
 
@@ -47,7 +47,7 @@ public:
 			TSharedPtr<FString> InitialColumnValue = InitColumnWidgetContent();
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent(LOCTEXT("DataTable_ColumnName", "Column Name").ToString())
+			StructBuilder.AddChildContent(LOCTEXT("DataTable_ColumnName", "Column Name"))
 			.NameContent()
 				[
 					SNew(STextBlock)
@@ -71,7 +71,7 @@ public:
 			TSharedPtr<FString> InitialRowValue = InitRowWidgetContent();
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent(LOCTEXT("DataTable_RowContains", "Row Contains").ToString())
+			StructBuilder.AddChildContent(LOCTEXT("DataTable_RowContains", "Row Contains"))
 			.NameContent()
 				[
 					SNew(STextBlock)

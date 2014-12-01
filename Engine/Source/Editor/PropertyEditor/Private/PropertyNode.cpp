@@ -1447,21 +1447,21 @@ FString FPropertyNode::GetDefaultValueAsString()
 FText FPropertyNode::GetResetToDefaultLabel()
 {
 	FString DefaultValue = GetDefaultValueAsString();
-	FString OutLabel = GetDisplayName();
+	FText OutLabel = GetDisplayName();
 	if ( DefaultValue.Len() )
 	{
 		const int32 MaxValueLen = 60;
 
-		OutLabel += TEXT(": ");
 		if ( DefaultValue.Len() > MaxValueLen )
 		{
 			DefaultValue = DefaultValue.Left( MaxValueLen );
 			DefaultValue += TEXT( "..." );
 		}
-		OutLabel += DefaultValue;
+
+		return FText::Format(NSLOCTEXT("FPropertyNode", "ResetToDefaultLabelFmt", "{0}: {1}"), OutLabel, FText::FromString(DefaultValue));
 	}
 
-	return FText::FromString( OutLabel );
+	return OutLabel;
 }
 
 void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
@@ -1681,13 +1681,14 @@ void FPropertyNode::FilterNodes( const TArray<FString>& InFilterStrings, const b
 		bool bPassedFilter = false;	//assuming that we aren't filtered
 
 		//see if this is a filter-able primitive
-		FString DisplayName = GetDisplayName();
+		FText DisplayName = GetDisplayName();
+		const FString& DisplayNameStr = DisplayName.ToString();
 		TArray <FString> AcceptableNames;
-		AcceptableNames.Add(DisplayName);
+		AcceptableNames.Add(DisplayNameStr);
 
 		//get the basic name as well of the property
 		UProperty* TheProperty = GetProperty();
-		if (TheProperty && (TheProperty->GetName() != DisplayName))
+		if (TheProperty && (TheProperty->GetName() != DisplayNameStr))
 		{
 			AcceptableNames.Add(TheProperty->GetName());
 		}

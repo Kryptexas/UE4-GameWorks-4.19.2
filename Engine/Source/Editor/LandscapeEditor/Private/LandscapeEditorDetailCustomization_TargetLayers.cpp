@@ -156,7 +156,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 	
 	if (Target->TargetType != ELandscapeToolTargetType::Weightmap)
 	{
-		ChildrenBuilder.AddChildContent(Target->TargetName.ToString())
+		ChildrenBuilder.AddChildContent(Target->TargetName)
 		[
 			SNew(SLandscapeEditorSelectableBorder)
 			.Padding(0)
@@ -195,7 +195,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 	}
 	else
 	{
-		ChildrenBuilder.AddChildContent(Target->TargetName.ToString())
+		ChildrenBuilder.AddChildContent(Target->TargetName)
 		[
 			SNew(SLandscapeEditorSelectableBorder)
 			.Padding(0)

@@ -52,7 +52,7 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 	}
 }
 
-IDetailPropertyRow& FDetailPropertyRow::DisplayName( const FString& InDisplayName )
+IDetailPropertyRow& FDetailPropertyRow::DisplayName( const FText& InDisplayName )
 {
 	if (PropertyNode.IsValid())
 	{
@@ -61,7 +61,7 @@ IDetailPropertyRow& FDetailPropertyRow::DisplayName( const FString& InDisplayNam
 	return *this;
 }
 
-IDetailPropertyRow& FDetailPropertyRow::ToolTip( const FString& InToolTip )
+IDetailPropertyRow& FDetailPropertyRow::ToolTip( const FText& InToolTip )
 {
 	if (PropertyNode.IsValid())
 	{

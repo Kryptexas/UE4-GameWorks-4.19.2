@@ -34,12 +34,12 @@ public:
 			// the widget is destroyed.
 			const bool bShouldInitiallyExpand = CodeViewWidget->IsReadyToPopulate();
 
-			DetailBuilder.EditCategory( "CodeView", NSLOCTEXT("ActorDetails", "CodeViewSection", "Code View").ToString(), ECategoryPriority::Uncommon )
+			DetailBuilder.EditCategory( "CodeView", NSLOCTEXT("ActorDetails", "CodeViewSection", "Code View"), ECategoryPriority::Uncommon )
 				.InitiallyCollapsed( !bShouldInitiallyExpand )
 				// The expansion state should not be restored
 				.RestoreExpansionState( false )
 				.OnExpansionChanged( FOnBooleanValueChanged::CreateSP( CodeViewWidget, &CodeView::SCodeView::OnDetailSectionExpansionChanged ) )
-				.AddCustomRow( NSLOCTEXT("ActorDetails", "CodeViewSection", "Code View").ToString() )
+				.AddCustomRow( NSLOCTEXT("ActorDetails", "CodeViewSection", "Code View") )
 				[
 					// @todo editcode1: Width of item is too big for detail view?!
 					CodeViewWidget

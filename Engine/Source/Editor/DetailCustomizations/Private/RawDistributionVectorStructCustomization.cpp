@@ -323,7 +323,7 @@ TSharedRef<SWidget> FReplaceVectorWithLinearColorBuilder::CreateColorWidget(cons
 
 void FReplaceVectorWithLinearColorBuilder::AddColorChildProperty(const TSharedPtr<IPropertyHandle>& StructHandle, const FText& Text, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	ChildrenBuilder.AddChildContent(TEXT("Color"))
+	ChildrenBuilder.AddChildContent(LOCTEXT("Color", "Color"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -490,8 +490,8 @@ TSharedRef<IPropertyTypeCustomization> FRawDistributionVectorStructCustomization
 void FRawDistributionVectorStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	HeaderRow
 	.NameContent()

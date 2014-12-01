@@ -148,7 +148,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 	{
 		if (Customization.IsValidCustomization() && Customization.GetPropertyNode().IsValid())
 		{
-			TagMeta.Tag = *FString::Printf(TEXT("DetailRowItem.%s"), *Customization.GetPropertyNode()->GetDisplayName());
+			TagMeta.Tag = *FString::Printf(TEXT("DetailRowItem.%s"), *Customization.GetPropertyNode()->GetDisplayName().ToString());
 		}
 		else if (Customization.HasCustomWidget() )
 		{
@@ -325,7 +325,7 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 		}
 		else if( InCustomization.HasCustomWidget() )
 		{
-			const bool bPassesTextFilter = Local::StringPassesFilter(InFilter, InCustomization.WidgetDecl->FilterTextString);
+			const bool bPassesTextFilter = Local::StringPassesFilter(InFilter, InCustomization.WidgetDecl->FilterTextString.ToString());
 
 			bPassesAllFilters = bPassesTextFilter || bPassesCategoryFilter;
 		}
@@ -402,7 +402,7 @@ FPropertyPath FDetailItemNode::GetPropertyPath() const
 
 void FDetailItemNode::FilterNode( const FDetailFilter& InFilter )
 {
-	bShouldBeVisibleDueToFiltering = PassesAllFilters( Customization, InFilter, ParentCategory.Pin()->GetDisplayName() );
+	bShouldBeVisibleDueToFiltering = PassesAllFilters( Customization, InFilter, ParentCategory.Pin()->GetDisplayName().ToString() );
 
 	bShouldBeVisibleDueToChildFiltering = false;
 

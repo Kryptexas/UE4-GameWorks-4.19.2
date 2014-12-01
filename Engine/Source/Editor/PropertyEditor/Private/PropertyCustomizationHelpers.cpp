@@ -30,7 +30,7 @@ namespace PropertyCustomizationHelpers
 			, _Image( FEditorStyle::GetBrush("Default") )
 			, _IsFocusable( true )
 		{}
-			SLATE_TEXT_ARGUMENT( Text )
+			SLATE_ARGUMENT( FText, Text )
 			SLATE_ARGUMENT( const FSlateBrush*, Image )
 			SLATE_EVENT( FSimpleDelegate, OnClickAction )
 
@@ -421,7 +421,7 @@ void SProperty::Construct( const FArguments& InArgs, TSharedPtr<IPropertyHandle>
 {
 	TSharedPtr<SWidget> ChildSlotContent;
 
-	const FString& DisplayName = InArgs._DisplayName.Get();
+	const FText& DisplayName = InArgs._DisplayName.Get();
 
 	PropertyHandle = InPropertyHandle;
 
@@ -948,7 +948,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 				// If we are currently displaying an expanded set of materials for an element add a link to collapse all of them
 				if( bWantToDisplayAllMaterials )
 				{
-					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( LOCTEXT( "HideAllMaterialSearchString", "Hide All Materials").ToString() );
+					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( LOCTEXT( "HideAllMaterialSearchString", "Hide All Materials") );
 
 					FFormatNamedArguments Arguments;
 					Arguments.Add(TEXT("ElementSlot"), CurrentSlot);
@@ -972,7 +972,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 					// The current slot has multiple elements to view
 					bDisplayAllMaterialsInSlot = false;
 
-					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( TEXT("") );
+					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( FText::GetEmpty() );
 
 					AddMaterialItem( ChildRow, CurrentSlot, FMaterialListItem( NULL, CurrentSlot, true ), !bDisplayAllMaterialsInSlot );
 				}
@@ -986,7 +986,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 			// Display each thumbnail element unless we shouldn't display multiple materials for one slot
 			if( bDisplayAllMaterialsInSlot )
 			{
-				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( Material.Material.IsValid()? Material.Material->GetName() : TEXT("") );
+				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( Material.Material.IsValid()? FText::FromString(Material.Material->GetName()) : FText::GetEmpty() );
 
 				AddMaterialItem( ChildRow, CurrentSlot, Material, !bDisplayAllMaterialsInSlot );
 			}
@@ -994,7 +994,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 	}
 	else
 	{
-		FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( LOCTEXT("NoMaterials", "No Materials").ToString() );
+		FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( LOCTEXT("NoMaterials", "No Materials") );
 
 		ChildRow
 		[

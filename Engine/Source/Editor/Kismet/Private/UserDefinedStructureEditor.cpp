@@ -34,7 +34,7 @@ public:
 		ViewArgs.bHideSelectionTip = false;
 		ViewArgs.bShowActorLabel = false;
 
-		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, StructData, false, LOCTEXT("DefaultValues", "Default Values").ToString());
+		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, StructData, false, LOCTEXT("DefaultValues", "Default Values"));
 		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &FStructureDefaultValueView::OnFinishedChangingProperties);
 	}
 
@@ -770,7 +770,7 @@ public:
 
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override 
 	{
-		ChildrenBuilder.AddChildContent(*LOCTEXT("Tooltip", "Tooltip").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("Tooltip", "Tooltip"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -785,7 +785,7 @@ public:
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 
-		ChildrenBuilder.AddChildContent(*LOCTEXT("EditableOnInstance", "EditableOnInstance").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("EditableOnInstance", "EditableOnInstance"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -800,7 +800,7 @@ public:
 			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGetEditableOnBPInstanceState)
 		];
 
-		ChildrenBuilder.AddChildContent(*LOCTEXT("3dWidget", "3d Widget").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("3dWidget", "3d Widget"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -843,7 +843,7 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 	const float NameWidth = 80.0f;
 	const float ContentWidth = 130.0f;
 
-	ChildrenBuilder.AddChildContent(FString())
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -864,13 +864,13 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 			[
 				SNew(SButton)
 				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("NewStructureField", "New Variable").ToString())
+				.Text(LOCTEXT("NewStructureField", "New Variable"))
 				.OnClicked(this, &FUserDefinedStructureLayout::OnAddNewField)
 			]
 		]
 	];
 
-	ChildrenBuilder.AddChildContent(FString())
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -928,7 +928,7 @@ void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& 
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
 
-		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure").ToString());
+		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure"));
 		Layout = MakeShareable(new FUserDefinedStructureLayout(SharedThis(this)));
 		StructureCategory.AddCustomBuilder(Layout.ToSharedRef());
 	}

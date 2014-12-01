@@ -117,10 +117,10 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 	TargetShaderFormatsDetails->CreateTargetShaderFormatsPropertyView();
 
 	// Next add the splash image customization
-	IDetailCategoryBuilder& SplashCategoryBuilder = DetailBuilder.EditCategory(TEXT("Splash"));
-	FDetailWidgetRow& EditorSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(TEXT("Editor Splash"));
-
 	const FText EditorSplashDesc(LOCTEXT("EditorSplashLabel", "Editor Splash"));
+	IDetailCategoryBuilder& SplashCategoryBuilder = DetailBuilder.EditCategory(TEXT("Splash"));
+	FDetailWidgetRow& EditorSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(EditorSplashDesc);
+
 	const FString EditorSplash_TargetImagePath = GetSplashFilename(EImageScope::GameOverride, true);
 	const FString EditorSplash_DefaultImagePath = GetSplashFilename(EImageScope::Engine, true);
 
@@ -153,9 +153,8 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 		]
 	];
 
-	FDetailWidgetRow& GameSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(TEXT("Game Splash"));
-
 	const FText GameSplashDesc(LOCTEXT("GameSplashLabel", "Game Splash"));
+	FDetailWidgetRow& GameSplashWidgetRow = SplashCategoryBuilder.AddCustomRow(GameSplashDesc);
 	const FString GameSplash_TargetImagePath = GetSplashFilename(EImageScope::GameOverride, false);
 	const FString GameSplash_DefaultImagePath = GetSplashFilename(EImageScope::Engine, false);
 
@@ -189,7 +188,7 @@ void FWindowsTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Deta
 	];
 
 	IDetailCategoryBuilder& IconsCategoryBuilder = DetailBuilder.EditCategory(TEXT("Icon"));	
-	FDetailWidgetRow& GameIconWidgetRow = IconsCategoryBuilder.AddCustomRow(TEXT("Game Icon"));
+	FDetailWidgetRow& GameIconWidgetRow = IconsCategoryBuilder.AddCustomRow(LOCTEXT("GameIconLabel", "Game Icon"));
 	GameIconWidgetRow
 	.NameContent()
 	[
@@ -260,9 +259,9 @@ void FTargetShaderFormatsPropertyDetails::CreateTargetShaderFormatsPropertyView(
 
 	for (const FName& ShaderFormat : ShaderFormats)
 	{
-		FDetailWidgetRow& TargetedRHIWidgetRow = TargetedRHICategoryBuilder.AddCustomRow(ShaderFormat.ToString());
-
 		FText FriendlyShaderFormatName = GetFriendlyNameFromRHIName(ShaderFormat.ToString());
+
+		FDetailWidgetRow& TargetedRHIWidgetRow = TargetedRHICategoryBuilder.AddCustomRow(FriendlyShaderFormatName);
 
 		TargetedRHIWidgetRow
 		.NameContent()

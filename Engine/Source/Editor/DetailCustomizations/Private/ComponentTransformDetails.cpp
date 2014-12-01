@@ -362,7 +362,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	// Location
 	if(!bHideLocationField)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location") )
 		.CopyAction( CreateCopyAction( ETransformField::Location ) )
 		.PasteAction( CreatePasteAction( ETransformField::Location ) )
 		.NameContent()
@@ -420,7 +420,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	// Rotation
 	if(!bHideRotationField)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation") )
 		.CopyAction( CreateCopyAction(ETransformField::Rotation) )
 		.PasteAction( CreatePasteAction(ETransformField::Rotation) )
 		.NameContent()
@@ -484,7 +484,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	// Scale
 	if(!bHideScaleField)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale") )
 		.CopyAction( CreateCopyAction(ETransformField::Scale) )
 		.PasteAction( CreatePasteAction(ETransformField::Scale) )
 		.NameContent()

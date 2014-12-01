@@ -124,7 +124,7 @@ TSharedRef<IDetailCustomization> FPhysicsSettingsDetails::MakeInstance()
 
 void FPhysicsSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-  	IDetailCategoryBuilder& PhysicalSurfaceCategory = DetailBuilder.EditCategory("Physical Surface", TEXT(""), ECategoryPriority::Uncommon);
+  	IDetailCategoryBuilder& PhysicalSurfaceCategory = DetailBuilder.EditCategory("Physical Surface", FText::GetEmpty(), ECategoryPriority::Uncommon);
 
 	PhysicsSettings= UPhysicsSettings::Get();
 	check(PhysicsSettings);
@@ -138,7 +138,7 @@ void FPhysicsSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 	TSharedPtr<SToolTip> PhysicalSurfaceTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("PhysicalSurface", "Edit physical surface."), NULL, PhysicalSurfaceDocLink, TEXT("PhysicalSurface"));
 
 	// Customize collision section
-	PhysicalSurfaceCategory.AddCustomRow(LOCTEXT("FPhysicsSettingsDetails_PhysicalSurface", "Physical Surface").ToString())
+	PhysicalSurfaceCategory.AddCustomRow(LOCTEXT("FPhysicsSettingsDetails_PhysicalSurface", "Physical Surface"))
 	[
 		SNew(SVerticalBox)
 

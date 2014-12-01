@@ -141,7 +141,7 @@ namespace PropertyEditorHelpers
 	/**
 	 * @return The text that represents the specified properties tooltip
 	 */
-	FString GetToolTipText( const UProperty* const Property );
+	FText GetToolTipText( const UProperty* const Property );
 
 	/**
 	 * @return The link to the documentation that describes this property in detail

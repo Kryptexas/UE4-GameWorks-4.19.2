@@ -38,8 +38,8 @@ void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>&
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	TWeakPtr<IPropertyHandle> StructWeakHandlePtr = StructPropertyHandle;
 
@@ -433,8 +433,8 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	Row.NameContent()
 	[
@@ -671,7 +671,7 @@ void FColorStructCustomization::OnColorPickerInteractiveBegin()
 {
 	bIsInteractive = true;
 
-	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
+	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
 }
 
 void FColorStructCustomization::OnColorPickerInteractiveEnd()

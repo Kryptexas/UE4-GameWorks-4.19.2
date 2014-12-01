@@ -16,7 +16,7 @@ public:
 		, _PropertyFont( FEditorStyle::GetFontStyle( PropertyEditorConstants::PropertyFontStyle ) )
 		, _CategoryFont( FEditorStyle::GetFontStyle( PropertyEditorConstants::CategoryFontStyle ) )
 		{}
-		SLATE_ARGUMENT( FString, StaticDisplayName )
+		SLATE_ARGUMENT( FText, StaticDisplayName )
 		SLATE_ATTRIBUTE( FSlateFontInfo, PropertyFont )
 		SLATE_ATTRIBUTE( FSlateFontInfo, CategoryFont )
 		SLATE_EVENT( FOnClicked, OnDoubleClicked )
@@ -32,7 +32,7 @@ public:
 		FItemPropertyNode* ItemPropertyNode = PropertyNode->AsItemPropertyNode();
 
 		TSharedPtr<SWidget> NameWidget;
-		const bool bHasStaticName = InArgs._StaticDisplayName.Len() > 0;
+		const bool bHasStaticName = !InArgs._StaticDisplayName.IsEmpty();
 		if ( CategoryNode != NULL )
 		{
 			NameWidget =

@@ -18,7 +18,7 @@ void FDirectionalLightComponentDetails::CustomizeDetails( IDetailLayoutBuilder& 
 	MobilityProperty = DetailBuilder.GetProperty("Mobility", USceneComponent::StaticClass());
 
 	// Get cascaded shadow map category
-	IDetailCategoryBuilder& ShadowMapCategory = DetailBuilder.EditCategory("CascadedShadowMaps", TEXT(""), ECategoryPriority::Default );
+	IDetailCategoryBuilder& ShadowMapCategory = DetailBuilder.EditCategory("CascadedShadowMaps", FText::GetEmpty(), ECategoryPriority::Default );
 
 	// Add DynamicShadowDistanceMovableLight
 	TSharedPtr<IPropertyHandle> MovableShadowRadiusProperty = DetailBuilder.GetProperty("DynamicShadowDistanceMovableLight");

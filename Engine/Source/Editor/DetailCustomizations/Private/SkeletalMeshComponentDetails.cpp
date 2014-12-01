@@ -55,12 +55,12 @@ void FSkeletalMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 	{
 		CurrentDetailBuilder = &DetailBuilder;
 	}
-	DetailBuilder.EditCategory("SkeletalMesh", TEXT(""), ECategoryPriority::TypeSpecific);
-	DetailBuilder.EditCategory("Materials", TEXT(""), ECategoryPriority::TypeSpecific);
-	DetailBuilder.EditCategory("Physics", TEXT(""), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("SkeletalMesh", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Physics", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	DetailBuilder.HideProperty("bCastStaticShadow", UPrimitiveComponent::StaticClass());
 	DetailBuilder.HideProperty("bLightAsIfStatic", UPrimitiveComponent::StaticClass());
-	DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	OnSkeletalMeshPropertyChanged = USkeletalMeshComponent::FOnSkeletalMeshPropertyChanged::CreateSP(this, &FSkeletalMeshComponentDetails::SkeletalMeshPropertyChanged);
 
@@ -114,7 +114,7 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 		SelectedSkeletonName = FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName());
 	}
 
-	IDetailCategoryBuilder& AnimationCategory = DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AnimationCategory = DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Force the mode switcher to be first
 	AnimationModeHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, AnimationMode));

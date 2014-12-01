@@ -378,7 +378,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 					// Begin a transaction only if we need to call PreChange
 					if (GEditor && bTransactable)
 					{
-						GEditor->BeginTransaction(TEXT("PropertyEditor"), FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString(InPropertyNode->GetDisplayName())), NodeProperty);
+						GEditor->BeginTransaction(TEXT("PropertyEditor"), FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), InPropertyNode->GetDisplayName()), NodeProperty);
 					}
 				}
 
@@ -844,7 +844,7 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 					// Warn that some object assignments failed.
 					FMessageDialog::Open( EAppMsgType::Ok, FText::Format(
 						NSLOCTEXT("UnrealEd", "ObjectAssignmentsFailed", "Failed to assign {0} to the {1} property, see log for details."),
-						FText::FromString(SelectedObject->GetPathName()), FText::FromString(PropertyNodePin->GetDisplayName())) );
+						FText::FromString(SelectedObject->GetPathName()), PropertyNodePin->GetDisplayName()) );
 				}
 				else
 				{
@@ -1426,9 +1426,9 @@ bool FPropertyValueImpl::HasValidProperty() const
 	return PropertyNode.IsValid();
 }
 
-FString FPropertyValueImpl::GetDisplayName() const
+FText FPropertyValueImpl::GetDisplayName() const
 {
-	return PropertyNode.IsValid() ? PropertyNode.Pin()->GetDisplayName() : TEXT("");
+	return PropertyNode.IsValid() ? PropertyNode.Pin()->GetDisplayName() : FText::GetEmpty();
 }
 
 #define IMPLEMENT_PROPERTY_ACCESSOR( ValueType ) \
@@ -1466,7 +1466,7 @@ bool FPropertyHandleBase::IsValidHandle() const
 	return Implementation->HasValidProperty();
 }
 
-FString FPropertyHandleBase::GetPropertyDisplayName() const
+FText FPropertyHandleBase::GetPropertyDisplayName() const
 {
 	return Implementation->GetDisplayName();
 }
@@ -1514,16 +1514,16 @@ FString FPropertyHandleBase::GeneratePathToProperty() const
 
 }
 
-TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FString& NameOverride, const FString& ToolTipOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
+TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FText& NameOverride, const FText& ToolTipOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
 {
 	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
 	{
-		if( NameOverride.Len() > 0 )
+		if( !NameOverride.IsEmpty() )
 		{
 			Implementation->GetPropertyNode()->SetDisplayNameOverride( NameOverride );
 		}
 
-		if( ToolTipOverride.Len() > 0 )
+		if( !ToolTipOverride.IsEmpty() )
 		{
 			Implementation->GetPropertyNode()->SetToolTipOverride( ToolTipOverride );
 		}
@@ -1762,7 +1762,7 @@ UClass* FPropertyHandleBase::GetClassMetaData(const FName& Key) const
 	return (MetaDataProperty) ? MetaDataProperty->GetClassMetaData(Key) : nullptr;
 }
 
-FString FPropertyHandleBase::GetToolTipText() const
+FText FPropertyHandleBase::GetToolTipText() const
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if( PropertyNode.IsValid() )
@@ -1770,10 +1770,10 @@ FString FPropertyHandleBase::GetToolTipText() const
 		return PropertyNode->GetToolTipText();
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
-void FPropertyHandleBase::SetToolTipText( const FString& ToolTip )
+void FPropertyHandleBase::SetToolTipText( const FText& ToolTip )
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if (PropertyNode.IsValid())

@@ -35,7 +35,7 @@ void FMacGraphicsSwitchingSettingsDetails::CustomizeDetails( IDetailLayoutBuilde
 	}
 	
 	IDetailCategoryBuilder& AccessorCategory = DetailLayout.EditCategory( "OpenGL" );
-	AccessorCategory.AddCustomRow( LOCTEXT("PreferredRenderer", "Preferred Renderer").ToString() )
+	AccessorCategory.AddCustomRow( LOCTEXT("PreferredRenderer", "Preferred Renderer") )
 	.NameContent()
 	[
 		PreferredRendererPropertyHandle->CreatePropertyNameWidget()

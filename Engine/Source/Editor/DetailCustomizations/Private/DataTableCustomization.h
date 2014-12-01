@@ -24,7 +24,7 @@ public:
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			];
 	}
 
@@ -45,11 +45,11 @@ public:
 			DataTablePropertyHandle->SetOnPropertyValueChanged( OnDataTableChangedDelegate );
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent( LOCTEXT( "DataTable_RowName", "Row Name" ).ToString() )
+			StructBuilder.AddChildContent( LOCTEXT( "DataTable_RowName", "Row Name" ) )
 			.NameContent()
 				[
 					SNew( STextBlock )
-					.Text( LOCTEXT( "DataTable_RowName", "Row Name" ).ToString() )
+					.Text( LOCTEXT( "DataTable_RowName", "Row Name" ) )
 					.Font( StructCustomizationUtils.GetRegularFont() )
 				]
 			.ValueContent()

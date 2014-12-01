@@ -67,13 +67,13 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 
 	SetupForPlatformAttribute = PlatformSetupMessage->GetReadyToGoAttribute();
 
-	AppManifestCategory.AddCustomRow(TEXT("Warning"), false)
+	AppManifestCategory.AddCustomRow(LOCTEXT("Warning", "Warning"), false)
 		.WholeRowWidget
 		[
 			PlatformSetupMessage
 		];
 
-	AppManifestCategory.AddCustomRow(TEXT("App Manifest Hyperlink"), false)
+	AppManifestCategory.AddCustomRow(LOCTEXT("AppManifestHyperlink", "App Manifest Hyperlink"), false)
 		.WholeRowWidget
 		[
 			SNew(SBox)
@@ -85,7 +85,7 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 			]
 		];
 
-	AppManifestCategory.AddCustomRow(TEXT("App Manifest"), false)
+	AppManifestCategory.AddCustomRow(LOCTEXT("AppManifestLabel", "App Manifest"), false)
 		.IsEnabled(SetupForPlatformAttribute)
 		.NameContent()
 		[
@@ -132,13 +132,13 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 
 	SetupForGooglePlayAttribute = GooglePlaySetupMessage->GetReadyToGoAttribute();
 
-	GooglePlayCategory.AddCustomRow(TEXT("Warning"), false)
+	GooglePlayCategory.AddCustomRow(LOCTEXT("Warning", "Warning"), false)
 		.WholeRowWidget
 		[
 			GooglePlaySetupMessage
 		];
 
-	GooglePlayCategory.AddCustomRow(TEXT("App ID Hyperlink"), false)
+	GooglePlayCategory.AddCustomRow(LOCTEXT("AppIDHyperlink", "App ID Hyperlink"), false)
 		.WholeRowWidget
 		[
 			SNew(SBox)
@@ -173,7 +173,7 @@ void FAndroidTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder&
 	// Icon category
 	IDetailCategoryBuilder& IconCategory = DetailLayout.EditCategory(TEXT("Icons"));
 
-	IconCategory.AddCustomRow(TEXT("Icons Hyperlink"), false)
+	IconCategory.AddCustomRow(LOCTEXT("IconsHyperlink", "Icons Hyperlink"), false)
 		.WholeRowWidget
 		[
 			SNew(SBox)
@@ -190,7 +190,7 @@ void FAndroidTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder&
 		const FString AutomaticImagePath = EngineAndroidPath / Info.IconPath;
 		const FString TargetImagePath = GameAndroidPath / Info.IconPath;
 
-		IconCategory.AddCustomRow(Info.IconName.ToString())
+		IconCategory.AddCustomRow(Info.IconName)
 		.NameContent()
 		[
 			SNew(SHorizontalBox)

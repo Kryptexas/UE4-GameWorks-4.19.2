@@ -74,7 +74,7 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 	const FString PresetsDocLink = TEXT("Shared/Collision");
 	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("SelectCollisionPreset", "Select collision presets. You can set this data in Project settings."), NULL, PresetsDocLink, TEXT("PresetDetail"));
 
-	IDetailGroup& CollisionGroup = StructBuilder.AddChildGroup( TEXT("Collision"), LOCTEXT("CollisionPresetsLabel", "Collision Presets").ToString() );
+	IDetailGroup& CollisionGroup = StructBuilder.AddChildGroup( TEXT("Collision"), LOCTEXT("CollisionPresetsLabel", "Collision Presets") );
 	CollisionGroup.HeaderRow()
 	.NameContent()
 	[

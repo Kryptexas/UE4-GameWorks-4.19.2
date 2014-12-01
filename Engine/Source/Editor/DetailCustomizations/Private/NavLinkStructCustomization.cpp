@@ -54,8 +54,8 @@ void FNavLinkStructCustomization::CustomizeChildren( TSharedRef<class IPropertyH
 
 			if (AgentIdx >= 0 && AgentIdx < NumAgents)
 			{
-				FString PropName = LOCTEXT("SupportedAgent", "Supports Agent: ").ToString() + *DefNavSys->SupportedAgents[AgentIdx].Name.ToString();
-				StructBuilder.AddChildContent(TEXT("SupportedAgent"))
+				FText PropName = FText::Format(LOCTEXT("SupportedAgentFmt", "Supports Agent: {0}"), FText::FromName(DefNavSys->SupportedAgents[AgentIdx].Name));
+				StructBuilder.AddChildContent(PropName)
 					.NameContent()
 					[
 						SNew(STextBlock)

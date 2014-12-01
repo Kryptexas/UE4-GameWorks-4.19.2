@@ -42,7 +42,7 @@ void FStaticMeshActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 	// The blocking volume menu is advanced
 	const bool bForAdvanced = true;
 
-	const FString CreateBlockingVolumeString = LOCTEXT("BlockingVolumeMenu", "Create Blocking Volume").ToString();
+	const FText CreateBlockingVolumeString = LOCTEXT("BlockingVolumeMenu", "Create Blocking Volume");
 
 	StaticMeshCategory.AddCustomRow( CreateBlockingVolumeString, bForAdvanced )
 	.NameContent()

@@ -74,7 +74,7 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 			SNew(SGameplayTagWidget, EditableContainers)
 			.Filter(Categories)
 			.ReadOnly(bReadOnly)
-			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName())
+			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
 			.MultiSelect(false)
 			.OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
 		];

@@ -25,7 +25,7 @@ void FMediaTextureCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		// video track index
 		IDetailPropertyRow& VideoTrackIndexRow = MediaPlayerCategory.AddProperty(VideoTrackIndexProperty);
 
-		VideoTrackIndexRow.DisplayName(TEXT("Video Track"));
+		VideoTrackIndexRow.DisplayName(LOCTEXT("VideoTrack", "Video Track"));
 		VideoTrackIndexRow.CustomWidget()
 			.NameContent()
 			[

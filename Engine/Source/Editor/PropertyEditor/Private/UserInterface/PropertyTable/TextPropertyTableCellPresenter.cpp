@@ -156,7 +156,7 @@ TSharedRef<SWidget> FTextPropertyTableCellPresenter::ConstructEditModeCellWidget
 		HasReadOnlyEditingWidget = true;
 	}
 
-	PropertyWidget->SetToolTipText( TAttribute<FString>(PropertyEditor->GetToolTipText()) );
+	PropertyWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 
 	return PropertyWidget.ToSharedRef();
 }

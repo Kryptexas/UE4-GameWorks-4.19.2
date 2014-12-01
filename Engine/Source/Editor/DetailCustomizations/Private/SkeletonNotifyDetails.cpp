@@ -12,10 +12,10 @@ TSharedRef<IDetailCustomization> FSkeletonNotifyDetails::MakeInstance()
 
 void FSkeletonNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory("Skeleton Notify", TEXT("Skeleton Notify") );
+	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory("Skeleton Notify", LOCTEXT("SkeletonNotifyCategoryName", "Skeleton Notify") );
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
-	Category.AddProperty("Name").DisplayName( TEXT("Notify Name") );
+	Category.AddProperty("Name").DisplayName( LOCTEXT("SkeletonNotifyName", "Notify Name") );
 
 	TSharedPtr<IPropertyHandle> InPropertyHandle = DetailBuilder.GetProperty("AnimationNames");
 
@@ -34,7 +34,7 @@ void FSkeletonNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 
 	if(EdObj)
 	{
-		Category.AddCustomRow(TEXT("Animations"))
+		Category.AddCustomRow(LOCTEXT("AnimationsLabel","Animations"))
 		.NameContent()
 		[
 			SNew(STextBlock)

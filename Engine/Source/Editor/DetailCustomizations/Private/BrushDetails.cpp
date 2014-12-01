@@ -187,10 +187,10 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		BrushBuilderObject->SetFlags( RF_Transactional );
 	}
 
-	IDetailCategoryBuilder& BrushBuilderCategory = DetailLayout.EditCategory( "BrushSettings", TEXT(""), ECategoryPriority::Important );
+	IDetailCategoryBuilder& BrushBuilderCategory = DetailLayout.EditCategory( "BrushSettings", FText::GetEmpty(), ECategoryPriority::Important );
 
 	BrushBuilderCategory.AddProperty( GET_MEMBER_NAME_CHECKED(ABrush, BrushType) );
-	BrushBuilderCategory.AddCustomRow( LOCTEXT("BrushShape", "Brush Shape").ToString() )
+	BrushBuilderCategory.AddCustomRow( LOCTEXT("BrushShape", "Brush Shape") )
 	.NameContent()
 	[
 		SNew( STextBlock )
@@ -213,7 +213,7 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		]
 	];
 
-	BrushBuilderCategory.AddCustomRow( TEXT(""), true )
+	BrushBuilderCategory.AddCustomRow( FText::GetEmpty(), true )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -276,7 +276,7 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 	TSharedPtr< SHorizontalBox > BrushHorizontalBox;
 
-	BrushBuilderCategory.AddCustomRow( TEXT(""), true)
+	BrushBuilderCategory.AddCustomRow( FText::GetEmpty(), true)
 	[
 		SAssignNew(BrushHorizontalBox, SHorizontalBox)
 		+SHorizontalBox::Slot()

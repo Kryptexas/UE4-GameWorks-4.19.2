@@ -97,7 +97,7 @@ void FBlueprintWidgetCustomization::CreateEventCustomization( IDetailLayoutBuild
 		return;
 	}
 
-	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property), TEXT(""), ECategoryPriority::Uncommon);
+	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property), FText::GetEmpty(), ECategoryPriority::Uncommon);
 
 	IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(DelegatePropertyHandle);
 
@@ -190,9 +190,10 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 
 	TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(DelegateProperty->GetFName(), CastChecked<UClass>(DelegateProperty->GetOuter()));
 
-	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory("Events", LOCTEXT("Events", "Events").ToString(), ECategoryPriority::Uncommon);
+	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory("Events", LOCTEXT("Events", "Events"), ECategoryPriority::Uncommon);
 
-	PropertyCategory.AddCustomRow(DelegateProperty->GetName())
+	FText DelegatePropertyName = FText::FromString(DelegateProperty->GetName());
+	PropertyCategory.AddCustomRow(DelegatePropertyName)
 	.NameContent()
 	[
 		SNew(SHorizontalBox)
@@ -210,7 +211,7 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
-			.Text(DelegateProperty->GetName())
+			.Text(DelegatePropertyName)
 		]
 	]
 	.ValueContent()
@@ -235,7 +236,7 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 			if ( Widget->Slot )
 			{
 				UClass* SlotClass = Widget->Slot->GetClass();
-				FString LayoutCatName = FString(TEXT("Slot (")) + SlotClass->GetDisplayNameText().ToString() + FString(TEXT(")"));
+				FText LayoutCatName = FText::Format(LOCTEXT("SlotNameFmt", "Slot ({0})"), SlotClass->GetDisplayNameText());
 
 				DetailLayout.EditCategory(LayoutCategoryKey, LayoutCatName, ECategoryPriority::TypeSpecific);
 			}

@@ -101,7 +101,7 @@ FDetailCategoryImpl::~FDetailCategoryImpl()
 }
 
 
-FDetailWidgetRow& FDetailCategoryImpl::AddCustomRow( const FString& FilterString, bool bForAdvanced )
+FDetailWidgetRow& FDetailCategoryImpl::AddCustomRow( const FText& FilterString, bool bForAdvanced )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.WidgetDecl = MakeShareable( new FDetailWidgetRow );
@@ -121,7 +121,7 @@ void FDetailCategoryImpl::AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder>
 	AddCustomLayout( NewCustomization, bForAdvanced );
 }
 
-IDetailGroup& FDetailCategoryImpl::AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced, bool bStartExpanded )
+IDetailGroup& FDetailCategoryImpl::AddGroup( FName GroupName, const FText& LocalizedDisplayName, bool bForAdvanced, bool bStartExpanded )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.DetailGroup = MakeShareable( new FDetailGroup( GroupName, AsShared(), LocalizedDisplayName, bStartExpanded ) );
@@ -439,7 +439,7 @@ bool FDetailCategoryImpl::ContainsOnlyAdvanced() const
 	return SimpleChildNodes.Num() == 0 && AdvancedChildNodes.Num() > 0;
 }
 
-void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& LocalizedNameOverride )
+void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FText& LocalizedNameOverride )
 {
 	if( !LocalizedNameOverride.IsEmpty() )
 	{
@@ -467,11 +467,11 @@ void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& L
 
 		if ( FoundText )
 		{
-			DisplayName = DisplayNameText.ToString();
+			DisplayName = DisplayNameText;
 		}
 		else
 		{
-			DisplayName = SourceCategoryStr;
+			DisplayName = FText::FromString( SourceCategoryStr );
 		}
 	}
 }

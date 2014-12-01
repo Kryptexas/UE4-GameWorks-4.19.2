@@ -40,7 +40,7 @@ void FEnvQueryParamInstanceCustomization::CustomizeChildren( TSharedRef<class IP
 	StructBuilder.AddChildProperty(NameProp.ToSharedRef());
 	StructBuilder.AddChildProperty(TypeProp.ToSharedRef());
 	
-	StructBuilder.AddChildContent("Value")
+	StructBuilder.AddChildContent(LOCTEXT("ValueLabel", "Value"))
 		.NameContent()
 		[
 			ValueProp->CreatePropertyNameWidget()

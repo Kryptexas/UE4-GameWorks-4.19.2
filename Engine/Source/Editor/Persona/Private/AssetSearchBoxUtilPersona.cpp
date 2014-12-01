@@ -16,7 +16,7 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 	check(Outer);
 
 	// get the currently chosen bone/socket, if any
-	const FString PropertyName = BoneNameProperty->GetPropertyDisplayName();
+	const FText PropertyName = BoneNameProperty->GetPropertyDisplayName();
 	FString CurValue;
 	BoneNameProperty->GetValue(CurValue);
 	if( CurValue == FString("None") )
@@ -75,7 +75,7 @@ void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class U
 	check(InSkeleton);
 
 	// get the currently chosen curve, if any
-	const FString PropertyName = CurveNameProperty->GetPropertyDisplayName();
+	const FText PropertyName = CurveNameProperty->GetPropertyDisplayName();
 	FString CurValue;
 	CurveNameProperty->GetValue(CurValue);
 	if (CurValue == FString("None"))

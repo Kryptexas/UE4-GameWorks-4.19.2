@@ -15,14 +15,14 @@ public:
 	 *
 	 * @param InDisplayName	The name of the property
 	 */
-	virtual IDetailPropertyRow& DisplayName( const FString& InDisplayName ) = 0;
+	virtual IDetailPropertyRow& DisplayName( const FText& InDisplayName ) = 0;
 
 	/**
 	 * Sets the localized tooltip of the property
 	 *
 	 * @param InToolTip	The tooltip of the property
 	 */
-	virtual IDetailPropertyRow& ToolTip( const FString& InToolTip ) = 0;
+	virtual IDetailPropertyRow& ToolTip( const FText& InToolTip ) = 0;
 
 	/**
 	 * Sets whether or not we show the default property editing buttons for this property

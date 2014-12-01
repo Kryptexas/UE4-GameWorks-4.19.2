@@ -150,9 +150,9 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		TargetEnum = CastChecked<UUserDefinedEnum>(Objects[0].Get());
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(FName("Names"), UEnum::StaticClass());
 
-		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Enumerators", LOCTEXT("EnumDetailsEnumerators", "Enumerators").ToString());
+		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Enumerators", LOCTEXT("EnumDetailsEnumerators", "Enumerators"));
 
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 			[
 				SNew(SBox)
 				.HAlign(HAlign_Right)

@@ -151,7 +151,7 @@ public:
 		];
 
 		static FName SelectedGameModeDetailsName(TEXT("SelectedGameModeDetails"));		
-		IDetailGroup& Group = CategoryBuilder.AddGroup(SelectedGameModeDetailsName, LOCTEXT("SelectedGameModeDetails", "Selected GameMode").ToString());
+		IDetailGroup& Group = CategoryBuilder.AddGroup(SelectedGameModeDetailsName, LOCTEXT("SelectedGameModeDetails", "Selected GameMode"));
 
 
 		// Then add rows to show key properties and let you edit them

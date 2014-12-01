@@ -202,10 +202,10 @@ void FAttributeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 		PropertyOptions.Add(MakeShareable(new FString(Property->GetName())));
 	}
 
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString());
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"));
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	
-	Category.AddCustomRow( TEXT("Replication") )
+	Category.AddCustomRow( LOCTEXT("ReplicationLabel", "Replication") )
 		//.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
 		.NameContent()
 		[

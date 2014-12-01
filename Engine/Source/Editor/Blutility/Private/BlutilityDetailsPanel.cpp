@@ -68,7 +68,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 		const APlacedEditorUtilityBase* PlacedActorCDO = Cast<const APlacedEditorUtilityBase>(Class->GetDefaultObject());
 		if (PlacedActorCDO)
 		{
-			ActionsCategory.AddCustomRow( PlacedActorCDO->HelpText )
+			ActionsCategory.AddCustomRow( FText::FromString(PlacedActorCDO->HelpText) )
 			[
 				SNew(STextBlock)
 				.Text(PlacedActorCDO->HelpText)
@@ -78,7 +78,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 		const UGlobalEditorUtilityBase* GlobalBlutilityCDO = Cast<const UGlobalEditorUtilityBase>(Class->GetDefaultObject());
 		if (GlobalBlutilityCDO)
 		{
-			ActionsCategory.AddCustomRow( GlobalBlutilityCDO->HelpText )
+			ActionsCategory.AddCustomRow( FText::FromString(GlobalBlutilityCDO->HelpText) )
 			[
 				SNew(STextBlock)
 				.Text(GlobalBlutilityCDO->HelpText)
@@ -122,7 +122,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 
 		if (NumButtons > 0)
 		{
-			ActionsCategory.AddCustomRow(TEXT(""))
+			ActionsCategory.AddCustomRow(FText::GetEmpty())
 			[
 				WrapBox
 			];

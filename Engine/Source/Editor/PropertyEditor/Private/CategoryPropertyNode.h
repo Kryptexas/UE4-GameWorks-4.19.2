@@ -26,7 +26,7 @@ public:
 	 */
 	bool IsSubcategory() const;
 
-	virtual FString GetDisplayName() const override;
+	virtual FText GetDisplayName() const override;
 
 protected:
 	/**

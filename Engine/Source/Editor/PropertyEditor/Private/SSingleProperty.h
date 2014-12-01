@@ -17,7 +17,7 @@ public:
 		SLATE_ARGUMENT( FNotifyHook*, NotifyHook )
 		SLATE_ARGUMENT( FSlateFontInfo, PropertyFont )
 		SLATE_ARGUMENT( EPropertyNamePlacement::Type, NamePlacement )
-		SLATE_ARGUMENT( FString, NameOverride )
+		SLATE_ARGUMENT( FText, NameOverride )
 	SLATE_END_ARGS()	
 
 	void Construct( const FArguments& InArgs );
@@ -63,7 +63,7 @@ private:
 	/** Property utilities for handling common functionality of property editors */
 	TSharedPtr<class FSinglePropertyUtilities> PropertyUtilities;
 	/** Name override to display instead of the property name */
-	FString NameOverride;
+	FText NameOverride;
 	/** Font to use */
 	FSlateFontInfo PropertyFont;
 	/** Notify hook to use when editing values */

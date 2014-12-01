@@ -45,7 +45,7 @@ private:
 	bool IsOverriddenExpression(class UDEditorParameterValue* Parameter);
 
 	/** Gets the expression description of this parameter from the the base material */
-	FString GetParameterExpressionDescription(class UDEditorParameterValue* Parameter) const;
+	FText GetParameterExpressionDescription(class UDEditorParameterValue* Parameter) const;
 
 	/**
 	 * Called when a parameter is overridden;

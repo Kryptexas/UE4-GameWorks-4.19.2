@@ -53,7 +53,7 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 				}
 				else if (ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKg))
 				{
-					PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
+					PhysicsCategory.AddCustomRow(LOCTEXT("MassLabel", "Mass"), false)
 						.IsEnabled(TAttribute<bool>(this, &FBodySetupDetails::IsBodyMassEnabled))
 						.NameContent()
 						[

@@ -52,7 +52,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	if (bEditingActor)
 	{
 		TileMapCategory
-		.AddCustomRow(TEXT("EnterEditMode"))
+		.AddCustomRow(LOCTEXT( "EnterTileMapEditMode", "Enter Edit Mode" ))
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
@@ -73,12 +73,12 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	{
 		IDetailCategoryBuilder& LayersCategory = DetailLayout.EditCategory("Tile Layers");
 
-		LayersCategory.AddCustomRow(TEXT("Tile layer list"))
+		LayersCategory.AddCustomRow(LOCTEXT("TileLayerList", "Tile layer list"))
 		[
 			SNew(STileLayerList, TileMap)
 		];
 
-		LayersCategory.AddCustomRow(TEXT("Add Layer, Add Collision Layer"))
+		LayersCategory.AddCustomRow(LOCTEXT("AddLayerOrCollisionLayer", "Add Layer, Add Collision Layer"))
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()

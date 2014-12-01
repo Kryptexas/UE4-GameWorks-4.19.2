@@ -44,7 +44,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 	LevelRotationProperty = LevelTransformProperty->GetChildHandle("Rotation");
 
 	// Add Position property
-	LevelStreamingCategory.AddCustomRow(LOCTEXT("Position", "Position").ToString())
+	LevelStreamingCategory.AddCustomRow(LOCTEXT("Position", "Position"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -68,7 +68,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 
 	
 	// Add Yaw Rotation property
-	LevelStreamingCategory.AddCustomRow(LOCTEXT("Rotation", "Rotation").ToString())
+	LevelStreamingCategory.AddCustomRow(LOCTEXT("Rotation", "Rotation"))
 		.NameContent()
 		[
 			SNew(STextBlock)

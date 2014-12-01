@@ -48,7 +48,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		ConstraintComponent = TWeakObjectPtr<UObject>(ConstraintComp);
 
 		DetailBuilder.EditCategory( "Joint Presets" )
-			.AddCustomRow( TEXT("") )
+			.AddCustomRow( FText::GetEmpty() )
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
@@ -99,7 +99,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 	// Linear Limits
 	{
-		IDetailCategoryBuilder& LinearLimitCat = DetailBuilder.EditCategory("Linear Limits", TEXT(""));
+		IDetailCategoryBuilder& LinearLimitCat = DetailBuilder.EditCategory("Linear Limits");
 
 		LinearXMotionProperty = ConstraintInstance->GetChildHandle("LinearXMotion");
 		LinearYMotionProperty = ConstraintInstance->GetChildHandle("LinearYMotion");
@@ -193,7 +193,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 	// Angular Limits
 	{
-		IDetailCategoryBuilder& AngularLimitCat = DetailBuilder.EditCategory("Angular Limits", TEXT(""));
+		IDetailCategoryBuilder& AngularLimitCat = DetailBuilder.EditCategory("Angular Limits");
 
 		AngularSwing1MotionProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularSwing1Motion));
 		AngularSwing2MotionProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularSwing2Motion));
@@ -313,12 +313,12 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 	// Linear Drive
 	{
-		IDetailCategoryBuilder& LinearMotorCat = DetailBuilder.EditCategory("LinearMotor", TEXT(""));
+		IDetailCategoryBuilder& LinearMotorCat = DetailBuilder.EditCategory("LinearMotor");
 
 		LinearPositionDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearPositionDrive));
 		LinearVelocityDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearVelocityDrive));
 
-		IDetailGroup& PositionGroup = LinearMotorCat.AddGroup("Linear Position Drive", TEXT(""));
+		IDetailGroup& PositionGroup = LinearMotorCat.AddGroup("Linear Position Drive", FText::GetEmpty());
 		PositionGroup.HeaderProperty(LinearPositionDriveProperty.ToSharedRef());
 		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearXPositionDrive)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearPositionDrive)));
@@ -329,7 +329,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearPositionTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearPositionDrive)));
 
-		IDetailGroup& VelocityGroup = LinearMotorCat.AddGroup("Linear Velocity Drive", TEXT(""));
+		IDetailGroup& VelocityGroup = LinearMotorCat.AddGroup("Linear Velocity Drive", FText::GetEmpty());
 		VelocityGroup.HeaderProperty(LinearVelocityDriveProperty.ToSharedRef());
 		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearVelocityTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearVelocityDrive)));
@@ -347,15 +347,15 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		AngularPositionDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bAngularOrientationDrive));
 		AngularVelocityDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bAngularVelocityDrive));
 
-		IDetailCategoryBuilder& AngularMotorCat = DetailBuilder.EditCategory("AngularMotor", TEXT(""));
+		IDetailCategoryBuilder& AngularMotorCat = DetailBuilder.EditCategory("AngularMotor");
 
-		IDetailGroup& PositionGroup = AngularMotorCat.AddGroup("Angular Orientation Drive", TEXT(""));
+		IDetailGroup& PositionGroup = AngularMotorCat.AddGroup("Angular Orientation Drive", FText::GetEmpty());
 		PositionGroup.HeaderProperty(AngularPositionDriveProperty.ToSharedRef());
 		
 		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularOrientationTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularPositionDrive)));
 
-		IDetailGroup& VelocityGroup = AngularMotorCat.AddGroup("Angular Velocity Drive", TEXT(""));
+		IDetailGroup& VelocityGroup = AngularMotorCat.AddGroup("Angular Velocity Drive", FText::GetEmpty());
 		VelocityGroup.HeaderProperty(AngularVelocityDriveProperty.ToSharedRef());
 		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularVelocityTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularVelocityDrive)));

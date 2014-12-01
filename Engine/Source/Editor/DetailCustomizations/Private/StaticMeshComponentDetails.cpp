@@ -14,7 +14,7 @@ TSharedRef<IDetailCustomization> FStaticMeshComponentDetails::MakeInstance()
 void FStaticMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	// Create a category so this is displayed early in the properties
-	DetailBuilder.EditCategory( "StaticMesh", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory( "StaticMesh", FText::GetEmpty(), ECategoryPriority::Important);
 }
 
 

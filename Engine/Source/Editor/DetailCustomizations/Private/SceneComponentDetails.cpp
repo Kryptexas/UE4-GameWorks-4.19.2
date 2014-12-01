@@ -388,7 +388,7 @@ FText FSceneComponentDetails::GetMobilityToolTip(TWeakPtr<IPropertyHandle> Mobil
 {
 	if ( MobilityHandle.IsValid() )
 	{
-		return FText::FromString(MobilityHandle.Pin()->GetToolTipText());
+		return MobilityHandle.Pin()->GetToolTipText();
 	}
 
 	return FText::GetEmpty();
@@ -399,7 +399,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	MakeTransformDetails( DetailBuilder );
 
 	// Put mobility property in Transform section
-	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
+	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform"), ECategoryPriority::Transform );
 	TSharedPtr<IPropertyHandle> MobilityProperty = DetailBuilder.GetProperty("Mobility");
 
 	uint8 RestrictedMobilityBits = 0u;
@@ -671,7 +671,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 			TransformDetails->HideTransformField(ETransformField::Rotation);
 		}
 
-		IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
+		IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform"), ECategoryPriority::Transform );
 
 		TransformCategory.AddCustomBuilder( TransformDetails );
 	}

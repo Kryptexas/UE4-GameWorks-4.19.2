@@ -34,8 +34,8 @@ void FAmbientSoundDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder
 		}
 	}
 
-	DetailBuilder.EditCategory( "Sound", TEXT(""), ECategoryPriority::Important )
-		.AddCustomRow( TEXT("") )
+	DetailBuilder.EditCategory( "Sound", FText::GetEmpty(), ECategoryPriority::Important )
+		.AddCustomRow( FText::GetEmpty() )
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -100,8 +100,8 @@ void FAmbientSoundDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder
 			]
 		];
 
-	DetailBuilder.EditCategory("Attenuation", TEXT(""), ECategoryPriority::TypeSpecific);
-	DetailBuilder.EditCategory("Modulation", TEXT(""), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Attenuation", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Modulation", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 }
 
 bool FAmbientSoundDetails::IsEditSoundCueEnabled() const

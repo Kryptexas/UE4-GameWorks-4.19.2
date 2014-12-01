@@ -96,7 +96,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("PercentTriangles", "Percent Triangles").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("PercentTriangles", "Percent Triangles"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -116,7 +116,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MaxDeviation", "Max Deviation").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("MaxDeviation", "Max Deviation"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -136,7 +136,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("Silhouette_MeshSimplification", "Silhouette").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("Silhouette_MeshSimplification", "Silhouette"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -156,7 +156,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("Texture_MeshSimplification", "Texture").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("Texture_MeshSimplification", "Texture"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -176,7 +176,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("Shading_MeshSimplification", "Shading").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("Shading_MeshSimplification", "Shading"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -196,7 +196,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("Skinning_MeshSimplification", "Skinning").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("Skinning_MeshSimplification", "Skinning"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -216,7 +216,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("WeldingThreshold", "Welding Threshold").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("WeldingThreshold", "Welding Threshold"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -236,7 +236,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("RecomputeNormals", "Recompute Normals"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -253,7 +253,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("HardEdgeAngle", "Hard Edge Angle").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("HardEdgeAngle", "Hard Edge Angle"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -280,7 +280,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MaxBonesPerVertex", "Max Bones Per Vertex").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("MaxBonesPerVertex", "Max Bones Per Vertex"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -300,7 +300,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("ApplyChanges", "Apply Changes"))
 			.ValueContent()
 			.HAlign(HAlign_Left)
 			[
@@ -494,7 +494,7 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt(LODIndex);
 
-			FString LODLevelString = FText::Format(LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber(LODIndex)).ToString();
+			FText LODLevelString = FText::Format(LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber(LODIndex));
 
 			IDetailCategoryBuilder& LODCategory = DetailLayout.EditCategory(*CategoryName, LODLevelString, ECategoryPriority::Important);
 
@@ -519,7 +519,7 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 
 				// changing property name to "LOD Info" because it shows only array index
 				TSharedPtr<IPropertyHandle> LODInfoChild = LODInfoProperty->GetChildHandle(LODIndex);
-				LODInfoChild->CreatePropertyNameWidget(FString(TEXT("LOD Info")));
+				LODInfoChild->CreatePropertyNameWidget(LOCTEXT("LODInfoLabel", "LOD Info"));
 				LODCategory.AddProperty(LODInfoChild);
 			}
 
@@ -538,9 +538,9 @@ void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& D
 
 	UpdateLODNames();
 
-	IDetailCategoryBuilder& LODSettingsCategory = DetailLayout.EditCategory("LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings").ToString(), ECategoryPriority::TypeSpecific);
+	IDetailCategoryBuilder& LODSettingsCategory = DetailLayout.EditCategory("LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings"), ECategoryPriority::TypeSpecific);
 
-	LODSettingsCategory.AddCustomRow(LOCTEXT("LODImport", "LOD Import").ToString())
+	LODSettingsCategory.AddCustomRow(LOCTEXT("LODImport", "LOD Import"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -558,7 +558,7 @@ void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& D
 
 	// Add Number of LODs slider.
 	const int32 MinAllowedLOD = 1;
-	LODSettingsCategory.AddCustomRow(LOCTEXT("NumberOfLODs", "Number of LODs").ToString())
+	LODSettingsCategory.AddCustomRow(LOCTEXT("NumberOfLODs", "Number of LODs"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -578,7 +578,7 @@ void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& D
 			.IsEnabled(IsAutoMeshReductionAvailable())
 		];
 
-	LODSettingsCategory.AddCustomRow(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+	LODSettingsCategory.AddCustomRow(LOCTEXT("ApplyChanges", "Apply Changes"))
 		.ValueContent()
 		.HAlign(HAlign_Left)
 		[
@@ -824,12 +824,12 @@ void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	CustomizeLODSettingsCategories(DetailLayout);
 
 #if WITH_APEX_CLOTHING
-	IDetailCategoryBuilder& ClothingCategory = DetailLayout.EditCategory("Clothing", TEXT(""), ECategoryPriority::TypeSpecific);
+	IDetailCategoryBuilder& ClothingCategory = DetailLayout.EditCategory("Clothing", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	CustomizeClothingProperties(DetailLayout,ClothingCategory);
 #endif// #if WITH_APEX_CLOTHING
 
-	IDetailCategoryBuilder& AdditionalMeshCategory = DetailLayout.EditCategory("AdditionalBodyPart", LOCTEXT("AdditionalMeshesCollapsable", "Additional Body Part").ToString(), ECategoryPriority::TypeSpecific);
-	AdditionalMeshCategory.AddCustomRow("")
+	IDetailCategoryBuilder& AdditionalMeshCategory = DetailLayout.EditCategory("AdditionalBodyPart", LOCTEXT("AdditionalMeshesCollapsable", "Additional Body Part"), ECategoryPriority::TypeSpecific);
+	AdditionalMeshCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SAdditionalMeshesEditor, PersonaPtr)
 	];
@@ -865,7 +865,7 @@ void FPersonaMeshDetails::HideUnnecessaryProperties(IDetailLayoutBuilder& Detail
 	DetailLayout.HideProperty(MaterialsProperty);
 
 	// hide all properties in Mirroring category to hide Mirroring category itself
-	IDetailCategoryBuilder& MirroringCategory = DetailLayout.EditCategory("Mirroring", TEXT(""), ECategoryPriority::Default);
+	IDetailCategoryBuilder& MirroringCategory = DetailLayout.EditCategory("Mirroring", FText::GetEmpty(), ECategoryPriority::Default);
 	TArray<TSharedRef<IPropertyHandle>> MirroringProperties;
 	MirroringCategory.GetDefaultProperties(MirroringProperties);
 	for (int32 MirrorPropertyIdx = 0; MirrorPropertyIdx < MirroringProperties.Num(); MirrorPropertyIdx++)
@@ -1282,7 +1282,7 @@ void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& Deta
 	}
 
 	// Button to add a new clothing file
-	ClothingFilesCategory.AddCustomRow( LOCTEXT("AddAPEXClothingFileFilterString", "Add APEX clothing file").ToString())
+	ClothingFilesCategory.AddCustomRow( LOCTEXT("AddAPEXClothingFileFilterString", "Add APEX clothing file"))
 	[
 		SNew(SHorizontalBox)
 		 
@@ -1309,7 +1309,7 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	// Remove and reimport asset buttons
-	ChildrenBuilder.AddChildContent( TEXT("") ) 
+	ChildrenBuilder.AddChildContent( FText::GetEmpty() ) 
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

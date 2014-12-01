@@ -5,7 +5,7 @@
 class FDetailGroup : public IDetailGroup, public TSharedFromThis<FDetailGroup>
 {
 public:
-	FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName, const bool bStartExpanded = false );
+	FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FText& InLocalizedDisplayName, const bool bStartExpanded = false );
 
 	/** IDetailGroup interface */     
 	virtual FDetailWidgetRow& HeaderRow() override;
@@ -72,7 +72,7 @@ private:
 	/** Whether or not our parent is enabled */
 	TAttribute<bool> IsParentEnabled;
 	/** Display name of this group */
-	FString LocalizedDisplayName;
+	FText LocalizedDisplayName;
 	/** Name identifier of this group */
 	FName GroupName;
 	/** Whether the detail group should start expanded or not */

@@ -18,9 +18,9 @@ void FFormatTextDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		TargetNode = CastChecked<UK2Node_FormatText>(Objects[0].Get());
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(FName("PinNames"), UK2Node_FormatText::StaticClass());
 
-		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Arguments", LOCTEXT("FormatTextDetailsArguments", "Arguments").ToString());
+		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Arguments", LOCTEXT("FormatTextDetailsArguments", "Arguments"));
 
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 			[
 				SNew(SBox)
 				.HAlign(HAlign_Right)

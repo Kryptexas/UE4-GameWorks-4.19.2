@@ -852,7 +852,7 @@ void SDialogueContextHeaderWidget::Construct( const FArguments& InArgs, const TS
 						+SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At").ToString() )
+							TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At") )
 						]
 						+SHorizontalBox::Slot()
 						.AutoWidth()

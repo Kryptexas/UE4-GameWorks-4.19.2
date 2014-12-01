@@ -198,7 +198,7 @@ void FMarginStructCustomization::OnMarginTextCommitted( const FText& InText, ETe
 				StructPropertyHandle->AccessRawData( RawData );
 
 				{
-					FScopedTransaction Transaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
+					FScopedTransaction Transaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
 					StructPropertyHandle->NotifyPreChange();
 
 					for (void* Data : RawData)
@@ -279,7 +279,7 @@ void FMarginStructCustomization::OnBeginSliderMovement()
 {
 	bIsUsingSlider = true;
 
-	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
+	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
 }
 
 void FMarginStructCustomization::OnEndSliderMovement( float NewValue )

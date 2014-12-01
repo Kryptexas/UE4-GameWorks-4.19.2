@@ -8,7 +8,7 @@ class SStructureDetailsView : public SDetailsViewBase, public IStructureDetailsV
 {
 	TSharedPtr<class FStructOnScope> StructData;
 	TSharedPtr<class FStructurePropertyNode> RootNode;
-	FString CustomName;
+	FText CustomName;
 public:
 
 	SLATE_BEGIN_ARGS(SStructureDetailsView)
@@ -16,7 +16,7 @@ public:
 		{}
 		/** The user defined args for the details view */
 		SLATE_ARGUMENT(FDetailsViewArgs, DetailsViewArgs)
-		SLATE_ARGUMENT(FString, CustomName)
+		SLATE_ARGUMENT(FText, CustomName)
 	SLATE_END_ARGS()
 
 	~SStructureDetailsView();

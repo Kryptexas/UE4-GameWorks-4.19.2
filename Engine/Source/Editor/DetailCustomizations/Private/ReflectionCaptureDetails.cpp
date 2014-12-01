@@ -31,7 +31,7 @@ void FReflectionCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLa
 	}
 
 	DetailLayout.EditCategory("ReflectionCapture")
-	.AddCustomRow(NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures").ToString())
+	.AddCustomRow(NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures"))
 	.NameContent()
 	[
 		SNullWidget::NullWidget
@@ -48,7 +48,7 @@ void FReflectionCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLa
 			.OnClicked(this, &FReflectionCaptureDetails::OnUpdateReflectionCaptures)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures").ToString())
+				.Text(NSLOCTEXT("ReflectionCaptureDetails", "UpdateReflectionCaptures", "Update Captures"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			]
 		]

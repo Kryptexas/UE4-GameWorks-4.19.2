@@ -22,7 +22,7 @@ void FSkeletalMeshSocketDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 {
 	TargetSocket = NULL;
 
-	IDetailCategoryBuilder& SocketCategory = DetailBuilder.EditCategory( TEXT("SkeletalMeshSocket"), TEXT(""), ECategoryPriority::TypeSpecific );
+	IDetailCategoryBuilder& SocketCategory = DetailBuilder.EditCategory( TEXT("SkeletalMeshSocket"), FText::GetEmpty(), ECategoryPriority::TypeSpecific );
 
 	SocketNameProperty = DetailBuilder.GetProperty( TEXT("SocketName") );
 	if( SocketNameProperty.IsValid() && SocketNameProperty->GetProperty() )
@@ -39,7 +39,7 @@ void FSkeletalMeshSocketDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		}
 
 		// get the currently chosen bone/socket, if any
-		const FString PropertyName = SocketNameProperty->GetPropertyDisplayName();
+		const FText PropertyName = SocketNameProperty->GetPropertyDisplayName();
 		FString CurValue;
 		SocketNameProperty->GetValue(CurValue);
 		if( CurValue == FString("None") )

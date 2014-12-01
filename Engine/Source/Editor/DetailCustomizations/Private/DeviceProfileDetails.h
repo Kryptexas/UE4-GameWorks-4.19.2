@@ -138,7 +138,7 @@ private:
 	 * @param GroupName - The name of the group all Cvars have been removed for.
 	 * @return Whether the event was handled
 	 */
-	FReply OnRemoveAllFromGroup(const TSharedPtr<FString> GroupName);
+	FReply OnRemoveAllFromGroup(FText GroupName);
 
 
 	/**

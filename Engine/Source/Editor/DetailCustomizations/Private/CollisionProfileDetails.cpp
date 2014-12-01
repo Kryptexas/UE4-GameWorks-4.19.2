@@ -1345,7 +1345,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionPreset", "Edit collision presets."), NULL, PresetsDocLink, TEXT("Preset"));
 
 	// Customize collision section
-	ObjectChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionObjectChannels", "ObjectChannels").ToString())
+	ObjectChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionObjectChannels", "ObjectChannels"))
 	[
 		SNew(SVerticalBox)
 
@@ -1439,7 +1439,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 		]
 	];
 	
-	TraceChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionTraceChannels", "TraceChannels").ToString())
+	TraceChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionTraceChannels", "TraceChannels"))
 	[
 		SNew(SVerticalBox)
 
@@ -1533,7 +1533,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 		]
 	];
 
-	PresetCategory.AddCustomRow(LOCTEXT("CustomCollisionProfiles", "Presets").ToString())
+	PresetCategory.AddCustomRow(LOCTEXT("CustomCollisionProfiles", "Presets"))
 	[
 		SNew(SVerticalBox)
 

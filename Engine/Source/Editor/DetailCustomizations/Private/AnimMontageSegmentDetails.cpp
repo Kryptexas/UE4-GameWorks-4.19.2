@@ -60,15 +60,15 @@ TSharedRef<IDetailCustomization> FAnimMontageSegmentDetails::MakeInstance()
 
 void FAnimMontageSegmentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& SegmentCategory = DetailBuilder.EditCategory("Animation Segment", TEXT("Animation Segment") );
+	IDetailCategoryBuilder& SegmentCategory = DetailBuilder.EditCategory("Animation Segment", LOCTEXT("AnimationSegmentCategoryTitle", "Animation Segment") );
 
-	SegmentCategory.AddProperty("AnimSegment.AnimReference").DisplayName( TEXT("Animation Reference") );
+	SegmentCategory.AddProperty("AnimSegment.AnimReference").DisplayName( LOCTEXT("AnimationReferenceLabel", "Animation Reference") );
 
-	SegmentCategory.AddProperty("AnimSegment.AnimStartTime").DisplayName( TEXT("Start Time") );
-	SegmentCategory.AddProperty("AnimSegment.AnimEndTime").DisplayName( TEXT("End Time") );
+	SegmentCategory.AddProperty("AnimSegment.AnimStartTime").DisplayName( LOCTEXT("StartTimeLabel", "Start Time") );
+	SegmentCategory.AddProperty("AnimSegment.AnimEndTime").DisplayName( LOCTEXT("EndTimeLabel", "End Time") );
 
-	SegmentCategory.AddProperty("AnimSegment.AnimPlayRate").DisplayName( TEXT("Play Rate") );
-	SegmentCategory.AddProperty("AnimSegment.LoopingCount").DisplayName( TEXT("Loop Count") );
+	SegmentCategory.AddProperty("AnimSegment.AnimPlayRate").DisplayName( LOCTEXT("PlayRateLabel", "Play Rate") );
+	SegmentCategory.AddProperty("AnimSegment.LoopingCount").DisplayName( LOCTEXT("LoopCountLabel", "Loop Count") );
 
 	TSharedPtr<IPropertyHandle> InPropertyHandle = DetailBuilder.GetProperty("AnimSegment.AnimReference");
 	UObject *Object = NULL;
@@ -81,7 +81,7 @@ void FAnimMontageSegmentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		Skeleton = AnimRef->GetSkeleton();
 	}
 
-	SegmentCategory.AddCustomRow(TEXT(""), false)
+	SegmentCategory.AddCustomRow(FText::GetEmpty(), false)
 	[
 		SNew(SAnimationSegmentViewport)
 		.Skeleton(Skeleton)

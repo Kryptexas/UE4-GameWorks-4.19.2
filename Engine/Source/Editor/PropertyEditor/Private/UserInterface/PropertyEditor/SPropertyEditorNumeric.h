@@ -231,7 +231,7 @@ private:
 	{
 		bIsUsingSlider = true;
 
-		GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "SetNumericPropertyTransaction", "Edit {0}"), FText::FromString( PropertyEditor->GetDisplayName() ) ), PropertyEditor->GetPropertyHandle()->GetProperty() );
+		GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "SetNumericPropertyTransaction", "Edit {0}"), PropertyEditor->GetDisplayName() ), PropertyEditor->GetPropertyHandle()->GetProperty() );
 	}
 
 

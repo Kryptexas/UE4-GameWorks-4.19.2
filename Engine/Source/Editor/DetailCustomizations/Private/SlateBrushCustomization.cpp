@@ -1208,7 +1208,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	TSharedPtr<IPropertyHandle> TintProperty = StructPropertyHandle->GetChildHandle( TEXT("TintColor") );
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
 	
-	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Resource" ).ToString() )
+	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Resource" ) )
 	.NameContent()
 	[
 		ResourceObjectProperty->CreatePropertyNameWidget()
@@ -1248,13 +1248,13 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 				.ResourceObjectProperty(ResourceObjectProperty)
 				.SlateBrush(Brush);
 
-			IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup(TEXT("Preview"), TEXT(""));
+			IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup(TEXT("Preview"), FText::GetEmpty());
 
 			PreviewGroup
 				.HeaderRow()
 				.NameContent()
 				[
-					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview").ToString(), TEXT( "" ), false)
+					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview"), FText::GetEmpty(), false)
 				]
 			.ValueContent()
 				.MinDesiredWidth(1)

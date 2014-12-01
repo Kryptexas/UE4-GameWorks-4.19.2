@@ -16,7 +16,7 @@ TSharedRef<IDetailCustomization> FDestructibleMeshDetails::MakeInstance()
 
 void AddStructToDetails(FName CategoryName, FName PropertyName, IDetailLayoutBuilder& DetailBuilder, bool bInline = true, bool bAdvanced = false)
 {
-	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(CategoryName, TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(CategoryName, FText::GetEmpty(), ECategoryPriority::Important);
 	TSharedPtr<IPropertyHandle> Params = DetailBuilder.GetProperty(PropertyName);
 	if (Params.IsValid())
 	{

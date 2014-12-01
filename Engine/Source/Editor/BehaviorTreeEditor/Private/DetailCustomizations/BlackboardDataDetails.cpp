@@ -4,6 +4,8 @@
 #include "BlackboardDataDetails.h"
 #include "Runtime/AIModule/Classes/BehaviorTree/BlackboardData.h"
 
+#define LOCTEXT_NAMESPACE "BlackboardDataDetails"
+
 TSharedRef<IDetailCustomization> FBlackboardDataDetails::MakeInstance(FOnGetSelectedBlackboardItemIndex InOnGetSelectedBlackboardItemIndex)
 {
 	return MakeShareable( new FBlackboardDataDetails(InOnGetSelectedBlackboardItemIndex) );
@@ -35,7 +37,7 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 
 			IDetailCategoryBuilder& DetailCategoryBuilder = DetailLayout.EditCategory("Key");
 			TSharedPtr<IPropertyHandle> EntryNameProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, EntryName));
-			DetailCategoryBuilder.AddCustomRow(TEXT("Entry Name"))
+			DetailCategoryBuilder.AddCustomRow(LOCTEXT("EntryNameLabel", "Entry Name"))
 			.NameContent()
 			[
 				EntryNameProperty->CreatePropertyNameWidget()
@@ -62,3 +64,5 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 		}	
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

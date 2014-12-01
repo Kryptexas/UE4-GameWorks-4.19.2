@@ -116,12 +116,12 @@ void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHan
 
 	TWeakPtr<IPropertyHandle> WeakHandlePtr = StructPropertyHandle;
 
-	StructBuilder.AddChildContent(LOCTEXT("LocationLabel", "Location").ToString())
+	StructBuilder.AddChildContent(LOCTEXT("LocationLabel", "Location"))
 		.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FMatrixStructCustomization::OnCopy, FTransformField::Location, WeakHandlePtr)))
 		.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FMatrixStructCustomization::OnPaste, FTransformField::Location, WeakHandlePtr)))
 		.NameContent()
 		[
-			StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("LocationLabel", "Location").ToString())
+			StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("LocationLabel", "Location"))
 		]
 		.ValueContent()
 		.MinDesiredWidth(375.0f)
@@ -145,12 +145,12 @@ void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHan
 			]
 		];
 
-	StructBuilder.AddChildContent(LOCTEXT("RotationLabel", "Rotation").ToString())
+	StructBuilder.AddChildContent(LOCTEXT("RotationLabel", "Rotation"))
 		.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FMatrixStructCustomization::OnCopy, FTransformField::Rotation, WeakHandlePtr)))
 		.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FMatrixStructCustomization::OnPaste, FTransformField::Rotation, WeakHandlePtr)))
 		.NameContent()
 		[
-			StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("RotationLabel", "Rotation").ToString())
+			StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("RotationLabel", "Rotation"))
 		]
 		.ValueContent()
 		.MinDesiredWidth(375.0f)
@@ -174,12 +174,12 @@ void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHan
 			]
 		];
 
-	StructBuilder.AddChildContent(LOCTEXT("ScaleLabel", "Scale").ToString())
+	StructBuilder.AddChildContent(LOCTEXT("ScaleLabel", "Scale"))
 		.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FMatrixStructCustomization::OnCopy, FTransformField::Scale, WeakHandlePtr)))
 		.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FMatrixStructCustomization::OnPaste, FTransformField::Scale, WeakHandlePtr)))
 		.NameContent()
 		[
-			StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("ScaleLabel", "Scale").ToString())
+			StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("ScaleLabel", "Scale"))
 		]
 		.ValueContent()
 		.MinDesiredWidth(375.0f)

@@ -154,7 +154,7 @@ protected:
 
 			PopulateCultureList();
 
-			PackagingCategory.AddCustomRow("CulturesToStage", true)
+			PackagingCategory.AddCustomRow(LOCTEXT("CulturesToStageLabel", "Cultures To Stage"), true)
 				.NameContent()
 				.HAlign(HAlign_Fill)
 				.VAlign(VAlign_Top)

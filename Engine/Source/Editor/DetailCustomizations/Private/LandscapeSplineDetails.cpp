@@ -14,9 +14,9 @@ TSharedRef<IDetailCustomization> FLandscapeSplineDetails::MakeInstance()
 
 void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& LandscapeSplineCategory = DetailBuilder.EditCategory( "LandscapeSpline", TEXT(""), ECategoryPriority::Transform );
+	IDetailCategoryBuilder& LandscapeSplineCategory = DetailBuilder.EditCategory( "LandscapeSpline", FText::GetEmpty(), ECategoryPriority::Transform );
 
-	LandscapeSplineCategory.AddCustomRow( TEXT("") )
+	LandscapeSplineCategory.AddCustomRow( FText::GetEmpty() )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -45,7 +45,7 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		]
 	];
 
-	LandscapeSplineCategory.AddCustomRow( TEXT("") )
+	LandscapeSplineCategory.AddCustomRow( FText::GetEmpty() )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

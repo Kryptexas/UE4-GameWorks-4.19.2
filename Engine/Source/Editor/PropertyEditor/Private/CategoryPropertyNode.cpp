@@ -23,24 +23,22 @@ bool FCategoryPropertyNode::IsSubcategory() const
 	return GetParentNode() != NULL && const_cast<FPropertyNode*>( GetParentNode() )->AsCategoryNode() != NULL;
 }
 
-FString FCategoryPropertyNode::GetDisplayName() const 
+FText FCategoryPropertyNode::GetDisplayName() const 
 {
 	FString SubcategoryName = GetSubcategoryName();
-	//if in "readable display name mode" return that
 	if ( FPropertySettings::Get().ShowFriendlyPropertyNames() )
 	{
-		FString DisplaySubcategoryName = FName::NameToDisplayString( SubcategoryName, false );
-
 		//if there is a localized version, return that
 		FText LocalizedName;
 		if ( FText::FindText( TEXT("UObjectCategories"), *SubcategoryName, /*OUT*/LocalizedName ) )
 		{
-			return LocalizedName.ToString();
+			return LocalizedName;
 		}
 
-		return DisplaySubcategoryName;
+		//if in "readable display name mode" return that
+		return FText::FromString( FName::NameToDisplayString( SubcategoryName, false ) );
 	}
-	return SubcategoryName;
+	return FText::FromString( SubcategoryName );
 }	
 /**
  * Overridden function for special setup
