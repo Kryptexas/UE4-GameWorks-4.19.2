@@ -114,7 +114,7 @@ public:
 		ChatItem->Message = FText::FromString(MsgBody);
 		ChatItem->MessageType = EChatMessageType::Party;
 		ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
-		ChatItem->ExpireTime = PartyMessageLifetime;
+		ChatItem->ExpireTime = FDateTime::UtcNow() + PartyMessageLifetime;
 		ChatItem->bIsFromSelf = false;
 		AddMessage(ChatItem.ToSharedRef());
 	}
