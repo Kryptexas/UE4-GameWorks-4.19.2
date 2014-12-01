@@ -116,7 +116,7 @@ void UPhysicsAsset::DisableCollision(int32 BodyIndexA, int32 BodyIndexB)
 	CollisionDisableTable.Add(Key, 0);
 }
 
-FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp) const
+FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTransform& LocalToWorld) const
 {
 	FBox Box(0);
 
@@ -125,7 +125,7 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp) const
 		return Box;
 	}
 
-	FVector Scale3D = MeshComp->ComponentToWorld.GetScale3D();
+	FVector Scale3D = LocalToWorld.GetScale3D();
 	if( Scale3D.IsUniform() )
 	{
 		const TArray<int32>* BodyIndexRefs = NULL;
@@ -166,7 +166,7 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp) const
 				int32 BoneIndex = MeshComp->GetBoneIndex(bs->BoneName);
 				if(BoneIndex != INDEX_NONE)
 				{
-					FTransform WorldBoneTransform = MeshComp->GetBoneTransform(BoneIndex);
+					FTransform WorldBoneTransform = MeshComp->GetBoneTransform(BoneIndex, LocalToWorld);
 					if(FMath::Abs(WorldBoneTransform.GetDeterminant()) > (float)KINDA_SMALL_NUMBER)
 					{
 						Box += bs->AggGeom.CalcAABB( WorldBoneTransform );
@@ -182,7 +182,7 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp) const
 
 	if(!Box.IsValid)
 	{
-		Box = FBox( MeshComp->GetComponentLocation(), MeshComp->GetComponentLocation() );
+		Box = FBox( LocalToWorld.GetLocation(), LocalToWorld.GetLocation() );
 	}
 
 	return Box;

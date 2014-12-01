@@ -497,21 +497,18 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
 	else if(SkeletalMesh && bHasPhysBodies && bCanUsePhysicsAsset)
 	{
-		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld
-		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
+		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
 #endif // WITH_EDITOR
 	// If we have a PhysicsAsset (with at least one matching bone), and we can use it, do so to calc bounds.
 	else if( bHasPhysBodies && bCanUsePhysicsAsset && UsePhysicsAsset )
 	{
-		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld
-		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
+		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
 	// Use MasterPoseComponent's PhysicsAsset, if we don't have one and it does
 	else if(MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bMasterHasPhysBodies)
 	{
-		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld		
-		NewBounds = FBoxSphereBounds(MasterPhysicsAsset->CalcAABB(this));
+		NewBounds = FBoxSphereBounds(MasterPhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
 	// Fallback is to use the one from the skeletal mesh. Usually pretty bad in terms of Accuracy of where the SkelMesh Bounds are located (i.e. usually bigger than it needs to be)
 	else if( SkeletalMesh )
@@ -585,16 +582,20 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 	}
 }
 
-
 FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 {
-	if ( !IsRegistered() )
+	if (!IsRegistered())
 	{
 		// if not registered, we don't have SpaceBases yet. 
 		// also ComponentToWorld isn't set yet (They're set from relativelocation, relativerotation, relativescale)
 		return FTransform::Identity;
 	}
 
+	return GetBoneTransform(BoneIdx, ComponentToWorld);
+}
+
+FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransform& LocalToWorld) const
+{
 	// Handle case of use a MasterPoseComponent - get bone matrix from there.
 	if(MasterPoseComponent.IsValid())
 	{
@@ -606,7 +607,7 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 			if(	ParentBoneIndex != INDEX_NONE && 
 				ParentBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 			{
-				return MasterPoseComponent->GetSpaceBases()[ParentBoneIndex] * ComponentToWorld;
+				return MasterPoseComponent->GetSpaceBases()[ParentBoneIndex] * LocalToWorld;
 			}
 			else
 			{
@@ -624,7 +625,7 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 	{
 		if( GetNumSpaceBases() && BoneIdx < GetNumSpaceBases() )
 		{
-			return GetSpaceBases()[BoneIdx] * ComponentToWorld;
+			return GetSpaceBases()[BoneIdx] * LocalToWorld;
 		}
 		else
 		{

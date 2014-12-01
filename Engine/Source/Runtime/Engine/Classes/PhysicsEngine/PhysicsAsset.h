@@ -82,7 +82,7 @@ public:
 
 	ENGINE_API void			GetNearestBodyIndicesBelow(TArray<int32> & OutBodyIndices, FName InBoneName, USkeletalMesh * InSkelMesh);
 
-	ENGINE_API FBox			CalcAABB(const class USkinnedMeshComponent* MeshComponent) const;
+	ENGINE_API FBox			CalcAABB(const class USkinnedMeshComponent* MeshComponent, const FTransform& LocalToWorld) const;
 
 	/** Clears physics meshes from all bodies */
 	ENGINE_API void ClearAllPhysicsMeshes();

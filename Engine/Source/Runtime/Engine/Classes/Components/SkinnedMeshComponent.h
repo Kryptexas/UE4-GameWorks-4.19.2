@@ -705,6 +705,15 @@ public:
 	FMatrix GetBoneMatrix( int32 BoneIndex ) const;
 
 	/** 
+	 * Get world space bone transform from bone index, also specifying the component transform to use
+	 * 
+	 * @param BoneIndex Index of the bone
+	 *
+	 * @return the transform of the bone at the specified index 
+	 */
+	FTransform GetBoneTransform( int32 BoneIndex, const FTransform& LocalToWorld ) const;
+
+	/** 
 	 * Get Bone Transform from index
 	 * 
 	 * @param BoneIndex Index of the bone
