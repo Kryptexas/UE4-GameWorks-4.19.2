@@ -191,8 +191,8 @@ bool FBuildPatchServicesModule::GenerateFilesManifestFromDirectory( const FBuild
 bool FBuildPatchServicesModule::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const ECompactifyMode::Type Mode)
 {
 	const bool bPreview = Mode == ECompactifyMode::Preview;
-	const bool bTouchOnly = Mode == ECompactifyMode::TouchOnly;
-	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview, bTouchOnly);
+	const bool bNoPatchDelete = Mode == ECompactifyMode::NoPatchDelete;
+	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview, bNoPatchDelete);
 }
 
 #endif //WITH_BUILDPATCHGENERATION

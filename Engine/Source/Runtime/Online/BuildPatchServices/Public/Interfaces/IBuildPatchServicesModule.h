@@ -21,7 +21,7 @@ namespace ECompactifyMode
 	enum Type
 	{
 		Preview,
-		TouchOnly,
+		NoPatchDelete,
 		Full
 	};
 }
@@ -124,7 +124,7 @@ public:
 	 * NOTE: THIS function is blocking and will not return until finished. Don't run on main thread.
 	 * @param ManifestsToKeep      If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold     Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
-	 * @param Mode      The mode that compactify will run in. If Preview, then no work will be carried out, if TouchOnly, then no patch-data will be deleted
+	 * @param Mode      The mode that compactify will run in. If Preview, then no work will be carried out, if NoPatchData, then no patch-data will be deleted
 	 * @return              true if no file errors occurred
 	 */
 	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const ECompactifyMode::Type Mode) = 0;
