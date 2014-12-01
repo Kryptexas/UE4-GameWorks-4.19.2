@@ -358,7 +358,7 @@ FNodeHandlingFunctor* UK2Node_VariableSet::CreateNodeHandler(FKismetCompilerCont
 
 FString UK2Node_VariableSet::GetVariableOutputPinName() const
 {
-	return GetVarNameString() + TEXT("_Get");
+	return TEXT("Output_Get");
 }
 
 void UK2Node_VariableSet::CreateOutputPinTooltip()
