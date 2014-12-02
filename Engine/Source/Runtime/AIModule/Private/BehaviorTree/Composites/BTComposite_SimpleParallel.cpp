@@ -19,6 +19,7 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 	if (PrevChild == BTSpecialChild::NotInitialized)
 	{
 		NextChildIdx = EBTParallelChild::MainTask;
+		MyMemory->MainTaskResult = EBTNodeResult::Failed;
 	}
 	else if ((MyMemory->bMainTaskIsActive || MyMemory->bForceBackgroundTree) && !SearchData.OwnerComp.IsRestartPending())
 	{
