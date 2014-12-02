@@ -48,8 +48,24 @@
 // Platform specific compiler pre-setup.
 #if PLATFORM_WINDOWS
 	#include "Windows/WindowsPlatformCompilerPreSetup.h"
+#elif PLATFORM_PS4
+	#include "PS4/PS4PlatformCompilerPreSetup.h"
+#elif PLATFORM_XBOXONE
+	#include "XboxOne/XboxOnePlatformCompilerPreSetup.h"
 #elif PLATFORM_MAC
 	#include "Mac/MacPlatformCompilerPreSetup.h"
+#elif PLATFORM_IOS
+	#include "IOS/IOSPlatformCompilerPreSetup.h"
+#elif PLATFORM_ANDROID
+	#include "Android/AndroidPlatformCompilerPreSetup.h"
+#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
+	#include "WinRT/WinRTPlatformCompilerPreSetup.h"
+#elif PLATFORM_HTML5
+	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
+#elif PLATFORM_LINUX
+	#include "Linux/LinuxPlatformCompilerPreSetup.h"
+#else
+	#error Unknown Compiler
 #endif
 
 // Generic compiler pre-setup.
