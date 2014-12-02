@@ -61,7 +61,7 @@ public:
 				case EInviteStatus::PendingInbound :
 				{
 					Actions.Add(EFriendActionType::AcceptFriendRequest);
-					Actions.Add(EFriendActionType::RejectFriendRequest);
+					Actions.Add(EFriendActionType::IgnoreFriendRequest);
 				}
 				break;
 				case EInviteStatus::PendingOutbound :

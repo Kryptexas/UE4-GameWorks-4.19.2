@@ -315,11 +315,6 @@ public:
 		return EVisibility::Collapsed;
 	}
 
-	virtual EVisibility GetScrollbarVisibility() const override
-	{
-		return bInGame ? EVisibility::Collapsed : EVisibility::Visible;
-	}
-
 	virtual EVisibility GetInviteToGameVisibility() const override
 	{
 		return bAllowJoinGame ? EVisibility::Visible : EVisibility::Collapsed;

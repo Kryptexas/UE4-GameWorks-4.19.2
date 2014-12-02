@@ -36,6 +36,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonStyle(const FButto
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle)
+{
+	AddFriendButtonContentBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListStatusButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListStatusButtonStyle = ButtonStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListActionButtonStyle = ButtonStyle;
@@ -272,9 +284,9 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendCheckboxStyle(const FCheckB
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetButtonPadding(const FVector2D& Padding)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetStatusButtonSize(const FVector2D& InStatusButtonSize)
 {
-	ButtonPadding = Padding;
+	StatusButtonSize = InStatusButtonSize;
 	return *this;
 }
 

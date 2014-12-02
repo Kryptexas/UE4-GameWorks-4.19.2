@@ -56,6 +56,7 @@ public:
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Fill)
+						.Padding(4, 0, 0, 0)
 						[
 							SNew(SBorder)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
@@ -72,25 +73,40 @@ public:
 						+SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Right)
-						.Padding(4)
+						.Padding(4, 0, 0, 0)
 						[
 							SNew(SButton)
 							.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
 							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
 							.Cursor(EMouseCursor::Hand)
+							[
+								SNew(SBox)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								.WidthOverride(FriendStyle.StatusButtonSize.Y)
+								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+								[
+									SNew(SImage)
+									.Image(&FriendStyle.AddFriendButtonContentBrush)
+								]
+							]
 						]
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Right)
 						.AutoWidth()
-						.Padding(4)
+						.Padding(4, 0, 0, 0)
 						[
 							SNew(SButton)
 							.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
-							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
 							.Cursor(EMouseCursor::Hand)
+							[
+								SNew(SBox)
+								.WidthOverride(FriendStyle.StatusButtonSize.Y)
+								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+							]
 						]
 					]
 				]
@@ -144,6 +160,10 @@ private:
 	{
 		FriendNameTextBox->SetText(FText::GetEmpty());
 		ViewModel->PerformAction();
+		if (ViewModel->IsPerformingAction())
+		{
+			FSlateApplication::Get().SetKeyboardFocus(FriendNameTextBox, EFocusCause::SetDirectly);
+		}
 		return FReply::Handled();
 	}
 
@@ -152,7 +172,11 @@ private:
 		if (CommitInfo == ETextCommit::OnEnter)
 		{
 			ViewModel->RequestFriend(CommentText);
-			HandleAddFriendButtonClicked();
+		}
+		
+		if (ViewModel->IsPerformingAction())
+		{
+			ViewModel->PerformAction();
 		}
 	}
 

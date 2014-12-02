@@ -30,7 +30,6 @@ public:
 	virtual FText GetChatGroupText() const = 0;
 	virtual const EVisibility GetTextEntryVisibility() = 0;
 	virtual const EVisibility GetConfirmationVisibility() = 0;
-	virtual EVisibility GetScrollbarVisibility() const = 0;
 	virtual EVisibility GetInviteToGameVisibility() const = 0;
 	virtual void EnumerateChatChannelOptionsList(TArray<EChatMessageType::Type>& OUTChannelType) = 0;
 	virtual void EnumerateFriendOptions(TArray<EFriendActionType::Type>& OUTActionList) = 0;

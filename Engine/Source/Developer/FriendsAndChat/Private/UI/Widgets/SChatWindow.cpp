@@ -45,7 +45,6 @@ public:
 			 		.AutoWidth()
 					[
 						SNew( SBorder )
-						.Visibility(ViewModel->GetScrollbarVisibility())
 						.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
 						.ColorAndOpacity(this, &SChatWindowImpl::GetTimedFadeColor)
 						[

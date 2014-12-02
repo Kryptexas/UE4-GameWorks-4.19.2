@@ -50,6 +50,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle FriendListOpenButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle);
 
+	/** Friends List Online Status Button style */
+	UPROPERTY()
+	FButtonStyle FriendListStatusButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListStatusButtonStyle(const FButtonStyle& ButtonStyle);
+
 	/** Friends List Action Button style */
 	UPROPERTY()
 	FButtonStyle FriendListActionButtonStyle;
@@ -92,6 +97,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY()
 	FButtonStyle AddFriendButtonStyle;
 	FFriendsAndChatStyle& SetAddFriendButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Optional content for the Add Friend button */
+	UPROPERTY()
+	FSlateBrush AddFriendButtonContentBrush;
+	FFriendsAndChatStyle& SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle);
 
 	/** Title Bar brush style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -249,8 +259,8 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetFriendCheckboxStyle(const FCheckBoxStyle& InFriendCheckboxStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FVector2D ButtonPadding;
-	FFriendsAndChatStyle& SetButtonPadding(const FVector2D& ButtonPadding);
+	FVector2D StatusButtonSize;
+	FFriendsAndChatStyle& SetStatusButtonSize(const FVector2D& InStatusButtonSize);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FMargin BorderPadding;

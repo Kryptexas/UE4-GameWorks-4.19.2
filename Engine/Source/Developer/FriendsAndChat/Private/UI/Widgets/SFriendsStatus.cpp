@@ -38,12 +38,12 @@ public:
 					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Center)
 					.OnClicked(this, &SFriendsStatusImpl::HandleVersionDropDownClicked)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.ButtonStyle(&FriendStyle.FriendListStatusButtonStyle)
 					.Cursor(EMouseCursor::Hand)
 					[
 						SNew(SBox)
-						.WidthOverride(FriendStyle.ButtonPadding.X)
-						.HeightOverride(FriendStyle.ButtonPadding.Y)
+						.WidthOverride(FriendStyle.StatusButtonSize.X)
+						.HeightOverride(FriendStyle.StatusButtonSize.Y)
 						.VAlign(VAlign_Center)
 						[
 							SNew(SHorizontalBox)
@@ -68,7 +68,6 @@ public:
 							+ SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Center)
-							.Padding(FMargin(5, 0))
 							[
 								SNew(SImage)
 								.ColorAndOpacity(FLinearColor::White)
