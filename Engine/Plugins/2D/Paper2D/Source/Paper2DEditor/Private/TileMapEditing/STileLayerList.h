@@ -29,7 +29,7 @@ protected:
 	// Returns the selected index if anything is selected, or the top item otherwise (only returns INDEX_NONE if there are no layers)
 	int32 GetSelectionIndex() const;
 
-	class UPaperTileLayer* AddLayer(bool bCollisionLayer);
+	class UPaperTileLayer* AddLayer(bool bCollisionLayer, int32 InsertionIndex = INDEX_NONE);
 
 	void AddNewLayerAbove();
 	void AddNewLayerBelow();
