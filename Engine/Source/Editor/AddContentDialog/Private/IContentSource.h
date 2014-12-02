@@ -7,6 +7,7 @@ enum class EContentSourceCategory
 {
 	BlueprintFeature,
 	CodeFeature,
+	Content,
 	Unknown
 };
 
