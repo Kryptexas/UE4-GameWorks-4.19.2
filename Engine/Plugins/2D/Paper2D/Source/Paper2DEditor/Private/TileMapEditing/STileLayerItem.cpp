@@ -189,12 +189,7 @@ TSharedRef<SWidget> STileLayerItem::GenerateWidgetForColumn(const FName& ColumnN
 	}
 	else
 	{
-		return SNew(SContentReference)
-			.AssetReference(this, &STileLayerItem::GetLayerTileset)
-			.OnSetReference(this, &STileLayerItem::OnChangeLayerTileSet)
-			.AllowedClass(UPaperTileSet::StaticClass())
-			.AllowSelectingNewAsset(true)
-			.AllowClearingReference(false);
+		return SNew(SSpacer);
 	}
 }
 
@@ -213,26 +208,13 @@ void STileLayerItem::OnLayerNameCommitted(const FText& NewText, ETextCommit::Typ
 	MyLayer->LayerName = NewText;
 }
 
-void STileLayerItem::OnChangeLayerTileSet(UObject* NewAsset)
-{
-	//@TODO: PAPER2D: Dead code now?
-// 	if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(NewAsset))
-// 	{
-// 		MyLayer->TileSet = TileSet;
-// 	}
-}
-
-UObject* STileLayerItem::GetLayerTileset() const
-{
-	return nullptr;// MyLayer->TileSet;
-}
-
 FReply STileLayerItem::OnToggleVisibility()
 {
 	const FScopedTransaction Transaction( LOCTEXT("ToggleVisibility", "Toggle Layer Visibility") );
 	MyLayer->SetFlags(RF_Transactional);
 	MyLayer->Modify();
 	MyLayer->bHiddenInEditor = !MyLayer->bHiddenInEditor;
+	MyLayer->PostEditChange();
 	return FReply::Handled();
 }
 

@@ -27,7 +27,4 @@ protected:
 	const FSlateBrush* GetVisibilityBrushForLayer() const;
 	FSlateColor GetForegroundColorForVisibilityButton() const;
 	FReply OnToggleVisibility();
-
-	void OnChangeLayerTileSet(UObject* NewAsset);
-	UObject* GetLayerTileset() const;
 };
