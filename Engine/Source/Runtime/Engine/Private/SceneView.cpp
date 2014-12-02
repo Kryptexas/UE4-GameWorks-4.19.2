@@ -260,7 +260,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, ViewRect(InitOptions.GetConstrainedViewRect())
 	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
 	, UnconstrainedViewRect(InitOptions.GetViewRect())
-	, FrameNumber(UINT_MAX)
 	, MaxShadowCascades(10)
 	, WorldToMetersScale(InitOptions.WorldToMetersScale)
 	, ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix)
@@ -1374,6 +1373,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	CurrentWorldTime(CVS.CurrentWorldTime),
 	DeltaWorldTime(CVS.DeltaWorldTime),
 	CurrentRealTime(CVS.CurrentRealTime),
+	FrameNumber(UINT_MAX),
 	bRealtimeUpdate(CVS.bRealtimeUpdate),
 	bDeferClear(CVS.bDeferClear),
 	bResolveScene(CVS.bResolveScene),

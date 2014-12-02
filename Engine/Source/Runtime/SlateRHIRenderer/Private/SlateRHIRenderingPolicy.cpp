@@ -232,7 +232,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewUniformShaderParameters.GameTime = View->Family->CurrentWorldTime;
 	ViewUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
 	ViewUniformShaderParameters.Random = FMath::Rand();
-	ViewUniformShaderParameters.FrameNumber = View->FrameNumber;
+	ViewUniformShaderParameters.FrameNumber = View->Family->FrameNumber;
 
 	ViewUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
 	ViewUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();

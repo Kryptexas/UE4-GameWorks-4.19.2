@@ -513,7 +513,7 @@ void FSteamVRHMD::PreRenderView_RenderThread(FSceneView& View)
 //	UpdatePlayerViewPoint(CurrentOrientation, CurrentPosition, View);
 }
 
-void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily, uint32 InFrameNumber)
+void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 }

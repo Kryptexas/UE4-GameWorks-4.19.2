@@ -254,7 +254,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		// Reinitialize the render targets for the given size.
 		SetBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
 
-		UE_LOG(LogRenderer, Warning, TEXT("Reallocating scene render targets to support %ux%u."), BufferSize.X, BufferSize.Y);
+		UE_LOG(LogRenderer, Warning, TEXT("Reallocating scene render targets to support %ux%u (Frame:%u)."), BufferSize.X, BufferSize.Y, ViewFamily.FrameNumber);
 
 		UpdateRHI();
 	}

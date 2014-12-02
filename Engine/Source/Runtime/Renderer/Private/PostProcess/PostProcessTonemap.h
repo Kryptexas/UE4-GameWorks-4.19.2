@@ -124,7 +124,7 @@ public:
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
-		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
+		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.Family->FrameNumber);
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
 
 		if(EyeAdaptation.IsBound())

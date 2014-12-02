@@ -576,9 +576,6 @@ public:
 	/** True if precomputed visibility was used when rendering the scene. */
 	bool bUsedPrecomputedVisibility;
 
-	/** Copy from main thread GFrameNumber to be accessible on renderthread side */
-	uint32 FrameNumber;
-
 	/** Feature level being rendered */
 	ERHIFeatureLevel::Type FeatureLevel;
 

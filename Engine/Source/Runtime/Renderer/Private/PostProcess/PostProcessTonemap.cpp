@@ -1547,7 +1547,7 @@ public:
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
-		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
+		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.Family->FrameNumber);
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);

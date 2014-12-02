@@ -181,7 +181,7 @@ public:
 			}
 			
 			FVector2D RandomOffsetValue;
-			TemporalRandom(&RandomOffsetValue, Context.View.FrameNumber);
+			TemporalRandom(&RandomOffsetValue, Context.View.Family->FrameNumber);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
 
 		}

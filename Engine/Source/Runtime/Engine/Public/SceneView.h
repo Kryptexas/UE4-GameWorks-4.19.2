@@ -332,11 +332,6 @@ public:
 	/* Raw view size (in pixels), used for screen space calculations */
 	const FIntRect UnconstrainedViewRect;
 
-	/** 
-	 * Copy from GFrameNumber
-	 */
-	uint32 FrameNumber;
-
 	/** Maximum number of shadow cascades to render with. */
 	int32 MaxShadowCascades;
 
@@ -633,7 +628,7 @@ public:
 
 		/** Gamma correction used when rendering this family. Default is 1.0 */
 		float GammaCorrection;
-		
+
 		/** Indicates whether the view family is updated in real-time. */
 		uint32 bRealtimeUpdate:1;
 		
@@ -691,6 +686,9 @@ public:
 
 	/** The current real time. */
 	float CurrentRealTime;
+
+	/** Copy from main thread GFrameNumber to be accessible on render thread side. UINT_MAX before BeginRenderingViewFamily() was called */
+	uint32 FrameNumber;
 
 	/** Indicates whether the view family is updated in realtime. */
 	bool bRealtimeUpdate;

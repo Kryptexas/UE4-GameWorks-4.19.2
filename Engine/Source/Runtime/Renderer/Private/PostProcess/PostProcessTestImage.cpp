@@ -60,7 +60,7 @@ public:
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		{
-			uint32 FrameNumberValue = Context.View.FrameNumber;
+			uint32 FrameNumberValue = Context.View.Family->FrameNumber;
 			SetShaderValue(Context.RHICmdList, ShaderRHI, FrameNumber, FrameNumberValue);
 		}
 

@@ -171,7 +171,7 @@ static void UpdatePrimitiveFadingState(FPrimitiveFadingState& FadingState, FView
 		}
 	}
 
-	FadingState.FrameNumber = View.FrameNumber;
+	FadingState.FrameNumber = View.Family->FrameNumber;
 	FadingState.bIsVisible = bVisible;
 	FadingState.bValid = true;
 }
@@ -1549,7 +1549,6 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
-		View.FrameNumber = FrameNumber;
 		FSceneViewState* ViewState = (FSceneViewState*) View.State;
 		static bool bEnableTimeScale = true;
 
@@ -1774,7 +1773,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			}
 
 			ViewState->PrevFrameNumber = ViewState->PendingPrevFrameNumber;
-			ViewState->PendingPrevFrameNumber = View.FrameNumber;
+			ViewState->PendingPrevFrameNumber = View.Family->FrameNumber;
 
 			// This finishes the update of view state
 			ViewState->UpdateLastRenderTime(*View.Family);

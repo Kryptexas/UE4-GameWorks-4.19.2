@@ -21,9 +21,8 @@ public:
 
     /**
      * Called on render thread at the start of rendering.
-	 * FrameNumber is a copy of SceneRenderer.FrameNumber (that is equal to already incremented GFrameNumber).
      */
-    virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily, uint32 InFrameNumber) = 0;
+    virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) = 0;
 
 	/**
      * Called on render thread at the start of rendering, for each view, after PreRenderViewFamily_RenderThread call.

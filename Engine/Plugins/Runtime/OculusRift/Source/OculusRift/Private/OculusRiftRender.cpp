@@ -149,14 +149,14 @@ void FOculusRiftHMD::GetTimewarpMatrices_RenderThread(EStereoscopicPass StereoPa
 #endif
 }
 
-void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily, uint32 InFrameNumber)
+void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 
 	RenderParams_RenderThread.ShowFlags = ViewFamily.EngineShowFlags;
 	// FrameNumber comes from SceneRenderer.FrameNumber and contains already incremented
 	// GFrameNumber. Therefore, decrementing it to match with the frame number used on a game thread.
-	RenderParams_RenderThread.FrameNumber = InFrameNumber - 1;
+	RenderParams_RenderThread.FrameNumber = ViewFamily.FrameNumber - 1;
 
 #ifndef OVR_SDK_RENDERING 
 	{

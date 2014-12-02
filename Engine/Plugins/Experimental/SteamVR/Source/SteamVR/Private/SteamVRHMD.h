@@ -100,7 +100,7 @@ public:
 	virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) override;
 	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
 	virtual void PreRenderView_RenderThread(FSceneView& InView) override;
-	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily, uint32 InFrameNumber) override;
+	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) override;
 
 public:
 	/** Constructor */

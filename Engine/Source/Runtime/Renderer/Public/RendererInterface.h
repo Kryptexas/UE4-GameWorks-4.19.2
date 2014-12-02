@@ -470,7 +470,7 @@ class IRendererModule : public IModuleInterface
 public:
 
 	/** Call from the game thread to send a message to the rendering thread to being rendering this view family. */
-	virtual void BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily) = 0;
+	virtual void BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily* ViewFamily) = 0;
 	
 	/**
 	 * Allocates a new instance of the private FScene implementation for the given world.
