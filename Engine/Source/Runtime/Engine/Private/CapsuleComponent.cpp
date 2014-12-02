@@ -112,13 +112,20 @@ void UCapsuleComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 void UCapsuleComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == FName(TEXT("CapsuleHalfHeight")) || PropertyName == FName(TEXT("CapsuleRadius")))
+
+	// We only want to modify the property that was changed at this point
+	// things like propagation from CDO to instances don't work correctly if changing one property causes a different property to change
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UCapsuleComponent, CapsuleHalfHeight))
 	{
 		CapsuleHalfHeight = FMath::Max(CapsuleHalfHeight, CapsuleRadius);
 	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCapsuleComponent, CapsuleRadius))
+	{
+		CapsuleRadius = FMath::Min(CapsuleHalfHeight, CapsuleRadius);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif	// WITH_EDITOR
 

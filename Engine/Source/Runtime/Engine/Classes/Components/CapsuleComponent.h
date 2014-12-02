@@ -13,11 +13,17 @@ class ENGINE_API UCapsuleComponent : public UShapeComponent
 	GENERATED_UCLASS_BODY()
 
 protected:
-	/** Half-height, i.e. from center of capsule to end of top or bottom hemisphere.  */
+	/** 
+	 *	Half-height, i.e. from center of capsule to end of top or bottom hemisphere.  
+	 *	This cannot be less than CapsuleRadius.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, export, Category=Shape)
 	float CapsuleHalfHeight;
 
-	/** Radius of cap hemispheres and center cylinder. */
+	/** 
+	 *	Radius of cap hemispheres and center cylinder. 
+	 *	This cannot be more than CapsuleHalfHeight.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, export, Category=Shape)
 	float CapsuleRadius;
 
