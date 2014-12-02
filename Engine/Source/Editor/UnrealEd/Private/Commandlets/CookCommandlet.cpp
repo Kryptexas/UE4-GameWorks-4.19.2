@@ -30,7 +30,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DefaultPVRTCQuality = 0;
+	DefaultPVRTCQuality = 1;
 }
 
 
