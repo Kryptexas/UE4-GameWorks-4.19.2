@@ -10047,7 +10047,38 @@ struct FFindInstancedReferenceSubobjectHelper
 		check(ContainerAddress);
 		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
 		{
-			if (Prop->HasAllPropertyFlags(CPF_PersistentInstance))
+			auto ArrayProperty = Cast<const UArrayProperty>(Prop);
+			if (ArrayProperty && Prop->HasAnyPropertyFlags(CPF_PersistentInstance | CPF_ContainsInstancedReference))
+			{
+				auto InnerStructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
+				auto InnerObjectProperty = Cast<const UObjectProperty>(ArrayProperty->Inner);
+				if (InnerStructProperty && InnerStructProperty->Struct)
+				{
+					FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+					for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+					{
+						const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
+						if (ValueAddress)
+						{
+							Get(InnerStructProperty->Struct, ValueAddress, OutObjects);
+						}
+					}
+				}
+				else if (InnerObjectProperty && InnerObjectProperty->HasAllPropertyFlags(CPF_PersistentInstance))
+				{
+					ensure(InnerObjectProperty->HasAllPropertyFlags(CPF_InstancedReference));
+					FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+					for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+					{
+						UObject* ObjectValue = InnerObjectProperty->GetObjectPropertyValue(ArrayHelper.GetRawPtr(ElementIndex));
+						if (ObjectValue)
+						{
+							OutObjects.Add(ObjectValue);
+						}
+					}
+				}
+			}
+			else if (Prop->HasAllPropertyFlags(CPF_PersistentInstance))
 			{
 				ensure(Prop->HasAllPropertyFlags(CPF_InstancedReference));
 				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
@@ -10062,23 +10093,6 @@ struct FFindInstancedReferenceSubobjectHelper
 						}
 					}
 				}
-				else
-				{
-					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
-					auto InnerObjectProperty = ArrayProperty ? Cast<const UObjectProperty>(ArrayProperty->Inner) : NULL;
-					if (InnerObjectProperty)
-					{
-						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
-						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
-						{
-							UObject** ObjectValuePtr = reinterpret_cast<UObject**>(ArrayHelper.GetRawPtr(ElementIndex));
-							if (ObjectValuePtr && *ObjectValuePtr)
-							{
-								OutObjects.Add(*ObjectValuePtr);
-							}
-						}
-					}
-				}
 			}
 			else if (Prop->HasAnyPropertyFlags(CPF_ContainsInstancedReference))
 			{
@@ -10089,23 +10103,6 @@ struct FFindInstancedReferenceSubobjectHelper
 					{
 						const uint8* ValueAddress = StructProperty->ContainerPtrToValuePtr<uint8>(ContainerAddress, ArrayIdx);
 						Get(StructProperty->Struct, ValueAddress, OutObjects);
-					}
-				}
-				else
-				{
-					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
-					auto InnerStructProperty = ArrayProperty ? Cast<const UStructProperty>(ArrayProperty->Inner) : NULL;
-					if (InnerStructProperty && InnerStructProperty->Struct)
-					{
-						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
-						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
-						{
-							const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
-							if (ValueAddress)
-							{
-								Get(InnerStructProperty->Struct, ValueAddress, OutObjects);
-							}
-						}
 					}
 				}
 			}
