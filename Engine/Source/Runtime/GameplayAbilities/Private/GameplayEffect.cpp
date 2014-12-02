@@ -2042,13 +2042,23 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 
 void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query)
 {
+	const bool bLockInEffect = FScopedActiveGameplayEffectLock::IsLockInEffect();
+
 	for (int32 idx=0; idx < GameplayEffects.Num(); ++idx)
 	{
 		const FActiveGameplayEffect& Effect = GameplayEffects[idx];
 		if (Query.Matches(Effect))
 		{
-			InternalRemoveActiveGameplayEffect(idx);
-			idx--;
+			// Defer removal if we're scope-locked
+			if (bLockInEffect)
+			{
+				FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent>(Owner), Effect.Handle));
+			}
+			else
+			{
+				InternalRemoveActiveGameplayEffect(idx);
+				idx--;
+			}
 		}
 	}
 }

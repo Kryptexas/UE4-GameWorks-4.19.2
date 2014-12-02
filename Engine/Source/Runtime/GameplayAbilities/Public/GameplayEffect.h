@@ -1320,7 +1320,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction_Remove : public FActive
 	{
 	}
 
-	FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC, FActiveGameplayEffectHandle& InHandle)
+	FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC, const FActiveGameplayEffectHandle& InHandle)
 	: OwningASC(InOwningASC)
 	, Handle(InHandle)
 	{
