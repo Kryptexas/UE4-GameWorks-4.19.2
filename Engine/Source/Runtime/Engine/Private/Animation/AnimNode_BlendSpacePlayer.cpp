@@ -48,6 +48,11 @@ void FAnimNode_BlendSpacePlayer::Update(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
+	UpdateInternal(Context);
+}
+
+void FAnimNode_BlendSpacePlayer::UpdateInternal(const FAnimationUpdateContext& Context)
+{
 	if ((BlendSpace != NULL) && (Context.AnimInstance->CurrentSkeleton->IsCompatible(BlendSpace->GetSkeleton())))
 	{
 		// Create a tick record and fill it out

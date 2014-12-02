@@ -15,10 +15,11 @@ FAnimNode_BlendSpaceEvaluator::FAnimNode_BlendSpaceEvaluator()
 
 void FAnimNode_BlendSpaceEvaluator::Update(const FAnimationUpdateContext& Context)
 {
+	EvaluateGraphExposedInputs.Execute(Context);
 	InternalTimeAccumulator = NormalizedTime;
 	PlayRate = 0.f;
 
-	FAnimNode_BlendSpacePlayer::Update(Context);
+	UpdateInternal(Context);
 }
 
 

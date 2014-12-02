@@ -64,4 +64,7 @@ public:
 	virtual void OverrideAsset(UAnimationAsset* NewAsset) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
+protected:
+	void UpdateInternal(const FAnimationUpdateContext& Context);
 };
