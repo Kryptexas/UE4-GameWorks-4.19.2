@@ -984,7 +984,9 @@ void UWorld::InitializeNewWorld(const InitializationValues IVS)
 	SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
 	AActor* WorldSettings = SpawnActor( GEngine->WorldSettingsClass, NULL, NULL, SpawnInfo );
 	check(GetWorldSettings());
+#if WITH_EDITOR
 	WorldSettings->SetIsTemporarilyHiddenInEditor(true);
+#endif
 
 	// Initialize the world
 	InitWorld(IVS);
