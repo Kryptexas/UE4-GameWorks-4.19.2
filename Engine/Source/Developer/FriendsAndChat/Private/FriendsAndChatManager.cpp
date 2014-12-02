@@ -1367,7 +1367,7 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 
 	if(ApplicationViewModel.IsValid())
 	{
-		const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetUniqueID()->ToString() + TEXT(" -invitefrom=") + FriendItem->GetGameSessionId();
+		const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetGameSessionId() + TEXT(" -invitefrom=") + FriendItem->GetUniqueID()->ToString();
 		ApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
 	}
 
