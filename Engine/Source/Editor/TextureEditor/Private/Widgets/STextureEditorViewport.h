@@ -66,7 +66,7 @@ protected:
 	 *
 	 * @return Texture resolution string.
 	 */
-	FString GetDisplayedResolution() const;
+	FText GetDisplayedResolution() const;
 
 private:
 

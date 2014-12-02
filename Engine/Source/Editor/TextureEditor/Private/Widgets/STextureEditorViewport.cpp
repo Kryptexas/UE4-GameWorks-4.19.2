@@ -292,7 +292,7 @@ void STextureEditorViewport::Tick( const FGeometry& AllottedGeometry, const doub
 /* STextureEditorViewport implementation
  *****************************************************************************/
 
-FString STextureEditorViewport::GetDisplayedResolution( ) const
+FText STextureEditorViewport::GetDisplayedResolution( ) const
 {
 	return ViewportClient->GetDisplayedResolution();
 }

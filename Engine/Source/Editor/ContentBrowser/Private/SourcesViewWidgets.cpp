@@ -387,27 +387,27 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 	bDraggedOver = false;
 
 	FString CollectionTypeImage;
-	FString CollectionTypeTooltip;
+	FText CollectionTypeTooltip;
 	switch (InArgs._CollectionItem->CollectionType)
 	{
 	case ECollectionShareType::CST_Shared:
 		CollectionTypeImage = TEXT("ContentBrowser.Shared");
-		CollectionTypeTooltip = LOCTEXT("SharedCollectionTooltip", "Shared. This collection is visible to everyone.").ToString();
+		CollectionTypeTooltip = LOCTEXT("SharedCollectionTooltip", "Shared. This collection is visible to everyone.");
 		break;
 
 	case ECollectionShareType::CST_Private:
 		CollectionTypeImage = TEXT("ContentBrowser.Private");
-		CollectionTypeTooltip = LOCTEXT("PrivateCollectionTooltip", "Private. This collection is only visible to you.").ToString();
+		CollectionTypeTooltip = LOCTEXT("PrivateCollectionTooltip", "Private. This collection is only visible to you.");
 		break;
 
 	case ECollectionShareType::CST_Local:
 		CollectionTypeImage = TEXT("ContentBrowser.Local");
-		CollectionTypeTooltip = LOCTEXT("LocalCollectionTooltip", "Local. This collection is only visible to you and is not in source control.").ToString();
+		CollectionTypeTooltip = LOCTEXT("LocalCollectionTooltip", "Local. This collection is only visible to you and is not in source control.");
 		break;
 
 	default:
 		CollectionTypeImage = TEXT("");
-		CollectionTypeTooltip = TEXT("");
+		CollectionTypeTooltip = FText::GetEmpty();
 		break;
 	}
 

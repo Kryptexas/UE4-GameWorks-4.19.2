@@ -56,7 +56,7 @@ protected:
 
 		if( Object.IsValid() )
 		{
-			ToolTip = SNew( SToolTip ).Text( Object->GetName() );
+			ToolTip = SNew( SToolTip ).Text( FText::FromString(Object->GetName()) );
 		}
 		else if ( PropertyPath.IsValid() && PropertyPath->GetNumProperties() > 0 )
 		{

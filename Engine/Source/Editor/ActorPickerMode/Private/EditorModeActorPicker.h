@@ -38,7 +38,7 @@ public:
 	virtual void Exit() override;
 
 	/** Delegate used to display information about picking near the cursor */
-	FString GetCursorDecoratorText() const;
+	FText GetCursorDecoratorText() const;
 
 	bool IsActorValid(const AActor *const Actor) const;
 

@@ -24,7 +24,7 @@ public:
 	void ModifyCheckerboardTextureColors();
 
 	/** Returns a string representation of the currently displayed textures resolution */
-	FString GetDisplayedResolution() const;
+	FText GetDisplayedResolution() const;
 
 	/** Returns the ratio of the size of the Texture texture to the size of the viewport */
 	float GetViewportVerticalScrollBarRatio() const;
