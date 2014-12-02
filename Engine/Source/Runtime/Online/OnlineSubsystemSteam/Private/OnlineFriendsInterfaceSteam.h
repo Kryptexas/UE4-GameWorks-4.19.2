@@ -103,7 +103,7 @@ public:
 
 	// IOnlineFriends
 
-	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName) override;
+	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate = FOnReadFriendsListComplete()) override;
 	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName) override;
 	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
@@ -129,16 +129,20 @@ class FOnlineAsyncTaskSteamReadFriendsList :
 	/** The user that is triggering the event */
 	int32 LocalUserNum;
 
+	FOnReadFriendsListComplete Delegate;
+
 public:
 	/**
 	 * Inits the pointer used to trigger the delegates on
 	 *
 	 * @param InFriendsPtr the interface to call the delegates on
 	 * @param InLocalUserNum the local user that requested the read
+	 * @param InDelegate the delegate that will be called when reading the friends list is complete
 	 */
-	FOnlineAsyncTaskSteamReadFriendsList(FOnlineFriendsSteam* InFriendsPtr, int32 InLocalUserNum) :
+	FOnlineAsyncTaskSteamReadFriendsList(FOnlineFriendsSteam* InFriendsPtr, int32 InLocalUserNum, const FOnReadFriendsListComplete& InDelegate) :
 		FriendsPtr(InFriendsPtr),
-		LocalUserNum(InLocalUserNum)
+		LocalUserNum(InLocalUserNum),
+		Delegate(InDelegate)
 	{
 		check(FriendsPtr);
 	}

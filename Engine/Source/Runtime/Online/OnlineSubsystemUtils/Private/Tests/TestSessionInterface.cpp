@@ -110,8 +110,6 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 	Friends = OnlineSub->GetFriendsInterface();
 
 	// Define delegates
-	OnReadFriendsListCompleteDelegate = FOnReadFriendsListCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnReadFriendsListComplete);
-
 	OnCreateSessionCompleteDelegate = FOnCreateSessionCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnCreateSessionComplete);
 	OnStartSessionCompleteDelegate = FOnStartSessionCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnStartSessionComplete);
 	OnEndSessionCompleteDelegate = FOnEndSessionCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnEndSessionComplete);
@@ -134,8 +132,7 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 	// Read friends list and cache it
 	if (Friends.IsValid())
 	{
-		Friends->AddOnReadFriendsListCompleteDelegate(0, OnReadFriendsListCompleteDelegate);
-		Friends->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default));
+		Friends->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), FOnReadFriendsListComplete::CreateRaw(this, &FTestSessionInterface::OnReadFriendsListComplete));
 	}
 
 	// Setup sessions
@@ -177,7 +174,6 @@ void FTestSessionInterface::WorldDestroyed( UWorld* InWorld )
 void FTestSessionInterface::OnReadFriendsListComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnReadFriendsListComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorStr);
-	Friends->ClearOnReadFriendsListCompleteDelegate(0, OnReadFriendsListCompleteDelegate);
 	if (bWasSuccessful)
 	{
 		Friends->GetFriendsList(LocalUserNum, ListName, FriendsCache);

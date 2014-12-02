@@ -47,8 +47,7 @@ typedef FOnFriendsChange::FDelegate FOnFriendsChangeDelegate;
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnReadFriendsListComplete, int32, bool, const FString&, const FString&);
-typedef FOnReadFriendsListComplete::FDelegate FOnReadFriendsListCompleteDelegate;
+DECLARE_DELEGATE_FourParams(FOnReadFriendsListComplete, int32, bool, const FString&, const FString&);
 
 /**
  * Delegate used when the friends list delete request has completed
@@ -212,17 +211,7 @@ public:
 	 *
 	 * @return true if the read request was started successfully, false otherwise
 	 */
-	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName) = 0;
-
-	/**
-	 * Delegate used when the friends list read request has completed
-	 *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnReadFriendsListComplete, bool, const FString&, const FString&);
+	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate = FOnReadFriendsListComplete()) = 0;
 
 	/**
 	 * Starts an async task that deletes the named friends list for the player 

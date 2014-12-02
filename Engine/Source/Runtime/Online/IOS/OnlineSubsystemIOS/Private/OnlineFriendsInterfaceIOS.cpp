@@ -48,7 +48,7 @@ FOnlineFriendsIOS::FOnlineFriendsIOS(FOnlineSubsystemIOS* InSubsystem)
 	IdentityInterface = (FOnlineIdentityIOS*)InSubsystem->GetIdentityInterface().Get();
 }
 
-bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsIOS::ReadFriendsList()"));
 	bool bSuccessfullyBeganReadFriends = false;
@@ -70,7 +70,7 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 						// Report back to the game thread whether this succeeded.
 						[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 						{
-							TriggerOnReadFriendsListCompleteDelegates(0, false, ListName, ErrorStr);
+							Delegate.ExecuteIfBound(0, false, ListName, ErrorStr);
 							return true;
 						}];
 				}
@@ -112,7 +112,7 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 								// Report back to the game thread whether this succeeded.
 								[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 								{
-									TriggerOnReadFriendsListCompleteDelegates(0, bWasSuccessful, ListName, ErrorStr);
+									Delegate.ExecuteIfBound(0, bWasSuccessful, ListName, ErrorStr);
 									return true;
 								}];
 						}
@@ -125,7 +125,7 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 	else
 	{
 		// no gamecenter login means we cannot read the friends.
-		TriggerOnReadFriendsListCompleteDelegates( 0 , false, ListName, TEXT("not logged in") );
+		Delegate.ExecuteIfBound( 0 , false, ListName, TEXT("not logged in") );
 	}
 
 	return bSuccessfullyBeganReadFriends;

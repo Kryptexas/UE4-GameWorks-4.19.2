@@ -19,7 +19,6 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		}
 
 		// Add our delegate for the async call
-		OnReadFriendsCompleteDelegate = FOnReadFriendsListCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnReadFriendsComplete);
 		OnAcceptInviteCompleteDelegate = FOnAcceptInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnAcceptInviteComplete);
 		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnSendInviteComplete);
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendComplete);
@@ -27,7 +26,6 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnQueryRecentPlayersComplete);
 		
 
-		OnlineSub->GetFriendsInterface()->AddOnReadFriendsListCompleteDelegate(0, OnReadFriendsCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
@@ -60,7 +58,8 @@ void FTestFriendsInterface::StartNextTest()
 {
 	if (bReadFriendsList)
 	{
-		OnlineSub->GetFriendsInterface()->ReadFriendsList(0, FriendsListName);
+		FOnReadFriendsListComplete Delegate = FOnReadFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnReadFriendsComplete);
+		OnlineSub->GetFriendsInterface()->ReadFriendsList(0, FriendsListName, Delegate);
 	}
 	else if (bQueryRecentPlayers)
 	{
@@ -100,7 +99,6 @@ void FTestFriendsInterface::FinishTest()
 		OnlineSub->GetFriendsInterface().IsValid())
 	{
 		// Clear delegates for the various async calls
-		OnlineSub->GetFriendsInterface()->ClearOnReadFriendsListCompleteDelegate(0, OnReadFriendsCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);

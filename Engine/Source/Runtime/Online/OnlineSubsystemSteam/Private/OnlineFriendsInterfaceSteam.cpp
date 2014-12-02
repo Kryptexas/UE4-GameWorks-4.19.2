@@ -59,7 +59,7 @@ FOnlineFriendsSteam::FOnlineFriendsSteam(FOnlineSubsystemSteam* InSteamSubsystem
 	SteamFriendsPtr = SteamFriends();
 }
 
-bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	FString ErrorStr;
 	if (!ListName.Equals(DefaultFriendsList, ESearchCase::IgnoreCase))
@@ -71,7 +71,7 @@ bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& Lis
 		SteamUserPtr->BLoggedOn() &&
 		SteamFriendsPtr != NULL)
 	{
-		SteamSubsystem->QueueAsyncTask(new FOnlineAsyncTaskSteamReadFriendsList(this,LocalUserNum));
+		SteamSubsystem->QueueAsyncTask(new FOnlineAsyncTaskSteamReadFriendsList(this, LocalUserNum, Delegate));
 	}
 	else
 	{
@@ -79,7 +79,7 @@ bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& Lis
 	}
 	if (!ErrorStr.IsEmpty())
 	{
-		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, ListName, ErrorStr);
+		Delegate.ExecuteIfBound(LocalUserNum, false, ListName, ErrorStr);
 		return false;
 	}
 	return true;
@@ -252,5 +252,5 @@ void FOnlineAsyncTaskSteamReadFriendsList::TriggerDelegates(void)
 {
 	FOnlineAsyncTask::TriggerDelegates();
 
-	FriendsPtr->TriggerOnReadFriendsListCompleteDelegates(LocalUserNum,true,DefaultFriendsList,FString());
+	Delegate.ExecuteIfBound(LocalUserNum, true, DefaultFriendsList, FString());
 }

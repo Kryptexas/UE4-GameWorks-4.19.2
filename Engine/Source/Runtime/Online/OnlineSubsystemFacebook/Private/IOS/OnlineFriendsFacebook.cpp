@@ -69,7 +69,7 @@ FOnlineFriendsFacebook::~FOnlineFriendsFacebook()
 	SharingInterface = NULL;
 }
 
-bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	bool bRequestTriggered = false;
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::ReadFriendsList()"));
@@ -82,13 +82,14 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 		RequestFriendsReadPermissionsDelegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated);
 		SharingInterface->AddOnRequestNewReadPermissionsCompleteDelegate(LocalUserNum, RequestFriendsReadPermissionsDelegate);
 		SharingInterface->RequestNewReadPermissions(LocalUserNum, EOnlineSharingReadCategory::Friends);
+		OnReadFriendsListCompleteDelegate = Delegate;
 	}
 	else
 	{
 		UE_LOG(LogOnline, Verbose, TEXT("Cannot read friends if we are not logged into facebook."));
 
 		// Cannot read friends if we are not logged into facebook.
-		TriggerOnReadFriendsListCompleteDelegates( LocalUserNum , false, ListName, TEXT("not logged in.") );
+		Delegate.ExecuteIfBound(LocalUserNum, false, ListName, TEXT("not logged in."));
 	}
 
 	return bRequestTriggered;
@@ -193,7 +194,7 @@ void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum,
 	else
 	{
 		// Permissions werent applied so we cannot read friends.
-		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, EFriendsLists::ToString(EFriendsLists::Default), TEXT("No read permissions"));
+		OnReadFriendsListCompleteDelegate.ExecuteIfBound(LocalUserNum, false, EFriendsLists::ToString(EFriendsLists::Default), TEXT("No read permissions"));
 	}
 }
 
@@ -268,7 +269,7 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 					}
 
 					// Did this operation complete? Let whoever is listening know.
-					TriggerOnReadFriendsListCompleteDelegates( LocalUserNum, bSuccess, ListName, FString() );
+					OnReadFriendsListCompleteDelegate.ExecuteIfBound(LocalUserNum, bSuccess, ListName, FString());
 				}
 			];
 		}

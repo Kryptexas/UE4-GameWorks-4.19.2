@@ -14,8 +14,6 @@
 	const FString SubsystemName;
 	/** The online interface to use for testing */
 	IOnlineSubsystem* OnlineSub;
-	/** Delegate to use for reading the friends list */
-	FOnReadFriendsListCompleteDelegate OnReadFriendsCompleteDelegate;
 	/** Delegate when invites accepted */
 	FOnAcceptInviteCompleteDelegate OnAcceptInviteCompleteDelegate;
 	/** Delegate when invites have been sent */

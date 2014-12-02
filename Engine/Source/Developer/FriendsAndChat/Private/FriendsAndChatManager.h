@@ -665,8 +665,6 @@ private:
 
 	// Holds the ticker delegate
 	FTickerDelegate UpdateFriendsTickerDelegate;
-	// Delegate when friend list has been read
-	FOnReadFriendsListCompleteDelegate OnReadFriendsCompleteDelegate;
 	// Delegate to use for querying for recent players 
 	FOnQueryRecentPlayersCompleteDelegate OnQueryRecentPlayersCompleteDelegate;
 	// Delegate when invites accepted

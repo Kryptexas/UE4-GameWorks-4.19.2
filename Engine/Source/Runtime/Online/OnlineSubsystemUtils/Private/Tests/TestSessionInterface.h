@@ -36,8 +36,6 @@
 	/** Convenient access to friends interface */
 	IOnlineFriendsPtr Friends;
 
-	/** Delegate when a friends list read is complete */
-	FOnReadFriendsListCompleteDelegate OnReadFriendsListCompleteDelegate;
 	/** Delegate for handling an accepted invite */
 	FOnSessionInviteAcceptedDelegate OnSessionInviteAcceptedDelegate;
 
