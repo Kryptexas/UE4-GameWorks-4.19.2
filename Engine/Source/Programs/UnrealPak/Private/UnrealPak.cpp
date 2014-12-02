@@ -446,7 +446,11 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 		{
 			TArray<FString> SourceAndDest;
 			TArray<FString> Switches;
-			CommandLineParseHelper(*Lines[EntryIndex], SourceAndDest, Switches);
+			CommandLineParseHelper(*Lines[EntryIndex].Trim(), SourceAndDest, Switches);
+			if( SourceAndDest.Num() == 0)
+			{
+				continue;
+			}
 			FPakInputPair Input;
 
 			Input.Source = SourceAndDest[0];
