@@ -1348,7 +1348,9 @@ void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
 
 void FMacOpenGL::BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data)
 {
-	if(GMacUseMTGL)
+	// @todo The crash that caused UE-4772 is no longer occuring for me on 10.10.1, so use glBufferSubData from that revision onward.
+	static bool const bNeedsMTLGMapBuffer = (FMacPlatformMisc::MacOSXVersionCompare(10,10,1) < 0);
+	if(GMacUseMTGL && bNeedsMTLGMapBuffer)
 	{
 		void* Dest = MapBufferRange(Target, Offset, Size, FOpenGLBase::RLM_WriteOnly);
 		FMemory::Memcpy(Dest, Data, Size);
