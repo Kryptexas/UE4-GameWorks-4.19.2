@@ -87,6 +87,10 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
         }
 
         GLuint tex, fb;
+#if PLATFORM_HTML5_WIN32
+		glClearColor( 1.0, 0.5, 0.0,1.0);
+		glClear( GL_COLOR_BUFFER_BIT ); 
+#endif 
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -100,12 +104,17 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 
         GLenum fbstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-// this code causes a stack corruption on win32. 
-#if PLATFORM_HTML5_BROWSER
-		// bSupportsColorBufferHalfFloat is used in such a way that reading the frame buffer is expected to work. Test that now.
-		uint16 outpixels[32*32];
-		glReadPixels(0, 0, 32, 32, GL_RGBA, GL_HALF_FLOAT_OES, outpixels);
+#if PLATFORM_HTML5_WIN32
+		// keep glReadPixel out of floating point tests for HTML5 Browser builds, glReadPixels doesn't work consistently across browser and is 
+		// hidden behind inconsistent webgl extentions. 
+		TArray<FLinearColor> Data;
+		data.AddUninitialized(32*32); 
+		glViewport(0, 0, 32, 32);
+		glClear(GL_COLOR_BUFFER_BIT);
+		FMemory::Memzero(data.GetData(),32*32*sizeof(FLinearColor));
+		glReadPixels(0, 0, 32, 32, GL_RGBA, GL_FLOAT, Data.GetData());
 		err = glGetError();
+		UE_LOG(LogRHI, Log, TEXT(" %f %f %f %f"), Data[0].R,Data[0].G,Data[0].B,Data[0].A);
 #endif 
         bSupportsColorBufferHalfFloat = fbstatus == GL_FRAMEBUFFER_COMPLETE && err == GL_NO_ERROR;
 

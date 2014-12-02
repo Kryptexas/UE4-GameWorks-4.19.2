@@ -108,6 +108,7 @@ struct FHTML5OpenGL : public FOpenGLES2
 		return 0;
 	}
 
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 protected:
 	/** http://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/ */
 	static bool bCombinedDepthStencilAttachment;
