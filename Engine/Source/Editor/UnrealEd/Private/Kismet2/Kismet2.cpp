@@ -33,6 +33,7 @@
 #include "DlgPickAssetPath.h"
 #include "ComponentAssetBroker.h"
 #include "BlueprintEditorSettings.h"
+#include "Editor/UnrealEd/Classes/Editor/Transactor.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
 
@@ -163,6 +164,7 @@ void FObjectsBeingDebuggedIterator::FindNextLevelScriptActor()
 
 // Static variable definition
 TArray<FString> FKismetEditorUtilities::TrackedBlueprintParentList;
+FKismetEditorUtilities::FOnBlueprintUnloaded FKismetEditorUtilities::OnBlueprintUnloaded;
 
 /** Create the correct event graphs for this blueprint */
 void FKismetEditorUtilities::CreateDefaultEventGraphs(UBlueprint* Blueprint)
@@ -334,6 +336,152 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	}
 
 	return NewBP;
+}
+
+static bool IsReferencedByUndoBuffer(UBlueprint* Blueprint)
+{
+	UObject* BlueprintObj = Blueprint;
+	FReferencerInformationList ReferencesIncludingUndo;
+	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, /*bCheckSubObjects =*/true, &ReferencesIncludingUndo);
+
+	FReferencerInformationList ReferencesExcludingUndo;
+	// Determine the in-memory references, *excluding* the undo buffer
+	GEditor->Trans->DisableObjectSerialization();
+	IsReferenced(BlueprintObj, GARBAGE_COLLECTION_KEEPFLAGS, /*bCheckSubObjects =*/true, &ReferencesExcludingUndo);
+	GEditor->Trans->EnableObjectSerialization();
+
+	// see if this object is the transaction buffer - set a flag so we know we need to clear the undo stack
+	const int32 TotalReferenceCount   = ReferencesIncludingUndo.ExternalReferences.Num() + ReferencesIncludingUndo.InternalReferences.Num();
+	const int32 NonUndoReferenceCount = ReferencesExcludingUndo.ExternalReferences.Num() + ReferencesExcludingUndo.InternalReferences.Num();
+
+	return (TotalReferenceCount > NonUndoReferenceCount);
+}
+
+static void UnloadBlueprint(UBlueprint* const Blueprint)
+{
+	UPackage* const OldPackage = Cast<UPackage>(Blueprint->GetOutermost());
+
+	UPackage* const TransientPackage = GetTransientPackage();
+	// move the blueprint to the transient package (to be picked up by garbage collection later)
+	FName UnloadedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), Blueprint->GetFName());
+	Blueprint->Rename(*UnloadedName.ToString(), TransientPackage, REN_DontCreateRedirectors | REN_DoNotDirty);
+
+	// make sure the blueprint is properly trashed
+	Blueprint->SetFlags(RF_Transient);
+	Blueprint->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+	Blueprint->RemoveFromRoot();
+	Blueprint->MarkPendingKill();
+
+	FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(Blueprint);
+
+	// reset the blueprint's original package/linker so that we can get by
+	// any early returns (in the load code), and reload its exports as if new 
+	ResetLoaders(OldPackage);
+	OldPackage->ClearFlags(RF_WasLoaded);
+	OldPackage->bHasBeenFullyLoaded = false;
+	OldPackage->GetMetaData()->RemoveMetaDataOutsidePackage();
+
+	if (IsReferencedByUndoBuffer(Blueprint))
+	{
+		GEditor->Trans->Reset(LOCTEXT("ReloadedBlueprint", "Reloaded Blueprint"));
+	}
+
+	// handled in FBlueprintEditor (from the OnBlueprintUnloaded event)
+// 	IAssetEditorInstance* EditorInst = FAssetEditorManager::Get().FindEditorForAsset(Blueprint, /*bFocusIfOpen =*/false);
+// 	if (EditorInst != nullptr)
+// 	{
+// 		EditorInst->CloseWindow();
+// 	}
+}
+
+UBlueprint* FKismetEditorUtilities::ReloadBlueprint(UBlueprint* StaleBlueprint)
+{
+	check(StaleBlueprint->IsAsset());
+
+	UClass* OldGeneratedClass = StaleBlueprint->GeneratedClass;
+	UObject* OldCDO = nullptr; // will be filled out below
+	UClass* OldSkeletonClass = StaleBlueprint->SkeletonGeneratedClass;
+	UObject* OldSkelCDO = nullptr; // will be filled out below
+
+	//--------------------------------------
+	// Collect objects that need replacing
+	//--------------------------------------
+
+	TArray<UObject*> StaleObjects;
+	if (OldGeneratedClass != nullptr)
+	{
+		StaleObjects.Add(OldGeneratedClass);
+
+		OldCDO = OldGeneratedClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
+		if (OldCDO != nullptr)
+		{
+			StaleObjects.Add(OldCDO);
+		}		
+	}
+	if (OldSkeletonClass != nullptr)
+	{
+		StaleObjects.Add(OldSkeletonClass);
+
+		OldSkelCDO = OldSkeletonClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
+		if (OldSkelCDO != nullptr)
+		{
+			StaleObjects.Add(OldSkelCDO);
+		}
+	}
+	StaleObjects.Add(StaleBlueprint);
+
+	//--------------------------------------
+	// Unload/Load Blueprint
+	//--------------------------------------
+
+	FStringAssetReference BlueprintAssetRef(StaleBlueprint);
+	UnloadBlueprint(StaleBlueprint);
+	
+	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), /*Outer =*/nullptr, *BlueprintAssetRef.AssetLongPathname));
+
+	//--------------------------------------
+	// Construct redirects
+	//--------------------------------------
+
+	TMap<UObject*, UObject*> Redirects;
+	if (OldGeneratedClass != nullptr)
+	{
+		Redirects.Add(OldGeneratedClass, ReloadedBlueprint->GeneratedClass);
+	}
+	if (OldCDO != nullptr)
+	{
+		Redirects.Add(OldCDO, ReloadedBlueprint->GeneratedClass->GetDefaultObject());
+	}
+	if (OldSkeletonClass != nullptr)
+	{
+		Redirects.Add(OldSkeletonClass, ReloadedBlueprint->SkeletonGeneratedClass);
+	}
+	if (OldSkelCDO != nullptr)
+	{
+		Redirects.Add(OldSkelCDO, ReloadedBlueprint->SkeletonGeneratedClass->GetDefaultObject());
+	}
+	Redirects.Add(StaleBlueprint, ReloadedBlueprint);
+
+	//--------------------------------------
+	// Replace old references
+	//--------------------------------------
+
+	TArray<UObject*> Referencers;
+	// find all objects, still referencing the old blueprint/class/cdo/etc.
+	for (auto Referencer : TFindObjectReferencers<UObject>(StaleObjects, /*PackageToCheck =*/nullptr, /*bIgnoreTemplates =*/false))
+	{
+		Referencers.Add(Referencer.Value);
+	}
+
+	StaleBlueprint->SetObjectBeingDebugged(nullptr);
+	FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldGeneratedClass, ReloadedBlueprint->GeneratedClass);
+
+	for (UObject* Referencer : Referencers)
+	{
+		FArchiveReplaceObjectRef<UObject>(Referencer, Redirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/false, /*bIgnoreArchetypeRef=*/false);
+	}
+	
+	return ReloadedBlueprint;
 }
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)

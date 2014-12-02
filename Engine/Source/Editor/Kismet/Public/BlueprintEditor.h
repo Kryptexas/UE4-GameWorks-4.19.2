@@ -576,6 +576,9 @@ protected:
 	/** Called when the Blueprint we are editing has changed */
 	virtual void OnBlueprintChanged(UBlueprint* InBlueprint);
 
+	/** Handles the unloading of Blueprints (by closing the editor, if it operating on the Blueprint being unloaded)*/
+	void OnBlueprintUnloaded(UBlueprint* InBlueprint);
+
 	/** Get title for Inspector 2 tab*/
 	virtual FString GetDefaultEditorTitle();
 
@@ -910,13 +913,11 @@ protected:
 	// Should intermediate build products be saved when recompiling?
 	bool bSaveIntermediateBuildProducts;
 
+	/** Flags if this blueprint editor should close on its next tick. */
+	bool bPendingDeferredClose;
+
 	/** Currently focused graph editor */
 	TWeakPtr<class SGraphEditor> FocusedGraphEdPtr;
-
-
-
-
-
 	
 	// Factory that spawns graph editors; used to look up all tabs spawned by it.
 	TWeakPtr<FDocumentTabFactory> GraphEditorTabFactoryPtr;

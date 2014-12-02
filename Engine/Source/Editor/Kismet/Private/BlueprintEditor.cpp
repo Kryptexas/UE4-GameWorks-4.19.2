@@ -1070,6 +1070,7 @@ static auto CVarBlueprintExpertMode	= IConsoleManager::Get().RegisterConsoleVari
 
 FBlueprintEditor::FBlueprintEditor()
 	: bSaveIntermediateBuildProducts(false)
+	, bPendingDeferredClose(false)
 	, bRequestedSavingOpenDocumentState(false)
 	, bBlueprintModifiedOnOpen (false)
 	, PinVisibility(SGraphEditor::Pin_Show)
@@ -1272,6 +1273,8 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 
 	CreateDefaultCommands();
 	CreateDefaultTabContents(InitBlueprints);
+
+	FKismetEditorUtilities::OnBlueprintUnloaded.AddSP(this, &FBlueprintEditor::OnBlueprintUnloaded);
 }
 
 void FBlueprintEditor::LoadLibrariesFromAssetRegistry()
@@ -2631,6 +2634,19 @@ void FBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 		if (GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 		{
 			SaveEditedObjectState();
+		}
+	}
+}
+
+void FBlueprintEditor::OnBlueprintUnloaded(UBlueprint* InBlueprint)
+{
+	for (UObject* EditingObj : GetEditingObjects())
+	{
+		if (Cast<UBlueprint>(EditingObj) == InBlueprint)
+		{
+			// give the editor a chance to open a replacement
+			bPendingDeferredClose = true;
+			break;
 		}
 	}
 }
@@ -5898,6 +5914,13 @@ void FBlueprintEditor::Tick(float DeltaTime)
 	if (InstructionsFadeCountdown > 0.f)
 	{
 		InstructionsFadeCountdown -= DeltaTime;
+	}
+
+	if (bPendingDeferredClose)
+	{
+		IAssetEditorInstance* EditorInst = FAssetEditorManager::Get().FindEditorForAsset(GetBlueprintObj(), /*bFocusIfOpen =*/false);
+		check(EditorInst != nullptr);
+		EditorInst->CloseWindow();
 	}
 }
 TStatId FBlueprintEditor::GetStatId() const

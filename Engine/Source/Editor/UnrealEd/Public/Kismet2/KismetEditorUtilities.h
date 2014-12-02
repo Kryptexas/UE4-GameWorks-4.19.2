@@ -30,6 +30,22 @@ public:
 	 */
 	static UBlueprint* CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, enum EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, TSubclassOf<UBlueprintGeneratedClass> BlueprintGeneratedClassType, FName CallingContext = NAME_None);
 
+	/** 
+	 * Event that's broadcast anytime a blueprint is unloaded, and becomes 
+	 * invalid (with calls to ReloadBlueprint(), for example).
+	 */
+	DECLARE_EVENT_OneParam(FKismetEditorUtilities, FOnBlueprintUnloaded, UBlueprint*);
+	static FOnBlueprintUnloaded OnBlueprintUnloaded;
+
+	/** 
+	 * Unloads the supplied Blueprint (marking it pending-kill, and removing it 
+	 * from its outer package). Then proceeds to reload from disk.
+
+	 * @param  TargetBlueprint	The Blueprint you want to unload and replace.
+	 * @return The freshly loaded Blueprint (replacing the, now invalid, input).
+	 */
+	static UBlueprint* ReloadBlueprint(UBlueprint* TargetBlueprint);
+
 	/** Create the correct event graphs for this blueprint */
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);
 

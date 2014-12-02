@@ -1835,7 +1835,8 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 				const bool bIsDirtyAndShouldBeRecompiled = Blueprint->IsPossiblyDirty();
 				if( !FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) 
 					&& (bIsDirtyAndShouldBeRecompiled || FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint))
-					&& (Blueprint->Status != BS_Unknown) )
+					&& (Blueprint->Status != BS_Unknown)
+					&& !Blueprint->IsPendingKill() )
 				{
 					BlueprintsToRecompile.Add(Blueprint);
 				}

@@ -424,12 +424,28 @@ namespace BlueprintActionDatabaseImpl
 	static void OnAssetsPendingDelete(TArray<UObject*> const& ObjectsForDelete);
 
 	/**
-	 * Callback to refresh the database when an object has been delete (to clear 
-	 * any related classes that were stored in the database) 
+	 * Callback to refresh the database when an object has been deleted (to  
+	 * clear any related entries that were stored in the database) 
 	 * 
 	 * @param  AssetInfo	Data regarding the freshly removed asset.
 	 */
 	static void OnAssetRemoved(FAssetData const& AssetInfo);
+
+	/**
+	 * Callback to refresh the database when an object has been deleted/unloaded
+	 * (to clear any related entries that were stored in the database) 
+	 * 
+	 * @param  AssetObject	The object being removed/deleted/unloaded.
+	 */
+	static void OnAssetRemoved(UObject* AssetObject);
+
+	/**
+	 * Callback to refresh the database when a blueprint has been unloaded
+	 * (to clear any related entries that were stored in the database) 
+	 * 
+	 * @param  BlueprintObj	The blueprint being unloaded.
+	 */
+	static void OnBlueprintUnloaded(UBlueprint* BlueprintObj);
 
 	/**
 	 * Callback to refresh the database when an object has been renamed (to clear 
@@ -839,13 +855,28 @@ static void BlueprintActionDatabaseImpl::OnAssetRemoved(FAssetData const& AssetI
 	if (AssetInfo.IsAssetLoaded())
 	{
 		UObject* AssetObject = AssetInfo.GetAsset();
-		// the delete went through, so we don't need to track these for re-add
-		PendingDelete.Remove(AssetObject);
+		OnAssetRemoved(AssetObject);
 	}
 	else
 	{
 		ActionDatabase.ClearUnloadedAssetActions(AssetInfo.ObjectPath);
 	}
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnAssetRemoved(UObject* AssetObject)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.ClearAssetActions(AssetObject);
+
+	// the delete went through, so we don't need to track these for re-add
+	PendingDelete.Remove(AssetObject);
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnBlueprintUnloaded(UBlueprint* BlueprintObj)
+{
+	OnAssetRemoved(BlueprintObj);
 }
 
 //------------------------------------------------------------------------------
@@ -915,6 +946,7 @@ FBlueprintActionDatabase::FBlueprintActionDatabase()
 	AssetRegistry.OnAssetRenamed().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRenamed);
 
 	FEditorDelegates::OnAssetsPreDelete.AddStatic(&BlueprintActionDatabaseImpl::OnAssetsPendingDelete);
+	FKismetEditorUtilities::OnBlueprintUnloaded.AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintUnloaded);
 
 	GEngine->OnWorldDestroyed().AddStatic(&BlueprintActionDatabaseImpl::OnWorldDestroyed);
 }
@@ -1145,7 +1177,11 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	// Will clear up any unloaded asset actions associated with this object, if any
 	ClearUnloadedAssetActions(*AssetObject->GetPathName());
 
-	if (AssetActionList.Num() > 0)
+	if (AssetObject->IsPendingKill())
+	{
+		ClearAssetActions(AssetObject);
+	}
+	else if (AssetActionList.Num() > 0)
 	{
 		// queue these assets for priming
 		ActionPrimingQueue.Add(AssetObject, 0);
