@@ -2481,7 +2481,7 @@ void FMatinee::OnSetMoveKeyLookupGroup()
 
 		TSharedRef<STextComboPopup> TextEntryPopup = 
 			SNew(STextComboPopup)
-			.Label(NSLOCTEXT("Matinee.Popups", "SelectGroup", "Select Group").ToString())
+			.Label(NSLOCTEXT("Matinee.Popups", "SelectGroup", "Select Group"))
 			.TextOptions(GroupNames)
 			.OnTextChosen(this, &FMatinee::OnSetMoveKeyLookupGroupTextChosen, SelKey.KeyIndex, MoveTrack, MoveTrackAxis)
 			;
