@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ObjectBase.h"
+#include "WorldCompositionUtility.h"
 
 /**
  * Structure to hold information about an external packages objects used in cross-level references
@@ -86,7 +87,7 @@ public:
 	class UMetaData*	MetaData;
 	
 	// World browser information
-	TScopedPointer< class FWorldTileInfo > WorldTileInfo;
+	TScopedPointer< FWorldTileInfo > WorldTileInfo;
 
 #if WITH_EDITOR
 	/** Editor only: PIE instance ID this package belongs to, INDEX_NONE otherwise */

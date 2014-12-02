@@ -939,6 +939,11 @@ void SGraphPanel::AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode)
 	CreatedSubNode->SetTextCommittedEvent(OnTextCommitted);
 }
 
+const TSharedRef<SGraphNode> SGraphPanel::GetChild(int32 ChildIndex)
+{
+	return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);
+}
+
 void SGraphPanel::AddNode(UEdGraphNode* Node)
 {
 	TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(Node);

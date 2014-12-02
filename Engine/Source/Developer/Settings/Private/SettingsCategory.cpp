@@ -56,6 +56,11 @@ void FSettingsCategory::RemoveSection( const FName& SectionName )
 /* ISettingsCategory interface
  *****************************************************************************/
 
+ISettingsSectionPtr FSettingsCategory::GetSection( const FName& SectionName ) const
+{
+	return Sections.FindRef(SectionName);
+}
+
 int32 FSettingsCategory::GetSections( TArray<ISettingsSectionPtr>& OutSections ) const
 {
 	OutSections.Empty(Sections.Num());

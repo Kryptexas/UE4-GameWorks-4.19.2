@@ -87,10 +87,7 @@ public:
 		return Name;
 	}
 
-	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const override
-	{
-		return Sections.FindRef(SectionName);
-	}
+	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const override;
 
 	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const override;
 

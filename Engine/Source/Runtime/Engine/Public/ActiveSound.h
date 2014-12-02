@@ -4,6 +4,7 @@
 
 #include "Sound/AudioVolume.h"
 #include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
 
 /**
  *	Struct used for gathering the final parameters to apply to a wave instance
@@ -173,7 +174,7 @@ public:
 	TMap<UPTRINT,uint32> SoundNodeOffsetMap;
 	TArray<uint8> SoundNodeData;
 
-	TArray<struct FAudioComponentParam> InstanceParameters;
+	TArray<FAudioComponentParam> InstanceParameters;
 
 	// Updates the wave instances to be played.
 	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &WaveInstances, const float DeltaTime );

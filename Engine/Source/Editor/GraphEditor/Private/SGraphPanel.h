@@ -160,10 +160,7 @@ protected:
 
 	void NotifyGraphChanged ( const struct FEdGraphEditAction& InAction);
 
-	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex)
-	{
-		return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);
-	}
+	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex);
 
 	/** Helper method to add a new node to the panel */
 	void AddNode (class UEdGraphNode* Node);
