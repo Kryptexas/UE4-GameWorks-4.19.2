@@ -29,4 +29,14 @@ public:
 
 	// Misc. actions
 	TSharedPtr<FUICommandInfo> FocusOnTileMap;
+
+
+
+	TSharedPtr<FUICommandInfo> AddNewLayerAbove;
+	TSharedPtr<FUICommandInfo> AddNewLayerBelow;
+	TSharedPtr<FUICommandInfo> DeleteLayer;
+	TSharedPtr<FUICommandInfo> DuplicateLayer;
+	TSharedPtr<FUICommandInfo> MergeLayerDown;
+	TSharedPtr<FUICommandInfo> MoveLayerUp;
+	TSharedPtr<FUICommandInfo> MoveLayerDown;
 };

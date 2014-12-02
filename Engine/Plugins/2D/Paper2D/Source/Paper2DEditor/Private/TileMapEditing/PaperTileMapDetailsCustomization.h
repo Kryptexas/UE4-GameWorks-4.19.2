@@ -19,11 +19,8 @@ public:
 
 private:
 	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
+
 private:
-	FReply AddLayerClicked();
-	FReply AddCollisionLayerClicked();
 	FReply EnterTileMapEditingMode();
 	EVisibility GetNonEditModeVisibility() const;
-
-	class UPaperTileLayer* AddLayer(bool bCollisionLayer);
 };

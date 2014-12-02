@@ -18,7 +18,24 @@ protected:
 
 protected:
 	TSharedPtr<SPaperLayerListView> ListViewWidget;
+	TSharedPtr<class FUICommandList> CommandList;
+	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
 
 protected:
 	TSharedRef<ITableRow> OnGenerateRowDefault(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable);
+
+	class UPaperTileLayer* GetSelectedLayer() const;
+
+	// Returns the selected index if anything is selected, or the top item otherwise (only returns INDEX_NONE if there are no layers)
+	int32 GetSelectionIndex() const;
+
+	class UPaperTileLayer* AddLayer(bool bCollisionLayer);
+
+	void AddNewLayerAbove();
+	void AddNewLayerBelow();
+	void DeleteLayer();
+	void DuplicateLayer();
+	void MergeLayerDown();
+	void MoveLayerUp();
+	void MoveLayerDown();
 };
