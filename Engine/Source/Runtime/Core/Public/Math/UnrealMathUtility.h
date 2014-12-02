@@ -862,6 +862,20 @@ struct FMath : public FPlatformMath
 	static CORE_API FVector ClosestPointOnSegment(const FVector &Point, const FVector &StartPoint, const FVector &EndPoint);
 
 	/**
+	* FVector2D version of ClosestPointOnSegment.
+	* Returns closest point on a segment to a given 2D point.
+	* The idea is to project point on line formed by segment.
+	* Then we see if the closest point on the line is outside of segment or inside.
+	*
+	* @param	Point			point for which we find the closest point on the segment
+	* @param	StartPoint		StartPoint of segment
+	* @param	EndPoint		EndPoint of segment
+	*
+	* @return	point on the segment defined by (StartPoint, EndPoint) that is closest to Point.
+	*/
+	static CORE_API FVector2D ClosestPointOnSegment2D(const FVector2D &Point, const FVector2D &StartPoint, const FVector2D &EndPoint);
+
+	/**
 	 * Returns distance from a point to the closest point on a segment.
 	 *
 	 * @param	Point			point to check distance for

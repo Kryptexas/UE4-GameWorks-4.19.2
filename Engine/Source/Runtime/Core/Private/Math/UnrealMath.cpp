@@ -1221,6 +1221,29 @@ FVector FMath::ClosestPointOnSegment(const FVector &Point, const FVector &StartP
 	return StartPoint + Segment * (Dot1 / Dot2);
 }
 
+FVector2D FMath::ClosestPointOnSegment2D(const FVector2D &Point, const FVector2D &StartPoint, const FVector2D &EndPoint)
+{
+	const FVector2D Segment = EndPoint - StartPoint;
+	const FVector2D VectToPoint = Point - StartPoint;
+
+	// See if closest point is before StartPoint
+	const float Dot1 = VectToPoint | Segment;
+	if (Dot1 <= 0)
+	{
+		return StartPoint;
+	}
+
+	// See if closest point is beyond EndPoint
+	const float Dot2 = Segment | Segment;
+	if (Dot2 <= Dot1)
+	{
+		return EndPoint;
+	}
+
+	// Closest Point is within segment
+	return StartPoint + Segment * (Dot1 / Dot2);
+}
+
 float FMath::PointDistToSegment(const FVector &Point, const FVector &StartPoint, const FVector &EndPoint) 
 {
 	const FVector ClosestPoint = ClosestPointOnSegment(Point, StartPoint, EndPoint);
