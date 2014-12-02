@@ -274,6 +274,13 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 			ExistingHeightfieldRef = GSharedHeightfieldRefs.FindRef(HeightfieldGuid);
 		}
 
+		// This should only occur if a level prior to VER_UE4_LANDSCAPE_COLLISION_DATA_COOKING 
+		// was resaved using a commandlet and not saved in the editor.
+		if (CookedPhysicalMaterials.Num() == 0)
+		{
+			bCheckDDC = false;
+		}
+
 		if (ExistingHeightfieldRef)
 		{
 			HeightfieldRef = ExistingHeightfieldRef;
