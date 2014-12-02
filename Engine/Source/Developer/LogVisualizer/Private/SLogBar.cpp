@@ -399,12 +399,11 @@ void SLogBar::SetEntries(const TArray<TSharedPtr<FVisualLogEntry> >& InEntries, 
 
 	if (bDrawHistogramCursor)
 	{
-		//const FText ToolTip(TEXT("Use mouse wheel and left shift to modify graph window"));
-		SetToolTipText(TAttribute<FString>(TEXT("Use mouse wheel and left shift to modify 2d graph cursor size")));
+		SetToolTipText(LOCTEXT("ModifyHistogramCursorToolTip", "Use mouse wheel and left shift to modify 2d graph cursor size"));
 	}
 	else
 	{
-		SetToolTipText(FText());
+		SetToolTipText(FText::GetEmpty());
 	}
 }
 

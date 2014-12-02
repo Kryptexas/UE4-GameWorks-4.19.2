@@ -153,14 +153,14 @@ EVisibility FParticleSysParamStructCustomization::GetMaterialVisibility() const
 TSharedRef<SWidget> FParticleSysParamStructCustomization::OnGenerateComboWidget(TSharedPtr<FString> InComboString)
 {
 	// Find ToolTip which corresponds to string
-	FString ToolTip;
+	FText ToolTip;
 	check(ParameterTypeNames.Num() == ParameterTypeToolTips.Num());
 	if (ParameterTypeToolTips.Num() > 0)
 	{
 		int32 Index = ParameterTypeNames.IndexOfByKey(InComboString);
 		if (ensure(Index >= 0))
 		{
-			ToolTip = *ParameterTypeToolTips[Index];
+			ToolTip = ParameterTypeToolTips[Index];
 		}
 	}
 

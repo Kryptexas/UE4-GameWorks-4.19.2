@@ -115,7 +115,7 @@ protected:
 
 	// Arrays of combo box data: list items, and tooltips
 	TArray< TSharedPtr<FString> > ComboBoxList;
-	TArray< TSharedPtr<FString> > ComboBoxToolTips;
+	TArray< FText > ComboBoxToolTips;
 
 	// Flags whether the slider is being moved at the moment on any of our widgets
 	bool bIsUsingSlider;

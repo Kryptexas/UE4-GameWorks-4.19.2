@@ -199,11 +199,11 @@ FReply SGraphBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 	{
 		if( HoveredEventIndex != INDEX_NONE )
 		{
-			this->SetToolTipText(TAttribute<FString>(Events[HoveredEventIndex]->EventName));
+			this->SetToolTipText( FText::FromString(Events[HoveredEventIndex]->EventName) );
 		}
 		else
 		{
-			this->SetToolTipText( FText() );
+			this->SetToolTipText( FText::GetEmpty() );
 		}
 		LastHoveredEvent = HoveredEventIndex;
 	}

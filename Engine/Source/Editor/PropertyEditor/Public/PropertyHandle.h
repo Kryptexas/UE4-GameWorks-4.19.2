@@ -314,7 +314,7 @@ public:
 	/**
 	 * Generates a list of possible enum/class options for the property
 	 */
-	virtual bool GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< TSharedPtr<FString> >& OutToolTips, TArray<bool>& OutRestrictedItems) = 0;
+	virtual bool GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems) = 0;
 
 	/**
 	 * Marks this property has hidden by customizaton (will not show up in the default place)

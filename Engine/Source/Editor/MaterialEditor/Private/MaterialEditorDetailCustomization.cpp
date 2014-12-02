@@ -139,15 +139,15 @@ FMaterialExpressionCollectionParameterDetails::FMaterialExpressionCollectionPara
 {
 }
 
-FString FMaterialExpressionCollectionParameterDetails::GetToolTipText() const
+FText FMaterialExpressionCollectionParameterDetails::GetToolTipText() const
 {
 	if (ParametersSource.Num() == 1)
 	{
-		return LOCTEXT("SpecifyCollection", "Specify a Collection to get parameter options").ToString();
+		return LOCTEXT("SpecifyCollection", "Specify a Collection to get parameter options");
 	}
 	else
 	{
-		return LOCTEXT("ChooseParameter", "Choose a parameter from the collection").ToString();
+		return LOCTEXT("ChooseParameter", "Choose a parameter from the collection");
 	}
 }
 
@@ -246,7 +246,7 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 	ParameterComboButton = NewComboButton;
 	ParameterListView = NewListView;
 
-	NewComboButton->SetToolTipText(TAttribute<FString>(GetToolTipText()));
+	NewComboButton->SetToolTipText(GetToolTipText());
 }
 
 void FMaterialExpressionCollectionParameterDetails::PopulateParameters()

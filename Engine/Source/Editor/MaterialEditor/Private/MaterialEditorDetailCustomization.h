@@ -70,7 +70,7 @@ private:
 	TSharedRef< ITableRow > MakeDetailsGroupViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
 	void OnSelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type SelectInfo );
 
-	FString GetToolTipText() const;
+	FText GetToolTipText() const;
 	FString GetParameterNameString() const;
 	bool IsParameterNameComboEnabled() const;
 	void OnCollectionChanged();

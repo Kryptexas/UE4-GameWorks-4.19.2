@@ -20,7 +20,7 @@ void SPropertyComboBox::Construct( const FArguments& InArgs )
 	{
 		if(*ComboItemList[ItemIndex].Get() == VisibleText)
 		{
-			SetToolTipText(TAttribute<FString>(*ToolTipList[ItemIndex]));
+			SetToolTipText(ToolTipList[ItemIndex]);
 			InitiallySelectedItem = ComboItemList[ItemIndex];
 			break;
 		}
@@ -56,7 +56,7 @@ void SPropertyComboBox::SetSelectedItem( const FString& InSelectedItem )
 	{
 		if(*ComboItemList[ItemIndex].Get() == InSelectedItem)
 		{
-			SetToolTipText(TAttribute<FString>(*ToolTipList[ItemIndex]));
+			SetToolTipText(ToolTipList[ItemIndex]);
 
 			SComboBox< TSharedPtr<FString> >::SetSelectedItem(ComboItemList[ItemIndex]);
 			return;
@@ -64,7 +64,7 @@ void SPropertyComboBox::SetSelectedItem( const FString& InSelectedItem )
 	}
 }
 
-void SPropertyComboBox::SetItemList(TArray< TSharedPtr< FString > >& InItemList, TArray< TSharedPtr< FString > >& InTooltipList, TArray<bool>& InRestrictedList)
+void SPropertyComboBox::SetItemList(TArray< TSharedPtr< FString > >& InItemList, TArray< FText >& InTooltipList, TArray<bool>& InRestrictedList)
 {
 	ComboItemList = InItemList;
 	ToolTipList = InTooltipList;
@@ -99,7 +99,7 @@ void SPropertyComboBox::OnSelectionChangedInternal( TSharedPtr<FString> InSelect
 TSharedRef<SWidget> SPropertyComboBox::OnGenerateComboWidget( TSharedPtr<FString> InComboString )
 {
 	//Find the corresponding tool tip for this combo entry if any
-	FString ToolTip;
+	FText ToolTip;
 	bool bEnabled = true;
 	if (ToolTipList.Num() > 0)
 	{
@@ -108,7 +108,7 @@ TSharedRef<SWidget> SPropertyComboBox::OnGenerateComboWidget( TSharedPtr<FString
 		{
 			//A list of tool tips should have been populated in a 1 to 1 correspondance
 			check(ComboItemList.Num() == ToolTipList.Num());
-			ToolTip = *ToolTipList[Index];
+			ToolTip = ToolTipList[Index];
 
 			if( RestrictedList.Num() > 0 )
 			{

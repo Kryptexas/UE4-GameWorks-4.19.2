@@ -106,7 +106,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		LinearZMotionProperty = ConstraintInstance->GetChildHandle("LinearZMotion");
 		
 		TArray<TSharedPtr<FString>> LinearLimitOptionNames;
-		TArray<TSharedPtr<FString>> LinearLimitOptionTooltips;
+		TArray<FText> LinearLimitOptionTooltips;
 		TArray<bool> LinearLimitOptionRestrictItems;
 
 		const int32 ExpectedLinearLimitOptionCount = 3;
@@ -144,7 +144,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 						.Style(FEditorStyle::Get(), "RadioButton")
 						.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, LinearLimitEnum[0])
 						.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, LinearLimitEnum[0] )
-						.ToolTipText(*LinearLimitOptionTooltips[0].Get())
+						.ToolTipText(LinearLimitOptionTooltips[0])
 						[
 							SNew(STextBlock).Text(*LinearLimitOptionNames[0].Get())
 						]						
@@ -157,7 +157,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, LinearLimitEnum[1])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, LinearLimitEnum[1] )
-							.ToolTipText(*LinearLimitOptionTooltips[1].Get())
+							.ToolTipText(LinearLimitOptionTooltips[1])
 							[
 								SNew(STextBlock).Text(*LinearLimitOptionNames[1].Get())
 							]
@@ -170,7 +170,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, LinearLimitEnum[2])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, LinearLimitEnum[2] )
-							.ToolTipText(*LinearLimitOptionTooltips[2].Get())
+							.ToolTipText(LinearLimitOptionTooltips[2])
 							[
 								SNew(STextBlock).Text(*LinearLimitOptionNames[2].Get())
 							]
@@ -200,7 +200,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		AngularTwistMotionProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularTwistMotion));
 
 		TArray<TSharedPtr<FString>> AngularLimitOptionNames;
-		TArray<TSharedPtr<FString>> AngularLimitOptionTooltips;
+		TArray<FText> AngularLimitOptionTooltips;
 		TArray<bool> AngularLimitOptionRestrictItems;
 
 		const int32 ExpectedAngularLimitOptionCount = 3;
@@ -237,7 +237,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 						.Style(FEditorStyle::Get(), "RadioButton")
 						.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[0])
 						.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[0] )
-						.ToolTipText(*AngularLimitOptionTooltips[0].Get())
+						.ToolTipText(AngularLimitOptionTooltips[0])
 						[
 							SNew(STextBlock).Text(*AngularLimitOptionNames[0].Get())
 						]						
@@ -250,7 +250,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[1])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[1] )
-							.ToolTipText(*AngularLimitOptionTooltips[1].Get())
+							.ToolTipText(AngularLimitOptionTooltips[1])
 							[
 								SNew(STextBlock).Text(*AngularLimitOptionNames[1].Get())
 							]
@@ -263,7 +263,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[2])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[2] )
-							.ToolTipText(*AngularLimitOptionTooltips[2].Get())
+							.ToolTipText(AngularLimitOptionTooltips[2])
 							[
 								SNew(STextBlock).Text(*AngularLimitOptionNames[2].Get())
 							]

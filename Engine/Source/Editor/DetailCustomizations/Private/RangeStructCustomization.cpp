@@ -339,7 +339,7 @@ bool FRangeStructCustomization<NumericType>::ShouldAllowSpin() const
 template <typename NumericType>
 TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidget(TSharedPtr<FString> InComboString)
 {
-	FString ToolTip;
+	FText ToolTip;
 
 	// A list of tool tips should have been populated in a 1 to 1 correspondence
 	check(ComboBoxList.Num() == ComboBoxToolTips.Num());
@@ -349,7 +349,7 @@ TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidge
 		int32 Index = ComboBoxList.IndexOfByKey(InComboString);
 		if (ensure(Index >= 0))
 		{
-			ToolTip = *ComboBoxToolTips[Index];
+			ToolTip = ComboBoxToolTips[Index];
 		}
 	}
 

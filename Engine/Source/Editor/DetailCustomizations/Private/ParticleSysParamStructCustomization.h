@@ -40,7 +40,7 @@ private:
 	TArray<TSharedPtr<FString>> ParameterTypeNames;
 
 	/** A list of parameter type tooltips */
-	TArray<TSharedPtr<FString>> ParameterTypeToolTips;
+	TArray<FText> ParameterTypeToolTips;
 
 	/** Delegates called by each property widget to determine their visibility */
 	EVisibility GetScalarVisibility() const;
