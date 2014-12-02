@@ -591,7 +591,7 @@ void UUnrealEdEngine::SetMapBuildCancelled( bool InCancelled )
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
 
-FString FClassPickerDefaults::GetName() const
+FText FClassPickerDefaults::GetName() const
 {
 	static TMap< FString, FText > LocNames;
 
@@ -608,26 +608,26 @@ FString FClassPickerDefaults::GetName() const
 	{
 		UClass* ItemClass = LoadClass<UObject>(NULL, *ClassName, NULL, LOAD_None, NULL);
 		check( ItemClass );
-		return FName::NameToDisplayString(ItemClass->GetName(), false);
+		return FText::FromString(FName::NameToDisplayString(ItemClass->GetName(), false));
 	}
 	
 	const FText* PreExistingName = LocNames.Find( LocTextNameID );
 	if ( PreExistingName )
 	{
-		return PreExistingName->ToString();
+		return *PreExistingName;
 	}
 
 	FText OutName;
 	if ( FText::FindText(TEXT("UnrealEd"), LocTextNameID, OutName) )
 	{
-		return OutName.ToString();
+		return OutName;
 	}
 		
-	return LocTextNameID;
+	return FText::FromString(LocTextNameID);
 }
 
 
-FString FClassPickerDefaults::GetDescription() const
+FText FClassPickerDefaults::GetDescription() const
 {
 	static TMap< FString, FText > LocDescs;
 
@@ -642,22 +642,22 @@ FString FClassPickerDefaults::GetDescription() const
 
 	if ( LocTextDescriptionID.IsEmpty() )
 	{
-		return LOCTEXT("NoClassPickerDesc", "No Description.").ToString();
+		return LOCTEXT("NoClassPickerDesc", "No Description.");
 	}
 
 	const FText* PreExistingDesc = LocDescs.Find( LocTextDescriptionID );
 	if ( PreExistingDesc )
 	{
-		return PreExistingDesc->ToString();
+		return *PreExistingDesc;
 	}
 
 	FText OutDesc;
 	if ( FText::FindText(TEXT("UnrealEd"), LocTextDescriptionID, OutDesc) )
 	{
-		return OutDesc.ToString();
+		return OutDesc;
 	}
 		
-	return LocTextDescriptionID;
+	return FText::FromString(LocTextDescriptionID);
 }
 
 #undef LOCTEXT_NAMESPACE

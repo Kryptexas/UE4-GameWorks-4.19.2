@@ -159,7 +159,7 @@ private:
 	 */
 	/* Set rig set combo box*/
 	void OnAssetSelected(UObject* Object);
-	FString GetAssetName() const;
+	FText GetAssetName() const;
 	void CloseComboButton();
 	TSharedRef<SWidget> MakeRigPickerWithMenu();
 
@@ -172,5 +172,5 @@ private:
 	FName GetBoneMapping( FName NodeName );
 
 	FReply OnToggleAdvanced();
-	FString GetAdvancedButtonText() const;
+	FText GetAdvancedButtonText() const;
 };

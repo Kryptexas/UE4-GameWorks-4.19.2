@@ -175,9 +175,9 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTexturePan()
 		SAssignNew(GridBox,SUniformGridPanel)
 	];
 
-	const static FString ButtonFields[] = {"1/256", "1/64","1/16","1/4"};
+	const static FText ButtonFields[] = {FText::FromString("1/256"), FText::FromString("1/64"), FText::FromString("1/16"), FText::FromString("1/4")};
 	const static int32 ButtonIncriments[] = {1,4,16,64};
-	for (int i = 0; i < ARRAY_COUNT(ButtonFields); i++)
+	for (int32 i = 0; i < ARRAY_COUNT(ButtonFields); i++)
 	{
 		GridBox->AddSlot(i, 0)
 		.VAlign(VAlign_Fill)

@@ -586,7 +586,7 @@ void SProfileEditDialog::Construct(const FArguments& InArgs)
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("SProfileEditDialog_Accept", "Accept").ToString())
+				.Text(LOCTEXT("SProfileEditDialog_Accept", "Accept"))
 				.OnClicked(this, &SProfileEditDialog::OnAccept)
 				.IsEnabled(this, &SProfileEditDialog::IsAcceptAvailable)
 			]
@@ -595,7 +595,7 @@ void SProfileEditDialog::Construct(const FArguments& InArgs)
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("SProfileEditDialog_Cancel", "Cancel").ToString())
+				.Text(LOCTEXT("SProfileEditDialog_Cancel", "Cancel"))
 				.OnClicked(this, &SProfileEditDialog::OnCancel)
 			]
 		]
@@ -1163,7 +1163,7 @@ TSharedRef<SWidget> SChannelListItem::GenerateWidgetForColumn(const FName& Colum
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(TEXT("%s"), *ChannelSetup->Name.ToString()))
+				.Text(FText::FromName(ChannelSetup->Name))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			];
 	}
@@ -1247,7 +1247,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Engine"))
-					.ToolTipText(LOCTEXT("CantModify_Tooltip", "You can't modify the name of Engine profiles").ToString())
+					.ToolTipText(LOCTEXT("CantModify_Tooltip", "You can't modify the name of Engine profiles"))
 				];
 		}
 		else
@@ -1258,7 +1258,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Game"))
-					.ToolTipText(LOCTEXT("CanModify_Tooltip", "This is your custom project profie").ToString())
+					.ToolTipText(LOCTEXT("CanModify_Tooltip", "This is your custom project profie"))
 				];
 		}
 	}
@@ -1269,7 +1269,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(TEXT("%s"), *ProfileTemplate->Name.ToString()))
+				.Text(FText::FromName(ProfileTemplate->Name))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			];
 	}
@@ -1372,7 +1372,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_NewObject", "New Object Channel...").ToString())
+				.Text(LOCTEXT("ChannelMenu_NewObject", "New Object Channel..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnNewChannel, false)
 				.IsEnabled(this, &FCollisionProfileDetails::IsNewChannelAvailable)
 			]
@@ -1384,7 +1384,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Edit", "Edit...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Edit", "Edit..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnEditChannel, false)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, false)
 			]
@@ -1396,7 +1396,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Delete", "Delete...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Delete", "Delete..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnDeleteChannel, false)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, false)
 			]
@@ -1466,7 +1466,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_NewTrace", "New Trace Channel...").ToString())
+				.Text(LOCTEXT("ChannelMenu_NewTrace", "New Trace Channel..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnNewChannel, true)
 				.IsEnabled(this, &FCollisionProfileDetails::IsNewChannelAvailable)
 			]
@@ -1478,7 +1478,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Edit", "Edit...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Edit", "Edit..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnEditChannel, true)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, true)
 			]
@@ -1490,7 +1490,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Delete", "Delete...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Delete", "Delete..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnDeleteChannel, true)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, true)
 			]
@@ -1560,7 +1560,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ProfileMenu_New", "New...").ToString())
+				.Text(LOCTEXT("ProfileMenu_New", "New..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnNewProfile)
 			]
 
@@ -1571,7 +1571,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ProfileMenu_Edit", "Edit...").ToString())
+				.Text(LOCTEXT("ProfileMenu_Edit", "Edit..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnEditProfile)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyProfileSelected)
 			]
@@ -1583,7 +1583,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ProfileMenu_Delete", "Delete...").ToString())
+				.Text(LOCTEXT("ProfileMenu_Delete", "Delete..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnDeleteProfile)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyProfileSelected)
 			]

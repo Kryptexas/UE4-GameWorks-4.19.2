@@ -32,15 +32,11 @@ class SFavouriteMenuEntry : public SCompoundWidget
 	 */
 	void Construct( const FArguments& InArgs )
 	{
-		FString AssetDisplayName("");
-		if ( !InArgs._LabelOverride.IsEmpty() )
-		{
-			AssetDisplayName = InArgs._LabelOverride.ToString();
-		}
+		const FText AssetDisplayName = InArgs._LabelOverride;
 		OnOpenClickedDelegate = InArgs._OnOpenClickedDelegate;
 		OnRemoveClickedDelegate = InArgs._OnRemoveClickedDelegate;
 
-		FString OpenDisplayName( *FString::Printf( *LOCTEXT("OpenLevelToolTip", "Open level: %s").ToString(), *AssetDisplayName ) );
+		const FText OpenDisplayName = FText::Format( LOCTEXT("OpenLevelToolTipFmt", "Open level: {0}"), AssetDisplayName );
 		FSlateFontInfo MenuEntryFont = FEditorStyle::GetFontStyle( "Menu.Label.Font" );
 
 		ChildSlot
@@ -76,7 +72,7 @@ class SFavouriteMenuEntry : public SCompoundWidget
 					SNew(SButton)
 					.ContentPadding( FMargin(4.0, 0.0) )
 					.ButtonStyle( FEditorStyle::Get(), "Docking.Tab.CloseButton" )
-					.ToolTipText( FString::Printf( *LOCTEXT("RemoveFavoriteToolTip", "Remove %s from Favorites").ToString(), *AssetDisplayName ) )
+					.ToolTipText( FText::Format( LOCTEXT("RemoveFavoriteToolTipFmt", "Remove {0} from Favorites"), AssetDisplayName ) )
 					.OnClicked(this, &SFavouriteMenuEntry::OnRemove)
 				]
 			]

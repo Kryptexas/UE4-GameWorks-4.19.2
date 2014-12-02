@@ -432,14 +432,14 @@ FReply SRigWindow::OnToggleAdvanced()
 	return FReply::Handled();
 }
 
-FString SRigWindow::GetAdvancedButtonText() const
+FText SRigWindow::GetAdvancedButtonText() const
 {
 	if (bDisplayAdvanced)
 	{
-		return TEXT("Show Base");
+		return LOCTEXT("ShowBase", "Show Base");
 	}
 
-	return TEXT("Show Advanced");
+	return LOCTEXT("ShowAdvanced", "Show Advanced");
 }
 
 TSharedRef<SWidget> SRigWindow::MakeRigPickerWithMenu()
@@ -458,15 +458,15 @@ void SRigWindow::CloseComboButton()
 	AssetComboButton->SetIsOpen(false);
 }
 
-FString SRigWindow::GetAssetName() const
+FText SRigWindow::GetAssetName() const
 {
 	UObject* Rig = GetRigObject();
 	if (Rig)
 	{
-		return Rig->GetName();
+		return FText::FromString(Rig->GetName());
 	}
 
-	return TEXT("None");
+	return LOCTEXT("None", "None");
 }
 
 #undef LOCTEXT_NAMESPACE

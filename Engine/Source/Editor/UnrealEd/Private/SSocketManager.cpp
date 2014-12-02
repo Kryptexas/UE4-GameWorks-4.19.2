@@ -253,7 +253,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.Padding(5.0f, 0.0f, 4.0f, 0.0f)
 						[
 							SNew(SButton)
-							.Text(LOCTEXT("CreateSocket", "Create Socket").ToString())
+							.Text(LOCTEXT("CreateSocket", "Create Socket"))
 							.OnClicked(this, &SSocketManager::CreateSocket_Execute)
 						]
 						+SHorizontalBox::Slot()
@@ -262,7 +262,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 							.Padding(4.0f, 0.0f, 5.0f, 0.0f)
 							[
 								SNew(SButton)
-								.Text(LOCTEXT("DeleteSocket", "Delete Socket").ToString())
+								.Text(LOCTEXT("DeleteSocket", "Delete Socket"))
 								.OnClicked(this, &SSocketManager::DeleteSelectedSocket_Execute)
 							]
 					]
@@ -273,7 +273,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 					.Padding(0.0f, 12.0f, 0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("WorldSpaceRotation", "World Space Rotation").ToString())
+						.Text(LOCTEXT("WorldSpaceRotation", "World Space Rotation"))
 					]
 
 				+SVerticalBox::Slot()
@@ -285,7 +285,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.FillWidth(0.25f)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("Pitch", "Pitch").ToString())
+							.Text(LOCTEXT("Pitch", "Pitch"))
 						]
 						+SHorizontalBox::Slot()
 							.FillWidth(1.0f)
@@ -307,7 +307,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.FillWidth(0.25f)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("Yaw", "Yaw").ToString())
+							.Text(LOCTEXT("Yaw", "Yaw"))
 						]
 						+SHorizontalBox::Slot()
 							.FillWidth(1.0f)
@@ -329,7 +329,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.FillWidth(0.25f)
 						[
 							SNew(STextBlock)
-								.Text(LOCTEXT("Roll", "Roll").ToString())
+								.Text(LOCTEXT("Roll", "Roll"))
 						]
 						+SHorizontalBox::Slot()
 							.FillWidth(1.0f)

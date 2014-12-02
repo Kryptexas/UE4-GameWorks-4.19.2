@@ -98,7 +98,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 			{
 				++NumButtons;
 
-				const FString ButtonCaption = FName::NameToDisplayString(*Function->GetName(), false);
+				const FText ButtonCaption = FText::FromString(FName::NameToDisplayString(*Function->GetName(), false));
 
 				//@TODO: Expose the code in UK2Node_CallFunction::GetUserFacingFunctionName / etc...
 				FString Tooltip = Function->GetToolTipText().ToString();

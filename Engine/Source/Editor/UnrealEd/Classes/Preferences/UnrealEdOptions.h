@@ -69,10 +69,10 @@ struct FClassPickerDefaults
 	FString AssetClass;
 
 	/** Gets the localized name text for the class */
-	FString GetName() const;
+	FText GetName() const;
 
 	/** Gets the localized descriptive text for the class */
-	FString GetDescription() const;
+	FText GetDescription() const;
 };
 
 UCLASS(Config=Editor)

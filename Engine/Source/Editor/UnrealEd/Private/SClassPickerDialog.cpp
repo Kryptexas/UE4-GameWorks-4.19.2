@@ -92,7 +92,7 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 					+SUniformGridPanel::Slot(0,0)
 					[
 						SNew(SButton)
-						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerSelectButton", "Select").ToString())
+						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerSelectButton", "Select"))
 						.HAlign(HAlign_Center)
 						.Visibility( this, &SClassPickerDialog::GetSelectButtonVisibility )
 						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
@@ -101,7 +101,7 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 					+SUniformGridPanel::Slot(1,0)
 					[
 						SNew(SButton)
-						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerCancelButton", "Cancel").ToString())
+						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerCancelButton", "Cancel"))
 						.HAlign(HAlign_Center)
 						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 						.OnClicked(this, &SClassPickerDialog::OnClassPickerCanceled)
@@ -195,7 +195,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 			.Padding(10.0f, 0.0f)
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(*NSLOCTEXT("EditorFactories", "FClassPickerDefaults", "%s").ToString(), *Obj->GetDescription()))
+				.Text(Obj->GetDescription())
 				.AutoWrapText(true)
 			]
 			+SHorizontalBox::Slot()

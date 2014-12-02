@@ -60,7 +60,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "MinimumBoneSizeLabel", "Minimum Bone Size:").ToString())
+					.Text(NSLOCTEXT("PhAT", "MinimumBoneSizeLabel", "Minimum Bone Size:"))
 				]
 				+SUniformGridPanel::Slot(1, 0)
 				.VAlign(VAlign_Center)
@@ -73,7 +73,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "OrientAlongBoneLabel", "Orient Along Bone:").ToString())
+					.Text(NSLOCTEXT("PhAT", "OrientAlongBoneLabel", "Orient Along Bone:"))
 				]
 				+SUniformGridPanel::Slot(1, 1)
 				[
@@ -85,7 +85,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "CollisionGeometryLabel", "Collision Geometry:").ToString())
+					.Text(NSLOCTEXT("PhAT", "CollisionGeometryLabel", "Collision Geometry:"))
 				]
 				+SUniformGridPanel::Slot(1, 2)
 				.VAlign(VAlign_Center)
@@ -99,7 +99,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "UseVertsWithLabel", "Use Verts With:").ToString())
+					.Text(NSLOCTEXT("PhAT", "UseVertsWithLabel", "Use Verts With:"))
 				]
 				+SUniformGridPanel::Slot(1, 3)
 				.VAlign(VAlign_Center)
@@ -113,7 +113,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "CreateJointsLabel", "Create Joints:").ToString())
+					.Text(NSLOCTEXT("PhAT", "CreateJointsLabel", "Create Joints:"))
 				]
 				+SUniformGridPanel::Slot(1, 4)
 				[
@@ -125,7 +125,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "AngularConstraintMode", "Default Angular Constraint Mode:").ToString())
+					.Text(NSLOCTEXT("PhAT", "AngularConstraintMode", "Default Angular Constraint Mode:"))
 				]
 				+SUniformGridPanel::Slot(1, 5)
 				.VAlign(VAlign_Center)
@@ -139,7 +139,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "WalkPastSmallBonesLabel", "Walk Past Small Bones:").ToString())
+					.Text(NSLOCTEXT("PhAT", "WalkPastSmallBonesLabel", "Walk Past Small Bones:"))
 				]
 				+SUniformGridPanel::Slot(1, 6)
 				[
@@ -151,7 +151,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "CreateBodyForAllBonesLabel", "Create Body For All Bones:").ToString())
+					.Text(NSLOCTEXT("PhAT", "CreateBodyForAllBonesLabel", "Create Body For All Bones:"))
 				]
 				+SUniformGridPanel::Slot(1, 7)
 				[
@@ -165,7 +165,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Visibility(this, &SPhATNewAssetDlg::GetHullOptionsVisibility )
-						.Text( NSLOCTEXT("PhAT", "MaxNumHulls_ConvexDecomp", "Max Num Hulls").ToString() )
+						.Text( NSLOCTEXT("PhAT", "MaxNumHulls_ConvexDecomp", "Max Num Hulls") )
 					]
 				+SUniformGridPanel::Slot(1, 7)
 					[
@@ -181,7 +181,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Visibility(this, &SPhATNewAssetDlg::GetHullOptionsVisibility )
-						.Text( NSLOCTEXT("PhAT", "MaxHullVerts_ConvexDecomp", "Max Hull Verts").ToString() )
+						.Text( NSLOCTEXT("PhAT", "MaxHullVerts_ConvexDecomp", "Max Hull Verts") )
 					]
 				+SUniformGridPanel::Slot(1, 8)
 					[
@@ -205,7 +205,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(0,0)
 				[
 					SNew(SButton)
-					.Text(NSLOCTEXT("PhAT", "OkButtonText", "Ok").ToString())
+					.Text(NSLOCTEXT("PhAT", "OkButtonText", "Ok"))
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(FOnClicked::CreateSP<SPhATNewAssetDlg, EAppReturnType::Type>(this, &SPhATNewAssetDlg::OnClicked, EAppReturnType::Ok))
@@ -213,7 +213,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1,0)
 				[
 					SNew(SButton)
-					.Text(NSLOCTEXT("PhAT", "CancelButtonText", "Cancel").ToString())
+					.Text(NSLOCTEXT("PhAT", "CancelButtonText", "Cancel"))
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(FOnClicked::CreateSP<SPhATNewAssetDlg, EAppReturnType::Type>(this, &SPhATNewAssetDlg::OnClicked, EAppReturnType::Cancel))
