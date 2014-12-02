@@ -1,5 +1,4 @@
 #include "SQLiteSupportPrivatePCH.h"
-#ifdef WITH_SQLITE
 #include "SQLiteDatabaseConnection.h"
 #include "sqlite3.h"
 
@@ -92,4 +91,3 @@ FString FSQLiteDatabase::GetLastError()
 		return FString();
 	}
 }
-#endif //WITH_SQLITE

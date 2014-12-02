@@ -1,5 +1,4 @@
 #include "SQLiteSupportPrivatePCH.h"
-#ifdef WITH_SQLITE
 #include "SQLiteResultSet.h"
 #include "sqlite3.h"
 FSQLiteResultSet::~FSQLiteResultSet()
@@ -143,5 +142,3 @@ void FSQLiteResultSet::MoveToFirst()
 	sqlite3_reset(PreparedQuery);
 	StepStatus = sqlite3_step(PreparedQuery);
 }
-
-#endif //WITH_SQLITE

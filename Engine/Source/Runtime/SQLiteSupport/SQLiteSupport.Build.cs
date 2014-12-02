@@ -43,6 +43,8 @@ namespace UnrealBuildTool.Rules
 				throw new BuildException("Please refer to the Engine/Source/ThirdParty/sqlite/README.txt file prior to enabling this module.");
 			}
 
+			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "sqlite/sqlite/");
+
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",

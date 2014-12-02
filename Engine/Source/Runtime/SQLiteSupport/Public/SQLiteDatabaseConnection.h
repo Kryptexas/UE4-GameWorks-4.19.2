@@ -1,6 +1,5 @@
 #pragma once
 #include "SQLiteSupportPrivatePCH.h"
-#ifdef WITH_SQLITE
 
 #include "SQLiteResultSet.h"
 /**
@@ -39,5 +38,3 @@ public:
 protected:
 	sqlite3* DbHandle = NULL;
 };
-
-#endif //WITH_SQLITE
