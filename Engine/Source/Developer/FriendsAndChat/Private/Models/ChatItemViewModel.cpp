@@ -69,7 +69,14 @@ public:
 
 	virtual void FriendNameSelected() const override
 	{
-		Owner->SetChannelUserClicked(ChatMessage);
+		if(!IsFromSelf() || GetMessageType() == EChatMessageType::Whisper)
+		{
+			Owner->SetChannelUserClicked(ChatMessage);
+		}
+		else
+		{
+			Owner->SetChatChannel(GetMessageType());
+		}
 	}
 
 private:

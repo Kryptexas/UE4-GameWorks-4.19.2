@@ -271,6 +271,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetFriendsListWidth(const float FriendsListLength);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
+	float ChatListWidth;
+	FFriendsAndChatStyle& SetChatListWidth(const float ChatListWidth);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatBackgroundBrush;
 	FFriendsAndChatStyle& SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
 
@@ -281,4 +285,30 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatOptionsBackgroundBrush;
 	FFriendsAndChatStyle& SetChatOptionsBackgroundBrush(const FSlateBrush& InChatOptionsBackgroundBrush);
+};
+
+/** Manages the style which provides resources for the rich text widget. */
+class FRIENDSANDCHAT_API FFriendsAndChatModuleStyle
+{
+public:
+
+	static void Initialize(FFriendsAndChatStyle FriendStyle);
+
+	static void Shutdown();
+
+	/** reloads textures used by slate renderer */
+	static void ReloadTextures();
+
+	/** @return The Slate style set for the Shooter game */
+	static const ISlateStyle& Get();
+
+	static FName GetStyleSetName();
+
+private:
+
+	static TSharedRef< class FSlateStyleSet > Create(FFriendsAndChatStyle FriendStyle);
+
+private:
+
+	static TSharedPtr< class FSlateStyleSet > FriendsAndChatModuleStyleInstance;
 };

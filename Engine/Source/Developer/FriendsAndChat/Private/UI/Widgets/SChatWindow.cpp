@@ -43,6 +43,7 @@ public:
 					SNew(SHorizontalBox)
 					+SHorizontalBox::Slot()
 			 		.AutoWidth()
+					.VAlign(VAlign_Fill)
 					[
 						SNew( SBorder )
 						.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
@@ -52,6 +53,7 @@ public:
 						]
 					]
 					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Fill)
 			 		[
 						SAssignNew(ChatList, SListView<TSharedRef<FChatItemViewModel>>)
 						.ListItemsSource(&ViewModel->GetFilteredChatList())
@@ -93,8 +95,8 @@ public:
 					]
 					+SHorizontalBox::Slot()
 					[
-						SNew(SOverlay)
-						+ SOverlay::Slot()
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
 						[
 							SNew(SHorizontalBox)
 							.Visibility(this, &SChatWindowImpl::GetChatEntryVisibility)
@@ -153,7 +155,7 @@ public:
 								.OnTextChanged(this, &SChatWindowImpl::OnChatTextChanged)
 							]
 						]
-						+SOverlay::Slot()
+						+SVerticalBox::Slot()
 						[
 							SNew(SBorder)
 							.Visibility(this, &SChatWindowImpl::GetConfirmationVisibility)

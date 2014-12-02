@@ -27,6 +27,15 @@ public:
 			}
 		}
 
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DisplayName"), DisplayNameText);
+		Args.Add(TEXT("Message"), ViewModel->GetMessage());
+		Args.Add(TEXT("NameStyle"), FText::FromString(GetTextHyperlinkStyle()));
+		FText DisplayText = FText::Format(LOCTEXT("SChatItem_Message", "<a id=\"UserName\" style=\"{NameStyle}\">{DisplayName}</>{Message}"), Args);
+
+		FTextBlockStyle TextStyle = FriendStyle.TextStyle;
+		TextStyle.ColorAndOpacity = GetChannelColor();
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SHorizontalBox)
@@ -42,45 +51,18 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(FMargin(5,1))
-			.MaxWidth(150)
-			[
-				SNew(STextBlock)
-				.Visibility(ViewModel->IsFromSelf() && ViewModel->GetMessageType() != EChatMessageType::Party ? EVisibility::Visible : EVisibility::Collapsed)
-				.Text(DisplayNameText)
-				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
-				.Font(FriendStyle.FriendsFontStyleSmallBold)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Fill)
 			.Padding(FMargin(5, 1, 2, 1))
-			.MaxWidth(150)
+			.MaxWidth(FriendStyle.ChatListWidth)
 			[
-				SNew(SButton)
-				.Visibility(ViewModel->IsFromSelf() || ViewModel->GetMessageType() == EChatMessageType::Party ? EVisibility::Collapsed : EVisibility::Visible)
-				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-				.OnClicked(this, &SChatItemImpl::HandleNameClicked)
-				.ContentPadding(0)
-				[
-					SNew(STextBlock)
-					.Text(DisplayNameText)
-					.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
-					.Font(FriendStyle.FriendsFontStyleSmallBold)
-				]
+				SNew( SRichTextBlock )
+				.Text(DisplayText)
+				.TextStyle(&TextStyle)
+				.DecoratorStyleSet(&FFriendsAndChatModuleStyle::Get())
+				.WrapTextAt(FriendStyle.ChatListWidth - 5)
+				+ SRichTextBlock::HyperlinkDecorator(TEXT( "UserName" ), this, &SChatItemImpl::HandleNameClicked)
 			]
 			+SHorizontalBox::Slot()
-			.Padding(FMargin(2, 1, 5, 1))
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(ViewModel->GetMessage())
-				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
-				.Font(FriendStyle.FriendsFontStyleSmall)
-				.AutoWrapText(true)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
 			.HAlign(HAlign_Right)
 			.Padding(FMargin(5,1))
 			.VAlign(VAlign_Center)
@@ -89,7 +71,6 @@ public:
 				.Text(ViewModel->GetMessageTime())
 				.ColorAndOpacity(this, &SChatItemImpl::GetTimeDisplayColor)
 				.Font(FriendStyle.FriendsFontStyleSmall)
-				.AutoWrapText(true)
 			]
 		]);
 	}
@@ -152,10 +133,21 @@ private:
 		}
 	}
 
-	FReply HandleNameClicked()
+	const FString GetTextHyperlinkStyle() const
+	{
+		switch(ViewModel->GetMessageType())
+		{
+			case EChatMessageType::Global: return TEXT("UserNameTextStyle.GlobalHyperlink"); break;
+			case EChatMessageType::Whisper: return TEXT("UserNameTextStyle.Whisperlink"); break;
+			case EChatMessageType::Party: return TEXT("UserNameTextStyle.PartyHyperlink"); break;
+			default:
+			return FString();
+		}
+	}
+
+	void HandleNameClicked( const FSlateHyperlinkRun::FMetadata& Metadata )
 	{
 		ViewModel->FriendNameSelected();
-		return FReply::Handled();
 	}
 
 private:

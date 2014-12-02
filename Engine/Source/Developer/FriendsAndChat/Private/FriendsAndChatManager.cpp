@@ -240,6 +240,7 @@ void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle*
 	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(350, 458);
 
 	Style = *InStyle;
+	FFriendsAndChatModuleStyle::Initialize(Style);
 
 	if (!FriendWindow.IsValid())
 	{
@@ -323,6 +324,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 	if ( !FriendListWidget.IsValid() )
 	{
 		Style = *InStyle;
+		FFriendsAndChatModuleStyle::Initialize(Style);
 		SAssignNew(FriendListWidget, SOverlay)
 		+SOverlay::Slot()
 		[

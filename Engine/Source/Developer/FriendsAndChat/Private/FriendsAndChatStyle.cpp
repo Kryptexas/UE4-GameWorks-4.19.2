@@ -302,6 +302,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListWidth(const float InFr
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatListWidth(const float InChatListWidth)
+{
+	ChatListWidth = InChatListWidth;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush)
 {
 	ChatBackgroundBrush = InChatBackgroundBrush;
@@ -326,3 +332,89 @@ const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 	return Default;
 }
 
+/**
+	Module style set
+*/
+TSharedPtr< FSlateStyleSet > FFriendsAndChatModuleStyle::FriendsAndChatModuleStyleInstance = NULL;
+
+void FFriendsAndChatModuleStyle::Initialize(FFriendsAndChatStyle FriendStyle)
+{
+	if ( !FriendsAndChatModuleStyleInstance.IsValid() )
+	{
+		FriendsAndChatModuleStyleInstance = Create(FriendStyle);
+		FSlateStyleRegistry::RegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
+	}
+}
+
+void FFriendsAndChatModuleStyle::Shutdown()
+{
+	FSlateStyleRegistry::UnRegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
+	ensure( FriendsAndChatModuleStyleInstance.IsUnique() );
+	FriendsAndChatModuleStyleInstance.Reset();
+}
+
+FName FFriendsAndChatModuleStyle::GetStyleSetName()
+{
+	static FName StyleSetName(TEXT("FriendsAndChat"));
+	return StyleSetName;
+}
+
+TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatStyle FriendStyle)
+{
+	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("FriendsAndChatStyle"));
+
+	const FTextBlockStyle DefaultText = FTextBlockStyle()
+		.SetFont(FriendStyle.FriendsFontStyleSmall);
+
+	// Name Style
+	const FTextBlockStyle GlobalChatFont = FTextBlockStyle(DefaultText)
+		.SetFont(FriendStyle.FriendsFontStyleSmallBold)
+		.SetColorAndOpacity(FriendStyle.DefaultChatColor);
+
+	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
+		.SetFont(FriendStyle.FriendsFontStyleSmallBold)
+		.SetColorAndOpacity(FriendStyle.PartyChatColor);
+
+	const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
+		.SetFont(FriendStyle.FriendsFontStyleSmallBold)
+		.SetColorAndOpacity(FriendStyle.WhisplerChatColor);
+
+	const FButtonStyle UserNameButton = FButtonStyle()
+		.SetNormal(FSlateNoResource())
+		.SetPressed(FSlateNoResource())
+		.SetHovered(FSlateNoResource());
+
+	const FHyperlinkStyle GlobalChatHyperlink = FHyperlinkStyle()
+		.SetUnderlineStyle(UserNameButton)
+		.SetTextStyle(GlobalChatFont)
+		.SetPadding(FMargin(0.0f));
+
+	const FHyperlinkStyle PartyChatHyperlink = FHyperlinkStyle()
+		.SetUnderlineStyle(UserNameButton)
+		.SetTextStyle(PartyChatFont)
+		.SetPadding(FMargin(0.0f));
+
+	const FHyperlinkStyle WhisperChatHyperlink = FHyperlinkStyle()
+		.SetUnderlineStyle(UserNameButton)
+		.SetTextStyle(WhisperChatFont)
+		.SetPadding(FMargin(0.0f));
+
+	Style->Set("UserNameTextStyle.GlobalHyperlink", GlobalChatHyperlink);
+	Style->Set("UserNameTextStyle.PartyHyperlink", PartyChatHyperlink);
+	Style->Set("UserNameTextStyle.Whisperlink", WhisperChatHyperlink);
+	Style->Set("UserNameTextStyle.GlobalTextStyle", GlobalChatFont);
+	Style->Set("UserNameTextStyle.PartyTextStyle", PartyChatFont);
+	Style->Set("UserNameTextStyle.WhisperTextStyle", WhisperChatFont);
+
+	return Style;
+}
+
+void FFriendsAndChatModuleStyle::ReloadTextures()
+{
+	FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
+}
+
+const ISlateStyle& FFriendsAndChatModuleStyle::Get()
+{
+	return *FriendsAndChatModuleStyleInstance;
+}
