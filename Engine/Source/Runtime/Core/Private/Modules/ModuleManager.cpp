@@ -986,28 +986,3 @@ bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 
 	return false;
 }
-
-const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index) = nullptr;
-
-void FModuleManager::InitializeAutoStartupModules()
-{
-	TArray<FString> Modules;
-	GetAutoStartupModuleList(Modules);
-
-	for (auto ModuleName : Modules)
-	{
-		LoadModuleChecked<IModuleInterface>(*ModuleName);
-	}
-}
-
-void FModuleManager::GetAutoStartupModuleList(TArray<FString>& OutModules) const
-{
-	checkf(GEnumAutoStartupModuleName != nullptr, TEXT("This callback should be set by the target binary."));
-
-	const ANSICHAR* NamePtr = nullptr;
-	int32 Index = 0;
-	while ((NamePtr = GEnumAutoStartupModuleName(Index++)) != nullptr)
-	{
-		OutModules.Add(FString(NamePtr));
-	}
-}

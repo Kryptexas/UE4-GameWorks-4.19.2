@@ -1527,8 +1527,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Execute the commandlet.
 			double CommandletExecutionStartTime = FPlatformTime::Seconds();
 
-			FModuleManager::Get().InitializeAutoStartupModules();
-
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
 			Commandlet->ParseParms( CommandletCommandLine );
@@ -1693,7 +1691,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 
 #else // WITH_ENGINE
-	FModuleManager::Get().InitializeAutoStartupModules();
 	EndInitTextLocalization();
 	FPlatformMisc::PlatformPostInit();
 #endif // WITH_ENGINE
@@ -1855,8 +1852,6 @@ bool FEngineLoop::LoadStartupModules()
 	{
 		return false;
 	}
-
-	FModuleManager::Get().InitializeAutoStartupModules();
 
 	return true;
 }

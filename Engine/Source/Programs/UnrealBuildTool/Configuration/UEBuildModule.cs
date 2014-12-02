@@ -978,9 +978,6 @@ namespace UnrealBuildTool
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
 
-		/** If true then the engine will call it's StartupModule at engine initialization automatically. */
-		public bool bIsAutoStartupModule = false;
-
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
@@ -1072,7 +1069,6 @@ namespace UnrealBuildTool
 			bool InUseRTTI,
 			bool InEnableBufferSecurityChecks,
 			bool InFasterWithoutUnity,
-			bool InIsAutoStartupModule,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
@@ -1123,7 +1119,6 @@ namespace UnrealBuildTool
 			bUseRTTI                               = InUseRTTI;
 			bEnableBufferSecurityChecks 		   = InEnableBufferSecurityChecks;
 			bFasterWithoutUnity                    = InFasterWithoutUnity;
-			bIsAutoStartupModule                   = InIsAutoStartupModule;
 			MinFilesUsingPrecompiledHeaderOverride = InMinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InEnableExceptions;
 		}
@@ -2156,7 +2151,6 @@ namespace UnrealBuildTool
 			bool InUseRTTI,
 			bool InEnableBufferSecurityChecks,
 			bool InFasterWithoutUnity,
-			bool InIsAutoStartupModule,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
@@ -2166,7 +2160,7 @@ namespace UnrealBuildTool
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
-			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InIsAutoStartupModule, InMinFilesUsingPrecompiledHeaderOverride,
+			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
 			InEnableExceptions, bInBuildSourceFiles)
 		{
 			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);

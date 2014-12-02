@@ -6,8 +6,6 @@ public class NewLogVisualizer : ModuleRules
 {
 	public NewLogVisualizer(TargetInfo Target)
 	{
-        bIsAutoStartupModule = true;
-        
         PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"DesktopPlatform",

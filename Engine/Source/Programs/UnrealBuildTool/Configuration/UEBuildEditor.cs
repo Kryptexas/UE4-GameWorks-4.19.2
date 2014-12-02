@@ -58,13 +58,6 @@ namespace UnrealBuildTool
 																					bInAllowExports:!ShouldCompileMonolithic(),
 																					InModuleNames: new List<string>() { "Launch" } );
 
-				// This "default" game module is required by the editor executable in case
-				// you want to run it in content-only mode.
-				if (!ExtraModuleNames.Contains("UE4Game"))
-				{
-					ExtraModuleNames.Add("UE4Game");
-				}
-
 				AppBinaries.Add( new UEBuildBinaryCPP( this, Config ) );
 			}
 

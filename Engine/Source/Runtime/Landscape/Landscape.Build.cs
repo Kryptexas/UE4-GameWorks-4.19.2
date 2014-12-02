@@ -7,8 +7,6 @@ public class Landscape : ModuleRules
 {
 	public Landscape(TargetInfo Target)
 	{
-		bIsAutoStartupModule = true;
-
 		PrivateIncludePaths.AddRange(
 			new string[] {
                 "Runtime/Engine/Private",
