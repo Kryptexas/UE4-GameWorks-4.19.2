@@ -84,3 +84,30 @@ void AGameplayCueNotify_Actor::OnOwnerDestroyed()
 	Destroy();
 	//MarkPendingKill();
 }
+
+bool AGameplayCueNotify_Actor::OnExecute_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return OnExecuteNative(MyTarget, Parameters);
+}
+bool AGameplayCueNotify_Actor::OnExecuteNative(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return false;
+}
+
+bool AGameplayCueNotify_Actor::OnActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return OnActiveNative(MyTarget, Parameters);
+}
+bool AGameplayCueNotify_Actor::OnActiveNative(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return false;
+}
+
+bool AGameplayCueNotify_Actor::OnRemove_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return OnRemoveNative(MyTarget, Parameters);
+}
+bool AGameplayCueNotify_Actor::OnRemoveNative(AActor* MyTarget, FGameplayCueParameters Parameters)
+{
+	return false;
+}

@@ -80,3 +80,30 @@ void UGameplayCueNotify_Static::HandleGameplayCue(AActor* MyTarget, EGameplayCue
 void UGameplayCueNotify_Static::OnOwnerDestroyed()
 {
 }
+
+bool UGameplayCueNotify_Static::OnExecute_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return OnExecuteNative(MyTarget, Parameters);
+}
+bool UGameplayCueNotify_Static::OnExecuteNative(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return false;
+}
+
+bool UGameplayCueNotify_Static::OnActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return OnActiveNative(MyTarget, Parameters);
+}
+bool UGameplayCueNotify_Static::OnActiveNative(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return false;
+}
+
+bool UGameplayCueNotify_Static::OnRemove_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return OnRemoveNative(MyTarget, Parameters);
+}
+bool UGameplayCueNotify_Static::OnRemoveNative(AActor* MyTarget, FGameplayCueParameters Parameters) const
+{
+	return false;
+}

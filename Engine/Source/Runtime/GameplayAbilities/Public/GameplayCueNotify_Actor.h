@@ -41,16 +41,19 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 
 	/** Generic Event Graph event that will get called for every event type */
 	UFUNCTION(BlueprintImplementableEvent, Category = "GameplayCueNotify", FriendlyName = "HandleGameplayCue")
-	virtual void K2_HandleGameplayCue(TWeakObjectPtr<AActor> MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	void K2_HandleGameplayCue(TWeakObjectPtr<AActor> MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
-	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool OnExecute(TWeakObjectPtr<AActor> MyTarget, FGameplayCueParameters Parameters);
+	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
+	bool OnExecute(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool OnExecuteNative(AActor* MyTarget, FGameplayCueParameters Parameters);
 
-	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool OnActive(TWeakObjectPtr<AActor> MyTarget, FGameplayCueParameters Parameters);
+	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
+	bool OnActive(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool OnActiveNative(AActor* MyTarget, FGameplayCueParameters Parameters);
 
-	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool OnRemove(TWeakObjectPtr<AActor> MyTarget, FGameplayCueParameters Parameters);
+	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
+	bool OnRemove(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool OnRemoveNative(AActor* MyTarget, FGameplayCueParameters Parameters);
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	FGameplayTag	GameplayCueTag;
