@@ -687,7 +687,7 @@ public:
 	/** The current real time. */
 	float CurrentRealTime;
 
-	/** Copy from main thread GFrameNumber to be accessible on render thread side. UINT_MAX before BeginRenderingViewFamily() was called */
+	/** Copy from main thread GFrameNumber to be accessible on render thread side. UINT_MAX before CreateSceneRenderer() or BeginRenderingViewFamily() was called */
 	uint32 FrameNumber;
 
 	/** Indicates whether the view family is updated in realtime. */

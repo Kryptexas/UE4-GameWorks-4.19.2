@@ -690,6 +690,9 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 {
 	check(Scene != NULL);
 
+	check(IsInGameThread());
+	ViewFamily.FrameNumber = GFrameNumber;
+
 	// Copy the individual views.
 	bool bAnyViewIsLocked = false;
 	Views.Empty(InViewFamily->Views.Num());
@@ -1131,6 +1134,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 	// This is the only spot we change GFrameNumber, other places can only read.
 	++GFrameNumber;
 
+	// this is passes to the render thread, better access that than GFrameNumberRenderThread
 	ViewFamily->FrameNumber = GFrameNumber;
 
 	check(ViewFamily->Scene);
