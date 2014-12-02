@@ -38,4 +38,6 @@ protected:
 	void MergeLayerDown();
 	void MoveLayerUp();
 	void MoveLayerDown();
+
+	void SetSelectedLayer(UPaperTileLayer* SelectedLayer);
 };
