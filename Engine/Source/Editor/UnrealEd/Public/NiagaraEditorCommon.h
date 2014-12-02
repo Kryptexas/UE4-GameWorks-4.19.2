@@ -44,7 +44,6 @@
 	NiagaraOp(Normalize)\
 	NiagaraOp(Random)\
 	NiagaraOp(Length)\
-	NiagaraOp(Sin4)\
 	NiagaraOp(Noise)\
 	NiagaraOp(Scalar)\
 	NiagaraOp(Vector)\

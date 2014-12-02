@@ -66,19 +66,6 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
 	return _mm_setr_ps( X, Y, Z, W );
 }
 
-/** Vector that represents (1,1,1,1) */
-static const VectorRegister SSE_ONE = MakeVectorRegister( 1.0f, 1.0f, 1.0f, 1.0f );
-
-/** Bitmask to AND out the XYZ components in a vector */
-static const VectorRegister SSE_XYZ_MASK = MakeVectorRegister( (uint32)0xffffffff, (uint32)0xffffffff, (uint32)0xffffffff, (uint32)0x00000000 );
-
-/** Bitmask to AND out the sign bit of each components in a vector */
-#define SIGN_BIT (~(1 << 31))
-static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT, (uint32)SIGN_BIT, (uint32)SIGN_BIT, (uint32)SIGN_BIT );
-
-/** Vector full of positive infinity */
-static const VectorRegister SSE_INFINITY = MakeVectorRegister( (uint32)0x7F800000, (uint32)0x7F800000, (uint32)0x7F800000, (uint32)0x7F800000 );
-
 /*=============================================================================
  *	Constants:
  *============================================================================*/
@@ -101,7 +88,7 @@ static const VectorRegister SSE_INFINITY = MakeVectorRegister( (uint32)0x7F80000
  *
  * @return		VectorRegister(1.0f, 1.0f, 1.0f, 1.0f)
  */
-#define VectorOne()						SSE_ONE
+#define VectorOne()						(GlobalVectorConstants::FloatOne)
 
 /**
  * Returns an component from a vector.
@@ -110,7 +97,10 @@ static const VectorRegister SSE_INFINITY = MakeVectorRegister( (uint32)0x7F80000
  * @param ComponentIndex	Which component to get, X=0, Y=1, Z=2, W=3
  * @return					The component as a float
  */
-#define VectorGetComponent( Vec, ComponentIndex )	(((float*) &(Vec))[ComponentIndex])
+FORCEINLINE float VectorGetComponent(VectorRegister Vec, uint32 ComponentIndex)
+{
+	return (((float*)&(Vec))[ComponentIndex]);
+}
 
 /**
  * Loads 4 FLOATs from unaligned memory.
@@ -255,7 +245,7 @@ FORCEINLINE void VectorStoreFloat3( const VectorRegister& Vec, void* Ptr )
  * @param Vec			Source vector
  * @return				VectorRegister( abs(Vec.x), abs(Vec.y), abs(Vec.z), abs(Vec.w) )
  */
-#define VectorAbs( Vec )				_mm_and_ps(Vec, SSE_SIGN_MASK)
+#define VectorAbs( Vec )				_mm_and_ps(Vec, GlobalVectorConstants::SignMask)
 
 /**
  * Returns the negated value (component-wise).
@@ -561,7 +551,7 @@ FORCEINLINE VectorRegister VectorNormalize( const VectorRegister& Vector )
 * @param Vector	VectorRegister
 * @return		VectorRegister(X, Y, Z, 0.0f)
 */
-#define VectorSet_W0( Vec )		_mm_and_ps( Vec, SSE_XYZ_MASK )
+#define VectorSet_W0( Vec )		_mm_and_ps( Vec, GlobalVectorConstants::XYZMask )
 
 /**
 * Loads XYZ and sets W=1
@@ -868,7 +858,7 @@ FORCEINLINE uint32 appCountTrailingZeros(uint32 Value)
  * @param VecW		Source register for ___W (note: the fourth component is used, not the first)
  * @return			VectorRegister(VecXYZ.x, VecXYZ.y, VecXYZ.z, VecW.w)
  */
-#define VectorMergeVecXYZ_VecW( VecXYZ, VecW )	VectorSelect( SSE_XYZ_MASK, VecXYZ, VecW )
+#define VectorMergeVecXYZ_VecW( VecXYZ, VecW )	VectorSelect( GlobalVectorConstants::XYZMask, VecXYZ, VecW )
 
 /**
  * Loads 4 BYTEs from unaligned memory and converts them into 4 FLOATs.
@@ -986,11 +976,138 @@ inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 	// Test for infinity, technique "stolen" from DirectXMathVector.inl
 
 	// Mask off signs
-	VectorRegister InfTest = _mm_and_ps(Vec, SSE_SIGN_MASK);
+	VectorRegister InfTest = _mm_and_ps(Vec, GlobalVectorConstants::SignMask);
 	// Compare to infinity. If any are infinity, the signs are true.
-	bool IsNotInf = _mm_movemask_ps(_mm_cmpeq_ps(InfTest, SSE_INFINITY)) == 0;
+	bool IsNotInf = _mm_movemask_ps(_mm_cmpeq_ps(InfTest, GlobalVectorConstants::FloatInfinity)) == 0;
 
 	return !(IsNotNAN & IsNotInf);
+}
+
+FORCEINLINE VectorRegister VectorTruncate(const VectorRegister& X)
+{
+	return _mm_cvtepi32_ps(_mm_cvttps_epi32(X));
+}
+
+FORCEINLINE VectorRegister VectorFractional(const VectorRegister& X)
+{
+	return VectorSubtract(X, VectorTruncate(X));
+}
+
+FORCEINLINE VectorRegister VectorCeil(const VectorRegister& X)
+{
+	VectorRegister Trunc = VectorTruncate(X);
+	VectorRegister PosMask = VectorCompareGE(X, GlobalVectorConstants::FloatZero);
+	VectorRegister Add = VectorSelect(PosMask, GlobalVectorConstants::FloatOne, (GlobalVectorConstants::FloatZero));
+	return VectorAdd(Trunc, Add);
+}
+
+FORCEINLINE VectorRegister VectorFloor(const VectorRegister& X)
+{
+	VectorRegister Trunc = VectorTruncate(X);
+	VectorRegister PosMask = VectorCompareGE(X, (GlobalVectorConstants::FloatZero));
+	VectorRegister Sub = VectorSelect(PosMask, (GlobalVectorConstants::FloatZero), (GlobalVectorConstants::FloatOne));
+	return VectorSubtract(Trunc, Sub);
+}
+
+FORCEINLINE VectorRegister VectorMod(const VectorRegister& X, const VectorRegister& Y)
+{
+	VectorRegister Temp = VectorFloor(VectorDivide(X, Y));
+	return VectorSubtract(X, VectorMultiply(Y, Temp));
+}
+
+FORCEINLINE VectorRegister VectorSign(const VectorRegister& X)
+{
+	VectorRegister Mask = VectorCompareGE(X, (GlobalVectorConstants::FloatZero));
+	return VectorSelect(Mask, (GlobalVectorConstants::FloatOne), (GlobalVectorConstants::FloatMinusOne));
+}
+
+FORCEINLINE VectorRegister VectorStep(const VectorRegister& X)
+{
+	VectorRegister Mask = VectorCompareGE(X, (GlobalVectorConstants::FloatZero));
+	return VectorSelect(Mask, (GlobalVectorConstants::FloatOne), (GlobalVectorConstants::FloatZero));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorExp(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)exp(VectorGetComponent(X, 0)), (float)exp(VectorGetComponent(X, 1)), (float)exp(VectorGetComponent(X, 2)), (float)exp(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorExp2(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)exp2(VectorGetComponent(X, 0)), (float)exp2(VectorGetComponent(X, 1)), (float)exp2(VectorGetComponent(X, 2)), (float)exp2(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorLog(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)log(VectorGetComponent(X, 0)), (float)log(VectorGetComponent(X, 1)), (float)log(VectorGetComponent(X, 2)), (float)log(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorLog2(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)log2(VectorGetComponent(X, 0)), (float)log2(VectorGetComponent(X, 1)), (float)log2(VectorGetComponent(X, 2)), (float)log2(VectorGetComponent(X, 3)));
+}
+
+FORCEINLINE VectorRegister VectorSin(const VectorRegister& X)
+{
+	//Sine approximation using a squared parabola restrained to f(0) = 0, f(PI) = 0, f(PI/2) = 1.
+	//based on a good discussion here http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
+	//After approx 2.5 million tests comparing to sin(): 
+	//Average error of 0.000128
+	//Max error of 0.001091
+
+	static const float p = 0.225f;
+	static const VectorRegister P = MakeVectorRegister(p, p, p, p);
+	static const float a = 16 * sqrt(p);
+	static const VectorRegister A = MakeVectorRegister(a, a, a, a);
+	static const float b = (1 - p) / sqrt(p);
+	static const VectorRegister B = MakeVectorRegister(b, b, b, b);
+
+	VectorRegister y = VectorMultiply(X, GlobalVectorConstants::OneOverTwoPi);
+	y = VectorSubtract(y, VectorFloor(VectorAdd(y, GlobalVectorConstants::FloatOneHalf)));
+	y = VectorMultiply(A, VectorMultiply(y, VectorSubtract(GlobalVectorConstants::FloatOneHalf, VectorAbs(y))));
+	return VectorMultiply(y, VectorAdd(B, VectorAbs(y)));
+}
+
+FORCEINLINE VectorRegister VectorCos(const VectorRegister& X)
+{
+	return VectorSin(VectorAdd(X, GlobalVectorConstants::PiByTwo));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorTan(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)tan(VectorGetComponent(X, 0)), (float)tan(VectorGetComponent(X, 1)), (float)tan(VectorGetComponent(X, 2)), (float)tan(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorASin(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)asin(VectorGetComponent(X, 0)), (float)asin(VectorGetComponent(X, 1)), (float)asin(VectorGetComponent(X, 2)), (float)asin(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorACos(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)acos(VectorGetComponent(X, 0)), (float)acos(VectorGetComponent(X, 1)), (float)acos(VectorGetComponent(X, 2)), (float)acos(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorATan(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)atan(VectorGetComponent(X, 0)), (float)atan(VectorGetComponent(X, 1)), (float)atan(VectorGetComponent(X, 2)), (float)atan(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorATan2(const VectorRegister& X, const VectorRegister& Y)
+{
+	return MakeVectorRegister(	(float)atan2(VectorGetComponent(X, 0), VectorGetComponent(Y, 0)), 
+		(float)atan2(VectorGetComponent(X, 1), VectorGetComponent(Y, 1)),
+		(float)atan2(VectorGetComponent(X, 2), VectorGetComponent(Y, 2)),
+		(float)atan2(VectorGetComponent(X, 3), VectorGetComponent(Y, 3)));
 }
 
 // To be continued...

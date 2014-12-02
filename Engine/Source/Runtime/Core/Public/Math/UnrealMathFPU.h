@@ -57,13 +57,6 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
 	return Vec;
 }
 
-/** Vector that represents (0,0,0,0) */
-static const VectorRegister VECTOR_ZERO = MakeVectorRegister( 0.0f, 0.0f, 0.0f, 0.0f );
-
-/** Vector that represents (1,1,1,1) */
-static const VectorRegister VECTOR_ONE  = MakeVectorRegister( 1.0f, 1.0f, 1.0f, 1.0f );
-
-
 /*=============================================================================
  *	Constants:
  *============================================================================*/
@@ -80,14 +73,14 @@ static const VectorRegister VECTOR_ONE  = MakeVectorRegister( 1.0f, 1.0f, 1.0f, 
  *
  * @return		VectorRegister(0.0f, 0.0f, 0.0f, 0.0f)
  */
-#define VectorZero()					VECTOR_ZERO
+#define VectorZero()					(GlobalVectorConstants::FloatZero)
 
 /**
  * Returns a vector with all ones.
  *
  * @return		VectorRegister(1.0f, 1.0f, 1.0f, 1.0f)
  */
-#define VectorOne()						VECTOR_ONE
+#define VectorOne()						(GlobalVectorConstants::FloatOne)
 
 /**
  * Loads 4 FLOATs from unaligned memory.
@@ -944,7 +937,11 @@ FORCEINLINE uint32 VectorAnyGreaterThan(const VectorRegister& Vec1, const Vector
  * @param ComponentIndex	Which component to get, X=0, Y=1, Z=2, W=3
  * @return					The component as a float
  */
-#define VectorGetComponent( Vec, ComponentIndex )	(((float*) &(Vec))[ComponentIndex])
+FORCEINLINE float VectorGetComponent(VectorRegister Vec, uint32 ComponentIndex)
+{
+	return (((float*)&(Vec))[ComponentIndex]);
+}
+
 
 /**
  * Sets the control register.
@@ -964,6 +961,130 @@ inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 	return FMath::IsNaN(Vec.V[0]) || FMath::IsNaN(Vec.V[1]) || FMath::IsNaN(Vec.V[2]) || FMath::IsNaN(Vec.V[3]) ||
 		!FMath::IsFinite(Vec.V[0]) || !FMath::IsFinite(Vec.V[1]) || !FMath::IsFinite(Vec.V[2]) || !FMath::IsFinite(Vec.V[3]);
 }
+
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorExp(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)exp(VectorGetComponent(X, 0)), (float)exp(VectorGetComponent(X, 1)), (float)exp(VectorGetComponent(X, 2)), (float)exp(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorExp2(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)exp2(VectorGetComponent(X, 0)), (float)exp2(VectorGetComponent(X, 1)), (float)exp2(VectorGetComponent(X, 2)), (float)exp2(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorLog(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)log(VectorGetComponent(X, 0)), (float)log(VectorGetComponent(X, 1)), (float)log(VectorGetComponent(X, 2)), (float)log(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorLog2(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)log2(VectorGetComponent(X, 0)), (float)log2(VectorGetComponent(X, 1)), (float)log2(VectorGetComponent(X, 2)), (float)log2(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorSin(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)sin(VectorGetComponent(X, 0)), (float)sin(VectorGetComponent(X, 1)), (float)sin(VectorGetComponent(X, 2)), (float)sin(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorCos(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)cos(VectorGetComponent(X, 0)), (float)cos(VectorGetComponent(X, 1)), (float)cos(VectorGetComponent(X, 2)), (float)cos(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorTan(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)tan(VectorGetComponent(X, 0)), (float)tan(VectorGetComponent(X, 1)), (float)tan(VectorGetComponent(X, 2)), (float)tan(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorASin(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)asin(VectorGetComponent(X, 0)), (float)asin(VectorGetComponent(X, 1)), (float)asin(VectorGetComponent(X, 2)), (float)asin(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorACos(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)acos(VectorGetComponent(X, 0)), (float)acos(VectorGetComponent(X, 1)), (float)acos(VectorGetComponent(X, 2)), (float)acos(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorATan(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)atan(VectorGetComponent(X, 0)), (float)atan(VectorGetComponent(X, 1)), (float)atan(VectorGetComponent(X, 2)), (float)atan(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorATan2(const VectorRegister& X, const VectorRegister& Y)
+{
+	return MakeVectorRegister((float)atan2(VectorGetComponent(X, 0), VectorGetComponent(Y, 0)),
+		(float)atan2(VectorGetComponent(X, 1), VectorGetComponent(Y, 1)),
+		(float)atan2(VectorGetComponent(X, 2), VectorGetComponent(Y, 2)),
+		(float)atan2(VectorGetComponent(X, 3), VectorGetComponent(Y, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorCeil(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)ceil(VectorGetComponent(X, 0)), (float)ceil(VectorGetComponent(X, 1)), (float)ceil(VectorGetComponent(X, 2)), (float)ceil(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorFloor(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)floor(VectorGetComponent(X, 0)), (float)floor(VectorGetComponent(X, 1)), (float)floor(VectorGetComponent(X, 2)), (float)floor(VectorGetComponent(X, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorTruncate(const VectorRegister& X)
+{
+	return MakeVectorRegister((float)(int32)VectorGetComponent(X, 0), (float)(int32)VectorGetComponent(X, 1), (float)(int32)VectorGetComponent(X, 2), (float)(int32)VectorGetComponent(X, 3));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorFractional(const VectorRegister& X)
+{
+	return VectorSubtract(X, VectorTruncate(X));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorMod(const VectorRegister& X, const VectorRegister& Y)
+{
+	return MakeVectorRegister((float)fmod(VectorGetComponent(X, 0), VectorGetComponent(Y, 0)),
+		(float)fmod(VectorGetComponent(X, 1), VectorGetComponent(Y, 1)),
+		(float)fmod(VectorGetComponent(X, 2), VectorGetComponent(Y, 2)),
+		(float)fmod(VectorGetComponent(X, 3), VectorGetComponent(Y, 3)));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorSign(const VectorRegister& X)
+{
+	return MakeVectorRegister(
+		(float)(VectorGetComponent(X, 0) >= 0.0f ? 1.0f : 0.0f),
+		(float)(VectorGetComponent(X, 1) >= 0.0f ? 1.0f : 0.0f),
+		(float)(VectorGetComponent(X, 2) >= 0.0f ? 1.0f : 0.0f),
+		(float)(VectorGetComponent(X, 3) >= 0.0f ? 1.0f : 0.0f));
+}
+
+//TODO: Vectorize
+FORCEINLINE VectorRegister VectorStep(const VectorRegister& X)
+{
+	return MakeVectorRegister(
+		(float)(VectorGetComponent(X, 0) >= 0.0f ? 1.0f : -1.0f),
+		(float)(VectorGetComponent(X, 1) >= 0.0f ? 1.0f : -1.0f),
+		(float)(VectorGetComponent(X, 2) >= 0.0f ? 1.0f : -1.0f),
+		(float)(VectorGetComponent(X, 3) >= 0.0f ? 1.0f : -1.0f));
+}
+
 
 // To be continued...
 

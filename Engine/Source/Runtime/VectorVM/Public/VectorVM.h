@@ -61,7 +61,6 @@ namespace VectorVM
 			normalize,
 			random,
 			length,
-			sin4,
 			noise,
 			splatx,
 			splaty,

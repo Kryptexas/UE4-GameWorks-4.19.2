@@ -82,6 +82,7 @@ static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT
 #undef VectorStoreFloat3
 #undef VectorStoreFloat1
 #undef VectorReplicate
+#undef VectorAbs
 #undef VectorNegate
 #undef VectorSwizzle
 #undef VectorLoadByte4Reverse

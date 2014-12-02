@@ -457,11 +457,6 @@ void FNiagaraCompiler_VectorVM::Length_Internal(TArray<TNiagaraExprPtr>& InputEx
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::length, InputExpressions));
 }
 
-void FNiagaraCompiler_VectorVM::Sin4_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
-{
-	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sin4, InputExpressions));
-}
-
 void FNiagaraCompiler_VectorVM::Noise_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::noise, InputExpressions));
