@@ -13,6 +13,7 @@
 
 class FCanvas;
 class FViewportClient;
+enum class EPopupMethod : uint8;
 
 /**
  * A render target.
@@ -886,6 +887,9 @@ public:
 	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
 	 */
 	virtual bool HideCursorDuringCapture() { return false; }
+
+	/** Should we make new windows for popups or create an overlay in the current window. */
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const { return TOptional<EPopupMethod>(); }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

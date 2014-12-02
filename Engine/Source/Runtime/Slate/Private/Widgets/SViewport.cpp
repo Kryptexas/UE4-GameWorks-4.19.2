@@ -289,7 +289,15 @@ FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEv
 
 TOptional<EPopupMethod> SViewport::OnQueryPopupMethod() const
 {
-	return EPopupMethod::CreateNewWindow;
+	TSharedPtr<ISlateViewport> PinnedInterface = ViewportInterface.Pin();
+	if (PinnedInterface.IsValid())
+	{
+		return PinnedInterface->OnQueryPopupMethod();
+	}
+	else
+	{
+		return EPopupMethod::CreateNewWindow;
+	}	
 }
 
 void SViewport::OnFinishedPointerInput()

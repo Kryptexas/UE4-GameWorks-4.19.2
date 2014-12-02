@@ -663,6 +663,18 @@ FReply FSceneViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMot
 	return CurrentReplyState;
 }
 
+TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
+{
+	if (ViewportClient != nullptr)
+	{
+		return ViewportClient->OnQueryPopupMethod();
+	}
+	else
+	{
+		return TOptional<EPopupMethod>();
+	}
+}
+
 void FSceneViewport::OnFinishedPointerInput()
 {
 	ProcessAccumulatedPointerInput();
