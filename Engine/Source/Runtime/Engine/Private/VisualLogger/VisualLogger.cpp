@@ -38,7 +38,7 @@ FVisualLogger::FVisualLogger()
 
 UWorld* FVisualLogger::GetWorld()
 {
-	UWorld* World = NULL;
+	UWorld* World = GWorld;
 #if WITH_EDITOR
 	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
 	if (GIsEditor && EEngine != NULL)

@@ -669,6 +669,7 @@ void SVisualLogger::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLin
 	{
 		HelperActor->ObjectSelectionChanged(TimeLine);
 	}
+	MainView->OnObjectSelectionChanged(TimeLine);
 }
 
 void SVisualLogger::OnFiltersSearchChanged(const FText& Filter)

@@ -12,6 +12,7 @@
 ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	TrivialLogsThreshold = 1;
+	DefaultCameraDistance = 150;
 }
 
 void ULogVisualizerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)

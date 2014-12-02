@@ -33,7 +33,6 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 	TSharedRef<ITimeSlider> TopTimeSlider = SNew(STimeSlider, TimeSliderController.ToSharedRef()).MirrorLabels(bMirrorLabels);
 	TSharedRef<ITimeSlider> BottomTimeSlider = SNew(STimeSlider, TimeSliderController.ToSharedRef()).MirrorLabels(bMirrorLabels);
 
-	TSharedPtr<SScrollBox> ScrollBox;
 	TSharedRef<SScrollBar> ScrollBar =
 		SNew(SScrollBar)
 		.Thickness(FVector2D(5.0f, 5.0f));
@@ -156,6 +155,17 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 			.VisualLoggerInterface(VisualLoggerInterface)
 		];
 
+}
+
+void SVisualLoggerView::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
+{
+	//FIXME: scroll to selected timeline (SebaK)
+	//FWidgetPath WidgetPath;
+	//if (FSlateApplication::Get().GeneratePathToWidgetUnchecked(TimeLine.ToSharedRef(), WidgetPath))
+	//{
+	//	FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(TimeLine.ToSharedRef()).Get(FArrangedWidget::NullWidget);
+	//	ScrollBox->ScrollDescendantIntoView(ArrangedWidget.Geometry, TimeLine, true);
+	//}
 }
 
 void SVisualLoggerView::OnSearchSplitterResized()

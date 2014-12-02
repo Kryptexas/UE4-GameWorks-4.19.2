@@ -31,12 +31,14 @@ public:
 	void OnFiltersChanged();
 	void OnSearchChanged(const FText& Filter);
 	void OnSearchSplitterResized();
+	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);
 
 	void GetTimelines(TArray<TSharedPtr<class STimeline> >&, bool bOnlySelectedOnes = false);
 
 protected:
 	TSharedPtr<class STimelinesContainer> TimelinesContainer;
 	TSharedPtr<class SSplitter> SearchSplitter;
+	TSharedPtr<class SScrollBox> ScrollBox;
 
 	FVisualLoggerEvents	VisualLoggerEvents;
 	float AnimationOutlinerFillPercentage;

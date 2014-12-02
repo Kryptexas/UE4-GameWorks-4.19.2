@@ -2,6 +2,16 @@
 #include "STimelineBar.h"
 #include "TimeSliderController.h"
 #include "STimelinesContainer.h"
+#include "VisualLoggerCameraController.h"
+#if WITH_EDITOR
+#	include "Editor/UnrealEd/Public/EditorComponents.h"
+#	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
+#	include "Editor/UnrealEd/Public/TexAlignTools.h"
+#	include "Editor/UnrealEd/Public/TickableEditorObject.h"
+#	include "UnrealEdClasses.h"
+#	include "Editor/UnrealEd/Public/Editor.h"
+#	include "Editor/UnrealEd/Public/EditorViewportClient.h"
+#endif
 
 FReply STimelineBar::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -31,6 +41,76 @@ FReply STimelineBar::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointer
 FReply STimelineBar::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	return TimeSliderController->OnMouseMove(SharedThis(this), MyGeometry, MouseEvent);
+}
+
+FReply STimelineBar::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	auto &Entries = TimelineOwner.Pin()->GetEntries();
+	SnapScrubPosition(TimeSliderController->GetTimeSliderArgs().ScrubPosition.Get());
+	UWorld* World = VisualLoggerInterface->GetWorld();
+	if (World && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && Entries.IsValidIndex(CurrentItemIndex))
+	{
+		FVector CurrentLocation = Entries[CurrentItemIndex].Entry.Location;
+
+		FVector Extent(150);
+		bool bFoundActor = false;
+		FName OwnerName = Entries[CurrentItemIndex].OwnerName;
+		for (FActorIterator It(World); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor->GetFName() == OwnerName)
+			{
+				FVector Orgin;
+				Actor->GetActorBounds(false, Orgin, Extent);
+				bFoundActor = true;
+				break;
+			}
+		}
+
+		
+		const float DefaultCameraDistance = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->DefaultCameraDistance;
+		Extent = Extent.Size() < DefaultCameraDistance ? FVector(1) * DefaultCameraDistance : Extent;
+
+#if WITH_EDITOR
+		UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+		if (GIsEditor && EEngine != NULL)
+		{
+			for (auto ViewportClient : EEngine->AllViewportClients)
+			{
+				ViewportClient->FocusViewportOnBox(FBox::BuildAABB(CurrentLocation, Extent));
+			}
+		}
+		else if (AVisualLoggerCameraController::IsEnabled(World) && AVisualLoggerCameraController::Instance.IsValid() && AVisualLoggerCameraController::Instance->GetSpectatorPawn())
+		{
+			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(AVisualLoggerCameraController::Instance->Player);
+			if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->Viewport)
+			{
+				FViewport* Viewport = LocalPlayer->ViewportClient->Viewport;
+
+				FBox BoundingBox = FBox::BuildAABB(CurrentLocation, Extent);
+				const FVector Position = BoundingBox.GetCenter();
+				float Radius = BoundingBox.GetExtent().Size();
+
+				FViewportCameraTransform ViewTransform;
+				ViewTransform.TransitionToLocation(Position, true);
+
+				float NewOrthoZoom;
+				const float AspectRatio = 1.777777f;
+				uint32 MinAxisSize = (AspectRatio > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
+				float Zoom = Radius / (MinAxisSize / 2);
+
+				NewOrthoZoom = Zoom * (Viewport->GetSizeXY().X*15.0f);
+				NewOrthoZoom = FMath::Clamp<float>(NewOrthoZoom, 250, MAX_FLT);
+				ViewTransform.SetOrthoZoom(NewOrthoZoom);
+
+				AVisualLoggerCameraController::Instance->GetSpectatorPawn()->TeleportTo(ViewTransform.GetLocation(), ViewTransform.GetRotation(), false, true);
+			}
+		}
+#endif
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply STimelineBar::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
