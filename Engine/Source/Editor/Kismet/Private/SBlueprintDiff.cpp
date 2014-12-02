@@ -628,7 +628,7 @@ FDiffPanel::FDiffPanel()
 	LastFocusedPin = NULL;
 }
 
-TSharedRef<SWidget> FDiffPanel::InitializeDiffPanel()
+void FDiffPanel::InitializeDiffPanel()
 {
 	TSharedRef< SKismetInspector > Inspector = SNew(SKismetInspector)
 		.HideNameArea(true)
@@ -637,23 +637,6 @@ TSharedRef<SWidget> FDiffPanel::InitializeDiffPanel()
 		.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
 	DetailsView = Inspector;
 	MyBlueprint->SetInspector(DetailsView);
-
-	return SNew(SSplitter)
-		.Orientation(Orient_Vertical)
-		+ SSplitter::Slot()
-		.Value(0.8f)
-		[
-			SAssignNew(GraphEditorBorder, SBox)
-			.VAlign(VAlign_Fill)
-			[
-				SBlueprintDiff::DefaultEmptyPanel()
-			]
-		]
-	+ SSplitter::Slot()
-		.Value(0.2f)
-		[
-			Inspector
-		];
 }
 
 int32 GetCurrentIndex( SListView< TSharedPtr< struct FDiffSingleResult> > const& ListView, const TArray< TSharedPtr< FDiffSingleResult > >& ListViewSource )

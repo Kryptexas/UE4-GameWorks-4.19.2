@@ -46,7 +46,7 @@ struct KISMET_API FDiffPanel
 	FDiffPanel();
 
 	/** Initializes the panel, can be moved into constructor if diff and merge clients are made more uniform: */
-	TSharedRef<SWidget> InitializeDiffPanel();
+	void InitializeDiffPanel();
 
 	/* Generate this panel based on the specified graph */
 	void GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
