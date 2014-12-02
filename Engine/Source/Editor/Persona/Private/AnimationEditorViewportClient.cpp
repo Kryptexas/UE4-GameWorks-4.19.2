@@ -1657,7 +1657,7 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 		{
 			if (SelectedSkelControlAnimGraph.IsValid())
 			{
-				WidgetMode = (FWidget::EWidgetMode)SelectedSkelControlAnimGraph->ChangeWidgetMode(PreviewSkelMeshComp.Get(), WidgetMode);
+				WidgetMode = (FWidget::EWidgetMode)SelectedSkelControlAnimGraph->ChangeToNextWidgetMode(PreviewSkelMeshComp.Get(), WidgetMode);
 				if (WidgetMode == FWidget::WM_Scale)
 				{
 					SetWidgetCoordSystemSpace(COORD_Local);
@@ -1697,7 +1697,27 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 
 void FAnimationViewportClient::SetWidgetMode(FWidget::EWidgetMode InMode)
 {
-	WidgetMode = InMode;
+	bool bAnimBPMode = PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
+
+	// support WER keys to change gizmo mode for Bone Controller preivew in anim blueprint
+	if (bAnimBPMode)
+	{
+		if (!bManipulating)
+		{
+			int32 SelectedBone = FindSelectedBone();
+			if (SelectedBone >= 0 && SelectedSkelControlAnimGraph.IsValid())
+			{
+				if (SelectedSkelControlAnimGraph->SetWidgetMode(PreviewSkelMeshComp.Get(), InMode))
+				{
+					WidgetMode = InMode;
+				}
+			}
+		}
+	}
+	else
+	{
+		WidgetMode = InMode;
+	}
 
 	// Force viewport to redraw
 	Viewport->Invalidate();

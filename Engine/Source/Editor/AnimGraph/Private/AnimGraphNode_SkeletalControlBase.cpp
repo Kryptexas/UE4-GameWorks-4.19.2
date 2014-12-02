@@ -21,7 +21,7 @@ int32 UAnimGraphNode_SkeletalControlBase::GetWidgetMode(const USkeletalMeshCompo
 	return  (int32)FWidget::EWidgetMode::WM_None;
 }
 
-int32 UAnimGraphNode_SkeletalControlBase::ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 CurWidgetMode)
+int32 UAnimGraphNode_SkeletalControlBase::ChangeToNextWidgetMode(const USkeletalMeshComponent* SkelComp, int32 CurWidgetMode)
 {
 	return GetWidgetMode(SkelComp);
 }

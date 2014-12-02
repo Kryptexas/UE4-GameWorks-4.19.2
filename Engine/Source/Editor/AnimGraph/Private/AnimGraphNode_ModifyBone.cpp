@@ -168,12 +168,24 @@ int32 UAnimGraphNode_ModifyBone::GetWidgetMode(const USkeletalMeshComponent* Ske
 	return (int32)FWidget::WM_None;
 }
 
-int32 UAnimGraphNode_ModifyBone::ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode)
+int32 UAnimGraphNode_ModifyBone::ChangeToNextWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode)
 {
 	int32 NextWidgetMode = GetNextWidgetMode(InCurWidgetMode);
 	CurWidgetMode = FindValidWidgetMode(NextWidgetMode);
 
 	return CurWidgetMode;
+}
+
+bool UAnimGraphNode_ModifyBone::SetWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InWidgetMode)
+{
+	// if InWidgetMode is available 
+	if (FindValidWidgetMode(InWidgetMode) == InWidgetMode)
+	{
+		CurWidgetMode = InWidgetMode;
+		return true;
+	}
+
+	return false;
 }
 
 FName UAnimGraphNode_ModifyBone::FindSelectedBone()

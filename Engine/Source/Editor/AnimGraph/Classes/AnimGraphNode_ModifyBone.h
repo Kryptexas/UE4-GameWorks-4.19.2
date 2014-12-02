@@ -28,7 +28,8 @@ protected:
 
 	ANIMGRAPH_API virtual FVector GetWidgetLocation(const USkeletalMeshComponent* SkelComp, struct FAnimNode_SkeletalControlBase* AnimNode) override;
 	ANIMGRAPH_API virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
-	ANIMGRAPH_API virtual int32 ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode) override;
+	ANIMGRAPH_API virtual int32 ChangeToNextWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode) override;
+	ANIMGRAPH_API virtual bool SetWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InWidgetMode) override;
 
 	ANIMGRAPH_API virtual FName FindSelectedBone() override;
 

@@ -42,8 +42,11 @@ public:
 
 	// return current widget mode this anim graph node supports
 	ANIMGRAPH_API virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp);
-	// called when the user changed widget mode
-	ANIMGRAPH_API virtual int32 ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 CurWidgetMode);
+	// called when the user changed widget mode by pressing "Space" key
+	ANIMGRAPH_API virtual int32 ChangeToNextWidgetMode(const USkeletalMeshComponent* SkelComp, int32 CurWidgetMode);
+	// called when the user set widget mode directly, returns true if InWidgetMode is available
+	ANIMGRAPH_API virtual bool SetWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InWidgetMode){ return false; }
+
 	// 
 	ANIMGRAPH_API virtual FName FindSelectedBone();
 
