@@ -816,7 +816,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 		}
 
 		// Allow root motion to move characters that have no controller.
-		if( CharacterOwner->IsLocallyControlled() || bRunPhysicsWithNoController || (!CharacterOwner->Controller && CharacterOwner->IsPlayingRootMotion()) )
+		if( CharacterOwner->IsLocallyControlled() || (!CharacterOwner->Controller && bRunPhysicsWithNoController) || (!CharacterOwner->Controller && CharacterOwner->IsPlayingRootMotion()) )
 		{
 			// We need to check the jump state before adjusting input acceleration, to minimize latency
 			// and to make sure acceleration respects our potentially new falling state.
