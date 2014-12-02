@@ -61,6 +61,13 @@ UAISense_Hearing::UAISense_Hearing(const FObjectInitializer& ObjectInitializer)
 		OnNewListenerDelegate.BindUObject(this, &UAISense_Hearing::OnNewListenerImpl);
 		OnListenerUpdateDelegate.BindUObject(this, &UAISense_Hearing::OnListenerUpdateImpl);
 		OnListenerRemovedDelegate.BindUObject(this, &UAISense_Hearing::OnListenerRemovedImpl);
+
+		static bool bMakeNoiseInterceptionSetUp = false;
+		if (bMakeNoiseInterceptionSetUp == false)
+		{
+			AActor::SetMakeNoiseDelegate(FMakeNoiseDelegate::CreateStatic(&UAIPerceptionSystem::MakeNoiseImpl));
+			bMakeNoiseInterceptionSetUp = true;
+		}
 	}
 }
 

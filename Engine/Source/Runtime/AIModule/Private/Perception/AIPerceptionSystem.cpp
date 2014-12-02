@@ -30,10 +30,6 @@ UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitial
 	, PerceptionAgingRate(0.3f)
 	, CurrentTime(0.f)
 {
-	if (HasAnyFlags(RF_ClassDefaultObject) == true)
-	{
-		AActor::SetMakeNoiseDelegate(FMakeNoiseDelegate::CreateStatic(&UAIPerceptionSystem::MakeNoiseImpl));
-	}
 }
 
 void UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
