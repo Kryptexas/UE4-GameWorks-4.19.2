@@ -69,6 +69,11 @@ FEditorPropertyPathSegment::FEditorPropertyPathSegment(const UEdGraph* InFunctio
 	MemberGuid = InFunctionGraph->GraphGuid;
 }
 
+void FEditorPropertyPathSegment::Rebase(UBlueprint* SegmentBase)
+{
+	Struct = SegmentBase->GeneratedClass;
+}
+
 bool FEditorPropertyPathSegment::ValidateMember(UDelegateProperty* DelegateProperty, FText& OutError) const
 {
 	if ( DelegateProperty->SignatureFunction->NumParms == 1 )
@@ -268,6 +273,17 @@ FEditorPropertyPath::FEditorPropertyPath(const TArray<UField*>& BindingChain)
 			check(false);
 		}
 	}
+}
+
+bool FEditorPropertyPath::Rebase(UBlueprint* SegmentBase)
+{
+	if ( !IsEmpty() )
+	{
+		Segments[0].Rebase(SegmentBase);
+		return true;
+	}
+
+	return false;
 }
 
 bool FEditorPropertyPath::Validate(UDelegateProperty* Destination, FText& OutError) const
@@ -503,6 +519,22 @@ void UWidgetBlueprint::PostLoad()
 			{
 				Binding.PropertyName = Visibility;
 			}
+		}
+	}
+}
+
+void UWidgetBlueprint::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+
+	if ( !bDuplicatingReadOnly )
+	{
+		// We need to update all the bindings and change each bindings first segment in the path
+		// to be the new class this blueprint generates, as all bindings must first originate on 
+		// the widget blueprint, the first segment is always a reference to 'self'.
+		for ( FDelegateEditorBinding& Binding : Bindings )
+		{
+			Binding.SourcePath.Rebase(this);
 		}
 	}
 }

@@ -26,6 +26,7 @@ public:
 	UStruct* GetStruct() const { return Struct; }
 	UField* GetMember() const;
 
+	void Rebase(UBlueprint* SegmentBase);
 	bool ValidateMember(UDelegateProperty* DelegateProperty, FText& OutError) const;
 
 	FName GetMemberName() const;
@@ -62,15 +63,28 @@ struct UMGEDITOR_API FEditorPropertyPath
 
 public:
 
+	/**  */
 	FEditorPropertyPath();
+
+	/**  */
 	FEditorPropertyPath(const TArray<UField*>& BindingChain);
 
+	/**  */
+	bool Rebase(UBlueprint* SegmentBase);
+
+	/**  */
 	bool IsEmpty() const { return Segments.Num() == 0; }
+
+	/**  */
 	bool Validate(UDelegateProperty* Destination, FText& OutError) const;
 
+	/**  */
 	FText GetDisplayText() const;
 
+	/**  */
 	FDynamicPropertyPath ToPropertyPath() const;
+
+public:
 
 	/** The path of properties. */
 	UPROPERTY()
@@ -184,6 +198,7 @@ public:
 
 	/** UObject interface */
 	virtual void PostLoad() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	
 	// UBlueprint interface
 	virtual UClass* GetBlueprintClass() const override;
