@@ -213,7 +213,7 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 		.IsEnabled( this, &FMathStructCustomization::IsValueEnabled, WeakHandlePtr )
 		.Value( this, &FMathStructCustomization::OnGetValue, WeakHandlePtr )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.UndeterminedString( NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString() )
+		.UndeterminedString( NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values") )
 		.OnValueCommitted( this, &FMathStructCustomization::OnValueCommitted<NumericType>, WeakHandlePtr )
 		.OnValueChanged( this, &FMathStructCustomization::OnValueChanged<NumericType>, WeakHandlePtr )
 		.OnBeginSliderMovement( this, &FMathStructCustomization::OnBeginSliderMovement )
