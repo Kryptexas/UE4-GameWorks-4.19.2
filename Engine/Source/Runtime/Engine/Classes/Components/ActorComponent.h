@@ -153,6 +153,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Activation")
 	virtual bool IsActive() const;
 
+	/** Sets whether this component can tick when paused. */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	void SetTickableWhenPaused(bool bTickableWhenPaused);
+
 	// Networking
 
 	/** This signifies the component can be ID'd by name over the network. This only needs to be called by engine code when constructing blueprint components. */
@@ -300,6 +304,7 @@ public:
 	 * 
 	 * @param	bEnabled - Rather it should be enabled or not
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
 	virtual void SetComponentTickEnabled(bool bEnabled);
 	/** 
 	 * Spawns a task on GameThread that will call SetComponentTickEnabled
