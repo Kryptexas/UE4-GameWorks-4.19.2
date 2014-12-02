@@ -89,6 +89,10 @@ public:
 	/** Importing data and options used for this tile map */
 	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
 	class UAssetImportData* AssetImportData;
+
+	/** The naming index to start at when trying to create a new layer */
+	UPROPERTY()
+	int32 LayerNameIndex;
 #endif
 
 public:

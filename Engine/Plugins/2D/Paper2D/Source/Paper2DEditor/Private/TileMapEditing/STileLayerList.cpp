@@ -126,13 +126,33 @@ UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer)
 		TileMap->SetFlags(RF_Transactional);
 		TileMap->Modify();
 
+		// Create a set of existing names
+		TSet<FString> ExistingNames;
+		for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
+		{
+			ExistingNames.Add(ExistingLayer->LayerName.ToString());
+		}
+
+		// Find a good name
+		FText TestLayerName;
+		do
+		{
+			TileMap->LayerNameIndex++;
+
+			FNumberFormattingOptions NoGroupingFormat;
+			NoGroupingFormat.SetUseGrouping(false);
+
+			TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &NoGroupingFormat));
+		} while (ExistingNames.Contains(TestLayerName.ToString()));
+
+		// Create the new layer
 		NewLayer = NewObject<UPaperTileLayer>(TileMap);
 		NewLayer->SetFlags(RF_Transactional);
 
 		NewLayer->LayerWidth = TileMap->MapWidth;
 		NewLayer->LayerHeight = TileMap->MapHeight;
 		NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
-		NewLayer->LayerName = LOCTEXT("DefaultNewLayerName", "New Layer");
+		NewLayer->LayerName = TestLayerName;
 		NewLayer->bCollisionLayer = bCollisionLayer;
 
 		TileMap->TileLayers.Add(NewLayer);

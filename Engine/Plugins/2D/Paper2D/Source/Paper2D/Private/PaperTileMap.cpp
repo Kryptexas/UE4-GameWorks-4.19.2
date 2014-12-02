@@ -20,6 +20,10 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 	SeparationPerLayer = 64.0f;
 	SpriteCollisionDomain = ESpriteCollisionMode::None;
 
+#if WITH_EDITORONLY_DATA
+	LayerNameIndex = 1;
+#endif
+
 	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial"));
 	Material = DefaultMaterial.Object;
 }
