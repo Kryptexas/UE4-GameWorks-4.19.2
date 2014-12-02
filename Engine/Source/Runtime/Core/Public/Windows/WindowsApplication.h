@@ -9,6 +9,7 @@
 	#include "OleIdl.h"
 	#include <ShObjIdl.h>
 #include "HideWindowsPlatformTypes.h"
+#include "IInputInterface.h"
 #include "IForceFeedbackSystem.h"
 #include "WindowsTextInputMethodSystem.h"
 
@@ -192,6 +193,10 @@ public:
 	POINTL CursorPosition;
 };
 
+//disable warnings from overriding the deprecated forcefeedback.  
+//calls to the deprecated function will still generate warnings.
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
 /**
  * Windows-specific application implementation.
  */
@@ -251,15 +256,29 @@ public:
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override;
-
-	virtual IForceFeedbackSystem *GetForceFeedbackSystem() override 
+	
+	/** Function to return the current implementation of the ForceFeedback system */
+	DEPRECATED(4.7, "Please use GetInputInterface()")
+	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override
 	{
 		return this; 
 	}
 
-	virtual void SetChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() override
+	{
+		return this;
+	}
 
-	virtual void SetChannelValues (int32 ControllerId, const FForceFeedbackValues &Values) override;
+	virtual IInputInterface* GetInputInterface() override
+	{
+		return this;
+	}
+
+	virtual void SetForceFeedbackChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+
+	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values) override;
+
+	virtual void SetLightColor(int32 ControllerId, FColor Color) override {}
 
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() override
 	{
@@ -361,3 +380,5 @@ private:
 	TOGGLEKEYS							StartupToggleKeys;
 	FILTERKEYS							StartupFilterKeys;
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS

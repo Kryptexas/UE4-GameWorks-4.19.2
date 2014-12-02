@@ -192,7 +192,10 @@ public:
 	float GetSoundDuration(const FSlateSound& Sound) const;
 
 	/** @return The force feedback interface for this application */
-	IForceFeedbackSystem *GetForceFeedbackSystem() const { return PlatformApplication->GetForceFeedbackSystem(); }
+	DEPRECATED(4.7, "Please use GetInputInterface().")
+	IForceFeedbackSystem* GetForceFeedbackSystem() const { return PlatformApplication->DEPRECATED_GetForceFeedbackSystem(); }
+
+	IInputInterface* GetInputInterface() const { return PlatformApplication->GetInputInterface(); }
 
 	/** @return Whether or not the current platform supports system help */
 	bool SupportsSystemHelp() const { return PlatformApplication->SupportsSystemHelp(); }

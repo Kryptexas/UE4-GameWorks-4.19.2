@@ -5,7 +5,7 @@
 #include "LinuxWindow.h"
 #include "LinuxCursor.h"
 #include "GenericApplicationMessageHandler.h"
-#include "IForceFeedbackSystem.h"
+#include "IInputInterface.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #if STEAM_CONTROLLER_SUPPORT

@@ -7,6 +7,7 @@ class FGenericWindow;
 class ICursor;
 class ITextInputMethodSystem;
 class IForceFeedbackSystem;
+class IInputInterface;
 class IAnalyticsProvider;
 
 /**
@@ -437,7 +438,12 @@ public:
 	virtual void DestroyApplication() { }
 
 	/** Function to return the current implementation of the ForceFeedback system */
-	virtual IForceFeedbackSystem *GetForceFeedbackSystem() { return NULL; }
+	DEPRECATED(4.7, "Please use GetInputInterface()  ForceFeedbackSystem not accessible.")
+	virtual IForceFeedbackSystem* GetForceFeedbackSystem() { return nullptr; }
+
+	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() { return nullptr; }
+
+	virtual IInputInterface* GetInputInterface() { return nullptr; }	
 
 	/** Function to return the current implementation of the Text Input Method System */
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() { return NULL; }

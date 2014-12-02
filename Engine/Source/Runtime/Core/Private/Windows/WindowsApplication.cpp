@@ -1728,7 +1728,7 @@ void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
 	}
 }
 
-void FWindowsApplication::SetChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+void FWindowsApplication::SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
 {
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
@@ -1737,7 +1737,7 @@ void FWindowsApplication::SetChannelValue (int32 ControllerId, FForceFeedbackCha
 	}
 }
 
-void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeedbackValues &Values)
+void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
 {
 	const FForceFeedbackValues* InternalValues = &Values;
  

@@ -4,6 +4,7 @@
 #include <android/input.h>
 #include <android/keycodes.h>
 #include <android/api-level.h>
+#include "IInputInterface.h"
 #include "IForceFeedbackSystem.h"
 
 #if __ANDROID_API__ <= 18
@@ -171,8 +172,9 @@ public:
 	/**
 	* IForceFeedbackSystem implementation
 	*/
-	virtual void SetChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
-	virtual void SetChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override;
+	virtual void SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
+	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override;
+	virtual void SetLightColor(int32 ControllerId, FColor Color) override {}
 
 private:
 

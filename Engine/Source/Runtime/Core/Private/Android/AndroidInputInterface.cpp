@@ -69,7 +69,7 @@ void FAndroidInputInterface::Tick(float DeltaTime)
 
 }
 
-void FAndroidInputInterface::SetChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+void FAndroidInputInterface::SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
 {
 	// For now, force the device to 0
 	// Should use Java to enumerate number of controllers and assign device ID
@@ -82,19 +82,19 @@ void FAndroidInputInterface::SetChannelValue(int32 ControllerId, FForceFeedbackC
 	// Save a copy of the value for future comparison
 	switch (ChannelType)
 	{
-		case FF_CHANNEL_LEFT_LARGE:
+		case FForceFeedbackChannelType::LEFT_LARGE:
 			NewControllerData[ControllerId].VibeValues.LeftLarge = Value;
 			break;
 
-		case FF_CHANNEL_LEFT_SMALL:
+		case FForceFeedbackChannelType::LEFT_SMALL:
 			NewControllerData[ControllerId].VibeValues.LeftSmall = Value;
 			break;
 
-		case FF_CHANNEL_RIGHT_LARGE:
+		case FForceFeedbackChannelType::RIGHT_LARGE:
 			NewControllerData[ControllerId].VibeValues.RightLarge = Value;
 			break;
 
-		case FF_CHANNEL_RIGHT_SMALL:
+		case FForceFeedbackChannelType::RIGHT_SMALL:
 			NewControllerData[ControllerId].VibeValues.RightSmall = Value;
 			break;
 
@@ -107,7 +107,7 @@ void FAndroidInputInterface::SetChannelValue(int32 ControllerId, FForceFeedbackC
 	UpdateVibeMotors(NewControllerData[ControllerId]);
 }
 
-void FAndroidInputInterface::SetChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
+void FAndroidInputInterface::SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
 {
 	// For now, force the device to 0
 	// Should use Java to enumerate number of controllers and assign device ID

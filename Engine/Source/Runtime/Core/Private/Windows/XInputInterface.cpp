@@ -239,19 +239,19 @@ void XInputInterface::SetChannelValue( const int32 ControllerId, const FForceFee
 	{
 		switch( ChannelType )
 		{
-			case FF_CHANNEL_LEFT_LARGE:
+			case FForceFeedbackChannelType::LEFT_LARGE:
 				ControllerState.ForceFeedback.LeftLarge = Value;
 				break;
 
-			case FF_CHANNEL_LEFT_SMALL:
+			case FForceFeedbackChannelType::LEFT_SMALL:
 				ControllerState.ForceFeedback.LeftSmall = Value;
 				break;
 
-			case FF_CHANNEL_RIGHT_LARGE:
+			case FForceFeedbackChannelType::RIGHT_LARGE:
 				ControllerState.ForceFeedback.RightLarge = Value;
 				break;
 
-			case FF_CHANNEL_RIGHT_SMALL:
+			case FForceFeedbackChannelType::RIGHT_SMALL:
 				ControllerState.ForceFeedback.RightSmall = Value;
 				break;
 		}

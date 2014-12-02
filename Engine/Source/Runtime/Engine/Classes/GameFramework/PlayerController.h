@@ -11,7 +11,7 @@
 #include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
 #include "Engine/LatentActionManager.h"
-#include "GenericPlatform/IForceFeedbackSystem.h"
+#include "GenericPlatform/IInputInterface.h"
 #include "SlateCore.h"
 
 #include "PlayerController.generated.h"

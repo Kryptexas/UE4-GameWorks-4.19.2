@@ -25,6 +25,9 @@ namespace FAndroidEGL
 	void					BindDisplayToContext(FPlatformOpenGLContext*);
 }
 
+//disable warnings from overriding the deprecated forcefeedback.  
+//calls to the deprecated function will still generate warnings.
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
 class FAndroidApplication : public GenericApplication
 {
@@ -48,8 +51,14 @@ public:
 	virtual void PollGameDeviceState( const float TimeDelta ) override;
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
+	
+	/** Function to return the current implementation of the ForceFeedback system */
+	DEPRECATED(4.7, "Please use GetInputInterface()")
+	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override;
 
-	virtual IForceFeedbackSystem *GetForceFeedbackSystem() override;
+	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() override;	
+
+	virtual IInputInterface* GetInputInterface() override;
 
 	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 	
@@ -66,3 +75,5 @@ private:
 
 	TArray< TSharedRef< FAndroidWindow > > Windows;
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
