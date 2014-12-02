@@ -60,10 +60,6 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	{
 		Category = EContentSourceCategory::BlueprintFeature;
 	}
-	else if (CategoryString == "Content")
-	{
-		Category = EContentSourceCategory::Content;
-	}
 	else
 	{
 		Category = EContentSourceCategory::Unknown;

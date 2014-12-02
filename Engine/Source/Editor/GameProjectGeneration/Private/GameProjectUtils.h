@@ -286,6 +286,9 @@ private:
 	/** Sets the engine association for a new project. Handles foreign and non-foreign projects. */
 	static bool SetEngineAssociationForForeignProject(const FString& ProjectFileName, FText& OutFailReason);
 
+	/** Copies starter content into the specified project folder. */
+	static bool CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason);
+
 	/** Returns list of starter content files */
 	static void GetStarterContentFiles(TArray<FString>& OutFilenames);
 
@@ -406,9 +409,6 @@ private:
 
 	/** Given a source file name, find its location within the project */
 	static bool FindSourceFileInProject(const FString& InFilename, const FString& InSearchPath, FString& OutPath);
-	
-	/** Insert any required feature packs into the DefaultGame.ini file */
-	static bool InsertFeaturePacksIntoINIFile(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;

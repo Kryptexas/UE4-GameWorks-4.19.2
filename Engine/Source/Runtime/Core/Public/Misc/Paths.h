@@ -266,9 +266,9 @@ public:
 	static FString GameSourceDir();
 
 	/**
-	 * @return The directory where feature packs are kept
+	 * @return The directory where starter content is kept
 	 */
-	static FString FeaturePackDir();
+	static FString StarterContentDir();
 
 	/**
 	 * Checks whether the path to the project file, if any, is set.
@@ -315,7 +315,7 @@ public:
 	/** @return true if this path represents a drive */
 	static bool IsDrive(const FString& InPath);
 
-	/** @return true if this path is relative (not rooted) */
+	/** @return true if this path is relative */
 	static bool IsRelative(const FString& InPath);
 
 	/** Convert all / and \ to TEXT("/") */

@@ -43,10 +43,6 @@ void FCategoryViewModel::Initialize()
 		Text = LOCTEXT("CodeFeature", "C++ Feature");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.CodeFeatureCategory");
 		break;
-	case EContentSourceCategory::Content:
-		Text = LOCTEXT("ContentPacks", "Content Packs");
-		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.ContentPacks");
-		break;
 	default:
 		Text = LOCTEXT("Miscellaneous", "Miscellaneous");
 		IconBrush = FAddContentDialogStyle::Get().GetBrush("AddContentDialog.DefaultCategory");

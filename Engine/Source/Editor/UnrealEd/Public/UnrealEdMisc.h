@@ -320,6 +320,4 @@ private:
 
 	/** Package names and the number of times they have been updated */
 	TMap<FName, uint32> NumUpdatesByAssetName;
-
-	FFeaturePack FeaturePackHandler;
 };
