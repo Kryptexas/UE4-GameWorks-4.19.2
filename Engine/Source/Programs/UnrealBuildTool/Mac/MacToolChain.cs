@@ -1349,5 +1349,10 @@ namespace UnrealBuildTool
 
 			return OutputFiles;
 		}
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.Mac;
+		}
 	};
 }

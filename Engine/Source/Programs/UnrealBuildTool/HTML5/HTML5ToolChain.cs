@@ -506,5 +506,10 @@ namespace UnrealBuildTool
             // make sure we don't add mem files more than once. 
             Manifest.AddBinaryNames(MemFile, null);
         }
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.HTML5;
+		}
 	};
 }

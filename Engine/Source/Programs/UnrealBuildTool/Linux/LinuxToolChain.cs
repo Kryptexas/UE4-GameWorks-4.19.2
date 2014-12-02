@@ -1090,5 +1090,10 @@ namespace UnrealBuildTool
 
             return OutputFiles;
         }
-    }
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.Linux;
+		}
+	}
 }

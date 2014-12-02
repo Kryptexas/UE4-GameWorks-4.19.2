@@ -959,5 +959,10 @@ namespace UnrealBuildTool
 				bAreEnvironmentVariablesAlreadyInitialized = true;
 			}
 		}
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.WinRT;
+		}
 	};
 }

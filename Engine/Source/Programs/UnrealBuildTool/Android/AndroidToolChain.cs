@@ -947,5 +947,10 @@ namespace UnrealBuildTool
 				Log.TraceInformation(Line.Data);
 			}
 		}
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.Android;
+		}
 	};
 }

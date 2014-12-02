@@ -89,8 +89,10 @@ namespace UnrealBuildTool
 			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
 		}
 
-		public static void ParseProjectSettings()
+		public override void ParseProjectSettings()
 		{
+			base.ParseProjectSettings();
+
 			// look in ini settings for what platforms to compile for
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
 			string MinVersion = "IOS_6";
@@ -190,7 +192,6 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			ParseProjectSettings();
 			ParseArchitectures();
 
 			if (IOSSDKVersion == "latest")
@@ -1452,6 +1453,11 @@ namespace UnrealBuildTool
 		{
 			ParseProjectSettings();
 			return RunTimeIOSDevices;
+		}
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.IOS;
 		}
 
 		public static int RunExecutableAndWait( string ExeName, string ArgumentList, out string StdOutResults )
