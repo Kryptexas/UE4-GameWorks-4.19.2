@@ -82,6 +82,7 @@ public:
 	{
 		FName	FuncName;
 		int32	Calls;
+		float	LastCallTime;
 	};
 
 	TArray< FRPCCallInfo >							RemoteFuncInfo;				// Meta information on pending net RPCs (to be sent)
