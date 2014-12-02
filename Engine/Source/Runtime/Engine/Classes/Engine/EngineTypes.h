@@ -1849,6 +1849,10 @@ struct FMeshBuildSettings
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** If true, degenerate triangles will be removed. */
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bUseMikkTSpace;
+
 	/** If true, normals in the raw mesh are ignored and recomputed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bRecomputeNormals;
@@ -1900,7 +1904,8 @@ struct FMeshBuildSettings
 
 	/** Default settings. */
 	FMeshBuildSettings()
-		: bRecomputeNormals(true)
+		: bUseMikkTSpace(false)
+		, bRecomputeNormals(true)
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bUseFullPrecisionUVs(false)
@@ -1919,6 +1924,7 @@ struct FMeshBuildSettings
 	{
 		return bRecomputeNormals == Other.bRecomputeNormals
 			&& bRecomputeTangents == Other.bRecomputeTangents
+			&& bUseMikkTSpace == Other.bUseMikkTSpace
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs

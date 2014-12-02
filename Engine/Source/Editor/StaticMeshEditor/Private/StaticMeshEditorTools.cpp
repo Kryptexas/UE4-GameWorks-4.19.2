@@ -312,6 +312,8 @@ void FMeshBuildSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeR
 	];
 }
 
+TAutoConsoleVariable<int32> GEnableMikkTSpaceCVar(TEXT("r.MikkTSPace"),0,TEXT("Set to be non-zero to display the option of using MikkTSpace to generate tangents for static meshes."),ECVF_Default);
+
 void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
@@ -344,6 +346,23 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			SNew(SCheckBox)
 			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldRecomputeTangents)
 			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnRecomputeTangentsChanged)
+		];
+	}
+
+	if (GEnableMikkTSpaceCVar.GetValueOnAnyThread())
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("UseMikkTSpace", "Use MikkTSpace").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("UseMikkTSpace", "Use MikkTSpace"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldUseMikkTSpace)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnUseMikkTSpaceChanged)
 		];
 	}
 
@@ -554,6 +573,11 @@ ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRecomputeTangents() co
 	return BuildSettings.bRecomputeTangents ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
+ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseMikkTSpace() const
+{
+	return BuildSettings.bUseMikkTSpace ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
 ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRemoveDegenerates() const
 {
 	return BuildSettings.bRemoveDegenerates ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
@@ -632,6 +656,15 @@ void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::T
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bRecomputeTangents"), bRecomputeTangents ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bRecomputeTangents = bRecomputeTangents;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnUseMikkTSpaceChanged(ESlateCheckBoxState::Type NewState)
+{
+	const bool bUseMikkTSpace = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bUseMikkTSpace != bUseMikkTSpace)
+	{
+		BuildSettings.bUseMikkTSpace = bUseMikkTSpace;
 	}
 }
 

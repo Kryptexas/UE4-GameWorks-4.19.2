@@ -142,6 +142,7 @@ private:
 	FReply OnApplyChanges();
 	ESlateCheckBoxState::Type ShouldRecomputeNormals() const;
 	ESlateCheckBoxState::Type ShouldRecomputeTangents() const;
+	ESlateCheckBoxState::Type ShouldUseMikkTSpace() const;
 	ESlateCheckBoxState::Type ShouldRemoveDegenerates() const;
 	ESlateCheckBoxState::Type ShouldUseFullPrecisionUVs() const;
 	ESlateCheckBoxState::Type ShouldGenerateLightmapUVs() const;
@@ -156,6 +157,7 @@ private:
 
 	void OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
+	void OnUseMikkTSpaceChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
 	void OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState);
