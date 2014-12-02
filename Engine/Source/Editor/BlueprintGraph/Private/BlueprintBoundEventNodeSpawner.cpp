@@ -135,8 +135,8 @@ bool UBlueprintBoundEventNodeSpawner::IsBindingCompatible(UObject const* Binding
 	}
 
 	const UMulticastDelegateProperty* Delegate = GetEventDelegate();
-	UClass* DelegateOwner = Delegate->GetOwnerClass();
-	UClass* BindingClass  = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate);
+	UClass* DelegateOwner = Delegate->GetOwnerClass()->GetAuthoritativeClass();
+	UClass* BindingClass  = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate)->GetAuthoritativeClass();
 
 	return bMatchesNodeType && BindingClass->IsChildOf(DelegateOwner) && !FObjectEditorUtils::IsVariableCategoryHiddenFromClass(Delegate, BindingClass);
 }
