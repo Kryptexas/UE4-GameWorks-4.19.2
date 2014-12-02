@@ -345,6 +345,16 @@ namespace MarkdownSharp
             get { return GetCached("relatedPages.html"); }
         }
 
+        public static TemplateFile PrereqPages
+        {
+            get { return GetCached("prereqPages.html"); }
+        }
+
+        public static TemplateFile Versions
+        {
+            get { return GetCached("Version.html"); }
+        }
+
         public static TemplateFile MissingTemplate
         {
             get { return new TemplateFile(); }
