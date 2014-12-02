@@ -123,6 +123,14 @@ void ACharacter::PostInitializeComponents()
 		{
 			CharacterMovement->UpdateNavAgent(CapsuleComponent);
 		}
+
+		if (Controller == NULL && GetNetMode() != NM_Client)
+		{
+			if (CharacterMovement && CharacterMovement->bRunPhysicsWithNoController)
+			{
+				CharacterMovement->SetDefaultMovementMode();
+			}
+		}
 	}
 }
 

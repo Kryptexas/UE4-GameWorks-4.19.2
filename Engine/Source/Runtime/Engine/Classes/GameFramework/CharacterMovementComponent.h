@@ -336,7 +336,12 @@ public:
 	UPROPERTY()
 	uint32 bForceMaxAccel:1;    
 
-	/** When there is no Controller, Walking Physics abort and force a velocity and acceleration of 0. Set this to true to override. */
+	/**
+	 * If true, movement will be performed even if there is no Controller for the Character owner.
+	 * Normally without a Controller, movement will be aborted and velocity and acceleration are zeroed if the character is walking.
+	 * Characters that are spawned without a Controller but with this flag enabled will initialize the movement mode to DefaultLandMovementMode or DefaultWaterMovementMode appropriately.
+	 * @see DefaultLandMovementMode, DefaultWaterMovementMode
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bRunPhysicsWithNoController:1;
 
@@ -524,11 +529,19 @@ public:
 	UPROPERTY(Category="Character Movement", VisibleInstanceOnly, BlueprintReadOnly)
 	FFindFloorResult CurrentFloor;
 
-	/** Default movement mode when not in water. Used at player startup or when teleported. */
+	/**
+	 * Default movement mode when not in water. Used at player startup or when teleported.
+	 * @see DefaultWaterMovementMode
+	 * @see bRunPhysicsWithNoController
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultLandMovementMode;
 
-	/** Default movement mode when in water. Used at player startup or when teleported. */
+	/**
+	 * Default movement mode when in water. Used at player startup or when teleported.
+	 * @see DefaultLandMovementMode
+	 * @see bRunPhysicsWithNoController
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultWaterMovementMode;
 
