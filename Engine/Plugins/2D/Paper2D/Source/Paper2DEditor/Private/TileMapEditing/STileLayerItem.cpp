@@ -4,6 +4,7 @@
 #include "STileLayerItem.h"
 #include "SContentReference.h"
 #include "ScopedTransaction.h"
+#include "PaperStyle.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -152,7 +153,13 @@ void STileLayerItem::Construct(const FArguments& InArgs, class UPaperTileLayer* 
 {
 	MyLayer = InItem;
 
-	SMultiColumnTableRow<class UPaperTileLayer*>::Construct(FSuperRowType::FArguments(), OwnerTable);
+	auto ParentArgs = FSuperRowType::FArguments()
+		.Style(&FPaperStyle::Get()->GetWidgetStyle<FTableRowStyle>("TileMapEditor.LayerBrowser.TableViewRow"));
+
+	SMultiColumnTableRow<class UPaperTileLayer*>::Construct(ParentArgs, OwnerTable);
+
+	EyeClosed = FEditorStyle::GetBrush("Layer.NotVisibleIcon16x");
+	EyeOpened = FEditorStyle::GetBrush("Layer.VisibleIcon16x");
 }
 
 TSharedRef<SWidget> STileLayerItem::GenerateWidgetForColumn(const FName& ColumnName) 
@@ -165,8 +172,8 @@ TSharedRef<SWidget> STileLayerItem::GenerateWidgetForColumn(const FName& ColumnN
 			.VAlign(VAlign_Center)
 			[
 				SAssignNew( VisibilityButton, SButton )
-				.ContentPadding( 0 )
-				.ButtonStyle( FEditorStyle::Get(), "ToolBarButton" ) //@TODO: Bogus?
+				.ContentPadding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 				.OnClicked( this, &STileLayerItem::OnToggleVisibility )
 				.ToolTipText( LOCTEXT("LayerVisibilityButtonToolTip", "Toggle Layer Visibility") )
 				.ForegroundColor( FSlateColor::UseForeground() )
@@ -181,6 +188,7 @@ TSharedRef<SWidget> STileLayerItem::GenerateWidgetForColumn(const FName& ColumnN
 			]
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
+			.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
 			[
 				SNew(SRenamableEntry)
 				.Text(this, &STileLayerItem::GetLayerDisplayName)
@@ -220,13 +228,13 @@ FReply STileLayerItem::OnToggleVisibility()
 
 const FSlateBrush* STileLayerItem::GetVisibilityBrushForLayer() const
 {
-	return MyLayer->bHiddenInEditor ? FEditorStyle::GetBrush("Layer.NotVisibleIcon16x") : FEditorStyle::GetBrush("Layer.VisibleIcon16x");
+	return MyLayer->bHiddenInEditor ? EyeClosed : EyeOpened;
 }
 
 FSlateColor STileLayerItem::GetForegroundColorForVisibilityButton() const
 {
 	static const FName InvertedForeground("InvertedForeground");
-	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor(InvertedForeground) : FSlateColor::UseForeground();
+	return FEditorStyle::GetSlateColor(InvertedForeground);
 }
 
 //////////////////////////////////////////////////////////////////////////

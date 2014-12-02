@@ -20,6 +20,10 @@ protected:
 	class UPaperTileLayer* MyLayer;
 
 	TSharedPtr<SButton> VisibilityButton;
+
+	const FSlateBrush* EyeClosed;
+	const FSlateBrush* EyeOpened;
+
 protected:
 	FText GetLayerDisplayName() const;
 	void OnLayerNameCommitted(const FText& NewText, ETextCommit::Type CommitInfo);

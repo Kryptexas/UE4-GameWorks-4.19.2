@@ -20,6 +20,7 @@ TSharedPtr< class ISlateStyle > FPaperStyle::Get() { return StyleSet; }
 void FPaperStyle::Initialize()
 {
 	// Const icon sizes
+	const FVector2D Icon8x8(8.0f, 8.0f);
 	const FVector2D Icon20x20(20.0f, 20.0f);
 	const FVector2D Icon40x40(40.0f, 40.0f);
 
@@ -61,6 +62,22 @@ void FPaperStyle::Initialize()
 
 		StyleSet->Set("TileMapEditor.MoveLayerDown", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_TileMapEditor_MoveLayerDown_40x"), Icon40x40));
 		StyleSet->Set("TileMapEditor.MoveLayerDown.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_TileMapEditor_MoveLayerDown_40x"), Icon20x20));
+
+
+		const FLinearColor LayerSelectionColor = FLinearColor(0.13f, 0.70f, 1.00f);
+
+		// Selection color for the active row should be ??? to align with the editor viewport.
+		const FTableRowStyle& NormalTableRowStyle = FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
+
+		StyleSet->Set("TileMapEditor.LayerBrowser.TableViewRow",
+			FTableRowStyle(NormalTableRowStyle)
+			.SetActiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, LayerSelectionColor))
+			.SetActiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, LayerSelectionColor))
+			.SetInactiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, LayerSelectionColor))
+			.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, LayerSelectionColor))
+			);
+
+		StyleSet->Set("TileMapEditor.LayerBrowser.SelectionColor", LayerSelectionColor);
 	}
 
 	// Sprite editor
