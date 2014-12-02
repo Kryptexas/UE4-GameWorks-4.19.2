@@ -3694,7 +3694,7 @@ void FCascade::OnSetMotionRadius()
 	FString DefaultText = FString::Printf(TEXT("%.2f"), MotionModeRadius);
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Cascade", "MotionRadius", "Motion Radius: ").ToString())
+		.Label(NSLOCTEXT("Cascade", "MotionRadius", "Motion Radius: "))
 		.DefaultText(FText::FromString( DefaultText ) )
 		.OnTextCommitted(this, &FCascade::MotionRadiusCommitted)
 		.SelectAllTextWhenFocused(true)
@@ -3917,7 +3917,7 @@ void FCascade::OnToggleWireframeSphere()
 		FString DefaultText = FString::Printf(TEXT("%.2f"), PreviewViewport->GetViewportClient()->GetWireSphereRadius());
 		TSharedRef<STextEntryPopup> TextEntry = 
 			SNew(STextEntryPopup)
-			.Label(NSLOCTEXT("Cascade", "SphereRadius", "Sphere Radius: ").ToString())
+			.Label(NSLOCTEXT("Cascade", "SphereRadius", "Sphere Radius: "))
 			.DefaultText(FText::FromString(DefaultText))
 			.OnTextCommitted(this, &FCascade::SphereRadiusCommitted)
 			.SelectAllTextWhenFocused(true)
@@ -4824,7 +4824,7 @@ void FCascade::OnRenameEmitter()
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Cascade", "SetEmitterName", "Emitter Name: ").ToString())
+		.Label(NSLOCTEXT("Cascade", "SetEmitterName", "Emitter Name: "))
 		.DefaultText(FText::FromName( SelectedEmitter->GetEmitterName() ))
 		.OnTextCommitted(this, &FCascade::EmitterNameCommitted)
 		.SelectAllTextWhenFocused(true)

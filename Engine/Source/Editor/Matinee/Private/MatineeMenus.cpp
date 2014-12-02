@@ -2878,7 +2878,7 @@ void FMatinee::OnContextSaveAsCameraAnimation()
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Matinee.Popups", "ExportCameraAnim_Header", "Export To CameraAnim").ToString())
+		.Label(NSLOCTEXT("Matinee.Popups", "ExportCameraAnim_Header", "Export To CameraAnim"))
 		.DefaultText(  FText::FromString(PackageName) )
 		.OnTextCommitted(this, &FMatinee::ExportCameraAnimationNameCommitted)
 		.ClearKeyboardFocusOnCommit( false );

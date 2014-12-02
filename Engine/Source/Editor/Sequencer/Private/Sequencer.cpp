@@ -288,7 +288,7 @@ void FSequencer::RenameShot(UMovieSceneSection* ShotSection)
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Sequencer", "RenameShotHeader", "Name").ToString())
+		.Label(NSLOCTEXT("Sequencer", "RenameShotHeader", "Name"))
 		.DefaultText( ActualShotSection->GetTitle() )
 		.OnTextCommitted(this, &FSequencer::RenameShotCommitted, ShotSection)
 		.ClearKeyboardFocusOnCommit( false );

@@ -401,7 +401,7 @@ bool UMatineeTrackEventHelper::PreCreateKeyframe( UInterpTrack *Track, float Key
 	check(Mode->InterpEd != NULL);
 	TSharedRef<STextEntryPopup> TextEntryPopup = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Matinee.Popups", "NewEventName", "New Event Name").ToString())
+		.Label(NSLOCTEXT("Matinee.Popups", "NewEventName", "New Event Name"))
 		.DefaultText(FText::FromString(TEXT("Event")))
 		.OnTextCommitted_UObject(this, &UMatineeTrackEventHelper::OnAddKeyTextEntry, (IMatineeBase*)Mode->InterpEd, Track)
 		.SelectAllTextWhenFocused(true)
