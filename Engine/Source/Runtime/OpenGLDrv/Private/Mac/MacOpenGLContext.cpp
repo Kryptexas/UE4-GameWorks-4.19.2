@@ -119,21 +119,17 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 			bExplicitRendererSetup = true;
 		}
 		
+		if(DisplayMask || GMacExplicitRendererID || GNumActiveGPUsForRendering > 1 || GMacUseAutomaticGraphicsSwitching)
+		{
+			Attributes.Add(kCGLPFASupportsAutomaticGraphicsSwitching);
+			Attributes.Add(NSOpenGLPFAAllowOfflineRenderers);
+		}
+		
 		// Specify a single explicit renderer ID
 		if (GMacExplicitRendererID && (GNumActiveGPUsForRendering == 1) && !GMacUseAutomaticGraphicsSwitching)
 		{
 			Attributes.Add(NSOpenGLPFARendererID);
 			Attributes.Add(GMacExplicitRendererID);
-		}
-		
-		if(GMacUseAutomaticGraphicsSwitching)
-		{
-			Attributes.Add(kCGLPFASupportsAutomaticGraphicsSwitching);
-		}
-		
-		if(DisplayMask || GMacExplicitRendererID || GNumActiveGPUsForRendering > 1)
-		{
-			Attributes.Add(NSOpenGLPFAAllowOfflineRenderers);
 		}
 		
 		Attributes.Add(0);
