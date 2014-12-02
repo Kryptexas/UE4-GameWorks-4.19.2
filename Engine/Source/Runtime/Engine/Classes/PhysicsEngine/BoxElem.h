@@ -4,6 +4,8 @@
 
 #include "BoxElem.generated.h"
 
+class FMeshElementCollector;
+
 /** Box shape used for collision */
 USTRUCT()
 struct FKBoxElem
