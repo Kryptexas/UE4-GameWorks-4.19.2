@@ -206,8 +206,8 @@ public:
 					.Visibility(this, &SSourceControlSubmitWidget::IsWarningPanelVisible)
 					.Padding(5)
 					[
-						SNew( STextBlock )
-						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDescWarning", "Changelist description is required to submit") )
+						SNew( SErrorText )
+						.ErrorText( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDescWarning", "Changelist description is required to submit") )
 					]
 				]
 				+SVerticalBox::Slot()
