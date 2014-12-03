@@ -40,10 +40,6 @@ class UNREALED_API UResavePackagesCommandlet : public UCommandlet
 	 */
 	int32 MaxPackagesToResave;
 
-	/** if true, only save packages that require sound conversion */
-	bool bSoundConversionOnly;
-	bool bSoundWasDirty;
-
 	/** allows users to save only packages with a particular class in them (useful for fixing content) */
 	TArray<FName> ResaveClasses;
 

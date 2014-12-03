@@ -168,11 +168,6 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
-	if ( Switches.Contains(TEXT("SOUNDCONVERSIONONLY")) )
-	{
-		bSoundConversionOnly = true;
-	}
-
 	FString ClassList;
 	for ( int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++ )
 	{
@@ -309,7 +304,6 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			VerboseMessage(TEXT("Post PerformAdditionalOperations"));
 
 			// Check for any special per object operations
-			bSoundWasDirty = false;
 			for( FObjectIterator ObjectIt; ObjectIt; ++ObjectIt )
 			{
 				if( ObjectIt->IsIn( Package ) )
@@ -319,14 +313,6 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			}
 			
 			VerboseMessage(TEXT("Post PerformAdditionalOperations Loop"));
-
-			if (bSoundConversionOnly == true)
-			{
-				if (bSoundWasDirty == false)
-				{
-					bSavePackage = false;
-				}
-			}
 
 			if (bStripEditorOnlyContent)
 			{
@@ -341,14 +327,13 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 				TArray<UObject *> ObjectsInOuter;
 				GetObjectsWithOuter(Package, ObjectsInOuter);
-				for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
+				for (UObject* Obj : ObjectsInOuter)
 				{
-					UObject* Obj = ObjectsInOuter[Index];
-
 					if (!Obj->IsA(UMetaData::StaticClass()))
 					{
 						// This package has a real object
 						bIsEmpty = false;
+						break;
 					}
 				}
 
@@ -378,7 +363,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
 					}
-					else if (SourceControlState.IsValid() && (SourceControlState->CanEdit() || !SourceControlState->IsCurrent()))
+					else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 					{
 						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);

@@ -696,7 +696,7 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 					CLEAR_WARN_COLOR();
 					SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), FileName);
 				}
-				else if(SourceControlState.IsValid() && (SourceControlState->CanEdit() || !SourceControlState->IsCurrent()))
+				else if(SourceControlState.IsValid() && SourceControlState->CanCheckout())
 				{
 					SET_WARN_COLOR(COLOR_GREEN);
 					UE_LOG(LogFixupRedirectsCommandlet, Warning, TEXT("Deleting '%s' from source control..."), *Filename);
