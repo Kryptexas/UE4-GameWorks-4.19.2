@@ -2316,9 +2316,19 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 		StubContext.MarkAsInternalOrCppUseOnly();
 	}
 
-	if ((SrcEventNode->FunctionFlags & FUNC_Net) > 0)
+	uint32 FunctionFlags = SrcEventNode->FunctionFlags;
+	if(SrcEventNode->bOverrideFunction && Blueprint->ParentClass != nullptr)
 	{
-		StubContext.MarkAsNetFunction(SrcEventNode->FunctionFlags);
+		const UFunction* ParentFunction = Blueprint->ParentClass->FindFunctionByName(SrcEventNode->GetFunctionName());
+		if(ParentFunction != nullptr)
+		{
+			FunctionFlags |= ParentFunction->FunctionFlags & FUNC_NetFuncFlags;
+		}
+	}
+
+	if ((FunctionFlags & FUNC_Net) > 0)
+	{
+		StubContext.MarkAsNetFunction(FunctionFlags);
 	}
 
 	// Create an entry point
