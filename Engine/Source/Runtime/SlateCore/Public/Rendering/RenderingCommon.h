@@ -466,6 +466,16 @@ public:
 	}
 
 	/**
+	 * Called to determine if we should render the focus brush.
+	 *
+	 * @param InFocusCause	The cause of focus
+	 */
+	virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const
+	{
+		return TOptional<bool>();
+	}
+
+	/**
 	 * Called after all input for this frame is processed.
 	 */
 	virtual void OnFinishedPointerInput()

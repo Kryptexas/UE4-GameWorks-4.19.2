@@ -680,6 +680,8 @@ protected:
 
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 
+	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const override;
+
 	/** 
 	 * Ticks a slate window and all of its children
 	 *
@@ -1264,11 +1266,19 @@ private:
 
 	TSharedPtr<FAnalogCursor> AnalogCursor;
 
-	/** A weak path to the widget currently focused by a user, if any. */
-	FWeakWidgetPath UserFocusedWidgetPaths[SlateApplicationDefs::MaxUsers];
-	
-	/** Reason a widget was focused by a user, if any. */
-	EFocusCause UserFocusCause[SlateApplicationDefs::MaxUsers];
+
+	struct FUserFocusEntry
+	{
+		/** A weak path to the widget currently focused by a user, if any. */
+		FWeakWidgetPath WidgetPath;
+		/** Reason a widget was focused by a user, if any. */
+		EFocusCause FocusCause;
+		/** If we should show this focus */
+		bool ShowFocus;
+	};
+
+	/** State of focus for all users */
+	FUserFocusEntry UserFocusEntries[SlateApplicationDefs::MaxUsers];
 
 	/**
 	 * Application throttling

@@ -285,6 +285,11 @@ FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEven
 	return FReply::Unhandled();
 }
 
+TOptional<bool> SWidget::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	return TOptional<bool>();
+}
+
 TOptional<EPopupMethod> SWidget::OnQueryPopupMethod() const
 {
 	return TOptional<EPopupMethod>();
@@ -630,8 +635,8 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 
 	if (SupportsKeyboardFocus())
 	{
-		TOptional<EFocusCause> FocusCause = HasAnyUserFocus();
-		if (FocusCause.IsSet() && FocusCause.GetValue() == EFocusCause::Navigation)
+		bool bShowUserFocus = FSlateApplicationBase::Get().ShowUserFocus(SharedThis(this));
+		if (bShowUserFocus)
 		{
 			const FSlateBrush* BrushResource = GetFocusBrush();
 

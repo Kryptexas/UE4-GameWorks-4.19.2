@@ -1137,7 +1137,8 @@ void FSlateApplication::FinishedInputThisFrame()
 	// are given a chance to process accumulated values.
 	for (int32 SlateUserIndex = 0; SlateUserIndex < SlateApplicationDefs::MaxUsers; ++SlateUserIndex)
 	{
-		for (const TWeakPtr<SWidget>& WidgetPtr : UserFocusedWidgetPaths[SlateUserIndex].Widgets)
+		const FUserFocusEntry& UserFocusEntry = UserFocusEntries[SlateUserIndex];
+		for (const TWeakPtr<SWidget>& WidgetPtr : UserFocusEntry.WidgetPath.Widgets)
 		{
 			const TSharedPtr<SWidget>& Widget = WidgetPtr.Pin();
 			if (Widget.IsValid())
@@ -1846,7 +1847,8 @@ void FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>
 
 TSharedPtr<SWidget> FSlateApplication::GetUserFocusedWidget(uint32 UserIndex) const
 {
-	return UserFocusedWidgetPaths[UserIndex].IsValid() ? UserFocusedWidgetPaths[UserIndex].GetLastWidget().Pin() : TSharedPtr<SWidget>();
+	const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+	return UserFocusEntry.WidgetPath.IsValid() ? UserFocusEntry.WidgetPath.GetLastWidget().Pin() : TSharedPtr<SWidget>();
 }
 
 TSharedPtr<SWidget> FSlateApplication::GetJoystickCaptor(uint32 UserIndex) const
@@ -1924,13 +1926,15 @@ bool FSlateApplication::SetKeyboardFocus(const FWidgetPath& InFocusPath, const E
 
 bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause)
 {
+	FUserFocusEntry& UserFocusEntry = UserFocusEntries[InUserIndex];
+
 	check(InUserIndex >= 0 && InUserIndex < SlateApplicationDefs::MaxUsers);
 
 	TSharedPtr<IWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
 	const bool bReflectorShowingFocus = WidgetReflector.IsValid() && WidgetReflector->IsShowingFocus();
 
 	// Get the old Widget information
-	const FWeakWidgetPath OldFocusedWidgetPath = UserFocusedWidgetPaths[InUserIndex];
+	const FWeakWidgetPath OldFocusedWidgetPath = UserFocusEntry.WidgetPath;
 	TSharedPtr<SWidget> OldFocusedWidget = OldFocusedWidgetPath.IsValid() ? OldFocusedWidgetPath.GetLastWidget().Pin() : TSharedPtr< SWidget >();
 
 	// Get the new widget information by finding the first widget in the path that supports focus
@@ -1999,9 +2003,26 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 	//UE_LOG(LogSlate, Warning, TEXT("Focus for user %i set to %s."), InUserIndex, NewFocusedWidget.IsValid() ? *NewFocusedWidget->ToString() : TEXT("Invalid"));
 
 	// Store a weak widget path to the widget that's taking focus
-	UserFocusedWidgetPaths[InUserIndex] = FWeakWidgetPath(NewFocusedWidgetPath);
+	UserFocusEntry.WidgetPath = FWeakWidgetPath(NewFocusedWidgetPath);
+
 	// Store the cause of the focus
-	UserFocusCause[InUserIndex] = InCause;
+	UserFocusEntry.FocusCause = InCause;
+
+	// Figure out if we should show focus for this focus entry
+	UserFocusEntry.ShowFocus = false;
+	if (NewFocusedWidgetPath.IsValid())
+	{
+		UserFocusEntry.ShowFocus = InCause == EFocusCause::Navigation;
+		for (int32 WidgetIndex = NewFocusedWidgetPath.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
+		{
+			TOptional<bool> ShowFocus = NewFocusedWidgetPath.Widgets[WidgetIndex].Widget->OnQueryShowFocus(InCause);
+			if (ShowFocus.IsSet())
+			{
+				UserFocusEntry.ShowFocus = ShowFocus.GetValue();
+				break;
+			}
+		}
+	}
 
 	// Let the old widget know that it lost keyboard focus
 	if(OldFocusedWidget.IsValid())
@@ -2280,7 +2301,8 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		{
 			FNavigationEvent NavigationEvent(UserIndex, TheReply.GetNavigationType());
 
-			FWidgetPath EventPath = UserFocusedWidgetPaths[UserIndex].ToWidgetPath();
+			const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+			FWidgetPath EventPath = UserFocusEntry.WidgetPath.ToWidgetPath();
 
 			FNavigationReply NavigationReply = FNavigationReply::Escape();
 			for (int32 WidgetIndex = EventPath.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
@@ -3150,7 +3172,7 @@ void FSlateApplication::ShowVirtualKeyboard( bool bShow, TSharedPtr<IVirtualKeyb
 
 FSlateRect FSlateApplication::GetPreferredWorkArea() const
 {
-	const FWeakWidgetPath & FocusedWidgetPath = UserFocusedWidgetPaths[GetUserIndexForKeyboard()];
+	const FWeakWidgetPath & FocusedWidgetPath = UserFocusEntries[GetUserIndexForKeyboard()].WidgetPath;
 
 	// First see if we have a focused widget
 	if( FocusedWidgetPath.IsValid() && FocusedWidgetPath.Window.IsValid() )
@@ -3300,9 +3322,10 @@ EVisibility FSlateApplication::GetSoftwareCursorVis( ) const
 
 TSharedPtr< SWidget > FSlateApplication::GetKeyboardFocusedWidget() const
 {
-	if( UserFocusedWidgetPaths[GetUserIndexForKeyboard()].IsValid() )
+	const FUserFocusEntry& UserFocusEntry = UserFocusEntries[GetUserIndexForKeyboard()];
+	if (UserFocusEntry.WidgetPath.IsValid())
 	{
-		return UserFocusedWidgetPaths[GetUserIndexForKeyboard()].GetLastWidget().Pin();
+		return UserFocusEntry.WidgetPath.GetLastWidget().Pin();
 	}
 
 	return TSharedPtr< SWidget >();
@@ -3332,10 +3355,11 @@ bool FSlateApplication::HasMouseCapture(const TSharedPtr<const SWidget> Widget) 
 
 TOptional<EFocusCause> FSlateApplication::HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const
 {
-	const FWeakWidgetPath & FocusedWidgetPath = UserFocusedWidgetPaths[UserIndex];
+	const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+	const FWeakWidgetPath & FocusedWidgetPath = UserFocusEntry.WidgetPath;
 	if (FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() == Widget)
 	{
-		TOptional<EFocusCause> FocusReason(UserFocusCause[UserIndex]);
+		TOptional<EFocusCause> FocusReason(UserFocusEntry.FocusCause);
 		return FocusReason;
 	}
 	return TOptional<EFocusCause>();
@@ -3345,21 +3369,38 @@ TOptional<EFocusCause> FSlateApplication::HasAnyUserFocus(const TSharedPtr<const
 {
 	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
 	{
-		const FWeakWidgetPath & FocusedWidgetPath = UserFocusedWidgetPaths[UserIndex];
+		const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+		const FWeakWidgetPath & FocusedWidgetPath = UserFocusEntry.WidgetPath;
 		if (FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() == Widget)
 		{
-			TOptional<EFocusCause> FocusReason(UserFocusCause[UserIndex]);
+			TOptional<EFocusCause> FocusReason(UserFocusEntry.FocusCause);
 			return FocusReason;
 		}
 	}
 	return TOptional<EFocusCause>();
 }
 
+bool FSlateApplication::ShowUserFocus(const TSharedPtr<const SWidget> Widget) const
+{
+	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
+	{
+		const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+		const FWeakWidgetPath & FocusedWidgetPath = UserFocusEntry.WidgetPath;
+		if (FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() == Widget)
+		{
+			return UserFocusEntry.ShowFocus;
+		}
+	}
+
+	return false;
+}
+
 bool FSlateApplication::HasFocusedDescendants( const TSharedRef< const SWidget >& Widget ) const
 {
 	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
 	{
-		const FWeakWidgetPath & FocusedWidgetPath = UserFocusedWidgetPaths[UserIndex];
+		const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+		const FWeakWidgetPath & FocusedWidgetPath = UserFocusEntry.WidgetPath;
 		if (FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() != Widget && FocusedWidgetPath.ContainsWidget(Widget))
 		{
 			return true;
@@ -3443,7 +3484,7 @@ bool FSlateApplication::ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent )
 	// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while typing
 
 	// Bubble the key event
-	FWidgetPath EventPath = UserFocusedWidgetPaths[InCharacterEvent.GetUserIndex()].ToWidgetPath();
+	FWidgetPath EventPath = UserFocusEntries[InCharacterEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
 	
 	// Switch worlds for widgets in the current path
 	FScopedSwitchWorldHack SwitchWorld( EventPath );
@@ -3505,7 +3546,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 			}
 
 		// Bubble the keyboard event
-		FWidgetPath EventPath = UserFocusedWidgetPaths[InKeyEvent.GetUserIndex()].ToWidgetPath();
+		FWidgetPath EventPath = UserFocusEntries[InKeyEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
 
 		// Switch worlds for widgets inOnPreviewMouseButtonDown the current path
 		FScopedSwitchWorldHack SwitchWorld( EventPath );
@@ -3568,7 +3609,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
 	// Bubble the key event
-	FWidgetPath EventPath = UserFocusedWidgetPaths[InKeyEvent.GetUserIndex()].ToWidgetPath();
+	FWidgetPath EventPath = UserFocusEntries[InKeyEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
 
 	// Switch worlds for widgets in the current path
 	FScopedSwitchWorldHack SwitchWorld( EventPath );
@@ -3600,7 +3641,7 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
 	// Bubble the key event
-	FWidgetPath EventPath = UserFocusedWidgetPaths[InAnalogInputEvent.GetUserIndex()].ToWidgetPath();
+	FWidgetPath EventPath = UserFocusEntries[InAnalogInputEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
 	InAnalogInputEvent.SetEventPath(EventPath);
 
 	// Switch worlds for widgets in the current path
@@ -4440,7 +4481,7 @@ bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEven
 		else
 		{
 			// Get the controller focus target for this user
-			FWeakWidgetPath FocusedWeakWidgetPath = UserFocusedWidgetPaths[NavigationEvent.GetUserIndex()];
+			FWeakWidgetPath FocusedWeakWidgetPath = UserFocusEntries[NavigationEvent.GetUserIndex()].WidgetPath;
 
 			// Find the next widget
 			if (NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous)
@@ -4606,10 +4647,10 @@ void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 {
 	LastUserInteractionTime = this->GetCurrentTime();
 	
-	if (MotionEvent.GetUserIndex() < ARRAY_COUNT(UserFocusedWidgetPaths) && UserFocusedWidgetPaths[MotionEvent.GetUserIndex()].IsValid())
+	if (MotionEvent.GetUserIndex() < ARRAY_COUNT(UserFocusEntries) && UserFocusEntries[MotionEvent.GetUserIndex()].WidgetPath.IsValid())
 	{
 		/* Get the controller focus target for this user */
-		FWidgetPath PathToWidget = UserFocusedWidgetPaths[MotionEvent.GetUserIndex()].ToWidgetPath();
+		FWidgetPath PathToWidget = UserFocusEntries[MotionEvent.GetUserIndex()].WidgetPath.ToWidgetPath();
 		FArrangedWidget& ArrangedWidget = PathToWidget.Widgets.Last();
 
 		/* Switch worlds for widgets in the current path */

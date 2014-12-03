@@ -15,6 +15,8 @@ class FCanvas;
 class FViewportClient;
 enum class EPopupMethod : uint8;
 
+enum class EFocusCause;
+
 /**
  * A render target.
  */
@@ -783,6 +785,13 @@ public:
 	 * @return	the cursor that the OS should display
 	 */
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) { return EMouseCursor::Default; }
+
+	/**
+	* Called to determine if we should render the focus brush.
+	*
+	* @param InFocusCause	The cause of focus
+	*/
+	virtual TOptional<bool> QueryShowFocus(const EFocusCause InFocusCause) const { return TOptional<bool>(); }
 
 	virtual void LostFocus(FViewport* Viewport) {}
 	virtual void ReceivedFocus(FViewport* Viewport) {}

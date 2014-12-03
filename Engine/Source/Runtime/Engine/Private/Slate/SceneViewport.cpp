@@ -675,6 +675,19 @@ TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
 	}
 }
 
+TOptional<bool> FSceneViewport::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	if (ViewportClient)
+	{
+		// Switch to the viewport clients world before processing input
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+		return ViewportClient->QueryShowFocus(InFocusCause);
+	}
+
+	return TOptional<bool>();
+}
+
 void FSceneViewport::OnFinishedPointerInput()
 {
 	ProcessAccumulatedPointerInput();

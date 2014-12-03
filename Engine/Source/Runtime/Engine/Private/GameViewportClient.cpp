@@ -1242,6 +1242,15 @@ void UGameViewportClient::Precache()
 	}
 }
 
+TOptional<bool> UGameViewportClient::QueryShowFocus(const EFocusCause InFocusCause) const
+{
+	if (InFocusCause == EFocusCause::Mouse)
+	{
+		return false;
+	}
+	return true;
+}
+
 void UGameViewportClient::LostFocus(FViewport* InViewport)
 {
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  

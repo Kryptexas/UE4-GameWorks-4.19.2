@@ -416,6 +416,13 @@ public:
 	virtual FReply OnMotionDetected(const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent);
 
 	/**
+	 * Called to determine if we should render the focus brush.
+	 *
+	 * @param InFocusCause	The cause of focus
+	 */
+	virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const;
+
+	/**
 	 * Popups can manifest in a NEW OS WINDOW or via an OVERLAY in an existing window.
 	 * This can be set explicitly on SMenuAnchor, or can be determined by a scoping widget.
 	 * A scoping widget can reply to OnQueryPopupMethod() to drive all its descendants'

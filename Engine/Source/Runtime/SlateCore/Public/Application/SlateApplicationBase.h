@@ -340,6 +340,13 @@ protected:
 	 */
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
 
+	/**
+	 * Gets whether or not a particular widget should show user focus.
+	 *
+	 * @return True if we should show user focus
+	 */
+	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
+
 protected:
 
 	// Holds the Slate renderer used to render this application.
