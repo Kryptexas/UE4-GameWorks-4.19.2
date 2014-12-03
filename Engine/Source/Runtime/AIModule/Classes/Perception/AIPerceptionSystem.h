@@ -42,6 +42,11 @@ protected:
 	UPROPERTY(config, EditAnywhere, Category = Perception)
 	float PerceptionAgingRate;
 
+	/** gets set to true if as as result of stimuli aging (that's done outside of Tick, on timer)
+	 *	one of listeners requires an update. The update, as usual is tone in Tick where 
+	 *	bSomeListenersNeedUpdateDueToStimuliAging gets reset to false */
+	uint32 bSomeListenersNeedUpdateDueToStimuliAging : 1;
+
 	struct FDelayedStimulus
 	{
 		float DeliveryTimestamp;

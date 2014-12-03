@@ -17,6 +17,7 @@ UAISense::UAISense(const FObjectInitializer& ObjectInitializer)
 	, SenseID(FAISenseID::InvalidID())
 {
 	DebugName = GetName();
+	DefaultExpirationAge = FAIStimulus::NeverHappenedAge;
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{

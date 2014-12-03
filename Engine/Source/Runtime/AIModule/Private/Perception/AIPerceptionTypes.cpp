@@ -2,9 +2,22 @@
 
 #include "AIModulePrivate.h"
 
+//----------------------------------------------------------------------//
+// FAIStimulus
+//----------------------------------------------------------------------//
+
 // mind that this needs to be > 0 since checks are done if Age < FAIStimulus::NeverHappenedAge
 // @todo maybe should be a function (IsValidAge)
 const float FAIStimulus::NeverHappenedAge = FLT_MAX;
+
+FAIStimulus::FAIStimulus(const UAISense& Sense, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result)
+	: Age(0.f), Strength(Result == SensingSucceeded ? StimulusStrength : -1.f)
+	, StimulusLocation(InStimulusLocation)
+	, ReceiverLocation(InReceiverLocation), bLastSensingResult(Result == SensingSucceeded)
+{
+	Type = Sense.GetSenseID();
+	ExpirationAge = Sense.GetDefaultExpirationAge();
+}
 
 //----------------------------------------------------------------------//
 // FPerceptionListener

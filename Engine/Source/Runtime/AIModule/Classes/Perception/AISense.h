@@ -10,7 +10,7 @@ class UAIPerceptionSystem;
 
 DECLARE_DELEGATE_OneParam(FOnPerceptionListenerUpdateDelegate, const FPerceptionListener&);
 
-UCLASS(ClassGroup=AI, abstract)
+UCLASS(ClassGroup = AI, abstract, config = Engine)
 class AIMODULE_API UAISense : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -25,6 +25,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Debug)
 	FString DebugName;
 
+	/** age past which stimulus of this sense are "forgotten"*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI Perception", config)
+	float DefaultExpirationAge;
+	
 private:
 	UPROPERTY()
 	UAIPerceptionSystem* PerceptionSystemInstance;
@@ -86,6 +90,8 @@ public:
 	FORCEINLINE void OnNewListener(const FPerceptionListener& NewListener) { OnNewListenerDelegate.ExecuteIfBound(NewListener); }
 	FORCEINLINE void OnListenerUpdate(const FPerceptionListener& NewListener) { OnListenerUpdateDelegate.ExecuteIfBound(NewListener); }
 	FORCEINLINE void OnListenerRemoved(const FPerceptionListener& NewListener) { OnListenerRemovedDelegate.ExecuteIfBound(NewListener); }
+
+	FORCEINLINE float GetDefaultExpirationAge() const { return DefaultExpirationAge; }
 
 protected:
 	/** @return time until next update */

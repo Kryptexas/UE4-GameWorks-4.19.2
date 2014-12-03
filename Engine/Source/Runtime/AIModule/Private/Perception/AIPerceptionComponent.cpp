@@ -394,6 +394,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 
 		FAIStimulus& StimulusStore = PerceptualInfo->LastSensedStimuli[SourcedStimulus->Stimulus.Type];
 
+		// if the new stimulus is "valid" or it's info that "no longer sensed" and it used to be sensed successfully
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed() || StimulusStore.WasSuccessfullySensed())
 		{
 			UpdatedActors.AddUnique(SourcedStimulus->Source);
@@ -402,6 +403,10 @@ void UAIPerceptionComponent::ProcessStimuli()
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
 			RefreshStimulus(StimulusStore, SourcedStimulus->Stimulus);
+		}
+		else if (StimulusStore.IsExpired())
+		{
+			HandleExpiredStimulus(StimulusStore);
 		}
 		else
 		{
@@ -435,17 +440,35 @@ void UAIPerceptionComponent::RefreshStimulus(FAIStimulus& StimulusStore, const F
 	}
 }
 
-void UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
+void UAIPerceptionComponent::HandleExpiredStimulus(FAIStimulus& StimulusStore)
 {
+	ensure(StimulusStore.IsExpired() == true && StimulusStore.WasSuccessfullySensed() == false && StimulusStore.IsActive() == false);
+}
+
+bool UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
+{
+	bool bExpiredStimuli = false;
+
 	for (TActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
 	{
 		FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
 
-		for (auto& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
+		for (FAIStimulus& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 		{
-			Stimulus.AgeStimulus(ConstPerceptionAgingRate);
+			if (Stimulus.AgeStimulus(ConstPerceptionAgingRate) == false)
+			{
+				AActor* TargetActor = ActorPerceptionInfo.Target.Get();
+				if (TargetActor)
+				{
+					Stimulus.MarkExpired();
+					RegisterStimulus(TargetActor, Stimulus);
+					bExpiredStimuli = true;
+				}
+			}
 		}
 	}
+
+	return bExpiredStimuli;
 }
 
 void UAIPerceptionComponent::ForgetActor(AActor* ActorToForget)

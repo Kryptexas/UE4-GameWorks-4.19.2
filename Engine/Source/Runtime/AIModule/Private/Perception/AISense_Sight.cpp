@@ -144,13 +144,13 @@ float UAISense_Sight::Update()
 						int32 NumberOfLoSChecksPerformed = 0;
 						if (Target.SightTargetInterface->CanBeSeenFrom(Listener.CachedLocation, OutSeenLocation, NumberOfLoSChecksPerformed, Listener.Listener->GetBodyActor()) == true)
 						{
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 1.f, OutSeenLocation, Listener.CachedLocation));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 1.f, OutSeenLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
 						}
 						else
 						{
 //							UE_VLOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
 						}
 
@@ -171,13 +171,13 @@ float UAISense_Sight::Update()
 
 						if (bHit == false || (HitResult.Actor.IsValid() && HitResult.Actor->IsOwnedBy(TargetActor)))
 						{
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 1.f, TargetLocation, Listener.CachedLocation));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 1.f, TargetLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
 						}
 						else
 						{
 //							UE_VLOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
 						}
 					}
@@ -185,7 +185,7 @@ float UAISense_Sight::Update()
 				else
 				{
 //					UE_VLOG_SEGMENT(Listener.Listener.Get()->GetOwner(), Listener.CachedLocation, TargetLocation, FColor::Red, TEXT("%s"), *(Target.TargetId.ToString()));
-					Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 					SightQuery->bLastResult = false;
 				}
 

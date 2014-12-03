@@ -32,7 +32,7 @@ float UAISense_Prediction::Update()
 					// calculate the prediction here:
 					const FVector PredictedLocation = Event.PredictedActor->GetActorLocation() + Event.PredictedActor->GetVelocity() * Event.TimeToPredict;
 
-					Listener.RegisterStimulus(Event.PredictedActor, FAIStimulus(GetSenseID(), 1.f, PredictedLocation, Listener.CachedLocation));
+					Listener.RegisterStimulus(Event.PredictedActor, FAIStimulus(*this, 1.f, PredictedLocation, Listener.CachedLocation));
 				}
 			}
 		}

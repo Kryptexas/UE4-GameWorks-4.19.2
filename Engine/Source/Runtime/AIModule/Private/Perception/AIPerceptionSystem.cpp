@@ -28,6 +28,7 @@ FAISenseID UAISenseConfig::GetSenseID() const
 UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, PerceptionAgingRate(0.3f)
+	, bSomeListenersNeedUpdateDueToStimuliAging(false)
 	, CurrentTime(0.f)
 {
 }
@@ -203,7 +204,7 @@ void UAIPerceptionSystem::Tick(float DeltaSeconds)
 		/** no point in soring in no new stimuli was processed */
 		bool bStimuliDelivered = DeliverDelayedStimuli(bNeedsUpdate ? RequiresSorting : NoNeedToSort);
 
-		if (bNeedsUpdate || bStimuliDelivered)
+		if (bNeedsUpdate || bStimuliDelivered || bSomeListenersNeedUpdateDueToStimuliAging)
 		{
 			for (AIPerception::FListenerMap::TIterator ListenerIt(ListenerContainer); ListenerIt; ++ListenerIt)
 			{
@@ -213,6 +214,8 @@ void UAIPerceptionSystem::Tick(float DeltaSeconds)
 					ListenerIt->Value.ProcessStimuli();
 				}
 			}
+
+			bSomeListenersNeedUpdateDueToStimuliAging = false;
 		}
 	}
 }
@@ -227,7 +230,12 @@ void UAIPerceptionSystem::AgeStimuli()
 		FPerceptionListener& Listener = ListenerIt->Value;
 		if (Listener.Listener.IsValid())
 		{
-			Listener.Listener->AgeStimuli(ConstPerceptionAgingRate);
+			// AgeStimuli will return true if this listener requires an update after stimuli aging
+			if (Listener.Listener->AgeStimuli(ConstPerceptionAgingRate))
+			{
+				Listener.MarkForStimulusProcessing();
+				bSomeListenersNeedUpdateDueToStimuliAging = true;
+			}
 		}
 	}
 }

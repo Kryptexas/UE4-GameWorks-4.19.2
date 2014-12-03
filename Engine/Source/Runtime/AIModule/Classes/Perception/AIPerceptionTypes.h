@@ -74,6 +74,9 @@ struct AIMODULE_API FAIStimulus
 protected:
 	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
 	float Age;
+
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
+	float ExpirationAge;
 public:
 	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
 	float Strength;
@@ -85,10 +88,18 @@ public:
 	FAISenseID Type;
 protected:
 	uint32 bLastSensingResult:1; // currently used only for marking failed sight tests
+	/** this means the stimulus was originally created with a "time limit" and this time has passed. 
+	 *	Expiration also results in calling MarkNoLongerSensed */
+	uint32 bExpired:1;	
 	
 public:
-	FAIStimulus(FAISenseID SenseType, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result = SensingSucceeded, float StimulusAge = 0.f)
-		: Age(StimulusAge), Strength(Result == SensingSucceeded ? StimulusStrength : -1.f)
+	
+	/** this is the recommended constructor. Use others if you know what you're doing. */
+	FAIStimulus(const UAISense& Sense, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result = SensingSucceeded);
+
+	FAIStimulus(FAISenseID SenseType, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result = SensingSucceeded)
+		: Age(0.f), ExpirationAge(NeverHappenedAge)
+		, Strength(Result == SensingSucceeded ? StimulusStrength : -1.f)
 		, StimulusLocation(InStimulusLocation)
 		, ReceiverLocation(InReceiverLocation), Type(SenseType), bLastSensingResult(Result == SensingSucceeded)
 	{}
@@ -99,10 +110,20 @@ public:
 		, ReceiverLocation(FAISystem::InvalidLocation), Type(FAISenseID::InvalidID()), bLastSensingResult(false)
 	{}
 
+	FAIStimulus& SetExpirationAge(float InExpirationAge) { ExpirationAge = InExpirationAge; return *this; }
+	FAIStimulus& SetStimulusAge(float StimulusAge) { Age = StimulusAge; return *this; }
+	
 	FORCEINLINE float GetAge() const { return Strength > 0 ? Age : NeverHappenedAge; }
-	FORCEINLINE void AgeStimulus(float ConstPerceptionAgingRate) { Age += ConstPerceptionAgingRate; }
+	/** @return false when this stimulus is no longer valid, when it is Expired */
+	FORCEINLINE bool AgeStimulus(float ConstPerceptionAgingRate) 
+	{ 
+		Age += ConstPerceptionAgingRate; 
+		return Age > ExpirationAge;
+	}
 	FORCEINLINE bool WasSuccessfullySensed() const { return bLastSensingResult; }
+	FORCEINLINE bool IsExpired() const { return bExpired; }
 	FORCEINLINE void MarkNoLongerSensed() { bLastSensingResult = false; }
+	FORCEINLINE void MarkExpired() { bExpired = true; MarkNoLongerSensed(); }
 	FORCEINLINE bool IsActive() const { return WasSuccessfullySensed() == true && GetAge() < NeverHappenedAge; }
 };
 
@@ -135,9 +156,9 @@ struct AIMODULE_API FPerceptionListener
 
 	FGenericTeamId TeamIdentifier;
 
+private:
 	uint32 bHasStimulusToProcess : 1;
 
-private:
 	FPerceptionListenerID ListenerID;
 
 	FPerceptionListener();
@@ -173,6 +194,7 @@ public:
 private:
 	friend class UAIPerceptionSystem;
 	FORCEINLINE void SetListenerID(FPerceptionListenerID InListenerID) { ListenerID = InListenerID; }
+	FORCEINLINE void MarkForStimulusProcessing() { bHasStimulusToProcess = true; }
 };
 
 namespace AIPerception

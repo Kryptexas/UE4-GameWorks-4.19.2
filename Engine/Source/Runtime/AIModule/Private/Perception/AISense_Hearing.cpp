@@ -135,7 +135,7 @@ float UAISense_Hearing::Update()
 			const float Delay = SpeedOfSoundSq > 0.f ? FVector::DistSquared(Event.NoiseLocation, Listener.CachedLocation) / SpeedOfSoundSq : 0;
 			// pass over to listener to process 			
 			PerseptionSys->RegisterDelayedStimulus(Listener.GetListenerID(), Delay, Event.Instigator
-				, FAIStimulus(GetSenseID(), Event.Loudness, Event.NoiseLocation, Listener.CachedLocation) );
+				, FAIStimulus(*this, Event.Loudness, Event.NoiseLocation, Listener.CachedLocation) );
 		}
 	}
 

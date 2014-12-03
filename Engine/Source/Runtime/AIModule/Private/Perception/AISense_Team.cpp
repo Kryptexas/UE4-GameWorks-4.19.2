@@ -49,7 +49,7 @@ float UAISense_Team::Update()
 				continue;
 			}
 			
-			Listener.RegisterStimulus(Event.Enemy, FAIStimulus(GetSenseID(), 1.f, Event.LastKnowLocation, Event.GetBroadcastLocation(), FAIStimulus::SensingSucceeded, Event.InformationAge));
+			Listener.RegisterStimulus(Event.Enemy, FAIStimulus(*this, 1.f, Event.LastKnowLocation, Event.GetBroadcastLocation(), FAIStimulus::SensingSucceeded).SetStimulusAge(Event.InformationAge));
 		}
 	}
 

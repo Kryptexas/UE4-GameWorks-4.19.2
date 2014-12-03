@@ -211,7 +211,8 @@ public:
 
 	void RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus);
 	void ProcessStimuli();
-	void AgeStimuli(const float ConstPerceptionAgingRate);
+	/** returns true if, as result of stimuli aging, this listener needs an update (like if some stimuli expired)*/
+	bool AgeStimuli(const float ConstPerceptionAgingRate);
 	void ForgetActor(AActor* ActorToForget);
 
 	float GetYoungestStimulusAge(const AActor& Source) const;
@@ -254,6 +255,9 @@ protected:
 
 	/** Updates the stimulus entry in StimulusStore, if NewStimulus is more recent or stronger */
 	virtual void RefreshStimulus(FAIStimulus& StimulusStore, const FAIStimulus& NewStimulus);
+
+	/** @note no need to call super implementation, it's there just for some validity checking */
+	virtual void HandleExpiredStimulus(FAIStimulus& StimulusStore);
 	
 private:
 	FPerceptionListenerID PerceptionListenerId;
