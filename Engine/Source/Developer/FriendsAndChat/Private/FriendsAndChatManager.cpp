@@ -348,6 +348,8 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 {
 	// todo - NDavies = find a better way to do this
 	TSharedRef<FChatViewModel> ChatViewModel = StaticCastSharedRef<FChatViewModel>(ViewModel);
+	ChatViewModel->SetInGameUI(true);
+	ChatViewModel->SetCaptureFocus(true);
 
 	TSharedPtr<SChatWindow> ChatWidget;
 	Style = *InStyle;
