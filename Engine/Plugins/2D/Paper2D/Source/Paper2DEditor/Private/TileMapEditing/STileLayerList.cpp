@@ -116,6 +116,84 @@ UPaperTileLayer* STileLayerList::GetSelectedLayer() const
 	return (ListViewWidget->GetNumItemsSelected() > 0) ? ListViewWidget->GetSelectedItems()[0] : nullptr;
 }
 
+FText STileLayerList::GenerateNewLayerName(UPaperTileMap* TileMap)
+{
+	// Create a set of existing names
+	TSet<FString> ExistingNames;
+	for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
+	{
+		ExistingNames.Add(ExistingLayer->LayerName.ToString());
+	}
+
+	// Find a good name
+	FText TestLayerName;
+	do
+	{
+		TileMap->LayerNameIndex++;
+
+		FNumberFormattingOptions NoGroupingFormat;
+		NoGroupingFormat.SetUseGrouping(false);
+
+		TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &NoGroupingFormat));
+	} while (ExistingNames.Contains(TestLayerName.ToString()));
+
+	return TestLayerName;
+}
+
+FText STileLayerList::GenerateDuplicatedLayerName(const FString& InputNameRaw, UPaperTileMap* TileMap)
+{
+	// Create a set of existing names
+	TSet<FString> ExistingNames;
+	for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
+	{
+		ExistingNames.Add(ExistingLayer->LayerName.ToString());
+	}
+
+	FString BaseName = InputNameRaw;
+	int32 TestIndex = 0;
+	bool bAddNumber = false;
+
+	// See if this is the result of a previous duplication operation, and change the desired name accordingly
+	int32 SpaceIndex;
+	if (InputNameRaw.FindLastChar(' ', /*out*/ SpaceIndex))
+	{
+		FString PossibleDuplicationSuffix = InputNameRaw.Mid(SpaceIndex + 1);
+
+		if (PossibleDuplicationSuffix == TEXT("copy"))
+		{
+			bAddNumber = true;
+			BaseName = InputNameRaw.Left(SpaceIndex);
+			TestIndex = 2;
+		}
+		else
+		{
+			int32 ExistingIndex = FCString::Atoi(*PossibleDuplicationSuffix);
+
+			const FString TestSuffix = FString::Printf(TEXT(" copy %d"), ExistingIndex);
+
+			if (InputNameRaw.EndsWith(TestSuffix))
+			{
+				bAddNumber = true;
+				BaseName = InputNameRaw.Left(InputNameRaw.Len() - TestSuffix.Len());
+				TestIndex = ExistingIndex + 1;
+			}
+		}
+	}
+
+	// Find a good name
+	FString TestLayerName = BaseName + TEXT(" copy");
+
+	if (bAddNumber || ExistingNames.Contains(TestLayerName))
+	{
+		do
+		{
+			TestLayerName = FString::Printf(TEXT("%s copy %d"), *BaseName, TestIndex++);
+		} while (ExistingNames.Contains(TestLayerName));
+	}
+
+	return FText::FromString(TestLayerName);
+}
+
 UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionIndex)
 {
 	UPaperTileLayer* NewLayer = NULL;
@@ -126,25 +204,6 @@ UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionI
 		TileMap->SetFlags(RF_Transactional);
 		TileMap->Modify();
 
-		// Create a set of existing names
-		TSet<FString> ExistingNames;
-		for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
-		{
-			ExistingNames.Add(ExistingLayer->LayerName.ToString());
-		}
-
-		// Find a good name
-		FText TestLayerName;
-		do
-		{
-			TileMap->LayerNameIndex++;
-
-			FNumberFormattingOptions NoGroupingFormat;
-			NoGroupingFormat.SetUseGrouping(false);
-
-			TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &NoGroupingFormat));
-		} while (ExistingNames.Contains(TestLayerName.ToString()));
-
 		// Create the new layer
 		NewLayer = NewObject<UPaperTileLayer>(TileMap);
 		NewLayer->SetFlags(RF_Transactional);
@@ -152,7 +211,7 @@ UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionI
 		NewLayer->LayerWidth = TileMap->MapWidth;
 		NewLayer->LayerHeight = TileMap->MapHeight;
 		NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
-		NewLayer->LayerName = TestLayerName;
+		NewLayer->LayerName = GenerateNewLayerName(TileMap);
 		NewLayer->bCollisionLayer = bCollisionLayer;
 
 		// Insert the new layer
@@ -263,7 +322,7 @@ void STileLayerList::DuplicateLayer()
 
 			UPaperTileLayer* NewLayer = DuplicateObject<UPaperTileLayer>(TileMap->TileLayers[DuplicateIndex], TileMap);
 			TileMap->TileLayers.Insert(NewLayer, DuplicateIndex);
-			//@TODO: Try renaming it to a better name (Photoshop uses "[OldName] copy", but with a prompt to let you rename it immediately)
+			NewLayer->LayerName = GenerateDuplicatedLayerName(NewLayer->LayerName.ToString(), TileMap);
 
 			TileMap->PostEditChange();
 			ListViewWidget->RequestListRefresh();
