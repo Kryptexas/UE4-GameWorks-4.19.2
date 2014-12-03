@@ -80,16 +80,19 @@ void FTimespanStructCustomization::HandleTextBoxTextChanged( const FText& NewTex
 void FTimespanStructCustomization::HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo )
 {
 	FTimespan ParsedTimespan;
-								
-	if (FTimespan::Parse(NewText.ToString(), ParsedTimespan))
+			
+	InputValid = FTimespan::Parse(NewText.ToString(), ParsedTimespan);
+	if (InputValid && PropertyHandle.IsValid())
 	{
 		TArray<void*> RawData;
 		PropertyHandle->AccessRawData(RawData);
 
+		PropertyHandle->NotifyPreChange();
 		for (auto RawDataInstance : RawData)
 		{
 			*(FTimespan*)RawDataInstance = ParsedTimespan;
 		}
+		PropertyHandle->NotifyPostChange();
 	}
 }
 

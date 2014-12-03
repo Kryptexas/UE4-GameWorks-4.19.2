@@ -236,6 +236,7 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
 		WithImportTextItem = true,
 		WithSerializer = true,
 		WithZeroConstructor = true,
+		WithIdenticalViaEquality = true,
 	};
 };
 IMPLEMENT_STRUCT(DateTime);
@@ -250,6 +251,7 @@ struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase
 		WithImportTextItem = false, // @todo gmp: implement FTimespan::ImportTextItem
 		WithSerializer = true,
 		WithZeroConstructor = true,
+		WithIdenticalViaEquality = true,
 	};
 };
 IMPLEMENT_STRUCT(Timespan);

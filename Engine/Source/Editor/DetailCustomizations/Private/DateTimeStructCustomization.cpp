@@ -80,16 +80,19 @@ void FDateTimeStructCustomization::HandleTextBoxTextChanged( const FText& NewTex
 void FDateTimeStructCustomization::HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo )
 {
 	FDateTime ParsedDateTime;
-								
-	if (FDateTime::Parse(NewText.ToString(), ParsedDateTime))
+		
+	InputValid = FDateTime::Parse(NewText.ToString(), ParsedDateTime);
+	if (InputValid && PropertyHandle.IsValid())
 	{
 		TArray<void*> RawData;
 		PropertyHandle->AccessRawData(RawData);
 
+		PropertyHandle->NotifyPreChange();
 		for (auto RawDataInstance : RawData)
 		{
 			*(FDateTime*)RawDataInstance = ParsedDateTime;
 		}
+		PropertyHandle->NotifyPostChange();
 	}
 }
 
