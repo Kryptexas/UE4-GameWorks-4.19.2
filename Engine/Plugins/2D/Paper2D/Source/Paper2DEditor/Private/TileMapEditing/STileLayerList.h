@@ -31,6 +31,9 @@ protected:
 
 	class UPaperTileLayer* AddLayer(bool bCollisionLayer, int32 InsertionIndex = INDEX_NONE);
 
+	// Moves a layer from OldIndex to NewIndex if both are valid, otherwise it does nothing silently
+	void ChangeLayerOrdering(int32 OldIndex, int32 NewIndex);
+
 	void AddNewLayerAbove();
 	void AddNewLayerBelow();
 	void DeleteLayer();

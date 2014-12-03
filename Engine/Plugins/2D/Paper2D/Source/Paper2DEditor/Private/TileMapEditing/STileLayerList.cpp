@@ -165,11 +165,34 @@ UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionI
 			TileMap->TileLayers.Add(NewLayer);
 		}
 
+		ListViewWidget->RequestListRefresh();
+		TileMap->PostEditChange();
+
 		// Change the selection set to select it
 		SetSelectedLayer(NewLayer);
 	}
 
 	return NewLayer;
+}
+
+void STileLayerList::ChangeLayerOrdering(int32 OldIndex, int32 NewIndex)
+{
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		if (TileMap->TileLayers.IsValidIndex(OldIndex) && TileMap->TileLayers.IsValidIndex(NewIndex))
+		{
+			const FScopedTransaction Transaction(LOCTEXT("TileMapReorderLayer", "Reorder Layer"));
+			TileMap->SetFlags(RF_Transactional);
+			TileMap->Modify();
+
+			UPaperTileLayer* LayerToMove = TileMap->TileLayers[OldIndex];
+			TileMap->TileLayers.RemoveAt(OldIndex);
+			TileMap->TileLayers.Insert(LayerToMove, NewIndex);
+
+			ListViewWidget->RequestListRefresh();
+			TileMap->PostEditChange();
+		}
+	}
 }
 
 void STileLayerList::AddNewLayerAbove()
@@ -215,6 +238,7 @@ void STileLayerList::DeleteLayer()
 			TileMap->TileLayers.RemoveAt(DeleteIndex);
 
 			TileMap->PostEditChange();
+			ListViewWidget->RequestListRefresh();
 
 			// Select the item below the one that just got deleted
 			const int32 NewSelectionIndex = FMath::Min<int32>(DeleteIndex, TileMap->TileLayers.Num() - 1);
@@ -242,6 +266,7 @@ void STileLayerList::DuplicateLayer()
 			//@TODO: Try renaming it to a better name (Photoshop uses "[OldName] copy", but with a prompt to let you rename it immediately)
 
 			TileMap->PostEditChange();
+			ListViewWidget->RequestListRefresh();
 
 			// Select the duplicated layer
 			SetSelectedLayer(NewLayer);
@@ -256,12 +281,16 @@ void STileLayerList::MergeLayerDown()
 
 void STileLayerList::MoveLayerUp()
 {
-	//@TODO: TILEMAPS: Support moving layers up
+	const int32 SelectedIndex = GetSelectionIndex();
+	const int32 NewIndex = SelectedIndex - 1;
+	ChangeLayerOrdering(SelectedIndex, NewIndex);
 }
 
 void STileLayerList::MoveLayerDown()
 {
-	//@TODO: TILEMAPS: Support moving layers down
+	const int32 SelectedIndex = GetSelectionIndex();
+	const int32 NewIndex = SelectedIndex + 1;
+	ChangeLayerOrdering(SelectedIndex, NewIndex);
 }
 
 void STileLayerList::SetSelectedLayer(UPaperTileLayer* SelectedLayer)
