@@ -18,7 +18,6 @@ public:
 	// UK2Node interface
 	virtual bool IsNodePure() const override { return false; }
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
-	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual bool AllowMultipleSelfs(bool bInputAsArray) const override { return true; }

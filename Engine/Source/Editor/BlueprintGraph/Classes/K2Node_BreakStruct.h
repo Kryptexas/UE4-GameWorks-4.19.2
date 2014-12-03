@@ -23,6 +23,7 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 	// End  UEdGraphNode interface
 
 	// Begin K2Node interface
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return false; }
 	virtual bool IsNodePure() const override { return true; }
 	virtual bool DrawNodeAsVariable() const override { return false; }
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;

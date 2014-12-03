@@ -337,6 +337,7 @@ class UK2Node : public UEdGraphNode
 	enum BLUEPRINTGRAPH_API EBaseNodeRefreshPriority
 	{
 		Low_UsesDependentWildcard = 100,
+		Low_ReceivesDelegateSignature = 150,
 		Normal = 200,
 	};
 

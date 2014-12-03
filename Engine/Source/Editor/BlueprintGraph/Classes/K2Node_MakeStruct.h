@@ -24,6 +24,7 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	// End  UEdGraphNode interface
 
 	// Begin K2Node interface
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return false; }
 	virtual bool IsNodePure() const override { return true; }
 	virtual bool DrawNodeAsVariable() const override { return false; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
