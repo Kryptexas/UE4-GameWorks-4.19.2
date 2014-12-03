@@ -4,7 +4,6 @@
 #include "STileLayerItem.h"
 #include "SContentReference.h"
 #include "ScopedTransaction.h"
-#include "PaperStyle.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -149,56 +148,44 @@ EVisibility	SRenamableEntry::GetNonEditModeVisibility() const
 //////////////////////////////////////////////////////////////////////////
 // STileLayerItem
 
-void STileLayerItem::Construct(const FArguments& InArgs, class UPaperTileLayer* InItem, const TSharedRef<STableViewBase>& OwnerTable)
+void STileLayerItem::Construct(const FArguments& InArgs, class UPaperTileLayer* InItem)
 {
 	MyLayer = InItem;
 
-	auto ParentArgs = FSuperRowType::FArguments()
-		.Style(&FPaperStyle::Get()->GetWidgetStyle<FTableRowStyle>("TileMapEditor.LayerBrowser.TableViewRow"));
-
-	SMultiColumnTableRow<class UPaperTileLayer*>::Construct(ParentArgs, OwnerTable);
-
 	EyeClosed = FEditorStyle::GetBrush("Layer.NotVisibleIcon16x");
 	EyeOpened = FEditorStyle::GetBrush("Layer.VisibleIcon16x");
-}
 
-TSharedRef<SWidget> STileLayerItem::GenerateWidgetForColumn(const FName& ColumnName) 
-{
-	if (ColumnName == TEXT("Name"))
-	{
-		return SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
+	ChildSlot
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			SAssignNew( VisibilityButton, SButton )
+			.ContentPadding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
+			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.OnClicked( this, &STileLayerItem::OnToggleVisibility )
+			.ToolTipText( LOCTEXT("LayerVisibilityButtonToolTip", "Toggle Layer Visibility") )
+			.ForegroundColor( FSlateColor::UseForeground() )
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Center )
+			.Content()
 			[
-				SAssignNew( VisibilityButton, SButton )
-				.ContentPadding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
-				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-				.OnClicked( this, &STileLayerItem::OnToggleVisibility )
-				.ToolTipText( LOCTEXT("LayerVisibilityButtonToolTip", "Toggle Layer Visibility") )
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.HAlign( HAlign_Center )
-				.VAlign( VAlign_Center )
-				.Content()
-				[
-					SNew(SImage)
-					.Image(this, &STileLayerItem::GetVisibilityBrushForLayer)
-					.ColorAndOpacity(this, &STileLayerItem::GetForegroundColorForVisibilityButton)
-				]
+				SNew(SImage)
+				.Image(this, &STileLayerItem::GetVisibilityBrushForLayer)
+				.ColorAndOpacity(this, &STileLayerItem::GetForegroundColorForVisibilityButton)
 			]
-			+SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
-			[
-				SNew(SRenamableEntry)
-				.Text(this, &STileLayerItem::GetLayerDisplayName)
-				.OnTextCommitted(this, &STileLayerItem::OnLayerNameCommitted)
-			];
-	}
-	else
-	{
-		return SNew(SSpacer);
-	}
+		]
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
+		[
+			SNew(SRenamableEntry)
+			.Text(this, &STileLayerItem::GetLayerDisplayName)
+			.OnTextCommitted(this, &STileLayerItem::OnLayerNameCommitted)
+		]
+	];
 }
 
 FText STileLayerItem::GetLayerDisplayName() const

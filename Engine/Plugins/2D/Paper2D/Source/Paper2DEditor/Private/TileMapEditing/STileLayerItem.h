@@ -5,17 +5,14 @@
 //////////////////////////////////////////////////////////////////////////
 // STileLayerItem
 
-class STileLayerItem : public SMultiColumnTableRow<class UPaperTileLayer*>
+class STileLayerItem : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(STileLayerItem) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, class UPaperTileLayer* InItem, const TSharedRef<STableViewBase>& OwnerTable);
+	void Construct(const FArguments& InArgs, class UPaperTileLayer* InItem);
 
-	// SMultiColumnTableRow<> interface
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
-	// End of SMultiColumnTableRow<> interface
 protected:
 	class UPaperTileLayer* MyLayer;
 

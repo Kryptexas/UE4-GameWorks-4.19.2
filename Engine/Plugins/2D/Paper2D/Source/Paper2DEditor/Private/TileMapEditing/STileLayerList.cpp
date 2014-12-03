@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "STileLayerList.h"
 #include "STileLayerItem.h"
+#include "PaperStyle.h"
 
 #include "ScopedTransaction.h"
 
@@ -15,10 +16,6 @@
 
 void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* TileMap)
 {
-	TSharedRef<SHeaderRow> HeaderRowWidget = SNew(SHeaderRow)
-		+SHeaderRow::Column("Name").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerNameHeader", "Layer Name")).FillWidth(0.7);
-		//+SHeaderRow::Column("TileSet").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerTileSetHeader", "Tile Set")).FillWidth(0.7);
-
 	TileMapPtr = TileMap;
 
 	FTileMapEditorCommands::Register();
@@ -72,22 +69,11 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* TileMap)
 
 	ListViewWidget = SNew(SPaperLayerListView)
 		.SelectionMode(ESelectionMode::Single)
-
-		// Point the tree to our array of root-level items.  Whenever this changes, we'll call RequestTreeRefresh()
+		.ClearSelectionOnClick(false)
 		.ListItemsSource(&(TileMap->TileLayers))
-
-		// Find out when the user selects something in the tree
-		//.OnSelectionChanged( this, &SLevelsView::OnSelectionChanged )
-
-		// Called when the user double-clicks with LMB on an item in the list
-		//.OnMouseButtonDoubleClick( this, &SLevelsView::OnListViewMouseButtonDoubleClick )
-
-		// Generates the actual widget for a tree item
-		.OnGenerateRow(this, &STileLayerList::OnGenerateRowDefault)
-
-		// Use the level viewport context menu as the right click menu for list items
-		//.OnContextMenuOpening( InArgs._ConstructContextMenu )
-		.HeaderRow(HeaderRowWidget);
+		.OnSelectionChanged(this, &STileLayerList::OnSelectionChanged)
+		.OnGenerateRow(this, &STileLayerList::OnGenerateLayerListRow)
+		.OnContextMenuOpening(this, &STileLayerList::OnConstructContextMenu);
 
 	// Select the top item by default
 	if (TileMap->TileLayers.Num() > 0)
@@ -97,11 +83,14 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* TileMap)
 
 	ChildSlot
 	[
-		SNew( SVerticalBox )
+		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
-		.FillHeight( 1.0f )
 		[
-			ListViewWidget.ToSharedRef()
+			SNew(SBox)
+			.HeightOverride(115.0f)
+			[
+				ListViewWidget.ToSharedRef()
+			]
 		]
 		+SVerticalBox::Slot()
 		.AutoHeight()
@@ -111,9 +100,13 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* TileMap)
 	];
 }
 
-TSharedRef<ITableRow> STileLayerList::OnGenerateRowDefault(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> STileLayerList::OnGenerateLayerListRow(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STileLayerItem, Item, OwnerTable);		
+	return SNew(STableRow<class UPaperTileLayer*>, OwnerTable)
+		.Style(&FPaperStyle::Get()->GetWidgetStyle<FTableRowStyle>("TileMapEditor.LayerBrowser.TableViewRow"))
+		[
+			SNew(STileLayerItem, Item)
+		];
 }
 
 UPaperTileLayer* STileLayerList::GetSelectedLayer() const
@@ -385,6 +378,28 @@ bool STileLayerList::CanExecuteActionNeedingSelectedLayer() const
 void STileLayerList::SetSelectedLayer(UPaperTileLayer* SelectedLayer)
 {
 	ListViewWidget->SetSelection(SelectedLayer);
+}
+
+void STileLayerList::OnSelectionChanged(UPaperTileLayer* ItemChangingState, ESelectInfo::Type SelectInfo)
+{
+}
+
+TSharedPtr<SWidget> STileLayerList::OnConstructContextMenu()
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, CommandList);
+
+	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
+
+ 	MenuBuilder.BeginSection("BasicOperations");
+ 	{
+		MenuBuilder.AddMenuEntry(Commands.DuplicateLayer);
+		MenuBuilder.AddMenuEntry(Commands.DeleteLayer);
+		MenuBuilder.AddMenuEntry(Commands.MergeLayerDown);
+ 	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -22,7 +22,7 @@ protected:
 	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
 
 protected:
-	TSharedRef<ITableRow> OnGenerateRowDefault(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> OnGenerateLayerListRow(class UPaperTileLayer* Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 	class UPaperTileLayer* GetSelectedLayer() const;
 
@@ -51,4 +51,7 @@ protected:
 	bool CanExecuteActionNeedingSelectedLayer() const;
 
 	void SetSelectedLayer(UPaperTileLayer* SelectedLayer);
+
+	void OnSelectionChanged(UPaperTileLayer* ItemChangingState, ESelectInfo::Type SelectInfo);
+	TSharedPtr<SWidget> OnConstructContextMenu();
 };
