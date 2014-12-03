@@ -149,7 +149,7 @@ UWorld* UUserWidget::GetWorld() const
 	}
 
 	// If the current player context doesn't have a world or isn't valid, return the game instance's world.
-	if (  UGameInstance* GameInstance = Cast<UGameInstance>(GetOuter()) )
+	if ( UGameInstance* GameInstance = Cast<UGameInstance>(GetOuter()) )
 	{
 		if ( UWorld* World = GameInstance->GetWorld() )
 		{

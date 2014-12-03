@@ -14,6 +14,10 @@ class UMG_API UWidgetTree : public UObject
 
 public:
 
+	// Begin UObject
+	virtual UWorld* GetWorld() const override;
+	// End UObject
+
 	/** Finds the widget in the tree by name. */
 	UWidget* FindWidget(const FName& Name) const;
 

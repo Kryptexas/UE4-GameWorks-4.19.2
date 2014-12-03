@@ -283,6 +283,7 @@ public:
 	static TSubclassOf<class UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
 
 	// Begin UObject
+	virtual UWorld* GetWorld() const override;
 	virtual void PostLoad() override;
 	// End UObject
 	

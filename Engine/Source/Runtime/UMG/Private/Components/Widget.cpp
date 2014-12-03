@@ -505,6 +505,18 @@ void UWidget::SetIsDesignTime(bool bInDesignTime)
 	bDesignTime = bInDesignTime;
 }
 
+UWorld* UWidget::GetWorld() const
+{
+	// UWidget's are given world scope by their owning user widget.  We can get that through the widget tree that should
+	// be the outer of this widget.
+	if ( UWidgetTree* OwningTree = Cast<UWidgetTree>(GetOuter()) )
+	{
+		return OwningTree->GetWorld();
+	}
+
+	return nullptr;
+}
+
 void UWidget::PostLoad()
 {
 	Super::PostLoad();

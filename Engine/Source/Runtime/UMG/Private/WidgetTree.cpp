@@ -10,6 +10,17 @@ UWidgetTree::UWidgetTree(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+UWorld* UWidgetTree::GetWorld() const
+{
+	// The outer of a widget tree should be a user widget
+	if ( UUserWidget* OwningWidget = Cast<UUserWidget>(GetOuter()) )
+	{
+		return OwningWidget->GetWorld();
+	}
+
+	return nullptr;
+}
+
 UWidget* UWidgetTree::FindWidget(const FName& Name) const
 {
 	UWidget* FoundWidget = nullptr;
