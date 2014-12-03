@@ -54,6 +54,16 @@ public:
 	static void RecordChunkDownloadError( const FString& ChunkUrl, const int32& ResponseCode, const FString& ErrorString );
 
 	/**
+	 * Record a chunk download aborted event
+	 * @param ChunkUrl		The url for the chunk being downloaded
+	 * @param ChunkTime		The current running time for this chunk
+	 * @param ChunkMean		The recorded average chunk download time
+	 * @param ChunkStd		The recorded standard deviation for chunk download time
+	 * @param BreakingPoint	The value used as the breaking point for chunk download time
+	 */
+	static void RecordChunkDownloadAborted( const FString& ChunkUrl, const double& ChunkTime, const double& ChunkMean, const double& ChunkStd, const double& BreakingPoint );
+
+	/**
 	 * Record a chunk cache error event
 	 * @param ChunkGuid		The chunk guid that the error occurred for
 	 * @param Filename		The filename for the related event

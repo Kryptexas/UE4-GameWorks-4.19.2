@@ -15,6 +15,59 @@ int32 CHUNK_DOWNLOAD_RETRIES = 20;
 
 float CHUNK_RETRY_TIME = 1.0;
 
+/* A class used to monitor the average chunk download time and standard deviation
+*****************************************************************************/
+class FMeanChunkTime
+{
+public:
+	FMeanChunkTime()
+		: Count(0)
+		, Total(0)
+		, TotalSqs(0)
+	{}
+
+	void Reset()
+	{
+		Count = 0;
+		Total = 0;
+		TotalSqs = 0;
+	}
+
+	bool IsReliable() const
+	{
+		return Count > 10;
+	}
+
+	double GetMean() const
+	{
+		return Total / Count;
+	}
+
+	double GetStd() const
+	{
+		const double Mean = GetMean();
+		return FMath::Sqrt((TotalSqs / Count) - (Mean*Mean));
+	}
+
+	void GetValues(double& Mean, double& Std) const
+	{
+		Mean = GetMean();
+		Std = FMath::Sqrt((TotalSqs / Count) - (Mean*Mean));
+	}
+
+	void AddSample(double Sample)
+	{
+		Total += Sample;
+		TotalSqs += Sample * Sample;
+		++Count;
+	}
+
+private:
+	int32 Count;
+	double Total;
+	double TotalSqs;
+};
+
 /* FBuildPatchDownloader implementation
 *****************************************************************************/
 FBuildPatchDownloader::FBuildPatchDownloader( const FString& InSaveDirectory, const FBuildPatchAppManifestRef& InInstallManifest, FBuildPatchProgress* InBuildProgress )
@@ -67,6 +120,9 @@ uint32 FBuildPatchDownloader::Run()
 	const bool bIsChunkData = !InstallManifest->IsFileDataManifest();
 	const FBuildPatchData::Type DataType = bIsChunkData ? FBuildPatchData::ChunkData : FBuildPatchData::FileData;
 
+	// The Average chunk download time
+	FMeanChunkTime MeanChunkTime;
+
 	// While there is the possibility of more chunks to download
 	while ( ShouldBeRunning() && !FBuildPatchInstallError::HasFatalError() )
 	{
@@ -87,6 +143,8 @@ uint32 FBuildPatchDownloader::Run()
 				bool bSuccess = InFlightJob.StateFlag.GetValue() == EDownloadState::DownloadSuccess;
 				if( bSuccess )
 				{
+					const double ChunkTime = InFlightJob.DownloadRecord.EndTime - InFlightJob.DownloadRecord.StartTime;
+					MeanChunkTime.AddSample(ChunkTime);
 					// Uncompress if needed
 					if (bIsChunkData)
 					{
@@ -172,6 +230,26 @@ uint32 FBuildPatchDownloader::Run()
 					InFlightDownloads.Remove( InFlightKey );
 				}
 			}
+			else if (MeanChunkTime.IsReliable() && InFlightJob.RetryCount.GetValue() == 0)
+			{
+				// Cancel any chunk taking 4x longer if still on first try
+				// This attempts to catch out issues with trickling requests
+				const double ChunkTime = (FPlatformTime::Seconds() - InFlightJob.DownloadRecord.StartTime);
+				double ChunkMean, ChunkStd;
+				MeanChunkTime.GetValues(ChunkMean, ChunkStd);
+				// The point at which we decide the chunk is delayed, with a sane minimum
+				const double BreakingPoint = FMath::Max<double>(20.0, ChunkMean + (ChunkStd * 4.0));
+				if (ChunkTime > BreakingPoint)
+				{
+					GWarn->Logf(TEXT("BuildPatchServices: WARNING: Cancelling download %s. T:%.2f Av:%.2f Std:%.2f Bp:%.2f"), *InFlightJob.Guid.ToString(), ChunkTime, ChunkMean, ChunkStd, BreakingPoint);
+					MeanChunkTime.Reset();
+					InFlightDownloadsLock.Unlock();
+					FBuildPatchAnalytics::RecordChunkDownloadAborted(InFlightJob.DownloadUrl, ChunkTime, ChunkMean, ChunkStd, BreakingPoint);
+					FBuildPatchHTTP::CancelHttpRequest(InFlightJob.HttpRequestId);
+					InFlightDownloadsLock.Lock();
+				}
+			}
+
 		}
 		InFlightDownloadsLock.Unlock();
 
@@ -199,14 +277,19 @@ uint32 FBuildPatchDownloader::Run()
 		const bool bIsHTTPRequest = DownloadUrl.Contains( TEXT( "http" ), ESearchCase::IgnoreCase );
 
 		// Start the download
-		int32 HttpRequestID = INDEX_NONE;
+		int32 HttpRequestId = INDEX_NONE;
 		if( bIsHTTPRequest )
 		{
 			// Kick off the download
 #if EXTRA_DOWNLOAD_LOGGING
 			GWarn->Logf(TEXT("BuildPatchDownloader: Queuing chunk HTTP download %s"), *NextGuid.ToString());
 #endif
-			HttpRequestID = FBuildPatchHTTP::QueueHttpRequest( DownloadUrl, FHttpRequestCompleteDelegate::CreateThreadSafeSP( this, &FBuildPatchDownloader::HttpRequestComplete ), FHttpRequestProgressDelegate::CreateThreadSafeSP( this, &FBuildPatchDownloader::HttpRequestProgress ) );
+			HttpRequestId = FBuildPatchHTTP::QueueHttpRequest(DownloadUrl, FHttpRequestCompleteDelegate::CreateThreadSafeSP(this, &FBuildPatchDownloader::HttpRequestComplete), FHttpRequestProgressDelegate::CreateThreadSafeSP(this, &FBuildPatchDownloader::HttpRequestProgress));
+
+			InFlightDownloadsLock.Lock();
+			InFlightDownloads[NextGuid].HttpRequestId = HttpRequestId;
+			InFlightDownloads[NextGuid].DownloadUrl = DownloadUrl;
+			InFlightDownloadsLock.Unlock();
 		}
 		else
 		{
@@ -383,6 +466,9 @@ bool FBuildPatchDownloader::ShouldBeRunning()
 
 void FBuildPatchDownloader::HttpRequestProgress( FHttpRequestPtr Request, int32 BytesSoFar )
 {
+#if EXTRA_DOWNLOAD_LOGGING
+	GWarn->Logf(TEXT("BuildPatchDownloader: Request %p Bytes: %d"), Request.Get(), BytesSoFar);
+#endif
 	if ( !FBuildPatchInstallError::HasFatalError() )
 	{
 		FGuid DataGUID;
@@ -418,17 +504,13 @@ void FBuildPatchDownloader::OnDownloadProgress( const FGuid& Guid, const int32& 
 		CurrentJob.DownloadRecord.DownloadSize = BytesSoFar;
 		IncrementByteDownloadCount( DeltaBytes );
 #if EXTRA_DOWNLOAD_LOGGING
-		// Log slow downloads
+		// Log download progress
 		const double tNow = FPlatformTime::Seconds();
 		const double tDelta = tNow - CurrentJob.DownloadRecord.EndTime;
 		const double tRunning = tNow - CurrentJob.DownloadRecord.StartTime;
 		const double currSpeed = DeltaBytes / tDelta;
 		const double avSpeed = BytesSoFar / tRunning;
-		if (tRunning > 60 && (tNow - CurrentJob.TimeLastLogged > 5))
-		{
-			CurrentJob.TimeLastLogged = tNow;
-			GWarn->Logf(TEXT("BuildPatchDownloader: WARNING: Slow download %s Running:%.2fsec\tDownloaded:%d\tSpeed:%.0f\tAverageSpeed:%.0f (B/s)"), *Guid.ToString(), tRunning, BytesSoFar, currSpeed, avSpeed);
-		}
+		GWarn->Logf(TEXT("BuildPatchDownloader: Download %s Running:%.2fsec\tDownloaded:%d\tSpeed:%.0f\tAverageSpeed:%.0f (B/s)"), *Guid.ToString(), tRunning, BytesSoFar, currSpeed, avSpeed);
 		CurrentJob.DownloadRecord.EndTime = tNow;
 #endif
 	}

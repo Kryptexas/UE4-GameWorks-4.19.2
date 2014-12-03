@@ -77,8 +77,8 @@ private:
 		FBuildPatchDownloadRecord DownloadRecord;
 		// The response code, for HTTP downloads
 		int32 ResponseCode;
-		// A time we last logged info for this download, to help not overly spam
-		double TimeLastLogged;
+		// The request ID, for HTTP downloads
+		int32 HttpRequestId;
 
 		/**
 		 * Default constructor
@@ -88,7 +88,7 @@ private:
 			, RetryCount( 0 )
 			, StateFlag( EDownloadState::DownloadInit )
 			, ResponseCode( 0 )
-			, TimeLastLogged( 0 )
+			, HttpRequestId( INDEX_NONE )
 		{}
 	};
 
