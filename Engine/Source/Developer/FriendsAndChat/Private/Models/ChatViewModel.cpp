@@ -5,9 +5,6 @@
 #include "ChatViewModel.h"
 #include "OnlineChatInterface.h"
 
-// Holds how many message to display
-static const int32 MessageDisplay = 200;
-
 class FChatViewModelImpl
 	: public FChatViewModel
 {
@@ -48,7 +45,7 @@ public:
 		return OverrideColor;
 	}
 
-	virtual TArray< TSharedRef<class FChatItemViewModel > >& GetFilteredChatList() override
+	virtual TArray< TSharedRef<FChatItemViewModel > >& GetFilteredChatList() override
 	{
 		return FilteredChatLists;
 	}
@@ -74,12 +71,12 @@ public:
 	{
 		if(ItemSelected->GetMessageType() == EChatMessageType::Whisper)
 		{
-			if(ItemSelected->GetMessageItem()->SenderId.IsValid())
+			if(ItemSelected->GetSenderID().IsValid())
 			{
-				TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ItemSelected->GetMessageItem()->SenderId);
+				TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ItemSelected->GetSenderID());
 				if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
 				{
-					SetWhisperChannel(GetRecentFriend(ItemSelected->GetFriendName(), ItemSelected->GetMessageItem()->SenderId));
+					SetWhisperChannel(GetRecentFriend(ItemSelected->GetFriendName(), ItemSelected->GetSenderID()));
 				}
 			}
 		}
@@ -149,9 +146,9 @@ public:
 				{
 					FFriendsAndChatManager::Get()->SendGameInvite(*SelectedFriend->UserID.Get());
 				}
-				else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->MessageRef.IsValid())
+				else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->GetSenderID().IsValid())
 				{
-					FFriendsAndChatManager::Get()->SendGameInvite(SelectedFriend->SelectedMessage->MessageRef->GetUserId());
+					FFriendsAndChatManager::Get()->SendGameInvite(*SelectedFriend->SelectedMessage->GetSenderID().Get());
 				}
 			}
 		}
@@ -190,36 +187,39 @@ public:
 		bHasActionPending = false;
 	}
 
-	virtual void SetChannelUserClicked(const TSharedRef<FFriendChatMessage> ChatItemSelected) override
+	virtual void SetChannelUserClicked(const TSharedRef<FChatItemViewModel> ChatItemSelected) override
 	{
-		bool bFoundUser = false;
-		TSharedPtr< IFriendItem > ExistingFriend = NULL;
-
-		if(ChatItemSelected->SenderId.IsValid())
+		if(ChatItemSelected->IsFromSelf() && ChatItemSelected->GetMessageType() == EChatMessageType::Global)
 		{
-			ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ChatItemSelected->SenderId.Get());
+			SetChatChannel(EChatMessageType::Global);
 		}
-		else if(ChatItemSelected->MessageRef.IsValid())
+		else
 		{
-			ExistingFriend = FFriendsAndChatManager::Get()->FindUser(ChatItemSelected->MessageRef->GetUserId());
-		}
+			bool bFoundUser = false;
+			TSharedPtr< IFriendItem > ExistingFriend = NULL;
 
-		if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
-		{
-			bFoundUser = true;
-			SetWhisperChannel(GetRecentFriend(FText::FromString(ExistingFriend->GetName()), ExistingFriend->GetUniqueID()));
-		}
+			if(ChatItemSelected->GetSenderID().IsValid())
+			{
+				ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ChatItemSelected->GetSenderID().Get());
+			}
 
-		if(!bFoundUser)
-		{
-			SetChatChannel(ChatItemSelected->MessageType);
-			SelectedFriend = MakeShareable(new FSelectedFriend());
-			SelectedFriend->FriendName = ChatItemSelected->FromName;
-			SelectedFriend->MessageType = ChatItemSelected->MessageType;
-			SelectedFriend->ViewModel = nullptr;
-			SelectedFriend->SelectedMessage = ChatItemSelected;
-			bHasActionPending = true;
-			bAllowJoinGame = FFriendsAndChatManager::Get()->IsInJoinableGameSession();
+			if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
+			{
+				bFoundUser = true;
+				SetWhisperChannel(GetRecentFriend(FText::FromString(ExistingFriend->GetName()), ExistingFriend->GetUniqueID()));
+			}
+
+			if(!bFoundUser)
+			{
+				SetChatChannel(ChatItemSelected->GetMessageType());
+				SelectedFriend = MakeShareable(new FSelectedFriend());
+				SelectedFriend->FriendName = ChatItemSelected->GetFriendName();
+				SelectedFriend->MessageType = ChatItemSelected->GetMessageType();
+				SelectedFriend->ViewModel = nullptr;
+				SelectedFriend->SelectedMessage = ChatItemSelected;
+				bHasActionPending = true;
+				bAllowJoinGame = FFriendsAndChatManager::Get()->IsInJoinableGameSession();
+			}
 		}
 	}
 
@@ -234,15 +234,7 @@ public:
 				{
 					if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 					{
-						TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-						ChatItem->FromName = SelectedFriend->FriendName;
-						ChatItem->Message = NewMessage;
-						ChatItem->MessageType = EChatMessageType::Whisper;
-						ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
-						ChatItem->bIsFromSelf = true;
-						ChatItem->SenderId = SelectedFriend->UserID;
-
-						if (MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), ChatItem))
+						if (MessageManager.Pin()->SendPrivateMessage(SelectedFriend->UserID, SelectedFriend->FriendName, NewMessage))
 						{
 							bSuccess = true;
 						}
@@ -341,7 +333,7 @@ public:
 		{
 			return SelectedFriend->ViewModel->HasChatAction();
 		}
-		return true;
+		return false;
 	}
 
 	virtual void SetCaptureFocus(bool bInCaptureFocus) override
@@ -393,12 +385,14 @@ private:
 
 		for( const auto& Message : MessageManager.Pin()->GetMessageList())
 		{
-			HandleMessageReceived(Message.ToSharedRef());
+			HandleMessageReceived(Message);
 		}
 	}
 
 	void FilterChatList()
 	{
+		ChatLists = MessageManager.Pin()->GetMessageList();
+
 		bool bAddedItem = true;
 		if(!IsGlobalChatEnabled())
 		{
@@ -437,17 +431,12 @@ private:
 		return nullptr;
 	}
 
-	void HandleMessageReceived(const TSharedRef<FFriendChatMessage> NewMessage)
+	void HandleMessageReceived(const TSharedRef<FChatItemViewModel> NewMessage)
 	{
-		if(IsGlobalChatEnabled() || NewMessage->MessageType != EChatMessageType::Global)
+		if(IsGlobalChatEnabled() || NewMessage->GetMessageType() != EChatMessageType::Global)
 		{
-			ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
-			if(ChatLists.Num() > MessageDisplay)
-			{
-				ChatLists.RemoveAt(0);
-			}
+			FilterChatList();
 		}
-		FilterChatList();
 	}
 
 	void HandleChatFriendSelected(TSharedPtr<IFriendItem> ChatFriend)
@@ -483,13 +472,14 @@ private:
 			if(SelectedFriend->UserID.IsValid())
 			{
 				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+				bHasActionPending = false;
 			}
-			else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->MessageRef.IsValid())
+			else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->GetSenderID().IsValid())
 			{
-				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(SelectedFriend->SelectedMessage->MessageRef->GetUserId());
+				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->SelectedMessage->GetSenderID().Get());
+				bHasActionPending = false;
 			}
 		}
-		bHasActionPending = false;
 	}
 
 	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager)

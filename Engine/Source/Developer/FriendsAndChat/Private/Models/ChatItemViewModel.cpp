@@ -37,9 +37,9 @@ public:
 		return ChatMessage->FromName;
 	}
 
-	virtual TSharedRef<FFriendChatMessage> GetMessageItem() const override
+	virtual const TSharedPtr<FUniqueNetId> GetSenderID() const override
 	{
-		return ChatMessage;
+		return ChatMessage->SenderId;
 	}
 
 	virtual FText GetMessageTime() override
@@ -47,58 +47,32 @@ public:
 		return ChatMessage->MessageTimeText;
 	}
 
+	virtual const FDateTime GetExpireTime() override
+	{
+		return ChatMessage->ExpireTime;
+	}
+
 	const bool IsFromSelf() const override
 	{
 		return ChatMessage->bIsFromSelf;
 	}
 
-	virtual const float GetFadeAmountColor() const override
-	{
-		return Owner->GetTimeTransparency();
-	}
-
-	virtual const bool UseOverrideColor() const override
-	{
-		return Owner->GetOverrideColorSet();
-	}
-
-	virtual const FSlateColor GetOverrideColor() const override
-	{
-		return Owner->GetFontOverrideColor();
-	}
-
-	virtual void FriendNameSelected() const override
-	{
-		if(!IsFromSelf() || GetMessageType() == EChatMessageType::Whisper)
-		{
-			Owner->SetChannelUserClicked(ChatMessage);
-		}
-		else
-		{
-			Owner->SetChatChannel(GetMessageType());
-		}
-	}
-
 private:
 
-	FChatItemViewModelImpl(TSharedRef<FFriendChatMessage> ChatMessage, TSharedPtr<FChatViewModel> Owner)
+	FChatItemViewModelImpl(TSharedRef<FFriendChatMessage> ChatMessage)
 	: ChatMessage(ChatMessage)
-	, Owner(Owner)
 	{
 	}
 
 private:
 	TSharedRef<FFriendChatMessage> ChatMessage;
-	TSharedPtr<FChatViewModel> Owner;
 
 private:
 	friend FChatItemViewModelFactory;
 };
 
-TSharedRef< FChatItemViewModel > FChatItemViewModelFactory::Create(
-	const TSharedRef<FFriendChatMessage>& ChatMessage
-	, TSharedRef<FChatViewModel> Owner)
+TSharedRef< FChatItemViewModel > FChatItemViewModelFactory::Create(const TSharedRef<FFriendChatMessage>& ChatMessage)
 {
-	TSharedRef< FChatItemViewModelImpl > ViewModel(new FChatItemViewModelImpl(ChatMessage, Owner));
+	TSharedRef< FChatItemViewModelImpl > ViewModel(new FChatItemViewModelImpl(ChatMessage));
 	return ViewModel;
 }

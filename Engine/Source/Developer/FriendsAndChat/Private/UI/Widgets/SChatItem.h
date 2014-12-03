@@ -16,5 +16,5 @@ public:
 	 *
 	 * @param InArgs The Slate argument list.
 	 */
-	virtual void Construct(const FArguments& InArgs, const TSharedRef<class FChatItemViewModel>& ViewModel) = 0;
+	virtual void Construct(const FArguments& InArgs, const TSharedRef<class FChatItemViewModel>& ViewModel, const TSharedRef<class FChatViewModel>& OwnerViewModel) = 0;
 };

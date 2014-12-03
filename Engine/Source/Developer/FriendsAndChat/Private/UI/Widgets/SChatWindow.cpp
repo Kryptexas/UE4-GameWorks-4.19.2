@@ -284,7 +284,7 @@ private:
 			.OnClicked(ViewModel.Get(), &FChatViewModel::HandleSelectionChanged, ChatMessage)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SChatItem, ChatMessage)
+				SNew(SChatItem, ChatMessage, ViewModel.ToSharedRef())
 				.FriendStyle(&FriendStyle)
 				.Method(MenuMethod)
 			]

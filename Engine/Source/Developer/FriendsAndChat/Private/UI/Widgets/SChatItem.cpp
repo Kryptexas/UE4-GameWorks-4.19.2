@@ -2,6 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatItemViewModel.h"
+#include "ChatViewModel.h"
 #include "SChatItem.h"
 
 #define LOCTEXT_NAMESPACE "SChatWindow"
@@ -10,11 +11,12 @@ class SChatItemImpl : public SChatItem
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FChatItemViewModel>& InViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FChatItemViewModel>& InViewModel, const TSharedRef<FChatViewModel>& InOwnerViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		MenuMethod = InArgs._Method;
 		this->ViewModel = InViewModel;
+		this->OwnerViewModel = InOwnerViewModel;
 
 		FText DisplayNameText = ViewModel->GetFriendNameDisplayText();
 		if(ViewModel->IsFromSelf())
@@ -27,12 +29,20 @@ public:
 			}
 		}
 
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("DisplayName"), DisplayNameText);
-		Args.Add(TEXT("Message"), ViewModel->GetMessage());
-		Args.Add(TEXT("NameStyle"), FText::FromString(GetTextHyperlinkStyle()));
-		FText DisplayText = FText::Format(LOCTEXT("SChatItem_Message", "<a id=\"UserName\" style=\"{NameStyle}\">{DisplayName}</>{Message}"), Args);
-
+		FText DisplayText;
+		if(ViewModel->GetMessageType() == EChatMessageType::Party)
+		{
+			DisplayText = ViewModel->GetMessage();
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("DisplayName"), DisplayNameText);
+			Args.Add(TEXT("Message"), ViewModel->GetMessage());
+			Args.Add(TEXT("NameStyle"), FText::FromString(GetTextHyperlinkStyle()));
+			DisplayText = FText::Format(LOCTEXT("SChatItem_Message", "<a id=\"UserName\" style=\"{NameStyle}\">{DisplayName}</>{Message}"), Args);
+		}
+		
 		FTextBlockStyle TextStyle = FriendStyle.TextStyle;
 		TextStyle.ColorAndOpacity = GetChannelColor();
 
@@ -59,7 +69,7 @@ public:
 				.Text(DisplayText)
 				.TextStyle(&TextStyle)
 				.DecoratorStyleSet(&FFriendsAndChatModuleStyle::Get())
-				.WrapTextAt(FriendStyle.ChatListWidth - 5)
+				.WrapTextAt(FriendStyle.ChatListWidth - 10)
 				+ SRichTextBlock::HyperlinkDecorator(TEXT( "UserName" ), this, &SChatItemImpl::HandleNameClicked)
 			]
 			+SHorizontalBox::Slot()
@@ -78,17 +88,17 @@ private:
 
 	FSlateColor GetTimeDisplayColor() const
 	{
-		if(ViewModel->UseOverrideColor())
+		if(OwnerViewModel->GetOverrideColorSet())
 		{
-			return ViewModel->GetOverrideColor();
+			return OwnerViewModel->GetFontOverrideColor();
 		}
 		else
 		{
 			switch(ViewModel->GetMessageType())
 			{
-				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
+				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
+				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
+				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
 				default: return FLinearColor::Gray;
 			}
 		}
@@ -96,9 +106,9 @@ private:
 
 	FSlateColor GetChannelColor () const
 	{
-		if(ViewModel->UseOverrideColor())
+		if(OwnerViewModel->GetOverrideColorSet())
 		{
-			return ViewModel->GetOverrideColor();
+			return OwnerViewModel->GetFontOverrideColor();
 		}
 		else
 		{
@@ -116,7 +126,7 @@ private:
 
 	const FSlateBrush* GetChatIcon() const
 	{
-		if(ViewModel->UseOverrideColor())
+		if(OwnerViewModel->GetOverrideColorSet())
 		{
 			return nullptr;
 		}
@@ -147,13 +157,16 @@ private:
 
 	void HandleNameClicked( const FSlateHyperlinkRun::FMetadata& Metadata )
 	{
-		ViewModel->FriendNameSelected();
+		OwnerViewModel->SetChannelUserClicked(ViewModel.ToSharedRef());
 	}
 
 private:
 
 	// Holds the Friends List view model
 	TSharedPtr<FChatItemViewModel> ViewModel;
+
+	// Holds the owner view model
+	TSharedPtr<FChatViewModel> OwnerViewModel;
 
 	TSharedPtr<SBorder> FriendItemBorder;
 

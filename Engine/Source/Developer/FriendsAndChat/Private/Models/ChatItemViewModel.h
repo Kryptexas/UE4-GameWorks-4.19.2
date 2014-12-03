@@ -16,13 +16,10 @@ public:
 	virtual const EChatMessageType::Type GetMessageType() const =0;
 	virtual const FText GetFriendNameDisplayText() const = 0;
 	virtual const FText GetFriendName() const = 0;
-	virtual TSharedRef<FFriendChatMessage> GetMessageItem() const = 0;
+	virtual const TSharedPtr<FUniqueNetId> GetSenderID() const = 0;
 	virtual FText GetMessageTime() = 0;
+	virtual const FDateTime GetExpireTime() = 0;
 	virtual const bool IsFromSelf() const = 0;
-	virtual const float GetFadeAmountColor() const = 0;
-	virtual const bool UseOverrideColor() const = 0;
-	virtual const FSlateColor GetOverrideColor() const = 0;
-	virtual void FriendNameSelected() const = 0;
 };
 
 /**
@@ -31,4 +28,4 @@ public:
  * @return the newly created ChaItemtViewModel implementation.
  */
 FACTORY(TSharedRef< FChatItemViewModel >, FChatItemViewModel,
-	const TSharedRef<FFriendChatMessage>& FFriendChatMessage, TSharedRef<class FChatViewModel> Owner);
+	const TSharedRef<FFriendChatMessage>& FFriendChatMessage);
