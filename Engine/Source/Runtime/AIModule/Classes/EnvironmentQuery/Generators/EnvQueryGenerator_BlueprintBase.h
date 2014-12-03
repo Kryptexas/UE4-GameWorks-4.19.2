@@ -41,10 +41,10 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 	virtual FText GetDescriptionDetails() const override;
 	
 	UFUNCTION(BlueprintCallable, Category = "EQS")
-	void AddGeneratedVector(FVector GeneratedVector);
+	void AddGeneratedVector(FVector GeneratedVector) const;
 
 	UFUNCTION(BlueprintCallable, Category = "EQS")
-	void AddGeneratedActor(AActor* GeneratedActor);
+	void AddGeneratedActor(AActor* GeneratedActor) const;
 
 	UFUNCTION(BlueprintCallable, Category = "EQS")
 	UObject* GetQuerier() const;

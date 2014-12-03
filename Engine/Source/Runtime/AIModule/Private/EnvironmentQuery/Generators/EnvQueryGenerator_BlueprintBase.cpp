@@ -43,21 +43,21 @@ void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryIns
 	QueryInstance.PrepareContext(Context, ContextLocations);
 
 	CachedQueryInstance = &QueryInstance;
-	DoItemGeneration(ContextLocations);
+	const_cast<UEnvQueryGenerator_BlueprintBase*>(this)->DoItemGeneration(ContextLocations);
 	CachedQueryInstance = NULL;
 }
 
-void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector)
+void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector) const
 {
 	check(CachedQueryInstance);
-	ensure(ItemType->GetClass()->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()));
+	ensure(ItemType->IsChildOf<UEnvQueryItemType_VectorBase>());
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(Vector);
 }
 
-void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor)
+void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor) const
 {
 	check(CachedQueryInstance);
-	//ensure(ItemType->GetClass()->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()));
+	ensure(ItemType->IsChildOf<UEnvQueryItemType_ActorBase>());
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Actor>(Actor);
 }
 
