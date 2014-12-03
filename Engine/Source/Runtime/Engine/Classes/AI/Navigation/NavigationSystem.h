@@ -171,7 +171,12 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bSkipAgentHeightCheckWhenPickingNavData:1;
 
-	UPROPERTY(config, EditAnywhere, Category=Agents)
+	/** If set to true, navigation data will be always rebuilt from scratch after loading
+	 *  otherwise navigation system will reuse data saved with map */
+	UPROPERTY(config, EditAnywhere, Category = NavigationSystem)
+	uint32 bForceRebuildOnLoad : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Agents)
 	TArray<FNavDataConfig> SupportedAgents;
 	
 	/** update frequency for dirty areas on navmesh */

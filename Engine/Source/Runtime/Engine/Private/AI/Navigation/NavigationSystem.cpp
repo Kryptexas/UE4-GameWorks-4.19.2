@@ -207,6 +207,7 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 	, bWholeWorldNavigable(false)
 	, bAddPlayersToGenerationSeeds(true)
 	, bSkipAgentHeightCheckWhenPickingNavData(false)
+	, bForceRebuildOnLoad(false)
 	, DirtyAreasUpdateFreq(60)
 	, OperationMode(FNavigationSystem::InvalidMode)
 	, NavOctree(NULL)
@@ -444,11 +445,11 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 		{
 			// don't lock navigation building in editor
 			bInitialBuildingLockActive = false;
-
-			// don't mark dirty areas after loading a map when automatic rebuild is disabled
-			bSkipDirtyAreasOnce = !bNavigationAutoUpdateEnabled;
 		}
-		
+
+		// don't mark dirty areas after loading a map if navigation system doesn't want to rebuilt from scratch
+		bSkipDirtyAreasOnce = !bForceRebuildOnLoad;
+
 		if (bAutoCreateNavigationData == true)
 		{
 			SpawnMissingNavigationData();
