@@ -1821,7 +1821,7 @@ void UCharacterMovementComponent::StartNewPhysics(float deltaTime, int32 Iterati
 	switch ( MovementMode )
 	{
 	case MOVE_None:
-		return;
+		break;
 	case MOVE_Walking:
 		PhysWalking(deltaTime, Iterations);
 		break;
