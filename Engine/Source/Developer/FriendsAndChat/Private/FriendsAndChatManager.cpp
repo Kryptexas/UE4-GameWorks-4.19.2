@@ -257,13 +257,15 @@ void FFriendsAndChatManager::CreateFriendsListWindow(const FFriendsAndChatStyle*
 		BuildFriendsUI();
 		FriendWindow = FSlateApplication::Get().AddWindow(FriendWindow.ToSharedRef());
 	}
-	else if(!FriendWindow->IsWindowMinimized())
+	else if(FriendWindow->IsWindowMinimized())
 	{
 		FriendWindow->Restore();
 		BuildFriendsUI();
 	}
 
 	GenerateChatWindow();
+
+	FriendWindow->BringToFront(true);
 
 	// Clear notifications
 	OnFriendsNotification().Broadcast(false);
@@ -366,7 +368,7 @@ TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 
 void FFriendsAndChatManager::GenerateChatWindow()
 {
-	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(400, 300);
+	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(420, 500);
 
 	check(MessageManager.IsValid());
 	bCreateChatWindow = true;
@@ -393,6 +395,7 @@ void FFriendsAndChatManager::GenerateChatWindow()
 		ChatWindow->Restore();
 		SetChatWindowContents();
 	}
+	ChatWindow->BringToFront(true);
 }
 
 void FFriendsAndChatManager::SetChatFriend( TSharedPtr< IFriendItem > FriendItem )
