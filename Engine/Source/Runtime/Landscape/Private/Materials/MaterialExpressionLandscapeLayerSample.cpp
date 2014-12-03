@@ -41,8 +41,15 @@ FGuid& UMaterialExpressionLandscapeLayerSample::GetParameterExpressionId()
 int32 UMaterialExpressionLandscapeLayerSample::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	const int32 WeightCode = Compiler->StaticTerrainLayerWeight(ParameterName, Compiler->Constant(PreviewWeight));
-
-	return WeightCode;
+	if (WeightCode == INDEX_NONE)
+	{
+		// layer is not used in this component, sample value is 0.
+		return Compiler->Constant(0.f);
+	}
+	else
+	{
+		return WeightCode;
+	}
 }
 
 
