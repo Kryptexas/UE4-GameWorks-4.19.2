@@ -248,7 +248,7 @@ typedef TMap<FString, FPakEntry*> FPakDirectory;
 /**
  * Pak file.
  */
-class PAKFILE_API FPakFile
+class PAKFILE_API FPakFile : FNoncopyable
 {
 	/** Pak filename. */
 	FString PakFilename;

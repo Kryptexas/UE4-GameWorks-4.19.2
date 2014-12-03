@@ -57,6 +57,12 @@ FGraphEditorSummoner::FGraphEditorSummoner(TSharedPtr<class FBlueprintEditor> In
 
 }
 
+TSharedRef<SWidget> FGraphEditorSummoner::CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const
+{
+	check(Info.TabInfo.IsValid());
+	return OnCreateGraphEditorWidget.Execute(Info.TabInfo.ToSharedRef(), DocumentID);
+}
+
 const FSlateBrush* FGraphEditorSummoner::GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const
 {
 	return FBlueprintEditor::GetGlyphForGraph(DocumentID, false);

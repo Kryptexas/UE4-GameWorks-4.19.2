@@ -35,6 +35,8 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
+#include "BlueprintFunctionNodeSpawner.h"
+#include "BlueprintVariableNodeSpawner.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -1099,9 +1101,6 @@ static FString DumpBlueprintInfoUtils::BuildByteSizeString(int32 ByteSize)
 
 	return FString::Printf(Format, ConvertedSize, ByteUnits[UnitsIndex]);
 }
-
-#include "BlueprintFunctionNodeSpawner.h"
-#include "BlueprintVariableNodeSpawner.h"
 
 //------------------------------------------------------------------------------
 static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchive* FileOutWriter)

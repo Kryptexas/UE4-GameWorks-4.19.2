@@ -98,6 +98,10 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 	}
 }
 
+TSharedRef<ISequencer> FSequencerAssetEditor::GetSequencerInterface() const
+{ 
+	return Sequencer.ToSharedRef(); 
+}
 
 FSequencerAssetEditor::FSequencerAssetEditor()
 {

@@ -133,6 +133,11 @@ TOptional<float> FSequencerDragOperation::SnapToTimes(float InitialTime, const T
 }
 
 
+FResizeSection::FResizeSection( UMovieSceneSection& InSection, bool bInDraggingByEnd )
+	: Section( &InSection )
+	, bDraggingByEnd( bInDraggingByEnd )
+{
+}
 
 void FResizeSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode)
 {
@@ -207,6 +212,12 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 			}
 		}
 	}
+}
+
+FMoveSection::FMoveSection( UMovieSceneSection& InSection )
+	: Section( &InSection )
+	, DragOffset(ForceInit)
+{
 }
 
 void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode)

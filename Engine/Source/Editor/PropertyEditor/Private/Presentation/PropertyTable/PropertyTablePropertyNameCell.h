@@ -17,13 +17,13 @@ public:
 
 	virtual void ExitEditMode() override;
 
-	virtual TSharedRef< class IPropertyTableColumn > GetColumn() const override { return Column.Pin().ToSharedRef(); }
+	virtual TSharedRef< class IPropertyTableColumn > GetColumn() const override;
 
 	virtual TSharedPtr< class FPropertyNode > GetNode() const override { return NULL; }
 
 	virtual TWeakObjectPtr< UObject > GetObject() const override;
 
-	virtual TSharedRef< class IPropertyTableRow > GetRow() const override { return Row.Pin().ToSharedRef(); }
+	virtual TSharedRef< class IPropertyTableRow > GetRow() const override;
 
 	virtual TSharedRef< class IPropertyTable > GetTable() const override;
 

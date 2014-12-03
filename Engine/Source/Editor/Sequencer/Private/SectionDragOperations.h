@@ -79,10 +79,7 @@ protected:
 class FResizeSection : public FSequencerDragOperation
 {
 public:
-	FResizeSection( UMovieSceneSection& InSection, bool bInDraggingByEnd )
-		: Section( &InSection )
-		, bDraggingByEnd( bInDraggingByEnd )
-	{}
+	FResizeSection( UMovieSceneSection& InSection, bool bInDraggingByEnd );
 
 	/** FSequencerDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
@@ -102,10 +99,7 @@ private:
 class FMoveSection : public FSequencerDragOperation
 {
 public:
-	FMoveSection( UMovieSceneSection& InSection )
-		: Section( &InSection )
-		, DragOffset(ForceInit)
-	{}
+	FMoveSection( UMovieSceneSection& InSection );
 
 	/** FSequencerDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;

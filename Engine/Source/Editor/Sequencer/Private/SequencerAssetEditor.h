@@ -25,7 +25,7 @@ public:
 	 */
 	void InitSequencerAssetEditor( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor );
 
-	TSharedRef<ISequencer> GetSequencerInterface() const override { return Sequencer.ToSharedRef(); }
+	TSharedRef<ISequencer> GetSequencerInterface() const override;
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;

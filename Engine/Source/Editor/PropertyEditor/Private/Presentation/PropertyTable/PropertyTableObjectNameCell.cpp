@@ -70,6 +70,16 @@ TWeakObjectPtr< UObject > FPropertyTableObjectNameCell::GetObject() const
 	return ObjectNode->GetUObject( 0 );
 }
 
+TSharedRef< class IPropertyTableColumn > FPropertyTableObjectNameCell::GetColumn() const
+{ 
+	return Column.Pin().ToSharedRef(); 
+}
+
+TSharedRef< class IPropertyTableRow > FPropertyTableObjectNameCell::GetRow() const
+{
+	return Row.Pin().ToSharedRef(); 
+}
+
 TSharedRef< class IPropertyTable > FPropertyTableObjectNameCell::GetTable() const
 {
 	return Column.Pin()->GetTable();
