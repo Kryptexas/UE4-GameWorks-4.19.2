@@ -8303,32 +8303,40 @@ bool UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 		}
 		else if( Context.PendingNetGame && Context.PendingNetGame->bSuccessfullyConnected && !Context.PendingNetGame->bSentJoinRequest )
 		{
-			// Attempt to load the map.
-			FString Error;
-			
-			const bool bLoadedMapSuccessfully = LoadMap( Context, Context.PendingNetGame->URL, Context.PendingNetGame, Error );
-				
-			if( !bLoadedMapSuccessfully || Error != TEXT("") )
+			if (!MakeSureMapNameIsValid(Context.PendingNetGame->URL.Map))
 			{
-				// we can't guarantee the current World is in a valid state, so travel to the default map
 				BrowseToDefaultMap(Context);
-				BroadcastTravelFailure(Context.World(), ETravelFailure::LoadMapFailure, Error);
-				check(Context.World() != NULL);
+				BroadcastTravelFailure(Context.World(), ETravelFailure::PackageMissing, Context.PendingNetGame->URL.RedirectURL);
 			}
 			else
 			{
-				// Show connecting message, cause precaching to occur.
-				TransitionType = TT_Connecting;
-					
-				RedrawViewports();
+				// Attempt to load the map.
+				FString Error;
 
-				// Send join.
-				Context.PendingNetGame->SendJoin();
-				Context.PendingNetGame->NetDriver = NULL;
+				const bool bLoadedMapSuccessfully = LoadMap(Context, Context.PendingNetGame->URL, Context.PendingNetGame, Error);
+
+				if (!bLoadedMapSuccessfully || Error != TEXT(""))
+				{
+					// we can't guarantee the current World is in a valid state, so travel to the default map
+					BrowseToDefaultMap(Context);
+					BroadcastTravelFailure(Context.World(), ETravelFailure::LoadMapFailure, Error);
+					check(Context.World() != NULL);
+				}
+				else
+				{
+					// Show connecting message, cause precaching to occur.
+					TransitionType = TT_Connecting;
+
+					RedrawViewports();
+
+					// Send join.
+					Context.PendingNetGame->SendJoin();
+					Context.PendingNetGame->NetDriver = NULL;
+				}
+
+				// Kill the pending level.
+				Context.PendingNetGame = NULL;
 			}
-
-			// Kill the pending level.
-			Context.PendingNetGame = NULL;
 		}
 	}
 	else if (TransitionType == TT_WaitingToConnect)

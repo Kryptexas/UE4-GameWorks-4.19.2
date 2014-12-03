@@ -3549,12 +3549,14 @@ void UWorld::WelcomePlayer(UNetConnection* Connection)
 	Connection->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
 
 	FString GameName;
+	FString RedirectURL;
 	if (AuthorityGameMode != NULL)
 	{
 		GameName = AuthorityGameMode->GetClass()->GetPathName();
+		RedirectURL = AuthorityGameMode->GetRedirectURL(LevelName);
 	}
 
-	FNetControlMessage<NMT_Welcome>::Send(Connection, LevelName, GameName);
+	FNetControlMessage<NMT_Welcome>::Send(Connection, LevelName, GameName, RedirectURL);
 	Connection->FlushNet();
 	// don't count initial join data for netspeed throttling
 	// as it's unnecessary, since connection won't be fully open until it all gets received, and this prevents later gameplay data from being delayed to "catch up"

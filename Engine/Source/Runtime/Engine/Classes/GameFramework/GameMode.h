@@ -565,6 +565,9 @@ public:
 	 */
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList);
 
+	/** Allow the game to specify a place for clients to download MapName */
+	virtual FString GetRedirectURL(const FString& MapName) const;
+
 	/** 
 	 * used to swap a viewport/connection's PlayerControllers when seamless travelling and the new GameMode's
 	 * controller class is different than the previous

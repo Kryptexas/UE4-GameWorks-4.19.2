@@ -597,6 +597,9 @@ struct ENGINE_API FURL
 	FString Map;    // Map name, i.e. "SkyCity", default is "Entry".
 
 	UPROPERTY()
+	FString RedirectURL;    // Optional place to download Map if client does not possess it
+
+	UPROPERTY()
 	TArray<FString> Op;    // Options.
 
 	UPROPERTY()

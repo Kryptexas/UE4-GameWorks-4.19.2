@@ -1719,3 +1719,7 @@ void AGameMode::DefaultTimer()
 {	
 }
 
+FString AGameMode::GetRedirectURL(const FString& MapName) const
+{
+	return FString();
+}

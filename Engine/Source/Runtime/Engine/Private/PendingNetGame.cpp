@@ -205,8 +205,9 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 		{
 			// Server accepted connection.
 			FString GameName;
+			FString RedirectURL;
 
-			FNetControlMessage<NMT_Welcome>::Receive(Bunch, URL.Map, GameName);
+			FNetControlMessage<NMT_Welcome>::Receive(Bunch, URL.Map, GameName, RedirectURL);
 
 			//GEngine->NetworkRemapPath(this, URL.Map);
 
@@ -217,6 +218,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				FURL DefaultURL;
 				FURL TempURL( &DefaultURL, *URL.Map, TRAVEL_Partial );
 				URL.Map = TempURL.Map;
+				URL.RedirectURL = RedirectURL;
 				URL.Op.Append(TempURL.Op);
 			}
 
