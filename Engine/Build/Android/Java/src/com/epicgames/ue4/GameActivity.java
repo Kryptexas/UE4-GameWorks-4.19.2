@@ -130,6 +130,15 @@ public class GameActivity extends NativeActivity
 	{
 		return _activity;
 	}
+	
+	/**
+	Get the SDK level of the OS we are running in.
+	We do this instead of accessing the SDK_INT
+	with JNI from C++ as the new ART runtime seems to have
+	problems dynamically finding/loading static inner classes.
+	*/
+	public static final int ANDROID_BUILD_VERSION = android.os.Build.VERSION.SDK_INT;
+	
 	private StoreHelper IapStoreHelper;
 
 	@Override

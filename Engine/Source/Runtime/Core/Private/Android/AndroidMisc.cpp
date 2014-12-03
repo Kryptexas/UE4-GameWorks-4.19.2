@@ -642,16 +642,15 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 		JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
 		if (nullptr != JEnv)
 		{
-			jclass Class = FAndroidApplication::FindJavaClass("android/os/Build$VERSION");
+			jclass Class = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
 			if (nullptr != Class)
 			{
-				JEnv->NewGlobalRef(Class);
-				jfieldID Field = JEnv->GetStaticFieldID(Class, "SDK_INT", "I");
+				jfieldID Field = JEnv->GetStaticFieldID(Class, "ANDROID_BUILD_VERSION", "I");
 				if (nullptr != Field)
 				{
 					AndroidBuildVersion = JEnv->GetStaticIntField(Class, Field);
 				}
-				JEnv->DeleteGlobalRef(Class);
+				JEnv->DeleteLocalRef(Class);
 			}
 		}
 	}
@@ -666,17 +665,15 @@ bool FAndroidMisc::IsDebuggerPresent()
 	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
 	if (nullptr != JEnv)
 	{
-		jclass Class = FAndroidApplication::FindJavaClass("android.os.Debug");
+		jclass Class = FAndroidApplication::FindJavaClass("android/os/Debug");
 		if (nullptr != Class)
 		{
-			JEnv->NewGlobalRef(Class);
 			// This segfaults for some reason. So this is all disabled for now.
 			jmethodID Method = JEnv->GetStaticMethodID(Class, "isDebuggerConnected", "()Z");
 			if (nullptr != Method)
 			{
 				Result = JEnv->CallStaticBooleanMethod(Class, Method);
 			}
-			JEnv->DeleteGlobalRef(Class);
 		}
 	}
 #endif

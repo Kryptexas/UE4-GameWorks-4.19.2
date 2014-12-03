@@ -14,19 +14,18 @@ FJavaClassObject::FJavaClassObject(FName ClassName, const char* CtorSig, ...)
 	check(Constructor);
 	va_list Params;
 	va_start(Params, CtorSig);
-	Object = JEnv->NewObjectV(Class, Constructor, Params);
+	jobject object = JEnv->NewObjectV(Class, Constructor, Params);
 	va_end(Params);
 	VerifyException();
+	check(object);
 
-	check(Object);
 	// Promote local references to global
-	JEnv->NewGlobalRef(Class);
-	JEnv->NewGlobalRef(Object);
+	Object = JEnv->NewGlobalRef(object);
+	JEnv->DeleteLocalRef(object);
 }
 
 FJavaClassObject::~FJavaClassObject()
 {
-	JEnv->DeleteGlobalRef(Class);
 	JEnv->DeleteGlobalRef(Object);
 }
 
@@ -93,11 +92,11 @@ jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...)
 {
 	va_list Params;
 	va_start(Params, Method);
-	jobject RetVal = JEnv->CallObjectMethodV(Object, Method.Method, Params);
+	jobject val = JEnv->CallObjectMethodV(Object, Method.Method, Params);
 	va_end(Params);
-	JEnv->NewGlobalRef(RetVal);
-	JEnv->DeleteLocalRef(RetVal);
 	VerifyException();
+	jobject RetVal = JEnv->NewGlobalRef(val);
+	JEnv->DeleteLocalRef(val);
 	return RetVal;
 }
 
@@ -130,9 +129,9 @@ FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...)
 jstring FJavaClassObject::GetJString(const FString& String)
 {
 	auto StringCastObj = StringCast<ANSICHAR>(*String);
-	jstring result = FAndroidApplication::GetJavaEnv()->NewStringUTF(StringCastObj.Get());
-	FAndroidApplication::GetJavaEnv()->NewGlobalRef(result);
-	FAndroidApplication::GetJavaEnv()->DeleteLocalRef(result);
+	jstring local = FAndroidApplication::GetJavaEnv()->NewStringUTF(StringCastObj.Get());
+	jstring result = (jstring)FAndroidApplication::GetJavaEnv()->NewGlobalRef(local);
+	FAndroidApplication::GetJavaEnv()->DeleteLocalRef(local);
 	return result;
 }
 

@@ -40,7 +40,7 @@ public:
 	static JNIEnv* GetJavaEnv(bool bRequireGlobalThis = true);
 	static jclass FindJavaClass(const char* name);
 	static void DetachJavaEnv();
-
+	static bool CheckJavaException();
 
 public:	
 	
