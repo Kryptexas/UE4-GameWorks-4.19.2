@@ -1042,7 +1042,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::GetActiveGameplayEffect(
 }
 
 int32 FScopedActiveGameplayEffectLock::AGELockCount = 0;
-FActiveGameplayEffectActionHandle FScopedActiveGameplayEffectLock::DeferredAGEActions;
+TArray<TSharedPtr<FActiveGameplayEffectAction>> FScopedActiveGameplayEffectLock::DeferredAGEActions;
 FScopedActiveGameplayEffectLock::FScopedActiveGameplayEffectLock()
 {
 	++AGELockCount;
@@ -1053,11 +1053,11 @@ FScopedActiveGameplayEffectLock::~FScopedActiveGameplayEffectLock()
 	--AGELockCount;
 	if (!IsLockInEffect())
 	{
-		for (int32 i = 0; i < DeferredAGEActions.Num(); ++i)
+		for (int32 i = 0; i < NumActions(); ++i)
 		{
-			DeferredAGEActions.Get(i)->PerformAction();
+			GetAction(i)->PerformAction();
 		}
-		DeferredAGEActions.Clear();
+		ClearActions();
 	}
 }
 
@@ -1590,20 +1590,19 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
 	// Could make this a map for quicker lookup
-	for(int32 Idx = 0; Idx < GameplayEffects.Num(); ++Idx)
+	for (int32 Idx = 0; Idx < GameplayEffects.Num(); ++Idx)
 	{
-		if(GameplayEffects[Idx].Handle == Handle)
+		if (GameplayEffects[Idx].Handle == Handle)
 		{
 			//Block removal if we're scope-locked
 			if (FScopedActiveGameplayEffectLock::IsLockInEffect())
 			{
-				FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent>(Owner), Handle));
+				FScopedActiveGameplayEffectLock::AddAction()->InitForRemoveGE(TWeakObjectPtr<UAbilitySystemComponent>(Owner), Handle);
 				return true;		//We are assuming the "ensure(Idx < GameplayEffects.Num())" would be passed.
 			}
 			return InternalRemoveActiveGameplayEffect(Idx);
 		}
 	}
-
 	ABILITY_LOG(Warning, TEXT("RemoveActiveGameplayEffect called with invalid Handle: %s"), *Handle.ToString());
 	return false;
 }
@@ -2052,7 +2051,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 			// Defer removal if we're scope-locked
 			if (bLockInEffect)
 			{
-				FScopedActiveGameplayEffectLock::AddAction(new FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent>(Owner), Effect.Handle));
+				FScopedActiveGameplayEffectLock::AddAction()->InitForRemoveGE(TWeakObjectPtr<UAbilitySystemComponent>(Owner), Effect.Handle);
 			}
 			else
 			{
@@ -2228,22 +2227,22 @@ void FInheritedTagContainer::RemoveTag(FGameplayTag TagToRemove)
 	CombinedTags.RemoveTag(TagToRemove);
 }
 
-void FActiveGameplayEffectAction_Remove::PerformAction()
+void FActiveGameplayEffectAction::PerformAction()
 {
+	check(bIsInitialized);
 	if (OwningASC.IsValid())
 	{
-		OwningASC.Get()->RemoveActiveGameplayEffect(Handle);
-	}
-}
-
-void FActiveGameplayEffectAction_Add::PerformAction()
-{
-	if (OwningASC.IsValid())
-	{
-		UAbilitySystemComponent* ASC = OwningASC.Get();
-		check(!ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.IsEmpty());
-		FActiveGameplayEffect TempEffect;
-		ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.Dequeue(TempEffect);
-		ASC->ActiveGameplayEffects.GameplayEffects.Add(TempEffect);
+		if (bRemove)
+		{
+			OwningASC.Get()->RemoveActiveGameplayEffect(Handle);
+		}
+		else
+		{
+			UAbilitySystemComponent* ASC = OwningASC.Get();
+			check(!ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.IsEmpty());
+			FActiveGameplayEffect TempEffect;
+			ASC->ActiveGameplayEffects.GameplayEffectsPendingAdd.Dequeue(TempEffect);
+			ASC->ActiveGameplayEffects.GameplayEffects.Add(TempEffect);
+		}
 	}
 }

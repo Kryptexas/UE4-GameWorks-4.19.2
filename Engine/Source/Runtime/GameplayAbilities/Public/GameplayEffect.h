@@ -1280,98 +1280,41 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction
 {
 	GENERATED_USTRUCT_BODY()
 	FActiveGameplayEffectAction()
+	: bIsInitialized(false)
 	{
 	}
 
-	virtual ~FActiveGameplayEffectAction()
+	void InitForAddGE(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC)
 	{
+		OwningASC = InOwningASC;
+		bRemove = false;
+		bIsInitialized = true;
 	}
 
-	virtual void PerformAction()
+	void InitForRemoveGE(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC, const FActiveGameplayEffectHandle& InHandle)
 	{
-	}
-};
-
-
-USTRUCT()
-struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction_Add : public FActiveGameplayEffectAction
-{
-	GENERATED_USTRUCT_BODY()
-	FActiveGameplayEffectAction_Add()
-	{
+		OwningASC = InOwningASC;
+		Handle = InHandle;
+		bRemove = true;
+		bIsInitialized = true;
 	}
 
-	FActiveGameplayEffectAction_Add(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC)
-	: OwningASC(InOwningASC)
-	{
-	}
-
-	virtual void PerformAction() override;
-
-	UPROPERTY()
-	TWeakObjectPtr<UAbilitySystemComponent> OwningASC;
-};
-
-USTRUCT()
-struct GAMEPLAYABILITIES_API FActiveGameplayEffectAction_Remove : public FActiveGameplayEffectAction
-{
-	GENERATED_USTRUCT_BODY()
-	FActiveGameplayEffectAction_Remove()
-	{
-	}
-
-	FActiveGameplayEffectAction_Remove(TWeakObjectPtr<UAbilitySystemComponent> InOwningASC, const FActiveGameplayEffectHandle& InHandle)
-	: OwningASC(InOwningASC)
-	, Handle(InHandle)
-	{
-	}
-
-	virtual void PerformAction() override;
+	void PerformAction();
 
 	UPROPERTY()
 	TWeakObjectPtr<UAbilitySystemComponent> OwningASC;
 
+	/** This is needed for removals, and does not exist for additions. */
 	UPROPERTY()
 	FActiveGameplayEffectHandle Handle;
+
+	UPROPERTY()
+	bool bRemove;
+
+	UPROPERTY()
+	bool bIsInitialized;
 };
 
-USTRUCT()
-struct GAMEPLAYABILITIES_API FActiveGameplayEffectActionHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FActiveGameplayEffectActionHandle()
-	{
-	}
-
-	FActiveGameplayEffectActionHandle(struct FActiveGameplayEffectAction* DataPtr)
-	{
-		Add(DataPtr);
-	}
-
-	void Add(struct FActiveGameplayEffectAction* DataPtr)
-	{
-		Data.Add(TSharedPtr<FActiveGameplayEffectAction>(DataPtr));
-	}
-
-	void Clear()
-	{
-		Data.Reset();
-	}
-
-	int32 Num()
-	{
-		return Data.Num();
-	}
-
-	FActiveGameplayEffectAction* Get(int32 Index)
-	{
-		check((Index >= 0) && (Index < Data.Num()));
-		return Data[Index].Get();
-	}
-
-	TArray<TSharedPtr<FActiveGameplayEffectAction>>	Data;
-};
 
 struct GAMEPLAYABILITIES_API FScopedActiveGameplayEffectLock
 {
@@ -1380,18 +1323,36 @@ struct GAMEPLAYABILITIES_API FScopedActiveGameplayEffectLock
 
 private:
 	static int32 AGELockCount;
-	static FActiveGameplayEffectActionHandle DeferredAGEActions;
+	static TArray<TSharedPtr<FActiveGameplayEffectAction>> DeferredAGEActions;
 
 public:
-	static void AddAction(FActiveGameplayEffectAction* NewAction)
-	{
-		check(IsLockInEffect());
-		DeferredAGEActions.Add(NewAction);
-	}
-
 	static bool IsLockInEffect()
 	{
 		return (AGELockCount ? true : false);
+	}
+
+	static FActiveGameplayEffectAction* AddAction()
+	{
+		check(IsLockInEffect());
+		FActiveGameplayEffectAction* DataPtr = new FActiveGameplayEffectAction();
+		DeferredAGEActions.Add(TSharedPtr<FActiveGameplayEffectAction>(DataPtr));
+		return DataPtr;
+	}
+
+	void ClearActions()
+	{
+		DeferredAGEActions.Reset();
+	}
+
+	int32 NumActions()
+	{
+		return DeferredAGEActions.Num();
+	}
+
+	FActiveGameplayEffectAction* GetAction(int32 Index)
+	{
+		check((Index >= 0) && (Index < DeferredAGEActions.Num()));
+		return DeferredAGEActions[Index].Get();
 	}
 };
 

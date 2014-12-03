@@ -811,8 +811,9 @@ protected:
 	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass);
 
-	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayEffect;
+	friend struct FActiveGameplayEffectAction;
+	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayCue;
 	friend struct FActiveGameplayCueContainer;
 };
