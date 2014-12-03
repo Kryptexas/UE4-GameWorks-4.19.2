@@ -917,7 +917,8 @@ void SPlacementModeTools::RefreshPlaceables()
 		// Filter out the widgets that don't belong
 		for ( int32 i = 0; i < PlaceableClassWidgets.Num(); i++ )
 		{
-			if ( PlaceableClassWidgets[i]->AssetDisplayName.ToString().Contains(SearchText.ToString()) )
+			const FString* SourceString = FTextInspector::GetSourceString(PlaceableClassWidgets[i]->AssetDisplayName);
+			if ( PlaceableClassWidgets[i]->AssetDisplayName.ToString().Contains( SearchText.ToString() ) || ( SourceString && SourceString->Contains( SearchText.ToString() ) ) )
 			{
 				SearchResultsContainer->AddSlot()
 				[
