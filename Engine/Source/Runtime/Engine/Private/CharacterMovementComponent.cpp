@@ -1237,7 +1237,7 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 		return;
 	}
 
-	if (!IsValid(MovementBase->GetOwner()))
+	if (!IsValid(MovementBase) || !IsValid(MovementBase->GetOwner()))
 	{
 		SetBase(NULL);
 		return;
