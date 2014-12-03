@@ -35,6 +35,9 @@ APawn::APawn(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorld;
+
 	if (HasAnyFlags(RF_ClassDefaultObject) && GetClass() == APawn::StaticClass())
 	{
 		AIControllerClass = LoadClass<AController>(NULL, *((UEngine*)(UEngine::StaticClass()->GetDefaultObject()))->AIControllerClassName.ToString(), NULL, LOAD_None, NULL);
@@ -68,9 +71,9 @@ void APawn::PreInitializeComponents()
 
 	Instigator = this;
 
-	if (AutoPossess != EAutoReceiveInput::Disabled && GetNetMode() != NM_Client )
+	if (AutoPossessPlayer != EAutoReceiveInput::Disabled && GetNetMode() != NM_Client )
 	{
-		const int32 PlayerIndex = int32(AutoPossess.GetValue()) - 1;
+		const int32 PlayerIndex = int32(AutoPossessPlayer.GetValue()) - 1;
 
 		APlayerController* PC = UGameplayStatics::GetPlayerController(this, PlayerIndex);
 		if (PC)
@@ -94,11 +97,16 @@ void APawn::PostInitializeComponents()
 	{
 		GetWorld()->AddPawn( this );
 
-		// automatically add controller to pawns which were placed in level
-		// NOTE: pawns spawned during gameplay are not automatically possessed by a controller
-		if ( GetWorld()->bStartup )
+		// Automatically add Controller to AI Pawns if we are allowed to.
+		if (AutoPossessAI != EAutoPossessAI::Disabled && Controller == NULL && GetNetMode() != NM_Client)
 		{
-			SpawnDefaultController();
+			const bool bPlacedInWorld = (GetWorld()->bStartup);
+			if ((AutoPossessAI == EAutoPossessAI::PlacedInWorldOrSpawned) ||
+				(AutoPossessAI == EAutoPossessAI::PlacedInWorld && bPlacedInWorld) ||
+				(AutoPossessAI == EAutoPossessAI::Spawned && !bPlacedInWorld))
+			{
+				SpawnDefaultController();
+			}
 		}
 
 		// update movement component's nav agent values

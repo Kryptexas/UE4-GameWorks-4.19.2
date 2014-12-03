@@ -75,9 +75,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float BaseEyeHeight;
 
-	/* Specifies which player controller, if any, should automatically possess the pawn when the level starts or the pawn is spawned */
+	/**
+	 * Determines which PlayerController, if any, should automatically possess the pawn when the level starts or when the pawn is spawned.
+	 * @see AutoPossessAI
+	 */
 	UPROPERTY(EditAnywhere, Category=Pawn)
-	TEnumAsByte<EAutoReceiveInput::Type> AutoPossess;
+	TEnumAsByte<EAutoReceiveInput::Type> AutoPossessPlayer;
+
+	/**
+	 * Determines when the Pawn creates and is possessed by an AI Controller (on level start, when spawned, etc).
+	 * Only possible if AIControllerClass is set, and ignored if AutoPossessPlayer is enabled.
+	 * @see AutoPossessPlayer
+	 */
+	UPROPERTY(EditAnywhere, Category=Pawn)
+	EAutoPossessAI AutoPossessAI;
+
+	/**
+	 * Default class to use when pawn is controlled by AI.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="AI Controller Class"), Category=Pawn)
+	TSubclassOf<AController> AIControllerClass;
 
 public:
 
@@ -98,10 +115,6 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=AI)
 	void PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseMakerLocation = true, AActor* NoiseMaker = NULL);
-
-	/** default class to use when pawn is controlled by AI. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AI)
-	TSubclassOf<AController>  AIControllerClass;
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
 	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")

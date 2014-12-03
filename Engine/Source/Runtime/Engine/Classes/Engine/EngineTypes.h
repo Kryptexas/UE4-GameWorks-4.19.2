@@ -2192,6 +2192,15 @@ namespace EAutoReceiveInput
 	};
 }
 
+UENUM()
+enum class EAutoPossessAI : uint8
+{
+	Disabled,				// Feature is disabled (do not automatically possess AI).
+	PlacedInWorld,			// Only possess by an AI Controller if Pawn is placed in the world.
+	Spawned,				// Only possess by an AI Controller if Pawn is spawned after the world has loaded.
+	PlacedInWorldOrSpawned, // Pawn is automatically possessed by an AI Controller whenever it is created.
+};
+
 UENUM(BlueprintType)
 namespace EEndPlayReason
 {
