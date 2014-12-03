@@ -68,6 +68,9 @@ struct FDiffSingleResult
 
 	/** User can override color to use for display string */
 	FLinearColor DisplayColor;
+
+	/** Name of the graph this difference was created on*/
+	FName OwningGraph;
 };
 
 FORCEINLINE bool operator==( const FDiffSingleResult& LHS, const FDiffSingleResult& RHS )

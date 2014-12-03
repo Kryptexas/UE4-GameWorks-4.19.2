@@ -242,6 +242,8 @@ struct KISMET_API FListItemGraphToDiff	: public TSharedFromThis<FListItemGraphTo
 	/*Get new(right) graph*/
 	UEdGraph* GetGraphNew()const{ return GraphNew; }
 
+	/** Source for list view */
+	TArray<TSharedPtr<struct FDiffResultItem>> DiffListSource;
 private:
 
 	/*Get icon to use by graph name*/
@@ -280,9 +282,6 @@ public:
 	/** Called when user clicks on a new graph list item */
 	void OnSelectionChanged(FSharedDiffOnGraph Item, ESelectInfo::Type SelectionType);
 
-	/** Called when user presses key within the diff view */
-	void KeyWasPressed(const FKeyEvent& InKeyEvent);
-
 private:
 
 	/** Called when user clicks button to go to next difference in graph */
@@ -303,12 +302,6 @@ private:
 
 	/** ListView of differences */
 	TSharedPtr<SListViewType> DiffList;
-
-	/** Source for list view */
-	TArray<FSharedDiffOnGraph> DiffListSource;
-
-	/** Key commands processed by this widget */
-	TSharedPtr< FUICommandList > KeyCommands;
 };
 
 TSharedRef<SWidget>	FDiffResultItem::GenerateWidget() const
@@ -337,6 +330,8 @@ FListItemGraphToDiff::FListItemGraphToDiff( class SBlueprintDiff* InDiff, class 
 	{
 		InGraphNew->AddOnGraphChangedHandler( FOnGraphChanged::FDelegate::CreateRaw(this, &FListItemGraphToDiff::OnGraphChanged));
 	}
+
+	BuildDiffSourceArray();
 }
 
 FListItemGraphToDiff::~FListItemGraphToDiff()
@@ -353,8 +348,6 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget()
 	
 	FLinearColor Color = (GraphOld && GraphNew) ? FLinearColor::White : FLinearColor(0.3f,0.3f,1.f);
 
-	BuildDiffSourceArray();
-
 	const bool bHasDiffs = DiffListSource.Num() > 0;
 
 	//give it a red color to indicate that the graph contains differences
@@ -364,7 +357,7 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget()
 	}
 
 	return SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
+	+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
@@ -395,50 +388,10 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget()
 		];
 }
 
-//////////////////////////////////////////////////////////////////////////
-// FDiffListCommands
-
-class FDiffListCommands : public TCommands<FDiffListCommands>
+TSharedRef<SWidget> FListItemGraphToDiff::GenerateDiffListWidget()
 {
-public:
-	/** Constructor */
-	FDiffListCommands() 
-		: TCommands<FDiffListCommands>("DiffList", NSLOCTEXT("Diff", "Blueprint", "Blueprint Diff"), NAME_None, FEditorStyle::GetStyleSetName())
-	{
-	}
-
-	/** Go to previous difference */
-	TSharedPtr<FUICommandInfo> Previous;
-
-	/** Go to next difference */
-	TSharedPtr<FUICommandInfo> Next;
-
-	/** Initialize commands */
-	virtual void RegisterCommands() override;
-};
-
-void FDiffListCommands::RegisterCommands()
-{
-	UI_COMMAND(Previous, "Prev", "Go to previous difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F7, EModifierKey::Control));
-	UI_COMMAND(Next, "Next", "Go to next difference", EUserInterfaceActionType::Button, FInputGesture(EKeys::F7));
-}
-
-
-TSharedRef<SWidget> FListItemGraphToDiff::GenerateDiffListWidget() 
-{
-	BuildDiffSourceArray();
 	if(DiffListSource.Num() > 0)
 	{
-		struct SortDiff
-		{
-			bool operator () (const FSharedDiffOnGraph& A, const FSharedDiffOnGraph& B) const
-			{
-				return A->Result.Diff < B->Result.Diff;
-			}
-		};
-
-		Sort(DiffListSource.GetData(),DiffListSource.Num(), SortDiff());
-
 		TSharedPtr<SListViewType> DiffListRef;
 		TSharedRef<SHorizontalBox> Result =	SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -496,7 +449,7 @@ void FListItemGraphToDiff::OnSelectionChanged( FSharedDiffOnGraph Item, ESelectI
 {
 	if(Item.IsValid())
 	{
-		Diff->OnDiffListSelectionChanged(Item, this);
+		Diff->OnDiffListSelectionChanged(Item);
 	}
 }
 
@@ -509,7 +462,6 @@ FText FListItemGraphToDiff::GetToolTip()
 {
 	if ( GraphOld && GraphNew )
 	{
-		BuildDiffSourceArray();
 		if ( DiffListSource.Num() > 0 )
 		{
 			return LOCTEXT("ContainsDifferences", "Revisions are different");
@@ -539,11 +491,24 @@ void FListItemGraphToDiff::BuildDiffSourceArray()
 	TArray<FDiffSingleResult> FoundDiffs;
 	FGraphDiffControl::DiffGraphs(GraphOld, GraphNew, FoundDiffs);
 
+	FName GraphName = GraphOld ? GraphOld->GetFName() : GraphNew->GetFName();
+
 	DiffListSource.Empty();
 	for (auto DiffIt(FoundDiffs.CreateIterator()); DiffIt; ++DiffIt)
 	{
+		DiffIt->OwningGraph = GraphName;
 		DiffListSource.Add(FSharedDiffOnGraph(new FDiffResultItem(*DiffIt)));
 	}
+
+	struct SortDiff
+	{
+		bool operator () (const FSharedDiffOnGraph& A, const FSharedDiffOnGraph& B) const
+		{
+			return A->Result.Diff < B->Result.Diff;
+		}
+	};
+
+	Sort(DiffListSource.GetData(), DiffListSource.Num(), SortDiff());
 }
 
 void FListItemGraphToDiff::NextDiff()
@@ -612,14 +577,6 @@ int32 FListItemGraphToDiff::GetCurrentDiffIndex() const
 void FListItemGraphToDiff::OnGraphChanged( const FEdGraphEditAction& Action )
 {
 	Diff->OnGraphChanged(this);
-}
-
-void FListItemGraphToDiff::KeyWasPressed( const FKeyEvent& InKeyEvent )
-{
-	if ( KeyCommands.IsValid() )
-	{
-		KeyCommands->ProcessCommandBindings(InKeyEvent);
-	}
 }
 
 FDiffPanel::FDiffPanel()
@@ -710,7 +667,6 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 		.SetDisplayName(NSLOCTEXT("SBlueprintDiff", "MyBlueprintTabTitle", "My Blueprint"))
 		.SetTooltipText(NSLOCTEXT("SBlueprintDiff", "MyBlueprintTooltipText", "Differences in the 'My Blueprints' attributes of the blueprint"));
 
-	FDiffListCommands::Register();
 	check(InArgs._BlueprintOld && InArgs._BlueprintNew);
 	PanelOld.Blueprint = InArgs._BlueprintOld;
 	PanelNew.Blueprint = InArgs._BlueprintNew;
@@ -774,15 +730,93 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 			];
 	}
 
-	const FDiffListCommands& Commands = FDiffListCommands::Get();
-	KeyCommands = MakeShareable(new FUICommandList);
+	FToolBarBuilder ToolbarBuilder(TSharedPtr< const FUICommandList >(), FMultiBoxCustomization::None);
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SBlueprintDiff::PrevDiff),
+			FCanExecuteAction::CreateSP( this, &SBlueprintDiff::HasPrevDiff)
+		)
+		, NAME_None
+		, LOCTEXT("PrevDiffLabel", "Prev")
+		, LOCTEXT("PrevDiffTooltip", "Go to previous difference")
+		, FSlateIcon(FEditorStyle::GetStyleSetName()
+		, "BlueprintDif.PrevDiff")
+	);
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SBlueprintDiff::NextDiff),
+			FCanExecuteAction::CreateSP(this, &SBlueprintDiff::HasNextDiff)
+		)
+		, NAME_None
+		, LOCTEXT("NextDiffLabel", "Next")
+		, LOCTEXT("NextDiffTooltip", "Go to next difference")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(
+		), "BlueprintDif.NextDiff")
+	);
+	ToolbarBuilder.AddSeparator();
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintDiff::OnToggleLockView2))
+		, NAME_None
+		, LOCTEXT("LockGraphsLabel", "Lock Graphs")
+		, LOCTEXT("LockGraphsTooltip", "Lock the various panels displayed in the graph view, so that they scroll together")
+		, TAttribute<FSlateIcon>(this, &SBlueprintDiff::GetLockViewImage2)
+	);
 
-	KeyCommands->MapAction(Commands.Previous, FExecuteAction::CreateSP(this, &SBlueprintDiff::PrevDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::HasPrevDiff) );
-	KeyCommands->MapAction(Commands.Next, FExecuteAction::CreateSP(this, &SBlueprintDiff::NextDiff), FCanExecuteAction::CreateSP( this, &SBlueprintDiff::HasNextDiff) );
+	GraphPanel = GenerateGraphPanel();
+	DefaultsPanel = GenerateDefaultsPanel();
+	ComponentsPanel = GenerateComponentsPanel();
 
-	FToolBarBuilder ToolbarBuilder(KeyCommands.ToSharedRef(), FMultiBoxCustomization::None);
-	ToolbarBuilder.AddToolBarButton(Commands.Previous, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.PrevDiff"));
-	ToolbarBuilder.AddToolBarButton(Commands.Next, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDif.NextDiff"));
+	// Unfortunately we can't perform the diff until the UI is generated, the primary reason for this is that
+	// details customizations determine what is actually editable:
+	for (const auto& Graph : Graphs)
+	{
+		TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> > Children;
+		for (const auto& Difference : Graph->DiffListSource)
+		{
+			auto ChildEntry = MakeShareable(
+				new FBlueprintDifferenceTreeEntry(
+				FOnDiffEntryFocused::CreateRaw(this, &SBlueprintDiff::OnDiffListSelectionChanged, Difference)
+				, FGenerateDiffEntryWidget::CreateSP(Difference.ToSharedRef(), &FDiffResultItem::GenerateWidget)
+				, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >()
+				)
+			);
+			Children.Push(ChildEntry);
+		}
+
+		auto Entry = MakeShareable(
+			new FBlueprintDifferenceTreeEntry(
+				FOnDiffEntryFocused::CreateRaw(this, &SBlueprintDiff::OnSelectionChanged, Graph, ESelectInfo::Direct )
+				, FGenerateDiffEntryWidget::CreateSP(Graph.ToSharedRef(), &FListItemGraphToDiff::GenerateWidget)
+				, Children)
+			);
+		MasterDifferencesList.Push(Entry);
+	}
+
+	//DefaultsPanel.DiffControl->CalculateDifferences(MasterDifferencesList);
+	//ComponentsPanel.DiffControl->CalculateDifferences(MasterDifferencesList);
+
+	const auto RowGenerator = []( TSharedPtr< FBlueprintDifferenceTreeEntry > Entry, const TSharedRef<STableViewBase>& Owner ) -> TSharedRef< ITableRow >
+	{
+		return SNew( STableRow<TSharedPtr<FBlueprintDifferenceTreeEntry> >, Owner )
+			[
+				Entry->GenerateWidget.Execute()
+			];
+	};
+
+	const auto ChildrenAccessor = [](TSharedPtr<FBlueprintDifferenceTreeEntry> InTreeItem, TArray< TSharedPtr< FBlueprintDifferenceTreeEntry > >& OutChildren, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >* MasterList )
+	{
+		OutChildren = InTreeItem->Children;
+	};
+
+	const auto Selector = [](TSharedPtr<FBlueprintDifferenceTreeEntry> InTreeItem, ESelectInfo::Type Type)
+	{
+		if( InTreeItem.IsValid() )
+		{
+			InTreeItem->OnFocus.ExecuteIfBound();
+		}
+	};
+	
+	const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >* MasterDifferencesListPtr = &MasterDifferencesList;
 
 	this->ChildSlot
 		[
@@ -824,7 +858,25 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 				]
 				+ SVerticalBox::Slot()
 				[
-					SAssignNew(ModeContents, SBorder)
+					SNew(SSplitter)
+					+ SSplitter::Slot()
+					.Value(.2f)
+					[
+						SNew(SBorder)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						[
+							SNew(STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >)
+							.OnGenerateRow( STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >::FOnGenerateRow::CreateStatic(RowGenerator) )
+							.OnGetChildren( STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >::FOnGetChildren::CreateStatic(ChildrenAccessor, MasterDifferencesListPtr) )
+							.OnSelectionChanged( STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >::FOnSelectionChanged::CreateStatic(Selector) )
+							.TreeItemsSource(&MasterDifferencesList)
+						]
+					]
+					+ SSplitter::Slot()
+					.Value(.8f)
+					[
+						SAssignNew(ModeContents, SBox)
+					]
 				]
 			]
 			
@@ -851,12 +903,12 @@ void SBlueprintDiff::CreateGraphEntry( class UEdGraph* GraphOld, class UEdGraph*
 
 void SBlueprintDiff::OnSelectionChanged( FGraphToDiff Item, ESelectInfo::Type SelectionType) 
 {
-	if(SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid())
+	if(!Item.IsValid())
 	{
 		return;
 	}
 
-	FocusOnGraphRevisions(Item->GetGraphOld(), Item->GetGraphNew(), Item.Get());
+	FocusOnGraphRevisions(Item.Get());
 
 }
 
@@ -864,7 +916,7 @@ void SBlueprintDiff::OnGraphChanged(FListItemGraphToDiff* Diff)
 {
 	if(PanelNew.GraphEditor.IsValid() && PanelNew.GraphEditor.Pin()->GetCurrentGraph() == Diff->GetGraphNew())
 	{
-		FocusOnGraphRevisions(Diff->GetGraphOld(), Diff->GetGraphNew(), Diff);
+		FocusOnGraphRevisions(Diff);
 	}
 }
 
@@ -946,19 +998,31 @@ TSharedRef<SDockTab> SBlueprintDiff::CreateMyBlueprintsViews(const FSpawnTabArgs
 	];
 }
 
-void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
+FListItemGraphToDiff* SBlueprintDiff::FindGraphToDiffEntry(FName ByName)
 {
-	HandleGraphChanged( GraphOld ? GraphOld->GetFName() : GraphNew->GetFName() );
-
-	ResetGraphEditors();
-
-	DiffControl = Diff->AsShared();
-	//set new diff list
-	DiffListBorder->SetContent(Diff->GenerateDiffListWidget());
+	for( const auto& Graph : Graphs )
+	{
+		FName GraphName = Graph->GetGraphOld() ? Graph->GetGraphOld()->GetFName() : Graph->GetGraphNew()->GetFName();
+		if (GraphName == ByName )
+		{
+			return Graph.Get();
+		}
+	}
+	return nullptr;
 }
 
-void SBlueprintDiff::OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, FListItemGraphToDiff* GraphDiffer )
+void SBlueprintDiff::FocusOnGraphRevisions( FListItemGraphToDiff* Diff )
 {
+	FName GraphName = Diff->GetGraphOld() ? Diff->GetGraphOld()->GetFName() : Diff->GetGraphNew()->GetFName();
+	HandleGraphChanged( GraphName );
+
+	ResetGraphEditors();
+}
+
+void SBlueprintDiff::OnDiffListSelectionChanged(TSharedPtr<FDiffResultItem> TheDiff )
+{
+	check( TheDiff->Result.OwningGraph != FName() );
+	FocusOnGraphRevisions( FindGraphToDiffEntry( TheDiff->Result.OwningGraph ) );
 	FDiffSingleResult Result = TheDiff->Result;
 
 	const auto SafeClearSelection = []( TWeakPtr<SGraphEditor> GraphEditor )
@@ -991,11 +1055,21 @@ void SBlueprintDiff::OnDiffListSelectionChanged(const TSharedPtr<struct FDiffRes
 	}
 }
 
+void	SBlueprintDiff::OnToggleLockView2()
+{
+	OnToggleLockView();
+}
+
 FReply	SBlueprintDiff::OnToggleLockView()
 {
 	bLockViews = !bLockViews;
 	ResetGraphEditors();
 	return FReply::Handled();
+}
+
+FSlateIcon SBlueprintDiff::GetLockViewImage2() const
+{
+	return FSlateIcon(FEditorStyle::GetStyleSetName(), bLockViews ? "GenericLock" : "GenericUnlock");
 }
 
 const FSlateBrush* SBlueprintDiff::GetLockViewImage() const
@@ -1198,6 +1272,11 @@ FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
 
 void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
 {
+	if( CurrentMode != FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
+	{
+		SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+	}
+	
 	TArray<UEdGraph*> GraphsOld, GraphsNew;
 	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
 	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
@@ -1217,7 +1296,7 @@ void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
 	PanelNew.GeneratePanel(GraphNew, GraphOld);
 }
 
-TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
+SBlueprintDiff::FDiffControl SBlueprintDiff::GenerateGraphPanel()
 {
 	const TSharedRef<FTabManager::FLayout> DefaultLayout = FTabManager::NewLayout("BlueprintDiff_Layout_v1")
 	->AddArea
@@ -1243,140 +1322,66 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateGraphPanel()
 			.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
 	};
 
+	SBlueprintDiff::FDiffControl Ret;
+
 	PanelOld.DetailsView = CreateInspector(PanelOld.MyBlueprint);
 	PanelOld.MyBlueprint->SetInspector(PanelOld.DetailsView);
 	PanelNew.DetailsView = CreateInspector(PanelNew.MyBlueprint);
 	PanelNew.MyBlueprint->SetInspector(PanelNew.DetailsView);
 
-	return SNew(SBorder)
+	Ret.Widget = SNew(SBorder)
 	.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 	.Content()
 	[
-		SNew(SBorder)
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.FillHeight(1.f)
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.FillHeight(1.f)
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
 			[
+				//diff window
 				SNew(SSplitter)
-				+ SSplitter::Slot()
-				.Value(0.2f)
+				.Orientation(Orient_Vertical)
+				+SSplitter::Slot()
+				.Value(.8f)
 				[
-					SNew(SBorder)
-					[
-						SNew(SSplitter)
-						.Orientation(Orient_Vertical)
-						+ SSplitter::Slot()
-						.Value(0.3f)
-						[
-							SNew(SVerticalBox)
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.HAlign(HAlign_Left)
-							[
-								//toggle lock button
-								SNew(SButton)
-								.OnClicked(this, &SBlueprintDiff::OnToggleLockView)
-								.Content()
-								[
-									SNew(SImage)
-									.Image(this, &SBlueprintDiff::GetLockViewImage)
-									.ToolTipText(LOCTEXT("BPDifLock", "Lock the blueprint views?"))
-								]
-							]
-							+ SVerticalBox::Slot()
-								.FillHeight(1.f)
-								[
-									//graph selection 
-									SNew(SBorder)
-									[
-										SNew(SVerticalBox)
-										+ SVerticalBox::Slot()
-										.AutoHeight()
-										[
-											SNew(SBorder)
-											.BorderImage(FEditorStyle::GetBrush("PropertyWindow.CategoryBackground"))
-											.Padding(FMargin(2.0f))
-											.ForegroundColor(FEditorStyle::GetColor("PropertyWindow.CategoryForeground"))
-											.ToolTipText(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
-											.HAlign(HAlign_Center)
-											[
-												SNew(STextBlock)
-												.Text(LOCTEXT("BlueprintDifGraphs", "Graphs"))
-											]
-										]
-										+ SVerticalBox::Slot()
-											.FillHeight(1.f)
-											[
-												SAssignNew(GraphsToDiff, SListViewType)
-												.ItemHeight(24)
-												.ListItemsSource(&Graphs)
-												.OnGenerateRow(this, &SBlueprintDiff::OnGenerateRow)
-												.SelectionMode(ESelectionMode::Single)
-												.OnSelectionChanged(this, &SBlueprintDiff::OnSelectionChanged)
-											]
-									]
-								]
-						]
-						+ SSplitter::Slot()
-							.Value(0.7f)
-							[
-								SNew(SVerticalBox)
-								+ SVerticalBox::Slot()
-								.FillHeight(1.f)
-								[
-									SAssignNew(DiffListBorder, SBorder)
-								]
-							]
-					]
+					// graph and my blueprint views:
+					TabControl
 				]
 				+ SSplitter::Slot()
-				.Value(0.8f)
+				.Value(.2f)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.f)
+					SNew( SSplitter )
+					+SSplitter::Slot()
 					[
-						//diff window
-						SNew(SSplitter)
-						.Orientation(Orient_Vertical)
-						+SSplitter::Slot()
-						.Value(.8f)
-						[
-							// graph and my blueprint views:
-							TabControl
-						]
-						+ SSplitter::Slot()
-						.Value(.2f)
-						[
-							SNew( SSplitter )
-							+SSplitter::Slot()
-							[
-								PanelOld.DetailsView.ToSharedRef()
-							]
-							+ SSplitter::Slot()
-							[
-								PanelNew.DetailsView.ToSharedRef()
-							]
-						]
+						PanelOld.DetailsView.ToSharedRef()
+					]
+					+ SSplitter::Slot()
+					[
+						PanelNew.DetailsView.ToSharedRef()
 					]
 				]
 			]
 		]
 	];
+
+	return Ret;
 }
 
-TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
+SBlueprintDiff::FDiffControl SBlueprintDiff::GenerateDefaultsPanel()
 {
 	const UObject* A = DiffUtils::GetCDO(PanelOld.Blueprint);
 	const UObject* B = DiffUtils::GetCDO(PanelNew.Blueprint);
 	TArray<FPropertySoftPath> DifferingProperties;
 	DiffUtils::CompareUnrelatedObjects( A, B, DifferingProperties);
 
+	SBlueprintDiff::FDiffControl Ret;
 	auto NewDiffControl = TSharedPtr<FCDODiffControl>(new FCDODiffControl(A, B, DifferingProperties) );
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
-	DiffControl = NewDiffControl;
-	return SNew(SSplitter)
+	Ret.DiffControl = NewDiffControl;
+	Ret.Widget = SNew(SSplitter)
 		+ SSplitter::Slot()
 		.Value(0.5f)
 		[
@@ -1395,14 +1400,18 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 				NewDiffControl->NewDetailsWidget()
 			]
 		];
+
+	return Ret;
 }
 
-TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
+SBlueprintDiff::FDiffControl SBlueprintDiff::GenerateComponentsPanel()
 {
+	SBlueprintDiff::FDiffControl Ret;
+
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
 	auto NewDiffControl = TSharedPtr<FSCSDiffControl>(new FSCSDiffControl(PanelOld.Blueprint, PanelNew.Blueprint) );
-	DiffControl = NewDiffControl;
-	return SNew(SSplitter)
+	Ret.DiffControl = NewDiffControl;
+	Ret.Widget = SNew(SSplitter)
 		+ SSplitter::Slot()
 		.Value(0.5f)
 		[
@@ -1421,6 +1430,8 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
 				NewDiffControl->NewTreeWidget()
 			]
 		];
+
+	return Ret;
 }
 
 void SBlueprintDiff::SetCurrentMode(FName NewMode)
@@ -1430,31 +1441,23 @@ void SBlueprintDiff::SetCurrentMode(FName NewMode)
 	DiffControl = TSharedPtr< IDiffControl >();
 	if( NewMode == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 	{
-		ModeContents->SetContent( GenerateGraphPanel() );
+		DiffControl = GraphPanel.DiffControl;
+		ModeContents->SetContent( GraphPanel.Widget.ToSharedRef() );
 	}
 	else if( NewMode == FBlueprintEditorApplicationModes::BlueprintDefaultsMode )
 	{
-		ModeContents->SetContent( GenerateDefaultsPanel() );
+		DiffControl = DefaultsPanel.DiffControl;
+		ModeContents->SetContent( DefaultsPanel.Widget.ToSharedRef() );
 	}
 	else if (NewMode == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
 	{
-		ModeContents->SetContent( GenerateComponentsPanel() );
+		DiffControl = ComponentsPanel.DiffControl;
+		ModeContents->SetContent( ComponentsPanel.Widget.ToSharedRef() );
 	}
 	else
 	{
 		ensureMsgf(false, TEXT("Diff panel does not support mode %s"), *NewMode.ToString() );
 	}
-}
-
-FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
-{
-	TArray< FGraphToDiff>  Selected = GraphsToDiff->GetSelectedItems();
-	for(auto It(Selected.CreateIterator());It;++It)
-	{
-		FGraphToDiff& Diff = *It;
-		Diff->KeyWasPressed(InKeyEvent);
-	}
-	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

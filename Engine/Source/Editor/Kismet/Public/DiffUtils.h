@@ -151,3 +151,22 @@ namespace DiffUtils
 	KISMET_API TArray<FPropertyPath> ResolveAll(const UObject* Object, const TArray<FPropertySoftPath>& InSoftProperties);
 
 }
+
+DECLARE_DELEGATE(FOnDiffEntryFocused);
+DECLARE_DELEGATE_RetVal(TSharedRef<SWidget>, FGenerateDiffEntryWidget);
+
+class FBlueprintDifferenceTreeEntry
+{
+public:
+	FBlueprintDifferenceTreeEntry( FOnDiffEntryFocused InOnFocus, FGenerateDiffEntryWidget InGenerateWidget, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> > InChildren ) 
+		: OnFocus(InOnFocus)
+		, GenerateWidget(InGenerateWidget)
+		, Children(InChildren) 
+	{
+		check( InGenerateWidget.IsBound() );
+	}
+
+	FOnDiffEntryFocused OnFocus;
+	FGenerateDiffEntryWidget GenerateWidget;
+	TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> > Children;
+};
