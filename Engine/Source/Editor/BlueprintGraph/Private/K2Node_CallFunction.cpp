@@ -1029,6 +1029,17 @@ bool UK2Node_CallFunction::CanPasteHere(const UEdGraph* TargetGraph) const
 	return bCanPaste;
 }
 
+bool UK2Node_CallFunction::IsActionFilteredOut(FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	for(UEdGraph* TargetGraph : Filter.Context.Graphs)
+	{
+		bIsFilteredOut |= !CanPasteHere(TargetGraph);
+	}
+
+	return bIsFilteredOut;
+}
+
 static FLinearColor GetPalletteIconColor(UFunction const* Function)
 {
 	bool const bIsPure = (Function != nullptr) && Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
