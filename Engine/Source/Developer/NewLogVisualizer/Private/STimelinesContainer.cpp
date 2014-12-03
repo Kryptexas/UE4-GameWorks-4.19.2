@@ -3,6 +3,9 @@
 #include "STimeline.h"
 #include "STimelineBar.h"
 #include "TimeSliderController.h"
+#include "SVisualLoggerReport.h"
+
+#define LOCTEXT_NAMESPACE "STimelinesContainer"
 
 TSharedRef<SWidget> STimelinesContainer::MakeTimeline(TSharedPtr<class SVisualLoggerView> VisualLoggerView, TSharedPtr<class FSequencerTimeSliderController> TimeSliderController, const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
@@ -13,11 +16,43 @@ TSharedRef<SWidget> STimelinesContainer::MakeTimeline(TSharedPtr<class SVisualLo
 			SAssignNew(NewTimeline, STimeline, VisualLoggerView, TimeSliderController, SharedThis(this), Entry)
 			.OnItemSelectionChanged(this->VisualLoggerInterface->GetVisualLoggerEvents().OnItemSelectionChanged)
 			.VisualLoggerInterface(this->VisualLoggerInterface)
+			.OnGetMenuContent(this, &STimelinesContainer::GetRightClickMenuContent)
 		];
 
 	TimelineItems.Add(NewTimeline.ToSharedRef());
 
 	return NewTimeline.ToSharedRef();
+}
+
+TSharedRef<SWidget> STimelinesContainer::GetRightClickMenuContent()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	MenuBuilder.BeginSection("VisualLogReports", LOCTEXT("VisualLogReports", "VisualLog Reports"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("GenarateReport", "Genarate Report"),
+			LOCTEXT("GenarateReportTooltip", "Genarate report from Visual Log events."),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &STimelinesContainer::GenerateReport))
+			);
+	}
+	MenuBuilder.EndSection();
+
+	FDisplayMetrics DisplayMetrics;
+	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+
+	const FVector2D DisplaySize(
+		DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left,
+		DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+
+	return
+		SNew(SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.MaxHeight(DisplaySize.Y * 0.5)
+		[
+			MenuBuilder.MakeWidget()
+		];
 }
 
 void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> AffectedNode, bool bSelect, bool bDeselectOtherNodes)
@@ -30,11 +65,14 @@ void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> Affected
 			SelectedNodes.Empty();
 		}
 
-		SelectedNodes.Add(AffectedNode);
-		AffectedNode->OnSelect();
+		if (AffectedNode.IsValid())
+		{
+			SelectedNodes.Add(AffectedNode);
+			AffectedNode->OnSelect();
+		}
 		VisualLoggerInterface->GetVisualLoggerEvents().OnObjectSelectionChanged.ExecuteIfBound(AffectedNode);
 	}
-	else
+	else if (AffectedNode.IsValid())
 	{
 		// Not selecting so remove the node from the selection set
 		SelectedNodes.Remove(AffectedNode);
@@ -62,25 +100,33 @@ void STimelinesContainer::ChangeSelection(class TSharedPtr<class STimeline> Time
 	}
 	else
 	{
-		TSharedPtr<class STimeline> LastSelected = SelectedNodes[SelectedNodes.Num() - 1];
-		bool bStartedSelection = false;
-		for (auto& CurrentItem : TimelineItems)
+		if (SelectedNodes.Num() == 0 && TimelineItems.Num())
 		{
-			if (CurrentItem == LastSelected || CurrentItem == Timeline)
+			SetSelectionState(TimelineItems[0], true, true);
+		}
+
+		TSharedPtr<class STimeline> LastSelected = SelectedNodes.Num() ? SelectedNodes[SelectedNodes.Num() - 1] : nullptr;
+		if (LastSelected.IsValid())
+		{
+			bool bStartedSelection = false;
+			for (auto& CurrentItem : TimelineItems)
 			{
-				if (!bStartedSelection)
+				if (CurrentItem == LastSelected || CurrentItem == Timeline)
 				{
-					bStartedSelection = true;
+					if (!bStartedSelection)
+					{
+						bStartedSelection = true;
+					}
+					else
+					{
+						bStartedSelection = false;
+						break;
+					}
 				}
-				else
+				if (bStartedSelection)
 				{
-					bStartedSelection = false;
-					break;
+					SetSelectionState(CurrentItem, true, false);
 				}
-			}
-			if (bStartedSelection)
-			{
-				SetSelectionState(CurrentItem, true, false);
 			}
 		}
 		SetSelectionState(Timeline, true, false);
@@ -160,14 +206,7 @@ FReply STimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 			ContainingBorder->RemoveSlot(CurrentNode.ToSharedRef());
 		}
 
-		if (NotSelectedOne.IsValid())
-		{
-			SetSelectionState(NotSelectedOne.Pin(), true, true);
-		}
-		else
-		{
-			SelectedNodes.Reset();
-		}
+		SetSelectionState(NotSelectedOne.Pin(), true, true);
 		return FReply::Handled();
 	}
 	else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down)
@@ -276,3 +315,31 @@ void STimelinesContainer::OnFiltersChanged()
 		CurrentItem->OnFiltersChanged();
 	}
 }
+
+void STimelinesContainer::GenerateReport()
+{
+	//TArray< TSharedPtr<FLogsListItem> > ItemsToSave = LogsListWidget->GetSelectedItems();
+	//TArray< TSharedPtr<class STimeline> > AllLogs;
+
+	//TSharedPtr<FLogsListItem>* LogListItem = ItemsToSave.GetData();
+	//for (int32 ItemIndex = 0; ItemIndex < ItemsToSave.Num(); ++ItemIndex, ++LogListItem)
+	//{
+	//	if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
+	//	{
+	//		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[(*LogListItem)->LogIndex];
+	//		AllLogs.Add(Log);
+	//	}
+	//}
+
+
+	TSharedRef<SWindow> NewWindow = SNew(SWindow)
+		.ClientSize(FVector2D(720, 768))
+		.Title(NSLOCTEXT("LogVisualizerReport", "WindowTitle", "Log Visualizer Report"))
+		[
+			SNew(SVisualLoggerReport, SelectedNodes)
+		];
+
+	FSlateApplication::Get().AddWindow(NewWindow);
+}
+
+#undef LOCTEXT_NAMESPACE

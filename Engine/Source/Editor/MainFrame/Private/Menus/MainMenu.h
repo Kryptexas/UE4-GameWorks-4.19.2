@@ -99,6 +99,7 @@ private:
 	*/
 	static void OpenVisualLogger()
 	{
+		FModuleManager::Get().LoadModuleChecked<IModuleInterface>("NewLogVisualizer");
 		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
 	}
 };

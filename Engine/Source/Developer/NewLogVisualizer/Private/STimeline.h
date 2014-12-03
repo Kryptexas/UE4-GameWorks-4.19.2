@@ -9,8 +9,9 @@ class STimeline : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(STimeline){}
-		SLATE_EVENT(FOnItemSelectionChanged, OnItemSelectionChanged)
 		SLATE_ATTRIBUTE(TSharedPtr<IVisualLoggerInterface>, VisualLoggerInterface)
+		SLATE_EVENT(FOnItemSelectionChanged, OnItemSelectionChanged)
+		SLATE_EVENT(FOnGetContent, OnGetMenuContent)
 	SLATE_END_ARGS();
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -40,7 +41,11 @@ protected:
 	TSharedPtr<class STimelinesContainer> Owner;
 	TSharedPtr<class STimelineBar> TimelineBar;
 	TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface;
+	TSharedPtr<SMenuAnchor> PopupAnchor;
 
 	FName Name;
 	FString SearchFilter;
+
+	/** Delegate to execute to get the menu content of this timeline */
+	FOnGetContent OnGetMenuContent;
 };

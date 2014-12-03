@@ -13,7 +13,12 @@ STimeline::~STimeline()
 FReply STimeline::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	Owner->ChangeSelection(SharedThis(this), MouseEvent);
-	return FReply::Unhandled();
+	if (OnGetMenuContent.IsBound() && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		PopupAnchor->SetIsOpen(!PopupAnchor->IsOpen());
+	}
+
+	return FReply::Handled();
 }
 
 FReply STimeline::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -90,6 +95,8 @@ void STimeline::HandleLogVisualizerSettingChanged(FName Name)
 void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView> VisualLoggerView, TSharedPtr<FSequencerTimeSliderController> TimeSliderController, TSharedPtr<STimelinesContainer> InContainer, const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
 	VisualLoggerInterface = InArgs._VisualLoggerInterface.Get();
+	OnGetMenuContent = InArgs._OnGetMenuContent;
+
 	Owner = InContainer;
 	Name = Entry.OwnerName;
 
@@ -108,20 +115,24 @@ void STimeline::Construct(const FArguments& InArgs, TSharedPtr<SVisualLoggerView
 			.VAlign(VAlign_Fill)
 			.FillWidth(TAttribute<float>(VisualLoggerView.Get(), &SVisualLoggerView::GetAnimationOutlinerFillPercentage))
 			[
-				SNew(SBorder)
-				.HAlign(HAlign_Fill)
-				.Padding(FMargin(0, 0, 4, 0))
-				.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
+				SAssignNew(PopupAnchor, SMenuAnchor)
+				.OnGetMenuContent(OnGetMenuContent)
 				[
 					SNew(SBorder)
-					.VAlign(VAlign_Center)
-					.BorderImage(this, &STimeline::GetBorder)
-					.Padding(FMargin(4, 0, 2, 0))
+					.HAlign(HAlign_Fill)
+					.Padding(FMargin(0, 0, 4, 0))
+					.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 					[
-						// Search box for searching through the outliner
-						SNew(STextBlock)
-						.Text(FString(Name.ToString()))
-						.ShadowOffset(FVector2D(1.f, 1.f))
+						SNew(SBorder)
+						.VAlign(VAlign_Center)
+						.BorderImage(this, &STimeline::GetBorder)
+						.Padding(FMargin(4, 0, 2, 0))
+						[
+							// Search box for searching through the outliner
+							SNew(STextBlock)
+							.Text(FString(Name.ToString()))
+							.ShadowOffset(FVector2D(1.f, 1.f))
+						]
 					]
 				]
 			]

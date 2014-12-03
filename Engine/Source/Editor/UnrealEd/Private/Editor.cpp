@@ -605,6 +605,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 
+		if (GetDefault<UEditorExperimentalSettings>()->bVisualLogger)
+		{
+			FModuleManager::Get().LoadModule(TEXT("NewLogVisualizer"));
+		}
+
 		bool bGameplayAbilitiesEnabled = false;
 		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
 		if (bGameplayAbilitiesEnabled)

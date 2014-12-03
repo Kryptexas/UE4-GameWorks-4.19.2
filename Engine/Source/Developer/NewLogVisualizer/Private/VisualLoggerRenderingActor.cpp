@@ -155,6 +155,20 @@ void AVisualLoggerRenderingActor::AddDebugRendering()
 
 void AVisualLoggerRenderingActor::ObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
 {
+	if (TimeLine.IsValid() == false)
+	{
+		Lines.Reset();
+		Points.Reset();
+		Cones.Reset();
+		Boxes.Reset();
+		Meshes.Reset();
+		Texts.Reset();
+		Cylinders.Reset();
+		Capsles.Reset();
+		MarkComponentsRenderStateDirty();
+		return;
+	}
+
 	const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = TimeLine->GetEntries();
 	LogEntriesPath.Reset();
 	for (const auto &CurrentEntry : Entries)

@@ -200,35 +200,38 @@ public:
 	{
 		if (FParse::Command(&Cmd, TEXT("VISLOG")))
 		{
+			if (FModuleManager::Get().LoadModulePtr<IModuleInterface>("NewLogVisualizer") != nullptr)
+			{
 #if ENABLE_VISUAL_LOG
-			FString Command = FParse::Token(Cmd, 0);
-			if (Command == TEXT("record"))
-			{
-				FVisualLogger::Get().SetIsRecording(true);
-				return true;
-			}
-			else if (Command == TEXT("stop"))
-			{
-				FVisualLogger::Get().SetIsRecording(false);
-				return true;
-			}
-			else if (Command == TEXT("disableallbut"))
-			{
-				FString Category = FParse::Token(Cmd, 1);
-				FVisualLogger::Get().BlockAllCategories(true);
-				FVisualLogger::Get().GetWhiteList().AddUnique(*Category);
-				return true;
-			}
+				FString Command = FParse::Token(Cmd, 0);
+				if (Command == TEXT("record"))
+				{
+					FVisualLogger::Get().SetIsRecording(true);
+					return true;
+				}
+				else if (Command == TEXT("stop"))
+				{
+					FVisualLogger::Get().SetIsRecording(false);
+					return true;
+				}
+				else if (Command == TEXT("disableallbut"))
+				{
+					FString Category = FParse::Token(Cmd, 1);
+					FVisualLogger::Get().BlockAllCategories(true);
+					FVisualLogger::Get().GetWhiteList().AddUnique(*Category);
+					return true;
+				}
 #if WITH_EDITOR
-			else
-			{
-				FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
-				return true;
-			}
+				else
+				{
+					FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
+					return true;
+				}
 #endif
 #else
 			UE_LOG(LogVisual, Warning, TEXT("Unable to open LogVisualizer - logs are disabled"));
 #endif
+			}
 		}
 		return false;
 	}

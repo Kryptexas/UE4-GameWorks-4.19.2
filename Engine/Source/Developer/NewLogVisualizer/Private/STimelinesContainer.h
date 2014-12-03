@@ -21,6 +21,7 @@ public:
 	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs, TSharedRef<class SVisualLoggerView>, TSharedRef<FSequencerTimeSliderController> TimeSliderController);
 	TSharedRef<SWidget> MakeTimeline(TSharedPtr<class SVisualLoggerView> VisualLoggerView, TSharedPtr<class FSequencerTimeSliderController> TimeSliderController, const FVisualLogDevice::FVisualLogEntryItem& Entry);
+	TSharedRef<SWidget> GetRightClickMenuContent();
 
 	void OnTimelineSelected(TSharedPtr<class STimelinesBar> Widget);
 	void ChangeSelection(class TSharedPtr<class STimeline>, const FPointerEvent& MouseEvent);
@@ -29,6 +30,7 @@ public:
 	void OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry);
 	void OnFiltersChanged();
 	void OnSearchChanged(const FText& Filter);
+	void GenerateReport();
 
 	/**
 	* Selects a node in the tree
