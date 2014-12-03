@@ -36,6 +36,10 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	UPROPERTY()
 	uint32 FunctionFlags;
 
+	// UObject interface
+	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual FText GetTooltipText() const override;
