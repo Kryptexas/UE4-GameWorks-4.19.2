@@ -156,6 +156,8 @@ bool FEditorPropertyPathSegment::ValidateMember(UDelegateProperty* DelegatePrope
 		}
 	}
 
+	OutError = LOCTEXT("Binding_UnknownError", "Unknown Error");
+
 	return false;
 }
 

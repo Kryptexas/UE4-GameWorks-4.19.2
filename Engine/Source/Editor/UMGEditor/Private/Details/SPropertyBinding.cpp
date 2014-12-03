@@ -37,7 +37,7 @@ void SPropertyBinding::Construct(const FArguments& InArgs, TSharedRef<FWidgetBlu
 		SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-		.AutoWidth()
+		.FillWidth(1.0f)
 		[
 			SNew(SComboButton)
 			.OnGetMenuContent(this, &SPropertyBinding::OnGenerateDelegateMenu, Widget, Property)
@@ -571,7 +571,21 @@ void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> Prop
 		Binding.ObjectName = SelectedObject->GetName();
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.FunctionName = SelectedFunction->FuncName;
-		Binding.SourcePath = BindingPath;
+
+		// On event function bindings, we don't allow nested bindings, so don't fill out
+		// the source path, it will be interpreted as needing a dynamic binder.
+		if ( GeneratePureBindings )
+		{
+			Binding.SourcePath = BindingPath;
+		}
+		else
+		{
+			UBlueprint::GetGuidFromClassByFieldName<UFunction>(
+				SelectedFunction->Function->GetOwnerClass(),
+				SelectedFunction->Function->GetFName(),
+				Binding.MemberGuid);
+		}
+
 		Binding.Kind = EBindingKind::Function;
 
 		Blueprint->Bindings.Remove(Binding);
