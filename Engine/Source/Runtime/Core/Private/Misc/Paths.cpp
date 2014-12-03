@@ -91,6 +91,12 @@ FString FPaths::GameUserDir()
 	}
 	else
 	{
+		FString UserDir;
+		if (FParse::Value(FCommandLine::Get(), TEXT("UserDir="), UserDir))
+		{
+			return FPaths::Combine(*FPaths::GameDir(), *UserDir) + TEXT("/");
+		}
+
 		return FPaths::GameDir();
 	}
 }
