@@ -2495,12 +2495,44 @@ void APlayerController::GetAudioListenerPosition(FVector& OutLocation, FVector& 
 {
 	FVector ViewLocation;
 	FRotator ViewRotation;
-	GetPlayerViewPoint(ViewLocation, ViewRotation);
+
+	if (bOverrideAudioListener)
+	{
+		if (AudioListenerComponent != nullptr)
+		{
+			ViewRotation = AudioListenerComponent->GetComponentRotation() + AudioListenerRotationOverride;
+			ViewLocation = AudioListenerComponent->GetComponentLocation() + ViewRotation.RotateVector(AudioListenerLocationOverride);
+		}
+		else
+		{
+			ViewLocation = AudioListenerLocationOverride;
+			ViewRotation = AudioListenerRotationOverride;
+		}
+	}
+	else
+	{
+		GetPlayerViewPoint(ViewLocation, ViewRotation);
+	}
+
 	const FRotationTranslationMatrix ViewRotationMatrix(ViewRotation, ViewLocation);
 
 	OutLocation = ViewLocation;
 	OutFrontDir = ViewRotationMatrix.GetUnitAxis( EAxis::X );
 	OutRightDir = ViewRotationMatrix.GetUnitAxis( EAxis::Y );
+}
+
+void APlayerController::SetAudioListenerOverride(USceneComponent* AttachedComponent, FVector Location, FRotator Rotation)
+{
+	bOverrideAudioListener = true;
+	AudioListenerComponent = AttachedComponent;
+	AudioListenerLocationOverride = Location;
+	AudioListenerRotationOverride = Rotation;
+}
+
+void APlayerController::ClearAudioListenerOverride()
+{
+	bOverrideAudioListener = false;
+	AudioListenerComponent = nullptr;
 }
 
 bool APlayerController::ServerCheckClientPossession_Validate()

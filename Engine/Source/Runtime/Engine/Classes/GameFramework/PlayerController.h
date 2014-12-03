@@ -1234,8 +1234,33 @@ public:
 	/** get audio listener position and orientation */
 	virtual void GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir);
 
-protected:
+	/**
+	 * Used to override the default positioning of the audio listener
+	 * 
+	 * @param AttachToComponent Optional component to attach the audio listener to
+	 * @param Location Depending on whether Component is attached this is either an offset from its location or an absolute position
+	 * @param Rotation Depending on whether Component is attached this is either an offset from its rotation or an absolute rotation
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Audio")
+	void SetAudioListenerOverride(USceneComponent* AttachToComponent, FVector Location, FRotator Rotation);
 
+	/**
+	 * Clear any overrides that have been applied to audio listener
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game|Audio")
+	void ClearAudioListenerOverride();
+
+protected:
+	/** Whether to override the normal audio listener positioning method */
+	uint32 bOverrideAudioListener:1;
+	/** Component that is currently driving the audio listener position/orientation */
+	USceneComponent* AudioListenerComponent;
+	/** Currently overridden location of audio listener */
+	FVector AudioListenerLocationOverride;
+	/** Currently overridden rotation of audio listener */
+	FRotator AudioListenerRotationOverride;
+
+protected:
 	/** Internal. */
 	void TickPlayerInput(const float DeltaSeconds, const bool bGamePaused);
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
